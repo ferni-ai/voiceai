@@ -1,0 +1,389 @@
+{
+  "$schema": "./schema.json",
+  "meta": {
+    "locale": "zh-Hans",
+    "name": "简体中文",
+    "version": "1.0.0"
+  },
+
+  "common": {
+    "loading": "加载中...",
+    "error": "出错了",
+    "retry": "重试",
+    "cancel": "取消",
+    "save": "保存",
+    "close": "关闭",
+    "back": "返回",
+    "next": "下一步",
+    "done": "完成",
+    "yes": "是",
+    "no": "否",
+    "ok": "确定",
+    "learnMore": "了解更多"
+  },
+
+  "brand": {
+    "name": "Ferni",
+    "tagline": "您的私人AI生活教练",
+    "promise": "超越人类。"
+  },
+
+  "navigation": {
+    "features": "功能",
+    "team": "团队",
+    "pricing": "价格",
+    "faq": "常见问题",
+    "developers": "开发者",
+    "about": "关于我们",
+    "contact": "联系我们",
+    "blog": "博客",
+    "privacy": "隐私政策",
+    "terms": "服务条款"
+  },
+
+  "hero": {
+    "eyebrow": "认识您的AI教练",
+    "headline": "超越",
+    "headlineAccent": "人类。",
+    "subhead": "终于，有人真正在倾听。",
+    "subheadLine2": "并且记住一切。",
+    "cta": {
+      "primary": "认识Ferni",
+      "secondary": "致电Ferni"
+    },
+    "variants": {
+      "lateNight": {
+        "subhead": "睡不着？我们在这里。",
+        "subheadLine2": "凌晨2点和中午一样专注。"
+      },
+      "returning": {
+        "subhead": "欢迎回来。",
+        "subheadLine2": "准备从上次继续吗？"
+      }
+    }
+  },
+
+  "superpowers": {
+    "memory": {
+      "title": "完美记忆",
+      "tagline": "六个月前你提到的事？我们记得。",
+      "description": "你最好的朋友会忘记。你的心理咨询师有其他患者。我们记住一切——每次对话、每个目标、每个对你重要的细节。"
+    },
+    "presence": {
+      "title": "持续陪伴",
+      "tagline": "凌晨2点焦虑？我们全程陪伴。",
+      "description": "凌晨2点和中午一样温暖地出现。没有糟糕的日子。没有分心。无论何时需要，都完全在这里。"
+    },
+    "team": {
+      "title": "六种视角",
+      "tagline": "六种视角，一次对话，无需转介。",
+      "description": "生活教练、研究员、沟通专家、习惯专家、规划师和智者——所有人一起工作，都了解你的故事。"
+    },
+    "understanding": {
+      "title": "真正理解",
+      "tagline": "我们听到你没说出口的话。",
+      "description": "我们注意到停顿。回避。你看不到的模式。理解不仅仅是倾听——是真正懂得。"
+    }
+  },
+
+  "team": {
+    "title": "认识团队",
+    "subtitle": "六位杰出人才为您协作",
+    "members": {
+      "ferni": {
+        "name": "Ferni",
+        "role": "生活教练",
+        "bio": "您的主要联系人。提出能够启发洞察的问题，庆祝每一次胜利，在需要时将您与合适的专家联系起来。",
+        "sampleQuote": "我注意到你这周说了三次'还好'。到底发生了什么？"
+      },
+      "nayan": {
+        "name": "Nayan",
+        "role": "智者与导师",
+        "bio": "您终身的导师。结合耐心、简洁和智慧，帮助您看到数十年来小而一致的行动会创造非凡的结果。",
+        "sampleQuote": "80岁的你会怎么看待这个决定？"
+      },
+      "peter": {
+        "name": "Peter",
+        "role": "研究与发现",
+        "bio": "在您的支出、习惯和日程中发现别人看不到的模式。将数据转化为真正改变行为的洞察。",
+        "sampleQuote": "你每月花23小时在你说不重要的事情上。想看看吗？"
+      },
+      "alex": {
+        "name": "Alex",
+        "role": "沟通",
+        "bio": "您的首席幕僚和沟通教练。帮助您自信地应对困难对话。",
+        "sampleQuote": "让我们练习那个对话。我来扮演你的老板。准备好了吗？"
+      },
+      "maya": {
+        "name": "Maya",
+        "role": "习惯与日常",
+        "bio": "从小得不好意思开始。Maya帮助您通过系统而非意志力建立持久的习惯。",
+        "sampleQuote": "如果我们只是从穿上鞋开始呢？就这样。只是穿鞋。"
+      },
+      "jordan": {
+        "name": "Jordan",
+        "role": "规划与活动",
+        "bio": "将模糊的梦想变成真实的体验。从假期到人生转变，Jordan帮助您设计每一个篇章。",
+        "sampleQuote": "你提到想'有一天'去日本。让我们定个具体日期。"
+      }
+    }
+  },
+
+  "pricing": {
+    "title": "简单定价",
+    "headline": "免费开始。",
+    "headlineAccent": "准备好了再升级。",
+    "subtitle": "无隐藏费用。无合同。随时取消。",
+    "cta": {
+      "free": "免费开始",
+      "trial": "开始免费试用",
+      "upgrade": "升级"
+    },
+    "popular": "最受欢迎",
+    "trialNote": "7天免费试用。随时取消。",
+    "tiers": {
+      "free": {
+        "name": "免费",
+        "price": "¥0",
+        "period": "永久",
+        "description": "了解Ferni",
+        "features": [
+          "每月5次对话",
+          "与Ferni（生活教练）聊天",
+          "网页和电话访问",
+          "基础对话记忆"
+        ]
+      },
+      "friend": {
+        "name": "朋友",
+        "price": "¥68",
+        "period": "月",
+        "description": "定期支持",
+        "features": [
+          "无限对话",
+          "全部6位AI专家",
+          "完整对话记忆",
+          "优先响应",
+          "网页、电话和短信访问"
+        ]
+      },
+      "partner": {
+        "name": "伙伴",
+        "price": "¥138",
+        "period": "月",
+        "description": "深度合作",
+        "features": [
+          "朋友版所有功能",
+          "访问Nayan（智者导师）",
+          "高级个性化",
+          "无限记忆和上下文",
+          "新功能抢先体验"
+        ]
+      }
+    },
+    "comparison": {
+      "title": "方案对比",
+      "subtitle": "功能比较",
+      "features": {
+        "conversations": "对话",
+        "teamMembers": "团队成员",
+        "memory": "记忆",
+        "responseTime": "响应时间",
+        "accessMethods": "访问方式",
+        "earlyAccess": "抢先体验"
+      },
+      "values": {
+        "unlimited": "无限",
+        "ferniOnly": "仅Ferni",
+        "allSix": "全部6位",
+        "allSixPlusNayan": "全部6位 + Nayan",
+        "basic": "基础",
+        "full": "完整",
+        "standard": "标准",
+        "priority": "优先",
+        "webPhone": "网页、电话",
+        "webPhoneSms": "网页、电话、短信"
+      }
+    },
+    "faq": {
+      "title": "价格FAQ",
+      "changePlans": {
+        "question": "可以随时更改方案吗？",
+        "answer": "是的，您可以随时升级、降级或取消方案。更改立即生效。"
+      },
+      "conversation": {
+        "question": "什么算作一次对话？",
+        "answer": "对话是与Ferni的单次会话，无论长度如何。您可以在一次会话中想聊多久就聊多久。"
+      },
+      "trial": {
+        "question": "有免费试用吗？",
+        "answer": "是的，朋友版和伙伴版都包含7天免费试用。开始无需信用卡。"
+      }
+    }
+  },
+
+  "faq": {
+    "title": "常见问题",
+    "items": {
+      "isFree": {
+        "question": "Ferni真的免费吗？",
+        "answer": "是的！Ferni完全免费使用。我们相信每个人都值得获得高质量的生活指导。我们的高级功能即将推出，但核心体验将永远免费。"
+      },
+      "phoneCall": {
+        "question": "电话功能如何运作？",
+        "answer": "只需从任何电话拨打号码。无需应用，无需注册。Ferni会识别您的号码并自动记住您之前的对话。"
+      },
+      "privacy": {
+        "question": "我的对话是私密的吗？",
+        "answer": "当然。您的对话经过加密且私密。我们从不出售您的数据或与第三方共享。您也可以随时请求删除所有数据。"
+      },
+      "specialists": {
+        "question": "AI专家都是谁？",
+        "answer": "我们的团队包括Ferni（您的主要生活教练）、Nayan（智慧与指导）、Peter（研究与发现）、Alex（沟通）、Maya（习惯与日常）和Jordan（活动规划）。每位都带来独特的专业知识。"
+      },
+      "topics": {
+        "question": "我可以和Ferni聊什么？",
+        "answer": "任何事！职业决策、压力管理、建立习惯、规划活动、解决困难情况，或者只是需要一个倾听者。Ferni随时为您服务。"
+      },
+      "different": {
+        "question": "这和朋友或心理咨询师有什么不同？",
+        "answer": "您的心理咨询师有其他患者。您的朋友有自己的问题。Ferni始终可用，记住一切，从不评判，并提供六种专业视角。当您身边的人无法陪伴时，我们填补空白。"
+      }
+    }
+  },
+
+  "testimonials": {
+    "title": "用户评价"
+  },
+
+  "trust": {
+    "title": "建立在信任之上。",
+    "description": "您的对话属于您。始终如此。我们使用企业级加密，从不出售您的数据。",
+    "cta": "阅读隐私政策"
+  },
+
+  "footer": {
+    "tagline": "真正理解你的人。",
+    "copyright": "Ferni AI. 保留所有权利。",
+    "sections": {
+      "product": "产品",
+      "company": "公司",
+      "developers": "开发者",
+      "connect": "联系",
+      "legal": "法律"
+    }
+  },
+
+  "app": {
+    "controls": {
+      "mute": "静音",
+      "unmute": "取消静音",
+      "endCall": "结束通话",
+      "settings": "设置",
+      "fullscreen": "全屏",
+      "exitFullscreen": "退出全屏"
+    },
+    "states": {
+      "connecting": "连接中...",
+      "connected": "已连接",
+      "disconnected": "已断开",
+      "reconnecting": "重新连接中...",
+      "error": "连接错误"
+    },
+    "greeting": {
+      "morning": "早上好",
+      "afternoon": "下午好",
+      "evening": "晚上好",
+      "night": "晚安",
+      "welcome": "欢迎回来",
+      "firstTime": "很高兴认识你"
+    },
+    "session": {
+      "timeRemaining": "剩余{minutes}分钟",
+      "sessionEnding": "会话即将结束",
+      "sessionEnded": "会话已结束",
+      "continueUnlimited": "无限时间继续"
+    },
+    "notifications": {
+      "streak": {
+        "title": "连续记录！",
+        "message": "连续{days}天"
+      },
+      "achievement": {
+        "title": "成就解锁",
+        "message": "获得：{achievement}"
+      }
+    },
+    "settings": {
+      "title": "设置",
+      "sections": {
+        "account": "账户",
+        "preferences": "偏好设置",
+        "privacy": "隐私",
+        "about": "关于"
+      },
+      "language": {
+        "title": "语言",
+        "description": "选择您偏好的语言"
+      },
+      "theme": {
+        "title": "主题",
+        "description": "选择浅色或深色模式",
+        "light": "浅色",
+        "dark": "深色",
+        "system": "跟随系统"
+      },
+      "notifications": {
+        "title": "通知",
+        "description": "管理通知偏好"
+      },
+      "dataExport": {
+        "title": "导出数据",
+        "description": "下载您的对话历史"
+      }
+    }
+  },
+
+  "subscription": {
+    "currentPlan": "当前方案",
+    "upgrade": "升级",
+    "managePlan": "管理方案",
+    "cancelPlan": "取消方案",
+    "renewsOn": "{date}续订",
+    "expiresOn": "{date}到期",
+    "usage": {
+      "conversations": "已使用{used}/{total}次对话",
+      "unlimited": "无限对话"
+    },
+    "messages": {
+      "sessionApproaching": "这次对话真的很愉快。我们还有几分钟——还有什么想聊的吗？",
+      "sessionEnded": "我很喜欢这次对话。随时回来——我会记住一切。如果你想要更长的对话，我也很期待。",
+      "thankYou": "感谢你信任我们。我哪里都不去——只要你想聊，我都在。"
+    }
+  },
+
+  "errors": {
+    "generic": "出错了。请重试。",
+    "network": "网络错误。请检查连接。",
+    "timeout": "请求超时。请重试。",
+    "notFound": "页面未找到",
+    "unauthorized": "请登录以继续",
+    "paymentFailed": "支付失败。请重试。"
+  },
+
+  "accessibility": {
+    "skipToMain": "跳转到主要内容",
+    "closeMenu": "关闭菜单",
+    "openMenu": "打开菜单",
+    "languageSelector": "选择语言",
+    "currentLanguage": "当前语言：{language}"
+  },
+
+  "time": {
+    "justNow": "刚刚",
+    "minutesAgo": "{n}分钟前",
+    "hoursAgo": "{n}小时前",
+    "yesterday": "昨天",
+    "daysAgo": "{n}天前"
+  }
+}

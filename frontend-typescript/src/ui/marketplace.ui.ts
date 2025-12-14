@@ -25,6 +25,10 @@ import {
   TEAM_MEMBERS,
 } from '../services/team-unlock.service.js';
 import { createLogger } from '../utils/logger.js';
+import {
+  requestPermissionConsent,
+  type MarketplaceItem,
+} from './marketplace-permission-consent.ui.js';
 import { soundUI } from './sound.ui.js';
 import { refreshMarketplaceAgents } from './team.ui.js';
 
@@ -124,7 +128,7 @@ function ensureModalExists(): HTMLElement {
   if (marketplaceModal && document.body.contains(marketplaceModal)) {
     return marketplaceModal;
   }
-  
+
   // HMR cleanup - only if we don't have a valid modal
   cleanupOrphanedElements();
 
@@ -691,6 +695,15 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
         ? `<button class="agent-action uninstall" data-agent-id="${agent.id}">Remove</button>`
         : `<button class="agent-action install" data-agent-id="${agent.id}">Add to Team</button>`;
 
+      // Rating display
+      const ratingHtml = agent.rating
+        ? `<div class="agent-rating">
+            <span class="rating-stars">${renderStars(agent.rating)}</span>
+            <span class="rating-value">${agent.rating.toFixed(1)}</span>
+            ${agent.reviewCount ? `<span class="rating-count">(${formatReviewCount(agent.reviewCount)})</span>` : ''}
+          </div>`
+        : '';
+
       return `
     <article class="marketplace-agent ${stateClass}" data-agent-id="${agent.id}" data-persona="${agent.id}" role="listitem">
       <div class="agent-header">
@@ -700,6 +713,7 @@ function renderAgentCards(agents: (MarketplaceAgent & { isInstalled: boolean })[
         <div class="agent-meta">
           <h3 class="agent-name">${agent.name}</h3>
           <span class="agent-category">${getCategoryLabel(agent.category)}</span>
+          ${ratingHtml}
         </div>
         ${badgeHtml}
       </div>
@@ -760,6 +774,49 @@ function showEmpty(message: string): void {
     }
     empty.style.display = 'flex';
   }
+}
+
+/**
+ * Render star rating icons
+ */
+function renderStars(rating: number): string {
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating - fullStars >= 0.5;
+  const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+
+  const starIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" class="star-icon">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+  </svg>`;
+
+  const halfStarIcon = `<svg width="12" height="12" viewBox="0 0 24 24" class="star-icon star-half">
+    <defs>
+      <linearGradient id="half-star">
+        <stop offset="50%" stop-color="currentColor"/>
+        <stop offset="50%" stop-color="transparent"/>
+      </linearGradient>
+    </defs>
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="url(#half-star)" stroke="currentColor" stroke-width="1"/>
+  </svg>`;
+
+  const emptyStarIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" class="star-icon star-empty">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+  </svg>`;
+
+  return (
+    starIcon.repeat(fullStars) +
+    (hasHalfStar ? halfStarIcon : '') +
+    emptyStarIcon.repeat(emptyStars)
+  );
+}
+
+/**
+ * Format review count for display
+ */
+function formatReviewCount(count: number): string {
+  if (count >= 1000) {
+    return `${(count / 1000).toFixed(1)}k`;
+  }
+  return count.toString();
 }
 
 /**
@@ -833,17 +890,17 @@ function handleModalKeydown(e: KeyboardEvent): void {
  */
 function handleModalTouch(e: TouchEvent): void {
   const target = e.target as HTMLElement;
-  
+
   // Only handle single-finger taps
   if (e.touches && e.touches.length > 1) return;
-  
+
   // Check if tapping close button or backdrop
   if (target.closest('[data-action="close"]')) {
     e.preventDefault();
     closeMarketplace();
     return;
   }
-  
+
   // Check if tapping a tab
   const tab = target.closest('[data-tab]') as HTMLElement;
   if (tab) {
@@ -856,7 +913,7 @@ function handleModalTouch(e: TouchEvent): void {
     }
     return;
   }
-  
+
   // Check if tapping agent action button
   const actionBtn = target.closest('.agent-action') as HTMLElement;
   if (actionBtn) {
@@ -886,6 +943,37 @@ async function handleAgentAction(agentId: string, isUninstall: boolean): Promise
       marketplaceService.uninstallAgent(agentId);
       soundUI.play('disconnect');
     } else {
+      // Get agent details for permission consent
+      const registry = await marketplaceService.fetchRegistry();
+      const agent = registry.agents.find((a) => a.id === agentId);
+
+      if (agent) {
+        // Request permission consent before installing
+        const consentItem: MarketplaceItem = {
+          id: agent.id,
+          name: agent.name,
+          type: 'agent',
+          publisher: {
+            name: agent.author,
+            verified: false, // TODO: Get from registry
+          },
+          trustLevel: 'community', // TODO: Get from registry
+          permissions: {
+            required: [], // TODO: Get from agent manifest
+            optional: [],
+          },
+        };
+
+        const consent = await requestPermissionConsent(consentItem);
+
+        if (!consent.granted) {
+          log.info(`User declined to install agent: ${agentId}`);
+          return;
+        }
+
+        log.info(`User granted permissions for ${agentId}:`, consent.permissions);
+      }
+
       await marketplaceService.installAgent(agentId);
       soundUI.play('success');
     }
@@ -1367,6 +1455,41 @@ function getMarketplaceStyles(): string {
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: var(--color-warm-amber, #C4A265);
+    }
+
+    .agent-rating {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .rating-stars {
+      display: flex;
+      align-items: center;
+      color: var(--color-warm-amber, #C4A265);
+    }
+
+    .star-icon {
+      width: 12px;
+      height: 12px;
+    }
+
+    .star-empty {
+      opacity: 0.3;
+    }
+
+    .rating-value {
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-text-primary, rgba(255, 255, 255, 0.9));
+    }
+
+    .rating-count {
+      font-family: 'Inter', var(--font-body, sans-serif);
+      font-size: 0.7rem;
+      color: var(--color-text-secondary, rgba(255, 255, 255, 0.5));
     }
 
     .agent-badge {
@@ -1905,6 +2028,18 @@ function getMarketplaceStyles(): string {
     }
 
     [data-theme="zen"] .agent-category {
+      color: rgba(44, 37, 32, 0.5);
+    }
+
+    [data-theme="zen"] .agent-rating .rating-stars {
+      color: var(--color-warm-amber, #B8956A);
+    }
+
+    [data-theme="zen"] .agent-rating .rating-value {
+      color: rgba(44, 37, 32, 0.9);
+    }
+
+    [data-theme="zen"] .agent-rating .rating-count {
       color: rgba(44, 37, 32, 0.5);
     }
 

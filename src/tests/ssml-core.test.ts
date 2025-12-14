@@ -106,6 +106,43 @@ describe('SSML Core Functions', () => {
         expect(sanitizeSsml('He chuckles softly. Then says hello.')).toContain('[laughter]');
       });
 
+      it('should convert *laughing* to [laughter]', () => {
+        expect(sanitizeSsml('*laughing* That was so funny!')).toContain('[laughter]');
+        expect(sanitizeSsml('*laughing*')).toContain('[laughter]');
+      });
+
+      it('should convert (laughing) to [laughter]', () => {
+        expect(sanitizeSsml('(laughing) Oh my goodness!')).toContain('[laughter]');
+      });
+
+      it('should convert [laughing] to [laughter]', () => {
+        expect(sanitizeSsml('[laughing] That joke was perfect!')).toContain('[laughter]');
+      });
+
+      it('should convert standalone "laughing" to [laughter]', () => {
+        const result = sanitizeSsml("Laughing, that's a great point!");
+        expect(result).toContain('[laughter]');
+        expect(result).not.toMatch(/\blaughing\b/i);
+      });
+
+      it('should convert "chuckling" to [laughter]', () => {
+        expect(sanitizeSsml('Chuckling softly, she agreed.')).toContain('[laughter]');
+        expect(sanitizeSsml('*chuckling*')).toContain('[laughter]');
+        expect(sanitizeSsml('(chuckling)')).toContain('[laughter]');
+      });
+
+      it('should convert "giggling" to [laughter]', () => {
+        expect(sanitizeSsml('Giggling, I said yes.')).toContain('[laughter]');
+        expect(sanitizeSsml('*giggling*')).toContain('[laughter]');
+        expect(sanitizeSsml('(giggling)')).toContain('[laughter]');
+      });
+
+      it('should remove any remaining "laughing" text after conversion', () => {
+        // Edge case: Make sure "laughing" doesn't appear in spoken output
+        const result = sanitizeSsml('I was laughing so hard at that joke!');
+        expect(result).not.toMatch(/\blaughing\b/i);
+      });
+
       it('should not create duplicate [laughter] tags', () => {
         const result = sanitizeSsml('[laughter] *chuckles* More text');
         const laughterMatches = result.match(/\[laughter\]/g) || [];
@@ -179,6 +216,25 @@ describe('SSML Core Functions', () => {
         expect(sanitizeSsml('Smirking, she turned away.')).not.toContain('Smirking');
       });
 
+      it('should remove sarcastic and sarcastically', () => {
+        expect(sanitizeSsml('Sarcastic. Oh sure, that will work.')).not.toContain('Sarcastic');
+        expect(sanitizeSsml('Sarcastically, she replied.')).not.toContain('Sarcastically');
+      });
+
+      it('should remove multi-word tone descriptors like "playfully sarcastic"', () => {
+        const result = sanitizeSsml('Playfully sarcastic. Oh, you think so?');
+        expect(result).not.toContain('Playfully');
+        expect(result).not.toContain('sarcastic');
+        expect(result).toContain('Oh, you think so?');
+      });
+
+      it('should remove other tone combinations', () => {
+        expect(sanitizeSsml('Warmly teasing. You know what I mean.')).not.toContain('teasing');
+        expect(sanitizeSsml('Wryly. That figures.')).not.toContain('Wryly');
+        expect(sanitizeSsml('Deadpan. Sure.')).not.toContain('Deadpan');
+        expect(sanitizeSsml('Mockingly. Oh really?')).not.toContain('Mockingly');
+      });
+
       it('should preserve [laughter] while removing other bracketed actions', () => {
         const result = sanitizeSsml('[laughter] That is funny [pauses] okay');
         expect(result).toContain('[laughter]');
@@ -203,6 +259,31 @@ describe('SSML Core Functions', () => {
         expect(result).toContain('the market is doing okay');
         expect(result).not.toContain('sighs');
         expect(result).not.toContain('nods');
+      });
+    });
+
+    describe('Emotion Tag Preservation', () => {
+      it('should preserve inline emotion tags', () => {
+        const input = '<emotion value="angry"/>I will not allow this!';
+        const result = sanitizeSsml(input);
+        expect(result).toContain('<emotion value="angry"/>');
+        expect(result).toContain('I will not allow this!');
+      });
+
+      it('should preserve mid-sentence emotion changes', () => {
+        const input =
+          '<emotion value="angry"/>I will not allow this! <emotion value="sad"/>I was hoping for peace.';
+        const result = sanitizeSsml(input);
+        expect(result).toContain('<emotion value="angry"/>');
+        expect(result).toContain('<emotion value="sad"/>');
+      });
+
+      it('should preserve emotion tags while removing stage directions', () => {
+        const input = '<emotion value="happy"/>*smiles* That is wonderful news!';
+        const result = sanitizeSsml(input);
+        expect(result).toContain('<emotion value="happy"/>');
+        expect(result).not.toContain('smiles');
+        expect(result).toContain('That is wonderful news!');
       });
     });
 

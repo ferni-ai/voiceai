@@ -1,15 +1,17 @@
 /**
  * Nonverbal Sound Module
  *
- * Adds natural nonverbal sounds like [laughter], [sigh] to responses.
- * Cartesia supports these bracket-notation sounds for more human speech.
+ * Adds natural nonverbal sounds to responses for more human speech.
  *
- * Key insight: Humans naturally add nonverbal sounds:
- * - [laughter] after jokes or shared humor
- * - [sigh] during empathetic moments
- * - [hmm] when thinking
+ * IMPORTANT: Cartesia Sonic-3 ONLY supports [laughter] as a bracket notation.
+ * [sigh], [cough], [hmm] etc. are NOT currently supported (planned for future).
  *
- * @see https://docs.cartesia.ai - Cartesia supports [laughter] notation
+ * Strategy for unsupported sounds:
+ * - [laughter] → Use [laughter] bracket notation (supported)
+ * - Thinking sounds → Use plain text "Hmm..." (synthesized with persona voice)
+ * - Sighs → Skip or use plain text (bracket notation not supported)
+ *
+ * @see https://docs.cartesia.ai/build-with-cartesia/sonic-3/volume-speed-emotion
  */
 
 import { getLogger } from '../../utils/safe-logger.js';

@@ -159,6 +159,11 @@ let currentState: TeamUnlockState | null = null;
 let subscriptionTier: 'free' | 'friend' | 'partner' = 'free';
 const unlockListeners: Set<(state: TeamUnlockState) => void> = new Set();
 const memberUnlockListeners: Set<(member: TeamMemberConfig) => void> = new Set();
+const almostThereListeners: Set<(member: TeamMemberConfig, progress: number) => void> = new Set();
+
+// Track which members we've already shown "almost there" for (to avoid spam)
+const almostThereShown = new Set<TeamMemberId>();
+const ALMOST_THERE_THRESHOLD = 0.8; // 80%
 
 // ============================================================================
 // CORE LOGIC
@@ -321,6 +326,25 @@ export function updateUnlockState(): TeamUnlockState {
     if (member) {
       log.info({ memberId: newlyUnlocked }, '🎉 Team member unlocked!');
       memberUnlockListeners.forEach((listener) => listener(member));
+
+      // Clear "almost there" tracking since they're now unlocked
+      almostThereShown.delete(newlyUnlocked);
+    }
+  }
+
+  // Check for "almost there" notifications (80%+ progress)
+  for (const [memberId, status] of memberStatuses) {
+    if (
+      !status.unlocked &&
+      status.progress >= ALMOST_THERE_THRESHOLD &&
+      !almostThereShown.has(memberId)
+    ) {
+      const member = TEAM_MEMBERS.find((m) => m.id === memberId);
+      if (member) {
+        log.info({ memberId, progress: Math.round(status.progress * 100) }, '📣 Almost there!');
+        almostThereShown.add(memberId);
+        almostThereListeners.forEach((listener) => listener(member, status.progress));
+      }
     }
   }
 
@@ -390,6 +414,28 @@ export function onUnlockStateChange(listener: (state: TeamUnlockState) => void):
 export function onMemberUnlocked(listener: (member: TeamMemberConfig) => void): () => void {
   memberUnlockListeners.add(listener);
   return () => memberUnlockListeners.delete(listener);
+}
+
+/**
+ * Clear the newlyUnlocked flag after celebration completes.
+ * This prevents duplicate celebrations on subsequent state updates.
+ */
+export function clearNewlyUnlocked(): void {
+  if (currentState?.newlyUnlocked) {
+    log.debug('Clearing newlyUnlocked:', currentState.newlyUnlocked);
+    currentState.newlyUnlocked = null;
+  }
+}
+
+/**
+ * Subscribe to "almost there" events (when progress crosses 80%)
+ * Great for encouraging users who are close to unlocking a team member.
+ */
+export function onAlmostThere(
+  listener: (member: TeamMemberConfig, progress: number) => void
+): () => void {
+  almostThereListeners.add(listener);
+  return () => almostThereListeners.delete(listener);
 }
 
 // ============================================================================
@@ -480,6 +526,8 @@ export const teamUnlockService = {
   getIntroduction: getIntroductionMessage,
   onStateChange: onUnlockStateChange,
   onUnlock: onMemberUnlocked,
+  onAlmostThere,
+  clearNewlyUnlocked,
   getClasses: getTeamMemberClasses,
   getProgress: getProgressText,
   TEAM_MEMBERS,

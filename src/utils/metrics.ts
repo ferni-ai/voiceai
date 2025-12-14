@@ -18,9 +18,7 @@ import { getLogger } from './safe-logger.js';
 // TYPES
 // ============================================================================
 
-export interface MetricLabels {
-  [key: string]: string | number | boolean;
-}
+export type MetricLabels = Record<string, string | number | boolean>;
 
 export interface CounterMetric {
   name: string;

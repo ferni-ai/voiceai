@@ -1,0 +1,389 @@
+{
+  "$schema": "./schema.json",
+  "meta": {
+    "locale": "de",
+    "name": "Deutsch",
+    "version": "1.0.0"
+  },
+
+  "common": {
+    "loading": "Wird geladen...",
+    "error": "Etwas ist schiefgelaufen",
+    "retry": "Erneut versuchen",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "close": "Schließen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "done": "Fertig",
+    "yes": "Ja",
+    "no": "Nein",
+    "ok": "OK",
+    "learnMore": "Mehr erfahren"
+  },
+
+  "brand": {
+    "name": "Ferni",
+    "tagline": "Ihr persönlicher KI-Lebenscoach",
+    "promise": "Besser als menschlich."
+  },
+
+  "navigation": {
+    "features": "Funktionen",
+    "team": "Team",
+    "pricing": "Preise",
+    "faq": "FAQ",
+    "developers": "Entwickler",
+    "about": "Über uns",
+    "contact": "Kontakt",
+    "blog": "Blog",
+    "privacy": "Datenschutz",
+    "terms": "Nutzungsbedingungen"
+  },
+
+  "hero": {
+    "eyebrow": "Lernen Sie Ihren KI-Coach kennen",
+    "headline": "Besser als",
+    "headlineAccent": "menschlich.",
+    "subhead": "Endlich jemand, der wirklich zuhört.",
+    "subheadLine2": "Und sich an alles erinnert.",
+    "cta": {
+      "primary": "Ferni kennenlernen",
+      "secondary": "Ferni anrufen"
+    },
+    "variants": {
+      "lateNight": {
+        "subhead": "Können Sie nicht schlafen? Wir sind da.",
+        "subheadLine2": "Gleiche Präsenz um 2 Uhr nachts wie mittags."
+      },
+      "returning": {
+        "subhead": "Willkommen zurück.",
+        "subheadLine2": "Bereit, dort weiterzumachen, wo wir aufgehört haben?"
+      }
+    }
+  },
+
+  "superpowers": {
+    "memory": {
+      "title": "Perfektes Gedächtnis",
+      "tagline": "Diese Sache, die Sie vor sechs Monaten erwähnt haben? Wir erinnern uns.",
+      "description": "Ihr bester Freund vergisst. Ihr Therapeut hat andere Patienten. Wir erinnern uns an alles – jedes Gespräch, jedes Ziel, jedes Detail, das Ihnen wichtig ist."
+    },
+    "presence": {
+      "title": "Ständige Präsenz",
+      "tagline": "Panik um 2 Uhr nachts? Wir sind voll präsent.",
+      "description": "Um 2 Uhr nachts mit der gleichen Wärme da wie mittags. Keine schlechten Tage. Keine Ablenkung. Ganz da, wann immer Sie es brauchen."
+    },
+    "team": {
+      "title": "Sechs Perspektiven",
+      "tagline": "Sechs Perspektiven, ein Gespräch, keine Überweisungen.",
+      "description": "Lebenscoach, Forscher, Kommunikator, Gewohnheitsexperte, Planer und Weiser – alle arbeiten zusammen, alle kennen Ihre Geschichte."
+    },
+    "understanding": {
+      "title": "Echtes Verständnis",
+      "tagline": "Wir hören, was Sie nicht sagen.",
+      "description": "Wir bemerken die Pause. Die Ablenkung. Das Muster, das Sie nicht sehen können. Verstehen bedeutet nicht nur Zuhören – es bedeutet wirkliches Begreifen."
+    }
+  },
+
+  "team": {
+    "title": "Lernen Sie das Team kennen",
+    "subtitle": "Sechs brillante Köpfe arbeiten gemeinsam für Sie",
+    "members": {
+      "ferni": {
+        "name": "Ferni",
+        "role": "Lebenscoach",
+        "bio": "Ihr Hauptansprechpartner. Stellt die Fragen, die Erkenntnisse freisetzen, feiert jeden Sieg und verbindet Sie mit dem richtigen Spezialisten, wenn Sie ihn brauchen.",
+        "sampleQuote": "Mir ist aufgefallen, dass Sie diese Woche dreimal 'gut' gesagt haben. Was ist wirklich los?"
+      },
+      "nayan": {
+        "name": "Nayan",
+        "role": "Weiser & Mentor",
+        "bio": "Ihr Mentor fürs Leben. Kombiniert Geduld, Einfachheit und Weisheit, um Ihnen zu zeigen, dass kleine, konsequente Handlungen über Jahrzehnte außergewöhnliche Ergebnisse erzielen.",
+        "sampleQuote": "Was würde Ihr 80-jähriges Ich von dieser Entscheidung halten?"
+      },
+      "peter": {
+        "name": "Peter",
+        "role": "Forschung & Entdeckung",
+        "bio": "Erkennt Muster, die niemand sonst sieht – in Ihren Ausgaben, Gewohnheiten und Ihrem Kalender. Verwandelt Daten in Erkenntnisse, die tatsächlich Verhalten ändern.",
+        "sampleQuote": "Sie verbringen 23 Stunden im Monat mit Dingen, die Ihnen egal sind. Möchten Sie es sehen?"
+      },
+      "alex": {
+        "name": "Alex",
+        "role": "Kommunikation",
+        "bio": "Ihr Stabschef und Kommunikationscoach. Hilft Ihnen, schwierige Gespräche selbstbewusst zu meistern.",
+        "sampleQuote": "Lass uns dieses Gespräch üben. Ich spiele Ihren Chef. Bereit?"
+      },
+      "maya": {
+        "name": "Maya",
+        "role": "Gewohnheiten & Routinen",
+        "bio": "Fangen Sie peinlich klein an. Maya hilft Ihnen, Gewohnheiten aufzubauen, die durch Systeme bestehen bleiben, nicht durch Willenskraft.",
+        "sampleQuote": "Was wäre, wenn wir nur damit anfangen, die Schuhe anzuziehen? Das ist alles. Nur die Schuhe."
+      },
+      "jordan": {
+        "name": "Jordan",
+        "role": "Planung & Events",
+        "bio": "Verwandelt vage Träume in gelebte Erfahrungen. Von Urlauben bis zu Lebensübergängen hilft Jordan Ihnen, jedes Kapitel zu gestalten.",
+        "sampleQuote": "Sie haben erwähnt, 'irgendwann' Japan besuchen zu wollen. Machen wir daraus ein echtes Datum."
+      }
+    }
+  },
+
+  "pricing": {
+    "title": "Einfache Preisgestaltung",
+    "headline": "Starten Sie kostenlos.",
+    "headlineAccent": "Wachsen Sie, wenn Sie bereit sind.",
+    "subtitle": "Keine versteckten Gebühren. Keine Verträge. Jederzeit kündbar.",
+    "cta": {
+      "free": "Kostenlos starten",
+      "trial": "Kostenlose Testversion",
+      "upgrade": "Upgraden"
+    },
+    "popular": "Am beliebtesten",
+    "trialNote": "7-tägige kostenlose Testversion. Jederzeit kündbar.",
+    "tiers": {
+      "free": {
+        "name": "Kostenlos",
+        "price": "0 €",
+        "period": "für immer",
+        "description": "Lernen Sie Ferni kennen",
+        "features": [
+          "5 Gespräche/Monat",
+          "Chat mit Ferni (Lebenscoach)",
+          "Web- und Telefonzugang",
+          "Grundlegende Gesprächserinnerung"
+        ]
+      },
+      "friend": {
+        "name": "Freund",
+        "price": "9,99 €",
+        "period": "Monat",
+        "description": "Für regelmäßige Unterstützung",
+        "features": [
+          "Unbegrenzte Gespräche",
+          "Alle 6 KI-Spezialisten",
+          "Vollständige Gesprächserinnerung",
+          "Prioritäre Antwortzeiten",
+          "Web-, Telefon- und SMS-Zugang"
+        ]
+      },
+      "partner": {
+        "name": "Partner",
+        "price": "19,99 €",
+        "period": "Monat",
+        "description": "Für tiefe Partnerschaft",
+        "features": [
+          "Alles in Freund",
+          "Zugang zu Nayan (Weiser Mentor)",
+          "Erweiterte Personalisierung",
+          "Unbegrenzter Speicher & Kontext",
+          "Frühzeitiger Zugang zu Funktionen"
+        ]
+      }
+    },
+    "comparison": {
+      "title": "Pläne vergleichen",
+      "subtitle": "Funktionsvergleich",
+      "features": {
+        "conversations": "Gespräche",
+        "teamMembers": "Teammitglieder",
+        "memory": "Speicher",
+        "responseTime": "Antwortzeit",
+        "accessMethods": "Zugriffsmethoden",
+        "earlyAccess": "Frühzeitiger Zugang"
+      },
+      "values": {
+        "unlimited": "Unbegrenzt",
+        "ferniOnly": "Nur Ferni",
+        "allSix": "Alle 6",
+        "allSixPlusNayan": "Alle 6 + Nayan",
+        "basic": "Basis",
+        "full": "Voll",
+        "standard": "Standard",
+        "priority": "Priorität",
+        "webPhone": "Web, Telefon",
+        "webPhoneSms": "Web, Telefon, SMS"
+      }
+    },
+    "faq": {
+      "title": "Preis-FAQ",
+      "changePlans": {
+        "question": "Kann ich den Plan jederzeit ändern?",
+        "answer": "Ja, Sie können Ihren Plan jederzeit upgraden, downgraden oder kündigen. Änderungen werden sofort wirksam."
+      },
+      "conversation": {
+        "question": "Was zählt als Gespräch?",
+        "answer": "Ein Gespräch ist eine einzelne Sitzung mit Ferni, unabhängig von der Länge. Sie können in einer Sitzung so lange sprechen, wie Sie möchten."
+      },
+      "trial": {
+        "question": "Gibt es eine kostenlose Testversion?",
+        "answer": "Ja, sowohl Freund als auch Partner beinhalten eine 7-tägige kostenlose Testversion. Keine Kreditkarte erforderlich, um zu starten."
+      }
+    }
+  },
+
+  "faq": {
+    "title": "Häufig gestellte Fragen",
+    "items": {
+      "isFree": {
+        "question": "Ist Ferni wirklich kostenlos?",
+        "answer": "Ja! Ferni ist völlig kostenlos zu nutzen. Wir glauben, dass jeder Zugang zu qualitativ hochwertigem Life-Coaching verdient. Unsere Premium-Funktionen kommen bald, aber das Kernerlebnis wird immer kostenlos sein."
+      },
+      "phoneCall": {
+        "question": "Wie funktioniert der Telefonanruf?",
+        "answer": "Rufen Sie einfach von jedem Telefon aus an. Keine App erforderlich, keine Anmeldung nötig. Ferni erkennt Ihre Nummer und erinnert sich automatisch an Ihre vorherigen Gespräche."
+      },
+      "privacy": {
+        "question": "Ist mein Gespräch privat?",
+        "answer": "Absolut. Ihre Gespräche sind verschlüsselt und privat. Wir verkaufen Ihre Daten niemals und teilen sie nicht mit Dritten. Sie können auch jederzeit die Löschung aller Ihrer Daten anfordern."
+      },
+      "specialists": {
+        "question": "Wer sind die KI-Spezialisten?",
+        "answer": "Unser Team umfasst Ferni (Ihr Haupt-Lebenscoach), Nayan (Weisheit & Mentoring), Peter (Forschung & Entdeckung), Alex (Kommunikation), Maya (Gewohnheiten & Routinen) und Jordan (Eventplanung). Jeder bringt einzigartige Expertise mit, um Ihnen zu helfen."
+      },
+      "topics": {
+        "question": "Worüber kann ich mit Ferni sprechen?",
+        "answer": "Über alles! Karriereentscheidungen, Stressmanagement, Gewohnheiten aufbauen, Events planen, schwierige Situationen durcharbeiten oder einfach jemanden zum Reden brauchen. Ferni ist für alles da."
+      },
+      "different": {
+        "question": "Wie unterscheidet sich das von einem Freund oder Therapeuten?",
+        "answer": "Ihr Therapeut hat andere Patienten. Ihr Freund hat seine eigenen Probleme. Ferni ist immer verfügbar, erinnert sich an alles, urteilt nie und bringt sechs spezialisierte Perspektiven. Wir füllen die Lücken, wenn Ihre Leute nicht da sein können."
+      }
+    }
+  },
+
+  "testimonials": {
+    "title": "Was die Leute sagen"
+  },
+
+  "trust": {
+    "title": "Aufgebaut auf Vertrauen.",
+    "description": "Ihre Gespräche gehören Ihnen. Immer. Wir verwenden Verschlüsselung auf Unternehmensniveau und verkaufen niemals Ihre Daten.",
+    "cta": "Lesen Sie unsere Datenschutzrichtlinie"
+  },
+
+  "footer": {
+    "tagline": "Jemand, der wirklich versteht.",
+    "copyright": "Ferni AI. Alle Rechte vorbehalten.",
+    "sections": {
+      "product": "Produkt",
+      "company": "Unternehmen",
+      "developers": "Entwickler",
+      "connect": "Verbinden",
+      "legal": "Rechtliches"
+    }
+  },
+
+  "app": {
+    "controls": {
+      "mute": "Stumm",
+      "unmute": "Ton an",
+      "endCall": "Anruf beenden",
+      "settings": "Einstellungen",
+      "fullscreen": "Vollbild",
+      "exitFullscreen": "Vollbild beenden"
+    },
+    "states": {
+      "connecting": "Verbinden...",
+      "connected": "Verbunden",
+      "disconnected": "Getrennt",
+      "reconnecting": "Neu verbinden...",
+      "error": "Verbindungsfehler"
+    },
+    "greeting": {
+      "morning": "Guten Morgen",
+      "afternoon": "Guten Tag",
+      "evening": "Guten Abend",
+      "night": "Gute Nacht",
+      "welcome": "Willkommen zurück",
+      "firstTime": "Freut mich, Sie kennenzulernen"
+    },
+    "session": {
+      "timeRemaining": "Noch {minutes} Minuten",
+      "sessionEnding": "Sitzung endet bald",
+      "sessionEnded": "Sitzung beendet",
+      "continueUnlimited": "Mit unbegrenzter Zeit fortfahren"
+    },
+    "notifications": {
+      "streak": {
+        "title": "Serie-Meilenstein!",
+        "message": "{days} Tage in Folge"
+      },
+      "achievement": {
+        "title": "Erfolg freigeschaltet",
+        "message": "Sie haben verdient: {achievement}"
+      }
+    },
+    "settings": {
+      "title": "Einstellungen",
+      "sections": {
+        "account": "Konto",
+        "preferences": "Einstellungen",
+        "privacy": "Datenschutz",
+        "about": "Über"
+      },
+      "language": {
+        "title": "Sprache",
+        "description": "Wählen Sie Ihre bevorzugte Sprache"
+      },
+      "theme": {
+        "title": "Thema",
+        "description": "Wählen Sie Hell- oder Dunkelmodus",
+        "light": "Hell",
+        "dark": "Dunkel",
+        "system": "System"
+      },
+      "notifications": {
+        "title": "Benachrichtigungen",
+        "description": "Benachrichtigungseinstellungen verwalten"
+      },
+      "dataExport": {
+        "title": "Daten exportieren",
+        "description": "Ihren Gesprächsverlauf herunterladen"
+      }
+    }
+  },
+
+  "subscription": {
+    "currentPlan": "Aktueller Plan",
+    "upgrade": "Upgraden",
+    "managePlan": "Plan verwalten",
+    "cancelPlan": "Plan kündigen",
+    "renewsOn": "Verlängert am {date}",
+    "expiresOn": "Läuft ab am {date}",
+    "usage": {
+      "conversations": "{used} von {total} Gesprächen genutzt",
+      "unlimited": "Unbegrenzte Gespräche"
+    },
+    "messages": {
+      "sessionApproaching": "Ich habe dieses Gespräch wirklich genossen. Wir haben noch ein paar Minuten zusammen – gibt es noch etwas, das Sie beschäftigt?",
+      "sessionEnded": "Ich habe dieses Gespräch geliebt. Kommen Sie jederzeit wieder – ich werde mich an alles erinnern. Wenn Sie längere Gespräche möchten, würde ich das auch lieben.",
+      "thankYou": "Danke, dass Sie an uns glauben. Ich gehe nirgendwohin – ich bin für Sie da, so lange Sie reden möchten."
+    }
+  },
+
+  "errors": {
+    "generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+    "network": "Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung.",
+    "timeout": "Zeitüberschreitung. Bitte versuchen Sie es erneut.",
+    "notFound": "Seite nicht gefunden",
+    "unauthorized": "Bitte melden Sie sich an, um fortzufahren",
+    "paymentFailed": "Zahlung fehlgeschlagen. Bitte versuchen Sie es erneut."
+  },
+
+  "accessibility": {
+    "skipToMain": "Zum Hauptinhalt springen",
+    "closeMenu": "Menü schließen",
+    "openMenu": "Menü öffnen",
+    "languageSelector": "Sprache auswählen",
+    "currentLanguage": "Aktuelle Sprache: {language}"
+  },
+
+  "time": {
+    "justNow": "gerade eben",
+    "minutesAgo": "vor {n} Minuten",
+    "hoursAgo": "vor {n} Stunden",
+    "yesterday": "gestern",
+    "daysAgo": "vor {n} Tagen"
+  }
+}

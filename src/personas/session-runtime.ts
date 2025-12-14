@@ -41,11 +41,8 @@ import {
 } from './shared/welcome-back.js';
 
 // Import new intelligence systems
-import {
-  PersonaIntelligenceEngine,
-  getPersonaIntelligence,
-  type UnifiedPromptInjection,
-} from './persona-intelligence.js';
+import type { PersonaIntelligenceEngine } from './persona-intelligence.js';
+import { getPersonaIntelligence, type UnifiedPromptInjection } from './persona-intelligence.js';
 import type { RelationshipMemory, SharedMomentType } from './relationship-memory/index.js';
 
 const log = getLogger();

@@ -21,6 +21,7 @@ import { handoffService } from '../services/handoff.service.js';
 import * as marketplaceService from '../services/marketplace.service.js';
 import { rosterPreferences, type TeamMemberId } from '../services/roster-preferences.service.js';
 import {
+  clearNewlyUnlocked,
   getMemberStatus,
   getTeamMember,
   isFullTeamUnlocked,
@@ -78,11 +79,36 @@ export function initTeamUI(): void {
     });
     cleanupFunctions.push(unlockCleanup);
 
-    // TEAM UNLOCK: Celebrate when a new member is unlocked!
+    // TEAM UNLOCK: When a member is unlocked, add them to roster and celebrate!
     const unlockCelebrationCleanup = teamUnlockService.onUnlock((member) => {
+      const memberId = member.id as TeamMemberId;
+
+      // FIX: Auto-add unlocked members to visible roster
+      // This ensures they appear in the roster immediately upon unlock
+      if (!rosterPreferences.isMemberVisible(memberId)) {
+        rosterPreferences.addMember(memberId);
+
+        // Rebuild roster to show the new member
+        void loadDynamicAgents().catch((err) => {
+          log.warn('Failed to refresh roster after unlock:', err);
+        });
+      }
+
+      // Then celebrate the unlock!
       celebrateMemberUnlock(member.id as PersonaId);
     });
     cleanupFunctions.push(unlockCelebrationCleanup);
+
+    // TEAM UNLOCK: Show "almost there" notifications when progress hits 80%+
+    const almostThereCleanup = teamUnlockService.onAlmostThere((member, progress) => {
+      const progressPercent = Math.round(progress * 100);
+      toast.show({
+        message: `You're ${progressPercent}% of the way to meeting ${member.displayName}!`,
+        duration: 4000,
+      });
+      log.debug('Showed almost there notification:', { memberId: member.id, progress: progressPercent });
+    });
+    cleanupFunctions.push(almostThereCleanup);
 
     // Build team roster
     buildTeamRoster();
@@ -1167,6 +1193,9 @@ function celebrateMemberUnlock(personaId: PersonaId): void {
     toast.style.opacity = '0';
     toast.style.transform = 'translateX(-50%) translateY(20px)';
     setTimeout(() => toast.remove(), 300);
+
+    // FIX: Clear newlyUnlocked flag to prevent duplicate celebrations
+    clearNewlyUnlocked();
   }, 3000);
 }
 

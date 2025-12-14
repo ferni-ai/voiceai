@@ -686,6 +686,34 @@ export function isWrapUpMessage(data: unknown): data is WrapUpEvent {
 }
 
 // ============================================================================
+// CONVERSATION END EVENTS (auto-disconnect after goodbye)
+// ============================================================================
+
+/**
+ * Event fired when the agent has completed its goodbye and the conversation should end.
+ * This signals the frontend to play the disconnect sound and disconnect.
+ */
+export interface ConversationEndEvent {
+  readonly type: 'conversation_end';
+  readonly reason: 'goodbye_complete' | 'user_request' | 'timeout';
+  /** Delay in ms before disconnecting (allows sound to play) */
+  readonly disconnectDelay?: number;
+  readonly timestamp: number;
+}
+
+/**
+ * Type guard for conversation end messages.
+ */
+export function isConversationEndMessage(data: unknown): data is ConversationEndEvent {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'type' in data &&
+    (data as Record<string, unknown>)['type'] === 'conversation_end'
+  );
+}
+
+// ============================================================================
 // AGGREGATED EVENT TYPES
 // ============================================================================
 

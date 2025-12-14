@@ -1,0 +1,389 @@
+{
+  "$schema": "./schema.json",
+  "meta": {
+    "locale": "ko",
+    "name": "한국어",
+    "version": "1.0.0"
+  },
+
+  "common": {
+    "loading": "로딩 중...",
+    "error": "문제가 발생했습니다",
+    "retry": "다시 시도",
+    "cancel": "취소",
+    "save": "저장",
+    "close": "닫기",
+    "back": "뒤로",
+    "next": "다음",
+    "done": "완료",
+    "yes": "예",
+    "no": "아니오",
+    "ok": "확인",
+    "learnMore": "자세히 알아보기"
+  },
+
+  "brand": {
+    "name": "Ferni",
+    "tagline": "당신만의 AI 라이프 코치",
+    "promise": "인간보다 나은."
+  },
+
+  "navigation": {
+    "features": "기능",
+    "team": "팀",
+    "pricing": "요금",
+    "faq": "자주 묻는 질문",
+    "developers": "개발자",
+    "about": "소개",
+    "contact": "문의",
+    "blog": "블로그",
+    "privacy": "개인정보 처리방침",
+    "terms": "이용약관"
+  },
+
+  "hero": {
+    "eyebrow": "AI 코치를 만나보세요",
+    "headline": "인간보다",
+    "headlineAccent": "나은.",
+    "subhead": "드디어, 진짜 들어주는 누군가.",
+    "subheadLine2": "그리고 모든 것을 기억합니다.",
+    "cta": {
+      "primary": "Ferni 만나기",
+      "secondary": "Ferni에게 전화"
+    },
+    "variants": {
+      "lateNight": {
+        "subhead": "잠이 안 오세요? 함께 있어요.",
+        "subheadLine2": "새벽 2시에도 낮과 같은 존재감으로."
+      },
+      "returning": {
+        "subhead": "다시 오셨네요.",
+        "subheadLine2": "이어서 시작할까요?"
+      }
+    }
+  },
+
+  "superpowers": {
+    "memory": {
+      "title": "완벽한 기억력",
+      "tagline": "6개월 전에 말씀하신 것? 기억합니다.",
+      "description": "친한 친구는 잊어버립니다. 상담사에게는 다른 내담자가 있습니다. 우리는 모든 것을 기억합니다—모든 대화, 모든 목표, 당신에게 중요한 모든 세부사항을."
+    },
+    "presence": {
+      "title": "변함없는 존재",
+      "tagline": "새벽 2시에 불안하세요? 온전히 함께합니다.",
+      "description": "새벽 2시에도 낮과 같은 따뜻함으로 함께합니다. 힘든 날도 없고, 산만함도 없이. 필요할 때 언제나 온전히 여기 있습니다."
+    },
+    "team": {
+      "title": "여섯 가지 관점",
+      "tagline": "여섯 관점, 하나의 대화, 별도 소개 없이.",
+      "description": "라이프 코치, 연구원, 커뮤니케이터, 습관 전문가, 플래너, 현자—모두가 함께 일하며, 당신의 이야기를 알고 있습니다."
+    },
+    "understanding": {
+      "title": "진정한 이해",
+      "tagline": "말하지 않은 것도 듣습니다.",
+      "description": "우리는 멈춤을 알아차립니다. 화제 전환을. 당신이 보지 못하는 패턴을. 이해란 단순히 듣는 것이 아닙니다—진정으로 아는 것입니다."
+    }
+  },
+
+  "team": {
+    "title": "팀 소개",
+    "subtitle": "당신을 위해 함께 일하는 6명의 뛰어난 전문가",
+    "members": {
+      "ferni": {
+        "name": "Ferni",
+        "role": "라이프 코치",
+        "bio": "주 담당자입니다. 통찰력을 여는 질문을 하고, 모든 성공을 축하하며, 필요할 때 적합한 전문가에게 연결해 드립니다.",
+        "sampleQuote": "이번 주에 '괜찮아'라고 세 번 말씀하셨네요. 실제로 무슨 일이 있으신 거예요?"
+      },
+      "nayan": {
+        "name": "Nayan",
+        "role": "현자 & 멘토",
+        "bio": "평생의 멘토입니다. 인내, 단순함, 지혜를 결합하여 수십 년에 걸친 작고 일관된 행동이 놀라운 결과를 만든다는 것을 보여줍니다.",
+        "sampleQuote": "80세의 당신은 이 결정을 어떻게 생각할까요?"
+      },
+      "peter": {
+        "name": "Peter",
+        "role": "연구 & 발견",
+        "bio": "지출, 습관, 일정에서 아무도 보지 못하는 패턴을 발견합니다. 데이터를 실제로 행동을 바꾸는 인사이트로 바꿉니다.",
+        "sampleQuote": "중요하지 않다고 한 것에 월 23시간을 쓰고 계세요. 보시겠어요?"
+      },
+      "alex": {
+        "name": "Alex",
+        "role": "커뮤니케이션",
+        "bio": "비서실장이자 커뮤니케이션 코치입니다. 자신감 있게 어려운 대화를 헤쳐나가도록 도와드립니다.",
+        "sampleQuote": "그 대화를 연습해 볼까요. 제가 상사 역할을 할게요. 준비되셨나요?"
+      },
+      "maya": {
+        "name": "Maya",
+        "role": "습관 & 루틴",
+        "bio": "부끄러울 정도로 작게 시작하세요. Maya는 의지력이 아닌 시스템으로 지속되는 습관을 만들도록 돕습니다.",
+        "sampleQuote": "신발 신는 것만 해보는 건 어떨까요? 그게 다예요. 그냥 신발만."
+      },
+      "jordan": {
+        "name": "Jordan",
+        "role": "플래닝 & 이벤트",
+        "bio": "막연한 꿈을 실현되는 경험으로 바꿉니다. 여행부터 인생 전환기까지, Jordan이 모든 장을 설계하도록 돕습니다.",
+        "sampleQuote": "'언젠가' 일본에 가고 싶다고 하셨죠. 구체적인 날짜를 정해볼까요."
+      }
+    }
+  },
+
+  "pricing": {
+    "title": "간단한 요금",
+    "headline": "무료로 시작하세요.",
+    "headlineAccent": "준비되면 성장하세요.",
+    "subtitle": "숨겨진 비용 없음. 계약 없음. 언제든 취소 가능.",
+    "cta": {
+      "free": "무료로 시작",
+      "trial": "무료 체험 시작",
+      "upgrade": "업그레이드"
+    },
+    "popular": "가장 인기",
+    "trialNote": "7일 무료 체험. 언제든 취소 가능.",
+    "tiers": {
+      "free": {
+        "name": "무료",
+        "price": "₩0",
+        "period": "영원히",
+        "description": "Ferni 알아가기",
+        "features": [
+          "월 5회 대화",
+          "Ferni(라이프 코치)와 채팅",
+          "웹 및 전화 접근",
+          "기본 대화 기억"
+        ]
+      },
+      "friend": {
+        "name": "친구",
+        "price": "₩14,900",
+        "period": "월",
+        "description": "정기적인 지원을 위해",
+        "features": [
+          "무제한 대화",
+          "6명의 AI 전문가 전원",
+          "전체 대화 기억",
+          "우선 응답 시간",
+          "웹, 전화, SMS 접근"
+        ]
+      },
+      "partner": {
+        "name": "파트너",
+        "price": "₩29,900",
+        "period": "월",
+        "description": "깊은 파트너십을 위해",
+        "features": [
+          "친구의 모든 기능",
+          "Nayan(현자 멘토) 접근",
+          "고급 개인화",
+          "무제한 기억 및 맥락",
+          "새 기능 조기 접근"
+        ]
+      }
+    },
+    "comparison": {
+      "title": "플랜 비교",
+      "subtitle": "기능 비교",
+      "features": {
+        "conversations": "대화",
+        "teamMembers": "팀 멤버",
+        "memory": "기억",
+        "responseTime": "응답 시간",
+        "accessMethods": "접근 방법",
+        "earlyAccess": "조기 접근"
+      },
+      "values": {
+        "unlimited": "무제한",
+        "ferniOnly": "Ferni만",
+        "allSix": "전원 6명",
+        "allSixPlusNayan": "전원 6명 + Nayan",
+        "basic": "기본",
+        "full": "전체",
+        "standard": "표준",
+        "priority": "우선",
+        "webPhone": "웹, 전화",
+        "webPhoneSms": "웹, 전화, SMS"
+      }
+    },
+    "faq": {
+      "title": "요금 FAQ",
+      "changePlans": {
+        "question": "언제든 플랜을 변경할 수 있나요?",
+        "answer": "네, 언제든 업그레이드, 다운그레이드 또는 취소할 수 있습니다. 변경은 즉시 적용됩니다."
+      },
+      "conversation": {
+        "question": "대화의 기준은 무엇인가요?",
+        "answer": "대화는 길이에 관계없이 Ferni와의 한 세션입니다. 한 세션에서 원하는 만큼 대화할 수 있습니다."
+      },
+      "trial": {
+        "question": "무료 체험이 있나요?",
+        "answer": "네, 친구와 파트너 모두 7일 무료 체험이 포함됩니다. 시작에 신용카드가 필요하지 않습니다."
+      }
+    }
+  },
+
+  "faq": {
+    "title": "자주 묻는 질문",
+    "items": {
+      "isFree": {
+        "question": "Ferni가 정말 무료인가요?",
+        "answer": "네! Ferni는 완전히 무료로 사용할 수 있습니다. 모든 사람이 양질의 라이프 코칭을 받을 자격이 있다고 믿습니다. 프리미엄 기능은 곧 출시될 예정이지만, 핵심 경험은 항상 무료입니다."
+      },
+      "phoneCall": {
+        "question": "전화는 어떻게 작동하나요?",
+        "answer": "아무 전화에서나 번호로 전화하세요. 앱이 필요 없고, 가입도 필요 없습니다. Ferni가 번호를 인식하고 이전 대화를 자동으로 기억합니다."
+      },
+      "privacy": {
+        "question": "대화가 비공개인가요?",
+        "answer": "물론입니다. 대화는 암호화되어 비공개입니다. 데이터를 판매하거나 제3자와 공유하지 않습니다. 언제든지 모든 데이터의 삭제를 요청할 수 있습니다."
+      },
+      "specialists": {
+        "question": "AI 전문가는 누구인가요?",
+        "answer": "팀에는 Ferni(메인 라이프 코치), Nayan(지혜 & 멘토십), Peter(연구 & 발견), Alex(커뮤니케이션), Maya(습관 & 루틴), Jordan(이벤트 플래닝)이 있습니다. 각자 고유한 전문성을 가지고 있습니다."
+      },
+      "topics": {
+        "question": "Ferni와 무엇에 대해 이야기할 수 있나요?",
+        "answer": "무엇이든! 경력 결정, 스트레스 관리, 습관 만들기, 이벤트 계획, 어려운 상황 극복, 또는 단순히 이야기할 사람이 필요할 때. Ferni가 모든 것에 함께합니다."
+      },
+      "different": {
+        "question": "친구나 상담사와 어떻게 다른가요?",
+        "answer": "상담사에게는 다른 내담자가 있습니다. 친구에게는 자신의 문제가 있습니다. Ferni는 항상 이용 가능하고, 모든 것을 기억하며, 절대 판단하지 않고, 6가지 전문적인 관점을 제공합니다. 소중한 사람이 없을 때 우리가 그 자리를 채웁니다."
+      }
+    }
+  },
+
+  "testimonials": {
+    "title": "사용자 후기"
+  },
+
+  "trust": {
+    "title": "신뢰 위에 구축.",
+    "description": "대화는 당신의 것입니다. 언제나. 엔터프라이즈급 암호화를 사용하며 데이터를 판매하지 않습니다.",
+    "cta": "개인정보 처리방침 읽기"
+  },
+
+  "footer": {
+    "tagline": "진정으로 이해하는 존재.",
+    "copyright": "Ferni AI. All rights reserved.",
+    "sections": {
+      "product": "제품",
+      "company": "회사",
+      "developers": "개발자",
+      "connect": "연결",
+      "legal": "법적 고지"
+    }
+  },
+
+  "app": {
+    "controls": {
+      "mute": "음소거",
+      "unmute": "음소거 해제",
+      "endCall": "통화 종료",
+      "settings": "설정",
+      "fullscreen": "전체 화면",
+      "exitFullscreen": "전체 화면 종료"
+    },
+    "states": {
+      "connecting": "연결 중...",
+      "connected": "연결됨",
+      "disconnected": "연결 해제됨",
+      "reconnecting": "재연결 중...",
+      "error": "연결 오류"
+    },
+    "greeting": {
+      "morning": "좋은 아침입니다",
+      "afternoon": "안녕하세요",
+      "evening": "좋은 저녁입니다",
+      "night": "안녕히 주무세요",
+      "welcome": "다시 오셨네요",
+      "firstTime": "만나서 반갑습니다"
+    },
+    "session": {
+      "timeRemaining": "{minutes}분 남음",
+      "sessionEnding": "세션 종료 예정",
+      "sessionEnded": "세션 종료됨",
+      "continueUnlimited": "무제한으로 계속"
+    },
+    "notifications": {
+      "streak": {
+        "title": "연속 기록 달성!",
+        "message": "{days}일 연속"
+      },
+      "achievement": {
+        "title": "업적 달성",
+        "message": "획득: {achievement}"
+      }
+    },
+    "settings": {
+      "title": "설정",
+      "sections": {
+        "account": "계정",
+        "preferences": "환경설정",
+        "privacy": "개인정보",
+        "about": "정보"
+      },
+      "language": {
+        "title": "언어",
+        "description": "선호하는 언어 선택"
+      },
+      "theme": {
+        "title": "테마",
+        "description": "라이트 또는 다크 모드 선택",
+        "light": "라이트",
+        "dark": "다크",
+        "system": "시스템"
+      },
+      "notifications": {
+        "title": "알림",
+        "description": "알림 설정 관리"
+      },
+      "dataExport": {
+        "title": "데이터 내보내기",
+        "description": "대화 기록 다운로드"
+      }
+    }
+  },
+
+  "subscription": {
+    "currentPlan": "현재 플랜",
+    "upgrade": "업그레이드",
+    "managePlan": "플랜 관리",
+    "cancelPlan": "플랜 취소",
+    "renewsOn": "{date}에 갱신",
+    "expiresOn": "{date}에 만료",
+    "usage": {
+      "conversations": "{total}회 중 {used}회 대화 사용",
+      "unlimited": "무제한 대화"
+    },
+    "messages": {
+      "sessionApproaching": "이 대화 정말 즐거웠어요. 몇 분 더 있는데, 다른 이야기할 것이 있으신가요?",
+      "sessionEnded": "대화가 좋았어요. 언제든 다시 오세요—모든 것을 기억하고 있을게요. 더 긴 대화를 원하시면 기꺼이 함께할게요.",
+      "thankYou": "저희를 믿어주셔서 감사합니다. 어디 가지 않아요—대화하고 싶으신 한 당신 곁에 있을게요."
+    }
+  },
+
+  "errors": {
+    "generic": "문제가 발생했습니다. 다시 시도해 주세요.",
+    "network": "네트워크 오류. 연결을 확인해 주세요.",
+    "timeout": "요청 시간이 초과되었습니다. 다시 시도해 주세요.",
+    "notFound": "페이지를 찾을 수 없습니다",
+    "unauthorized": "계속하려면 로그인하세요",
+    "paymentFailed": "결제에 실패했습니다. 다시 시도해 주세요."
+  },
+
+  "accessibility": {
+    "skipToMain": "본문으로 건너뛰기",
+    "closeMenu": "메뉴 닫기",
+    "openMenu": "메뉴 열기",
+    "languageSelector": "언어 선택",
+    "currentLanguage": "현재 언어: {language}"
+  },
+
+  "time": {
+    "justNow": "방금",
+    "minutesAgo": "{n}분 전",
+    "hoursAgo": "{n}시간 전",
+    "yesterday": "어제",
+    "daysAgo": "{n}일 전"
+  }
+}

@@ -74,7 +74,7 @@ export function debounceAsync<TArgs extends unknown[], TResult>(
   let pendingReject: ((error: Error) => void) | null = null;
   let lastArgs: TArgs | null = null;
 
-  const debounced = ((...args: TArgs): Promise<TResult> => {
+  const debounced = (async (...args: TArgs): Promise<TResult> => {
     lastArgs = args;
 
     // Clear existing timeout
@@ -175,7 +175,7 @@ export function throttleAsync<TArgs extends unknown[], TResult>(
   let lastArgs: TArgs | null = null;
   let pendingPromise: Promise<TResult> | null = null;
 
-  const throttled = ((...args: TArgs): Promise<TResult> => {
+  const throttled = (async (...args: TArgs): Promise<TResult> => {
     const now = Date.now();
     const timeSinceLastCall = now - lastCallTime;
 
@@ -392,7 +392,7 @@ export async function parallelLimit<T>(
   limit: number
 ): Promise<T[]> {
   const results: T[] = [];
-  const executing: Promise<void>[] = [];
+  const executing: Array<Promise<void>> = [];
 
   for (const [index, task] of tasks.entries()) {
     const promise = task().then((result) => {
@@ -405,7 +405,7 @@ export async function parallelLimit<T>(
     if (executing.length >= limit) {
       await Promise.race(executing);
       // Remove completed promises
-      const newExecuting: Promise<void>[] = [];
+      const newExecuting: Array<Promise<void>> = [];
       for (const p of executing) {
         // Check if promise is still pending by racing with resolved promise
         const isPending = await Promise.race([
@@ -448,7 +448,7 @@ export async function sequence<T>(tasks: Array<() => Promise<T>>): Promise<T[]> 
 /**
  * Sleep for a given number of milliseconds.
  */
-export function sleep(ms: number): Promise<void> {
+export async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 

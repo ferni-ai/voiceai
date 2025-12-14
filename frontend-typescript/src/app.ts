@@ -127,6 +127,8 @@ import {
   dispatchUserSpeechStart,
   initSpeechEventDispatcher,
 } from './services/speech-event-dispatcher.js';
+// I18n - Internationalization and localization
+import { initI18n } from './i18n/index.js';
 // Mood Context - Time-based persona mood for "Better than Human"
 import { initMoodContext } from './services/mood-context.service.js';
 // Demo data for testing without backend
@@ -335,6 +337,9 @@ class VoiceAIApp {
 
       // Initialize theme system first (affects all UI)
       this.initializeTheme();
+
+      // Initialize i18n (internationalization)
+      void initI18n();
 
       // Initialize services (non-blocking)
       this.initializeServices();
@@ -1492,6 +1497,13 @@ class VoiceAIApp {
     window.addEventListener('ferni:request-connect', () => {
       if (appState.get('connection') === 'disconnected') {
         void this.connect();
+      }
+    });
+
+    // 🌅 Conversation End - Auto-disconnect after agent says goodbye
+    window.addEventListener('ferni:conversation-end-disconnect', () => {
+      if (appState.get('connection') === 'connected') {
+        void this.disconnect();
       }
     });
 

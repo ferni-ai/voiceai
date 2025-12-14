@@ -46,7 +46,13 @@ const moduleLoadStart = Date.now();
 import { AccessToken } from 'livekit-server-sdk';
 import { Room, RoomEvent } from '@livekit/rtc-node';
 import { JobContext, JobProcess, runWithJobContextAsync, initializeLogger } from '@livekit/agents';
-import { JobType, ServerMessage, WorkerMessage, ParticipantPermission, WorkerStatus } from '@livekit/protocol';
+import {
+  JobType,
+  ServerMessage,
+  WorkerMessage,
+  ParticipantPermission,
+  WorkerStatus,
+} from '@livekit/protocol';
 import type { Job } from '@livekit/protocol';
 import { WebSocket } from 'ws';
 import { EventEmitter } from 'node:events';
@@ -286,7 +292,7 @@ function startPingKeepalive(): void {
     // Check if we've received a pong recently
     const timeSinceLastPong = Date.now() - lastPongTime;
     if (timeSinceLastPong > PONG_TIMEOUT_MS) {
-      log('WebSocket appears dead (no pong in ' + timeSinceLastPong + 'ms), reconnecting...');
+      log(`WebSocket appears dead (no pong in ${timeSinceLastPong}ms), reconnecting...`);
       markLivekitDisconnected();
       ws.terminate(); // Force close
       scheduleReconnect();
@@ -318,11 +324,11 @@ async function connectToLiveKit(): Promise<void> {
   // Build WebSocket URL (matching SDK exactly: url + "agent")
   const baseUrl = new URL(LIVEKIT_URL);
   baseUrl.protocol = baseUrl.protocol.replace('http', 'ws');
-  const url = new URL(baseUrl.toString() + 'agent');
+  const url = new URL(`${baseUrl.toString()}agent`);
 
-  log('Connecting to LiveKit', { 
+  log('Connecting to LiveKit', {
     url: url.toString(),
-    apiKey: LIVEKIT_API_KEY.slice(0, 10) + '...',
+    apiKey: `${LIVEKIT_API_KEY.slice(0, 10)}...`,
     hasSecret: !!LIVEKIT_API_SECRET,
     jwtLength: jwt.length,
   });
@@ -430,7 +436,7 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
         workerId,
         serverVersion: message.value.serverInfo?.version,
       });
-      
+
       // CRITICAL: Send initial status update (SDK does this periodically)
       // This tells LiveKit we're available to receive jobs
       const statusMsg = new WorkerMessage({

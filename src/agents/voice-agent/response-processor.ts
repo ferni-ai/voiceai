@@ -207,11 +207,65 @@ export async function processResponse(ctx: ResponseProcessorContext): Promise<Re
   const responseDynamics = getResponseDynamicsEngine();
   responseDynamics.recordMessage('agent', ctx.rawText);
 
+  // ============================================================
+  // 12. DETECT FAREWELL - Signal auto-disconnect
+  // ============================================================
+  if (detectAgentFarewell(ctx.rawText)) {
+    diag.info('🌅 Agent farewell detected - signaling auto-disconnect');
+    void signalConversationEnd(sessionId);
+  }
+
   return {
     processedText,
     appliedFeatures,
     timingMs: Date.now() - startTime,
   };
+}
+
+// ============================================================================
+// FAREWELL DETECTION & AUTO-DISCONNECT
+// ============================================================================
+
+/**
+ * Patterns that indicate the agent is saying goodbye.
+ * More strict than user goodbye patterns - we want the actual farewell phrase.
+ */
+const AGENT_FAREWELL_PATTERNS = [
+  // Direct farewells
+  /\b(take care|see you|until next time|goodbye|bye for now|talk soon|catch you later)\b/i,
+  // Session closings
+  /\b(here whenever you need|i['']m here for you|looking forward to|can['']t wait to)\s+\w+\s+(again|next|soon)/i,
+  // Warm endings with punctuation
+  /\b(be well|stay (safe|well)|take it easy)[.!]/i,
+];
+
+/**
+ * Detect if agent response contains a farewell.
+ * Must be in the last portion of the response to count.
+ */
+function detectAgentFarewell(text: string): boolean {
+  // Only check the last 150 characters to avoid false positives
+  const lastPart = text.slice(-150);
+  return AGENT_FAREWELL_PATTERNS.some(pattern => pattern.test(lastPart));
+}
+
+/**
+ * Signal the frontend to auto-disconnect.
+ */
+async function signalConversationEnd(sessionId: string | undefined): Promise<void> {
+  if (!sessionId) return;
+
+  try {
+    const { sendFrontendSignal } = await import('../../services/frontend-signal.js');
+    await sendFrontendSignal('conversation_end', {
+      reason: 'goodbye_complete',
+      disconnectDelay: 2500, // Give time for farewell to be spoken
+      timestamp: Date.now(),
+    });
+  } catch {
+    // Non-critical - frontend will just not auto-disconnect
+    diag.debug('Failed to send conversation_end signal');
+  }
 }
 
 // ============================================================================

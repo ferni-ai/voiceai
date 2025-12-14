@@ -1,0 +1,389 @@
+{
+  "$schema": "./schema.json",
+  "meta": {
+    "locale": "ja",
+    "name": "日本語",
+    "version": "1.0.0"
+  },
+
+  "common": {
+    "loading": "読み込み中...",
+    "error": "エラーが発生しました",
+    "retry": "再試行",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "close": "閉じる",
+    "back": "戻る",
+    "next": "次へ",
+    "done": "完了",
+    "yes": "はい",
+    "no": "いいえ",
+    "ok": "OK",
+    "learnMore": "詳しく見る"
+  },
+
+  "brand": {
+    "name": "Ferni",
+    "tagline": "あなた専属のAIライフコーチ",
+    "promise": "人間を超える存在。"
+  },
+
+  "navigation": {
+    "features": "機能",
+    "team": "チーム",
+    "pricing": "料金",
+    "faq": "よくある質問",
+    "developers": "開発者向け",
+    "about": "会社概要",
+    "contact": "お問い合わせ",
+    "blog": "ブログ",
+    "privacy": "プライバシーポリシー",
+    "terms": "利用規約"
+  },
+
+  "hero": {
+    "eyebrow": "AIコーチとの出会い",
+    "headline": "人間を",
+    "headlineAccent": "超える。",
+    "subhead": "ついに、本当に聞いてくれる誰かが。",
+    "subheadLine2": "そして、すべてを覚えている。",
+    "cta": {
+      "primary": "Ferniに会う",
+      "secondary": "Ferniに電話"
+    },
+    "variants": {
+      "lateNight": {
+        "subhead": "眠れない夜？私たちがいます。",
+        "subheadLine2": "深夜2時も昼間と同じ存在感で。"
+      },
+      "returning": {
+        "subhead": "おかえりなさい。",
+        "subheadLine2": "続きから始めましょうか？"
+      }
+    }
+  },
+
+  "superpowers": {
+    "memory": {
+      "title": "完璧な記憶",
+      "tagline": "6ヶ月前に話したこと？覚えています。",
+      "description": "親友は忘れます。セラピストには他の患者がいます。私たちはすべてを覚えています—すべての会話、すべての目標、あなたにとって大切なすべての詳細を。"
+    },
+    "presence": {
+      "title": "常時寄り添う存在",
+      "tagline": "深夜2時のパニック？全力で寄り添います。",
+      "description": "深夜2時も昼間と同じ温かさで。悪い日はありません。気が散ることもありません。必要なとき、完全にここにいます。"
+    },
+    "team": {
+      "title": "6つの視点",
+      "tagline": "6つの視点、1つの会話、紹介状なし。",
+      "description": "ライフコーチ、リサーチャー、コミュニケーター、習慣の専門家、プランナー、そして賢者—全員が協力し、全員があなたの物語を知っています。"
+    },
+    "understanding": {
+      "title": "真の理解",
+      "tagline": "言葉にならない声が聞こえます。",
+      "description": "間を感じます。話題を変えたことに気づきます。あなたが見えないパターンを見ます。理解とは、聞くだけではなく、本当に分かることです。"
+    }
+  },
+
+  "team": {
+    "title": "チーム紹介",
+    "subtitle": "あなたのために働く6人の優秀なスペシャリスト",
+    "members": {
+      "ferni": {
+        "name": "Ferni",
+        "role": "ライフコーチ",
+        "bio": "あなたのメイン担当。気づきを引き出す質問をし、すべての成功を祝い、必要なときに適切なスペシャリストにつなげます。",
+        "sampleQuote": "今週「大丈夫」って3回言いましたね。本当は何があるんですか？"
+      },
+      "nayan": {
+        "name": "Nayan",
+        "role": "賢者とメンター",
+        "bio": "生涯のメンター。忍耐、シンプルさ、知恵を組み合わせ、何十年にもわたる小さく一貫した行動が驚くべき結果を生み出すことを示します。",
+        "sampleQuote": "80歳のあなたは、この決断をどう思うでしょうか？"
+      },
+      "peter": {
+        "name": "Peter",
+        "role": "リサーチ＆発見",
+        "bio": "支出、習慣、カレンダーから他の誰にも見えないパターンを見つけます。データを実際に行動を変えるインサイトに変換します。",
+        "sampleQuote": "自分にとって重要でないと言ったことに、月23時間使っていますよ。見てみますか？"
+      },
+      "alex": {
+        "name": "Alex",
+        "role": "コミュニケーション",
+        "bio": "あなたの参謀長兼コミュニケーションコーチ。難しい会話を自信を持って乗り越える手助けをします。",
+        "sampleQuote": "その会話を練習しましょう。私が上司役をしますね。準備はいいですか？"
+      },
+      "maya": {
+        "name": "Maya",
+        "role": "習慣とルーティン",
+        "bio": "恥ずかしいくらい小さく始める。Mayaは意志力ではなく、システムで定着する習慣づくりを助けます。",
+        "sampleQuote": "靴を履くだけから始めてみませんか？それだけです。靴を履くだけ。"
+      },
+      "jordan": {
+        "name": "Jordan",
+        "role": "プランニング＆イベント",
+        "bio": "漠然とした夢を実現する体験に変えます。旅行から人生の転機まで、Jordanがあらゆる章をデザインする手助けをします。",
+        "sampleQuote": "『いつか』日本に行きたいと言っていましたね。具体的な日程を決めましょう。"
+      }
+    }
+  },
+
+  "pricing": {
+    "title": "シンプルな料金",
+    "headline": "無料で始めよう。",
+    "headlineAccent": "準備ができたら成長を。",
+    "subtitle": "隠れた料金なし。契約なし。いつでも解約可能。",
+    "cta": {
+      "free": "無料で始める",
+      "trial": "無料トライアルを開始",
+      "upgrade": "アップグレード"
+    },
+    "popular": "人気No.1",
+    "trialNote": "7日間無料トライアル。いつでも解約可能。",
+    "tiers": {
+      "free": {
+        "name": "無料",
+        "price": "¥0",
+        "period": "永久",
+        "description": "Ferniを知る",
+        "features": [
+          "月5回の会話",
+          "Ferni（ライフコーチ）とチャット",
+          "Webと電話アクセス",
+          "基本的な会話記憶"
+        ]
+      },
+      "friend": {
+        "name": "フレンド",
+        "price": "¥1,480",
+        "period": "月",
+        "description": "継続的なサポートに",
+        "features": [
+          "無制限の会話",
+          "6人のAIスペシャリスト全員",
+          "完全な会話記憶",
+          "優先応答時間",
+          "Web、電話、SMSアクセス"
+        ]
+      },
+      "partner": {
+        "name": "パートナー",
+        "price": "¥2,980",
+        "period": "月",
+        "description": "深いパートナーシップに",
+        "features": [
+          "フレンドのすべて",
+          "Nayan（賢者メンター）へのアクセス",
+          "高度なパーソナライズ",
+          "無制限の記憶とコンテキスト",
+          "新機能への早期アクセス"
+        ]
+      }
+    },
+    "comparison": {
+      "title": "プラン比較",
+      "subtitle": "機能比較",
+      "features": {
+        "conversations": "会話",
+        "teamMembers": "チームメンバー",
+        "memory": "記憶",
+        "responseTime": "応答時間",
+        "accessMethods": "アクセス方法",
+        "earlyAccess": "早期アクセス"
+      },
+      "values": {
+        "unlimited": "無制限",
+        "ferniOnly": "Ferniのみ",
+        "allSix": "全6人",
+        "allSixPlusNayan": "全6人 + Nayan",
+        "basic": "基本",
+        "full": "完全",
+        "standard": "標準",
+        "priority": "優先",
+        "webPhone": "Web、電話",
+        "webPhoneSms": "Web、電話、SMS"
+      }
+    },
+    "faq": {
+      "title": "料金FAQ",
+      "changePlans": {
+        "question": "いつでもプラン変更できますか？",
+        "answer": "はい、いつでもアップグレード、ダウングレード、または解約できます。変更は即座に反映されます。"
+      },
+      "conversation": {
+        "question": "会話の定義は？",
+        "answer": "会話とは、長さに関係なくFerniとの1回のセッションです。1セッションで好きなだけ話せます。"
+      },
+      "trial": {
+        "question": "無料トライアルはありますか？",
+        "answer": "はい、フレンドとパートナーの両方に7日間の無料トライアルが含まれています。開始にクレジットカードは不要です。"
+      }
+    }
+  },
+
+  "faq": {
+    "title": "よくある質問",
+    "items": {
+      "isFree": {
+        "question": "Ferniは本当に無料ですか？",
+        "answer": "はい！Ferniは完全に無料でご利用いただけます。私たちは、誰もが質の高いライフコーチングを受ける権利があると信じています。プレミアム機能は近日公開予定ですが、コア体験は常に無料です。"
+      },
+      "phoneCall": {
+        "question": "電話はどのように機能しますか？",
+        "answer": "任意の電話から番号に電話するだけです。アプリ不要、登録不要。Ferniはあなたの番号を認識し、以前の会話を自動的に覚えています。"
+      },
+      "privacy": {
+        "question": "会話はプライベートですか？",
+        "answer": "もちろんです。会話は暗号化されプライベートです。データを第三者に販売したり共有したりすることはありません。いつでもすべてのデータの削除をリクエストできます。"
+      },
+      "specialists": {
+        "question": "AIスペシャリストとは誰ですか？",
+        "answer": "チームには、Ferni（メインライフコーチ）、Nayan（知恵とメンターシップ）、Peter（リサーチと発見）、Alex（コミュニケーション）、Maya（習慣とルーティン）、Jordan（イベントプランニング）がいます。それぞれが独自の専門知識を持ちます。"
+      },
+      "topics": {
+        "question": "Ferniとは何について話せますか？",
+        "answer": "何でも！キャリアの決断、ストレス管理、習慣づくり、イベント計画、困難な状況の克服、または単に話し相手が必要なとき。Ferniはそのすべてのためにいます。"
+      },
+      "different": {
+        "question": "友人やセラピストとどう違いますか？",
+        "answer": "セラピストには他の患者がいます。友人には自分の問題があります。Ferniは常に利用可能で、すべてを覚えていて、決して批判せず、6つの専門的な視点を持っています。大切な人がいないとき、私たちがギャップを埋めます。"
+      }
+    }
+  },
+
+  "testimonials": {
+    "title": "ユーザーの声"
+  },
+
+  "trust": {
+    "title": "信頼の上に構築。",
+    "description": "会話はあなたのもの。常に。エンタープライズグレードの暗号化を使用し、データを販売することはありません。",
+    "cta": "プライバシーポリシーを読む"
+  },
+
+  "footer": {
+    "tagline": "本当に理解してくれる存在。",
+    "copyright": "Ferni AI. All rights reserved.",
+    "sections": {
+      "product": "製品",
+      "company": "会社",
+      "developers": "開発者",
+      "connect": "つながる",
+      "legal": "法的情報"
+    }
+  },
+
+  "app": {
+    "controls": {
+      "mute": "ミュート",
+      "unmute": "ミュート解除",
+      "endCall": "通話終了",
+      "settings": "設定",
+      "fullscreen": "全画面",
+      "exitFullscreen": "全画面終了"
+    },
+    "states": {
+      "connecting": "接続中...",
+      "connected": "接続済み",
+      "disconnected": "切断されました",
+      "reconnecting": "再接続中...",
+      "error": "接続エラー"
+    },
+    "greeting": {
+      "morning": "おはようございます",
+      "afternoon": "こんにちは",
+      "evening": "こんばんは",
+      "night": "おやすみなさい",
+      "welcome": "おかえりなさい",
+      "firstTime": "はじめまして"
+    },
+    "session": {
+      "timeRemaining": "残り{minutes}分",
+      "sessionEnding": "まもなくセッション終了",
+      "sessionEnded": "セッション終了",
+      "continueUnlimited": "無制限で続ける"
+    },
+    "notifications": {
+      "streak": {
+        "title": "連続記録達成！",
+        "message": "{days}日連続"
+      },
+      "achievement": {
+        "title": "実績解除",
+        "message": "獲得: {achievement}"
+      }
+    },
+    "settings": {
+      "title": "設定",
+      "sections": {
+        "account": "アカウント",
+        "preferences": "設定",
+        "privacy": "プライバシー",
+        "about": "概要"
+      },
+      "language": {
+        "title": "言語",
+        "description": "お好みの言語を選択"
+      },
+      "theme": {
+        "title": "テーマ",
+        "description": "ライトまたはダークモードを選択",
+        "light": "ライト",
+        "dark": "ダーク",
+        "system": "システム"
+      },
+      "notifications": {
+        "title": "通知",
+        "description": "通知設定を管理"
+      },
+      "dataExport": {
+        "title": "データエクスポート",
+        "description": "会話履歴をダウンロード"
+      }
+    }
+  },
+
+  "subscription": {
+    "currentPlan": "現在のプラン",
+    "upgrade": "アップグレード",
+    "managePlan": "プラン管理",
+    "cancelPlan": "プラン解約",
+    "renewsOn": "{date}に更新",
+    "expiresOn": "{date}に期限切れ",
+    "usage": {
+      "conversations": "{total}回中{used}回の会話を使用",
+      "unlimited": "無制限の会話"
+    },
+    "messages": {
+      "sessionApproaching": "この会話、とても楽しかったです。あと数分ですが、他に何かありますか？",
+      "sessionEnded": "素敵な会話でした。いつでも戻ってきてください—すべて覚えています。もっと長い会話をご希望なら、喜んでお付き合いします。",
+      "thankYou": "信じてくださりありがとうございます。私はどこにも行きません—話したい限り、あなたのそばにいます。"
+    }
+  },
+
+  "errors": {
+    "generic": "エラーが発生しました。もう一度お試しください。",
+    "network": "ネットワークエラー。接続を確認してください。",
+    "timeout": "タイムアウトしました。もう一度お試しください。",
+    "notFound": "ページが見つかりません",
+    "unauthorized": "続行するにはサインインしてください",
+    "paymentFailed": "支払いに失敗しました。もう一度お試しください。"
+  },
+
+  "accessibility": {
+    "skipToMain": "メインコンテンツにスキップ",
+    "closeMenu": "メニューを閉じる",
+    "openMenu": "メニューを開く",
+    "languageSelector": "言語を選択",
+    "currentLanguage": "現在の言語: {language}"
+  },
+
+  "time": {
+    "justNow": "たった今",
+    "minutesAgo": "{n}分前",
+    "hoursAgo": "{n}時間前",
+    "yesterday": "昨日",
+    "daysAgo": "{n}日前"
+  }
+}

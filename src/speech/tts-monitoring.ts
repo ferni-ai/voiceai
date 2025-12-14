@@ -22,14 +22,16 @@ const log = getLogger();
  * These should never appear in TTS output.
  */
 const SUSPICIOUS_PATTERNS = [
-  // Literal action words that shouldn't be spoken
-  /\b(laughs?|chuckles?|giggles?|sighs?|smiles?|grins?|nods?|winks?|pauses?|exhales?|inhales?)\b/gi,
+  // Literal action words that shouldn't be spoken (including -ing forms)
+  /\b(laugh(?:s|ing)?|chuckl(?:es?|ing)|giggl(?:es?|ing)|sigh(?:s|ing)?|smil(?:es?|ing)|grinn?(?:s|ing)?|nodd?(?:s|ing)?|wink(?:s|ing)?|paus(?:es?|ing)|exhal(?:es?|ing)|inhal(?:es?|ing))\b/gi,
   // Stage direction formats
   /\*[^*]+\*/g, // *anything in asterisks*
   /\([^)]*(?:ly|ing)\)/g, // (softly), (nodding), etc.
   /\[[^\]]+\](?!\s*$)/g, // [anything in brackets] not at end (allows [laughter])
   // Tone descriptors as standalone words
-  /\b(softly|gently|warmly|tenderly|quietly|playfully|teasingly|knowingly)\b/gi,
+  /\b(softly|gently|warmly|tenderly|quietly|playfully|teasingly|knowingly|sarcastically|wryly|dryly|ironically|mockingly)\b/gi,
+  // Tone adjectives that shouldn't be spoken
+  /\b(sarcastic|wry|ironic|deadpan|mischievous|playful)\b/gi,
   // Voice/manner descriptions
   /\bwith a (warm|soft|gentle|knowing|playful|teasing) (smile|grin|tone|voice)\b/gi,
   // Common LLM stage direction phrases
@@ -37,9 +39,14 @@ const SUSPICIOUS_PATTERNS = [
 ];
 
 /**
- * Known safe bracket notations (Cartesia supports these)
+ * Known safe bracket notations (Cartesia Sonic-3 supports these)
+ * NOTE: No 'g' flag - using .test() with global regex causes lastIndex issues
+ *
+ * As of 2024, Cartesia only supports [laughter] as a nonverbal sound.
+ * [sigh], [cough], etc. are planned for future updates but NOT currently supported.
+ * @see https://docs.cartesia.ai/build-with-cartesia/sonic-3/volume-speed-emotion
  */
-const SAFE_BRACKET_PATTERNS = [/\[laughter\]/gi, /\[sigh\]/gi, /\[hmm\]/gi];
+const SAFE_BRACKET_PATTERNS = [/\[laughter\]/i];
 
 // ============================================================================
 // MONITORING FUNCTIONS

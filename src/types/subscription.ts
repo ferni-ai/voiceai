@@ -204,16 +204,96 @@ export function getAnnualSavingsPercent(tier: SubscriptionTier): number {
 }
 
 /**
- * Format price for display
+ * Currency configuration for supported locales
  */
-export function formatPrice(cents: number, frequency: BillingFrequency = 'monthly'): string {
-  const dollars = cents / 100;
-  if (frequency === 'annual') {
-    // Show monthly equivalent for annual
-    const monthly = dollars / 12;
-    return `$${monthly.toFixed(2)}/mo`;
-  }
-  return `$${dollars.toFixed(2)}/mo`;
+export const CURRENCY_CONFIG: Record<string, { code: string; decimals: number }> = {
+  USD: { code: 'USD', decimals: 2 },
+  EUR: { code: 'EUR', decimals: 2 },
+  GBP: { code: 'GBP', decimals: 2 },
+  JPY: { code: 'JPY', decimals: 0 },
+  KRW: { code: 'KRW', decimals: 0 },
+  CNY: { code: 'CNY', decimals: 2 },
+  AED: { code: 'AED', decimals: 2 },
+  ILS: { code: 'ILS', decimals: 2 },
+};
+
+/**
+ * Locale to currency mapping
+ */
+export const LOCALE_CURRENCY: Record<string, string> = {
+  'en-US': 'USD',
+  'en-GB': 'GBP',
+  es: 'EUR',
+  fr: 'EUR',
+  de: 'EUR',
+  ja: 'JPY',
+  ko: 'KRW',
+  'zh-Hans': 'CNY',
+  'zh-Hant': 'USD', // Taiwan uses USD for international SaaS
+  ar: 'AED',
+  he: 'ILS',
+};
+
+/**
+ * Period suffix translations
+ */
+const PERIOD_SUFFIX: Record<string, Record<BillingFrequency, string>> = {
+  'en-US': { monthly: '/mo', annual: '/yr' },
+  'en-GB': { monthly: '/mo', annual: '/yr' },
+  es: { monthly: '/mes', annual: '/año' },
+  fr: { monthly: '/mois', annual: '/an' },
+  de: { monthly: '/Mon.', annual: '/Jahr' },
+  ja: { monthly: '/月', annual: '/年' },
+  ko: { monthly: '/월', annual: '/년' },
+  'zh-Hans': { monthly: '/月', annual: '/年' },
+  'zh-Hant': { monthly: '/月', annual: '/年' },
+  ar: { monthly: '/شهر', annual: '/سنة' },
+  he: { monthly: '/חודש', annual: '/שנה' },
+};
+
+/**
+ * Format price for display with locale-aware currency formatting
+ *
+ * @param cents - Amount in smallest currency unit
+ * @param frequency - Billing frequency (monthly or annual)
+ * @param locale - User's locale (defaults to en-US)
+ * @param currency - Override currency (defaults to locale's currency)
+ */
+export function formatPrice(
+  cents: number,
+  frequency: BillingFrequency = 'monthly',
+  locale = 'en-US',
+  currency?: string
+): string {
+  const currencyCode = currency || LOCALE_CURRENCY[locale] || 'USD';
+  const config = CURRENCY_CONFIG[currencyCode] || CURRENCY_CONFIG.USD;
+
+  // Convert from smallest unit to display value
+  const displayValue = config.decimals > 0 ? cents / Math.pow(10, config.decimals) : cents;
+
+  // For annual, show monthly equivalent
+  const valueToFormat = frequency === 'annual' ? displayValue / 12 : displayValue;
+
+  // Use Intl.NumberFormat for proper locale-aware formatting
+  const formatted = new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: currencyCode,
+    minimumFractionDigits: config.decimals,
+    maximumFractionDigits: config.decimals,
+  }).format(valueToFormat);
+
+  // Add period suffix
+  const suffix = PERIOD_SUFFIX[locale]?.[frequency] || PERIOD_SUFFIX['en-US'][frequency];
+
+  return `${formatted}${suffix}`;
+}
+
+/**
+ * Format price for display (legacy - USD only)
+ * @deprecated Use formatPrice with locale parameter
+ */
+export function formatPriceUSD(cents: number, frequency: BillingFrequency = 'monthly'): string {
+  return formatPrice(cents, frequency, 'en-US', 'USD');
 }
 
 // ============================================================================

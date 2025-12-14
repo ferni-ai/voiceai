@@ -7,6 +7,7 @@
 
 import type {
   CelebrationEvent,
+  ConversationEndEvent,
   DataMessage,
   EmotionEvent,
   EngagementTriggerEvent,
@@ -17,6 +18,7 @@ import type {
 } from '../types/events.js';
 import {
   isCelebrationMessage,
+  isConversationEndMessage,
   isEmotionMessage,
   isEngagementTriggerMessage,
   isExpressionMessage,
@@ -146,6 +148,12 @@ export function handleDataMessage(message: DataMessage): void {
   // Try to process as wrap-up signal (conversation ending)
   if (isWrapUpMessage(message)) {
     handleWrapUp(message);
+    return;
+  }
+
+  // Try to process as conversation end signal (auto-disconnect)
+  if (isConversationEndMessage(message)) {
+    handleConversationEnd(message);
     return;
   }
 
@@ -913,4 +921,38 @@ export function handleWrapUp(event: WrapUpEvent): void {
   if (event.message) {
     messageUI.show(event.message, 'info', 3000);
   }
+}
+
+/**
+ * Handle conversation end events from the agent.
+ * This triggers the auto-disconnect after the agent has said goodbye.
+ *
+ * Flow:
+ * 1. Play disconnect sound
+ * 2. Wait for sound to complete (or delay)
+ * 3. Disconnect from the room
+ */
+export function handleConversationEnd(event: ConversationEndEvent): void {
+  log.info('Conversation end signal received:', {
+    reason: event.reason,
+    delay: event.disconnectDelay,
+  });
+
+  // Play disconnect sound
+  soundUI.play('session-end');
+
+  // Show a brief "See you!" message
+  messageUI.show('See you next time!', 'info', 2000);
+
+  // 🎬 Pixar: Final warm farewell expression
+  ferniExpressions.setExpression('happy', 400, 2000);
+
+  // Disconnect after delay (allows sound and animation to play)
+  const delay = event.disconnectDelay ?? 2000;
+  setTimeout(() => {
+    log.info('Auto-disconnecting after conversation end');
+
+    // Dispatch disconnect event - the app.ts will handle the actual disconnect
+    window.dispatchEvent(new CustomEvent('ferni:conversation-end-disconnect'));
+  }, delay);
 }

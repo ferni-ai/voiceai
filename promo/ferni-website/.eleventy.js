@@ -1,8 +1,91 @@
 const syntaxHighlight = require('@11ty/eleventy-plugin-syntaxhighlight');
 
+// ============================================
+// I18N CONFIGURATION
+// ============================================
+
+// Load translation files
+const translations = {
+  en: require('./src/_data/i18n/en.json'),
+  es: require('./src/_data/i18n/es.json'),
+  // Add more locales as they become available:
+  // fr: require('./src/_data/i18n/fr.json'),
+  // de: require('./src/_data/i18n/de.json'),
+  // ja: require('./src/_data/i18n/ja.json'),
+};
+
+// Supported locales with metadata
+const locales = [
+  { code: 'en', name: 'English', flag: '🇺🇸', direction: 'ltr', default: true },
+  { code: 'es', name: 'Español', flag: '🇪🇸', direction: 'ltr', default: false },
+  // { code: 'fr', name: 'Français', flag: '🇫🇷', direction: 'ltr', default: false },
+  // { code: 'de', name: 'Deutsch', flag: '🇩🇪', direction: 'ltr', default: false },
+  // { code: 'ja', name: '日本語', flag: '🇯🇵', direction: 'ltr', default: false },
+];
+
+const defaultLocale = 'en';
+
+/**
+ * Get a nested value from an object using dot notation
+ */
+function getNestedValue(obj, path) {
+  const keys = path.split('.');
+  let current = obj;
+  for (const key of keys) {
+    if (current === null || current === undefined) return undefined;
+    current = current[key];
+  }
+  return current;
+}
+
 module.exports = function (eleventyConfig) {
   // Syntax highlighting for code blocks
   eleventyConfig.addPlugin(syntaxHighlight);
+
+  // ============================================
+  // I18N FILTERS AND GLOBALS
+  // ============================================
+
+  // Add translations as global data
+  eleventyConfig.addGlobalData('i18n', translations);
+  eleventyConfig.addGlobalData('locales', locales);
+  eleventyConfig.addGlobalData('defaultLocale', defaultLocale);
+
+  // Translation filter: {{ 'hero.headline' | t }}
+  // Uses page.locale if set, otherwise defaults to 'en'
+  eleventyConfig.addFilter('t', function (key) {
+    const locale = this.ctx?.locale || this.ctx?.page?.locale || defaultLocale;
+    const translation = translations[locale];
+    if (!translation) {
+      console.warn(`[i18n] Missing locale: ${locale}`);
+      return getNestedValue(translations[defaultLocale], key) || key;
+    }
+    const value = getNestedValue(translation, key);
+    if (value === undefined) {
+      console.warn(`[i18n] Missing key: ${key} in locale: ${locale}`);
+      return getNestedValue(translations[defaultLocale], key) || key;
+    }
+    return value;
+  });
+
+  // Localized URL filter: {{ '/pricing/' | localizeUrl }}
+  eleventyConfig.addFilter('localizeUrl', function (url) {
+    const locale = this.ctx?.locale || this.ctx?.page?.locale || defaultLocale;
+    if (locale === defaultLocale) return url;
+    return `/${locale}${url}`;
+  });
+
+  // Get locale name filter
+  eleventyConfig.addFilter('localeName', function (code) {
+    const locale = locales.find(l => l.code === code);
+    return locale ? locale.name : code;
+  });
+
+  // Check if locale is RTL
+  eleventyConfig.addFilter('isRTL', function (code) {
+    const locale = locales.find(l => l.code === code);
+    return locale ? locale.direction === 'rtl' : false;
+  });
 
   // ============================================
   // PASSTHROUGH COPY - Static files to _site

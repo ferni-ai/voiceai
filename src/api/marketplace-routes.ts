@@ -11,42 +11,40 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { getLogger } from '../utils/safe-logger.js';
 import {
-  registerTool,
-  registerAgent,
-  getTool,
-  getAgent,
-  listTools,
-  listAgents,
-  getExecutionHistory,
-  installItem,
-  uninstallItem,
-  getInstallation,
-  listInstallations,
-  hasPermission,
-} from '../marketplace/index.js';
-import {
-  recordUsage,
-  getUsageSummary,
   checkQuota,
-  getUsageHistory,
   getPendingPayouts,
+  getUsageHistory,
+  getUsageSummary,
 } from '../marketplace/billing/index.js';
 import {
+  createMarketplaceCheckout,
+  handleWebhookEvent,
   isStripeConfigured,
   verifyWebhookSignature,
-  handleWebhookEvent,
-  createMarketplaceCheckout,
 } from '../marketplace/billing/stripe-webhooks.js';
+import {
+  getAgent,
+  getExecutionHistory,
+  getInstallation,
+  getTool,
+  installItem,
+  listAgents,
+  listInstallations,
+  listTools,
+  registerAgent,
+  registerTool,
+  uninstallItem,
+} from '../marketplace/index.js';
 import type {
-  ToolManifest,
   AgentManifest,
-  TrustLevel,
-  PermissionScope,
-  UserId,
   MarketplaceId,
+  PermissionScope,
+  ToolManifest,
+  TrustLevel,
+  UserId,
 } from '../marketplace/schema/types.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'marketplace-routes' });
 
@@ -1133,6 +1131,12 @@ export async function handleMarketplaceRoutes(
     return handlePaymentRoutes(req, res, pathname, method);
   }
 
+  // Reviews routes
+  if (pathname.startsWith('/api/marketplace/reviews')) {
+    const { handleReviewsRoutes } = await import('./routes/marketplace-reviews.js');
+    return handleReviewsRoutes(req, res, pathname);
+  }
+
   return false;
 }
 
@@ -1149,7 +1153,15 @@ export function isMarketplaceRoute(pathname: string): boolean {
       pathname.startsWith('/api/marketplace/quota') ||
       pathname.startsWith('/api/marketplace/billing') ||
       pathname.startsWith('/api/marketplace/payment') ||
+      pathname.startsWith('/api/marketplace/reviews') ||
       pathname === '/api/marketplace/webhook' ||
       pathname === '/api/marketplace/checkout')
   );
+}
+
+/**
+ * Check if a path is an admin marketplace route
+ */
+export function isMarketplaceAdminRoute(pathname: string): boolean {
+  return pathname.startsWith('/api/admin/marketplace');
 }

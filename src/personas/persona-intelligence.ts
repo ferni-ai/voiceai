@@ -16,9 +16,9 @@
 import { getLogger } from '../utils/safe-logger.js';
 
 // Relationship Memory
+import type { RelationshipMemoryEngine } from './relationship-memory/index.js';
 import {
   getRelationshipEngine,
-  RelationshipMemoryEngine,
   type RelationshipContext,
   type RelationshipMemory,
   type RelationshipStage,
@@ -45,7 +45,8 @@ import {
 } from './shared/team-chemistry.js';
 
 // Cognitive Profiles (existing system)
-import { CognitiveIntelligenceEngine, getCognitiveEngine } from './cognitive-intelligence.js';
+import type { CognitiveIntelligenceEngine } from './cognitive-intelligence.js';
+import { getCognitiveEngine } from './cognitive-intelligence.js';
 import { getCognitiveProfile } from './cognitive-profiles.js';
 import type { CognitiveProfile } from './cognitive-types.js';
 
@@ -139,9 +140,9 @@ export class PersonaIntelligenceEngine {
   private cognitiveProfile: CognitiveProfile | undefined;
 
   // Session state
-  private sessionNumber: number = 0;
-  private lastTeamReferenceSession: number = 0;
-  private predictiveInsightsUsed: number = 0;
+  private sessionNumber = 0;
+  private lastTeamReferenceSession = 0;
+  private predictiveInsightsUsed = 0;
 
   constructor(
     personaId: string,
@@ -284,7 +285,7 @@ export class PersonaIntelligenceEngine {
       }
 
       // Add stage guidance
-      relationshipSection += '\n\n' + relInjection.stageGuidance;
+      relationshipSection += `\n\n${relInjection.stageGuidance}`;
 
       sections.push(relationshipSection);
     }

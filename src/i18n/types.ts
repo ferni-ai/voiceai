@@ -82,16 +82,14 @@ export type TranslationParams = Record<string, string | number>;
 export type PluralCategory = 'zero' | 'one' | 'two' | 'few' | 'many' | 'other';
 
 /**
- * Translation value - can be string or nested object
+ * Translation value - can be string, array of strings, or nested object
  */
-export type TranslationValue = string | { [key: string]: TranslationValue };
+export type TranslationValue = string | string[] | { [key: string]: TranslationValue };
 
 /**
  * Translation file structure
  */
-export interface Translations {
-  [key: string]: TranslationValue;
-}
+export type Translations = Record<string, TranslationValue>;
 
 /**
  * Flatten nested keys to dot-notation paths
@@ -161,8 +159,20 @@ export const LOCALE_METADATA: readonly LocaleMetadata[] = [
   { code: 'de', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪', direction: 'ltr' },
   { code: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵', direction: 'ltr' },
   { code: 'ko', name: 'Korean', nativeName: '한국어', flag: '🇰🇷', direction: 'ltr' },
-  { code: 'zh-Hans', name: 'Chinese (Simplified)', nativeName: '简体中文', flag: '🇨🇳', direction: 'ltr' },
-  { code: 'zh-Hant', name: 'Chinese (Traditional)', nativeName: '繁體中文', flag: '🇹🇼', direction: 'ltr' },
+  {
+    code: 'zh-Hans',
+    name: 'Chinese (Simplified)',
+    nativeName: '简体中文',
+    flag: '🇨🇳',
+    direction: 'ltr',
+  },
+  {
+    code: 'zh-Hant',
+    name: 'Chinese (Traditional)',
+    nativeName: '繁體中文',
+    flag: '🇹🇼',
+    direction: 'ltr',
+  },
   { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇸🇦', direction: 'rtl' },
   { code: 'he', name: 'Hebrew', nativeName: 'עברית', flag: '🇮🇱', direction: 'rtl' },
 ] as const;
@@ -178,13 +188,13 @@ export const DEFAULT_LOCALE: SupportedLocale = 'en-US';
 export const FALLBACK_CHAIN: Record<SupportedLocale, SupportedLocale[]> = {
   'en-US': [],
   'en-GB': ['en-US'],
-  'es': ['en-US'],
-  'fr': ['en-US'],
-  'de': ['en-US'],
-  'ja': ['en-US'],
-  'ko': ['en-US'],
+  es: ['en-US'],
+  fr: ['en-US'],
+  de: ['en-US'],
+  ja: ['en-US'],
+  ko: ['en-US'],
   'zh-Hans': ['en-US'],
   'zh-Hant': ['zh-Hans', 'en-US'],
-  'ar': ['en-US'],
-  'he': ['en-US'],
+  ar: ['en-US'],
+  he: ['en-US'],
 };

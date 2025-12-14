@@ -20,6 +20,7 @@
  */
 
 import { DURATION, EASING, STAGGER } from '../config/animation-constants.js';
+import { teamUnlockService } from '../services/team-unlock.service.js';
 import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
 import { toast } from './toast.ui.js';
@@ -454,6 +455,10 @@ export async function loadStatus(): Promise<SubscriptionStatus | null> {
       },
       canUpgrade: false,
     } as SubscriptionStatus;
+
+    // FIX: Sync tier to team unlock service for bypass users
+    teamUnlockService.setTier('partner');
+
     return status;
   }
 
@@ -462,6 +467,13 @@ export async function loadStatus(): Promise<SubscriptionStatus | null> {
     if (response.ok) {
       status = await response.json();
       log.debug('Subscription status loaded:', status);
+
+      // FIX: Sync subscription tier to team unlock service
+      // This ensures team members unlock correctly based on subscription
+      if (status?.tier) {
+        teamUnlockService.setTier(status.tier);
+      }
+
       return status;
     }
   } catch (error) {

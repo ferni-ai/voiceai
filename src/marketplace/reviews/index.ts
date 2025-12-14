@@ -487,6 +487,9 @@ export function clearReviews(): void {
   state.stats.clear();
 }
 
+// Alias for test compatibility
+export const clearReviewsData = clearReviews;
+
 // ============================================================================
 // EXPORTS
 // ============================================================================

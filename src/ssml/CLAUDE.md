@@ -14,6 +14,99 @@ This module provides:
 - Financial pronunciation handling
 - Persona-aware SSML tagging
 
+## 📋 Cartesia Sonic-3 SSML Specification
+
+**Reference:** https://docs.cartesia.ai/build-with-cartesia/sonic-3/ssml-tags
+
+### Supported SSML Tags
+
+| Tag         | Format                                        | Range        | Notes                          |
+| ----------- | --------------------------------------------- | ------------ | ------------------------------ |
+| **Speed**   | `<speed ratio="X"/>`                          | 0.6-1.5      | 1.0 = normal speed             |
+| **Volume**  | `<volume ratio="X"/>`                         | 0.5-2.0      | 1.0 = normal volume            |
+| **Emotion** | `<emotion value="X"/>`                        | See list     | Beta feature                   |
+| **Break**   | `<break time="Xms"/>` or `<break time="Xs"/>` | Any duration | Inserts pause                  |
+| **Spell**   | `<spell>text</spell>`                         | Any text     | Letter-by-letter pronunciation |
+
+### Nonverbal Sounds
+
+| Sound    | Syntax       | Status                               |
+| -------- | ------------ | ------------------------------------ |
+| Laughter | `[laughter]` | ✅ **SUPPORTED**                     |
+| Sigh     | `[sigh]`     | ❌ NOT YET (planned)                 |
+| Cough    | `[cough]`    | ❌ NOT YET (planned)                 |
+| Hmm      | `[hmm]`      | ❌ NOT YET (use plain text "Hmm...") |
+
+**⚠️ IMPORTANT:** Only `[laughter]` is currently supported by Cartesia Sonic-3. Other nonverbal sounds like `[sigh]` and `[cough]` are planned for future updates but will be spoken literally if used now.
+
+### Supported Emotions
+
+Primary emotions (confirmed working):
+
+- `angry`, `sad`, `surprised`, `curious`, `affectionate`
+
+Extended emotions (beta):
+
+- `excited`, `content`, `scared`, `happy`, `nostalgic`
+- `contemplative`, `grateful`, `proud`, `sympathetic`, `skeptical`
+
+### Mid-Sentence Emotion Changes
+
+Cartesia supports changing emotions mid-sentence:
+
+```xml
+<emotion value="angry"/>I will not allow you to continue this! <emotion value="sad"/>I was hoping for a peaceful resolution.
+```
+
+**How our code handles this:**
+
+- ✅ **Explicit inline tags are PRESERVED** - If content already includes `<emotion>` tags, they pass through unchanged
+- ⚠️ **Auto-detection adds ONE emotion** - For plain text, we detect the dominant emotion and add it at the start
+- 💡 **For emotional range**, include emotion tags directly in persona content/responses
+
+**Best practice for emotional responses:**
+
+```typescript
+// In persona content files - explicit emotions are preserved:
+"<emotion value=\"excited\"/>Oh that's amazing! <emotion value=\"curious\"/>Tell me more about how that happened."
+
+// Plain text gets auto-detected emotion at start:
+"Oh that's amazing! Tell me more." → "<emotion value=\"surprised\"/>Oh that's amazing! Tell me more."
+```
+
+### SSML Tag Examples
+
+```xml
+<!-- Speed control -->
+<speed ratio="1.5"/>I like to speak quickly.
+<speed ratio="0.8"/>This is more deliberate.
+
+<!-- Volume control -->
+<volume ratio="0.5"/>I will speak softly.
+<volume ratio="1.5"/>This is louder.
+
+<!-- Emotion (Beta) -->
+<emotion value="angry"/>I will not allow this!
+<emotion value="sad"/>I was hoping for better.
+
+<!-- Pauses -->
+Hello.<break time="500ms"/>Nice to meet you.
+Let me think.<break time="1s"/>Okay, here's my answer.
+
+<!-- Spelling out text -->
+My account is <spell>ABC-123</spell>.
+
+<!-- Laughter (ONLY supported nonverbal) -->
+That's hilarious! [laughter]
+```
+
+### Important Notes
+
+1. **Buffer complete tags** when streaming token-by-token to prevent tags from being read aloud
+2. **Emotion tag** works best with voices tagged as "Emotive" in Cartesia
+3. **Mid-generation emotion shifts** may yield unpredictable results
+4. **Break tags** count as 1 character for billing purposes
+
 ## Architecture Overview
 
 ```

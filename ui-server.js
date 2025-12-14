@@ -117,12 +117,11 @@ import { rateLimit, requireAdmin } from './dist/api/auth-middleware.js';
 
 // DDoS protection utilities
 import {
-  hardenServer,
+  addRequestId,
+  createOAuthStateManager,
   handleHealthEndpoint,
   handleSecurityMonitoring,
-  addRequestId,
-  getClientIp,
-  createOAuthStateManager,
+  hardenServer,
   registerDDoSAlertCallback,
   startDDoSMonitoring,
 } from './dist/utils/ddos-protection.js';
@@ -770,6 +769,20 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ============================================================================
+  // MARKETPLACE ADMIN ROUTES (review queue, moderation)
+  // ============================================================================
+  try {
+    if (pathname.startsWith('/api/admin/marketplace')) {
+      const { handleMarketplaceAdminRoutes } =
+        await import('./dist/api/routes/marketplace-admin.js');
+      const handled = await handleMarketplaceAdminRoutes(req, res, pathname);
+      if (handled) return;
+    }
+  } catch (err) {
+    console.error('❌ Marketplace admin route error:', err);
+  }
+
+  // ============================================================================
   // DIAGNOSTICS API ROUTES (requires admin auth)
   // ============================================================================
   try {
@@ -1318,23 +1331,24 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/health/circuits' || pathname === '/api/diagnostics/circuits') {
     try {
       // Dynamic import of self-healing module
-      const { getAllClientStats, getAllCircuitStats, getUnhealthyClients } = await import('./dist/services/self-healing/index.js');
-      
+      const { getAllClientStats, getAllCircuitStats, getUnhealthyClients } =
+        await import('./dist/services/self-healing/index.js');
+
       const httpClients = getAllClientStats();
       const circuits = getAllCircuitStats();
       const unhealthyClients = getUnhealthyClients();
-      
+
       const circuitHealth = {
         status: unhealthyClients.length === 0 ? 'healthy' : 'degraded',
         timestamp: new Date().toISOString(),
         summary: {
           totalClients: httpClients.length,
-          healthyClients: httpClients.filter(c => c.state === 'closed').length,
-          openCircuits: httpClients.filter(c => c.state === 'open').length,
-          halfOpenCircuits: httpClients.filter(c => c.state === 'half_open').length,
+          healthyClients: httpClients.filter((c) => c.state === 'closed').length,
+          openCircuits: httpClients.filter((c) => c.state === 'open').length,
+          halfOpenCircuits: httpClients.filter((c) => c.state === 'half_open').length,
         },
         unhealthyServices: unhealthyClients,
-        httpClients: httpClients.map(client => ({
+        httpClients: httpClients.map((client) => ({
           name: client.name,
           state: client.state,
           failures: client.failures,
@@ -1342,33 +1356,37 @@ const server = http.createServer(async (req, res) => {
           totalRequests: client.totalRequests,
           totalFailures: client.totalFailures,
           totalSuccesses: client.totalSuccesses,
-          successRate: client.totalRequests > 0 
-            ? ((client.totalSuccesses / client.totalRequests) * 100).toFixed(1) + '%'
-            : 'N/A',
+          successRate:
+            client.totalRequests > 0
+              ? ((client.totalSuccesses / client.totalRequests) * 100).toFixed(1) + '%'
+              : 'N/A',
           lastStateChange: new Date(client.lastStateChange).toISOString(),
         })),
-        allCircuits: circuits.map(circuit => ({
+        allCircuits: circuits.map((circuit) => ({
           name: circuit.name,
           state: circuit.state,
           failures: circuit.failures,
           successes: circuit.successes,
           totalRequests: circuit.totalRequests,
-          successRate: circuit.totalRequests > 0 
-            ? ((circuit.totalSuccesses / circuit.totalRequests) * 100).toFixed(1) + '%'
-            : 'N/A',
+          successRate:
+            circuit.totalRequests > 0
+              ? ((circuit.totalSuccesses / circuit.totalRequests) * 100).toFixed(1) + '%'
+              : 'N/A',
         })),
       };
-      
+
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(circuitHealth, null, 2));
     } catch (error) {
       // Self-healing module not available yet
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        status: 'unavailable',
-        message: 'Self-healing module not loaded yet',
-        timestamp: new Date().toISOString(),
-      }));
+      res.end(
+        JSON.stringify({
+          status: 'unavailable',
+          message: 'Self-healing module not loaded yet',
+          timestamp: new Date().toISOString(),
+        })
+      );
     }
     return;
   }

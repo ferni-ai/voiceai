@@ -126,6 +126,7 @@ export interface MarketplaceAgent {
   featured?: boolean;
   downloads?: number;
   rating?: number;
+  reviewCount?: number;
 }
 
 /**

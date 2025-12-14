@@ -69,6 +69,7 @@ export interface SettingsMenuUICallbacks {
   onWearableSettingsClick?: () => void;
   onVideoSettingsClick?: () => void;
   onGroupCoachingClick?: () => void;
+  onMarketplaceAdminClick?: () => void;
   onClose?: () => void;
 }
 

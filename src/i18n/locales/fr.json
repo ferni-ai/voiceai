@@ -1,0 +1,389 @@
+{
+  "$schema": "./schema.json",
+  "meta": {
+    "locale": "fr",
+    "name": "Français",
+    "version": "1.0.0"
+  },
+
+  "common": {
+    "loading": "Chargement...",
+    "error": "Une erreur s'est produite",
+    "retry": "Réessayer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "done": "Terminé",
+    "yes": "Oui",
+    "no": "Non",
+    "ok": "OK",
+    "learnMore": "En savoir plus"
+  },
+
+  "brand": {
+    "name": "Ferni",
+    "tagline": "Votre coach de vie personnel",
+    "promise": "Mieux qu'un humain."
+  },
+
+  "navigation": {
+    "features": "Fonctionnalités",
+    "team": "Équipe",
+    "pricing": "Tarifs",
+    "faq": "FAQ",
+    "developers": "Développeurs",
+    "about": "À propos",
+    "contact": "Contact",
+    "blog": "Blog",
+    "privacy": "Politique de confidentialité",
+    "terms": "Conditions d'utilisation"
+  },
+
+  "hero": {
+    "eyebrow": "Découvrez Votre Coach IA",
+    "headline": "Mieux qu'un",
+    "headlineAccent": "humain.",
+    "subhead": "Enfin quelqu'un qui écoute vraiment.",
+    "subheadLine2": "Et qui se souvient de tout.",
+    "cta": {
+      "primary": "Rencontrer Ferni",
+      "secondary": "Appeler Ferni"
+    },
+    "variants": {
+      "lateNight": {
+        "subhead": "Vous n'arrivez pas à dormir ? Nous sommes là.",
+        "subheadLine2": "Même présence à 2h du matin qu'à midi."
+      },
+      "returning": {
+        "subhead": "Bon retour.",
+        "subheadLine2": "Prêt à reprendre où nous en étions ?"
+      }
+    }
+  },
+
+  "superpowers": {
+    "memory": {
+      "title": "Mémoire parfaite",
+      "tagline": "Cette chose que vous avez mentionnée il y a six mois ? Nous nous en souvenons.",
+      "description": "Votre meilleur ami oublie. Votre thérapeute a d'autres patients. Nous nous souvenons de tout - chaque conversation, chaque objectif, chaque détail qui compte pour vous."
+    },
+    "presence": {
+      "title": "Présence constante",
+      "tagline": "Panique à 2h du matin ? Nous sommes pleinement présents.",
+      "description": "Là à 2h du matin avec la même chaleur qu'à midi. Pas de mauvais jours. Pas de distraction. Entièrement là, quand vous en avez besoin."
+    },
+    "team": {
+      "title": "Six perspectives",
+      "tagline": "Six perspectives, une conversation, sans renvoi.",
+      "description": "Coach de vie, chercheur, communicant, expert en habitudes, planificateur et sage - tous travaillant ensemble, tous au courant de votre histoire."
+    },
+    "understanding": {
+      "title": "Vraie compréhension",
+      "tagline": "Nous entendons ce que vous ne dites pas.",
+      "description": "Nous remarquons la pause. L'évitement. Le schéma que vous ne voyez pas. Comprendre, ce n'est pas seulement écouter - c'est vraiment saisir."
+    }
+  },
+
+  "team": {
+    "title": "Rencontrez l'équipe",
+    "subtitle": "Six esprits brillants travaillant ensemble pour vous",
+    "members": {
+      "ferni": {
+        "name": "Ferni",
+        "role": "Coach de vie",
+        "bio": "Votre contact principal. Pose les questions qui débloquent les prises de conscience, célèbre chaque victoire et vous connecte au bon spécialiste quand vous en avez besoin.",
+        "sampleQuote": "J'ai remarqué que vous avez dit 'ça va' trois fois cette semaine. Que se passe-t-il vraiment ?"
+      },
+      "nayan": {
+        "name": "Nayan",
+        "role": "Sage & Mentor",
+        "bio": "Votre mentor pour la vie. Combine patience, simplicité et sagesse pour vous aider à voir que les petites actions constantes sur des décennies créent des résultats extraordinaires.",
+        "sampleQuote": "Que penserait votre moi de 80 ans de cette décision ?"
+      },
+      "peter": {
+        "name": "Peter",
+        "role": "Recherche & Découverte",
+        "bio": "Repère des schémas que personne d'autre ne voit dans vos dépenses, habitudes et agenda. Transforme les données en insights qui changent vraiment les comportements.",
+        "sampleQuote": "Vous passez 23 heures par mois sur des choses que vous avez dit ne pas compter. Voulez-vous voir ?"
+      },
+      "alex": {
+        "name": "Alex",
+        "role": "Communication",
+        "bio": "Votre directeur de cabinet et coach en communication. Vous aide à naviguer les conversations difficiles avec confiance.",
+        "sampleQuote": "Pratiquons cette conversation. Je joue votre patron. Prêt ?"
+      },
+      "maya": {
+        "name": "Maya",
+        "role": "Habitudes & Routines",
+        "bio": "Commencez ridiculement petit. Maya vous aide à construire des habitudes durables grâce aux systèmes, pas à la volonté.",
+        "sampleQuote": "Et si on commençait juste par enfiler vos chaussures ? C'est tout. Juste les chaussures."
+      },
+      "jordan": {
+        "name": "Jordan",
+        "role": "Planification & Événements",
+        "bio": "Transforme les rêves vagues en expériences vécues. Des vacances aux transitions de vie, Jordan vous aide à concevoir chaque chapitre.",
+        "sampleQuote": "Vous avez mentionné vouloir visiter le Japon 'un jour'. Fixons une vraie date."
+      }
+    }
+  },
+
+  "pricing": {
+    "title": "Tarification simple",
+    "headline": "Commencez gratuitement.",
+    "headlineAccent": "Évoluez quand vous êtes prêt.",
+    "subtitle": "Pas de frais cachés. Pas de contrat. Annulez à tout moment.",
+    "cta": {
+      "free": "Commencer gratuitement",
+      "trial": "Essai gratuit",
+      "upgrade": "Mettre à niveau"
+    },
+    "popular": "Le plus populaire",
+    "trialNote": "Essai gratuit de 7 jours. Annulez à tout moment.",
+    "tiers": {
+      "free": {
+        "name": "Gratuit",
+        "price": "0 €",
+        "period": "pour toujours",
+        "description": "Faites connaissance avec Ferni",
+        "features": [
+          "5 conversations/mois",
+          "Discutez avec Ferni (Coach de vie)",
+          "Accès web et téléphone",
+          "Mémoire de conversation basique"
+        ]
+      },
+      "friend": {
+        "name": "Ami",
+        "price": "9,99 €",
+        "period": "mois",
+        "description": "Pour un soutien régulier",
+        "features": [
+          "Conversations illimitées",
+          "Les 6 spécialistes IA",
+          "Mémoire de conversation complète",
+          "Temps de réponse prioritaire",
+          "Accès web, téléphone et SMS"
+        ]
+      },
+      "partner": {
+        "name": "Partenaire",
+        "price": "19,99 €",
+        "period": "mois",
+        "description": "Pour un partenariat profond",
+        "features": [
+          "Tout ce qui est dans Ami",
+          "Accès à Nayan (Mentor Sage)",
+          "Personnalisation avancée",
+          "Mémoire et contexte illimités",
+          "Accès anticipé aux fonctionnalités"
+        ]
+      }
+    },
+    "comparison": {
+      "title": "Comparer les forfaits",
+      "subtitle": "Comparaison des fonctionnalités",
+      "features": {
+        "conversations": "Conversations",
+        "teamMembers": "Membres de l'équipe",
+        "memory": "Mémoire",
+        "responseTime": "Temps de réponse",
+        "accessMethods": "Méthodes d'accès",
+        "earlyAccess": "Accès anticipé"
+      },
+      "values": {
+        "unlimited": "Illimité",
+        "ferniOnly": "Ferni uniquement",
+        "allSix": "Les 6",
+        "allSixPlusNayan": "Les 6 + Nayan",
+        "basic": "Basique",
+        "full": "Complet",
+        "standard": "Standard",
+        "priority": "Prioritaire",
+        "webPhone": "Web, Téléphone",
+        "webPhoneSms": "Web, Téléphone, SMS"
+      }
+    },
+    "faq": {
+      "title": "FAQ Tarifs",
+      "changePlans": {
+        "question": "Puis-je changer de forfait à tout moment ?",
+        "answer": "Oui, vous pouvez mettre à niveau, rétrograder ou annuler votre forfait à tout moment. Les changements prennent effet immédiatement."
+      },
+      "conversation": {
+        "question": "Qu'est-ce qui compte comme une conversation ?",
+        "answer": "Une conversation est une seule session avec Ferni, quelle que soit sa durée. Vous pouvez parler aussi longtemps que vous le souhaitez en une session."
+      },
+      "trial": {
+        "question": "Y a-t-il un essai gratuit ?",
+        "answer": "Oui, les forfaits Ami et Partenaire incluent un essai gratuit de 7 jours. Aucune carte de crédit requise pour commencer."
+      }
+    }
+  },
+
+  "faq": {
+    "title": "Questions fréquemment posées",
+    "items": {
+      "isFree": {
+        "question": "Ferni est-il vraiment gratuit ?",
+        "answer": "Oui ! Ferni est entièrement gratuit à utiliser. Nous croyons que tout le monde mérite un accès à un coaching de qualité. Nos fonctionnalités premium arrivent bientôt, mais l'expérience de base sera toujours gratuite."
+      },
+      "phoneCall": {
+        "question": "Comment fonctionne l'appel téléphonique ?",
+        "answer": "Appelez simplement le numéro depuis n'importe quel téléphone. Pas d'application nécessaire, pas d'inscription requise. Ferni reconnaîtra votre numéro et se souviendra automatiquement de vos conversations précédentes."
+      },
+      "privacy": {
+        "question": "Ma conversation est-elle privée ?",
+        "answer": "Absolument. Vos conversations sont cryptées et privées. Nous ne vendons jamais vos données et ne les partageons pas avec des tiers. Vous pouvez également demander la suppression de toutes vos données à tout moment."
+      },
+      "specialists": {
+        "question": "Qui sont les spécialistes IA ?",
+        "answer": "Notre équipe comprend Ferni (votre coach de vie principal), Nayan (sagesse et mentorat), Peter (recherche et découverte), Alex (communications), Maya (habitudes et routines) et Jordan (planification d'événements). Chacun apporte une expertise unique pour vous aider."
+      },
+      "topics": {
+        "question": "De quoi puis-je parler avec Ferni ?",
+        "answer": "De tout ! Décisions de carrière, gestion du stress, construction d'habitudes, planification d'événements, travail sur des situations difficiles, ou simplement besoin de quelqu'un à qui parler. Ferni est là pour tout cela."
+      },
+      "different": {
+        "question": "En quoi est-ce différent d'un ami ou d'un thérapeute ?",
+        "answer": "Votre thérapeute a d'autres patients. Votre ami a ses propres problèmes. Ferni est toujours disponible, se souvient de tout, ne juge jamais et apporte six perspectives spécialisées. Nous comblons les lacunes quand vos proches ne peuvent pas être là."
+      }
+    }
+  },
+
+  "testimonials": {
+    "title": "Ce que disent les gens"
+  },
+
+  "trust": {
+    "title": "Bâti sur la confiance.",
+    "description": "Vos conversations vous appartiennent. Toujours. Nous utilisons un cryptage de niveau entreprise et ne vendons jamais vos données.",
+    "cta": "Lire notre politique de confidentialité"
+  },
+
+  "footer": {
+    "tagline": "Quelqu'un qui comprend vraiment.",
+    "copyright": "Ferni AI. Tous droits réservés.",
+    "sections": {
+      "product": "Produit",
+      "company": "Entreprise",
+      "developers": "Développeurs",
+      "connect": "Connexion",
+      "legal": "Légal"
+    }
+  },
+
+  "app": {
+    "controls": {
+      "mute": "Muet",
+      "unmute": "Réactiver le son",
+      "endCall": "Terminer l'appel",
+      "settings": "Paramètres",
+      "fullscreen": "Plein écran",
+      "exitFullscreen": "Quitter le plein écran"
+    },
+    "states": {
+      "connecting": "Connexion...",
+      "connected": "Connecté",
+      "disconnected": "Déconnecté",
+      "reconnecting": "Reconnexion...",
+      "error": "Erreur de connexion"
+    },
+    "greeting": {
+      "morning": "Bonjour",
+      "afternoon": "Bon après-midi",
+      "evening": "Bonsoir",
+      "night": "Bonne nuit",
+      "welcome": "Bon retour",
+      "firstTime": "Enchanté"
+    },
+    "session": {
+      "timeRemaining": "{minutes} minutes restantes",
+      "sessionEnding": "Session bientôt terminée",
+      "sessionEnded": "Session terminée",
+      "continueUnlimited": "Continuer avec un temps illimité"
+    },
+    "notifications": {
+      "streak": {
+        "title": "Étape de série !",
+        "message": "{days} jours consécutifs"
+      },
+      "achievement": {
+        "title": "Succès débloqué",
+        "message": "Vous avez gagné : {achievement}"
+      }
+    },
+    "settings": {
+      "title": "Paramètres",
+      "sections": {
+        "account": "Compte",
+        "preferences": "Préférences",
+        "privacy": "Confidentialité",
+        "about": "À propos"
+      },
+      "language": {
+        "title": "Langue",
+        "description": "Choisissez votre langue préférée"
+      },
+      "theme": {
+        "title": "Thème",
+        "description": "Choisissez le mode clair ou sombre",
+        "light": "Clair",
+        "dark": "Sombre",
+        "system": "Système"
+      },
+      "notifications": {
+        "title": "Notifications",
+        "description": "Gérer les préférences de notification"
+      },
+      "dataExport": {
+        "title": "Exporter les données",
+        "description": "Télécharger votre historique de conversation"
+      }
+    }
+  },
+
+  "subscription": {
+    "currentPlan": "Forfait actuel",
+    "upgrade": "Mettre à niveau",
+    "managePlan": "Gérer le forfait",
+    "cancelPlan": "Annuler le forfait",
+    "renewsOn": "Renouvellement le {date}",
+    "expiresOn": "Expire le {date}",
+    "usage": {
+      "conversations": "{used} sur {total} conversations utilisées",
+      "unlimited": "Conversations illimitées"
+    },
+    "messages": {
+      "sessionApproaching": "J'ai vraiment apprécié cette conversation. Il nous reste quelques minutes ensemble - y a-t-il autre chose dont vous vouliez parler ?",
+      "sessionEnded": "J'ai adoré cette conversation. Revenez quand vous voulez - je me souviendrai de tout. Si vous voulez des conversations plus longues, j'adorerais ça aussi.",
+      "thankYou": "Merci de croire en nous. Je ne vais nulle part - je suis à vous, aussi longtemps que vous voudrez parler."
+    }
+  },
+
+  "errors": {
+    "generic": "Une erreur s'est produite. Veuillez réessayer.",
+    "network": "Erreur réseau. Veuillez vérifier votre connexion.",
+    "timeout": "Délai d'attente dépassé. Veuillez réessayer.",
+    "notFound": "Page non trouvée",
+    "unauthorized": "Veuillez vous connecter pour continuer",
+    "paymentFailed": "Échec du paiement. Veuillez réessayer."
+  },
+
+  "accessibility": {
+    "skipToMain": "Aller au contenu principal",
+    "closeMenu": "Fermer le menu",
+    "openMenu": "Ouvrir le menu",
+    "languageSelector": "Sélectionner la langue",
+    "currentLanguage": "Langue actuelle : {language}"
+  },
+
+  "time": {
+    "justNow": "à l'instant",
+    "minutesAgo": "il y a {n} minutes",
+    "hoursAgo": "il y a {n} heures",
+    "yesterday": "hier",
+    "daysAgo": "il y a {n} jours"
+  }
+}

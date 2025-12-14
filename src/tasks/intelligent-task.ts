@@ -38,9 +38,9 @@ export interface ExecutableTask<TResult = unknown> {
   /** Task instructions */
   instructions: string;
   /** Start the task and return result */
-  start(session: voice.AgentSession<unknown>, context?: TaskContext): Promise<TResult>;
+  start: (session: voice.AgentSession<unknown>, context?: TaskContext) => Promise<TResult>;
   /** Set context (optional - only IntelligentTask requires this) */
-  setContext?(context: TaskContext): void;
+  setContext?: (context: TaskContext) => void;
 }
 
 export interface AdaptiveInstructions {

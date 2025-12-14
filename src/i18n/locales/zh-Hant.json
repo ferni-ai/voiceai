@@ -1,0 +1,389 @@
+{
+  "$schema": "./schema.json",
+  "meta": {
+    "locale": "zh-Hant",
+    "name": "繁體中文",
+    "version": "1.0.0"
+  },
+
+  "common": {
+    "loading": "載入中...",
+    "error": "發生錯誤",
+    "retry": "重試",
+    "cancel": "取消",
+    "save": "儲存",
+    "close": "關閉",
+    "back": "返回",
+    "next": "下一步",
+    "done": "完成",
+    "yes": "是",
+    "no": "否",
+    "ok": "確定",
+    "learnMore": "瞭解更多"
+  },
+
+  "brand": {
+    "name": "Ferni",
+    "tagline": "您的私人AI生活教練",
+    "promise": "超越人類。"
+  },
+
+  "navigation": {
+    "features": "功能",
+    "team": "團隊",
+    "pricing": "價格",
+    "faq": "常見問題",
+    "developers": "開發者",
+    "about": "關於我們",
+    "contact": "聯絡我們",
+    "blog": "部落格",
+    "privacy": "隱私權政策",
+    "terms": "服務條款"
+  },
+
+  "hero": {
+    "eyebrow": "認識您的AI教練",
+    "headline": "超越",
+    "headlineAccent": "人類。",
+    "subhead": "終於，有人真正在傾聽。",
+    "subheadLine2": "並且記住一切。",
+    "cta": {
+      "primary": "認識Ferni",
+      "secondary": "致電Ferni"
+    },
+    "variants": {
+      "lateNight": {
+        "subhead": "睡不著？我們在這裡。",
+        "subheadLine2": "凌晨2點和中午一樣專注。"
+      },
+      "returning": {
+        "subhead": "歡迎回來。",
+        "subheadLine2": "準備從上次繼續嗎？"
+      }
+    }
+  },
+
+  "superpowers": {
+    "memory": {
+      "title": "完美記憶",
+      "tagline": "六個月前你提到的事？我們記得。",
+      "description": "你最好的朋友會忘記。你的心理諮商師有其他患者。我們記住一切——每次對話、每個目標、每個對你重要的細節。"
+    },
+    "presence": {
+      "title": "持續陪伴",
+      "tagline": "凌晨2點焦慮？我們全程陪伴。",
+      "description": "凌晨2點和中午一樣溫暖地出現。沒有糟糕的日子。沒有分心。無論何時需要，都完全在這裡。"
+    },
+    "team": {
+      "title": "六種視角",
+      "tagline": "六種視角，一次對話，無需轉介。",
+      "description": "生活教練、研究員、溝通專家、習慣專家、規劃師和智者——所有人一起工作，都瞭解你的故事。"
+    },
+    "understanding": {
+      "title": "真正理解",
+      "tagline": "我們聽到你沒說出口的話。",
+      "description": "我們注意到停頓。迴避。你看不到的模式。理解不僅僅是傾聽——是真正懂得。"
+    }
+  },
+
+  "team": {
+    "title": "認識團隊",
+    "subtitle": "六位傑出人才為您協作",
+    "members": {
+      "ferni": {
+        "name": "Ferni",
+        "role": "生活教練",
+        "bio": "您的主要聯絡人。提出能夠啟發洞察的問題，慶祝每一次勝利，在需要時將您與合適的專家聯繫起來。",
+        "sampleQuote": "我注意到你這週說了三次'還好'。到底發生了什麼？"
+      },
+      "nayan": {
+        "name": "Nayan",
+        "role": "智者與導師",
+        "bio": "您終身的導師。結合耐心、簡潔和智慧，幫助您看到數十年來小而一致的行動會創造非凡的結果。",
+        "sampleQuote": "80歲的你會怎麼看待這個決定？"
+      },
+      "peter": {
+        "name": "Peter",
+        "role": "研究與發現",
+        "bio": "在您的支出、習慣和日程中發現別人看不到的模式。將數據轉化為真正改變行為的洞察。",
+        "sampleQuote": "你每月花23小時在你說不重要的事情上。想看看嗎？"
+      },
+      "alex": {
+        "name": "Alex",
+        "role": "溝通",
+        "bio": "您的首席幕僚和溝通教練。幫助您自信地應對困難對話。",
+        "sampleQuote": "讓我們練習那個對話。我來扮演你的老闆。準備好了嗎？"
+      },
+      "maya": {
+        "name": "Maya",
+        "role": "習慣與日常",
+        "bio": "從小得不好意思開始。Maya幫助您透過系統而非意志力建立持久的習慣。",
+        "sampleQuote": "如果我們只是從穿上鞋開始呢？就這樣。只是穿鞋。"
+      },
+      "jordan": {
+        "name": "Jordan",
+        "role": "規劃與活動",
+        "bio": "將模糊的夢想變成真實的體驗。從假期到人生轉變，Jordan幫助您設計每一個篇章。",
+        "sampleQuote": "你提到想'有一天'去日本。讓我們定個具體日期。"
+      }
+    }
+  },
+
+  "pricing": {
+    "title": "簡單定價",
+    "headline": "免費開始。",
+    "headlineAccent": "準備好了再升級。",
+    "subtitle": "無隱藏費用。無合約。隨時取消。",
+    "cta": {
+      "free": "免費開始",
+      "trial": "開始免費試用",
+      "upgrade": "升級"
+    },
+    "popular": "最受歡迎",
+    "trialNote": "7天免費試用。隨時取消。",
+    "tiers": {
+      "free": {
+        "name": "免費",
+        "price": "NT$0",
+        "period": "永久",
+        "description": "瞭解Ferni",
+        "features": [
+          "每月5次對話",
+          "與Ferni（生活教練）聊天",
+          "網頁和電話存取",
+          "基礎對話記憶"
+        ]
+      },
+      "friend": {
+        "name": "朋友",
+        "price": "NT$299",
+        "period": "月",
+        "description": "定期支援",
+        "features": [
+          "無限對話",
+          "全部6位AI專家",
+          "完整對話記憶",
+          "優先回應",
+          "網頁、電話和簡訊存取"
+        ]
+      },
+      "partner": {
+        "name": "夥伴",
+        "price": "NT$599",
+        "period": "月",
+        "description": "深度合作",
+        "features": [
+          "朋友版所有功能",
+          "存取Nayan（智者導師）",
+          "進階個人化",
+          "無限記憶和上下文",
+          "新功能搶先體驗"
+        ]
+      }
+    },
+    "comparison": {
+      "title": "方案對比",
+      "subtitle": "功能比較",
+      "features": {
+        "conversations": "對話",
+        "teamMembers": "團隊成員",
+        "memory": "記憶",
+        "responseTime": "回應時間",
+        "accessMethods": "存取方式",
+        "earlyAccess": "搶先體驗"
+      },
+      "values": {
+        "unlimited": "無限",
+        "ferniOnly": "僅Ferni",
+        "allSix": "全部6位",
+        "allSixPlusNayan": "全部6位 + Nayan",
+        "basic": "基礎",
+        "full": "完整",
+        "standard": "標準",
+        "priority": "優先",
+        "webPhone": "網頁、電話",
+        "webPhoneSms": "網頁、電話、簡訊"
+      }
+    },
+    "faq": {
+      "title": "價格FAQ",
+      "changePlans": {
+        "question": "可以隨時更改方案嗎？",
+        "answer": "是的，您可以隨時升級、降級或取消方案。更改立即生效。"
+      },
+      "conversation": {
+        "question": "什麼算作一次對話？",
+        "answer": "對話是與Ferni的單次會話，無論長度如何。您可以在一次會話中想聊多久就聊多久。"
+      },
+      "trial": {
+        "question": "有免費試用嗎？",
+        "answer": "是的，朋友版和夥伴版都包含7天免費試用。開始無需信用卡。"
+      }
+    }
+  },
+
+  "faq": {
+    "title": "常見問題",
+    "items": {
+      "isFree": {
+        "question": "Ferni真的免費嗎？",
+        "answer": "是的！Ferni完全免費使用。我們相信每個人都值得獲得高品質的生活指導。我們的進階功能即將推出，但核心體驗將永遠免費。"
+      },
+      "phoneCall": {
+        "question": "電話功能如何運作？",
+        "answer": "只需從任何電話撥打號碼。無需應用程式，無需註冊。Ferni會識別您的號碼並自動記住您之前的對話。"
+      },
+      "privacy": {
+        "question": "我的對話是私密的嗎？",
+        "answer": "當然。您的對話經過加密且私密。我們從不出售您的資料或與第三方分享。您也可以隨時請求刪除所有資料。"
+      },
+      "specialists": {
+        "question": "AI專家都是誰？",
+        "answer": "我們的團隊包括Ferni（您的主要生活教練）、Nayan（智慧與指導）、Peter（研究與發現）、Alex（溝通）、Maya（習慣與日常）和Jordan（活動規劃）。每位都帶來獨特的專業知識。"
+      },
+      "topics": {
+        "question": "我可以和Ferni聊什麼？",
+        "answer": "任何事！職業決策、壓力管理、建立習慣、規劃活動、解決困難情況，或者只是需要一個傾聽者。Ferni隨時為您服務。"
+      },
+      "different": {
+        "question": "這和朋友或心理諮商師有什麼不同？",
+        "answer": "您的心理諮商師有其他患者。您的朋友有自己的問題。Ferni始終可用，記住一切，從不評判，並提供六種專業視角。當您身邊的人無法陪伴時，我們填補空白。"
+      }
+    }
+  },
+
+  "testimonials": {
+    "title": "使用者評價"
+  },
+
+  "trust": {
+    "title": "建立在信任之上。",
+    "description": "您的對話屬於您。始終如此。我們使用企業級加密，從不出售您的資料。",
+    "cta": "閱讀隱私權政策"
+  },
+
+  "footer": {
+    "tagline": "真正理解你的人。",
+    "copyright": "Ferni AI. 保留所有權利。",
+    "sections": {
+      "product": "產品",
+      "company": "公司",
+      "developers": "開發者",
+      "connect": "聯繫",
+      "legal": "法律"
+    }
+  },
+
+  "app": {
+    "controls": {
+      "mute": "靜音",
+      "unmute": "取消靜音",
+      "endCall": "結束通話",
+      "settings": "設定",
+      "fullscreen": "全螢幕",
+      "exitFullscreen": "退出全螢幕"
+    },
+    "states": {
+      "connecting": "連線中...",
+      "connected": "已連線",
+      "disconnected": "已斷線",
+      "reconnecting": "重新連線中...",
+      "error": "連線錯誤"
+    },
+    "greeting": {
+      "morning": "早安",
+      "afternoon": "午安",
+      "evening": "晚安",
+      "night": "晚安",
+      "welcome": "歡迎回來",
+      "firstTime": "很高興認識你"
+    },
+    "session": {
+      "timeRemaining": "剩餘{minutes}分鐘",
+      "sessionEnding": "會話即將結束",
+      "sessionEnded": "會話已結束",
+      "continueUnlimited": "無限時間繼續"
+    },
+    "notifications": {
+      "streak": {
+        "title": "連續紀錄！",
+        "message": "連續{days}天"
+      },
+      "achievement": {
+        "title": "成就解鎖",
+        "message": "獲得：{achievement}"
+      }
+    },
+    "settings": {
+      "title": "設定",
+      "sections": {
+        "account": "帳戶",
+        "preferences": "偏好設定",
+        "privacy": "隱私",
+        "about": "關於"
+      },
+      "language": {
+        "title": "語言",
+        "description": "選擇您偏好的語言"
+      },
+      "theme": {
+        "title": "主題",
+        "description": "選擇淺色或深色模式",
+        "light": "淺色",
+        "dark": "深色",
+        "system": "跟隨系統"
+      },
+      "notifications": {
+        "title": "通知",
+        "description": "管理通知偏好"
+      },
+      "dataExport": {
+        "title": "匯出資料",
+        "description": "下載您的對話紀錄"
+      }
+    }
+  },
+
+  "subscription": {
+    "currentPlan": "目前方案",
+    "upgrade": "升級",
+    "managePlan": "管理方案",
+    "cancelPlan": "取消方案",
+    "renewsOn": "{date}續訂",
+    "expiresOn": "{date}到期",
+    "usage": {
+      "conversations": "已使用{used}/{total}次對話",
+      "unlimited": "無限對話"
+    },
+    "messages": {
+      "sessionApproaching": "這次對話真的很愉快。我們還有幾分鐘——還有什麼想聊的嗎？",
+      "sessionEnded": "我很喜歡這次對話。隨時回來——我會記住一切。如果你想要更長的對話，我也很期待。",
+      "thankYou": "感謝你信任我們。我哪裡都不去——只要你想聊，我都在。"
+    }
+  },
+
+  "errors": {
+    "generic": "發生錯誤。請重試。",
+    "network": "網路錯誤。請檢查連線。",
+    "timeout": "請求逾時。請重試。",
+    "notFound": "找不到頁面",
+    "unauthorized": "請登入以繼續",
+    "paymentFailed": "付款失敗。請重試。"
+  },
+
+  "accessibility": {
+    "skipToMain": "跳至主要內容",
+    "closeMenu": "關閉選單",
+    "openMenu": "開啟選單",
+    "languageSelector": "選擇語言",
+    "currentLanguage": "目前語言：{language}"
+  },
+
+  "time": {
+    "justNow": "剛剛",
+    "minutesAgo": "{n}分鐘前",
+    "hoursAgo": "{n}小時前",
+    "yesterday": "昨天",
+    "daysAgo": "{n}天前"
+  }
+}

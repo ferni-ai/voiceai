@@ -259,26 +259,30 @@ export function sanitizeSsml(text: string): string {
   // Cartesia Sonic-3 supports [laughter] for actual laugh sounds
   // ================================================
 
-  // Asterisk format: *chuckles*, *laughs softly*, etc.
-  result = result.replace(/\*[^*]*(?:chuckle|laugh|giggle)[^*]*\*/gi, '[laughter]');
-  // Parenthesis format: (laughs), (chuckles softly), etc.
-  result = result.replace(/\([^)]*(?:chuckle|laugh|giggle)[^)]*\)/gi, '[laughter]');
-  // Bracket format: [chuckles], [laughs warmly], [soft laughter], [gentle giggle], [warm chuckle]
-  result = result.replace(/\[[^\]]*(?:chuckle|laugh|giggle|laughter)[^\]]*\]/gi, '[laughter]');
-  // Standalone words with modifiers
+  // Asterisk format: *chuckles*, *laughs softly*, *laughing*, etc.
+  result = result.replace(/\*[^*]*(?:chuckl|laugh|giggl)[^*]*\*/gi, '[laughter]');
+  // Parenthesis format: (laughs), (chuckles softly), (laughing), etc.
+  result = result.replace(/\([^)]*(?:chuckl|laugh|giggl)[^)]*\)/gi, '[laughter]');
+  // Bracket format: [chuckles], [laughs warmly], [laughing], [soft laughter], [gentle giggle], [warm chuckle]
+  result = result.replace(/\[[^\]]*(?:chuckl|laugh|giggl|laughter)[^\]]*\]/gi, '[laughter]');
+  // Standalone words with modifiers (including -ing forms: laughing, chuckling, giggling)
   result = result.replace(
-    /(?<!\[)\b(chuckles?|laughs?|giggles?)\s*(softly|gently|quietly|to himself|to herself|briefly|warmly)?\s*\.?\s*/gi,
+    /(?<!\[)\b(chuckl(?:es?|ing)|laugh(?:s|ing)?|giggl(?:es?|ing))\s*(softly|gently|quietly|to himself|to herself|briefly|warmly)?\s*\.?\s*/gi,
     '[laughter] '
   );
   result = result.replace(
-    /(?<!\[)\b(he|she|jack|i)\s+(chuckles?|laughs?|giggles?)\s*(softly|gently|quietly|briefly|warmly)?\.?\s*/gi,
+    /(?<!\[)\b(he|she|jack|ferni|i)\s+(chuckl(?:es?|ing)|laugh(?:s|ing)?|giggl(?:es?|ing))\s*(softly|gently|quietly|briefly|warmly)?\.?\s*/gi,
     '[laughter] '
   );
-  result = result.replace(/(?<!\[)\bchuckles?\b[,.!?:;—–-]?\s*/gi, '[laughter] ');
+  // Catch any remaining standalone forms (chuckle, chuckles, chuckling, laugh, laughs, laughing, giggle, giggles, giggling)
+  result = result.replace(
+    /(?<!\[)\b(chuckl(?:es?|ing)|laugh(?:s|ing)?|giggl(?:es?|ing))\b[,.!?:;—–-]?\s*/gi,
+    '[laughter] '
+  );
 
-  // Nuclear option: If "chuckle" still appears, remove it
-  if (/chuckle/i.test(result)) {
-    result = result.replace(/\bchuckles?\b/gi, '');
+  // Nuclear option: If "chuckle" or "laughing" still appears as stage direction, remove it
+  if (/\b(chuckl|laughing|giggling)\b/i.test(result)) {
+    result = result.replace(/\b(chuckl(?:es?|ing)?|laughing|giggling)\b/gi, '');
   }
 
   // Clean up multiple [laughter] tags in a row
@@ -328,6 +332,22 @@ export function sanitizeSsml(text: string): string {
     /\b(?:teasing|playful|knowing|mischievous|warm|gentle|affectionate)\s+(?:smile|grin|smirk|tone|voice)\b[,.!?:;—–-]?\s*/gi,
     ''
   );
+
+  // Remove multi-word tone descriptors: "playfully sarcastic", "warmly teasing", etc.
+  // Pattern: [adverb]? + [tone adjective] (when used as stage direction)
+  result = result.replace(
+    /\b(?:playfully|warmly|gently|softly|quietly|teasingly|knowingly|mockingly|dryly|wryly|ironically)?\s*(?:sarcastic|teasing|playful|mischievous|knowing|wry|dry|ironic|deadpan|mock)\b[,.!?:;—–-]?\s*/gi,
+    ''
+  );
+
+  // Remove standalone tone descriptors that might slip through
+  result = result.replace(/\bsarcastic(?:ally)?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bwry(?:ly)?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bironic(?:ally)?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bdeadpan\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bmock(?:ing(?:ly)?)?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bdry(?:ly)?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bplayful(?:ly)?\b[,.!?:;—–-]?\s*/gi, '');
 
   // Nuclear option for action verbs - standalone words
   result = result.replace(/\bsmiles?\b[,.!?:;—–-]?\s*/gi, '');

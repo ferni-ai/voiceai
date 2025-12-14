@@ -221,7 +221,313 @@ export const FINANCIAL_PRONUNCIATIONS: PronunciationEntry[] = [
   // -------------------------------------------------------------------------
   { pattern: /\bFerni\b/g, replacement: 'Furr-nee', description: 'Persona name' },
   { pattern: /\bNayan\b/g, replacement: 'Nuh-yahn', description: 'Persona name' },
+  { pattern: /\bMaya\b/g, replacement: 'My-uh', description: 'Persona name' },
+  // Alex, Jordan, Peter are standard English pronunciations
+
+  // =========================================================================
+  // LIFE COACHING & MENTAL HEALTH
+  // =========================================================================
+
+  // -------------------------------------------------------------------------
+  // Therapy Types & Approaches
+  // -------------------------------------------------------------------------
+  { pattern: /\bCBT\b/g, replacement: 'C B T', description: 'Cognitive Behavioral Therapy' },
+  { pattern: /\bDBT\b/g, replacement: 'D B T', description: 'Dialectical Behavior Therapy' },
+  {
+    pattern: /\bACT\b(?!\s+on|\s+like|\s+as)/gi,
+    replacement: 'A C T therapy',
+    description: 'Acceptance and Commitment Therapy',
+  },
+  { pattern: /\bEMDR\b/g, replacement: 'E M D R', description: 'Eye Movement Desensitization' },
+  { pattern: /\bIFS\b/g, replacement: 'I F S', description: 'Internal Family Systems' },
+  {
+    pattern: /\bMBCT\b/g,
+    replacement: 'M B C T',
+    description: 'Mindfulness-Based Cognitive Therapy',
+  },
+  {
+    pattern: /\bMBSR\b/g,
+    replacement: 'M B S R',
+    description: 'Mindfulness-Based Stress Reduction',
+  },
+
+  // -------------------------------------------------------------------------
+  // Mental Health Conditions
+  // -------------------------------------------------------------------------
+  {
+    pattern: /\bADHD\b/g,
+    replacement: 'A D H D',
+    description: 'Attention Deficit Hyperactivity Disorder',
+  },
+  { pattern: /\bADD\b/g, replacement: 'A D D', description: 'Attention Deficit Disorder' },
+  { pattern: /\bOCD\b/g, replacement: 'O C D', description: 'Obsessive Compulsive Disorder' },
+  { pattern: /\bPTSD\b/g, replacement: 'P T S D', description: 'Post-Traumatic Stress Disorder' },
+  { pattern: /\bGAD\b/g, replacement: 'G A D', description: 'Generalized Anxiety Disorder' },
+  { pattern: /\bMDD\b/g, replacement: 'M D D', description: 'Major Depressive Disorder' },
+  { pattern: /\bBPD\b/g, replacement: 'B P D', description: 'Borderline Personality Disorder' },
+  { pattern: /\bASD\b/g, replacement: 'A S D', description: 'Autism Spectrum Disorder' },
+
+  // -------------------------------------------------------------------------
+  // Emotional Intelligence & Coaching Terms
+  // -------------------------------------------------------------------------
+  { pattern: /\bEQ\b/g, replacement: 'E Q', description: 'Emotional Intelligence' },
+  { pattern: /\bIQ\b/g, replacement: 'I Q', description: 'Intelligence Quotient' },
+  { pattern: /\bNLP\b/g, replacement: 'N L P', description: 'Neuro-Linguistic Programming' },
+
+  // =========================================================================
+  // WELLNESS & FITNESS (Maya's domain)
+  // =========================================================================
+
+  // -------------------------------------------------------------------------
+  // Exercise & Training
+  // -------------------------------------------------------------------------
+  {
+    pattern: /\bHIIT\b/g,
+    replacement: 'hit training',
+    description: 'High Intensity Interval Training',
+  },
+  { pattern: /\bLISS\b/g, replacement: 'liss', description: 'Low Intensity Steady State' },
+  { pattern: /\bAMRAP\b/g, replacement: 'am-rap', description: 'As Many Reps As Possible' },
+  { pattern: /\bEMOM\b/g, replacement: 'ee-mom', description: 'Every Minute On the Minute' },
+  { pattern: /\bWOD\b/g, replacement: 'W O D', description: 'Workout of the Day' },
+  {
+    pattern: /\bPR\b(?=\s+(in|for|on))/gi,
+    replacement: 'personal record',
+    description: 'Personal Record',
+  },
+  {
+    pattern: /\bPB\b(?=\s+(in|for|on))/gi,
+    replacement: 'personal best',
+    description: 'Personal Best',
+  },
+
+  // -------------------------------------------------------------------------
+  // Health Metrics
+  // -------------------------------------------------------------------------
+  { pattern: /\bBMI\b/g, replacement: 'B M I', description: 'Body Mass Index' },
+  { pattern: /\bBMR\b/g, replacement: 'B M R', description: 'Basal Metabolic Rate' },
+  { pattern: /\bTDEE\b/g, replacement: 'T D E E', description: 'Total Daily Energy Expenditure' },
+  { pattern: /\bVO2\s*max\b/gi, replacement: 'V O two max', description: 'Maximum oxygen uptake' },
+  { pattern: /\bHRV\b/g, replacement: 'H R V', description: 'Heart Rate Variability' },
+  { pattern: /\bRHR\b/g, replacement: 'resting heart rate', description: 'Resting Heart Rate' },
+  { pattern: /\bBPM\b/g, replacement: 'beats per minute', description: 'Beats Per Minute' },
+
+  // -------------------------------------------------------------------------
+  // Sleep & Recovery
+  // -------------------------------------------------------------------------
+  { pattern: /\bREM\b/g, replacement: 'rem', description: 'Rapid Eye Movement sleep' },
+  { pattern: /\bNREM\b/g, replacement: 'non-rem', description: 'Non-REM sleep' },
+
+  // -------------------------------------------------------------------------
+  // Nutrition
+  // -------------------------------------------------------------------------
+  {
+    pattern: /\bIF\b(?=\s+(diet|fasting|protocol))/gi,
+    replacement: 'intermittent fasting',
+    description: 'Intermittent Fasting',
+  },
+  { pattern: /\bOMAD\b/g, replacement: 'oh-mad', description: 'One Meal A Day' },
+  {
+    pattern: /\bCICO\b/g,
+    replacement: 'calories in calories out',
+    description: 'Calories In Calories Out',
+  },
+
+  // =========================================================================
+  // CALENDAR & TIME (Alex's domain)
+  // =========================================================================
+
+  // -------------------------------------------------------------------------
+  // Quarters
+  // -------------------------------------------------------------------------
+  { pattern: /\bQ1\b/g, replacement: 'Q one', description: 'First quarter' },
+  { pattern: /\bQ2\b/g, replacement: 'Q two', description: 'Second quarter' },
+  { pattern: /\bQ3\b/g, replacement: 'Q three', description: 'Third quarter' },
+  { pattern: /\bQ4\b/g, replacement: 'Q four', description: 'Fourth quarter' },
+
+  // -------------------------------------------------------------------------
+  // Time Zones
+  // -------------------------------------------------------------------------
+  { pattern: /\bPST\b/g, replacement: 'Pacific time', description: 'Pacific Standard Time' },
+  { pattern: /\bPDT\b/g, replacement: 'Pacific time', description: 'Pacific Daylight Time' },
+  { pattern: /\bEST\b/g, replacement: 'Eastern time', description: 'Eastern Standard Time' },
+  { pattern: /\bEDT\b/g, replacement: 'Eastern time', description: 'Eastern Daylight Time' },
+  { pattern: /\bCST\b/g, replacement: 'Central time', description: 'Central Standard Time' },
+  { pattern: /\bCDT\b/g, replacement: 'Central time', description: 'Central Daylight Time' },
+  { pattern: /\bMST\b/g, replacement: 'Mountain time', description: 'Mountain Standard Time' },
+  { pattern: /\bMDT\b/g, replacement: 'Mountain time', description: 'Mountain Daylight Time' },
+  { pattern: /\bUTC\b/g, replacement: 'U T C', description: 'Coordinated Universal Time' },
+  { pattern: /\bGMT\b/g, replacement: 'G M T', description: 'Greenwich Mean Time' },
+  { pattern: /\bJST\b/g, replacement: 'Japan time', description: 'Japan Standard Time' },
+
+  // -------------------------------------------------------------------------
+  // Scheduling Abbreviations
+  // -------------------------------------------------------------------------
+  { pattern: /\bRSVP\b/gi, replacement: 'R S V P', description: 'Please respond' },
+  { pattern: /\bEOD\b/g, replacement: 'end of day', description: 'End of Day' },
+  { pattern: /\bEOW\b/g, replacement: 'end of week', description: 'End of Week' },
+  { pattern: /\bEOM\b/g, replacement: 'end of month', description: 'End of Month' },
+  { pattern: /\bEOY\b/g, replacement: 'end of year', description: 'End of Year' },
+  { pattern: /\bETA\b/g, replacement: 'E T A', description: 'Estimated Time of Arrival' },
+  { pattern: /\bTBD\b/g, replacement: 'T B D', description: 'To Be Determined' },
+  { pattern: /\bTBC\b/g, replacement: 'T B C', description: 'To Be Confirmed' },
+  { pattern: /\bTBA\b/g, replacement: 'T B A', description: 'To Be Announced' },
+  { pattern: /\bOOO\b/g, replacement: 'out of office', description: 'Out of Office' },
+  { pattern: /\bWFH\b/g, replacement: 'working from home', description: 'Work From Home' },
+  { pattern: /\bPTO\b/g, replacement: 'P T O', description: 'Paid Time Off' },
+
+  // =========================================================================
+  // COMMON ABBREVIATIONS (all personas)
+  // =========================================================================
+
+  // -------------------------------------------------------------------------
+  // Communication Shortcuts
+  // -------------------------------------------------------------------------
+  { pattern: /\bASAP\b/gi, replacement: 'A sap', description: 'As Soon As Possible' },
+  { pattern: /\bFYI\b/gi, replacement: 'F Y I', description: 'For Your Information' },
+  { pattern: /\bFWIW\b/gi, replacement: 'for what its worth', description: 'For What Its Worth' },
+  { pattern: /\bIMO\b/g, replacement: 'in my opinion', description: 'In My Opinion' },
+  {
+    pattern: /\bIMHO\b/g,
+    replacement: 'in my humble opinion',
+    description: 'In My Humble Opinion',
+  },
+  { pattern: /\bBTW\b/gi, replacement: 'by the way', description: 'By The Way' },
+  { pattern: /\bFAQ\b/g, replacement: 'F A Q', description: 'Frequently Asked Questions' },
+  { pattern: /\bFAQs\b/g, replacement: 'F A Qs', description: 'Frequently Asked Questions' },
+  { pattern: /\bAKA\b/gi, replacement: 'also known as', description: 'Also Known As' },
+  { pattern: /\ba\.k\.a\./gi, replacement: 'also known as', description: 'Also Known As' },
+  { pattern: /\bTL;?DR\b/gi, replacement: 'T L D R', description: 'Too Long Didnt Read' },
+  { pattern: /\bDIY\b/g, replacement: 'D I Y', description: 'Do It Yourself' },
+  { pattern: /\bN\/A\b/gi, replacement: 'not applicable', description: 'Not Applicable' },
+  { pattern: /\bvs\.?\b/gi, replacement: 'versus', description: 'Versus' },
+  { pattern: /\bw\/\b/g, replacement: 'with', description: 'With' },
+  { pattern: /\bw\/o\b/gi, replacement: 'without', description: 'Without' },
+
+  // =========================================================================
+  // TECHNOLOGY & DIGITAL (Alex + general)
+  // =========================================================================
+
+  // -------------------------------------------------------------------------
+  // Tech Acronyms
+  // -------------------------------------------------------------------------
+  { pattern: /\bAI\b/g, replacement: 'A I', description: 'Artificial Intelligence' },
+  { pattern: /\bML\b/g, replacement: 'M L', description: 'Machine Learning' },
+  { pattern: /\bUI\b/g, replacement: 'U I', description: 'User Interface' },
+  { pattern: /\bUX\b/g, replacement: 'U X', description: 'User Experience' },
+  { pattern: /\bUI\/UX\b/g, replacement: 'U I U X', description: 'User Interface and Experience' },
+  { pattern: /\bAPI\b/g, replacement: 'A P I', description: 'Application Programming Interface' },
+  { pattern: /\bAPIs\b/g, replacement: 'A P Is', description: 'APIs plural' },
+  { pattern: /\bURL\b/g, replacement: 'U R L', description: 'Web address' },
+  { pattern: /\bURLs\b/g, replacement: 'U R Ls', description: 'Web addresses' },
+  { pattern: /\bPDF\b/g, replacement: 'P D F', description: 'PDF document' },
+  { pattern: /\bPDFs\b/g, replacement: 'P D Fs', description: 'PDF documents' },
+  { pattern: /\bSSL\b/g, replacement: 'S S L', description: 'Secure Sockets Layer' },
+  { pattern: /\bVPN\b/g, replacement: 'V P N', description: 'Virtual Private Network' },
+  { pattern: /\bSaaS\b/g, replacement: 'sass', description: 'Software as a Service' },
+  { pattern: /\biOS\b/g, replacement: 'I O S', description: 'Apple iOS' },
+  { pattern: /\bGPS\b/g, replacement: 'G P S', description: 'Global Positioning System' },
+  { pattern: /\bWiFi\b/gi, replacement: 'why-fye', description: 'Wireless internet' },
+  { pattern: /\bWi-Fi\b/gi, replacement: 'why-fye', description: 'Wireless internet' },
+
+  // -------------------------------------------------------------------------
+  // Social Media & Communication
+  // -------------------------------------------------------------------------
+  { pattern: /\bDM\b/g, replacement: 'D M', description: 'Direct Message' },
+  { pattern: /\bDMs\b/g, replacement: 'D Ms', description: 'Direct Messages' },
+  { pattern: /\bIG\b/g, replacement: 'Instagram', description: 'Instagram' },
+  { pattern: /\bFOMO\b/g, replacement: 'foe-moe', description: 'Fear Of Missing Out' },
+  { pattern: /\bYOLO\b/g, replacement: 'yoe-loe', description: 'You Only Live Once' },
+  { pattern: /\bIRL\b/g, replacement: 'in real life', description: 'In Real Life' },
+  { pattern: /\bNFT\b/g, replacement: 'N F T', description: 'Non-Fungible Token' },
+  { pattern: /\bNFTs\b/g, replacement: 'N F Ts', description: 'Non-Fungible Tokens' },
+
+  // -------------------------------------------------------------------------
+  // Business Titles
+  // -------------------------------------------------------------------------
+  { pattern: /\bCEO\b/g, replacement: 'C E O', description: 'Chief Executive Officer' },
+  { pattern: /\bCFO\b/g, replacement: 'C F O', description: 'Chief Financial Officer' },
+  { pattern: /\bCTO\b/g, replacement: 'C T O', description: 'Chief Technology Officer' },
+  { pattern: /\bCOO\b/g, replacement: 'C O O', description: 'Chief Operating Officer' },
+  { pattern: /\bCMO\b/g, replacement: 'C M O', description: 'Chief Marketing Officer' },
+  { pattern: /\bVP\b/g, replacement: 'V P', description: 'Vice President' },
+  { pattern: /\bHR\b/g, replacement: 'H R', description: 'Human Resources' },
+  {
+    pattern: /\bPM\b(?!\s*(am|pm))/gi,
+    replacement: 'P M',
+    description: 'Project Manager or Product Manager',
+  },
+
+  // =========================================================================
+  // LIFE EVENTS (Jordan's domain)
+  // =========================================================================
+
+  // -------------------------------------------------------------------------
+  // Celebrations & Milestones
+  // -------------------------------------------------------------------------
+  { pattern: /\bDOB\b/g, replacement: 'date of birth', description: 'Date of Birth' },
+  {
+    pattern: /\bSSN\b/g,
+    replacement: 'social security number',
+    description: 'Social Security Number',
+  },
+
+  // =========================================================================
+  // CULTURAL & GEOGRAPHIC (Ferni's background)
+  // =========================================================================
+
+  // -------------------------------------------------------------------------
+  // Japanese Terms Ferni might use
+  // -------------------------------------------------------------------------
+  { pattern: /\bwabi-sabi\b/gi, replacement: 'wah-bee sah-bee', description: 'Japanese aesthetic' },
+  { pattern: /\bikigai\b/gi, replacement: 'ee-kee-guy', description: 'Reason for being' },
+  { pattern: /\bkaizen\b/gi, replacement: 'ky-zen', description: 'Continuous improvement' },
+  { pattern: /\bshinrin-yoku\b/gi, replacement: 'shin-rin yoh-koo', description: 'Forest bathing' },
+  { pattern: /\bkintsugi\b/gi, replacement: 'keen-tsoo-gee', description: 'Golden repair' },
+
+  // -------------------------------------------------------------------------
+  // Countries & Languages
+  // -------------------------------------------------------------------------
+  { pattern: /\bUS\b/g, replacement: 'U S', description: 'United States' },
+  { pattern: /\bUSA\b/g, replacement: 'U S A', description: 'United States of America' },
+  { pattern: /\bUK\b/g, replacement: 'U K', description: 'United Kingdom' },
+  { pattern: /\bEU\b/g, replacement: 'E U', description: 'European Union' },
+  { pattern: /\bUN\b/g, replacement: 'U N', description: 'United Nations' },
+
+  // =========================================================================
+  // MISCELLANEOUS
+  // =========================================================================
+
+  // -------------------------------------------------------------------------
+  // Units & Measurements
+  // -------------------------------------------------------------------------
+  { pattern: /\b(\d+)\s*lbs?\b/gi, replacement: '$1 pounds', description: 'Pounds' },
+  { pattern: /\b(\d+)\s*kgs?\b/gi, replacement: '$1 kilograms', description: 'Kilograms' },
+  { pattern: /\b(\d+)\s*oz\b/gi, replacement: '$1 ounces', description: 'Ounces' },
+  { pattern: /\b(\d+)\s*ft\b/gi, replacement: '$1 feet', description: 'Feet' },
+  { pattern: /\b(\d+)\s*mi\b/gi, replacement: '$1 miles', description: 'Miles' },
+  { pattern: /\b(\d+)\s*km\b/gi, replacement: '$1 kilometers', description: 'Kilometers' },
+
+  // -------------------------------------------------------------------------
+  // Medical & Health
+  // -------------------------------------------------------------------------
+  { pattern: /\bRx\b/g, replacement: 'prescription', description: 'Prescription' },
+  { pattern: /\bOTC\b/g, replacement: 'over the counter', description: 'Over The Counter' },
+  { pattern: /\bER\b/g, replacement: 'E R', description: 'Emergency Room' },
+  { pattern: /\bICU\b/g, replacement: 'I C U', description: 'Intensive Care Unit' },
+  { pattern: /\bMD\b/g, replacement: 'M D', description: 'Medical Doctor' },
+  { pattern: /\bPhD\b/g, replacement: 'P H D', description: 'Doctor of Philosophy' },
+
+  // -------------------------------------------------------------------------
+  // COVID-related (still relevant)
+  // -------------------------------------------------------------------------
+  { pattern: /\bCOVID-19\b/gi, replacement: 'covid nineteen', description: 'COVID-19' },
+  { pattern: /\bCOVID\b/gi, replacement: 'covid', description: 'COVID' },
+  { pattern: /\bPCR\b/g, replacement: 'P C R', description: 'PCR test' },
 ];
+
+// Legacy alias for backwards compatibility
+export { FINANCIAL_PRONUNCIATIONS as PRONUNCIATIONS };
 
 // =============================================================================
 // EMOTION KEYWORDS
@@ -712,70 +1018,198 @@ export const NUMBER_PATTERNS = [
 // =============================================================================
 
 export const STAGE_DIRECTION_KEYWORDS = [
-  // Breathing/physical
+  // =========================================================================
+  // BREATHING & PHYSICAL SOUNDS
+  // =========================================================================
   'sigh',
+  'sighing',
   'breath',
   'exhale',
+  'exhaling',
   'inhale',
+  'inhaling',
   'breathing',
   'gasp',
+  'gasping',
   'yawn',
-  // Expressions
+  'yawning',
+  'cough',
+  'coughing',
+  'sniff',
+  'sniffing',
+  'sob',
+  'sobbing',
+  'whimper',
+  'whimpering',
+  'groan',
+  'groaning',
+  'grunt',
+  'grunting',
+  'hum',
+  'humming',
+  'murmur',
+  'murmuring',
+  'whisper',
+  'whispering',
+  'clear throat',
+  'clears throat',
+  'clearing throat',
+
+  // =========================================================================
+  // FACIAL EXPRESSIONS
+  // =========================================================================
   'smile',
+  'smiles',
   'smiling',
   'grin',
+  'grins',
   'grinning',
   'frown',
+  'frowns',
   'frowning',
-  'nod',
-  'nodding',
   'wink',
+  'winks',
   'winking',
   'blink',
+  'blinks',
   'blinking',
   'smirk',
+  'smirks',
   'smirking',
   'beam',
+  'beams',
   'beaming',
   'grimace',
+  'grimaces',
   'grimacing',
-  // Actions
-  'pause',
-  'pausing',
-  'think',
-  'thinking',
-  'clear',
-  'cough',
-  'shift',
+  'pout',
+  'pouts',
+  'pouting',
+  'scowl',
+  'scowls',
+  'scowling',
+  'squint',
+  'squints',
+  'squinting',
+  'raises eyebrow',
+  'eyebrow raise',
+  'rolls eyes',
+  'eye roll',
+
+  // =========================================================================
+  // HEAD & BODY MOVEMENTS
+  // =========================================================================
+  'nod',
+  'nods',
+  'nodding',
+  'shake head',
+  'shakes head',
+  'shaking head',
+  'tilt',
+  'tilts',
+  'tilting',
   'lean',
+  'leans',
   'leaning',
+  'shift',
+  'shifts',
+  'shifting',
   'settle',
+  'settles',
   'settling',
-  'focus',
-  'attention',
   'shrug',
+  'shrugs',
   'shrugging',
   'gesture',
+  'gestures',
   'gesturing',
   'point',
+  'points',
   'pointing',
   'wave',
+  'waves',
   'waving',
-  'tilt',
-  'tilting',
-  // Physical presence
+  'stretch',
+  'stretches',
+  'stretching',
+  'cross arms',
+  'crosses arms',
+  'crossing arms',
+  'uncross',
+  'uncrosses',
+
+  // =========================================================================
+  // MENTAL ACTIONS (should not be spoken)
+  // =========================================================================
+  'pause',
+  'pauses',
+  'pausing',
+  'think',
+  'thinks',
+  'thinking',
+  'consider',
+  'considers',
+  'considering',
+  'ponder',
+  'ponders',
+  'pondering',
+  'reflect',
+  'reflects',
+  'reflecting',
+  'hesitate',
+  'hesitates',
+  'hesitating',
+  'focus',
+  'focuses',
+  'focusing',
+
+  // =========================================================================
+  // MANNER/TONE ADVERBS (stage directions when standalone)
+  // =========================================================================
   'warm',
   'warmly',
   'steady',
+  'steadily',
   'gentle',
   'gently',
   'soft',
   'softly',
-  'present',
-  'presence',
+  'quiet',
   'quietly',
+  'tender',
   'tenderly',
-  // Tone/manner descriptors
+  'firm',
+  'firmly',
+  'calm',
+  'calmly',
+  'serious',
+  'seriously',
+  'sincere',
+  'sincerely',
+  'earnest',
+  'earnestly',
+  'careful',
+  'carefully',
+  'kind',
+  'kindly',
+  'patient',
+  'patiently',
+  'eager',
+  'eagerly',
+  'bright',
+  'brightly',
+  'light',
+  'lightly',
+  'heavy',
+  'heavily',
+  'slow',
+  'slowly',
+  'quick',
+  'quickly',
+
+  // =========================================================================
+  // TONE/ATTITUDE DESCRIPTORS
+  // =========================================================================
   'teasing',
   'teasingly',
   'playful',
@@ -786,32 +1220,120 @@ export const STAGE_DIRECTION_KEYWORDS = [
   'knowingly',
   'affectionate',
   'affectionately',
-  // Energy
-  'perk',
-  'energy',
-  'relief',
-  'excited',
-  'excitedly',
-  // Emotions as actions
+  'sarcastic',
+  'sarcastically',
+  'wry',
+  'wryly',
+  'dry',
+  'dryly',
+  'ironic',
+  'ironically',
+  'deadpan',
+  'mock',
+  'mocking',
+  'mockingly',
+  'tongue-in-cheek',
+  'matter-of-fact',
+  'matter-of-factly',
+  'amused',
+  'amusedly',
+  'rueful',
+  'ruefully',
+  'sheepish',
+  'sheepishly',
+  'apologetic',
+  'apologetically',
+  'defensive',
+  'defensively',
+  'dismissive',
+  'dismissively',
+  'encouraging',
+  'encouragingly',
+  'reassuring',
+  'reassuringly',
+  'conspiratorial',
+  'conspiratorially',
+  'dramatic',
+  'dramatically',
+  'theatrical',
+  'theatrically',
+
+  // =========================================================================
+  // EMOTIONS AS STAGE DIRECTIONS
+  // =========================================================================
   'sympathetic',
+  'sympathetically',
   'empathetic',
+  'empathetically',
   'concerned',
+  'concernedly',
   'curious',
   'curiously',
   'thoughtful',
   'thoughtfully',
-  // Misc stage directions
-  "chef's kiss",
-  'taking a breath',
+  'wistful',
+  'wistfully',
+  'nostalgic',
+  'nostalgically',
+  'sad',
+  'sadly',
+  'happy',
+  'happily',
+  'excited',
+  'excitedly',
+  'nervous',
+  'nervously',
+  'anxious',
+  'anxiously',
+  'relieved',
+  'with relief',
+
+  // =========================================================================
+  // ENERGY/STATE DESCRIPTORS
+  // =========================================================================
+  'perk',
+  'perks',
+  'perking',
+  'energy',
+  'relief',
   'visible',
   'visibly',
   'audible',
   'audibly',
-  'trails off',
+  'suddenly',
+  'abruptly',
+  'finally',
+
+  // =========================================================================
+  // VOICE DESCRIPTIONS (meta-commentary on speech)
+  // =========================================================================
   'voice softens',
   'voice drops',
   'voice rises',
+  'voice cracks',
+  'voice breaks',
+  'voice trails',
+  'trails off',
+  'voice lowers',
+  'voice raises',
+  'clears voice',
+  'lowers voice',
+  'raises voice',
+
+  // =========================================================================
+  // MISC STAGE DIRECTION PHRASES
+  // =========================================================================
+  "chef's kiss",
+  'taking a breath',
+  'takes a breath',
+  'deep breath',
+  'long pause',
+  'brief pause',
+  'short pause',
+  'moment of silence',
   'beat',
-  'moment',
-  'suddenly',
+  'a beat',
+  'present',
+  'presence',
+  'attention',
 ];
