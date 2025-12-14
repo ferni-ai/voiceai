@@ -140,6 +140,25 @@ function readSourceFiles(patterns) {
   return files;
 }
 
+function isLikelyTranslationKey(key) {
+  // Translation keys look like: "menu.title", "settings.theme", "button.save"
+  // They don't look like: "div", "/api/foo", ".className", "ferni:event"
+
+  // Must have at least one dot (nested key) to be a valid i18n key
+  if (!key.includes('.')) {
+    return false;
+  }
+
+  // Check against known non-translation patterns
+  for (const pattern of NON_TRANSLATION_PATTERNS) {
+    if (pattern.test(key)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function extractKeysFromFile(filepath, keyPatterns) {
   const content = fs.readFileSync(filepath, 'utf-8');
   const keys = new Set();
@@ -149,9 +168,14 @@ function extractKeysFromFile(filepath, keyPatterns) {
     let match;
     while ((match = regex.exec(content)) !== null) {
       if (match[1]) {
+        const key = match[1];
         // Skip dynamic keys with variables
-        if (!match[1].includes('${') && !match[1].includes('`')) {
-          keys.add(match[1]);
+        if (key.includes('${') || key.includes('`')) {
+          continue;
+        }
+        // Only add if it looks like a translation key
+        if (isLikelyTranslationKey(key)) {
+          keys.add(key);
         }
       }
     }

@@ -4,7 +4,6 @@
     "name": "Deutsch",
     "direction": "ltr"
   },
-
   "common": {
     "loading": "Laden...",
     "error": "Etwas ist schiefgelaufen",
@@ -26,7 +25,6 @@
     "copied": "Kopiert!",
     "new": "NEU"
   },
-
   "menu": {
     "title": "Was kommt als Nächstes?",
     "yourStage": "Ihre Stufe",
@@ -85,7 +83,6 @@
     "unpinItem": "Lösen",
     "comingSoon": "Demnächst"
   },
-
   "session": {
     "connecting": "Verbinden...",
     "connected": "Verbunden",
@@ -104,7 +101,6 @@
     "endConversation": "Gespräch beenden",
     "endConversationGoodbye": "Gespräch beenden - Auf Wiedersehen"
   },
-
   "subscription": {
     "free": "Kostenlos",
     "friend": "Freund",
@@ -118,7 +114,6 @@
     "prioritySupport": "Prioritäts-Support",
     "advancedInsights": "Erweiterte Einblicke"
   },
-
   "team": {
     "meetTheTeam": "Das Team kennenlernen",
     "selectMember": "Teammitglied auswählen",
@@ -156,7 +151,6 @@
       }
     }
   },
-
   "stages": {
     "stranger": "Fremder",
     "acquaintance": "Bekannter",
@@ -165,7 +159,6 @@
     "confidant": "Vertrauter",
     "soulmate": "Seelenverwandter"
   },
-
   "time": {
     "justNow": "Gerade eben",
     "minutesAgo": "Vor {n} Minuten",
@@ -173,7 +166,6 @@
     "yesterday": "Gestern",
     "daysAgo": "Vor {n} Tagen"
   },
-
   "milestones": {
     "ourStory": "Unsere Geschichte bisher",
     "everyMomentMatters": "Jeder Moment zählt.",
@@ -187,14 +179,12 @@
       "milestone": "Meilenstein"
     }
   },
-
   "notifications": {
     "connectionLost": "Verbindung verloren. Verbindung wird wiederhergestellt...",
     "reconnected": "Wieder verbunden!",
     "microphoneBlocked": "Mikrofonzugriff erforderlich",
     "sessionTimeout": "Sitzung abgelaufen"
   },
-
   "errors": {
     "connectionFailed": "Verbindung fehlgeschlagen. Bitte erneut versuchen.",
     "microphoneAccess": "Bitte erlauben Sie den Mikrofonzugriff, um fortzufahren.",
@@ -202,7 +192,6 @@
     "sessionExpired": "Ihre Sitzung ist abgelaufen. Bitte aktualisieren.",
     "somethingWrong": "Etwas ist schiefgelaufen. Bitte erneut versuchen."
   },
-
   "onboarding": {
     "welcome": "Willkommen",
     "letsGetStarted": "Legen wir los",
@@ -240,7 +229,6 @@
       "begin": "Lassen Sie uns beginnen"
     }
   },
-
   "manageSubscription": {
     "label": "ABONNEMENT",
     "title": "Verwalten Sie Ihren Plan",
@@ -278,7 +266,6 @@
     },
     "freeNote": "Freischalten Sie unbegrenzte Sitzungen, das vollständige Team und Personalisierung"
   },
-
   "musicDashboard": {
     "title": "Musikalisches Du",
     "loading": "Analysiere Deine musikalische DNA...",
@@ -314,7 +301,6 @@
       "nextLabel": "Nächstes Ziel"
     }
   },
-
   "groupCoaching": {
     "title": "Gruppencoaching",
     "loading": "Laden...",
@@ -346,7 +332,6 @@
       }
     }
   },
-
   "videoSettings": {
     "title": "Videositzungen",
     "loading": "Laden...",
@@ -375,6 +360,10 @@
       "hybrid": {
         "label": "Hybrid",
         "description": "Avatar mit optionalem Video"
+      },
+      "avatar": {
+        "label": "",
+        "description": ""
       }
     },
     "quality": {
@@ -389,7 +378,6 @@
       "retry": "Erneut versuchen"
     }
   },
-
   "wearableSettings": {
     "title": "Gesundheit und Fitness",
     "loading": "Laden...",
@@ -400,7 +388,8 @@
     },
     "buttons": {
       "connect": "Verbinden",
-      "disconnect": "Trennen"
+      "disconnect": "Trennen",
+      "tryAgain": ""
     },
     "features": {
       "stress": "Stresserkennung durch HRV",
@@ -430,10 +419,16 @@
       "whoop": {
         "name": "Whoop",
         "description": "Erholung und Belastungsverfolgung"
+      },
+      "apple_health": {
+        "name": "",
+        "description": ""
       }
+    },
+    "errors": {
+      "loadFailed": ""
     }
   },
-
   "contactSettings": {
     "verify": {
       "sending": "Code wird gesendet...",
@@ -444,13 +439,13 @@
       "save": "Speichern"
     }
   },
-
   "accessibility": {
     "closeMenu": "Menü schließen",
     "openSettings": "Einstellungen öffnen",
     "muteAudio": "Audio stummschalten",
     "unmuteAudio": "Audio aktivieren",
     "endCall": "Anruf beenden",
-    "skipToContent": "Zum Hauptinhalt springen"
+    "skipToContent": "Zum Hauptinhalt springen",
+    "languageSelector": ""
   }
 }

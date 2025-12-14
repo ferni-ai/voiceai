@@ -4,7 +4,6 @@
     "name": "Français",
     "direction": "ltr"
   },
-
   "common": {
     "loading": "Chargement...",
     "error": "Une erreur s'est produite",
@@ -26,7 +25,6 @@
     "copied": "Copié !",
     "new": "NOUVEAU"
   },
-
   "menu": {
     "title": "Et maintenant ?",
     "yourStage": "Votre étape",
@@ -85,7 +83,6 @@
     "unpinItem": "Détacher",
     "comingSoon": "Bientôt"
   },
-
   "session": {
     "connecting": "Connexion...",
     "connected": "Connecté",
@@ -104,7 +101,6 @@
     "endConversation": "Terminer la conversation",
     "endConversationGoodbye": "Terminer la conversation - Au revoir"
   },
-
   "subscription": {
     "free": "Gratuit",
     "friend": "Ami",
@@ -118,7 +114,6 @@
     "prioritySupport": "Support prioritaire",
     "advancedInsights": "Perspectives avancées"
   },
-
   "team": {
     "meetTheTeam": "Rencontrez l'Équipe",
     "selectMember": "Sélectionnez un membre",
@@ -156,7 +151,6 @@
       }
     }
   },
-
   "stages": {
     "stranger": "Inconnu",
     "acquaintance": "Connaissance",
@@ -165,7 +159,6 @@
     "confidant": "Confident",
     "soulmate": "Âme Sœur"
   },
-
   "time": {
     "justNow": "À l'instant",
     "minutesAgo": "Il y a {n} minutes",
@@ -173,7 +166,6 @@
     "yesterday": "Hier",
     "daysAgo": "Il y a {n} jours"
   },
-
   "milestones": {
     "ourStory": "Notre Histoire Jusqu'ici",
     "everyMomentMatters": "Chaque moment compte.",
@@ -187,14 +179,12 @@
       "milestone": "Étape"
     }
   },
-
   "notifications": {
     "connectionLost": "Connexion perdue. Reconnexion...",
     "reconnected": "Reconnecté !",
     "microphoneBlocked": "Accès au microphone requis",
     "sessionTimeout": "Session expirée"
   },
-
   "errors": {
     "connectionFailed": "Échec de connexion. Veuillez réessayer.",
     "microphoneAccess": "Veuillez autoriser l'accès au microphone pour continuer.",
@@ -202,7 +192,6 @@
     "sessionExpired": "Votre session a expiré. Veuillez actualiser.",
     "somethingWrong": "Une erreur s'est produite. Veuillez réessayer."
   },
-
   "onboarding": {
     "welcome": "Bienvenue",
     "letsGetStarted": "Commençons",
@@ -240,7 +229,6 @@
       "begin": "Commençons"
     }
   },
-
   "manageSubscription": {
     "label": "ABONNEMENT",
     "title": "Gérez Votre Plan",
@@ -278,7 +266,6 @@
     },
     "freeNote": "Déverrouillez les sessions illimitées, l'équipe complète et la personnalisation"
   },
-
   "musicDashboard": {
     "title": "Votre Musique",
     "loading": "Analyse de votre ADN musical...",
@@ -314,7 +301,6 @@
       "nextLabel": "Prochain Objectif"
     }
   },
-
   "groupCoaching": {
     "title": "Coaching de Groupe",
     "loading": "Chargement...",
@@ -346,7 +332,6 @@
       }
     }
   },
-
   "videoSettings": {
     "title": "Sessions Vidéo",
     "loading": "Chargement...",
@@ -375,6 +360,10 @@
       "hybrid": {
         "label": "Hybride",
         "description": "Avatar avec vidéo optionnelle"
+      },
+      "avatar": {
+        "label": "",
+        "description": ""
       }
     },
     "quality": {
@@ -389,7 +378,6 @@
       "retry": "Réessayer"
     }
   },
-
   "wearableSettings": {
     "title": "Santé et Fitness",
     "loading": "Chargement...",
@@ -400,7 +388,8 @@
     },
     "buttons": {
       "connect": "Connecter",
-      "disconnect": "Déconnecter"
+      "disconnect": "Déconnecter",
+      "tryAgain": ""
     },
     "features": {
       "stress": "Détection du stress à partir de la VFC",
@@ -430,10 +419,16 @@
       "whoop": {
         "name": "Whoop",
         "description": "Suivi de la récupération et de la charge"
+      },
+      "apple_health": {
+        "name": "",
+        "description": ""
       }
+    },
+    "errors": {
+      "loadFailed": ""
     }
   },
-
   "contactSettings": {
     "verify": {
       "sending": "Envoi du code...",
@@ -444,13 +439,13 @@
       "save": "Enregistrer"
     }
   },
-
   "accessibility": {
     "closeMenu": "Fermer le menu",
     "openSettings": "Ouvrir les paramètres",
     "muteAudio": "Couper le son",
     "unmuteAudio": "Activer le son",
     "endCall": "Terminer l'appel",
-    "skipToContent": "Aller au contenu principal"
+    "skipToContent": "Aller au contenu principal",
+    "languageSelector": ""
   }
 }

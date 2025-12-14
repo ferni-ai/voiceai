@@ -4,7 +4,6 @@
     "name": "עברית",
     "direction": "rtl"
   },
-
   "common": {
     "loading": "טוען...",
     "error": "משהו השתבש",
@@ -26,7 +25,6 @@
     "copied": "הועתק!",
     "new": "חדש"
   },
-
   "menu": {
     "title": "מה הבא?",
     "yourStage": "השלב שלך",
@@ -85,7 +83,6 @@
     "unpinItem": "בטל הצמדה",
     "comingSoon": "בקרוב"
   },
-
   "session": {
     "connecting": "מתחבר...",
     "connected": "מחובר",
@@ -104,7 +101,6 @@
     "endConversation": "סיים שיחה",
     "endConversationGoodbye": "סיים שיחה - להתראות"
   },
-
   "subscription": {
     "free": "חינם",
     "friend": "חבר",
@@ -118,7 +114,6 @@
     "prioritySupport": "תמיכה בעדיפות",
     "advancedInsights": "תובנות מתקדמות"
   },
-
   "team": {
     "meetTheTeam": "הכירו את הצוות",
     "selectMember": "בחר חבר צוות",
@@ -156,7 +151,6 @@
       }
     }
   },
-
   "stages": {
     "stranger": "זר",
     "acquaintance": "מכר",
@@ -165,7 +159,6 @@
     "confidant": "איש סוד",
     "soulmate": "נפש תאומה"
   },
-
   "time": {
     "justNow": "עכשיו",
     "minutesAgo": "לפני {n} דקות",
@@ -173,7 +166,6 @@
     "yesterday": "אתמול",
     "daysAgo": "לפני {n} ימים"
   },
-
   "milestones": {
     "ourStory": "הסיפור שלנו עד כה",
     "everyMomentMatters": "כל רגע חשוב.",
@@ -187,14 +179,12 @@
       "milestone": "אבן דרך"
     }
   },
-
   "notifications": {
     "connectionLost": "החיבור אבד. מתחבר מחדש...",
     "reconnected": "התחברת מחדש!",
     "microphoneBlocked": "נדרשת גישה למיקרופון",
     "sessionTimeout": "הפגישה פגה"
   },
-
   "errors": {
     "connectionFailed": "החיבור נכשל. אנא נסה שוב.",
     "microphoneAccess": "אנא אפשר גישה למיקרופון להמשך.",
@@ -202,7 +192,6 @@
     "sessionExpired": "הפגישה שלך פגה. אנא רענן.",
     "somethingWrong": "משהו השתבש. אנא נסה שוב."
   },
-
   "onboarding": {
     "welcome": "ברוך הבא",
     "letsGetStarted": "בוא נתחיל",
@@ -240,7 +229,6 @@
       "begin": "בוא נתחיל"
     }
   },
-
   "manageSubscription": {
     "label": "מנוי",
     "title": "נהל את התוכנית שלך",
@@ -278,7 +266,6 @@
     },
     "freeNote": "פתח פגישות ללא הגבלה, הצוות המלא והתאמה אישית"
   },
-
   "musicDashboard": {
     "title": "האני המוזיקלי",
     "loading": "מנתח את ה-DNA המוזיקלי שלך...",
@@ -314,7 +301,6 @@
       "nextLabel": "המטרה הבאה"
     }
   },
-
   "groupCoaching": {
     "title": "אימון קבוצתי",
     "loading": "טוען...",
@@ -346,7 +332,6 @@
       }
     }
   },
-
   "videoSettings": {
     "title": "פגישות וידאו",
     "loading": "טוען...",
@@ -375,6 +360,10 @@
       "hybrid": {
         "label": "היברידי",
         "description": "אווטאר עם וידאו אופציונלי"
+      },
+      "avatar": {
+        "label": "",
+        "description": ""
       }
     },
     "quality": {
@@ -389,7 +378,6 @@
       "retry": "נסה שוב"
     }
   },
-
   "wearableSettings": {
     "title": "בריאות וכושר",
     "loading": "טוען...",
@@ -400,7 +388,8 @@
     },
     "buttons": {
       "connect": "חבר",
-      "disconnect": "התנתק"
+      "disconnect": "התנתק",
+      "tryAgain": ""
     },
     "features": {
       "stress": "זיהוי לחץ מ-HRV",
@@ -430,10 +419,16 @@
       "whoop": {
         "name": "Whoop",
         "description": "מעקב התאוששות ומאמץ"
+      },
+      "apple_health": {
+        "name": "",
+        "description": ""
       }
+    },
+    "errors": {
+      "loadFailed": ""
     }
   },
-
   "contactSettings": {
     "verify": {
       "sending": "שולח קוד...",
@@ -444,13 +439,13 @@
       "save": "שמור"
     }
   },
-
   "accessibility": {
     "closeMenu": "סגור תפריט",
     "openSettings": "פתח הגדרות",
     "muteAudio": "השתק",
     "unmuteAudio": "בטל השתקה",
     "endCall": "סיים שיחה",
-    "skipToContent": "דלג לתוכן הראשי"
+    "skipToContent": "דלג לתוכן הראשי",
+    "languageSelector": ""
   }
 }

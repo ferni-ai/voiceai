@@ -4,7 +4,6 @@
     "name": "日本語",
     "direction": "ltr"
   },
-
   "common": {
     "loading": "読み込み中...",
     "error": "エラーが発生しました",
@@ -26,7 +25,6 @@
     "copied": "コピーしました！",
     "new": "新規"
   },
-
   "menu": {
     "title": "次は何をしますか？",
     "yourStage": "あなたのステージ",
@@ -85,7 +83,6 @@
     "unpinItem": "固定解除",
     "comingSoon": "近日公開"
   },
-
   "session": {
     "connecting": "接続中...",
     "connected": "接続済み",
@@ -104,7 +101,6 @@
     "endConversation": "会話を終了",
     "endConversationGoodbye": "会話を終了 - さようなら"
   },
-
   "subscription": {
     "free": "無料",
     "friend": "フレンド",
@@ -118,7 +114,6 @@
     "prioritySupport": "優先サポート",
     "advancedInsights": "高度なインサイト"
   },
-
   "team": {
     "meetTheTeam": "チームを紹介",
     "selectMember": "メンバーを選択",
@@ -156,7 +151,6 @@
       }
     }
   },
-
   "stages": {
     "stranger": "見知らぬ人",
     "acquaintance": "知り合い",
@@ -165,7 +159,6 @@
     "confidant": "親友",
     "soulmate": "ソウルメイト"
   },
-
   "time": {
     "justNow": "たった今",
     "minutesAgo": "{n}分前",
@@ -173,7 +166,6 @@
     "yesterday": "昨日",
     "daysAgo": "{n}日前"
   },
-
   "milestones": {
     "ourStory": "これまでの私たちの物語",
     "everyMomentMatters": "すべての瞬間が大切。",
@@ -187,14 +179,12 @@
       "milestone": "マイルストーン"
     }
   },
-
   "notifications": {
     "connectionLost": "接続が切れました。再接続中...",
     "reconnected": "再接続しました！",
     "microphoneBlocked": "マイクへのアクセスが必要です",
     "sessionTimeout": "セッションがタイムアウトしました"
   },
-
   "errors": {
     "connectionFailed": "接続に失敗しました。もう一度お試しください。",
     "microphoneAccess": "続行するにはマイクへのアクセスを許可してください。",
@@ -202,7 +192,6 @@
     "sessionExpired": "セッションの有効期限が切れました。更新してください。",
     "somethingWrong": "エラーが発生しました。もう一度お試しください。"
   },
-
   "onboarding": {
     "welcome": "ようこそ",
     "letsGetStarted": "始めましょう",
@@ -240,7 +229,6 @@
       "begin": "始めましょう"
     }
   },
-
   "manageSubscription": {
     "label": "サブスクリプション",
     "title": "プランを管理",
@@ -278,7 +266,6 @@
     },
     "freeNote": "無制限のセッション、フルチーム、パーソナライゼーションのロックを解除"
   },
-
   "musicDashboard": {
     "title": "ミュージカル・ユー",
     "loading": "あなたの音楽DNAを分析中...",
@@ -314,7 +301,6 @@
       "nextLabel": "次のゴール"
     }
   },
-
   "groupCoaching": {
     "title": "グループコーチング",
     "loading": "読み込み中...",
@@ -346,7 +332,6 @@
       }
     }
   },
-
   "videoSettings": {
     "title": "ビデオセッション",
     "loading": "読み込み中...",
@@ -375,6 +360,10 @@
       "hybrid": {
         "label": "ハイブリッド",
         "description": "オプショナルビデオ付きアバター"
+      },
+      "avatar": {
+        "label": "",
+        "description": ""
       }
     },
     "quality": {
@@ -389,7 +378,6 @@
       "retry": "もう一度試す"
     }
   },
-
   "wearableSettings": {
     "title": "健康とフィットネス",
     "loading": "読み込み中...",
@@ -400,7 +388,8 @@
     },
     "buttons": {
       "connect": "接続",
-      "disconnect": "切断"
+      "disconnect": "切断",
+      "tryAgain": ""
     },
     "features": {
       "stress": "HRVからのストレス検出",
@@ -430,10 +419,16 @@
       "whoop": {
         "name": "Whoop",
         "description": "リカバリーとストレイントラッキング"
+      },
+      "apple_health": {
+        "name": "",
+        "description": ""
       }
+    },
+    "errors": {
+      "loadFailed": ""
     }
   },
-
   "contactSettings": {
     "verify": {
       "sending": "コード送信中...",
@@ -444,13 +439,13 @@
       "save": "保存"
     }
   },
-
   "accessibility": {
     "closeMenu": "メニューを閉じる",
     "openSettings": "設定を開く",
     "muteAudio": "音声をミュート",
     "unmuteAudio": "音声のミュートを解除",
     "endCall": "通話を終了",
-    "skipToContent": "メインコンテンツにスキップ"
+    "skipToContent": "メインコンテンツにスキップ",
+    "languageSelector": ""
   }
 }

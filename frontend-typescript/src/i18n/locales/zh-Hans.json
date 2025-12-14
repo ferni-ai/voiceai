@@ -4,7 +4,6 @@
     "name": "简体中文",
     "direction": "ltr"
   },
-
   "common": {
     "loading": "加载中...",
     "error": "出了点问题",
@@ -26,7 +25,6 @@
     "copied": "已复制！",
     "new": "新"
   },
-
   "menu": {
     "title": "下一步做什么？",
     "yourStage": "您的阶段",
@@ -85,7 +83,6 @@
     "unpinItem": "取消固定",
     "comingSoon": "即将推出"
   },
-
   "session": {
     "connecting": "连接中...",
     "connected": "已连接",
@@ -104,7 +101,6 @@
     "endConversation": "结束对话",
     "endConversationGoodbye": "结束对话 - 再见"
   },
-
   "subscription": {
     "free": "免费",
     "friend": "朋友",
@@ -118,7 +114,6 @@
     "prioritySupport": "优先支持",
     "advancedInsights": "高级洞察"
   },
-
   "team": {
     "meetTheTeam": "认识团队",
     "selectMember": "选择团队成员",
@@ -156,7 +151,6 @@
       }
     }
   },
-
   "stages": {
     "stranger": "陌生人",
     "acquaintance": "熟人",
@@ -165,7 +159,6 @@
     "confidant": "知己",
     "soulmate": "灵魂伴侣"
   },
-
   "time": {
     "justNow": "刚刚",
     "minutesAgo": "{n}分钟前",
@@ -173,7 +166,6 @@
     "yesterday": "昨天",
     "daysAgo": "{n}天前"
   },
-
   "milestones": {
     "ourStory": "我们的故事",
     "everyMomentMatters": "每一刻都很重要。",
@@ -187,14 +179,12 @@
       "milestone": "里程碑"
     }
   },
-
   "notifications": {
     "connectionLost": "连接丢失。正在重新连接...",
     "reconnected": "已重新连接！",
     "microphoneBlocked": "需要麦克风访问权限",
     "sessionTimeout": "会话已超时"
   },
-
   "errors": {
     "connectionFailed": "连接失败。请重试。",
     "microphoneAccess": "请允许麦克风访问以继续。",
@@ -202,7 +192,6 @@
     "sessionExpired": "您的会话已过期。请刷新。",
     "somethingWrong": "出了点问题。请重试。"
   },
-
   "onboarding": {
     "welcome": "欢迎",
     "letsGetStarted": "让我们开始吧",
@@ -240,7 +229,6 @@
       "begin": "让我们开始"
     }
   },
-
   "manageSubscription": {
     "label": "订阅",
     "title": "管理您的计划",
@@ -278,7 +266,6 @@
     },
     "freeNote": "解锁无限会话、完整团队和个性化"
   },
-
   "musicDashboard": {
     "title": "音乐的你",
     "loading": "分析您的音乐DNA...",
@@ -314,7 +301,6 @@
       "nextLabel": "下一个目标"
     }
   },
-
   "groupCoaching": {
     "title": "团体辅导",
     "loading": "加载中...",
@@ -346,7 +332,6 @@
       }
     }
   },
-
   "videoSettings": {
     "title": "视频会话",
     "loading": "加载中...",
@@ -375,6 +360,10 @@
       "hybrid": {
         "label": "混合",
         "description": "带可选视频的头像"
+      },
+      "avatar": {
+        "label": "",
+        "description": ""
       }
     },
     "quality": {
@@ -389,7 +378,6 @@
       "retry": "重试"
     }
   },
-
   "wearableSettings": {
     "title": "健康与健身",
     "loading": "加载中...",
@@ -400,7 +388,8 @@
     },
     "buttons": {
       "connect": "连接",
-      "disconnect": "断开连接"
+      "disconnect": "断开连接",
+      "tryAgain": ""
     },
     "features": {
       "stress": "通过HRV检测压力",
@@ -430,10 +419,16 @@
       "whoop": {
         "name": "Whoop",
         "description": "恢复和负荷追踪"
+      },
+      "apple_health": {
+        "name": "",
+        "description": ""
       }
+    },
+    "errors": {
+      "loadFailed": ""
     }
   },
-
   "contactSettings": {
     "verify": {
       "sending": "发送验证码...",
@@ -444,13 +439,13 @@
       "save": "保存"
     }
   },
-
   "accessibility": {
     "closeMenu": "关闭菜单",
     "openSettings": "打开设置",
     "muteAudio": "静音",
     "unmuteAudio": "取消静音",
     "endCall": "结束通话",
-    "skipToContent": "跳到主要内容"
+    "skipToContent": "跳到主要内容",
+    "languageSelector": ""
   }
 }

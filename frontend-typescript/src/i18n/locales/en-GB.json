@@ -4,7 +4,6 @@
     "name": "English (UK)",
     "direction": "ltr"
   },
-
   "common": {
     "loading": "Loading...",
     "error": "Something went wrong",
@@ -26,7 +25,6 @@
     "copied": "Copied!",
     "new": "NEW"
   },
-
   "menu": {
     "title": "What's Next?",
     "yourStage": "Your stage",
@@ -85,7 +83,6 @@
     "unpinItem": "Unpin",
     "comingSoon": "Coming Soon"
   },
-
   "session": {
     "connecting": "Connecting...",
     "connected": "Connected",
@@ -104,7 +101,6 @@
     "endConversation": "End conversation",
     "endConversationGoodbye": "End conversation - Goodbye"
   },
-
   "subscription": {
     "free": "Free",
     "friend": "Friend",
@@ -118,7 +114,6 @@
     "prioritySupport": "Priority support",
     "advancedInsights": "Advanced insights"
   },
-
   "team": {
     "meetTheTeam": "Meet the Team",
     "selectMember": "Select a team member",
@@ -156,7 +151,6 @@
       }
     }
   },
-
   "stages": {
     "stranger": "Stranger",
     "acquaintance": "Acquaintance",
@@ -165,7 +159,6 @@
     "confidant": "Confidant",
     "soulmate": "Soulmate"
   },
-
   "time": {
     "justNow": "Just now",
     "minutesAgo": "{n} minutes ago",
@@ -173,7 +166,6 @@
     "yesterday": "Yesterday",
     "daysAgo": "{n} days ago"
   },
-
   "milestones": {
     "ourStory": "Our Story So Far",
     "everyMomentMatters": "Every moment matters.",
@@ -187,14 +179,12 @@
       "milestone": "Milestone"
     }
   },
-
   "notifications": {
     "connectionLost": "Connection lost. Reconnecting...",
     "reconnected": "Reconnected!",
     "microphoneBlocked": "Microphone access required",
     "sessionTimeout": "Session timed out"
   },
-
   "errors": {
     "connectionFailed": "Failed to connect. Please try again.",
     "microphoneAccess": "Please allow microphone access to continue.",
@@ -202,7 +192,6 @@
     "sessionExpired": "Your session has expired. Please refresh.",
     "somethingWrong": "Something went wrong. Please try again."
   },
-
   "onboarding": {
     "welcome": "Welcome",
     "letsGetStarted": "Let's get started",
@@ -240,7 +229,6 @@
       "begin": "Let's begin"
     }
   },
-
   "manageSubscription": {
     "label": "SUBSCRIPTION",
     "title": "Manage Your Plan",
@@ -278,7 +266,6 @@
     },
     "freeNote": "Unlock unlimited sessions, the full team, and personalisation"
   },
-
   "musicDashboard": {
     "title": "Musical You",
     "loading": "Analysing your musical DNA...",
@@ -314,7 +301,6 @@
       "nextLabel": "Next Goal"
     }
   },
-
   "groupCoaching": {
     "title": "Group Coaching",
     "loading": "Loading...",
@@ -346,7 +332,6 @@
       }
     }
   },
-
   "videoSettings": {
     "title": "Video Sessions",
     "loading": "Loading...",
@@ -375,6 +360,10 @@
       "hybrid": {
         "label": "Hybrid",
         "description": "Avatar with optional video"
+      },
+      "avatar": {
+        "label": "",
+        "description": ""
       }
     },
     "quality": {
@@ -389,7 +378,6 @@
       "retry": "Try Again"
     }
   },
-
   "wearableSettings": {
     "title": "Health & Fitness",
     "loading": "Loading...",
@@ -400,7 +388,8 @@
     },
     "buttons": {
       "connect": "Connect",
-      "disconnect": "Disconnect"
+      "disconnect": "Disconnect",
+      "tryAgain": ""
     },
     "features": {
       "stress": "Stress detection from HRV",
@@ -430,10 +419,16 @@
       "whoop": {
         "name": "Whoop",
         "description": "Recovery and strain tracking"
+      },
+      "apple_health": {
+        "name": "",
+        "description": ""
       }
+    },
+    "errors": {
+      "loadFailed": ""
     }
   },
-
   "contactSettings": {
     "verify": {
       "sending": "Sending code...",
@@ -444,13 +439,13 @@
       "save": "Save"
     }
   },
-
   "accessibility": {
     "closeMenu": "Close menu",
     "openSettings": "Open settings",
     "muteAudio": "Mute audio",
     "unmuteAudio": "Unmute audio",
     "endCall": "End call",
-    "skipToContent": "Skip to main content"
+    "skipToContent": "Skip to main content",
+    "languageSelector": ""
   }
 }

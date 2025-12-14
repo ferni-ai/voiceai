@@ -4,7 +4,6 @@
     "name": "한국어",
     "direction": "ltr"
   },
-
   "common": {
     "loading": "로딩 중...",
     "error": "문제가 발생했습니다",
@@ -26,7 +25,6 @@
     "copied": "복사됨!",
     "new": "새로운"
   },
-
   "menu": {
     "title": "다음은 무엇인가요?",
     "yourStage": "당신의 단계",
@@ -85,7 +83,6 @@
     "unpinItem": "고정 해제",
     "comingSoon": "곧 출시"
   },
-
   "session": {
     "connecting": "연결 중...",
     "connected": "연결됨",
@@ -104,7 +101,6 @@
     "endConversation": "대화 종료",
     "endConversationGoodbye": "대화 종료 - 안녕히 가세요"
   },
-
   "subscription": {
     "free": "무료",
     "friend": "친구",
@@ -118,7 +114,6 @@
     "prioritySupport": "우선 지원",
     "advancedInsights": "고급 인사이트"
   },
-
   "team": {
     "meetTheTeam": "팀 소개",
     "selectMember": "팀 멤버 선택",
@@ -156,7 +151,6 @@
       }
     }
   },
-
   "stages": {
     "stranger": "낯선 사람",
     "acquaintance": "아는 사람",
@@ -165,7 +159,6 @@
     "confidant": "절친한 친구",
     "soulmate": "소울메이트"
   },
-
   "time": {
     "justNow": "방금",
     "minutesAgo": "{n}분 전",
@@ -173,7 +166,6 @@
     "yesterday": "어제",
     "daysAgo": "{n}일 전"
   },
-
   "milestones": {
     "ourStory": "지금까지 우리의 이야기",
     "everyMomentMatters": "모든 순간이 소중합니다.",
@@ -187,14 +179,12 @@
       "milestone": "마일스톤"
     }
   },
-
   "notifications": {
     "connectionLost": "연결이 끊어졌습니다. 다시 연결 중...",
     "reconnected": "다시 연결되었습니다!",
     "microphoneBlocked": "마이크 접근 권한이 필요합니다",
     "sessionTimeout": "세션이 만료되었습니다"
   },
-
   "errors": {
     "connectionFailed": "연결에 실패했습니다. 다시 시도해 주세요.",
     "microphoneAccess": "계속하려면 마이크 접근을 허용해 주세요.",
@@ -202,7 +192,6 @@
     "sessionExpired": "세션이 만료되었습니다. 새로고침해 주세요.",
     "somethingWrong": "문제가 발생했습니다. 다시 시도해 주세요."
   },
-
   "onboarding": {
     "welcome": "환영합니다",
     "letsGetStarted": "시작해 볼까요",
@@ -240,7 +229,6 @@
       "begin": "시작하기"
     }
   },
-
   "manageSubscription": {
     "label": "구독",
     "title": "플랜 관리",
@@ -278,7 +266,6 @@
     },
     "freeNote": "무제한 세션, 전체 팀 및 개인화 잠금 해제"
   },
-
   "musicDashboard": {
     "title": "뮤지컬 유",
     "loading": "음악 DNA 분석 중...",
@@ -314,7 +301,6 @@
       "nextLabel": "다음 목표"
     }
   },
-
   "groupCoaching": {
     "title": "그룹 코칭",
     "loading": "로딩 중...",
@@ -346,7 +332,6 @@
       }
     }
   },
-
   "videoSettings": {
     "title": "영상 세션",
     "loading": "로딩 중...",
@@ -375,6 +360,10 @@
       "hybrid": {
         "label": "하이브리드",
         "description": "선택적 비디오가 있는 아바타"
+      },
+      "avatar": {
+        "label": "",
+        "description": ""
       }
     },
     "quality": {
@@ -389,7 +378,6 @@
       "retry": "다시 시도"
     }
   },
-
   "wearableSettings": {
     "title": "건강 및 피트니스",
     "loading": "로딩 중...",
@@ -400,7 +388,8 @@
     },
     "buttons": {
       "connect": "연결",
-      "disconnect": "연결 해제"
+      "disconnect": "연결 해제",
+      "tryAgain": ""
     },
     "features": {
       "stress": "HRV를 통한 스트레스 감지",
@@ -430,10 +419,16 @@
       "whoop": {
         "name": "Whoop",
         "description": "회복 및 부담 추적"
+      },
+      "apple_health": {
+        "name": "",
+        "description": ""
       }
+    },
+    "errors": {
+      "loadFailed": ""
     }
   },
-
   "contactSettings": {
     "verify": {
       "sending": "코드 전송 중...",
@@ -444,13 +439,13 @@
       "save": "저장"
     }
   },
-
   "accessibility": {
     "closeMenu": "메뉴 닫기",
     "openSettings": "설정 열기",
     "muteAudio": "오디오 음소거",
     "unmuteAudio": "오디오 음소거 해제",
     "endCall": "통화 종료",
-    "skipToContent": "본문으로 건너뛰기"
+    "skipToContent": "본문으로 건너뛰기",
+    "languageSelector": ""
   }
 }

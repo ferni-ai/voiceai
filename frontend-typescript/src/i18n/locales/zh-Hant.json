@@ -4,7 +4,6 @@
     "name": "繁體中文",
     "direction": "ltr"
   },
-
   "common": {
     "loading": "載入中...",
     "error": "發生錯誤",
@@ -26,7 +25,6 @@
     "copied": "已複製！",
     "new": "新"
   },
-
   "menu": {
     "title": "下一步做什麼？",
     "yourStage": "您的階段",
@@ -85,7 +83,6 @@
     "unpinItem": "取消固定",
     "comingSoon": "即將推出"
   },
-
   "session": {
     "connecting": "連線中...",
     "connected": "已連線",
@@ -104,7 +101,6 @@
     "endConversation": "結束對話",
     "endConversationGoodbye": "結束對話 - 再見"
   },
-
   "subscription": {
     "free": "免費",
     "friend": "朋友",
@@ -118,7 +114,6 @@
     "prioritySupport": "優先支援",
     "advancedInsights": "進階洞察"
   },
-
   "team": {
     "meetTheTeam": "認識團隊",
     "selectMember": "選擇團隊成員",
@@ -156,7 +151,6 @@
       }
     }
   },
-
   "stages": {
     "stranger": "陌生人",
     "acquaintance": "熟人",
@@ -165,7 +159,6 @@
     "confidant": "知己",
     "soulmate": "靈魂伴侶"
   },
-
   "time": {
     "justNow": "剛剛",
     "minutesAgo": "{n}分鐘前",
@@ -173,7 +166,6 @@
     "yesterday": "昨天",
     "daysAgo": "{n}天前"
   },
-
   "milestones": {
     "ourStory": "我們的故事",
     "everyMomentMatters": "每一刻都很重要。",
@@ -187,14 +179,12 @@
       "milestone": "里程碑"
     }
   },
-
   "notifications": {
     "connectionLost": "連線中斷。正在重新連線...",
     "reconnected": "已重新連線！",
     "microphoneBlocked": "需要麥克風存取權限",
     "sessionTimeout": "會話已逾時"
   },
-
   "errors": {
     "connectionFailed": "連線失敗。請重試。",
     "microphoneAccess": "請允許麥克風存取以繼續。",
@@ -202,7 +192,6 @@
     "sessionExpired": "您的會話已過期。請重新整理。",
     "somethingWrong": "發生錯誤。請重試。"
   },
-
   "onboarding": {
     "welcome": "歡迎",
     "letsGetStarted": "讓我們開始吧",
@@ -240,7 +229,6 @@
       "begin": "讓我們開始"
     }
   },
-
   "manageSubscription": {
     "label": "訂閱",
     "title": "管理您的方案",
@@ -278,7 +266,6 @@
     },
     "freeNote": "解鎖無限會話、完整團隊和個人化"
   },
-
   "musicDashboard": {
     "title": "音樂的你",
     "loading": "分析您的音樂DNA...",
@@ -314,7 +301,6 @@
       "nextLabel": "下一個目標"
     }
   },
-
   "groupCoaching": {
     "title": "團體輔導",
     "loading": "載入中...",
@@ -346,7 +332,6 @@
       }
     }
   },
-
   "videoSettings": {
     "title": "視訊會話",
     "loading": "載入中...",
@@ -375,6 +360,10 @@
       "hybrid": {
         "label": "混合",
         "description": "帶可選視訊的頭像"
+      },
+      "avatar": {
+        "label": "",
+        "description": ""
       }
     },
     "quality": {
@@ -389,7 +378,6 @@
       "retry": "重試"
     }
   },
-
   "wearableSettings": {
     "title": "健康與健身",
     "loading": "載入中...",
@@ -400,7 +388,8 @@
     },
     "buttons": {
       "connect": "連結",
-      "disconnect": "中斷連結"
+      "disconnect": "中斷連結",
+      "tryAgain": ""
     },
     "features": {
       "stress": "透過HRV檢測壓力",
@@ -430,10 +419,16 @@
       "whoop": {
         "name": "Whoop",
         "description": "恢復和負荷追蹤"
+      },
+      "apple_health": {
+        "name": "",
+        "description": ""
       }
+    },
+    "errors": {
+      "loadFailed": ""
     }
   },
-
   "contactSettings": {
     "verify": {
       "sending": "發送驗證碼...",
@@ -444,13 +439,13 @@
       "save": "儲存"
     }
   },
-
   "accessibility": {
     "closeMenu": "關閉選單",
     "openSettings": "開啟設定",
     "muteAudio": "靜音",
     "unmuteAudio": "取消靜音",
     "endCall": "結束通話",
-    "skipToContent": "跳到主要內容"
+    "skipToContent": "跳到主要內容",
+    "languageSelector": ""
   }
 }
