@@ -59,6 +59,7 @@ module.exports = function (eleventyConfig) {
 
   // Add translations as global data
   eleventyConfig.addGlobalData('i18n', translations);
+  eleventyConfig.addGlobalData('translations', translations);
   eleventyConfig.addGlobalData('locales', locales);
   eleventyConfig.addGlobalData('defaultLocale', defaultLocale);
 
