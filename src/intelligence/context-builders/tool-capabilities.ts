@@ -15,8 +15,13 @@
  * @module intelligence/context-builders/tool-capabilities
  */
 
-import type { ContextBuilder, ContextBuilderInput, ContextInjection } from './index.js';
-import { registerContextBuilder, createInjection } from './index.js';
+import {
+  registerContextBuilder,
+  createInjection,
+  type ContextBuilder,
+  type ContextBuilderInput,
+  type ContextInjection,
+} from './index.js';
 import { BuilderCategory } from './categories.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -208,16 +213,16 @@ export const toolCapabilitiesBuilder: ContextBuilder = {
   priority: 95, // Very high priority - should run early
   category: BuilderCategory.CONTEXT,
 
-  build: async (input: ContextBuilderInput): Promise<ContextInjection[]> => {
-    const { persona, services, userData } = input;
+  build: (input: ContextBuilderInput): Promise<ContextInjection[]> => {
+    const { persona, userData } = input;
 
     // Only inject on first few turns and then periodically to remind
     // This prevents bloating every single turn
-    const turnCount = userData?.turnCount || 1;
+    const turnCount = typeof userData?.turnCount === 'number' ? userData.turnCount : 1;
     const shouldInject = turnCount <= 3 || turnCount % 10 === 0;
 
     if (!shouldInject) {
-      return [];
+      return Promise.resolve([]);
     }
 
     // Get available tools from the persona's manifest
@@ -255,12 +260,12 @@ export const toolCapabilitiesBuilder: ContextBuilder = {
       '🛠️ Injecting tool capabilities section'
     );
 
-    return [
+    return Promise.resolve([
       createInjection('tool-capabilities', capabilitiesSection, 'high', {
         category: 'tool-guidance',
         confidence: 1.0,
       }),
-    ];
+    ]);
   },
 };
 
