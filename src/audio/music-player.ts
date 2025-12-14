@@ -1051,19 +1051,36 @@ export class CallMusicPlayer {
 
       // Handle local file paths (e.g., /sounds/connect.mp3)
       if (url.startsWith('/') && !url.startsWith('//')) {
-        // Resolve relative to frontend's public directory
+        // Try multiple locations for sound files:
+        // 1. Production (Docker): /app/sounds/ (sounds copied to container root)
+        // 2. Development: frontend-typescript/public/sounds/
         const projectRoot = path.resolve(__dirname, '../../..');
-        const localPath = path.join(projectRoot, 'frontend-typescript/public', url);
+        const possiblePaths = [
+          // Production: sounds are at /app/sounds/ in Docker container
+          path.join(projectRoot, url),
+          // Also check /app/sounds directly (working dir in container)
+          path.join(process.cwd(), url),
+          // Development: sounds are in frontend-typescript/public
+          path.join(projectRoot, 'frontend-typescript/public', url),
+        ];
 
-        if (fs.existsSync(localPath)) {
-          getLogger().debug({ localPath, url }, 'Reading audio from local filesystem');
+        let localPath: string | null = null;
+        for (const p of possiblePaths) {
+          if (fs.existsSync(p)) {
+            localPath = p;
+            break;
+          }
+        }
+
+        if (localPath) {
+          getLogger().debug({ localPath, url, triedPaths: possiblePaths }, 'Reading audio from local filesystem');
           const fileBuffer = fs.readFileSync(localPath);
           buffer = fileBuffer.buffer.slice(
             fileBuffer.byteOffset,
             fileBuffer.byteOffset + fileBuffer.byteLength
           );
         } else {
-          getLogger().error({ localPath, url }, 'Local audio file not found');
+          getLogger().error({ url, triedPaths: possiblePaths }, 'Local audio file not found in any location');
           return null;
         }
       } else {

@@ -182,8 +182,14 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
     // ===============================================
     // RESPONSE ANTICIPATION (Monitoring Mode)
     // Analyze partial transcripts for pattern caching
+    //
+    // Skip when agent is speaking to prevent echo/feedback from
+    // triggering false pattern matches and caching wrong responses.
     // ===============================================
-    processResponseAnticipation(sessionId, event);
+    const isAgentCurrentlySpeaking = conversationManager.isAgentSpeaking();
+    if (!isAgentCurrentlySpeaking) {
+      processResponseAnticipation(sessionId, event);
+    }
 
     // ===============================================
     // FINAL TRANSCRIPT PROCESSING
@@ -192,7 +198,14 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       // 🚀 RESPONSE ANTICIPATION CACHE BYPASS
       // If we have a high-confidence cached response, say it immediately
       // This provides instant-feeling responses for common patterns (greetings, etc.)
-      const cached = getCachedResponseIfAvailable(sessionId);
+      //
+      // IMPORTANT: Skip cache bypass if agent is currently speaking!
+      // This prevents echo/feedback from triggering false responses.
+      // e.g., Ferni says "Hey, how are you?" → mic picks up echo → transcribes "how are you"
+      // → matches question_about_user pattern → would incorrectly say "I'm doing well..."
+      // (Note: isAgentCurrentlySpeaking already computed above for response anticipation)
+      const cached = !isAgentCurrentlySpeaking ? getCachedResponseIfAvailable(sessionId) : null;
+
       if (cached) {
         diag.state('⚡ CACHE BYPASS - Speaking cached response immediately', {
           intent: cached.intent,
@@ -213,6 +226,9 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
           diag.warn('Cached response say failed', { error: String(sayErr) });
           // Fall through to normal processing
         }
+      } else if (isAgentCurrentlySpeaking && getCachedResponseIfAvailable(sessionId)) {
+        // Log when we skip cache due to agent speaking (echo prevention)
+        diag.state('⚡ CACHE BYPASS SKIPPED - Agent is speaking (echo prevention)');
       }
 
       processFinalTranscript({

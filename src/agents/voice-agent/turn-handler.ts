@@ -53,7 +53,7 @@ export interface TurnHandlerContext {
   /** User data (proxy to SessionStateManager) */
   userData: {
     turnCount?: number;
-    extensibilitySessionPrompt?: string;
+    extensibilitySessionPrompt?: string | null;
   };
   /** Session state manager (single source of truth) */
   sessionStateManager?: SessionStateManager;
