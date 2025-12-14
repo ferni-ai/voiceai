@@ -115,11 +115,21 @@
 }
 
 /* Syntax highlighting */
-.code-block .comment { color: var(--color-text-muted); }
-.code-block .keyword { color: var(--color-highlight); }
-.code-block .string { color: #7FB38F; }
-.code-block .property { color: #8FB3D5; }
-.code-block .number { color: #d19a66; }
+.code-block .comment {
+  color: var(--color-text-muted);
+}
+.code-block .keyword {
+  color: var(--color-highlight);
+}
+.code-block .string {
+  color: #7fb38f;
+}
+.code-block .property {
+  color: #8fb3d5;
+}
+.code-block .number {
+  color: #d19a66;
+}
 
 /* ============================================================================
    BADGES & PILLS
@@ -203,7 +213,9 @@
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
-  transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
+  transition:
+    border-color var(--duration-fast),
+    box-shadow var(--duration-fast);
 }
 
 .form-input:focus {
@@ -433,82 +445,137 @@ a.card:hover h3 {
 }
 
 /* ============================================================================
-   THE GARDEN SECTION
+   THE GARDEN SECTION - Apple-Style Clean & Centered
    ============================================================================ */
 .garden {
-  background: linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-sage-subtle, rgba(74, 103, 65, 0.05)) 100%);
+  background: linear-gradient(
+    180deg,
+    var(--color-bg-primary, #fffdfb) 0%,
+    rgba(74, 103, 65, 0.03) 100%
+  );
 }
 
-.garden__content {
-  max-width: 48rem;
+.garden__wrapper {
+  max-width: 1200px;
   margin: 0 auto;
+  padding: clamp(80px, 12vw, 140px) clamp(32px, 6vw, 80px);
+}
+
+.garden__header {
+  text-align: center;
+  margin-bottom: clamp(40px, 6vw, 64px);
 }
 
 .garden__intro {
   text-align: center;
-  margin-bottom: var(--space-12);
+  margin-bottom: clamp(56px, 8vw, 80px);
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 clamp(16px, 3vw, 32px);
 }
 
 .garden__lead {
-  font-size: var(--text-xl);
-  color: var(--color-text-primary);
-  margin: 0 0 var(--space-4) 0;
-  line-height: var(--leading-relaxed);
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+  color: var(--color-text-primary, #2c2520);
+  margin: 0 0 clamp(16px, 2vw, 24px) 0;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
 }
 
 .garden__lead em {
-  color: var(--color-sage);
+  color: var(--color-sage, #4a6741);
   font-style: normal;
   font-weight: 600;
 }
 
 .garden__text {
-  font-size: var(--text-base);
-  color: var(--color-text-secondary);
+  font-size: clamp(1rem, 1.5vw, 1.125rem);
+  color: var(--color-text-secondary, #6b5e54);
   margin: 0;
-  line-height: var(--leading-relaxed);
+  line-height: 1.7;
 }
 
 .garden__model {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: var(--space-8);
-  margin-bottom: var(--space-12);
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(24px, 4vw, 40px);
+  margin-bottom: clamp(64px, 10vw, 100px);
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (max-width: 900px) {
+  .garden__model {
+    grid-template-columns: 1fr;
+    max-width: 480px;
+    gap: clamp(20px, 4vw, 32px);
+  }
 }
 
 .garden__pillar {
   text-align: center;
-  padding: var(--space-6);
-  background: var(--color-bg-elevated);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border-subtle);
+  padding: clamp(40px, 6vw, 56px) clamp(32px, 5vw, 48px);
+  background: var(--color-bg-elevated, #fffdfb);
+  border-radius: 28px;
+  border: 1px solid rgba(44, 37, 32, 0.05);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.02),
+    0 12px 32px rgba(0, 0, 0, 0.05);
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.garden__pillar:hover {
+  transform: translateY(-6px);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.04),
+    0 20px 48px rgba(0, 0, 0, 0.1);
 }
 
 .garden__pillar-icon {
   width: 64px;
   height: 64px;
-  margin: 0 auto var(--space-4);
+  min-width: 64px;
+  min-height: 64px;
+  max-width: 64px;
+  max-height: 64px;
+  margin: 0 auto clamp(24px, 4vw, 32px);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--color-sage), var(--color-sage-dark, #3d5a35));
-  border-radius: var(--radius-full);
-  color: white;
+  background: linear-gradient(135deg, rgba(74, 103, 65, 0.12), rgba(74, 103, 65, 0.06));
+  border-radius: 18px;
+  color: var(--color-sage, #4a6741);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.garden__pillar-icon svg {
+  width: 30px;
+  height: 30px;
+  max-width: 30px;
+  max-height: 30px;
+  flex-shrink: 0;
 }
 
 .garden__pillar-title {
-  font-family: var(--font-display);
-  font-size: var(--text-lg);
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: clamp(1.25rem, 2vw, 1.375rem);
   font-weight: 600;
-  color: var(--color-text-primary);
-  margin: 0 0 var(--space-2) 0;
+  color: var(--color-text-primary, #2c2520);
+  margin: 0 0 clamp(14px, 2vw, 18px) 0;
+  letter-spacing: -0.015em;
 }
 
 .garden__pillar-desc {
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
+  font-size: clamp(0.95rem, 1.3vw, 1.0625rem);
+  color: var(--color-text-secondary, #6b5e54);
   margin: 0;
-  line-height: var(--leading-relaxed);
+  line-height: 1.65;
 }
 
 .garden__cta {
@@ -516,22 +583,33 @@ a.card:hover h3 {
 }
 
 .garden__promise {
-  font-size: var(--text-lg);
-  color: var(--color-text-primary);
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: clamp(1.25rem, 2.2vw, 1.5rem);
+  color: var(--color-text-primary, #2c2520);
   font-weight: 500;
-  margin: 0 0 var(--space-6) 0;
+  margin: 0 0 clamp(28px, 4vw, 40px) 0;
+  letter-spacing: -0.01em;
 }
 
 .btn--garden {
-  background: linear-gradient(135deg, var(--color-sage), var(--color-sage-dark, #3d5a35));
+  background: linear-gradient(135deg, var(--color-sage, #4a6741), var(--color-sage-dark, #3d5a35));
   color: white;
-  padding: var(--space-4) var(--space-8);
-  font-size: var(--text-base);
+  padding: clamp(16px, 2.5vw, 20px) clamp(36px, 5vw, 48px);
+  font-size: clamp(1rem, 1.3vw, 1.125rem);
   font-weight: 600;
-  border-radius: var(--radius-full);
+  border-radius: 100px;
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 12px;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  box-shadow: 0 6px 16px rgba(74, 103, 65, 0.3);
+}
+
+.btn--garden:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(74, 103, 65, 0.4);
   transition: all var(--duration-normal) var(--ease-out);
 }
 
@@ -548,4 +626,3 @@ a.card:hover h3 {
 .btn--garden:hover svg {
   transform: scale(1.1);
 }
-
