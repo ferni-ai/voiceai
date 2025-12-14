@@ -1,0 +1,57 @@
+/* 
+  Localizable.strings
+  Ferni iOS App - 日本語
+  
+  Copyright © 2024 Ferni AI. All rights reserved.
+*/
+
+/* App Identity */
+"app_name" = "Ferni";
+"app_tagline" = "あなたのAIライフコーチ";
+"app_description" = "ついに、本当に聴いてくれる存在。";
+
+/* Permission Rationales */
+"permission_microphone_title" = "マイクへのアクセス";
+"permission_microphone_rationale" = "Ferniは音声会話のためにマイクへのアクセスが必要です。";
+"permission_camera_title" = "カメラへのアクセス";
+"permission_camera_rationale" = "カメラへのアクセスにより、ビデオ通話やドキュメントのスキャンが可能になります。";
+"permission_bluetooth_title" = "Bluetoothへのアクセス";
+"permission_bluetooth_rationale" = "Bluetoothにより、Ferniはワイヤレスイヤホンと連携できます。";
+"permission_notifications_title" = "通知";
+"permission_notifications_rationale" = "通知を有効にして、Ferniからのチェックインとリマインダーを受け取りましょう。";
+
+/* Common Actions */
+"action_allow" = "許可";
+"action_deny" = "拒否";
+"action_cancel" = "キャンセル";
+"action_ok" = "OK";
+"action_settings" = "設定";
+"action_retry" = "再試行";
+"action_continue" = "続ける";
+
+/* Connection Status */
+"status_connecting" = "Ferniに接続中…";
+"status_connected" = "接続済み";
+"status_disconnected" = "切断";
+"status_reconnecting" = "再接続中…";
+"status_offline" = "オフラインです";
+
+/* Error Messages */
+"error_no_internet" = "インターネット接続がありません。接続を確認して再試行してください。";
+"error_connection_failed" = "接続できません。再試行してください。";
+"error_microphone_unavailable" = "マイクが利用できません。デバイスの設定を確認してください。";
+"error_permission_denied" = "権限が拒否されました。設定で有効にできます。";
+"error_generic" = "エラーが発生しました。再試行してください。";
+
+/* Notifications */
+"notification_channel_conversations" = "会話";
+"notification_channel_conversations_desc" = "アクティブな音声会話の通知";
+"notification_channel_reminders" = "リマインダー";
+"notification_channel_reminders_desc" = "Ferniからのチェックインとスケジュールされたリマインダー";
+"notification_active_call" = "音声会話中";
+"notification_tap_to_return" = "タップして会話に戻る";
+
+/* WebView Fallback */
+"no_webview_text" = "このアプリはWebViewが必要です";
+"webview_error_title" = "読み込めません";
+"webview_error_message" = "アプリの読み込み中に問題が発生しました。インターネット接続を確認してください。";

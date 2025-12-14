@@ -1,0 +1,15 @@
+/* 
+  InfoPlist.strings
+  Ferni iOS App - العربية
+  
+  Localizes Info.plist permission descriptions
+  Copyright © 2024 Ferni AI. All rights reserved.
+*/
+
+/* App Display Name */
+"CFBundleDisplayName" = "فيرني";
+"CFBundleName" = "فيرني";
+
+/* Privacy Permission Descriptions */
+"NSMicrophoneUsageDescription" = "يحتاج فيرني إلى الوصول إلى الميكروفون لإجراء محادثات صوتية معك.";
+"NSCameraUsageDescription" = "يتيح الوصول إلى الكاميرا إجراء محادثات الفيديو ومسح المستندات.";

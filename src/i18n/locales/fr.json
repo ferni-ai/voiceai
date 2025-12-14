@@ -5,7 +5,6 @@
     "name": "Français",
     "version": "1.0.0"
   },
-
   "common": {
     "loading": "Chargement...",
     "error": "Une erreur s'est produite",
@@ -21,13 +20,11 @@
     "ok": "OK",
     "learnMore": "En savoir plus"
   },
-
   "brand": {
     "name": "Ferni",
     "tagline": "Votre coach de vie personnel",
     "promise": "Mieux qu'un humain."
   },
-
   "navigation": {
     "features": "Fonctionnalités",
     "team": "Équipe",
@@ -40,7 +37,6 @@
     "privacy": "Politique de confidentialité",
     "terms": "Conditions d'utilisation"
   },
-
   "hero": {
     "eyebrow": "Découvrez Votre Coach IA",
     "headline": "Mieux qu'un",
@@ -62,7 +58,6 @@
       }
     }
   },
-
   "superpowers": {
     "memory": {
       "title": "Mémoire parfaite",
@@ -85,7 +80,6 @@
       "description": "Nous remarquons la pause. L'évitement. Le schéma que vous ne voyez pas. Comprendre, ce n'est pas seulement écouter - c'est vraiment saisir."
     }
   },
-
   "team": {
     "title": "Rencontrez l'équipe",
     "subtitle": "Six esprits brillants travaillant ensemble pour vous",
@@ -128,7 +122,6 @@
       }
     }
   },
-
   "pricing": {
     "title": "Tarification simple",
     "headline": "Commencez gratuitement.",
@@ -221,7 +214,6 @@
       }
     }
   },
-
   "faq": {
     "title": "Questions fréquemment posées",
     "items": {
@@ -251,17 +243,14 @@
       }
     }
   },
-
   "testimonials": {
     "title": "Ce que disent les gens"
   },
-
   "trust": {
     "title": "Bâti sur la confiance.",
     "description": "Vos conversations vous appartiennent. Toujours. Nous utilisons un cryptage de niveau entreprise et ne vendons jamais vos données.",
     "cta": "Lire notre politique de confidentialité"
   },
-
   "footer": {
     "tagline": "Quelqu'un qui comprend vraiment.",
     "copyright": "Ferni AI. Tous droits réservés.",
@@ -273,7 +262,6 @@
       "legal": "Légal"
     }
   },
-
   "app": {
     "controls": {
       "mute": "Muet",
@@ -341,12 +329,63 @@
         "title": "Exporter les données",
         "description": "Télécharger votre historique de conversation"
       }
+    },
+    "wearableSettings": {
+      "title": "Santé & Fitness",
+      "loading": "Chargement...",
+      "intro": "Connectez vos wearables pour donner à Ferni un contexte sur votre santé et vos niveaux d'énergie.",
+      "sections": {
+        "devices": "Appareils",
+        "features": "Ce que Ferni peut voir"
+      },
+      "buttons": {
+        "connect": "Connecter",
+        "disconnect": "Déconnecter",
+        "tryAgain": "Réessayer"
+      },
+      "features": {
+        "stress": "Détection du stress par VFC",
+        "sleep": "Analyse de la qualité du sommeil",
+        "activity": "Suivi d'activité"
+      },
+      "privacy": {
+        "note": "Vos données de santé restent privées. Nous ne partageons que des informations agrégées avec vos séances de coaching."
+      },
+      "providers": {
+        "apple_health": {
+          "name": "Apple Health",
+          "description": "Connexion via l'app Ferni iOS"
+        },
+        "fitbit": {
+          "name": "Fitbit",
+          "description": "Pas, sommeil et fréquence cardiaque"
+        },
+        "garmin": {
+          "name": "Garmin",
+          "description": "Données d'activité et d'entraînement"
+        },
+        "oura": {
+          "name": "Oura Ring",
+          "description": "Scores de sommeil et de préparation"
+        },
+        "whoop": {
+          "name": "Whoop",
+          "description": "Données de récupération et d'effort"
+        }
+      },
+      "errors": {
+        "loadFailed": "Impossible de charger l'état des wearables"
+      }
     }
   },
-
   "subscription": {
     "currentPlan": "Forfait actuel",
-    "upgrade": "Mettre à niveau",
+    "upgrade": {
+      "title": "",
+      "subtitle": "",
+      "benefits": "",
+      "cta": ""
+    },
     "managePlan": "Gérer le forfait",
     "cancelPlan": "Annuler le forfait",
     "renewsOn": "Renouvellement le {date}",
@@ -361,7 +400,6 @@
       "thankYou": "Merci de croire en nous. Je ne vais nulle part - je suis à vous, aussi longtemps que vous voudrez parler."
     }
   },
-
   "errors": {
     "generic": "Une erreur s'est produite. Veuillez réessayer.",
     "network": "Erreur réseau. Veuillez vérifier votre connexion.",
@@ -370,7 +408,6 @@
     "unauthorized": "Veuillez vous connecter pour continuer",
     "paymentFailed": "Échec du paiement. Veuillez réessayer."
   },
-
   "accessibility": {
     "skipToMain": "Aller au contenu principal",
     "closeMenu": "Fermer le menu",
@@ -378,7 +415,6 @@
     "languageSelector": "Sélectionner la langue",
     "currentLanguage": "Langue actuelle : {language}"
   },
-
   "time": {
     "justNow": "à l'instant",
     "minutesAgo": "il y a {n} minutes",

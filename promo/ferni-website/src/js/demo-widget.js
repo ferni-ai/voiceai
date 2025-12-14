@@ -15,6 +15,7 @@
   // Configuration
   const CONFIG = {
     tokenEndpoint: 'https://app.ferni.ai/demo-token',
+    statusEndpoint: 'https://app.ferni.ai/demo-status',
     livekitUrl: null, // Will be set from token response
     containerId: 'ferni-demo-widget',
     upgradeUrl: 'https://app.ferni.ai',
@@ -31,6 +32,9 @@
     sessionTimeRemaining: 0,
     timerInterval: null,
     error: null,
+    // Proactive status (checked before connecting)
+    demoStatus: null,
+    cooldownInterval: null,
   };
 
   // ============================================================================
@@ -424,17 +428,57 @@
       gap: 10px;
     }
     
-    /* Error State */
-    .ferni-demo-error {
+    /* Status/Info State - Warm, proactive messaging */
+    .ferni-demo-info {
       padding: var(--space-4, 16px);
-      background: var(--color-jordan-glow, rgba(196, 133, 106, 0.1));
+      background: var(--color-ferni-glow, rgba(74, 103, 65, 0.08));
       border-radius: var(--radius-md, 12px);
       text-align: center;
+      border: 1px solid rgba(74, 103, 65, 0.15);
+    }
+    
+    .ferni-demo-info-icon {
+      font-size: 24px;
+      margin-bottom: var(--space-2, 8px);
+    }
+    
+    .ferni-demo-info-title {
+      font-weight: 600;
+      color: var(--color-ferni, #4a6741);
+      margin: 0 0 var(--space-2, 8px);
+      font-size: var(--text-base, 16px);
+    }
+    
+    .ferni-demo-info-message {
+      font-size: var(--text-sm, 14px);
+      color: var(--color-text-secondary, #5a4f4a);
+      margin: 0;
+      line-height: 1.5;
+    }
+    
+    .ferni-demo-info .ferni-demo-countdown {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      color: var(--color-ferni, #4a6741);
+    }
+    
+    /* Error State - Still warm, not alarming */
+    .ferni-demo-error {
+      padding: var(--space-4, 16px);
+      background: rgba(196, 133, 106, 0.08);
+      border-radius: var(--radius-md, 12px);
+      text-align: center;
+      border: 1px solid rgba(196, 133, 106, 0.15);
+    }
+    
+    .ferni-demo-error-icon {
+      font-size: 24px;
+      margin-bottom: var(--space-2, 8px);
     }
     
     .ferni-demo-error-title {
       font-weight: 600;
-      color: var(--color-jordan, #a86d55);
+      color: #8a6355;
       margin: 0 0 var(--space-2, 8px);
     }
     
@@ -442,6 +486,40 @@
       font-size: var(--text-sm, 14px);
       color: var(--color-text-muted, #70605a);
       margin: 0;
+      line-height: 1.5;
+    }
+    
+    /* Sessions remaining badge on trigger */
+    .ferni-demo-badge {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 6px;
+      background: white;
+      color: var(--color-ferni, #4a6741);
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .ferni-demo-badge.last {
+      background: rgba(196, 133, 106, 0.9);
+      color: white;
+    }
+    
+    .ferni-demo-badge.none {
+      background: rgba(112, 96, 90, 0.9);
+      color: white;
+    }
+    
+    .ferni-demo-trigger {
+      position: relative; /* For badge positioning */
     }
     
     /* Loading spinner */
@@ -521,8 +599,17 @@
             
             <p class="ferni-demo-status">Click the button below to start</p>
             
+            <!-- Proactive info box - shows before any action -->
+            <div class="ferni-demo-info" style="display: none;">
+              <div class="ferni-demo-info-icon">💚</div>
+              <p class="ferni-demo-info-title"></p>
+              <p class="ferni-demo-info-message"></p>
+            </div>
+            
+            <!-- Error box - warm, not alarming -->
             <div class="ferni-demo-error" style="display: none;">
-              <p class="ferni-demo-error-title">Oops!</p>
+              <div class="ferni-demo-error-icon">🌱</div>
+              <p class="ferni-demo-error-title"></p>
               <p class="ferni-demo-error-message"></p>
             </div>
             
@@ -553,7 +640,7 @@
   // ============================================================================
   
   let container, trigger, overlay, modal;
-  let statusEl, actionBtn, timerEl, waveformEl, avatarOrb, errorEl;
+  let statusEl, actionBtn, timerEl, waveformEl, avatarOrb, errorEl, infoEl;
   
   function injectStyles() {
     if (document.getElementById('ferni-demo-styles')) return;
@@ -584,6 +671,7 @@
     waveformEl = container.querySelector('.ferni-demo-waveform');
     avatarOrb = container.querySelector('.ferni-demo-avatar-orb');
     errorEl = container.querySelector('.ferni-demo-error');
+    infoEl = container.querySelector('.ferni-demo-info');
     
     // Event listeners
     trigger.addEventListener('click', openModal);
@@ -597,7 +685,7 @@
     });
   }
   
-  function openModal() {
+  async function openModal() {
     state.isOpen = true;
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
@@ -605,6 +693,162 @@
     // Track event
     if (window.FerniExperiments) {
       window.FerniExperiments.trackConversionForAll('demo_modal_opened');
+    }
+    
+    // Proactively check demo status (don't block UI)
+    checkDemoStatus();
+  }
+  
+  /**
+   * Check demo status proactively - shows warm messaging before user hits a wall
+   */
+  async function checkDemoStatus() {
+    try {
+      const response = await fetch(CONFIG.statusEndpoint);
+      if (response.ok) {
+        state.demoStatus = await response.json();
+        updateProactiveUI();
+      }
+    } catch (err) {
+      // Don't show error - just proceed without proactive info
+      console.log('Could not check demo status:', err.message);
+    }
+  }
+  
+  /**
+   * Update UI based on proactive status check
+   */
+  function updateProactiveUI() {
+    const status = state.demoStatus;
+    if (!status) return;
+    
+    const infoEl = container.querySelector('.ferni-demo-info');
+    const infoTitle = infoEl.querySelector('.ferni-demo-info-title');
+    const infoMessage = infoEl.querySelector('.ferni-demo-info-message');
+    
+    // Clear any existing cooldown countdown
+    if (state.cooldownInterval) {
+      clearInterval(state.cooldownInterval);
+      state.cooldownInterval = null;
+    }
+    
+    // Case 1: In cooldown - show warm countdown
+    if (status.inCooldown && status.cooldownRemaining > 0) {
+      infoEl.style.display = 'block';
+      infoTitle.textContent = "I'll be right with you";
+      startCooldownCountdown(status.cooldownRemaining);
+      actionBtn.disabled = true;
+      actionBtn.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12,6 12,12 16,14"/>
+        </svg>
+        Just a moment...
+      `;
+      return;
+    }
+    
+    // Case 2: No sessions left - warm invitation to create account
+    if (status.sessionsRemaining === 0) {
+      infoEl.style.display = 'block';
+      infoEl.querySelector('.ferni-demo-info-icon').textContent = '🌱';
+      infoTitle.textContent = "Let's keep this going";
+      infoMessage.innerHTML = `You've used your free chats for today—and I loved talking with you!<br><br>Create a free account and we can keep chatting anytime.`;
+      actionBtn.disabled = true;
+      actionBtn.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        Create Free Account
+      `;
+      actionBtn.onclick = () => window.location.href = CONFIG.upgradeUrl;
+      return;
+    }
+    
+    // Case 3: Last session - gentle heads up
+    if (status.sessionsRemaining === 1) {
+      infoEl.style.display = 'block';
+      infoEl.querySelector('.ferni-demo-info-icon').textContent = '💚';
+      infoTitle.textContent = 'Your last free chat today';
+      infoMessage.textContent = "Make it count! Or create a free account for unlimited conversations.";
+      // Still allow starting
+      actionBtn.disabled = false;
+    }
+    
+    // Case 4: Sessions available - maybe show count if low
+    else if (status.sessionsRemaining <= 2) {
+      infoEl.style.display = 'block';
+      infoEl.querySelector('.ferni-demo-info-icon').textContent = '💚';
+      infoTitle.textContent = `${status.sessionsRemaining} free chats left today`;
+      infoMessage.textContent = "Each one is a 3-minute window into real connection.";
+      actionBtn.disabled = false;
+    }
+    
+    // Update badge on trigger button
+    updateTriggerBadge(status.sessionsRemaining);
+  }
+  
+  /**
+   * Start a live countdown for cooldown period
+   */
+  function startCooldownCountdown(seconds) {
+    let remaining = seconds;
+    const infoMessage = container.querySelector('.ferni-demo-info-message');
+    
+    const updateCountdown = () => {
+      const mins = Math.floor(remaining / 60);
+      const secs = remaining % 60;
+      const timeStr = mins > 0 
+        ? `${mins}:${secs.toString().padStart(2, '0')}`
+        : `${secs}s`;
+      
+      infoMessage.innerHTML = `Taking a quick breather between conversations.<br>Ready again in <span class="ferni-demo-countdown">${timeStr}</span>`;
+      
+      if (remaining <= 0) {
+        clearInterval(state.cooldownInterval);
+        state.cooldownInterval = null;
+        // Re-check status
+        checkDemoStatus();
+        // Re-enable button
+        actionBtn.disabled = false;
+        actionBtn.innerHTML = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          </svg>
+          Start Talking
+        `;
+      }
+      remaining--;
+    };
+    
+    updateCountdown();
+    state.cooldownInterval = setInterval(updateCountdown, 1000);
+  }
+  
+  /**
+   * Update the trigger button badge showing sessions remaining
+   */
+  function updateTriggerBadge(sessionsRemaining) {
+    // Remove existing badge
+    const existingBadge = trigger.querySelector('.ferni-demo-badge');
+    if (existingBadge) existingBadge.remove();
+    
+    // Add badge if sessions are limited
+    if (sessionsRemaining <= 2) {
+      const badge = document.createElement('span');
+      badge.className = 'ferni-demo-badge';
+      if (sessionsRemaining === 0) {
+        badge.classList.add('none');
+        badge.textContent = '0';
+      } else if (sessionsRemaining === 1) {
+        badge.classList.add('last');
+        badge.textContent = '1';
+      } else {
+        badge.textContent = sessionsRemaining;
+      }
+      trigger.appendChild(badge);
     }
   }
   
@@ -616,6 +860,12 @@
     // Disconnect if connected
     if (state.isConnected) {
       disconnectSession();
+    }
+    
+    // Clear cooldown countdown
+    if (state.cooldownInterval) {
+      clearInterval(state.cooldownInterval);
+      state.cooldownInterval = null;
     }
   }
   
@@ -695,7 +945,18 @@
     } catch (error) {
       console.error('Demo session error:', error);
       state.isConnecting = false;
-      state.error = error.message;
+      
+      // Parse error for brand-aligned messaging
+      const errorMsg = error.message || 'Something unexpected happened';
+      
+      // Check if it's a rate limit error (429)
+      if (errorMsg.includes('wait') || errorMsg.includes('sessions') || errorMsg.includes('limit')) {
+        // Re-check status to get accurate cooldown info
+        await checkDemoStatus();
+      } else {
+        state.error = errorMsg;
+      }
+      
       updateUI();
     }
   }
@@ -776,10 +1037,28 @@
   }
   
   function updateUI() {
-    // Error state
+    const infoEl = container.querySelector('.ferni-demo-info');
+    
+    // Error state - warm, not alarming
     if (state.error) {
       errorEl.style.display = 'block';
-      errorEl.querySelector('.ferni-demo-error-message').textContent = state.error;
+      infoEl.style.display = 'none';
+      
+      // Brand-voice error messages
+      const errorTitle = errorEl.querySelector('.ferni-demo-error-title');
+      const errorMessage = errorEl.querySelector('.ferni-demo-error-message');
+      
+      if (state.error.includes('microphone') || state.error.includes('permission')) {
+        errorTitle.textContent = "I can't hear you yet";
+        errorMessage.textContent = "Please allow microphone access so we can talk. I promise I'm a good listener.";
+      } else if (state.error.includes('network') || state.error.includes('connect')) {
+        errorTitle.textContent = "Lost you for a second";
+        errorMessage.textContent = "Check your internet connection and let's try again. I'll be right here.";
+      } else {
+        errorTitle.textContent = "Let's try that again";
+        errorMessage.textContent = state.error;
+      }
+      
       actionBtn.innerHTML = `
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
@@ -788,6 +1067,7 @@
       `;
       actionBtn.disabled = false;
       actionBtn.classList.remove('end');
+      actionBtn.onclick = handleActionClick; // Reset handler
       statusEl.textContent = '';
       timerEl.style.display = 'none';
       waveformEl.classList.remove('active');
@@ -838,9 +1118,15 @@
     `;
     actionBtn.disabled = false;
     actionBtn.classList.remove('end');
+    actionBtn.onclick = handleActionClick; // Reset handler
     timerEl.style.display = 'none';
     waveformEl.classList.remove('active');
     avatarOrb.classList.remove('listening', 'speaking');
+    
+    // Re-check status to show proactive info if needed
+    if (state.demoStatus) {
+      updateProactiveUI();
+    }
   }
   
   // ============================================================================
@@ -851,6 +1137,13 @@
     injectStyles();
     createDOM();
     console.log('🎯 Ferni Demo Widget loaded');
+    
+    // Proactively check status on load to show badge if limited
+    checkDemoStatus().then(() => {
+      if (state.demoStatus) {
+        updateTriggerBadge(state.demoStatus.sessionsRemaining);
+      }
+    });
   }
   
   // Start when DOM is ready

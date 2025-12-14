@@ -1,0 +1,57 @@
+/* 
+  Localizable.strings
+  Ferni iOS App - Deutsch
+  
+  Copyright © 2024 Ferni AI. All rights reserved.
+*/
+
+/* App Identity */
+"app_name" = "Ferni";
+"app_tagline" = "Dein KI-Lebenscoach";
+"app_description" = "Endlich jemand, der wirklich zuhört.";
+
+/* Permission Rationales */
+"permission_microphone_title" = "Mikrofonzugriff";
+"permission_microphone_rationale" = "Ferni benötigt Mikrofonzugriff für Sprachunterhaltungen mit dir.";
+"permission_camera_title" = "Kamerazugriff";
+"permission_camera_rationale" = "Der Kamerazugriff ermöglicht Videogespräche und das Scannen von Dokumenten.";
+"permission_bluetooth_title" = "Bluetooth-Zugriff";
+"permission_bluetooth_rationale" = "Bluetooth ermöglicht Ferni die Nutzung deiner kabellosen Kopfhörer und Ohrhörer.";
+"permission_notifications_title" = "Benachrichtigungen";
+"permission_notifications_rationale" = "Aktiviere Benachrichtigungen, um Check-ins und Erinnerungen von Ferni zu erhalten.";
+
+/* Common Actions */
+"action_allow" = "Erlauben";
+"action_deny" = "Ablehnen";
+"action_cancel" = "Abbrechen";
+"action_ok" = "OK";
+"action_settings" = "Einstellungen";
+"action_retry" = "Erneut versuchen";
+"action_continue" = "Fortfahren";
+
+/* Connection Status */
+"status_connecting" = "Verbindung zu Ferni wird hergestellt…";
+"status_connected" = "Verbunden";
+"status_disconnected" = "Getrennt";
+"status_reconnecting" = "Verbindung wird wiederhergestellt…";
+"status_offline" = "Du bist offline";
+
+/* Error Messages */
+"error_no_internet" = "Keine Internetverbindung. Bitte überprüfe deine Verbindung und versuche es erneut.";
+"error_connection_failed" = "Verbindung fehlgeschlagen. Bitte versuche es erneut.";
+"error_microphone_unavailable" = "Mikrofon nicht verfügbar. Bitte überprüfe deine Geräteeinstellungen.";
+"error_permission_denied" = "Berechtigung verweigert. Du kannst sie in den Einstellungen aktivieren.";
+"error_generic" = "Etwas ist schiefgelaufen. Bitte versuche es erneut.";
+
+/* Notifications */
+"notification_channel_conversations" = "Unterhaltungen";
+"notification_channel_conversations_desc" = "Benachrichtigungen für aktive Sprachunterhaltungen";
+"notification_channel_reminders" = "Erinnerungen";
+"notification_channel_reminders_desc" = "Check-ins und geplante Erinnerungen von Ferni";
+"notification_active_call" = "Sprachunterhaltung läuft";
+"notification_tap_to_return" = "Tippen, um zur Unterhaltung zurückzukehren";
+
+/* WebView Fallback */
+"no_webview_text" = "Diese App benötigt WebView";
+"webview_error_title" = "Laden fehlgeschlagen";
+"webview_error_message" = "Beim Laden der App ist ein Problem aufgetreten. Bitte überprüfe deine Internetverbindung.";

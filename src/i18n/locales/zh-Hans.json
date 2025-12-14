@@ -5,7 +5,6 @@
     "name": "简体中文",
     "version": "1.0.0"
   },
-
   "common": {
     "loading": "加载中...",
     "error": "出错了",
@@ -21,13 +20,11 @@
     "ok": "确定",
     "learnMore": "了解更多"
   },
-
   "brand": {
     "name": "Ferni",
     "tagline": "您的私人AI生活教练",
     "promise": "超越人类。"
   },
-
   "navigation": {
     "features": "功能",
     "team": "团队",
@@ -40,7 +37,6 @@
     "privacy": "隐私政策",
     "terms": "服务条款"
   },
-
   "hero": {
     "eyebrow": "认识您的AI教练",
     "headline": "超越",
@@ -62,7 +58,6 @@
       }
     }
   },
-
   "superpowers": {
     "memory": {
       "title": "完美记忆",
@@ -85,7 +80,6 @@
       "description": "我们注意到停顿。回避。你看不到的模式。理解不仅仅是倾听——是真正懂得。"
     }
   },
-
   "team": {
     "title": "认识团队",
     "subtitle": "六位杰出人才为您协作",
@@ -128,7 +122,6 @@
       }
     }
   },
-
   "pricing": {
     "title": "简单定价",
     "headline": "免费开始。",
@@ -147,12 +140,7 @@
         "price": "¥0",
         "period": "永久",
         "description": "了解Ferni",
-        "features": [
-          "每月5次对话",
-          "与Ferni（生活教练）聊天",
-          "网页和电话访问",
-          "基础对话记忆"
-        ]
+        "features": ["每月5次对话", "与Ferni（生活教练）聊天", "网页和电话访问", "基础对话记忆"]
       },
       "friend": {
         "name": "朋友",
@@ -221,7 +209,6 @@
       }
     }
   },
-
   "faq": {
     "title": "常见问题",
     "items": {
@@ -251,17 +238,14 @@
       }
     }
   },
-
   "testimonials": {
     "title": "用户评价"
   },
-
   "trust": {
     "title": "建立在信任之上。",
     "description": "您的对话属于您。始终如此。我们使用企业级加密，从不出售您的数据。",
     "cta": "阅读隐私政策"
   },
-
   "footer": {
     "tagline": "真正理解你的人。",
     "copyright": "Ferni AI. 保留所有权利。",
@@ -273,7 +257,6 @@
       "legal": "法律"
     }
   },
-
   "app": {
     "controls": {
       "mute": "静音",
@@ -341,12 +324,63 @@
         "title": "导出数据",
         "description": "下载您的对话历史"
       }
+    },
+    "wearableSettings": {
+      "title": "健康与健身",
+      "loading": "加载中...",
+      "intro": "连接您的可穿戴设备，让Ferni了解您的健康和能量水平。",
+      "sections": {
+        "devices": "设备",
+        "features": "Ferni可以看到什么"
+      },
+      "buttons": {
+        "connect": "连接",
+        "disconnect": "断开",
+        "tryAgain": "重试"
+      },
+      "features": {
+        "stress": "通过HRV检测压力",
+        "sleep": "睡眠质量分析",
+        "activity": "活动追踪"
+      },
+      "privacy": {
+        "note": "您的健康数据保持私密。我们仅与您的教练课程分享汇总信息。"
+      },
+      "providers": {
+        "apple_health": {
+          "name": "Apple Health",
+          "description": "通过Ferni iOS应用连接"
+        },
+        "fitbit": {
+          "name": "Fitbit",
+          "description": "步数、睡眠和心率"
+        },
+        "garmin": {
+          "name": "Garmin",
+          "description": "活动和训练数据"
+        },
+        "oura": {
+          "name": "Oura Ring",
+          "description": "睡眠和准备度评分"
+        },
+        "whoop": {
+          "name": "Whoop",
+          "description": "恢复和负荷数据"
+        }
+      },
+      "errors": {
+        "loadFailed": "无法加载可穿戴设备状态"
+      }
     }
   },
-
   "subscription": {
     "currentPlan": "当前方案",
-    "upgrade": "升级",
+    "upgrade": {
+      "title": "",
+      "subtitle": "",
+      "benefits": "",
+      "cta": ""
+    },
     "managePlan": "管理方案",
     "cancelPlan": "取消方案",
     "renewsOn": "{date}续订",
@@ -361,7 +395,6 @@
       "thankYou": "感谢你信任我们。我哪里都不去——只要你想聊，我都在。"
     }
   },
-
   "errors": {
     "generic": "出错了。请重试。",
     "network": "网络错误。请检查连接。",
@@ -370,7 +403,6 @@
     "unauthorized": "请登录以继续",
     "paymentFailed": "支付失败。请重试。"
   },
-
   "accessibility": {
     "skipToMain": "跳转到主要内容",
     "closeMenu": "关闭菜单",
@@ -378,7 +410,6 @@
     "languageSelector": "选择语言",
     "currentLanguage": "当前语言：{language}"
   },
-
   "time": {
     "justNow": "刚刚",
     "minutesAgo": "{n}分钟前",

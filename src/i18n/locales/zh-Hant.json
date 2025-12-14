@@ -5,7 +5,6 @@
     "name": "繁體中文",
     "version": "1.0.0"
   },
-
   "common": {
     "loading": "載入中...",
     "error": "發生錯誤",
@@ -21,13 +20,11 @@
     "ok": "確定",
     "learnMore": "瞭解更多"
   },
-
   "brand": {
     "name": "Ferni",
     "tagline": "您的私人AI生活教練",
     "promise": "超越人類。"
   },
-
   "navigation": {
     "features": "功能",
     "team": "團隊",
@@ -40,7 +37,6 @@
     "privacy": "隱私權政策",
     "terms": "服務條款"
   },
-
   "hero": {
     "eyebrow": "認識您的AI教練",
     "headline": "超越",
@@ -62,7 +58,6 @@
       }
     }
   },
-
   "superpowers": {
     "memory": {
       "title": "完美記憶",
@@ -85,7 +80,6 @@
       "description": "我們注意到停頓。迴避。你看不到的模式。理解不僅僅是傾聽——是真正懂得。"
     }
   },
-
   "team": {
     "title": "認識團隊",
     "subtitle": "六位傑出人才為您協作",
@@ -128,7 +122,6 @@
       }
     }
   },
-
   "pricing": {
     "title": "簡單定價",
     "headline": "免費開始。",
@@ -147,12 +140,7 @@
         "price": "NT$0",
         "period": "永久",
         "description": "瞭解Ferni",
-        "features": [
-          "每月5次對話",
-          "與Ferni（生活教練）聊天",
-          "網頁和電話存取",
-          "基礎對話記憶"
-        ]
+        "features": ["每月5次對話", "與Ferni（生活教練）聊天", "網頁和電話存取", "基礎對話記憶"]
       },
       "friend": {
         "name": "朋友",
@@ -221,7 +209,6 @@
       }
     }
   },
-
   "faq": {
     "title": "常見問題",
     "items": {
@@ -251,17 +238,14 @@
       }
     }
   },
-
   "testimonials": {
     "title": "使用者評價"
   },
-
   "trust": {
     "title": "建立在信任之上。",
     "description": "您的對話屬於您。始終如此。我們使用企業級加密，從不出售您的資料。",
     "cta": "閱讀隱私權政策"
   },
-
   "footer": {
     "tagline": "真正理解你的人。",
     "copyright": "Ferni AI. 保留所有權利。",
@@ -273,7 +257,6 @@
       "legal": "法律"
     }
   },
-
   "app": {
     "controls": {
       "mute": "靜音",
@@ -341,12 +324,63 @@
         "title": "匯出資料",
         "description": "下載您的對話紀錄"
       }
+    },
+    "wearableSettings": {
+      "title": "健康與健身",
+      "loading": "載入中...",
+      "intro": "連接您的穿戴式裝置，讓Ferni了解您的健康和能量水平。",
+      "sections": {
+        "devices": "裝置",
+        "features": "Ferni可以看到什麼"
+      },
+      "buttons": {
+        "connect": "連接",
+        "disconnect": "斷開",
+        "tryAgain": "重試"
+      },
+      "features": {
+        "stress": "透過HRV偵測壓力",
+        "sleep": "睡眠品質分析",
+        "activity": "活動追蹤"
+      },
+      "privacy": {
+        "note": "您的健康資料保持私密。我們僅與您的教練課程分享彙總資訊。"
+      },
+      "providers": {
+        "apple_health": {
+          "name": "Apple Health",
+          "description": "透過Ferni iOS應用程式連接"
+        },
+        "fitbit": {
+          "name": "Fitbit",
+          "description": "步數、睡眠和心率"
+        },
+        "garmin": {
+          "name": "Garmin",
+          "description": "活動和訓練資料"
+        },
+        "oura": {
+          "name": "Oura Ring",
+          "description": "睡眠和準備度評分"
+        },
+        "whoop": {
+          "name": "Whoop",
+          "description": "恢復和負荷資料"
+        }
+      },
+      "errors": {
+        "loadFailed": "無法載入穿戴式裝置狀態"
+      }
     }
   },
-
   "subscription": {
     "currentPlan": "目前方案",
-    "upgrade": "升級",
+    "upgrade": {
+      "title": "",
+      "subtitle": "",
+      "benefits": "",
+      "cta": ""
+    },
     "managePlan": "管理方案",
     "cancelPlan": "取消方案",
     "renewsOn": "{date}續訂",
@@ -361,7 +395,6 @@
       "thankYou": "感謝你信任我們。我哪裡都不去——只要你想聊，我都在。"
     }
   },
-
   "errors": {
     "generic": "發生錯誤。請重試。",
     "network": "網路錯誤。請檢查連線。",
@@ -370,7 +403,6 @@
     "unauthorized": "請登入以繼續",
     "paymentFailed": "付款失敗。請重試。"
   },
-
   "accessibility": {
     "skipToMain": "跳至主要內容",
     "closeMenu": "關閉選單",
@@ -378,7 +410,6 @@
     "languageSelector": "選擇語言",
     "currentLanguage": "目前語言：{language}"
   },
-
   "time": {
     "justNow": "剛剛",
     "minutesAgo": "{n}分鐘前",

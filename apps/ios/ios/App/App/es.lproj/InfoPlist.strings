@@ -1,0 +1,15 @@
+/* 
+  InfoPlist.strings
+  Ferni iOS App - Español
+  
+  Localizes Info.plist permission descriptions
+  Copyright © 2024 Ferni AI. All rights reserved.
+*/
+
+/* App Display Name */
+"CFBundleDisplayName" = "Ferni";
+"CFBundleName" = "Ferni";
+
+/* Privacy Permission Descriptions */
+"NSMicrophoneUsageDescription" = "Ferni necesita acceso al micrófono para tener conversaciones de voz contigo.";
+"NSCameraUsageDescription" = "El acceso a la cámara permite conversaciones de video y escaneo de documentos.";

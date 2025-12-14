@@ -5,7 +5,6 @@
     "name": "English (UK)",
     "version": "1.0.0"
   },
-
   "common": {
     "loading": "Loading...",
     "error": "Something went wrong",
@@ -21,13 +20,11 @@
     "ok": "OK",
     "learnMore": "Learn more"
   },
-
   "brand": {
     "name": "Ferni",
     "tagline": "Your personal AI life coach",
     "promise": "Better than human."
   },
-
   "navigation": {
     "features": "Features",
     "team": "Team",
@@ -40,7 +37,6 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Service"
   },
-
   "hero": {
     "eyebrow": "Meet Your AI Coach",
     "headline": "Better than",
@@ -62,7 +58,6 @@
       }
     }
   },
-
   "superpowers": {
     "memory": {
       "title": "Perfect Memory",
@@ -85,7 +80,6 @@
       "description": "We notice the pause. The deflection. The pattern you can't see. Understanding isn't just listening—it's truly getting it."
     }
   },
-
   "team": {
     "title": "Meet the Team",
     "subtitle": "Six brilliant minds working together for you",
@@ -128,7 +122,6 @@
       }
     }
   },
-
   "pricing": {
     "title": "Simple Pricing",
     "headline": "Start free.",
@@ -221,7 +214,6 @@
       }
     }
   },
-
   "faq": {
     "title": "Frequently Asked Questions",
     "items": {
@@ -251,17 +243,14 @@
       }
     }
   },
-
   "testimonials": {
     "title": "What People Say"
   },
-
   "trust": {
     "title": "Built on trust.",
     "description": "Your conversations are yours. Always. We use enterprise-grade encryption and never sell your data.",
     "cta": "Read our Privacy Policy"
   },
-
   "footer": {
     "tagline": "Someone who actually understands.",
     "copyright": "Ferni AI. All rights reserved.",
@@ -273,7 +262,6 @@
       "legal": "Legal"
     }
   },
-
   "app": {
     "controls": {
       "mute": "Mute",
@@ -341,12 +329,63 @@
         "title": "Export Data",
         "description": "Download your conversation history"
       }
+    },
+    "wearableSettings": {
+      "title": "Health & Fitness",
+      "loading": "Loading...",
+      "intro": "Connect your wearables to give Ferni context about your health and energy levels.",
+      "sections": {
+        "devices": "Devices",
+        "features": "What Ferni can see"
+      },
+      "buttons": {
+        "connect": "Connect",
+        "disconnect": "Disconnect",
+        "tryAgain": "Try Again"
+      },
+      "features": {
+        "stress": "Stress detection from HRV",
+        "sleep": "Sleep quality analysis",
+        "activity": "Activity tracking"
+      },
+      "privacy": {
+        "note": "Your health data stays private. We only share aggregated insights with your coaching sessions."
+      },
+      "providers": {
+        "apple_health": {
+          "name": "Apple Health",
+          "description": "Connect via the Ferni iOS app"
+        },
+        "fitbit": {
+          "name": "Fitbit",
+          "description": "Steps, sleep, and heart rate"
+        },
+        "garmin": {
+          "name": "Garmin",
+          "description": "Activity and training data"
+        },
+        "oura": {
+          "name": "Oura Ring",
+          "description": "Sleep and readiness scores"
+        },
+        "whoop": {
+          "name": "Whoop",
+          "description": "Recovery and strain data"
+        }
+      },
+      "errors": {
+        "loadFailed": "Unable to load wearable status"
+      }
     }
   },
-
   "subscription": {
     "currentPlan": "Current Plan",
-    "upgrade": "Upgrade",
+    "upgrade": {
+      "title": "",
+      "subtitle": "",
+      "benefits": "",
+      "cta": ""
+    },
     "managePlan": "Manage Plan",
     "cancelPlan": "Cancel Plan",
     "renewsOn": "Renews on {date}",
@@ -361,7 +400,6 @@
       "thankYou": "Thank you for believing in us. I'm not going anywhere - I'm yours, for as long as you want to talk."
     }
   },
-
   "errors": {
     "generic": "Something went wrong. Please try again.",
     "network": "Network error. Please check your connection.",
@@ -370,7 +408,6 @@
     "unauthorized": "Please sign in to continue",
     "paymentFailed": "Payment failed. Please try again."
   },
-
   "accessibility": {
     "skipToMain": "Skip to main content",
     "closeMenu": "Close menu",
@@ -378,7 +415,6 @@
     "languageSelector": "Select language",
     "currentLanguage": "Current language: {language}"
   },
-
   "time": {
     "justNow": "just now",
     "minutesAgo": "{n} minutes ago",

@@ -5,7 +5,6 @@
     "name": "Español",
     "version": "1.0.0"
   },
-
   "common": {
     "loading": "Cargando...",
     "error": "Algo salió mal",
@@ -21,13 +20,11 @@
     "ok": "Aceptar",
     "learnMore": "Más información"
   },
-
   "brand": {
     "name": "Ferni",
     "tagline": "Tu coach de vida personal con IA",
     "promise": "Mejor que humano."
   },
-
   "navigation": {
     "features": "Características",
     "team": "Equipo",
@@ -40,7 +37,6 @@
     "privacy": "Política de privacidad",
     "terms": "Términos de servicio"
   },
-
   "hero": {
     "eyebrow": "Conoce a tu Coach de IA",
     "headline": "Mejor que",
@@ -62,7 +58,6 @@
       }
     }
   },
-
   "superpowers": {
     "memory": {
       "title": "Memoria Perfecta",
@@ -85,7 +80,6 @@
       "description": "Notamos la pausa. La evasión. El patrón que no puedes ver. Comprender no es solo escuchar—es realmente entender."
     }
   },
-
   "team": {
     "title": "Conoce al Equipo",
     "subtitle": "Seis mentes brillantes trabajando juntas para ti",
@@ -128,7 +122,6 @@
       }
     }
   },
-
   "pricing": {
     "title": "Precios Simples",
     "headline": "Empieza gratis.",
@@ -221,7 +214,6 @@
       }
     }
   },
-
   "faq": {
     "title": "Preguntas Frecuentes",
     "items": {
@@ -251,17 +243,14 @@
       }
     }
   },
-
   "testimonials": {
     "title": "Lo que dice la gente"
   },
-
   "trust": {
     "title": "Construido sobre confianza.",
     "description": "Tus conversaciones son tuyas. Siempre. Usamos encriptación de nivel empresarial y nunca vendemos tus datos.",
     "cta": "Lee nuestra Política de Privacidad"
   },
-
   "footer": {
     "tagline": "Alguien que realmente entiende.",
     "copyright": "Ferni AI. Todos los derechos reservados.",
@@ -273,7 +262,6 @@
       "legal": "Legal"
     }
   },
-
   "app": {
     "controls": {
       "mute": "Silenciar",
@@ -341,20 +329,57 @@
         "title": "Exportar Datos",
         "description": "Descarga tu historial de conversaciones"
       }
+    },
+    "wearableSettings": {
+      "title": "Salud y Bienestar",
+      "loading": "Cargando...",
+      "intro": "Conecta tus wearables para dar a Ferni contexto sobre tu salud y niveles de energía.",
+      "sections": {
+        "devices": "Dispositivos",
+        "features": "Lo que Ferni puede ver"
+      },
+      "buttons": {
+        "connect": "Conectar",
+        "disconnect": "Desconectar",
+        "tryAgain": "Intentar de nuevo"
+      },
+      "features": {
+        "stress": "Detección de estrés por VFC",
+        "sleep": "Análisis de calidad del sueño",
+        "activity": "Seguimiento de actividad"
+      },
+      "privacy": {
+        "note": "Tus datos de salud permanecen privados. Solo compartimos información agregada con tus sesiones de coaching."
+      },
+      "providers": {
+        "apple_health": {
+          "name": "Apple Health",
+          "description": "Conecta a través de la app de Ferni para iOS"
+        },
+        "fitbit": {
+          "name": "Fitbit",
+          "description": "Pasos, sueño y ritmo cardíaco"
+        },
+        "garmin": {
+          "name": "Garmin",
+          "description": "Datos de actividad y entrenamiento"
+        },
+        "oura": {
+          "name": "Oura Ring",
+          "description": "Puntuaciones de sueño y preparación"
+        },
+        "whoop": {
+          "name": "Whoop",
+          "description": "Datos de recuperación y esfuerzo"
+        }
+      },
+      "errors": {
+        "loadFailed": "No se pudo cargar el estado de los wearables"
+      }
     }
   },
-
   "subscription": {
     "currentPlan": "Plan Actual",
-    "upgrade": "Mejorar",
-    "managePlan": "Gestionar Plan",
-    "cancelPlan": "Cancelar Plan",
-    "renewsOn": "Se renueva el {date}",
-    "expiresOn": "Expira el {date}",
-    "usage": {
-      "conversations": "{used} de {total} conversaciones usadas",
-      "unlimited": "Conversaciones ilimitadas"
-    },
     "upgrade": {
       "title": "Mejora tu Experiencia",
       "subtitle": "Obtén conversaciones ilimitadas y acceso a todos los miembros del equipo",
@@ -366,13 +391,20 @@
       ],
       "cta": "Mejorar Ahora"
     },
+    "managePlan": "Gestionar Plan",
+    "cancelPlan": "Cancelar Plan",
+    "renewsOn": "Se renueva el {date}",
+    "expiresOn": "Expira el {date}",
+    "usage": {
+      "conversations": "{used} de {total} conversaciones usadas",
+      "unlimited": "Conversaciones ilimitadas"
+    },
     "messages": {
       "sessionApproaching": "He disfrutado mucho esta conversación. Nos quedan un par de minutos juntos - ¿hay algo más en tu mente?",
       "sessionEnded": "Me encantó esta conversación. Vuelve cuando quieras - recordaré todo. Si quieres conversaciones más largas, me encantaría.",
       "thankYou": "Gracias por creer en nosotros. No me voy a ningún lado - soy tuyo, mientras quieras hablar."
     }
   },
-
   "errors": {
     "generic": "Algo salió mal. Por favor intenta de nuevo.",
     "network": "Error de red. Por favor verifica tu conexión.",
@@ -381,7 +413,6 @@
     "unauthorized": "Por favor inicia sesión para continuar",
     "paymentFailed": "El pago falló. Por favor intenta de nuevo."
   },
-
   "accessibility": {
     "skipToMain": "Saltar al contenido principal",
     "closeMenu": "Cerrar menú",
@@ -389,7 +420,6 @@
     "languageSelector": "Seleccionar idioma",
     "currentLanguage": "Idioma actual: {language}"
   },
-
   "time": {
     "justNow": "ahora mismo",
     "minutesAgo": "hace {n} minutos",

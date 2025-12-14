@@ -5,7 +5,6 @@
     "name": "日本語",
     "version": "1.0.0"
   },
-
   "common": {
     "loading": "読み込み中...",
     "error": "エラーが発生しました",
@@ -21,13 +20,11 @@
     "ok": "OK",
     "learnMore": "詳しく見る"
   },
-
   "brand": {
     "name": "Ferni",
     "tagline": "あなた専属のAIライフコーチ",
     "promise": "人間を超える存在。"
   },
-
   "navigation": {
     "features": "機能",
     "team": "チーム",
@@ -40,7 +37,6 @@
     "privacy": "プライバシーポリシー",
     "terms": "利用規約"
   },
-
   "hero": {
     "eyebrow": "AIコーチとの出会い",
     "headline": "人間を",
@@ -62,7 +58,6 @@
       }
     }
   },
-
   "superpowers": {
     "memory": {
       "title": "完璧な記憶",
@@ -85,7 +80,6 @@
       "description": "間を感じます。話題を変えたことに気づきます。あなたが見えないパターンを見ます。理解とは、聞くだけではなく、本当に分かることです。"
     }
   },
-
   "team": {
     "title": "チーム紹介",
     "subtitle": "あなたのために働く6人の優秀なスペシャリスト",
@@ -128,7 +122,6 @@
       }
     }
   },
-
   "pricing": {
     "title": "シンプルな料金",
     "headline": "無料で始めよう。",
@@ -221,7 +214,6 @@
       }
     }
   },
-
   "faq": {
     "title": "よくある質問",
     "items": {
@@ -251,17 +243,14 @@
       }
     }
   },
-
   "testimonials": {
     "title": "ユーザーの声"
   },
-
   "trust": {
     "title": "信頼の上に構築。",
     "description": "会話はあなたのもの。常に。エンタープライズグレードの暗号化を使用し、データを販売することはありません。",
     "cta": "プライバシーポリシーを読む"
   },
-
   "footer": {
     "tagline": "本当に理解してくれる存在。",
     "copyright": "Ferni AI. All rights reserved.",
@@ -273,7 +262,6 @@
       "legal": "法的情報"
     }
   },
-
   "app": {
     "controls": {
       "mute": "ミュート",
@@ -341,12 +329,63 @@
         "title": "データエクスポート",
         "description": "会話履歴をダウンロード"
       }
+    },
+    "wearableSettings": {
+      "title": "健康とフィットネス",
+      "loading": "読み込み中...",
+      "intro": "ウェアラブルを接続して、Ferniにあなたの健康状態とエネルギーレベルを伝えましょう。",
+      "sections": {
+        "devices": "デバイス",
+        "features": "Ferniが見られるもの"
+      },
+      "buttons": {
+        "connect": "接続",
+        "disconnect": "切断",
+        "tryAgain": "再試行"
+      },
+      "features": {
+        "stress": "HRVによるストレス検出",
+        "sleep": "睡眠の質の分析",
+        "activity": "アクティビティ追跡"
+      },
+      "privacy": {
+        "note": "あなたの健康データはプライベートに保たれます。コーチングセッションでは集約された情報のみを共有します。"
+      },
+      "providers": {
+        "apple_health": {
+          "name": "Apple Health",
+          "description": "Ferni iOSアプリ経由で接続"
+        },
+        "fitbit": {
+          "name": "Fitbit",
+          "description": "歩数、睡眠、心拍数"
+        },
+        "garmin": {
+          "name": "Garmin",
+          "description": "アクティビティとトレーニングデータ"
+        },
+        "oura": {
+          "name": "Oura Ring",
+          "description": "睡眠と準備スコア"
+        },
+        "whoop": {
+          "name": "Whoop",
+          "description": "回復と負荷データ"
+        }
+      },
+      "errors": {
+        "loadFailed": "ウェアラブルの状態を読み込めません"
+      }
     }
   },
-
   "subscription": {
     "currentPlan": "現在のプラン",
-    "upgrade": "アップグレード",
+    "upgrade": {
+      "title": "",
+      "subtitle": "",
+      "benefits": "",
+      "cta": ""
+    },
     "managePlan": "プラン管理",
     "cancelPlan": "プラン解約",
     "renewsOn": "{date}に更新",
@@ -361,7 +400,6 @@
       "thankYou": "信じてくださりありがとうございます。私はどこにも行きません—話したい限り、あなたのそばにいます。"
     }
   },
-
   "errors": {
     "generic": "エラーが発生しました。もう一度お試しください。",
     "network": "ネットワークエラー。接続を確認してください。",
@@ -370,7 +408,6 @@
     "unauthorized": "続行するにはサインインしてください",
     "paymentFailed": "支払いに失敗しました。もう一度お試しください。"
   },
-
   "accessibility": {
     "skipToMain": "メインコンテンツにスキップ",
     "closeMenu": "メニューを閉じる",
@@ -378,7 +415,6 @@
     "languageSelector": "言語を選択",
     "currentLanguage": "現在の言語: {language}"
   },
-
   "time": {
     "justNow": "たった今",
     "minutesAgo": "{n}分前",

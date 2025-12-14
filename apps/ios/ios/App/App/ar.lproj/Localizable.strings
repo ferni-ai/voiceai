@@ -1,0 +1,57 @@
+/* 
+  Localizable.strings
+  Ferni iOS App - العربية
+  
+  Copyright © 2024 Ferni AI. All rights reserved.
+*/
+
+/* App Identity */
+"app_name" = "فيرني";
+"app_tagline" = "مدرب حياتك بالذكاء الاصطناعي";
+"app_description" = "أخيراً، شخص يستمع إليك حقاً.";
+
+/* Permission Rationales */
+"permission_microphone_title" = "الوصول إلى الميكروفون";
+"permission_microphone_rationale" = "يحتاج فيرني إلى الوصول إلى الميكروفون لإجراء محادثات صوتية معك.";
+"permission_camera_title" = "الوصول إلى الكاميرا";
+"permission_camera_rationale" = "يتيح الوصول إلى الكاميرا إجراء محادثات الفيديو ومسح المستندات.";
+"permission_bluetooth_title" = "الوصول إلى البلوتوث";
+"permission_bluetooth_rationale" = "يسمح البلوتوث لفيرني بالعمل مع سماعاتك اللاسلكية.";
+"permission_notifications_title" = "الإشعارات";
+"permission_notifications_rationale" = "فعّل الإشعارات لتلقي التذكيرات والمتابعات من فيرني.";
+
+/* Common Actions */
+"action_allow" = "السماح";
+"action_deny" = "رفض";
+"action_cancel" = "إلغاء";
+"action_ok" = "موافق";
+"action_settings" = "الإعدادات";
+"action_retry" = "إعادة المحاولة";
+"action_continue" = "متابعة";
+
+/* Connection Status */
+"status_connecting" = "جاري الاتصال بفيرني…";
+"status_connected" = "متصل";
+"status_disconnected" = "غير متصل";
+"status_reconnecting" = "جاري إعادة الاتصال…";
+"status_offline" = "أنت غير متصل بالإنترنت";
+
+/* Error Messages */
+"error_no_internet" = "لا يوجد اتصال بالإنترنت. يرجى التحقق من اتصالك والمحاولة مرة أخرى.";
+"error_connection_failed" = "تعذر الاتصال. يرجى المحاولة مرة أخرى.";
+"error_microphone_unavailable" = "الميكروفون غير متاح. يرجى التحقق من إعدادات جهازك.";
+"error_permission_denied" = "تم رفض الإذن. يمكنك تفعيله من الإعدادات.";
+"error_generic" = "حدث خطأ ما. يرجى المحاولة مرة أخرى.";
+
+/* Notifications */
+"notification_channel_conversations" = "المحادثات";
+"notification_channel_conversations_desc" = "إشعارات المحادثات الصوتية النشطة";
+"notification_channel_reminders" = "التذكيرات";
+"notification_channel_reminders_desc" = "المتابعات والتذكيرات المجدولة من فيرني";
+"notification_active_call" = "محادثة صوتية جارية";
+"notification_tap_to_return" = "اضغط للعودة إلى المحادثة";
+
+/* WebView Fallback */
+"no_webview_text" = "يتطلب هذا التطبيق WebView للعمل";
+"webview_error_title" = "تعذر التحميل";
+"webview_error_message" = "حدثت مشكلة في تحميل التطبيق. يرجى التحقق من اتصالك بالإنترنت.";

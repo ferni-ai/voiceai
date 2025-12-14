@@ -1,0 +1,57 @@
+/* 
+  Localizable.strings
+  Ferni iOS App - Français
+  
+  Copyright © 2024 Ferni AI. All rights reserved.
+*/
+
+/* App Identity */
+"app_name" = "Ferni";
+"app_tagline" = "Votre coach de vie IA";
+"app_description" = "Enfin, quelqu'un qui écoute vraiment.";
+
+/* Permission Rationales */
+"permission_microphone_title" = "Accès au microphone";
+"permission_microphone_rationale" = "Ferni a besoin d'accéder au microphone pour avoir des conversations vocales avec vous.";
+"permission_camera_title" = "Accès à la caméra";
+"permission_camera_rationale" = "L'accès à la caméra permet les conversations vidéo et la numérisation de documents.";
+"permission_bluetooth_title" = "Accès Bluetooth";
+"permission_bluetooth_rationale" = "Le Bluetooth permet à Ferni de fonctionner avec vos écouteurs sans fil.";
+"permission_notifications_title" = "Notifications";
+"permission_notifications_rationale" = "Activez les notifications pour recevoir des suivis et des rappels de Ferni.";
+
+/* Common Actions */
+"action_allow" = "Autoriser";
+"action_deny" = "Refuser";
+"action_cancel" = "Annuler";
+"action_ok" = "OK";
+"action_settings" = "Paramètres";
+"action_retry" = "Réessayer";
+"action_continue" = "Continuer";
+
+/* Connection Status */
+"status_connecting" = "Connexion à Ferni…";
+"status_connected" = "Connecté";
+"status_disconnected" = "Déconnecté";
+"status_reconnecting" = "Reconnexion…";
+"status_offline" = "Vous êtes hors ligne";
+
+/* Error Messages */
+"error_no_internet" = "Pas de connexion internet. Veuillez vérifier votre connexion et réessayer.";
+"error_connection_failed" = "Impossible de se connecter. Veuillez réessayer.";
+"error_microphone_unavailable" = "Le microphone n'est pas disponible. Veuillez vérifier les paramètres de votre appareil.";
+"error_permission_denied" = "Permission refusée. Vous pouvez l'activer dans les Paramètres.";
+"error_generic" = "Une erreur s'est produite. Veuillez réessayer.";
+
+/* Notifications */
+"notification_channel_conversations" = "Conversations";
+"notification_channel_conversations_desc" = "Notifications de conversations vocales actives";
+"notification_channel_reminders" = "Rappels";
+"notification_channel_reminders_desc" = "Suivis et rappels programmés de Ferni";
+"notification_active_call" = "Conversation vocale en cours";
+"notification_tap_to_return" = "Appuyez pour revenir à la conversation";
+
+/* WebView Fallback */
+"no_webview_text" = "Cette application nécessite WebView pour fonctionner";
+"webview_error_title" = "Impossible de charger";
+"webview_error_message" = "Un problème est survenu lors du chargement de l'application. Veuillez vérifier votre connexion internet.";

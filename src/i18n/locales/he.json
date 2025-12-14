@@ -6,7 +6,6 @@
     "version": "1.0.0",
     "direction": "rtl"
   },
-
   "common": {
     "loading": "טוען...",
     "error": "משהו השתבש",
@@ -22,13 +21,11 @@
     "ok": "אישור",
     "learnMore": "למד עוד"
   },
-
   "brand": {
     "name": "Ferni",
     "tagline": "מאמן החיים האישי שלך בבינה מלאכותית",
     "promise": "טוב יותר מבן אדם."
   },
-
   "navigation": {
     "features": "תכונות",
     "team": "צוות",
@@ -41,7 +38,6 @@
     "privacy": "מדיניות פרטיות",
     "terms": "תנאי שימוש"
   },
-
   "hero": {
     "eyebrow": "הכירו את המאמן הבינה המלאכותית שלכם",
     "headline": "טוב יותר",
@@ -63,7 +59,6 @@
       }
     }
   },
-
   "superpowers": {
     "memory": {
       "title": "זיכרון מושלם",
@@ -86,7 +81,6 @@
       "description": "אנחנו מבחינים בהפסקה. בהתחמקות. בדפוס שאתם לא רואים. הבנה היא לא רק הקשבה—היא להבין באמת."
     }
   },
-
   "team": {
     "title": "הכירו את הצוות",
     "subtitle": "שישה מוחות מבריקים שעובדים יחד עבורכם",
@@ -129,7 +123,6 @@
       }
     }
   },
-
   "pricing": {
     "title": "תמחור פשוט",
     "headline": "התחילו בחינם.",
@@ -222,7 +215,6 @@
       }
     }
   },
-
   "faq": {
     "title": "שאלות נפוצות",
     "items": {
@@ -252,17 +244,14 @@
       }
     }
   },
-
   "testimonials": {
     "title": "מה אנשים אומרים"
   },
-
   "trust": {
     "title": "בנוי על אמון.",
     "description": "השיחות שלכם שלכם. תמיד. אנחנו משתמשים בהצפנה ברמה ארגונית ואף פעם לא מוכרים את הנתונים שלכם.",
     "cta": "קראו את מדיניות הפרטיות"
   },
-
   "footer": {
     "tagline": "מישהו שבאמת מבין.",
     "copyright": "Ferni AI. כל הזכויות שמורות.",
@@ -274,7 +263,6 @@
       "legal": "משפטי"
     }
   },
-
   "app": {
     "controls": {
       "mute": "השתקה",
@@ -342,12 +330,63 @@
         "title": "ייצוא נתונים",
         "description": "הורידו את היסטוריית השיחות"
       }
+    },
+    "wearableSettings": {
+      "title": "בריאות וכושר",
+      "loading": "טוען...",
+      "intro": "חבר את המכשירים הלבישים שלך כדי לתת לפרני הקשר על הבריאות ורמות האנרגיה שלך.",
+      "sections": {
+        "devices": "מכשירים",
+        "features": "מה פרני יכול לראות"
+      },
+      "buttons": {
+        "connect": "חיבור",
+        "disconnect": "ניתוק",
+        "tryAgain": "נסה שוב"
+      },
+      "features": {
+        "stress": "זיהוי לחץ באמצעות HRV",
+        "sleep": "ניתוח איכות שינה",
+        "activity": "מעקב פעילות"
+      },
+      "privacy": {
+        "note": "נתוני הבריאות שלך נשארים פרטיים. אנו משתפים רק תובנות מצטברות עם מפגשי האימון שלך."
+      },
+      "providers": {
+        "apple_health": {
+          "name": "Apple Health",
+          "description": "התחברות דרך אפליקציית פרני ל-iOS"
+        },
+        "fitbit": {
+          "name": "Fitbit",
+          "description": "צעדים, שינה וקצב לב"
+        },
+        "garmin": {
+          "name": "Garmin",
+          "description": "נתוני פעילות ואימון"
+        },
+        "oura": {
+          "name": "Oura Ring",
+          "description": "ציוני שינה ומוכנות"
+        },
+        "whoop": {
+          "name": "Whoop",
+          "description": "נתוני התאוששות ומאמץ"
+        }
+      },
+      "errors": {
+        "loadFailed": "לא ניתן לטעון את סטטוס המכשירים הלבישים"
+      }
     }
   },
-
   "subscription": {
     "currentPlan": "התוכנית הנוכחית",
-    "upgrade": "שדרגו",
+    "upgrade": {
+      "title": "",
+      "subtitle": "",
+      "benefits": "",
+      "cta": ""
+    },
     "managePlan": "נהלו תוכנית",
     "cancelPlan": "בטלו תוכנית",
     "renewsOn": "מתחדש ב-{date}",
@@ -362,7 +401,6 @@
       "thankYou": "תודה שאתם מאמינים בנו. אני לא הולך לשום מקום - אני שלכם, כמה שתרצו לדבר."
     }
   },
-
   "errors": {
     "generic": "משהו השתבש. נסו שוב.",
     "network": "שגיאת רשת. בדקו את החיבור.",
@@ -371,7 +409,6 @@
     "unauthorized": "התחברו כדי להמשיך",
     "paymentFailed": "התשלום נכשל. נסו שוב."
   },
-
   "accessibility": {
     "skipToMain": "דלגו לתוכן הראשי",
     "closeMenu": "סגרו תפריט",
@@ -379,7 +416,6 @@
     "languageSelector": "בחרו שפה",
     "currentLanguage": "השפה הנוכחית: {language}"
   },
-
   "time": {
     "justNow": "עכשיו",
     "minutesAgo": "לפני {n} דקות",

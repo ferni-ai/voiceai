@@ -5,7 +5,6 @@
     "name": "Deutsch",
     "version": "1.0.0"
   },
-
   "common": {
     "loading": "Wird geladen...",
     "error": "Etwas ist schiefgelaufen",
@@ -21,13 +20,11 @@
     "ok": "OK",
     "learnMore": "Mehr erfahren"
   },
-
   "brand": {
     "name": "Ferni",
     "tagline": "Ihr persönlicher KI-Lebenscoach",
     "promise": "Besser als menschlich."
   },
-
   "navigation": {
     "features": "Funktionen",
     "team": "Team",
@@ -40,7 +37,6 @@
     "privacy": "Datenschutz",
     "terms": "Nutzungsbedingungen"
   },
-
   "hero": {
     "eyebrow": "Lernen Sie Ihren KI-Coach kennen",
     "headline": "Besser als",
@@ -62,7 +58,6 @@
       }
     }
   },
-
   "superpowers": {
     "memory": {
       "title": "Perfektes Gedächtnis",
@@ -85,7 +80,6 @@
       "description": "Wir bemerken die Pause. Die Ablenkung. Das Muster, das Sie nicht sehen können. Verstehen bedeutet nicht nur Zuhören – es bedeutet wirkliches Begreifen."
     }
   },
-
   "team": {
     "title": "Lernen Sie das Team kennen",
     "subtitle": "Sechs brillante Köpfe arbeiten gemeinsam für Sie",
@@ -128,7 +122,6 @@
       }
     }
   },
-
   "pricing": {
     "title": "Einfache Preisgestaltung",
     "headline": "Starten Sie kostenlos.",
@@ -221,7 +214,6 @@
       }
     }
   },
-
   "faq": {
     "title": "Häufig gestellte Fragen",
     "items": {
@@ -251,17 +243,14 @@
       }
     }
   },
-
   "testimonials": {
     "title": "Was die Leute sagen"
   },
-
   "trust": {
     "title": "Aufgebaut auf Vertrauen.",
     "description": "Ihre Gespräche gehören Ihnen. Immer. Wir verwenden Verschlüsselung auf Unternehmensniveau und verkaufen niemals Ihre Daten.",
     "cta": "Lesen Sie unsere Datenschutzrichtlinie"
   },
-
   "footer": {
     "tagline": "Jemand, der wirklich versteht.",
     "copyright": "Ferni AI. Alle Rechte vorbehalten.",
@@ -273,7 +262,6 @@
       "legal": "Rechtliches"
     }
   },
-
   "app": {
     "controls": {
       "mute": "Stumm",
@@ -341,12 +329,68 @@
         "title": "Daten exportieren",
         "description": "Ihren Gesprächsverlauf herunterladen"
       }
+    },
+    "wearableSettings": {
+      "title": "Gesundheit & Fitness",
+      "loading": "Wird geladen...",
+      "intro": "Verbinden Sie Ihre Wearables, um Ferni Kontext über Ihre Gesundheit und Energielevel zu geben.",
+      "sections": {
+        "devices": "Geräte",
+        "features": "Was Ferni sehen kann"
+      },
+      "buttons": {
+        "connect": "Verbinden",
+        "disconnect": "Trennen",
+        "tryAgain": "Erneut versuchen"
+      },
+      "features": {
+        "stress": "Stresserkennung durch HRV",
+        "sleep": "Schlafqualitätsanalyse",
+        "activity": "Aktivitätsverfolgung"
+      },
+      "privacy": {
+        "note": "Ihre Gesundheitsdaten bleiben privat. Wir teilen nur aggregierte Erkenntnisse mit Ihren Coaching-Sitzungen."
+      },
+      "providers": {
+        "apple_health": {
+          "name": "Apple Health",
+          "description": "Verbindung über die Ferni iOS-App"
+        },
+        "fitbit": {
+          "name": "Fitbit",
+          "description": "Schritte, Schlaf und Herzfrequenz"
+        },
+        "garmin": {
+          "name": "Garmin",
+          "description": "Aktivitäts- und Trainingsdaten"
+        },
+        "oura": {
+          "name": "Oura Ring",
+          "description": "Schlaf- und Bereitschaftswerte"
+        },
+        "whoop": {
+          "name": "Whoop",
+          "description": "Erholungs- und Belastungsdaten"
+        }
+      },
+      "errors": {
+        "loadFailed": "Wearable-Status konnte nicht geladen werden"
+      }
     }
   },
-
   "subscription": {
     "currentPlan": "Aktueller Plan",
-    "upgrade": "Upgraden",
+    "upgrade": {
+      "title": "Verbessern Sie Ihr Erlebnis",
+      "subtitle": "Erhalten Sie unbegrenzte Gespräche und Zugang zu allen Teammitgliedern",
+      "benefits": [
+        "Unbegrenzte Gesprächszeit",
+        "Alle 6 KI-Spezialisten",
+        "Vollständiger Gesprächsspeicher",
+        "Prioritäts-Support"
+      ],
+      "cta": "Jetzt upgraden"
+    },
     "managePlan": "Plan verwalten",
     "cancelPlan": "Plan kündigen",
     "renewsOn": "Verlängert am {date}",
@@ -361,7 +405,6 @@
       "thankYou": "Danke, dass Sie an uns glauben. Ich gehe nirgendwohin – ich bin für Sie da, so lange Sie reden möchten."
     }
   },
-
   "errors": {
     "generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
     "network": "Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung.",
@@ -370,7 +413,6 @@
     "unauthorized": "Bitte melden Sie sich an, um fortzufahren",
     "paymentFailed": "Zahlung fehlgeschlagen. Bitte versuchen Sie es erneut."
   },
-
   "accessibility": {
     "skipToMain": "Zum Hauptinhalt springen",
     "closeMenu": "Menü schließen",
@@ -378,7 +420,6 @@
     "languageSelector": "Sprache auswählen",
     "currentLanguage": "Aktuelle Sprache: {language}"
   },
-
   "time": {
     "justNow": "gerade eben",
     "minutesAgo": "vor {n} Minuten",

@@ -351,6 +351,30 @@ function recordDemoSession(ip) {
   data.lastSession = Date.now();
 }
 
+/**
+ * Get demo status without consuming a session.
+ * Returns proactive info so the frontend can show warm messaging.
+ */
+function getDemoStatus(ip) {
+  const data = getDemoRateLimit(ip);
+  const now = Date.now();
+  const sessionsRemaining = Math.max(0, DEMO_CONFIG.maxSessionsPerDay - data.sessionCount);
+  const cooldownMs = DEMO_CONFIG.cooldownMinutes * 60 * 1000;
+  const timeSinceLastSession = data.lastSession ? now - data.lastSession : Infinity;
+  const inCooldown = data.lastSession && timeSinceLastSession < cooldownMs;
+  const cooldownRemaining = inCooldown ? Math.ceil((cooldownMs - timeSinceLastSession) / 1000) : 0;
+
+  return {
+    sessionsRemaining,
+    sessionsTotal: DEMO_CONFIG.maxSessionsPerDay,
+    sessionDurationMinutes: DEMO_CONFIG.sessionDurationMinutes,
+    inCooldown,
+    cooldownRemaining, // seconds
+    cooldownMinutes: DEMO_CONFIG.cooldownMinutes,
+    canStartSession: sessionsRemaining > 0 && !inCooldown,
+  };
+}
+
 // Get Spotify refresh token from file or .env
 function getSpotifyRefreshToken() {
   // Try file first (new system)
@@ -2753,6 +2777,26 @@ const server = http.createServer(async (req, res) => {
   // ============================================================================
   // LIVEKIT ROUTES
   // ============================================================================
+
+  // Demo status endpoint - proactive check before starting session
+  // Returns session availability so frontend can show warm, brand-aligned messaging
+  if (pathname === '/demo-status') {
+    const ip =
+      req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+      req.headers['x-real-ip'] ||
+      req.socket.remoteAddress ||
+      'unknown';
+
+    const status = getDemoStatus(ip);
+
+    // Add CORS headers for cross-origin requests from landing page
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET');
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(status));
+    return;
+  }
 
   // Demo token endpoint - for landing page try-without-signup
   if (pathname === '/demo-token') {

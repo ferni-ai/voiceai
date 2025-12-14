@@ -5,7 +5,6 @@
     "name": "한국어",
     "version": "1.0.0"
   },
-
   "common": {
     "loading": "로딩 중...",
     "error": "문제가 발생했습니다",
@@ -21,13 +20,11 @@
     "ok": "확인",
     "learnMore": "자세히 알아보기"
   },
-
   "brand": {
     "name": "Ferni",
     "tagline": "당신만의 AI 라이프 코치",
     "promise": "인간보다 나은."
   },
-
   "navigation": {
     "features": "기능",
     "team": "팀",
@@ -40,7 +37,6 @@
     "privacy": "개인정보 처리방침",
     "terms": "이용약관"
   },
-
   "hero": {
     "eyebrow": "AI 코치를 만나보세요",
     "headline": "인간보다",
@@ -62,7 +58,6 @@
       }
     }
   },
-
   "superpowers": {
     "memory": {
       "title": "완벽한 기억력",
@@ -85,7 +80,6 @@
       "description": "우리는 멈춤을 알아차립니다. 화제 전환을. 당신이 보지 못하는 패턴을. 이해란 단순히 듣는 것이 아닙니다—진정으로 아는 것입니다."
     }
   },
-
   "team": {
     "title": "팀 소개",
     "subtitle": "당신을 위해 함께 일하는 6명의 뛰어난 전문가",
@@ -128,7 +122,6 @@
       }
     }
   },
-
   "pricing": {
     "title": "간단한 요금",
     "headline": "무료로 시작하세요.",
@@ -221,7 +214,6 @@
       }
     }
   },
-
   "faq": {
     "title": "자주 묻는 질문",
     "items": {
@@ -251,17 +243,14 @@
       }
     }
   },
-
   "testimonials": {
     "title": "사용자 후기"
   },
-
   "trust": {
     "title": "신뢰 위에 구축.",
     "description": "대화는 당신의 것입니다. 언제나. 엔터프라이즈급 암호화를 사용하며 데이터를 판매하지 않습니다.",
     "cta": "개인정보 처리방침 읽기"
   },
-
   "footer": {
     "tagline": "진정으로 이해하는 존재.",
     "copyright": "Ferni AI. All rights reserved.",
@@ -273,7 +262,6 @@
       "legal": "법적 고지"
     }
   },
-
   "app": {
     "controls": {
       "mute": "음소거",
@@ -341,12 +329,63 @@
         "title": "데이터 내보내기",
         "description": "대화 기록 다운로드"
       }
+    },
+    "wearableSettings": {
+      "title": "건강 및 피트니스",
+      "loading": "로딩 중...",
+      "intro": "웨어러블을 연결하여 Ferni에게 건강 및 에너지 수준에 대한 정보를 제공하세요.",
+      "sections": {
+        "devices": "기기",
+        "features": "Ferni가 볼 수 있는 것"
+      },
+      "buttons": {
+        "connect": "연결",
+        "disconnect": "연결 해제",
+        "tryAgain": "다시 시도"
+      },
+      "features": {
+        "stress": "HRV를 통한 스트레스 감지",
+        "sleep": "수면 품질 분석",
+        "activity": "활동 추적"
+      },
+      "privacy": {
+        "note": "건강 데이터는 비공개로 유지됩니다. 코칭 세션에서는 집계된 정보만 공유합니다."
+      },
+      "providers": {
+        "apple_health": {
+          "name": "Apple Health",
+          "description": "Ferni iOS 앱을 통해 연결"
+        },
+        "fitbit": {
+          "name": "Fitbit",
+          "description": "걸음 수, 수면, 심박수"
+        },
+        "garmin": {
+          "name": "Garmin",
+          "description": "활동 및 훈련 데이터"
+        },
+        "oura": {
+          "name": "Oura Ring",
+          "description": "수면 및 준비 점수"
+        },
+        "whoop": {
+          "name": "Whoop",
+          "description": "회복 및 부하 데이터"
+        }
+      },
+      "errors": {
+        "loadFailed": "웨어러블 상태를 불러올 수 없습니다"
+      }
     }
   },
-
   "subscription": {
     "currentPlan": "현재 플랜",
-    "upgrade": "업그레이드",
+    "upgrade": {
+      "title": "",
+      "subtitle": "",
+      "benefits": "",
+      "cta": ""
+    },
     "managePlan": "플랜 관리",
     "cancelPlan": "플랜 취소",
     "renewsOn": "{date}에 갱신",
@@ -361,7 +400,6 @@
       "thankYou": "저희를 믿어주셔서 감사합니다. 어디 가지 않아요—대화하고 싶으신 한 당신 곁에 있을게요."
     }
   },
-
   "errors": {
     "generic": "문제가 발생했습니다. 다시 시도해 주세요.",
     "network": "네트워크 오류. 연결을 확인해 주세요.",
@@ -370,7 +408,6 @@
     "unauthorized": "계속하려면 로그인하세요",
     "paymentFailed": "결제에 실패했습니다. 다시 시도해 주세요."
   },
-
   "accessibility": {
     "skipToMain": "본문으로 건너뛰기",
     "closeMenu": "메뉴 닫기",
@@ -378,7 +415,6 @@
     "languageSelector": "언어 선택",
     "currentLanguage": "현재 언어: {language}"
   },
-
   "time": {
     "justNow": "방금",
     "minutesAgo": "{n}분 전",

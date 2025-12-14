@@ -5,7 +5,21 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>Voice AI</string>
+	<string>Ferni</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>en-GB</string>
+		<string>es</string>
+		<string>de</string>
+		<string>fr</string>
+		<string>ja</string>
+		<string>ko</string>
+		<string>ar</string>
+		<string>he</string>
+		<string>zh-Hans</string>
+		<string>zh-Hant</string>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -48,11 +62,11 @@
 	
 	<!-- Microphone Permission - Required for voice conversations -->
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Voice AI needs microphone access to have voice conversations with your AI coach.</string>
+	<string>Ferni needs microphone access to have voice conversations with you.</string>
 	
 	<!-- Camera Permission - For future video features -->
 	<key>NSCameraUsageDescription</key>
-	<string>Voice AI may use the camera for video calls in future updates.</string>
+	<string>Camera access enables video conversations and document scanning.</string>
 	
 	<!-- Background Audio - Keep conversations going when app is backgrounded -->
 	<key>UIBackgroundModes</key>

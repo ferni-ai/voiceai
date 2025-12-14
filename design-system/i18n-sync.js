@@ -29,6 +29,11 @@ const PROJECT_ROOT = path.dirname(__dirname);
 
 const SYNC_CONFIGS = [
   {
+    name: 'Backend (Voice Agent)',
+    localeDir: 'src/i18n/locales',
+    sourceLocale: 'en-US.json',
+  },
+  {
     name: 'Frontend App',
     localeDir: 'frontend-typescript/src/i18n/locales',
     sourceLocale: 'en-US.json',
@@ -156,13 +161,13 @@ function main() {
       continue;
     }
 
-    const sourceKeyCount = getAllKeys(sourceLocale).filter(k => !k.startsWith('meta')).length;
+    const sourceKeyCount = getAllKeys(sourceLocale).filter((k) => !k.startsWith('meta')).length;
     console.log(`   Source: ${config.sourceLocale} (${sourceKeyCount} keys)`);
 
     // Process each target locale
-    const files = fs.readdirSync(localeDir).filter(f =>
-      f.endsWith('.json') && f !== config.sourceLocale
-    );
+    const files = fs
+      .readdirSync(localeDir)
+      .filter((f) => f.endsWith('.json') && f !== config.sourceLocale);
 
     for (const file of files) {
       const targetPath = path.join(localeDir, file);
@@ -182,9 +187,9 @@ function main() {
 
         // Show first few added keys
         if (added.length <= 3) {
-          added.forEach(k => console.log(`      + ${k}`));
+          added.forEach((k) => console.log(`      + ${k}`));
         } else {
-          added.slice(0, 3).forEach(k => console.log(`      + ${k}`));
+          added.slice(0, 3).forEach((k) => console.log(`      + ${k}`));
           console.log(`      ... and ${added.length - 3} more`);
         }
       } else {

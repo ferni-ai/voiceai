@@ -1,7 +1,7 @@
 {
-  "name": "voiceai-android",
+  "name": "ferni-android",
   "version": "1.0.0",
-  "description": "Voice AI Android Application",
+  "description": "Ferni Android Application",
   "private": true,
   "scripts": {
     "build:web": "cd ../../frontend-typescript && npm run build",

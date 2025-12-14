@@ -21,9 +21,9 @@
  */
 
 import fs from 'fs';
+import { globSync } from 'glob';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { globSync } from 'glob';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.dirname(__dirname);
@@ -33,6 +33,16 @@ const PROJECT_ROOT = path.dirname(__dirname);
 // ============================================================================
 
 const CONFIG = {
+  // Backend i18n (voice agent)
+  backend: {
+    localeDir: 'src/i18n/locales',
+    sourceLocale: 'en-US.json',
+    sourcePatterns: ['src/**/*.ts'],
+    // Regex patterns to extract translation keys
+    keyPatterns: [
+      /(?:^|[\s,(=])t\(\s*['"]([^'"]+)['"]/gm, // t('key') - standalone t function
+    ],
+  },
   // Frontend app i18n
   frontend: {
     localeDir: 'frontend-typescript/src/i18n/locales',
@@ -45,47 +55,53 @@ const CONFIG = {
     // Regex patterns to extract translation keys
     // Using word boundary to ensure 't' is a standalone function, not part of another word
     keyPatterns: [
-      /(?:^|[\s,(=])t\(\s*['"]([^'"]+)['"]/gm,     // t('key') - standalone t function
+      /(?:^|[\s,(=])t\(\s*['"]([^'"]+)['"]/gm, // t('key') - standalone t function
     ],
   },
   // Landing page i18n
   landing: {
     localeDir: 'promo/ferni-website/src/_data/i18n',
     sourceLocale: 'en.json',
-    sourcePatterns: [
-      'promo/ferni-website/src/**/*.njk',
-      'promo/ferni-website/src/**/*.html',
-    ],
+    sourcePatterns: ['promo/ferni-website/src/**/*.njk', 'promo/ferni-website/src/**/*.html'],
     keyPatterns: [
-      /\{\{\s*['"]([^'"]+)['"]\s*\|\s*t\s*\}\}/g,  // {{ 'key' | t }}
+      /\{\{\s*['"]([^'"]+)['"]\s*\|\s*t\s*\}\}/g, // {{ 'key' | t }}
     ],
   },
 };
 
 // Patterns that indicate a string is NOT a translation key
 const NON_TRANSLATION_PATTERNS = [
-  /^\/api\//,           // API paths
-  /^\.\//,              // Relative imports
-  /^\.{2}\//,           // Parent imports
-  /^\./,                // CSS selectors starting with .
-  /^#/,                 // CSS selectors starting with #
-  /^\[/,                // Attribute selectors
-  /^ferni:/,            // Custom events
-  /^@/,                 // Package names
-  /^https?:/,           // URLs
-  /^data-/,             // Data attributes
-  /^<[a-z]/i,           // HTML tags
-  /^[a-z]+$/,           // Single lowercase word (HTML elements)
-  /\s/,                 // Contains spaces (likely prose, not key)
-  /^[A-Z][A-Z\s]+$/,    // ALL CAPS (likely labels, not keys)
-  /[<>{}[\]]/,          // Contains HTML/template brackets
-  /\.(ts|js|json|css|svg|png|jpg)$/i,  // File extensions
+  /^\/api\//, // API paths
+  /^\.\//, // Relative imports
+  /^\.{2}\//, // Parent imports
+  /^\./, // CSS selectors starting with .
+  /^#/, // CSS selectors starting with #
+  /^\[/, // Attribute selectors
+  /^ferni:/, // Custom events
+  /^@/, // Package names
+  /^https?:/, // URLs
+  /^data-/, // Data attributes
+  /^<[a-z]/i, // HTML tags
+  /^[a-z]+$/, // Single lowercase word (HTML elements)
+  /\s/, // Contains spaces (likely prose, not key)
+  /^[A-Z][A-Z\s]+$/, // ALL CAPS (likely labels, not keys)
+  /[<>{}[\]]/, // Contains HTML/template brackets
+  /\.(ts|js|json|css|svg|png|jpg)$/i, // File extensions
 ];
 
 // Supported locales (must exist in both systems)
 const REQUIRED_LOCALES = [
-  'en-US', 'en-GB', 'es', 'fr', 'de',
-  'ja', 'ko', 'zh-Hans', 'zh-Hant', 'ar', 'he'
+  'en-US',
+  'en-GB',
+  'es',
+  'fr',
+  'de',
+  'ja',
+  'ko',
+  'zh-Hans',
+  'zh-Hant',
+  'ar',
+  'he',
 ];
 
 // ============================================================================
@@ -127,7 +143,7 @@ function getNestedValue(obj, keyPath) {
 function extractPlaceholders(str) {
   if (typeof str !== 'string') return [];
   const matches = str.match(/\{(\w+)\}/g) || [];
-  return matches.map(m => m.slice(1, -1)).sort();
+  return matches.map((m) => m.slice(1, -1)).sort();
 }
 
 function readSourceFiles(patterns) {
@@ -197,8 +213,8 @@ function checkLocaleFilesExist(config, system) {
     return { issues, locales: [] };
   }
 
-  const files = fs.readdirSync(localeDir).filter(f => f.endsWith('.json'));
-  const locales = files.map(f => f.replace('.json', ''));
+  const files = fs.readdirSync(localeDir).filter((f) => f.endsWith('.json'));
+  const locales = files.map((f) => f.replace('.json', ''));
 
   // Check source locale exists
   const sourceLocalePath = path.join(localeDir, config.sourceLocale);
@@ -219,7 +235,7 @@ function checkMissingKeys(config, system) {
 
   for (const file of sourceFiles) {
     const keys = extractKeysFromFile(file, config.keyPatterns);
-    keys.forEach(k => usedKeys.add(k));
+    keys.forEach((k) => usedKeys.add(k));
   }
 
   if (usedKeys.size === 0) {
@@ -248,7 +264,12 @@ function checkMissingKeys(config, system) {
     }
   }
 
-  return { issues, warnings, usedKeys: Array.from(usedKeys), availableKeys: Array.from(availableKeys) };
+  return {
+    issues,
+    warnings,
+    usedKeys: Array.from(usedKeys),
+    availableKeys: Array.from(availableKeys),
+  };
 }
 
 function checkLocaleConsistency(config, system) {
@@ -266,7 +287,9 @@ function checkLocaleConsistency(config, system) {
   const sourceKeys = new Set(getAllKeys(sourceLocale));
 
   // Check each locale file
-  const files = fs.readdirSync(localeDir).filter(f => f.endsWith('.json') && f !== config.sourceLocale);
+  const files = fs
+    .readdirSync(localeDir)
+    .filter((f) => f.endsWith('.json') && f !== config.sourceLocale);
 
   for (const file of files) {
     const localePath = path.join(localeDir, file);
@@ -293,7 +316,7 @@ function checkLocaleConsistency(config, system) {
     if (missing.length > 0) {
       issues.push(`${file}: Missing ${missing.length} keys from source locale`);
       // Show first 5 missing keys
-      missing.slice(0, 5).forEach(k => {
+      missing.slice(0, 5).forEach((k) => {
         issues.push(`  - ${k}`);
       });
       if (missing.length > 5) {
@@ -341,7 +364,9 @@ function checkPlaceholderConsistency(config, system) {
   }
 
   // Check each locale
-  const files = fs.readdirSync(localeDir).filter(f => f.endsWith('.json') && f !== config.sourceLocale);
+  const files = fs
+    .readdirSync(localeDir)
+    .filter((f) => f.endsWith('.json') && f !== config.sourceLocale);
 
   for (const file of files) {
     const localePath = path.join(localeDir, file);
@@ -362,8 +387,8 @@ function checkPlaceholderConsistency(config, system) {
       if (JSON.stringify(sourcePH) !== JSON.stringify(localePH)) {
         issues.push(
           `Placeholder mismatch in "${key}":\n` +
-          `  ${config.sourceLocale}: {${sourcePH.join(', ')}}\n` +
-          `  ${file}: {${localePH.join(', ')}}`
+            `  ${config.sourceLocale}: {${sourcePH.join(', ')}}\n` +
+            `  ${file}: {${localePH.join(', ')}}`
         );
       }
     }
@@ -434,7 +459,7 @@ function main() {
     // Check locale files exist
     const existCheck = checkLocaleFilesExist(config, system);
     if (existCheck.issues.length > 0) {
-      allIssues.push(...existCheck.issues.map(i => `[${system}] ${i}`));
+      allIssues.push(...existCheck.issues.map((i) => `[${system}] ${i}`));
       continue;
     }
     console.log(`  ✅ Found ${existCheck.locales.length} locale files`);
@@ -442,31 +467,31 @@ function main() {
     // Check missing keys
     const missingCheck = checkMissingKeys(config, system);
     if (missingCheck.issues.length > 0) {
-      allIssues.push(...missingCheck.issues.map(i => `[${system}] ${i}`));
+      allIssues.push(...missingCheck.issues.map((i) => `[${system}] ${i}`));
       console.log(`  ❌ ${missingCheck.issues.length} missing key issues`);
     } else {
       console.log(`  ✅ All used keys found in source locale`);
     }
     if (missingCheck.warnings) {
-      allWarnings.push(...missingCheck.warnings.map(w => `[${system}] ${w}`));
+      allWarnings.push(...missingCheck.warnings.map((w) => `[${system}] ${w}`));
     }
 
     // Check locale consistency
     const consistencyCheck = checkLocaleConsistency(config, system);
     if (consistencyCheck.issues.length > 0) {
-      allIssues.push(...consistencyCheck.issues.map(i => `[${system}] ${i}`));
+      allIssues.push(...consistencyCheck.issues.map((i) => `[${system}] ${i}`));
       console.log(`  ❌ Locale consistency issues`);
     } else {
       console.log(`  ✅ All locales have consistent keys`);
     }
     if (consistencyCheck.warnings) {
-      allWarnings.push(...consistencyCheck.warnings.map(w => `[${system}] ${w}`));
+      allWarnings.push(...consistencyCheck.warnings.map((w) => `[${system}] ${w}`));
     }
 
     // Check placeholder consistency
     const placeholderCheck = checkPlaceholderConsistency(config, system);
     if (placeholderCheck.issues.length > 0) {
-      allIssues.push(...placeholderCheck.issues.map(i => `[${system}] ${i}`));
+      allIssues.push(...placeholderCheck.issues.map((i) => `[${system}] ${i}`));
       console.log(`  ❌ Placeholder consistency issues`);
     } else {
       console.log(`  ✅ Placeholder consistency verified`);
@@ -478,12 +503,12 @@ function main() {
 
   if (allWarnings.length > 0) {
     console.log('\n⚠️  Warnings:');
-    allWarnings.forEach(w => console.log(`   ${w}`));
+    allWarnings.forEach((w) => console.log(`   ${w}`));
   }
 
   if (allIssues.length > 0) {
     console.log('\n❌ VALIDATION ERRORS:');
-    allIssues.forEach(i => console.log(`   ${i}`));
+    allIssues.forEach((i) => console.log(`   ${i}`));
     console.log('\n❌ i18n validation FAILED');
     console.log('   Run: npm run i18n:sync');
     process.exit(1);
