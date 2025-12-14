@@ -39,7 +39,7 @@ import { ferniExpressions } from './ferni-expressions.ui.js';
 const log = createLogger('AmbientLife');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // CONFIGURATION
@@ -82,7 +82,7 @@ interface AmbientState {
   isConversing: boolean;
   isPaused: boolean;
   lastActionTime: number;
-  actionTimer: number | null;
+  actionTimer: ReturnType<typeof setTimeout> | null;
   avatarElement: HTMLElement | null;
   avatarContainer: HTMLElement | null;
   glowElement: HTMLElement | null;

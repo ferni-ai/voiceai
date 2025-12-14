@@ -16,7 +16,7 @@ import type { ContinuousAuthStatus } from '../services/voice-auth.service.js';
 const log = createLogger('SpeakerChangeIndicator');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -46,7 +46,7 @@ const SUSPICIOUS_THRESHOLD = 2; // Show after 2 suspicious events
 let container: HTMLElement | null = null;
 let currentState: IndicatorState = 'hidden';
 let suspiciousCount = 0;
-let dismissTimeout: number | null = null;
+let dismissTimeout: ReturnType<typeof setTimeout> | null = null;
 let onVerifyCallback: ((confirmed: boolean) => void) | null = null;
 
 // ============================================================================

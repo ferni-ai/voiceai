@@ -60,7 +60,7 @@ interface GazeState {
   targetX: number;
   targetY: number;
   isThinking: boolean;
-  saccadeTimer: number | null;
+  saccadeTimer: ReturnType<typeof setTimeout> | null;
   lastSaccade: number;
 }
 
