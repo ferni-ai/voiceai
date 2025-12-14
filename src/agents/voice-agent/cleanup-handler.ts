@@ -28,7 +28,13 @@ import {
   persistOnSessionEnd as saveHumanizationState,
 } from '../../conversation/humanization/index.js';
 import { cleanupSpeechSession } from '../../speech/session-cleanup.js';
-import { resetHandoffState, resetMetPersonas } from '../../tools/handoff/index.js';
+// FIX AUDIT: Merged handoff imports to avoid duplicate import warning
+import {
+  cameoUnlockEvents,
+  handoffEvents,
+  resetHandoffState,
+  resetMetPersonas,
+} from '../../tools/handoff/index.js';
 import { getDJIntegration } from '../dj-integration.js';
 // 🎭 Unified conversation session cleanup - loaded dynamically to avoid startup timeout
 // import { cleanupConversationSession } from '../integrations/conversation-session-integration.js';
@@ -47,8 +53,8 @@ import {
 import { clearEmotionalArc } from '../../intelligence/context-builders/advanced-voice-emotion.js';
 import { clearSession as clearHumeSession } from '../../services/emotion-analysis/hume.js';
 
-// Handoff event emitter for cleanup
-import { cameoUnlockEvents, handoffEvents } from '../../tools/handoff/index.js';
+// FIX AUDIT: Import proper types for event handlers instead of using `any`
+import type { HandoffEventPayload } from '../shared/handoff-handler.js';
 
 /**
  * Voice humanization integration interface for cleanup
@@ -67,6 +73,17 @@ interface UserDataWithTrial {
 }
 
 /**
+ * Cameo unlock event data for team member introductions
+ * FIX AUDIT: Properly typed instead of `any`
+ */
+export interface CameoUnlockEventData {
+  memberId: string;
+  displayName: string;
+  role: string;
+  spokenIntro: string;
+}
+
+/**
  * Cleanup context passed to the cleanup handler
  */
 export interface CleanupContext {
@@ -81,10 +98,10 @@ export interface CleanupContext {
   feedbackCollector?: { flush: () => Promise<void> };
   // Additional cleanup functions
   dataChannelCleanup?: () => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handoffHandler?: (data: any) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  cameoUnlockHandler?: (data: any) => void; // CAMEO UNLOCK: Team member introduction handler
+  // FIX AUDIT: Properly typed handler instead of `any`
+  handoffHandler?: (data: HandoffEventPayload) => void;
+  // FIX AUDIT: Properly typed handler instead of `any`
+  cameoUnlockHandler?: (data: CameoUnlockEventData) => void;
   cameoCleanup?: () => void;
   musicCleanup?: () => void;
   // User data for trial tracking
