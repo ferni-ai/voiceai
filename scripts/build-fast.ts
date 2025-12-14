@@ -38,7 +38,9 @@ const CONFIG = {
   platform: 'node' as const,
 
   // Files to exclude from build
-  exclude: ['**/*.test.ts', '**/*.spec.ts', '**/tests/**', '**/__tests__/**', '**/test-*.ts'],
+  // Note: Only exclude actual test files, not production files that happen to start with "test-"
+  // e.g., test-scenarios.ts is production code used by evalops/automation.ts
+  exclude: ['**/*.test.ts', '**/*.spec.ts', '**/tests/**', '**/__tests__/**'],
 
   // JSON files to copy (needed at runtime)
   copyPatterns: ['**/*.json', '**/*.md'],
