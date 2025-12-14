@@ -272,8 +272,8 @@ const main = async () => {
         agent: childAgentPath,
         agentName: AGENT_NAME,
         production: true,
-        numIdleProcesses: 1,
-        initializeProcessTimeout: 300 * 1000,
+        numIdleProcesses: 2, // Pre-spawn 2 children for instant job handling
+        initializeProcessTimeout: 600 * 1000, // 10 minutes - Cloud Run is SLOW to fork
         requestFunc: createRequestHandler(acceptCircuit),
       })
     );

@@ -101,7 +101,7 @@ RUN echo "=== Patching LiveKit SDK timeouts ===" && \
         echo "  Patched initializeTimeout in {}"; \
       fi; \
       if grep -q "initializeProcessTimeout = 10 \* 1e3" "{}"; then \
-        sed -i "s/initializeProcessTimeout = 10 \* 1e3/initializeProcessTimeout = 300 \* 1e3 \/* PATCHED 5min *\//g" "{}"; \
+        sed -i "s/initializeProcessTimeout = 10 \* 1e3/initializeProcessTimeout = 600 \* 1e3 \/* PATCHED 10min *\//g" "{}"; \
         echo "  Patched initializeProcessTimeout in {}"; \
       fi; \
       if grep -q "ASSIGNMENT_TIMEOUT = 7.5 \* 1e3" "{}"; then \
