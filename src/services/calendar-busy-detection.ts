@@ -16,11 +16,11 @@
 
 import { createLogger } from '../utils/safe-logger.js';
 import {
-  getUserTokens,
-  getFreeBusy,
   getEvents,
-  refreshAccessToken,
+  getFreeBusy,
+  getUserTokens,
   isCalendarConfigured,
+  refreshAccessToken,
   type CalendarEvent,
 } from './google-calendar-oauth.js';
 import {
@@ -156,11 +156,16 @@ export async function getCalendarBusyProfile(userId: string): Promise<CalendarBu
     if (!tokens.refresh_token) {
       return createEmptyProfile(userId);
     }
-    const refreshed = await refreshAccessToken(tokens.refresh_token);
-    if (!refreshed) {
+    try {
+      const refreshed = await refreshAccessToken(tokens.refresh_token);
+      if (!refreshed) {
+        return createEmptyProfile(userId);
+      }
+      accessToken = refreshed.access_token;
+    } catch (error) {
+      log.debug({ error, userId }, 'Failed to refresh calendar token');
       return createEmptyProfile(userId);
     }
-    accessToken = refreshed.access_token;
   }
 
   // Get busy times for today and tomorrow

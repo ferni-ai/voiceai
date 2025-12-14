@@ -42,16 +42,80 @@ export interface FallbackLogger {
 }
 
 /**
+ * Serialize an Error object for JSON logging.
+ *
+ * Error objects don't serialize to JSON properly because their properties
+ * (message, stack, name) are not enumerable. This function extracts those
+ * properties into a plain object that serializes correctly.
+ */
+export function serializeError(error: unknown): unknown {
+  if (error instanceof Error) {
+    // Extract standard Error properties plus any custom properties (e.g., `code` on Node.js errors)
+    const serialized: Record<string, unknown> = {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    };
+
+    // Copy any additional enumerable properties from the error
+    for (const key of Object.keys(error)) {
+      serialized[key] = (error as unknown as Record<string, unknown>)[key];
+    }
+
+    return serialized;
+  }
+  return error;
+}
+
+/**
+ * Process logging bindings to ensure errors are serializable.
+ *
+ * If the bindings contain an `error` key with an Error object,
+ * it will be serialized to a plain object for proper JSON output.
+ */
+function processBindings(bindings: Record<string, unknown>): Record<string, unknown> {
+  if (!bindings || typeof bindings !== 'object') {
+    return bindings;
+  }
+
+  // Check if there's an 'error' key that needs serialization
+  if ('error' in bindings && bindings.error instanceof Error) {
+    return {
+      ...bindings,
+      error: serializeError(bindings.error),
+    };
+  }
+
+  // Also check for 'err' key (pino convention)
+  if ('err' in bindings && bindings.err instanceof Error) {
+    return {
+      ...bindings,
+      err: serializeError(bindings.err),
+    };
+  }
+
+  return bindings;
+}
+
+/**
  * Create a fallback logger that uses console methods
  */
 function createFallbackLogger(bindings?: Record<string, unknown>): FallbackLogger {
   const prefix = bindings ? `[${Object.values(bindings).join(':')}] ` : '';
 
+  // Helper to process first arg if it's a bindings object
+  const processFirstArg = (args: unknown[]): unknown[] => {
+    if (args.length > 0 && args[0] && typeof args[0] === 'object' && !Array.isArray(args[0])) {
+      return [processBindings(args[0] as Record<string, unknown>), ...args.slice(1)];
+    }
+    return args;
+  };
+
   return {
-    debug: (...args: unknown[]) => console.debug(prefix, ...args),
-    info: (...args: unknown[]) => console.info(prefix, ...args),
-    warn: (...args: unknown[]) => console.warn(prefix, ...args),
-    error: (...args: unknown[]) => console.error(prefix, ...args),
+    debug: (...args: unknown[]) => console.debug(prefix, ...processFirstArg(args)),
+    info: (...args: unknown[]) => console.info(prefix, ...processFirstArg(args)),
+    warn: (...args: unknown[]) => console.warn(prefix, ...processFirstArg(args)),
+    error: (...args: unknown[]) => console.error(prefix, ...processFirstArg(args)),
     child: (childBindings: Record<string, unknown>) =>
       createFallbackLogger({ ...bindings, ...childBindings }),
   };
@@ -75,9 +139,11 @@ function createFallbackLogger(bindings?: Record<string, unknown>): FallbackLogge
  * logger.error({ error: err }, 'Something went wrong');
  * ```
  */
-export function safeLog(): ReturnType<typeof log> | FallbackLogger {
+export function safeLog(): FallbackLogger {
   try {
-    return log();
+    const baseLogger = log();
+    // Wrap the logger to automatically serialize errors
+    return wrapLoggerWithErrorSerialization(baseLogger);
   } catch {
     // LiveKit logger not initialized - use console fallback
     return createFallbackLogger();
@@ -99,6 +165,37 @@ export function safeLog(): ReturnType<typeof log> | FallbackLogger {
 export const getLogger = safeLog;
 
 /**
+ * Wrap a pino-style logger to automatically serialize Error objects.
+ *
+ * Pino doesn't serialize Error objects by default (they appear as {}).
+ * This wrapper intercepts log calls and serializes any `error` or `err`
+ * properties in the bindings object.
+ */
+function wrapLoggerWithErrorSerialization(pinoLogger: ReturnType<typeof log>): FallbackLogger {
+  const wrapMethod =
+    (method: 'debug' | 'info' | 'warn' | 'error') =>
+    (...args: unknown[]) => {
+      // If first arg is an object (bindings), process it for error serialization
+      if (args.length > 0 && args[0] && typeof args[0] === 'object' && !Array.isArray(args[0])) {
+        const processedBindings = processBindings(args[0] as Record<string, unknown>);
+        return pinoLogger[method](processedBindings, ...(args.slice(1) as [string, ...unknown[]]));
+      }
+      return pinoLogger[method](...(args as [string, ...unknown[]]));
+    };
+
+  return {
+    debug: wrapMethod('debug'),
+    info: wrapMethod('info'),
+    warn: wrapMethod('warn'),
+    error: wrapMethod('error'),
+    child: (childBindings: Record<string, unknown>) => {
+      const childLogger = pinoLogger.child(childBindings);
+      return wrapLoggerWithErrorSerialization(childLogger as unknown as ReturnType<typeof log>);
+    },
+  };
+}
+
+/**
  * Create a child logger with additional context bindings
  *
  * @param bindings - Key-value pairs to include in all log messages
@@ -115,7 +212,9 @@ export const getLogger = safeLog;
 export function createLogger(bindings: Record<string, unknown>): FallbackLogger {
   try {
     const baseLogger = log();
-    return baseLogger.child(bindings) as unknown as FallbackLogger;
+    const childLogger = baseLogger.child(bindings);
+    // Wrap the child logger to automatically serialize errors
+    return wrapLoggerWithErrorSerialization(childLogger as unknown as ReturnType<typeof log>);
   } catch {
     return createFallbackLogger(bindings);
   }

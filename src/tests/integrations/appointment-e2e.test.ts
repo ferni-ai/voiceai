@@ -10,29 +10,29 @@
  *   npx vitest run src/tests/integrations/appointment-e2e.test.ts
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import {
-  getTwilioWebhookService,
-  generateAppointmentTwiML,
-  generateMessageTwiML,
-  generateVoicemailTwiML,
-  type TwilioCallStatus,
-  type TwilioSMSStatus,
-} from '../../services/twilio-webhooks.js';
-import {
-  generateAuthUrl,
-  exchangeCodeForTokens,
-  storeUserTokens,
-  getUserTokens,
-  createAppointmentEvent,
-  isOAuthConfigured,
-  areTokensExpired,
-  type GoogleTokens,
-} from '../../services/google-calendar-oauth.js';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getAppointmentIntegrationService,
   type AppointmentRequest,
 } from '../../services/appointment-integration.js';
+import {
+  areTokensExpired,
+  createAppointmentEvent,
+  deleteUserTokens,
+  generateAuthUrl,
+  getUserTokens,
+  isOAuthConfigured,
+  storeUserTokens,
+  type GoogleTokens,
+} from '../../services/google-calendar-oauth.js';
+import {
+  generateAppointmentTwiML,
+  generateMessageTwiML,
+  generateVoicemailTwiML,
+  getTwilioWebhookService,
+  type TwilioCallStatus,
+  type TwilioSMSStatus,
+} from '../../services/twilio-webhooks.js';
 
 // ============================================================================
 // TWILIO WEBHOOK TESTS
@@ -274,14 +274,19 @@ describe('Google Calendar OAuth Service', () => {
         token_type: 'Bearer',
       };
 
-      await storeUserTokens(testUserId, tokens);
-      const retrieved = await getUserTokens(testUserId);
+      try {
+        await storeUserTokens(testUserId, tokens);
+        const retrieved = await getUserTokens(testUserId);
 
-      expect(retrieved?.access_token).toBe('test-access-token');
-      expect(retrieved?.refresh_token).toBe('test-refresh-token');
-      expect(retrieved?.expiry_date).toBeDefined();
+        expect(retrieved?.access_token).toBe('test-access-token');
+        expect(retrieved?.refresh_token).toBe('test-refresh-token');
+        expect(retrieved?.expiry_date).toBeDefined();
 
-      console.log('✅ Token storage works');
+        console.log('✅ Token storage works');
+      } finally {
+        // Clean up test token to prevent calendar sync errors
+        await deleteUserTokens(testUserId);
+      }
     });
 
     it('should detect expired tokens', () => {
@@ -310,28 +315,33 @@ describe('Google Calendar OAuth Service', () => {
     it('should create appointment event (when configured)', async () => {
       const testUserId = `cal-test-${Date.now()}`;
 
-      // Store mock tokens
-      storeUserTokens(testUserId, {
-        access_token: 'mock-token',
-        refresh_token: 'mock-refresh',
-        expires_in: 3600,
-        token_type: 'Bearer',
-        expiry_date: Date.now() + 3600000,
-      });
+      try {
+        // Store mock tokens
+        await storeUserTokens(testUserId, {
+          access_token: 'mock-token',
+          refresh_token: 'mock-refresh',
+          expires_in: 3600,
+          token_type: 'Bearer',
+          expiry_date: Date.now() + 3600000,
+        });
 
-      // This will fail in test (no real tokens) but tests the flow
-      const event = await createAppointmentEvent(testUserId, {
-        title: 'Test Appointment',
-        description: 'E2E Test',
-        startTime: new Date(Date.now() + 86400000), // Tomorrow
-        durationMinutes: 60,
-      });
+        // This will fail in test (no real tokens) but tests the flow
+        const event = await createAppointmentEvent(testUserId, {
+          title: 'Test Appointment',
+          description: 'E2E Test',
+          startTime: new Date(Date.now() + 86400000), // Tomorrow
+          durationMinutes: 60,
+        });
 
-      // Without real credentials, this returns null
-      // In production with real tokens, this would return the event
-      console.log(`📅 Event creation result: ${event ? 'Created' : 'Skipped (mock tokens)'}`);
+        // Without real credentials, this returns null
+        // In production with real tokens, this would return the event
+        console.log(`📅 Event creation result: ${event ? 'Created' : 'Skipped (mock tokens)'}`);
 
-      expect(true).toBe(true); // Test passes either way
+        expect(true).toBe(true); // Test passes either way
+      } finally {
+        // Clean up test token to prevent calendar sync errors
+        await deleteUserTokens(testUserId);
+      }
     });
   });
 });
