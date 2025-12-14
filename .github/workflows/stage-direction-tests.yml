@@ -1,0 +1,70 @@
+name: Stage Direction Tests
+
+# Ensure stage directions are never spoken aloud by TTS
+# These tests catch when LLMs generate patterns like *smiles*, [pauses], etc.
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/ssml/**'
+      - 'src/speech/**'
+      - 'src/personas/**/system-prompt.md'
+      - 'src/tests/stage-direction*.test.ts'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'src/ssml/**'
+      - 'src/speech/**'
+      - 'src/personas/**/system-prompt.md'
+      - 'src/tests/stage-direction*.test.ts'
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  stage-direction-tests:
+    name: Stage Direction Sanitization Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run stage direction tests
+        run: |
+          npx vitest run \
+            src/tests/stage-direction-sanitization.test.ts \
+            src/tests/stage-direction-e2e.test.ts \
+            src/speech/__tests__/ssml-tagger.test.ts \
+            --reporter=verbose
+        env:
+          NODE_ENV: test
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Stage Direction Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "These tests ensure that LLM-generated stage directions are:" >> $GITHUB_STEP_SUMMARY
+          echo "- Properly sanitized before reaching TTS" >> $GITHUB_STEP_SUMMARY
+          echo "- Never spoken aloud (e.g., 'asterisk smiles asterisk')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### What's Tested" >> $GITHUB_STEP_SUMMARY
+          echo "- Asterisk patterns: \`*smiles*\`, \`*chuckles*\`, \`*pauses*\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Bracket patterns: \`[pauses]\`, \`[warmly]\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Parenthesis patterns: \`(sighs)\`, \`(nods)\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Standalone action words: \`He smiles warmly.\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Tone descriptors: \`warmly\`, \`gently\`, \`sarcastically\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Supported TTS Notation" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ \`[laughter]\` - Only supported Cartesia nonverbal" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ SSML tags: \`<break>\`, \`<speed>\`, \`<volume>\`, \`<emotion>\`" >> $GITHUB_STEP_SUMMARY

@@ -357,6 +357,38 @@ export function sanitizeSsml(text: string): string {
   result = result.replace(/\bsmirk(s|ing)?\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bpauses?\b[,.!?:;—–-]?\s*/gi, '');
   result = result.replace(/\bpausing\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bbeams?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bbeaming\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bclaps?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bclapping\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bgasps?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bgasping\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bfrowns?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bfrowning\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bbounces?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bbouncing\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bsniffs?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bsniffling\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bteary\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\bemotional(?:ly)?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\btyping sounds?\b[,.!?:;—–-]?\s*/gi, '');
+  result = result.replace(/\blooks? up\b[,.!?:;—–-]?\s*/gi, '');
+
+  // ================================================
+  // NUCLEAR: Remove ANY remaining asterisk-wrapped content
+  // This catches creative stage directions we didn't anticipate
+  // ================================================
+
+  // Remove any remaining *anything* patterns that aren't single words used for emphasis
+  // Pattern: asterisk + 2+ words OR asterisk + single word ending in -ly/-ing/-ed
+  result = result.replace(/\*[^*]*\s+[^*]*\*/g, ''); // Multi-word asterisk patterns
+  result = result.replace(/\*\w+(?:ly|ing|ed|s)\*/gi, ''); // Single word stage direction patterns
+
+  // Final cleanup: any remaining asterisk pairs with stage-direction-like content
+  result = result.replace(
+    /\*(?:eyes?|accent|rapid|efficient|excitedly?|delighted|enthusiastic)[^*]*\*/gi,
+    ''
+  );
 
   // ================================================
   // THEN: Fix malformed SSML tags

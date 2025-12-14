@@ -282,8 +282,18 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     currentPhase = 'session';
     e2e.resourceLoading('agent-session');
     const sessionStart = Date.now();
-    const systemPrompt =
-      cachedPrompt || persona?.systemPrompt || 'You are Ferni, a helpful AI life coach.';
+
+    // FIX BUG: Generate proper fallback system prompt based on persona ID, NOT hardcoded to Ferni
+    // This prevents "Peter's voice but Ferni's persona" bug when persona loading partially fails
+    const personaDisplayName = persona?.name || personaId.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const fallbackSystemPrompt = `You are ${personaDisplayName}, a helpful AI assistant. Introduce yourself by your name.`;
+    const systemPrompt = cachedPrompt || persona?.systemPrompt || fallbackSystemPrompt;
+
+    // Log warning if we had to use fallback (indicates a loading issue)
+    if (!cachedPrompt && !persona?.systemPrompt) {
+      process.stderr.write(`[voice-agent-entry] ⚠️ WARNING: Using fallback system prompt for ${personaId} - persona may not have loaded correctly!\n`);
+    }
+
     const created = await createSession(persona, systemPrompt, preloaded ?? undefined);
     session = created.session;
 
@@ -295,9 +305,9 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // Step 5: Say greeting - use preloaded warmGreeting
     currentPhase = 'greeting';
     const warmGreeting = preloaded?.warmGreeting ?? (await import('./shared/warm-greeting.js'));
-    await session.say(
-      warmGreeting.getWarmGreeting(personaId) || "Hey there! I'm Ferni. How can I help you today?"
-    );
+    // FIX BUG: Generate persona-specific fallback greeting instead of hardcoded Ferni
+    const fallbackGreeting = `Hey there! I'm ${personaDisplayName}. How can I help you today?`;
+    await session.say(warmGreeting.getWarmGreeting(personaId) || fallbackGreeting);
 
     currentPhase = 'running';
     await new Promise<void>((resolve) => {
