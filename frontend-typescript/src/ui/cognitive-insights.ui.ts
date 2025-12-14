@@ -835,6 +835,145 @@ class CognitiveInsightsUI {
       }
 
       /* Patterns */
+      /* ========================================
+       * SUPERHUMAN INSIGHTS SECTION
+       * "Better than human" proactive memory
+       * ======================================== */
+      
+      .cognitive-insights__superhuman {
+        padding: var(--space-4, 16px);
+        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.1)), var(--color-background-secondary));
+        border-radius: var(--radius-xl, 1.25rem);
+        border: 1px solid var(--persona-primary, #4a6741);
+        margin-bottom: var(--space-4, 16px);
+      }
+
+      .cognitive-insights__superhuman-header {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 8px);
+        margin-bottom: var(--space-2, 8px);
+      }
+
+      .cognitive-insights__superhuman-icon {
+        width: 20px;
+        height: 20px;
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .cognitive-insights__superhuman-icon svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .cognitive-insights__superhuman-title {
+        font-size: var(--text-base);
+        font-weight: 600;
+        color: var(--color-text-primary);
+        margin: 0;
+        flex: 1;
+      }
+
+      .cognitive-insights__superhuman-badge {
+        font-size: var(--text-xs);
+        font-weight: 500;
+        padding: var(--space-1, 4px) var(--space-2, 8px);
+        background: var(--persona-primary, #4a6741);
+        color: white;
+        border-radius: var(--radius-full, 9999px);
+      }
+
+      .cognitive-insights__superhuman-intro {
+        font-size: var(--text-sm);
+        color: var(--color-text-muted);
+        margin: 0 0 var(--space-3, 12px) 0;
+        font-style: italic;
+      }
+
+      .cognitive-insights__superhuman-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2, 8px);
+      }
+
+      .cognitive-insights__superhuman-insight {
+        display: flex;
+        gap: var(--space-3, 12px);
+        padding: var(--space-3, 12px);
+        background: var(--color-background-elevated);
+        border-radius: var(--radius-lg, 1rem);
+        transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .cognitive-insights__superhuman-insight:hover {
+        transform: translateX(4px);
+      }
+
+      .cognitive-insights__superhuman-insight--high {
+        border-left: 3px solid var(--persona-primary, #4a6741);
+        background: linear-gradient(90deg, var(--persona-tint), var(--color-background-elevated));
+      }
+
+      .cognitive-insights__superhuman-insight--medium {
+        border-left: 3px solid var(--color-text-muted);
+      }
+
+      .cognitive-insights__superhuman-insight-icon {
+        width: 24px;
+        height: 24px;
+        color: var(--persona-primary, #4a6741);
+        flex-shrink: 0;
+      }
+
+      .cognitive-insights__superhuman-insight-icon svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .cognitive-insights__superhuman-insight-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .cognitive-insights__superhuman-insight-header {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 8px);
+        margin-bottom: var(--space-1, 4px);
+      }
+
+      .cognitive-insights__superhuman-insight-type {
+        font-size: var(--text-xs);
+        font-weight: 500;
+        color: var(--color-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .cognitive-insights__superhuman-insight-tone {
+        font-size: var(--text-sm);
+      }
+
+      .cognitive-insights__superhuman-insight-phrase {
+        font-size: var(--text-sm);
+        color: var(--color-text-primary);
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      /* Dark theme for superhuman section */
+      [data-theme="midnight"] .cognitive-insights__superhuman {
+        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.2)), var(--color-background-tertiary));
+      }
+
+      [data-theme="midnight"] .cognitive-insights__superhuman-insight {
+        background: var(--color-background-secondary);
+      }
+
+      [data-theme="midnight"] .cognitive-insights__superhuman-insight--high {
+        background: linear-gradient(90deg, var(--persona-tint), var(--color-background-secondary));
+      }
+
       .cognitive-insights__patterns {
         padding: var(--space-4, 16px);
         background: var(--color-background-secondary);
@@ -1150,6 +1289,57 @@ export function showCognitiveInsights(data: CognitiveInsightsData): void {
 
 export function hideCognitiveInsights(): void {
   getCognitiveInsightsUI().hide();
+}
+
+/**
+ * Fetch superhuman insights from the API
+ * Returns insights for the current user's proactive memory features
+ */
+export async function fetchSuperhumanInsights(): Promise<{
+  insights: SuperhumanInsight[];
+  temporalContext: { isSpecialDate: boolean; specialDateInfo?: string; seasonalPattern?: string };
+  topicAbsences: TopicAbsence[];
+} | null> {
+  try {
+    const response = await fetch('/api/cognitive/superhuman-insights', {
+      credentials: 'include',
+    });
+    
+    if (!response.ok) {
+      console.warn('Failed to fetch superhuman insights:', response.status);
+      return null;
+    }
+    
+    const data = await response.json();
+    return {
+      insights: data.insights || [],
+      temporalContext: data.temporalContext || { isSpecialDate: false },
+      topicAbsences: data.topicAbsences || [],
+    };
+  } catch (error) {
+    console.warn('Error fetching superhuman insights:', error);
+    return null;
+  }
+}
+
+/**
+ * Load cognitive insights with superhuman data included
+ */
+export async function loadCognitiveInsightsWithSuperhuman(
+  baseData: CognitiveInsightsData
+): Promise<CognitiveInsightsData> {
+  const superhuman = await fetchSuperhumanInsights();
+  
+  if (superhuman) {
+    return {
+      ...baseData,
+      superhumanInsights: superhuman.insights,
+      temporalContext: superhuman.temporalContext,
+      topicAbsences: superhuman.topicAbsences,
+    };
+  }
+  
+  return baseData;
 }
 
 export default CognitiveInsightsUI;
