@@ -594,7 +594,7 @@ function startSaccadeTimer(): void {
       SOUL_TIMING.SACCADE_MIN_INTERVAL +
       Math.random() * (SOUL_TIMING.SACCADE_MAX_INTERVAL - SOUL_TIMING.SACCADE_MIN_INTERVAL);
 
-    state.gaze.saccadeTimer = window.trackedTimeout(() => {
+    state.gaze.saccadeTimer = trackedTimeout(() => {
       if (!state.gaze.isThinking) {
         performSaccade();
       }

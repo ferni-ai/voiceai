@@ -397,7 +397,7 @@ function handleVerify(isSameUser: boolean): void {
 
 function scheduleAutoDismiss(): void {
   clearAutoDismiss();
-  dismissTimeout = window.trackedTimeout(hide, AUTO_DISMISS_MS);
+  dismissTimeout = trackedTimeout(hide, AUTO_DISMISS_MS);
 }
 
 function clearAutoDismiss(): void {

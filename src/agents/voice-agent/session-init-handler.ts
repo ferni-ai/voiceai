@@ -146,7 +146,7 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
     userId,
     undefined, // isReturningUser determined from profile
     sessionPersona.speechCharacteristics,
-    sessionPersona.personality.energy,
+    sessionPersona.personality?.energy ?? 0.6, // Default energy if personality not loaded
     sessionPersona.id
   );
 

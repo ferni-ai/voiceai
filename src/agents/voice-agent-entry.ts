@@ -285,6 +285,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         .join(' '),
       voice: { voiceId: 'a0e99841-438c-4a64-b679-ae501e7d6091', provider: 'cartesia' },
       systemPrompt: cachedPrompt || `You are ${personaId}, a helpful AI assistant.`,
+      personality: { warmth: 0.7, humor: 0.4, directness: 0.6, energy: 0.6 },
+      speechCharacteristics: { baseSpeedMultiplier: 1.0, pauseMultiplier: 1.0 },
     }) as unknown as PersonaConfig;
 
     const systemPrompt = cachedPrompt || sessionPersona.systemPrompt;

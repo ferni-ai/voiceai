@@ -195,7 +195,7 @@ function scheduleNextAction(): void {
     interval *= 1 / CONFIG.NIGHT_ACTIVITY_MULTIPLIER; // Longer intervals at night
   }
 
-  state.actionTimer = window.trackedTimeout(() => {
+  state.actionTimer = trackedTimeout(() => {
     performRandomAction();
     scheduleNextAction();
   }, interval);

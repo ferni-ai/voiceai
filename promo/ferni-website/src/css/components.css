@@ -537,8 +537,8 @@ a.card:hover h3 {
 }
 
 .garden__pillar-icon {
-  width: 64px;
-  height: 64px;
+  width: 64px !important;
+  height: 64px !important;
   min-width: 64px;
   min-height: 64px;
   max-width: 64px;
@@ -555,11 +555,22 @@ a.card:hover h3 {
 }
 
 .garden__pillar-icon svg {
-  width: 30px;
-  height: 30px;
+  width: 30px !important;
+  height: 30px !important;
   max-width: 30px;
   max-height: 30px;
   flex-shrink: 0;
+}
+
+/* Ensure SVGs inside garden section don't expand uncontrolled */
+.garden svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.garden__model svg {
+  width: 30px !important;
+  height: 30px !important;
 }
 
 .garden__pillar-title {

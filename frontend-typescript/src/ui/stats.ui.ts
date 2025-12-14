@@ -8,6 +8,7 @@
  * - Conversation topics
  */
 
+import { t } from '../i18n/index.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 // Track setTimeout calls for memory leak prevention
