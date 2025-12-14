@@ -33,8 +33,10 @@ import {
   readFileSync,
 } from 'fs';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = dirname(dirname(__dirname));
+// Detect if running as SEA binary (shim URL) vs normal execution
+const isSEA = import.meta.url.includes('ferni-sea-binary');
+const __dirname = isSEA ? process.cwd() : dirname(fileURLToPath(import.meta.url));
+const PROJECT_ROOT = isSEA ? process.cwd() : dirname(dirname(__dirname));
 
 // Load environment
 dotenvConfig({ path: join(PROJECT_ROOT, '.env') });

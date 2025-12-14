@@ -1,0 +1,74 @@
+# i18n Validation Check
+# ======================
+# Validates translation integrity across all locales.
+# Fails the build if translations are missing or inconsistent.
+# Run `npm run i18n:sync` to add missing keys to locales.
+
+name: i18n Validation
+
+on:
+  pull_request:
+    paths:
+      - 'frontend-typescript/src/i18n/**'
+      - 'frontend-typescript/src/ui/**/*.ts'
+      - 'frontend-typescript/src/app.ts'
+      - 'frontend-typescript/src/services/**/*.ts'
+      - 'promo/ferni-website/src/_data/i18n/**'
+      - 'promo/ferni-website/src/**/*.njk'
+      - 'promo/ferni-website/src/**/*.html'
+  push:
+    branches: [main]
+    paths:
+      - 'frontend-typescript/src/i18n/**'
+      - 'promo/ferni-website/src/_data/i18n/**'
+
+jobs:
+  i18n-validation:
+    name: 🌐 Translation Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check i18n integrity
+        id: i18n-check
+        run: |
+          echo "🌐 Checking i18n integrity..."
+          npm run i18n:check
+        continue-on-error: true
+
+      - name: Show sync instructions (on failure)
+        if: steps.i18n-check.outcome == 'failure'
+        run: |
+          echo ""
+          echo "══════════════════════════════════════════════════════════════"
+          echo "❌ i18n VALIDATION FAILED"
+          echo "══════════════════════════════════════════════════════════════"
+          echo ""
+          echo "To fix this, run locally:"
+          echo ""
+          echo "  npm run i18n:sync"
+          echo ""
+          echo "This will add missing keys to all locales."
+          echo "Then commit the updated locale files."
+          echo ""
+          echo "══════════════════════════════════════════════════════════════"
+          exit 1
+
+      - name: Success
+        if: steps.i18n-check.outcome == 'success'
+        run: |
+          echo "✅ All translations valid!"
+          echo "   - All keys found in source code exist in locales"
+          echo "   - All locales have consistent keys"
+          echo "   - Placeholder consistency verified"
