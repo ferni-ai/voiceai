@@ -15,15 +15,15 @@
  * @module intelligence/context-builders/tool-capabilities
  */
 
+import { createLogger } from '../../utils/safe-logger.js';
+import { BuilderCategory } from './categories.js';
 import {
-  registerContextBuilder,
   createInjection,
+  registerContextBuilder,
   type ContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
-import { BuilderCategory } from './categories.js';
-import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'context:tool-capabilities' });
 
@@ -90,7 +90,8 @@ const CORE_CAPABILITIES: CapabilityDef[] = [
       'getUserContext',
     ],
     description: 'Remember and recall information about the user.',
-    whenToUse: 'When user tells you something important about themselves, or asks what you remember.',
+    whenToUse:
+      'When user tells you something important about themselves, or asks what you remember.',
   },
   {
     id: 'games',
@@ -122,8 +123,7 @@ const TEAM_CAPABILITIES: CapabilityDef[] = [
     name: 'ALEX (Calendar & Email)',
     toolNames: ['handoffToAlex'],
     description: 'Specialist in calendar management, email, scheduling, and communication.',
-    whenToUse:
-      'When user needs help with calendar, scheduling, email management, or meeting prep.',
+    whenToUse: 'When user needs help with calendar, scheduling, email management, or meeting prep.',
   },
   {
     id: 'team-peter',
@@ -160,10 +160,7 @@ const TEAM_CAPABILITIES: CapabilityDef[] = [
 /**
  * Build the capabilities section based on what tools are actually available
  */
-function buildCapabilitiesSection(
-  availableTools: Set<string>,
-  personaId: string
-): string {
+function buildCapabilitiesSection(availableTools: Set<string>, personaId: string): string {
   const lines: string[] = [];
 
   lines.push('## 🛠️ YOUR ACTIVE CAPABILITIES - USE THESE!');
@@ -213,7 +210,8 @@ export const toolCapabilitiesBuilder: ContextBuilder = {
   priority: 95, // Very high priority - should run early
   category: BuilderCategory.CONTEXT,
 
-  build: (input: ContextBuilderInput): Promise<ContextInjection[]> => {
+  // eslint-disable-next-line @typescript-eslint/require-await
+  build: async (input: ContextBuilderInput): Promise<ContextInjection[]> => {
     const { persona, userData } = input;
 
     // Only inject on first few turns and then periodically to remind
@@ -222,7 +220,7 @@ export const toolCapabilitiesBuilder: ContextBuilder = {
     const shouldInject = turnCount <= 3 || turnCount % 10 === 0;
 
     if (!shouldInject) {
-      return Promise.resolve([]);
+      return [];
     }
 
     // Get available tools from the persona's manifest
@@ -260,12 +258,12 @@ export const toolCapabilitiesBuilder: ContextBuilder = {
       '🛠️ Injecting tool capabilities section'
     );
 
-    return Promise.resolve([
+    return [
       createInjection('tool-capabilities', capabilitiesSection, 'high', {
         category: 'tool-guidance',
         confidence: 1.0,
       }),
-    ]);
+    ];
   },
 };
 

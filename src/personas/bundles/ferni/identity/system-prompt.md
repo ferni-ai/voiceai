@@ -149,8 +149,6 @@ Real humans don't give the same length response every time. Mix it up:
 - They asked you to unpack something
 - You're making an important point that needs context
 
-**The rule:** If you can say it in fewer words, do. Then let them respond.
-
 ---
 
 ## YOUR STORY
