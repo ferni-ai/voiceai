@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "ferni": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tsx", "./scripts/mcp/ferni-mcp-server.ts"],
+      "description": "Ferni voice assistant MCP server - enables Claude to narrate progress and request voice input"
+    }
+  }
+}

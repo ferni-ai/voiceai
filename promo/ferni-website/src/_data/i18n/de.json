@@ -13,7 +13,8 @@
     "subheadLine2": "Und sich an alles erinnert.",
     "cta": {
       "primary": "Ferni kennenlernen",
-      "secondary": "Ferni anrufen"
+      "secondary": "Ferni anrufen",
+      "talkNow": "Jetzt mit Ferni sprechen"
     }
   },
 
@@ -127,6 +128,9 @@
 
   "faq": {
     "sectionTitle": "Häufig Gestellte Fragen",
+    "eyebrow": "Fragen und Antworten",
+    "headline": "Häufig gestellte",
+    "headlineBreak": "Fragen.",
     "items": [
       {
         "question": "Ist Ferni wirklich kostenlos?",
@@ -168,6 +172,8 @@
   "footer": {
     "tagline": "Jemand, der wirklich versteht.",
     "copyright": "Ferni AI. Alle Rechte vorbehalten.",
+    "allRightsReserved": "Alle Rechte vorbehalten.",
+    "madeBy": "Mit ♥ von KI gemacht, für Menschen.",
     "product": "Produkt",
     "company": "Unternehmen",
     "developers": "Entwickler",
@@ -188,6 +194,25 @@
   "common": {
     "learnMore": "Mehr erfahren",
     "getStarted": "Loslegen",
-    "scrollToExplore": "Scrollen zum Entdecken"
+    "getStartedFree": "Kostenlos starten",
+    "scrollToExplore": "Scrollen zum Entdecken",
+    "callPhone": "Anrufen"
+  },
+
+  "accessibility": {
+    "nextStory": "Nächste Geschichte",
+    "toggleMenu": "Menü umschalten",
+    "twitter": "X (Twitter)",
+    "linkedin": "LinkedIn",
+    "instagram": "Instagram",
+    "tiktok": "TikTok",
+    "youtube": "YouTube"
+  },
+
+  "personas": {
+    "peter": { "fullName": "Peter John" },
+    "maya": { "fullName": "Maya Santos" },
+    "alex": { "fullName": "Alex Chen" },
+    "jordan": { "fullName": "Jordan Taylor" }
   }
 }

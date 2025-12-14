@@ -307,6 +307,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "husky": "^9.1.7",
+    "node-pty": "1.0.0",
     "postject": "1.0.0-alpha.6",
     "prettier": "^3.7.2",
     "tsx": "^4.7.0",

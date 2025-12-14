@@ -71,7 +71,7 @@ section {
   font-size: clamp(28px, 4vw, 40px);
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .about-content p {
@@ -94,7 +94,7 @@ section {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .about-beliefs li {
@@ -131,7 +131,7 @@ section {
 .about-location__card {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 60px;
+  gap: var(--space-14);
   align-items: center;
   padding: 60px;
   background: var(--color-bg-elevated);
@@ -144,7 +144,7 @@ section {
   font-size: clamp(28px, 4vw, 40px);
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .about-location__content p {
@@ -174,7 +174,7 @@ section {
 .about-team__grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .about-team__card {
@@ -207,7 +207,7 @@ section {
   font-size: 20px;
   font-weight: 700;
   color: #fff;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .about-team__name {
@@ -241,7 +241,7 @@ section {
   font-size: clamp(28px, 4vw, 40px);
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .about-cta__card p {
@@ -253,7 +253,7 @@ section {
 
 .about-cta__buttons {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   justify-content: center;
   flex-wrap: wrap;
 }
@@ -325,7 +325,7 @@ section {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--color-accent);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .blog-card__title {
@@ -333,7 +333,7 @@ section {
   font-size: 24px;
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
   line-height: 1.3;
 }
 
@@ -354,12 +354,12 @@ section {
   font-size: 16px;
   line-height: 1.6;
   color: var(--color-text-secondary);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .blog-card__meta {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   font-size: 13px;
   color: var(--color-text-muted);
 }
@@ -367,7 +367,7 @@ section {
 .blog-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .blog-grid .blog-card__title {
@@ -398,18 +398,18 @@ section {
   font-size: 28px;
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .blog-newsletter__card p {
   font-size: 16px;
   color: var(--color-text-secondary);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .blog-newsletter__form {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   max-width: 400px;
   margin: 0 auto;
 }
@@ -515,7 +515,7 @@ section {
   font-size: 17px;
   line-height: 1.8;
   color: var(--color-text-secondary);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .compare-detail p:last-child {
@@ -544,7 +544,7 @@ section {
   font-size: clamp(28px, 4vw, 40px);
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .compare-cta__card p {
@@ -565,7 +565,7 @@ section {
 
 .enterprise-hero__cta {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   justify-content: center;
   margin-top: 32px;
 }
@@ -578,7 +578,7 @@ section {
 .enterprise-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .enterprise-card {
@@ -604,7 +604,7 @@ section {
   align-items: center;
   justify-content: center;
   color: var(--color-accent);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .enterprise-card__title {
@@ -612,7 +612,7 @@ section {
   font-size: 22px;
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .enterprise-card__description {
@@ -629,7 +629,7 @@ section {
 .enterprise-usecases__grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
+  gap: var(--space-6);
   max-width: 900px;
   margin: 0 auto;
 }
@@ -652,7 +652,7 @@ section {
   font-size: 20px;
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .enterprise-usecase p {
@@ -679,7 +679,7 @@ section {
   font-size: clamp(28px, 4vw, 40px);
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .enterprise-contact__card > p {
@@ -698,14 +698,14 @@ section {
 .enterprise-form__row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
 }
 
 .enterprise-form__field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .enterprise-form__field label {
@@ -754,7 +754,7 @@ section {
 .marketplace-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .persona-card {
@@ -797,7 +797,7 @@ section {
 
 .persona-card__badges {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .persona-card__badge {
@@ -832,7 +832,7 @@ section {
   font-size: 13px;
   font-weight: 600;
   color: var(--color-accent);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .persona-card__description {
@@ -871,20 +871,20 @@ section {
 
 .marketplace-coming__content h2 {
   font-size: clamp(28px, 4vw, 40px);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .marketplace-coming__features {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: var(--space-8);
   margin: 48px 0;
   text-align: left;
 }
 
 .marketplace-coming__feature {
   display: flex;
-  gap: 20px;
+  gap: var(--space-5);
   align-items: flex-start;
 }
 
@@ -930,7 +930,7 @@ section {
 
 .marketplace-waitlist__form {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   max-width: 400px;
   margin: 0 auto;
 }
@@ -975,7 +975,7 @@ section {
   font-size: clamp(28px, 4vw, 40px);
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .marketplace-cta__card p {
@@ -1015,7 +1015,7 @@ section {
   font-size: clamp(24px, 4vw, 32px);
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .press-section p {
@@ -1038,12 +1038,12 @@ section {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-text-muted);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .press-boilerplate p {
   font-size: 15px;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .press-facts {
@@ -1053,7 +1053,7 @@ section {
 .press-facts__grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 32px;
+  gap: var(--space-8);
   margin-top: 32px;
 }
 
@@ -1072,7 +1072,7 @@ section {
   font-weight: 700;
   color: var(--color-accent);
   line-height: 1;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .press-fact__label {
@@ -1090,7 +1090,7 @@ section {
 .press-logos__grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
+  gap: var(--space-6);
   margin-bottom: 48px;
 }
 
@@ -1146,13 +1146,13 @@ section {
 .press-colors__grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .press-color {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
   padding: 16px;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
@@ -1214,7 +1214,7 @@ section {
   font-size: clamp(28px, 4vw, 40px);
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .press-cta__card p {
@@ -1226,7 +1226,7 @@ section {
 
 .press-cta__buttons {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   justify-content: center;
   flex-wrap: wrap;
 }
@@ -1248,7 +1248,7 @@ section {
 .use-cases-list {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .use-case-card {
@@ -1271,7 +1271,7 @@ section {
 .use-case-card--featured {
   grid-column: span 3;
   flex-direction: row;
-  gap: 40px;
+  gap: var(--space-10);
   padding: 48px;
   background: linear-gradient(135deg, var(--color-bg-elevated) 0%, rgba(74, 103, 65, 0.03) 100%);
   border-color: var(--color-accent);
@@ -1290,7 +1290,7 @@ section {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .use-case-card--featured .use-case-card__icon {
@@ -1308,7 +1308,7 @@ section {
   font-size: 22px;
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .use-case-card--featured .use-case-card__title {
@@ -1319,7 +1319,7 @@ section {
   font-size: 15px;
   line-height: 1.6;
   color: var(--color-text-secondary);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .use-case-card__cta {
@@ -1358,7 +1358,7 @@ section {
   font-size: clamp(28px, 4vw, 40px);
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .use-cases-cta__card p {
@@ -1379,7 +1379,7 @@ section {
 
 .team-member-profile {
   display: flex;
-  gap: 48px;
+  gap: var(--space-12);
   align-items: center;
   max-width: 800px;
   margin: 0 auto;
@@ -1405,7 +1405,7 @@ section {
   font-size: clamp(40px, 6vw, 56px);
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .team-member-profile__role {
@@ -1444,7 +1444,7 @@ section {
   font-size: 24px;
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .team-member-section p {
@@ -1457,7 +1457,7 @@ section {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .team-member-section li {
@@ -1503,18 +1503,18 @@ section {
   font-size: 28px;
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .team-member-cta__card p {
   font-size: 17px;
   color: var(--color-text-secondary);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .team-member-cta__buttons {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   justify-content: center;
 }
 
@@ -1534,7 +1534,7 @@ section {
 .team-member__back {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text-muted);
@@ -1549,7 +1549,7 @@ section {
 
 .team-member__hero {
   display: flex;
-  gap: 48px;
+  gap: var(--space-12);
   align-items: center;
 }
 
@@ -1592,7 +1592,7 @@ section {
   font-weight: 700;
   color: var(--color-text);
   line-height: 1.1;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .team-member__role {
@@ -1629,7 +1629,7 @@ section {
   font-size: 24px;
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .team-member__personality p,
@@ -1643,7 +1643,7 @@ section {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .team-member__specialty-list li {
@@ -1697,7 +1697,7 @@ section {
   font-size: clamp(24px, 4vw, 32px);
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .team-member__cta-card p {
@@ -1709,7 +1709,7 @@ section {
 
 .team-member__cta-buttons {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   justify-content: center;
   flex-wrap: wrap;
 }
@@ -1731,7 +1731,7 @@ section {
 .team-member__others-grid {
   display: flex;
   justify-content: center;
-  gap: 24px;
+  gap: var(--space-6);
   flex-wrap: wrap;
 }
 
@@ -1739,7 +1739,7 @@ section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   padding: 24px 32px;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
@@ -1789,7 +1789,7 @@ section {
   font-size: clamp(32px, 6vw, 48px);
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .doc-header p {
@@ -1839,7 +1839,7 @@ section {
   font-size: 16px;
   line-height: 1.8;
   color: var(--color-text-secondary);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .doc-content ul,
@@ -1852,7 +1852,7 @@ section {
   font-size: 16px;
   line-height: 1.7;
   color: var(--color-text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .doc-content code {
@@ -1932,7 +1932,7 @@ section {
 .doc-nav-buttons {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: var(--space-6);
   margin-top: 60px;
   padding-top: 32px;
   border-top: 1px solid var(--color-border);
@@ -1941,7 +1941,7 @@ section {
 .doc-nav-btn {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
   padding: 20px 24px;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
@@ -1978,11 +1978,11 @@ section {
 .hero-eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   font-size: 13px;
   font-weight: 600;
   color: var(--color-accent);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -2008,7 +2008,7 @@ section {
 
 .hero-ctas {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
 
@@ -2019,7 +2019,7 @@ section {
 
 .grid {
   display: grid;
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .grid-3 {
@@ -2063,7 +2063,7 @@ section {
   font-size: 20px;
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .card p {
@@ -2076,7 +2076,7 @@ section {
   height: 48px;
   background: var(--color-accent-subtle);
   border-radius: var(--radius-lg);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .code-block {
@@ -2152,7 +2152,7 @@ section {
 
   .about-location__card {
     grid-template-columns: 1fr;
-    gap: 40px;
+    gap: var(--space-10);
     padding: 40px;
   }
 
@@ -2167,7 +2167,7 @@ section {
   .use-case-card--featured {
     grid-column: span 1;
     flex-direction: column;
-    gap: 24px;
+    gap: var(--space-6);
     padding: 32px;
   }
 

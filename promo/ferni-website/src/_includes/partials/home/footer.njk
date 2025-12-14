@@ -40,19 +40,19 @@
 
       <div class="footer-links">
         <div class="footer-column">
-          <h4>Product</h4>
+          <h4>{{ 'footer.product' | t }}</h4>
           {% for link in site.navigation.footer.product %}
           <a href="{{ link.url }}">{{ link.title }}</a>
           {% endfor %}
         </div>
         <div class="footer-column">
-          <h4>Connect</h4>
+          <h4>{{ 'footer.connect' | t }}</h4>
           {% for link in site.navigation.footer.connect %}
           <a href="{{ link.url }}">{{ link.title }}</a>
           {% endfor %}
         </div>
         <div class="footer-column">
-          <h4>Legal</h4>
+          <h4>{{ 'footer.legal' | t }}</h4>
           {% for link in site.navigation.footer.legal %}
           <a href="{{ link.url }}">{{ link.title }}</a>
           {% endfor %}
@@ -61,8 +61,8 @@
     </div>
 
     <div class="footer-bottom">
-      <p>© {{ "" | year }} {{ site.name }}. All rights reserved.</p>
-      <p class="footer-made">Made with <span class="heart">♥</span> by AI, for humans.</p>
+      <p>© {{ "" | year }} {{ site.name }}. {{ 'footer.allRightsReserved' | t }}</p>
+      <p class="footer-made">{{ 'footer.madeBy' | t }}</p>
     </div>
   </div>
 </footer>

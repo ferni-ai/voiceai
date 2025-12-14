@@ -13,7 +13,8 @@
     "subheadLine2": "そして、すべてを覚えている。",
     "cta": {
       "primary": "Ferniに会う",
-      "secondary": "Ferniに電話"
+      "secondary": "Ferniに電話",
+      "talkNow": "今すぐFerniと話す"
     }
   },
 
@@ -127,6 +128,9 @@
 
   "faq": {
     "sectionTitle": "よくある質問",
+    "eyebrow": "質問と回答",
+    "headline": "よくある",
+    "headlineBreak": "質問",
     "items": [
       {
         "question": "Ferniは本当に無料ですか？",
@@ -168,6 +172,8 @@
   "footer": {
     "tagline": "本当に理解してくれる存在。",
     "copyright": "Ferni AI. 全著作権所有。",
+    "allRightsReserved": "All rights reserved.",
+    "madeBy": "AIによって♥を込めて作られました。人間のために。",
     "product": "製品",
     "company": "会社概要",
     "developers": "開発者",
@@ -188,6 +194,25 @@
   "common": {
     "learnMore": "詳しく見る",
     "getStarted": "始める",
-    "scrollToExplore": "スクロールして探索"
+    "getStartedFree": "無料で始める",
+    "scrollToExplore": "スクロールして探索",
+    "callPhone": "電話する"
+  },
+
+  "accessibility": {
+    "nextStory": "次のストーリー",
+    "toggleMenu": "メニュー切り替え",
+    "twitter": "X (Twitter)",
+    "linkedin": "LinkedIn",
+    "instagram": "Instagram",
+    "tiktok": "TikTok",
+    "youtube": "YouTube"
+  },
+
+  "personas": {
+    "peter": { "fullName": "ピーター・ジョン" },
+    "maya": { "fullName": "マヤ・サントス" },
+    "alex": { "fullName": "アレックス・チェン" },
+    "jordan": { "fullName": "ジョーダン・テイラー" }
   }
 }

@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|Bash",
+        "type": "command",
+        "description": "Report significant tool usage to Ferni for voice narration",
+        "timeout": 5,
+        "command": "npx tsx ./scripts/mcp/hook-notify-ferni.ts tool \"Finished editing code\""
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "description": "Notify Ferni when Claude finishes responding",
+        "timeout": 5,
+        "command": "npx tsx ./scripts/mcp/hook-notify-ferni.ts completion \"I'm ready for your next request\""
+      }
+    ],
+    "SubagentStop": [
+      {
+        "type": "command",
+        "description": "Notify Ferni when a subagent task completes",
+        "timeout": 5,
+        "command": "npx tsx ./scripts/mcp/hook-notify-ferni.ts progress \"Finished the background task\""
+      }
+    ]
+  }
+}

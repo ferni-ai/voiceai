@@ -285,13 +285,20 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     // FIX BUG: Generate proper fallback system prompt based on persona ID, NOT hardcoded to Ferni
     // This prevents "Peter's voice but Ferni's persona" bug when persona loading partially fails
-    const personaDisplayName = persona?.name || personaId.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const personaDisplayName =
+      persona?.name ||
+      personaId
+        .split('-')
+        .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
     const fallbackSystemPrompt = `You are ${personaDisplayName}, a helpful AI assistant. Introduce yourself by your name.`;
     const systemPrompt = cachedPrompt || persona?.systemPrompt || fallbackSystemPrompt;
 
     // Log warning if we had to use fallback (indicates a loading issue)
     if (!cachedPrompt && !persona?.systemPrompt) {
-      process.stderr.write(`[voice-agent-entry] ⚠️ WARNING: Using fallback system prompt for ${personaId} - persona may not have loaded correctly!\n`);
+      process.stderr.write(
+        `[voice-agent-entry] ⚠️ WARNING: Using fallback system prompt for ${personaId} - persona may not have loaded correctly!\n`
+      );
     }
 
     const created = await createSession(persona, systemPrompt, preloaded ?? undefined);

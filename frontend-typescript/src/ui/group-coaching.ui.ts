@@ -12,6 +12,7 @@
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
+import { t } from '../i18n/index.js';
 
 // ============================================================================
 // TYPES
@@ -54,30 +55,30 @@ const SESSION_TYPES: Array<{
 }> = [
   {
     id: 'couple',
-    name: 'Couple',
+    name: t('groupCoaching.sessionTypes.couple.name'),
     icon: '💑',
-    description: 'Two-person coaching for partners',
+    description: t('groupCoaching.sessionTypes.couple.description'),
     maxParticipants: 2,
   },
   {
     id: 'family',
-    name: 'Family',
+    name: t('groupCoaching.sessionTypes.family.name'),
     icon: '👨‍👩‍👧‍👦',
-    description: 'Whole family coaching sessions',
+    description: t('groupCoaching.sessionTypes.family.description'),
     maxParticipants: 6,
   },
   {
     id: 'team',
-    name: 'Team',
+    name: t('groupCoaching.sessionTypes.team.name'),
     icon: '👥',
-    description: 'Work team coaching',
+    description: t('groupCoaching.sessionTypes.team.description'),
     maxParticipants: 10,
   },
   {
     id: 'peer_support',
-    name: 'Peer Support',
+    name: t('groupCoaching.sessionTypes.peer.name'),
     icon: '🤝',
-    description: 'Group support sessions',
+    description: t('groupCoaching.sessionTypes.peer.description'),
     maxParticipants: 8,
   },
 ];
@@ -173,7 +174,7 @@ class GroupCoachingUI {
     this.panel = document.createElement('div');
     this.panel.className = 'group-coaching';
     this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', 'Group Coaching');
+    this.panel.setAttribute('aria-label', t('groupCoaching.title'));
 
     this.wrapper = document.createElement('div');
     this.wrapper.className = 'group-coaching__wrapper';
@@ -210,12 +211,12 @@ class GroupCoachingUI {
     this.wrapper.innerHTML = `
       <header class="group-coaching__header">
         <div class="group-coaching__icon">${ICONS.users}</div>
-        <h2 class="group-coaching__title">Group Coaching</h2>
+        <h2 class="group-coaching__title">${t('groupCoaching.title')}</h2>
         <button class="group-coaching__close" aria-label="Close">${ICONS.close}</button>
       </header>
       <div class="group-coaching__loading">
         <div class="group-coaching__spinner"></div>
-        <p>Loading...</p>
+        <p>${t('common.loading')}</p>
       </div>
     `;
 
@@ -235,24 +236,24 @@ class GroupCoachingUI {
             <div class="group-coaching__session-icon">${SESSION_TYPES.find((t) => t.id === session.type)?.icon || '👥'}</div>
             <div class="group-coaching__session-info">
               <span class="group-coaching__session-type">${SESSION_TYPES.find((t) => t.id === session.type)?.name || session.type}</span>
-              <span class="group-coaching__session-status">${session.status} • ${session.participants.length} participants</span>
+              <span class="group-coaching__session-status">${session.status} • ${session.participants.length} ${t('groupCoaching.participantsLabel')}</span>
             </div>
             <button class="group-coaching__session-join" data-session-id="${session.id}">
-              ${session.status === 'waiting' ? 'Start' : 'Join'}
+              ${session.status === 'waiting' ? t('groupCoaching.buttons.start') : t('groupCoaching.buttons.join')}
             </button>
           </div>
         `
             )
             .join('')
         : `<div class="group-coaching__empty">
-          <p>No active sessions</p>
-          <p class="group-coaching__empty-hint">Create a new session to get started</p>
+          <p>${t('groupCoaching.empty.title')}</p>
+          <p class="group-coaching__empty-hint">${t('groupCoaching.empty.hint')}</p>
         </div>`;
 
     this.wrapper.innerHTML = `
       <header class="group-coaching__header">
         <div class="group-coaching__icon">${ICONS.users}</div>
-        <h2 class="group-coaching__title">Group Coaching</h2>
+        <h2 class="group-coaching__title">${t('groupCoaching.title')}</h2>
         <button class="group-coaching__close" aria-label="Close">${ICONS.close}</button>
       </header>
 
@@ -367,7 +368,7 @@ class GroupCoachingUI {
         }
 
         <div class="group-coaching__participants">
-          <h3>Participants (${session.participants.length})</h3>
+          <h3>${t('groupCoaching.participantsLabel')} (${session.participants.length})</h3>
           ${participantsList}
         </div>
 
@@ -396,7 +397,7 @@ class GroupCoachingUI {
     this.wrapper.innerHTML = `
       <header class="group-coaching__header">
         <div class="group-coaching__icon">${ICONS.users}</div>
-        <h2 class="group-coaching__title">Group Coaching</h2>
+        <h2 class="group-coaching__title">${t('groupCoaching.title')}</h2>
         <button class="group-coaching__close" aria-label="Close">${ICONS.close}</button>
       </header>
       <div class="group-coaching__error">

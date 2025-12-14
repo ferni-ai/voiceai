@@ -13,7 +13,8 @@
     "subheadLine2": "그리고 모든 것을 기억합니다.",
     "cta": {
       "primary": "Ferni 만나기",
-      "secondary": "Ferni에게 전화"
+      "secondary": "Ferni에게 전화",
+      "talkNow": "지금 Ferni와 대화하기"
     }
   },
 
@@ -127,6 +128,9 @@
 
   "faq": {
     "sectionTitle": "자주 묻는 질문",
+    "eyebrow": "질문과 답변",
+    "headline": "자주 묻는",
+    "headlineBreak": "질문",
     "items": [
       {
         "question": "Ferni가 정말 무료인가요?",
@@ -168,6 +172,8 @@
   "footer": {
     "tagline": "진정으로 이해해주는 존재.",
     "copyright": "Ferni AI. 모든 권리 보유.",
+    "allRightsReserved": "All rights reserved.",
+    "madeBy": "AI가 ♥를 담아, 인간을 위해 만들었습니다.",
     "product": "제품",
     "company": "회사",
     "developers": "개발자",
@@ -188,6 +194,25 @@
   "common": {
     "learnMore": "자세히 알아보기",
     "getStarted": "시작하기",
-    "scrollToExplore": "스크롤하여 탐색"
+    "getStartedFree": "무료로 시작하기",
+    "scrollToExplore": "스크롤하여 탐색",
+    "callPhone": "전화하기"
+  },
+
+  "accessibility": {
+    "nextStory": "다음 스토리",
+    "toggleMenu": "메뉴 전환",
+    "twitter": "X (Twitter)",
+    "linkedin": "LinkedIn",
+    "instagram": "Instagram",
+    "tiktok": "TikTok",
+    "youtube": "YouTube"
+  },
+
+  "personas": {
+    "peter": { "fullName": "피터 존" },
+    "maya": { "fullName": "마야 산토스" },
+    "alex": { "fullName": "알렉스 첸" },
+    "jordan": { "fullName": "조던 테일러" }
   }
 }

@@ -23,7 +23,7 @@ import {
 // Seeds display for personalization economy
 import { renderSeedsSettingsCard } from './seeds-display.ui.js';
 // i18n for translations
-import { t, SUPPORTED_LOCALES, getLocale, setLocale, type SupportedLocale } from '../i18n/index.js';
+import { getLocale, setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/index.js';
 
 // ============================================================================
 // TYPES
@@ -148,15 +148,60 @@ const ICONS = {
 
 // ============================================================================
 // FEATURE LOCK MAPPING - Maps menu actions to unlockable features
-// Reserved for future use when relationship stages unlock features
+// Progressive disclosure: features unlock as relationship deepens
 // ============================================================================
 
 const FEATURE_LOCK_MAP: Record<string, string> = {
-  team: 'team-huddle',
-  cognitive: 'deep-insights',
+  // Getting Started stage (2+ conversations)
   ritual: 'custom-rituals',
-  relationship: 'relationship-progress',
+  analytics: 'progress-analytics',
+
+  // Building Trust stage (7+ convos, 3+ days)
+  team: 'team-huddle',
+  'conversation-memory': 'memory-browser',
+  wellbeing: 'wellbeing-dashboard',
+  predictions: 'prediction-accuracy',
+  'group-coaching': 'group-coaching',
+  'video-settings': 'video-sessions',
+
+  // Established stage (20+ convos, 14+ days)
+  cognitive: 'deep-insights',
+  history: 'conversation-history',
 };
+
+// ============================================================================
+// STAGE-BASED SECTION VISIBILITY
+// Progressive disclosure: show sections as relationship deepens
+// ============================================================================
+
+type SectionVisibility = Record<string, RelationshipStage>;
+
+const SECTION_VISIBILITY: SectionVisibility = {
+  connect: 'first-meeting', // Always visible
+  personalize: 'first-meeting', // Always visible
+  account: 'first-meeting', // Always visible
+  grow: 'getting-started', // After 2+ conversations
+  remember: 'building-trust', // After building trust
+};
+
+// ============================================================================
+// PINNED ITEMS STORAGE
+// ============================================================================
+
+const PINNED_STORAGE_KEY = 'ferni_menu_pinned';
+
+function getPinnedItems(): Set<string> {
+  try {
+    const stored = localStorage.getItem(PINNED_STORAGE_KEY);
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function savePinnedItems(items: Set<string>): void {
+  localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify([...items]));
+}
 
 // ============================================================================
 // SETTINGS MENU UI CLASS
@@ -170,7 +215,8 @@ class SettingsMenuUI {
   private isVisible = false;
   private spotifyLinked = false;
   private spotifyConfigured = false;
-  private expandedSections: Set<string> = new Set(['journey', 'insights']);
+  private expandedSections: Set<string> = new Set(['connect', 'personalize']);
+  private pinnedItems: Set<string> = getPinnedItems();
 
   initialize(): void {
     // Check for existing elements (HMR protection)
@@ -222,7 +268,9 @@ class SettingsMenuUI {
     spotifyItem.style.display = 'flex';
     const label = spotifyItem.querySelector('.settings-menu__label');
     if (label) {
-      label.textContent = this.spotifyLinked ? t('menu.items.spotifyConnected') : t('menu.items.linkSpotify');
+      label.textContent = this.spotifyLinked
+        ? t('menu.items.spotifyConnected')
+        : t('menu.items.linkSpotify');
     }
 
     // Add/remove linked class for styling
@@ -303,21 +351,66 @@ class SettingsMenuUI {
   }
 
   /**
-   * Render a menu item with optional locked state
+   * Get unlock progress hint for a feature
+   */
+  private getUnlockHint(action: string): string {
+    const featureId = FEATURE_LOCK_MAP[action];
+    if (!featureId) return '';
+    const progress = relationshipStageService.getFeatureUnlockProgress(featureId);
+    return progress.hint || t('menu.keepChatting');
+  }
+
+  /**
+   * Check if a section should be visible based on relationship stage
+   */
+  private isSectionVisible(sectionId: string): boolean {
+    const requiredStage = SECTION_VISIBILITY[sectionId];
+    if (!requiredStage) return true;
+
+    const stageOrder: RelationshipStage[] = [
+      'first-meeting',
+      'getting-started',
+      'building-trust',
+      'established',
+      'deep-partnership',
+    ];
+    const currentStage = relationshipStageService.getStage();
+    const currentIndex = stageOrder.indexOf(currentStage);
+    const requiredIndex = stageOrder.indexOf(requiredStage);
+
+    return currentIndex >= requiredIndex;
+  }
+
+  /**
+   * Toggle pinned state for an item
+   */
+  private togglePinned(action: string): void {
+    if (this.pinnedItems.has(action)) {
+      this.pinnedItems.delete(action);
+    } else {
+      this.pinnedItems.add(action);
+    }
+    savePinnedItems(this.pinnedItems);
+    this.renderContent();
+  }
+
+  /**
+   * Render a menu item with optional locked state and progress hint
    */
   private renderMenuItem(action: string, icon: string, label: string, extraClasses = ''): string {
     const isLocked = this.isFeatureLocked(action);
-    const requiredStage = this.getRequiredStage(action);
+    const isPinned = this.pinnedItems.has(action);
     const lockedClass = isLocked ? 'settings-menu__item--locked' : '';
-    const stageName = requiredStage ? STAGE_NAMES[requiredStage] : '';
+    const pinnedClass = isPinned ? 'settings-menu__item--pinned' : '';
 
     if (isLocked) {
+      const hint = this.getUnlockHint(action);
       return `
         <button class="settings-menu__item ${lockedClass} ${extraClasses}" data-action="${action}" data-locked="true">
           <span class="settings-menu__icon">${icon}</span>
           <span class="settings-menu__label-wrap">
             <span class="settings-menu__label">${label}</span>
-            <span class="settings-menu__unlock-hint">Unlock at ${stageName}</span>
+            <span class="settings-menu__unlock-hint">${hint}</span>
           </span>
           <span class="settings-menu__lock-icon">${ICONS.lock}</span>
         </button>
@@ -325,7 +418,7 @@ class SettingsMenuUI {
     }
 
     return `
-      <button class="settings-menu__item ${extraClasses}" data-action="${action}">
+      <button class="settings-menu__item ${pinnedClass} ${extraClasses}" data-action="${action}" data-pinnable="true">
         <span class="settings-menu__icon">${icon}</span>
         <span class="settings-menu__label">${label}</span>
       </button>
@@ -337,12 +430,14 @@ class SettingsMenuUI {
 
     // Get current relationship stage for progress display
     const currentStage = relationshipStageService.getStage();
-    const stageName = STAGE_NAMES[currentStage];
     const progress = relationshipStageService.getProgressToNextStage();
 
-    // Track which sections are expanded (default: first two open)
-    const expandedSections = this.expandedSections || new Set(['journey', 'insights']);
+    // Track which sections are expanded
+    const expandedSections = this.expandedSections || new Set(['connect', 'personalize']);
     this.expandedSections = expandedSections;
+
+    // Render pinned items section if any
+    const pinnedItemsHtml = this.renderPinnedItems();
 
     this.panel.innerHTML = `
       <div class="settings-menu__backdrop"></div>
@@ -356,7 +451,7 @@ class SettingsMenuUI {
         <div class="settings-menu__stage-banner">
           <div class="settings-menu__stage-info">
             <span class="settings-menu__stage-label">${t('menu.yourStage')}</span>
-            <span class="settings-menu__stage-name">${t(`stages.${currentStage}`)}</span>
+            <span class="settings-menu__stage-name">${STAGE_NAMES[currentStage]}</span>
           </div>
           ${
             progress.nextStage
@@ -365,7 +460,7 @@ class SettingsMenuUI {
               <div class="settings-menu__stage-bar">
                 <div class="settings-menu__stage-fill" style="width: ${Math.round(progress.progress * 100)}%"></div>
               </div>
-              <span class="settings-menu__stage-next">${t('menu.nextStage', { stage: t(`stages.${progress.nextStage}`) })}</span>
+              <span class="settings-menu__stage-next">${t('menu.nextStage', { stage: STAGE_NAMES[progress.nextStage] })}</span>
             </div>
           `
               : `
@@ -378,52 +473,69 @@ class SettingsMenuUI {
         ${renderSeedsSettingsCard()}
 
         <nav class="settings-menu__nav">
-          <!-- SECTION 1: Your Journey -->
-          ${this.renderCollapsibleSection(
-            'journey',
-            t('menu.sections.journey'),
-            expandedSections.has('journey'),
-            `
+          <!-- PINNED ITEMS (Quick Access) -->
+          ${pinnedItemsHtml}
+
+          <!-- SECTION: Connect - Ways to engage -->
+          ${
+            this.isSectionVisible('connect')
+              ? this.renderCollapsibleSection(
+                  'connect',
+                  t('menu.sections.connect'),
+                  expandedSections.has('connect'),
+                  `
+            ${this.renderMenuItem('play-games', ICONS.sparkles, t('menu.items.playGames'))}
+            ${this.renderMenuItem('music-dashboard', ICONS.music, t('menu.items.musicalYou'))}
+            ${this.renderMenuItem('video-settings', ICONS.video, t('menu.items.videoSessions'))}
+            ${this.renderMenuItem('group-coaching', ICONS.users, t('menu.items.groupCoaching'))}
+            ${this.renderMenuItem('team', ICONS.team, t('menu.items.teamHuddles'))}
+          `
+                )
+              : ''
+          }
+
+          <!-- SECTION: Grow - Progress & insights (unlocks at getting-started) -->
+          ${
+            this.isSectionVisible('grow')
+              ? this.renderCollapsibleSection(
+                  'grow',
+                  t('menu.sections.grow'),
+                  expandedSections.has('grow'),
+                  `
             ${this.renderMenuItem('your-journey', ICONS.heart, t('menu.items.yourJourney'))}
             ${this.renderMenuItem('trust-journey', ICONS.sparkles, t('menu.items.trustDetails'))}
             ${this.renderMenuItem('analytics', ICONS.analytics, t('menu.items.progressAnalytics'))}
             ${this.renderMenuItem('predictions', ICONS.target, t('menu.items.predictionAccuracy'))}
-          `
-          )}
-
-          <!-- SECTION 2: Insights -->
-          ${this.renderCollapsibleSection(
-            'insights',
-            t('menu.sections.insights'),
-            expandedSections.has('insights'),
-            `
             ${this.renderMenuItem('cognitive', ICONS.brain, t('menu.items.whatILearned'))}
-            ${this.renderMenuItem('conversation-memory', ICONS.memory, t('menu.items.memoryBrowser'))}
             ${this.renderMenuItem('wellbeing', ICONS.wellbeing, t('menu.items.wellbeingDashboard'))}
+          `
+                )
+              : ''
+          }
+
+          <!-- SECTION: Remember - Memories & history (unlocks at building-trust) -->
+          ${
+            this.isSectionVisible('remember')
+              ? this.renderCollapsibleSection(
+                  'remember',
+                  t('menu.sections.remember'),
+                  expandedSections.has('remember'),
+                  `
+            ${this.renderMenuItem('conversation-memory', ICONS.memory, t('menu.items.memoryBrowser'))}
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
           `
-          )}
+                )
+              : ''
+          }
 
-          <!-- SECTION 3: Sessions & Fun -->
-          ${this.renderCollapsibleSection(
-            'sessions',
-            t('menu.sections.sessions'),
-            expandedSections.has('sessions'),
-            `
-            ${this.renderMenuItemWithBadge('video-settings', ICONS.video, t('menu.items.videoSessions'), t('common.new'))}
-            ${this.renderMenuItemWithBadge('group-coaching', ICONS.users, t('menu.items.groupCoaching'), t('common.new'))}
-            ${this.renderMenuItem('team', ICONS.team, t('menu.items.teamHuddles'))}
-            ${this.renderMenuItem('play-games', ICONS.sparkles, t('menu.items.playGames'))}
-            ${this.renderMenuItem('music-dashboard', ICONS.music, t('menu.items.musicalYou'))}
-          `
-          )}
-
-          <!-- SECTION 4: Customize -->
-          ${this.renderCollapsibleSection(
-            'customize',
-            t('menu.sections.customize'),
-            expandedSections.has('customize'),
-            `
+          <!-- SECTION: Make It Yours - Personalization -->
+          ${
+            this.isSectionVisible('personalize')
+              ? this.renderCollapsibleSection(
+                  'personalize',
+                  t('menu.sections.personalize'),
+                  expandedSections.has('personalize'),
+                  `
             ${this.renderMenuItem('personalize', ICONS.palette, t('menu.items.personalize'))}
             ${this.renderMenuItem('accent-settings', ICONS.globe, t('menu.items.voiceAccent'))}
             ${this.renderMenuItem('commands', ICONS.commands, t('menu.items.guidedPractices'))}
@@ -438,14 +550,18 @@ class SettingsMenuUI {
               <span class="settings-menu__label">${t('menu.items.linkSpotify')}</span>
             </button>
           `
-          )}
+                )
+              : ''
+          }
 
-          <!-- SECTION 5: Account & Security -->
-          ${this.renderCollapsibleSection(
-            'account',
-            t('menu.sections.account'),
-            expandedSections.has('account'),
-            `
+          <!-- SECTION: Account -->
+          ${
+            this.isSectionVisible('account')
+              ? this.renderCollapsibleSection(
+                  'account',
+                  t('menu.sections.account'),
+                  expandedSections.has('account'),
+                  `
             ${this.renderMenuItem('subscription', ICONS.infinity, t('menu.items.yourPlan'))}
             ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.manageBilling'))}
             ${this.renderMenuItem('voice-enrollment', ICONS.fingerprint, t('menu.items.voiceId'))}
@@ -453,9 +569,11 @@ class SettingsMenuUI {
             ${this.renderMenuItem('contact-settings', ICONS.heart, t('menu.items.contactInfo'))}
             ${this.renderMenuItem('export', ICONS.download, t('menu.items.exportData'))}
           `
-          )}
+                )
+              : ''
+          }
 
-          <!-- SECTION 6: Admin (only visible for admins) -->
+          <!-- SECTION: Admin (only visible for admins) -->
           ${this.renderAdminSection(expandedSections)}
 
           <!-- Bottom Quick Actions -->
@@ -485,7 +603,11 @@ class SettingsMenuUI {
     });
 
     this.panel.querySelectorAll('.settings-menu__item').forEach((btn) => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        // Don't trigger main action if clicking unpin button
+        if (target.closest('.settings-menu__unpin-btn')) return;
+
         const htmlBtn = btn as HTMLElement;
         const action = htmlBtn.dataset.action;
         const isLocked = htmlBtn.dataset.locked === 'true';
@@ -498,6 +620,29 @@ class SettingsMenuUI {
         }
 
         this.handleAction(action);
+      });
+
+      // Right-click to pin/unpin
+      btn.addEventListener('contextmenu', (e) => {
+        const htmlBtn = btn as HTMLElement;
+        const action = htmlBtn.dataset.action;
+        const isPinnable = htmlBtn.dataset.pinnable === 'true';
+
+        if (isPinnable && action) {
+          e.preventDefault();
+          this.togglePinned(action);
+        }
+      });
+    });
+
+    // Handle unpin button clicks
+    this.panel.querySelectorAll('.settings-menu__unpin-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const action = (btn as HTMLElement).dataset.unpin;
+        if (action) {
+          this.togglePinned(action);
+        }
       });
     });
 
@@ -563,6 +708,78 @@ class SettingsMenuUI {
   }
 
   /**
+   * Render pinned items section (Quick Access)
+   */
+  private renderPinnedItems(): string {
+    if (this.pinnedItems.size === 0) return '';
+
+    // Map of all menu items for quick lookup
+    const menuItems: Record<string, { icon: string; label: string }> = {
+      'your-journey': { icon: ICONS.heart, label: t('menu.items.yourJourney') },
+      'trust-journey': { icon: ICONS.sparkles, label: t('menu.items.trustDetails') },
+      analytics: { icon: ICONS.analytics, label: t('menu.items.progressAnalytics') },
+      predictions: { icon: ICONS.target, label: t('menu.items.predictionAccuracy') },
+      cognitive: { icon: ICONS.brain, label: t('menu.items.whatILearned') },
+      'conversation-memory': { icon: ICONS.memory, label: t('menu.items.memoryBrowser') },
+      wellbeing: { icon: ICONS.wellbeing, label: t('menu.items.wellbeingDashboard') },
+      history: { icon: ICONS.history, label: t('menu.items.conversationHistory') },
+      'video-settings': { icon: ICONS.video, label: t('menu.items.videoSessions') },
+      'group-coaching': { icon: ICONS.users, label: t('menu.items.groupCoaching') },
+      team: { icon: ICONS.team, label: t('menu.items.teamHuddles') },
+      'play-games': { icon: ICONS.sparkles, label: t('menu.items.playGames') },
+      'music-dashboard': { icon: ICONS.music, label: t('menu.items.musicalYou') },
+      personalize: { icon: ICONS.palette, label: t('menu.items.personalize') },
+      'accent-settings': { icon: ICONS.globe, label: t('menu.items.voiceAccent') },
+      commands: { icon: ICONS.commands, label: t('menu.items.guidedPractices') },
+      ritual: { icon: ICONS.ritual, label: t('menu.items.createPractice') },
+      'wearable-settings': { icon: ICONS.watch, label: t('menu.items.healthFitness') },
+      'calendar-settings': { icon: ICONS.calendar, label: t('menu.items.calendar') },
+      notifications: { icon: ICONS.bell, label: t('menu.items.notifications') },
+      theme: { icon: ICONS.theme, label: t('menu.items.toggleTheme') },
+      subscription: { icon: ICONS.infinity, label: t('menu.items.yourPlan') },
+      billing: { icon: ICONS.creditCard, label: t('menu.items.manageBilling') },
+      'voice-enrollment': { icon: ICONS.fingerprint, label: t('menu.items.voiceId') },
+      household: { icon: ICONS.household, label: t('menu.items.householdMembers') },
+      'contact-settings': { icon: ICONS.heart, label: t('menu.items.contactInfo') },
+      export: { icon: ICONS.download, label: t('menu.items.exportData') },
+      'share-ferni': { icon: ICONS.share, label: t('menu.items.shareFerni') },
+      'support-ferni': { icon: ICONS.seedling, label: t('menu.items.supportFerni') },
+      help: { icon: ICONS.help, label: t('menu.items.takeTour') },
+    };
+
+    const pinnedItemsHtml = [...this.pinnedItems]
+      .filter((action) => menuItems[action] && !this.isFeatureLocked(action))
+      .map((action) => {
+        const item = menuItems[action]!;
+        return `
+          <button class="settings-menu__item settings-menu__item--pinned" data-action="${action}" data-pinnable="true">
+            <span class="settings-menu__icon">${item.icon}</span>
+            <span class="settings-menu__label">${item.label}</span>
+            <button class="settings-menu__unpin-btn" data-unpin="${action}" aria-label="${t('menu.unpinItem')}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </button>
+        `;
+      })
+      .join('');
+
+    if (!pinnedItemsHtml) return '';
+
+    return `
+      <section class="settings-menu__section settings-menu__section--pinned settings-menu__section--expanded">
+        <div class="settings-menu__section-header settings-menu__section-header--static">
+          <h3>${t('menu.sections.pinned')}</h3>
+        </div>
+        <div class="settings-menu__section-content">
+          ${pinnedItemsHtml}
+        </div>
+      </section>
+    `;
+  }
+
+  /**
    * Render admin section (only visible when admin mode is enabled)
    */
   private renderAdminSection(expandedSections: Set<string>): string {
@@ -621,7 +838,7 @@ class SettingsMenuUI {
    */
   private renderLanguageSelector(): string {
     const currentLocale = getLocale();
-    const currentLang = SUPPORTED_LOCALES.find(l => l.code === currentLocale);
+    const currentLang = SUPPORTED_LOCALES.find((l) => l.code === currentLocale);
 
     return `
       <div class="settings-menu__language-selector">
@@ -635,7 +852,8 @@ class SettingsMenuUI {
           <span class="settings-menu__chevron">${ICONS.chevronRight}</span>
         </button>
         <div class="settings-menu__language-list" data-expanded="false">
-          ${SUPPORTED_LOCALES.map(lang => `
+          ${SUPPORTED_LOCALES.map(
+            (lang) => `
             <button
               class="settings-menu__language-option ${lang.code === currentLocale ? 'settings-menu__language-option--active' : ''}"
               data-action="set-language"
@@ -645,7 +863,8 @@ class SettingsMenuUI {
               <span class="settings-menu__language-name">${lang.nativeName}</span>
               ${lang.code === currentLocale ? '<span class="settings-menu__language-check">✓</span>' : ''}
             </button>
-          `).join('')}
+          `
+          ).join('')}
         </div>
       </div>
     `;
@@ -1019,24 +1238,87 @@ class SettingsMenuUI {
       .settings-menu__item {
         display: flex;
         align-items: center;
-        gap: var(--space-3, 12px);
+        gap: var(--space-3);
         width: 100%;
-        padding: var(--space-2, 8px) var(--space-3, 12px);
-        margin-bottom: 2px;
+        padding: var(--space-2) var(--space-3);
+        margin-bottom: var(--space-0, 0);
         background: transparent;
         border: none;
-        border-radius: var(--radius-md, 0.5rem);
+        border-radius: var(--radius-md);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
         text-align: left;
+        position: relative;
       }
 
       .settings-menu__item:hover {
-        background: var(--color-background-secondary, #f5f2ed);
+        background: var(--color-background-secondary);
       }
 
       .settings-menu__item:active {
-        background: var(--color-background-tertiary, #ebe6df);
+        background: var(--color-background-tertiary);
+      }
+
+      /* ========================================================================
+         PINNED ITEMS
+         ======================================================================== */
+      .settings-menu__section--pinned {
+        background: linear-gradient(135deg, var(--persona-tint), transparent);
+        border-radius: var(--radius-lg);
+        margin: 0 var(--space-2) var(--space-2);
+        padding: var(--space-2) var(--space-2) !important;
+      }
+
+      .settings-menu__section-header--static {
+        cursor: default;
+        padding: var(--space-2);
+      }
+
+      .settings-menu__section-header--static:hover {
+        background: transparent;
+      }
+
+      .settings-menu__section--pinned .settings-menu__section-chevron {
+        display: none;
+      }
+
+      .settings-menu__item--pinned {
+        background: var(--color-background-elevated);
+        border: 1px solid var(--color-border-subtle);
+        margin-bottom: var(--space-1);
+      }
+
+      .settings-menu__item--pinned:hover {
+        border-color: var(--persona-primary);
+      }
+
+      .settings-menu__unpin-btn {
+        position: absolute;
+        right: var(--space-2);
+        top: 50%;
+        transform: translateY(-50%);
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        background: transparent;
+        border: none;
+        border-radius: var(--radius-full);
+        color: var(--color-text-muted);
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity ${DURATION.FAST}ms ${EASING.STANDARD},
+                    color ${DURATION.FAST}ms ${EASING.STANDARD};
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .settings-menu__item--pinned:hover .settings-menu__unpin-btn {
+        opacity: 1;
+      }
+
+      .settings-menu__unpin-btn:hover {
+        color: var(--color-destructive);
       }
 
       .settings-menu__icon {

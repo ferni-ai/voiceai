@@ -65,10 +65,10 @@
       
       {# Orbiting personas (subtle) #}
       <div class="story-personas persona-orbit">
-        <div class="persona-dot persona-dot-peter" title="Peter John"></div>
-        <div class="persona-dot persona-dot-maya" title="Maya Santos"></div>
-        <div class="persona-dot persona-dot-alex" title="Alex Chen"></div>
-        <div class="persona-dot persona-dot-jordan" title="Jordan Taylor"></div>
+        <div class="persona-dot persona-dot-peter" title="{{ 'personas.peter.fullName' | t }}"></div>
+        <div class="persona-dot persona-dot-maya" title="{{ 'personas.maya.fullName' | t }}"></div>
+        <div class="persona-dot persona-dot-alex" title="{{ 'personas.alex.fullName' | t }}"></div>
+        <div class="persona-dot persona-dot-jordan" title="{{ 'personas.jordan.fullName' | t }}"></div>
       </div>
     </div>
     
@@ -79,7 +79,7 @@
       
       {# CTA #}
       <a href="tel:+14844813081" class="story-cta" data-story-cta>
-        Talk to Ferni now
+        {{ 'hero.cta.talkNow' | t }}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.05.39.14.76.26 1.12a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.36.12.73.21 1.12.26A2 2 0 0 1 22 16.92z"/>
         </svg>
@@ -89,7 +89,7 @@
   </div>
   
   {# Next story button #}
-  <button class="story-next" data-story-next aria-label="Next story">
+  <button class="story-next" data-story-next aria-label="{{ 'accessibility.nextStory' | t }}">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M9 18l6-6-6-6"/>
     </svg>
@@ -102,7 +102,7 @@
   
   {# Scroll indicator #}
   <div class="story-scroll-hint">
-    <span>Scroll to explore</span>
+    <span>{{ 'common.scrollToExplore' | t }}</span>
     <div class="scroll-line"></div>
   </div>
   

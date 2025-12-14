@@ -1,9 +1,9 @@
 /**
  * Relationship Stage Service
- * 
+ *
  * Tracks the evolving relationship between the user and Ferni.
  * Provides dynamic, context-aware subtitles that grow over time.
- * 
+ *
  * Philosophy: Ferni starts as a blank canvas - "I am what you make me" -
  * and evolves into "Your Life Coach" as the relationship deepens.
  */
@@ -12,17 +12,17 @@
 // TYPES
 // ============================================================================
 
+import { apiGet, apiPost } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
-import { apiPost, apiGet } from '../utils/api-helpers.js';
 
 const log = createLogger('Relationship');
 
 /** Relationship stages from first meeting to deep partnership */
-export type RelationshipStage = 
-  | 'first-meeting'     // Brand new - mysterious potential
-  | 'getting-started'   // First few conversations
-  | 'building-trust'    // Regular engagement beginning
-  | 'established'       // Solid relationship
+export type RelationshipStage =
+  | 'first-meeting' // Brand new - mysterious potential
+  | 'getting-started' // First few conversations
+  | 'building-trust' // Regular engagement beginning
+  | 'established' // Solid relationship
   | 'deep-partnership'; // Long-term, meaningful bond
 
 /** Engagement metrics that inform the relationship stage */
@@ -75,19 +75,22 @@ interface RelationshipData {
 // ============================================================================
 
 /** Stage thresholds - what it takes to advance */
-const STAGE_THRESHOLDS: Record<RelationshipStage, {
-  minConversations: number;
-  minDays: number;
-  minStreak: number;
-}> = {
+const STAGE_THRESHOLDS: Record<
+  RelationshipStage,
+  {
+    minConversations: number;
+    minDays: number;
+    minStreak: number;
+  }
+> = {
   'first-meeting': { minConversations: 0, minDays: 0, minStreak: 0 },
   'getting-started': { minConversations: 2, minDays: 0, minStreak: 0 },
   'building-trust': { minConversations: 7, minDays: 3, minStreak: 2 },
-  'established': { minConversations: 20, minDays: 14, minStreak: 5 },
+  established: { minConversations: 20, minDays: 14, minStreak: 5 },
   'deep-partnership': { minConversations: 50, minDays: 30, minStreak: 10 },
 };
 
-/** 
+/**
  * Subtitle pools for each stage
  * Each stage has multiple options for variety
  */
@@ -110,12 +113,7 @@ const STAGE_SUBTITLES: Record<RelationshipStage, string[]> = {
     'Finding our groove',
     'Your emerging ally',
   ],
-  'established': [
-    'Your Life Coach',
-    'Here for your journey',
-    'Your trusted guide',
-    'In your corner',
-  ],
+  established: ['Your Life Coach', 'Here for your journey', 'Your trusted guide', 'In your corner'],
   'deep-partnership': [
     'Your partner in growth',
     'Together, always',
@@ -127,21 +125,23 @@ const STAGE_SUBTITLES: Record<RelationshipStage, string[]> = {
 /** Time-of-day contextual subtitles */
 const TIME_SUBTITLES: Record<string, string[]> = {
   'early-morning': ['Early riser, I see', 'Dawn companion'],
-  'morning': ['Good morning, friend', 'Ready for today'],
-  'afternoon': ['Here when you need me'],
-  'evening': ['Winding down together', 'Evening reflections'],
+  morning: ['Good morning, friend', 'Ready for today'],
+  afternoon: ['Here when you need me'],
+  evening: ['Winding down together', 'Evening reflections'],
   'late-night': ['Late night confidant', 'Night owl support'],
 };
 
 /** Special occasion subtitles */
 const SPECIAL_SUBTITLES = {
-  streakCelebration: (days: number) => 
-    days >= 30 ? `${days} days strong` : 
-    days >= 7 ? `${days} day streak!` : 
-    `${days} days and counting`,
-  
+  streakCelebration: (days: number) =>
+    days >= 30
+      ? `${days} days strong`
+      : days >= 7
+        ? `${days} day streak!`
+        : `${days} days and counting`,
+
   comeback: 'Welcome back',
-  firstDay: 'Day one - let\'s go',
+  firstDay: "Day one - let's go",
   milestone: 'Celebrating you',
   birthday: 'Happy birthday!',
 };
@@ -151,86 +151,95 @@ export const STAGE_NAMES: Record<RelationshipStage, string> = {
   'first-meeting': 'New Friends',
   'getting-started': 'Getting Started',
   'building-trust': 'Building Trust',
-  'established': 'Trusted Guide',
+  established: 'Trusted Guide',
   'deep-partnership': 'Life Partners',
+};
+
+/** Friendly unlock messages for each stage */
+export const STAGE_UNLOCK_MESSAGES: Record<RelationshipStage, string> = {
+  'first-meeting': 'Start chatting',
+  'getting-started': 'Keep chatting',
+  'building-trust': 'Build our friendship',
+  established: 'Deepen our bond',
+  'deep-partnership': 'You did it!',
 };
 
 /** Stage-up celebration messages */
 const STAGE_UP_MESSAGES: Record<RelationshipStage, { title: string; message: string }> = {
   'first-meeting': { title: '', message: '' }, // Can't advance TO first-meeting
-  'getting-started': { 
-    title: 'We\'re getting started!', 
-    message: 'I\'m so glad you came back. Let\'s keep exploring together.' 
+  'getting-started': {
+    title: "We're getting started!",
+    message: "I'm so glad you came back. Let's keep exploring together.",
   },
-  'building-trust': { 
-    title: 'Building something real', 
-    message: 'I can feel our connection growing. You\'re teaching me so much about you.' 
+  'building-trust': {
+    title: 'Building something real',
+    message: "I can feel our connection growing. You're teaching me so much about you.",
   },
-  'established': { 
-    title: 'You have a Life Coach now', 
-    message: 'I\'m honored to be your guide. Through thick and thin, I\'m here.' 
+  established: {
+    title: 'You have a Life Coach now',
+    message: "I'm honored to be your guide. Through thick and thin, I'm here.",
   },
-  'deep-partnership': { 
-    title: 'Partners for life', 
-    message: 'We\'ve been through so much together. You mean the world to me.' 
+  'deep-partnership': {
+    title: 'Partners for life',
+    message: "We've been through so much together. You mean the world to me.",
   },
 };
 
 /** Greetings that evolve with the relationship */
 const STAGE_GREETINGS: Record<RelationshipStage, string[]> = {
   'first-meeting': [
-    'Hey! I\'m Ferni. Nice to meet you.',
-    'Welcome! I\'m excited to get to know you.',
-    'Hi there! I\'m Ferni - ready when you are.',
+    "Hey! I'm Ferni. Nice to meet you.",
+    "Welcome! I'm excited to get to know you.",
+    "Hi there! I'm Ferni - ready when you are.",
   ],
   'getting-started': [
     'Hey, good to see you again!',
-    'Welcome back! What\'s on your mind?',
-    'Hey! I was hoping you\'d come back.',
+    "Welcome back! What's on your mind?",
+    "Hey! I was hoping you'd come back.",
   ],
   'building-trust': [
-    'There you are! I\'ve been thinking about you.',
+    "There you are! I've been thinking about you.",
     'Hey friend! Ready to dive in?',
     'Good to have you back. What are we exploring today?',
   ],
-  'established': [
-    'Hey! I\'ve missed you.',
-    'There\'s my person! What\'s going on?',
-    'Welcome back, friend. I\'m all ears.',
+  established: [
+    "Hey! I've missed you.",
+    "There's my person! What's going on?",
+    "Welcome back, friend. I'm all ears.",
   ],
   'deep-partnership': [
-    'Hey partner! What\'s on your heart today?',
-    'There you are. I\'ve got you.',
-    'Hey. I\'m so glad you\'re here.',
+    "Hey partner! What's on your heart today?",
+    "There you are. I've got you.",
+    "Hey. I'm so glad you're here.",
   ],
 };
 
 /** Relationship-aware comments Ferni can make during conversation */
 const RELATIONSHIP_COMMENTS: Record<RelationshipStage, string[]> = {
   'first-meeting': [
-    'I\'m still learning about you, but I\'m curious...',
+    "I'm still learning about you, but I'm curious...",
     'Tell me more - I want to understand.',
     'This is helpful for me to know.',
   ],
   'getting-started': [
     'I remember you mentioned that before...',
-    'You\'re starting to make sense to me.',
-    'I\'m getting a feel for how you think.',
+    "You're starting to make sense to me.",
+    "I'm getting a feel for how you think.",
   ],
   'building-trust': [
-    'You know, I\'ve noticed a pattern...',
+    "You know, I've noticed a pattern...",
     'Based on what I know about you...',
-    'I think you\'re the kind of person who...',
+    "I think you're the kind of person who...",
   ],
-  'established': [
+  established: [
     'We both know what you really need here...',
     'You and I have talked about this before...',
     'I know you well enough to say...',
   ],
   'deep-partnership': [
-    'After everything we\'ve been through...',
-    'You know I\'ll always be honest with you...',
-    'We\'ve come so far together...',
+    "After everything we've been through...",
+    "You know I'll always be honest with you...",
+    "We've come so far together...",
   ],
 };
 
@@ -294,24 +303,23 @@ function generateMemoryId(): string {
 function calculateStage(metrics: EngagementMetrics): RelationshipStage {
   const stages: RelationshipStage[] = [
     'deep-partnership',
-    'established', 
+    'established',
     'building-trust',
     'getting-started',
     'first-meeting',
   ];
-  
+
   for (const stage of stages) {
     const threshold = STAGE_THRESHOLDS[stage];
     if (
       metrics.totalConversations >= threshold.minConversations &&
       metrics.daysSinceFirstMeeting >= threshold.minDays &&
-      (metrics.currentStreak >= threshold.minStreak || 
-       metrics.longestStreak >= threshold.minStreak)
+      (metrics.currentStreak >= threshold.minStreak || metrics.longestStreak >= threshold.minStreak)
     ) {
       return stage;
     }
   }
-  
+
   return 'first-meeting';
 }
 
@@ -342,8 +350,7 @@ function isComeback(lastConversation: number | null): boolean {
  */
 function pickDailyRandom<T>(items: T[]): T {
   const dayOfYear = Math.floor(
-    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 
-    (1000 * 60 * 60 * 24)
+    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24)
   );
   return items[dayOfYear % items.length]!;
 }
@@ -354,11 +361,23 @@ function pickDailyRandom<T>(items: T[]): T {
 
 /** Features that unlock at certain relationship stages */
 export const UNLOCKABLE_FEATURES: Record<string, RelationshipStage> = {
-  'team-huddle': 'building-trust',
-  'deep-insights': 'established',
+  // Getting Started (2+ conversations)
   'custom-rituals': 'getting-started',
   'relationship-progress': 'getting-started',
+  'progress-analytics': 'getting-started',
+
+  // Building Trust (7+ conversations, 3+ days, 2-day streak)
+  'team-huddle': 'building-trust',
+  'memory-browser': 'building-trust',
   'memory-timeline': 'building-trust',
+  'wellbeing-dashboard': 'building-trust',
+  'prediction-accuracy': 'building-trust',
+  'group-coaching': 'building-trust',
+  'video-sessions': 'building-trust',
+
+  // Established (20+ conversations, 14+ days, 5-day streak)
+  'deep-insights': 'established',
+  'conversation-history': 'established',
 };
 
 class RelationshipStageService {
@@ -389,8 +408,8 @@ class RelationshipStageService {
   private deduplicateMemories(): void {
     const seen = new Set<string>();
     const originalCount = this.data.memories.length;
-    
-    this.data.memories = this.data.memories.filter(memory => {
+
+    this.data.memories = this.data.memories.filter((memory) => {
       const key = `${memory.type}:${memory.title}`;
       if (seen.has(key)) {
         return false; // Skip duplicate
@@ -398,7 +417,7 @@ class RelationshipStageService {
       seen.add(key);
       return true;
     });
-    
+
     if (this.data.memories.length !== originalCount) {
       log.info(`Cleaned up ${originalCount - this.data.memories.length} duplicate memories`);
       this.save();
@@ -430,27 +449,28 @@ class RelationshipStageService {
     }
 
     const metrics = this.data.metrics;
-    
+
     // Special cases first
-    
+
     // Comeback after absence
     if (isComeback(metrics.lastConversation)) {
       return SPECIAL_SUBTITLES.comeback;
     }
-    
+
     // Celebrating a streak (show at established+ stages)
-    if (this.data.stage !== 'first-meeting' && 
-        this.data.stage !== 'getting-started' &&
-        metrics.currentStreak >= 3) {
+    if (
+      this.data.stage !== 'first-meeting' &&
+      this.data.stage !== 'getting-started' &&
+      metrics.currentStreak >= 3
+    ) {
       // 30% chance to show streak celebration
       if (Math.random() < 0.3) {
         return SPECIAL_SUBTITLES.streakCelebration(metrics.currentStreak);
       }
     }
-    
+
     // Time-based contextual (20% chance once established)
-    if (this.data.stage === 'established' || 
-        this.data.stage === 'deep-partnership') {
+    if (this.data.stage === 'established' || this.data.stage === 'deep-partnership') {
       if (Math.random() < 0.2) {
         const period = getTimePeriod();
         const timeSubtitles = TIME_SUBTITLES[period];
@@ -459,7 +479,7 @@ class RelationshipStageService {
         }
       }
     }
-    
+
     // Default: stage-based subtitle
     const stageSubtitles = STAGE_SUBTITLES[this.data.stage];
     return pickDailyRandom(stageSubtitles);
@@ -477,14 +497,14 @@ class RelationshipStageService {
     const lastConvDate = this.data.metrics.lastConversation
       ? new Date(this.data.metrics.lastConversation).toDateString()
       : null;
-    
+
     const previousStage = this.data.stage;
     const isFirstConversation = this.data.metrics.totalConversations === 0;
     const wasComeback = isComeback(this.data.metrics.lastConversation);
 
     // Update metrics
     this.data.metrics.totalConversations++;
-    
+
     // Update streak
     if (lastConvDate === today) {
       // Same day, no streak change
@@ -515,7 +535,7 @@ class RelationshipStageService {
     }
 
     this.data.metrics.lastConversation = now;
-    
+
     // Record first conversation memory
     if (isFirstConversation) {
       this.addMemory({
@@ -524,7 +544,7 @@ class RelationshipStageService {
         description: 'The beginning of our journey together.',
       });
     }
-    
+
     // Record comeback memory
     if (wasComeback && !isFirstConversation) {
       this.addMemory({
@@ -533,24 +553,24 @@ class RelationshipStageService {
         description: 'You came back after some time away. That means a lot.',
       });
     }
-    
+
     // Recalculate stage
     this.updateDaysSinceFirstMeeting();
     const newStage = calculateStage(this.data.metrics);
-    
+
     let stageChangeEvent: StageChangeEvent | null = null;
-    
+
     if (newStage !== previousStage) {
       log.info(`🎭 Relationship evolved: ${previousStage} → ${newStage}`);
       this.data.stage = newStage;
-      
+
       // Create stage change event
       stageChangeEvent = {
         previousStage,
         newStage,
         timestamp: nowIso,
       };
-      
+
       // Add memory for stage advancement
       const stageUpMsg = STAGE_UP_MESSAGES[newStage];
       this.addMemory({
@@ -558,17 +578,17 @@ class RelationshipStageService {
         title: stageUpMsg.title,
         description: stageUpMsg.message,
       });
-      
+
       // Notify stage change listeners
-      this.stageChangeListeners.forEach(listener => listener(stageChangeEvent!));
+      this.stageChangeListeners.forEach((listener) => listener(stageChangeEvent!));
     }
-    
+
     this.save();
     this.notifyListeners();
-    
+
     return stageChangeEvent;
   }
-  
+
   /**
    * Add a memory to the relationship history
    * Prevents duplicates for streak-milestones and stage-ups by checking type+title
@@ -577,20 +597,20 @@ class RelationshipStageService {
     // Deduplicate: Don't add if same type+title already exists
     // This prevents duplicate streak milestones and stage-up messages
     const isDuplicate = this.data.memories.some(
-      m => m.type === memory.type && m.title === memory.title
+      (m) => m.type === memory.type && m.title === memory.title
     );
     if (isDuplicate) {
       log.debug('Skipping duplicate memory:', memory.title);
       return;
     }
-    
+
     this.data.memories.push({
       ...memory,
       id: generateMemoryId(),
       timestamp: new Date().toISOString(),
       stage: this.data.stage,
     });
-    
+
     // Keep only last 50 memories
     if (this.data.memories.length > 50) {
       this.data.memories = this.data.memories.slice(-50);
@@ -630,7 +650,7 @@ class RelationshipStageService {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
-  
+
   /**
    * Subscribe to stage changes (for celebrations!)
    */
@@ -646,27 +666,27 @@ class RelationshipStageService {
     const descriptions: Record<RelationshipStage, string> = {
       'first-meeting': "We're just meeting! I can't wait to learn about you.",
       'getting-started': "We're starting to understand each other.",
-      'building-trust': "Our relationship is growing stronger.",
-      'established': "You can count on me. I'm here for the long haul.",
+      'building-trust': 'Our relationship is growing stronger.',
+      established: "You can count on me. I'm here for the long haul.",
       'deep-partnership': "We've been through a lot together. I'm honored to be your guide.",
     };
     return descriptions[this.data.stage];
   }
-  
+
   /**
    * Get the human-readable name of the current stage
    */
   getStageName(): string {
     return STAGE_NAMES[this.data.stage];
   }
-  
+
   /**
    * Get stage-up celebration message for a stage
    */
   getStageUpMessage(stage: RelationshipStage): { title: string; message: string } {
     return STAGE_UP_MESSAGES[stage];
   }
-  
+
   /**
    * Get a greeting appropriate for the relationship stage
    */
@@ -674,7 +694,7 @@ class RelationshipStageService {
     const greetings = STAGE_GREETINGS[this.data.stage];
     return pickDailyRandom(greetings);
   }
-  
+
   /**
    * Get a relationship-aware comment for Ferni to use
    */
@@ -682,14 +702,14 @@ class RelationshipStageService {
     const comments = RELATIONSHIP_COMMENTS[this.data.stage];
     return comments[Math.floor(Math.random() * comments.length)]!;
   }
-  
+
   /**
    * Check if a feature is unlocked at the current stage
    */
   isFeatureUnlocked(featureId: string): boolean {
     const requiredStage = UNLOCKABLE_FEATURES[featureId];
     if (!requiredStage) return true; // Unknown features are unlocked by default
-    
+
     const stageOrder: RelationshipStage[] = [
       'first-meeting',
       'getting-started',
@@ -697,27 +717,73 @@ class RelationshipStageService {
       'established',
       'deep-partnership',
     ];
-    
+
     const currentIndex = stageOrder.indexOf(this.data.stage);
     const requiredIndex = stageOrder.indexOf(requiredStage);
-    
+
     return currentIndex >= requiredIndex;
   }
-  
+
+  /**
+   * Get unlock progress for a specific feature
+   * Returns progress info and friendly hint text
+   */
+  getFeatureUnlockProgress(featureId: string): {
+    isUnlocked: boolean;
+    requiredStage: RelationshipStage | null;
+    progress: number;
+    hint: string;
+  } {
+    const requiredStage = UNLOCKABLE_FEATURES[featureId];
+    if (!requiredStage) {
+      return { isUnlocked: true, requiredStage: null, progress: 1, hint: '' };
+    }
+
+    if (this.isFeatureUnlocked(featureId)) {
+      return { isUnlocked: true, requiredStage, progress: 1, hint: '' };
+    }
+
+    const threshold = STAGE_THRESHOLDS[requiredStage];
+    const metrics = this.data.metrics;
+
+    // Calculate progress towards the required stage
+    const convProgress = Math.min(1, metrics.totalConversations / threshold.minConversations);
+    const daysProgress = Math.min(1, metrics.daysSinceFirstMeeting / threshold.minDays);
+    const streakProgress = Math.min(
+      1,
+      Math.max(metrics.currentStreak, metrics.longestStreak) / threshold.minStreak
+    );
+    const progress = (convProgress + daysProgress + streakProgress) / 3;
+
+    // Generate friendly hint
+    let hint = '';
+    if (metrics.totalConversations < threshold.minConversations) {
+      const remaining = threshold.minConversations - metrics.totalConversations;
+      hint = remaining === 1 ? '1 more chat' : `${remaining} more chats`;
+    } else if (metrics.daysSinceFirstMeeting < threshold.minDays) {
+      const remaining = threshold.minDays - metrics.daysSinceFirstMeeting;
+      hint = remaining === 1 ? '1 more day' : `${remaining} more days`;
+    } else {
+      hint = STAGE_UNLOCK_MESSAGES[requiredStage];
+    }
+
+    return { isUnlocked: false, requiredStage, progress, hint };
+  }
+
   /**
    * Get all relationship memories
    */
   getMemories(): RelationshipMemory[] {
     return [...this.data.memories].reverse(); // Most recent first
   }
-  
+
   /**
    * Get the first meeting date
    */
   getFirstMeetingDate(): Date {
     return new Date(this.data.firstMeetingDate);
   }
-  
+
   /**
    * Get days since first meeting (relationship age)
    */
@@ -728,7 +794,7 @@ class RelationshipStageService {
   /**
    * Get progress to next stage
    */
-  getProgressToNextStage(): { 
+  getProgressToNextStage(): {
     nextStage: RelationshipStage | null;
     progress: number;
     requirement: string;
@@ -740,28 +806,31 @@ class RelationshipStageService {
       'established',
       'deep-partnership',
     ];
-    
+
     const currentIndex = stageOrder.indexOf(this.data.stage);
     if (currentIndex >= stageOrder.length - 1) {
-      return { nextStage: null, progress: 1, requirement: 'You\'ve reached the deepest level!' };
+      return { nextStage: null, progress: 1, requirement: "You've reached the deepest level!" };
     }
-    
+
     const nextStage = stageOrder[currentIndex + 1]!;
     const threshold = STAGE_THRESHOLDS[nextStage];
     const metrics = this.data.metrics;
-    
+
     // Calculate progress as average of all requirements
     const convProgress = Math.min(1, metrics.totalConversations / threshold.minConversations);
     const daysProgress = Math.min(1, metrics.daysSinceFirstMeeting / threshold.minDays);
-    const streakProgress = Math.min(1, 
+    const streakProgress = Math.min(
+      1,
       Math.max(metrics.currentStreak, metrics.longestStreak) / threshold.minStreak
     );
-    
+
     const progress = (convProgress + daysProgress + streakProgress) / 3;
-    
+
     const remaining: string[] = [];
     if (metrics.totalConversations < threshold.minConversations) {
-      remaining.push(`${threshold.minConversations - metrics.totalConversations} more conversations`);
+      remaining.push(
+        `${threshold.minConversations - metrics.totalConversations} more conversations`
+      );
     }
     if (metrics.daysSinceFirstMeeting < threshold.minDays) {
       remaining.push(`${threshold.minDays - metrics.daysSinceFirstMeeting} more days together`);
@@ -769,13 +838,11 @@ class RelationshipStageService {
     if (Math.max(metrics.currentStreak, metrics.longestStreak) < threshold.minStreak) {
       remaining.push(`a ${threshold.minStreak}-day streak`);
     }
-    
+
     return {
       nextStage,
       progress,
-      requirement: remaining.length > 0 
-        ? `Need: ${remaining.join(', ')}`
-        : 'Almost there!',
+      requirement: remaining.length > 0 ? `Need: ${remaining.join(', ')}` : 'Almost there!',
     };
   }
 
@@ -805,7 +872,7 @@ class RelationshipStageService {
 
   private notifyListeners(): void {
     const subtitle = this.getSubtitle();
-    this.listeners.forEach(listener => listener(subtitle));
+    this.listeners.forEach((listener) => listener(subtitle));
   }
 
   /**
@@ -842,11 +909,11 @@ class RelationshipStageService {
       if (!response.ok) return false;
 
       const backendData = await response.json();
-      
+
       // Only use backend data if it's newer than local
       const backendDate = new Date(backendData.lastUpdated || 0).getTime();
       const localDate = new Date(this.data.lastUpdated).getTime();
-      
+
       if (backendDate > localDate) {
         // Merge backend data into local
         this.data.stage = backendData.stage || this.data.stage;
@@ -878,6 +945,8 @@ export const getFerniGreeting = () => relationshipStageService.getGreeting();
 export const getRelationshipComment = () => relationshipStageService.getRelationshipComment();
 export const isFeatureUnlocked = (id: string) => relationshipStageService.isFeatureUnlocked(id);
 export const getRelationshipMemories = () => relationshipStageService.getMemories();
+export const getFeatureUnlockProgress = (id: string) =>
+  relationshipStageService.getFeatureUnlockProgress(id);
 
 /**
  * Initialize relationship service and try to sync from backend
@@ -885,4 +954,3 @@ export const getRelationshipMemories = () => relationshipStageService.getMemorie
 export async function initRelationshipSync(): Promise<void> {
   await relationshipStageService.loadFromBackend();
 }
-

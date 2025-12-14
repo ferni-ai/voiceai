@@ -36,41 +36,32 @@ export interface OnboardingUICallbacks {
 // DEFAULT STEPS
 // ============================================================================
 
-const DEFAULT_STEPS: OnboardingStep[] = [
-  {
-    id: 'welcome',
-    title: 'Welcome to Ferni',
-    description: 'Your personal team of AI life coaches. Each brings unique wisdom to support your journey.',
-    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
-  },
-  {
-    id: 'voice',
-    title: 'Just Speak',
-    description: 'Tap the center to start a conversation. Speak naturally - Ferni listens and responds in real time.',
-    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>',
-    highlight: '.waveform',
-  },
-  {
-    id: 'personas',
-    title: 'Meet Your Team',
-    description: 'Six unique coaches with different perspectives. Each understands your history with the team.',
-    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
-    highlight: '.persona-switcher',
-  },
-  {
-    id: 'rituals',
-    title: 'Daily Practices',
-    description: 'Build consistency with short daily rituals. Track streaks and celebrate progress.',
-    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
-    highlight: '.engagement-trigger',
-  },
-  {
-    id: 'ready',
-    title: "You're Ready",
-    description: "That's all you need to know. Discover more as you go.",
-    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>',
-  },
-];
+// Step definitions with icons - titles and descriptions come from i18n
+const STEP_ICONS: Record<string, string> = {
+  welcome: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
+  voice: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>',
+  personas: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  rituals: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
+  ready: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>',
+};
+
+const STEP_HIGHLIGHTS: Record<string, string | undefined> = {
+  voice: '.waveform',
+  personas: '.persona-switcher',
+  rituals: '.engagement-trigger',
+};
+
+const STEP_IDS = ['welcome', 'voice', 'personas', 'rituals', 'ready'];
+
+function getDefaultSteps(): OnboardingStep[] {
+  return STEP_IDS.map(id => ({
+    id,
+    title: t(`onboarding.steps.${id}.title`),
+    description: t(`onboarding.steps.${id}.description`),
+    icon: STEP_ICONS[id] || '',
+    highlight: STEP_HIGHLIGHTS[id],
+  }));
+}
 
 // ============================================================================
 // ONBOARDING UI CLASS
@@ -81,7 +72,7 @@ class OnboardingUI {
   private callbacks: OnboardingUICallbacks = {};
   private styleElement: HTMLStyleElement | null = null;
   private currentStep = 0;
-  private steps: OnboardingStep[] = DEFAULT_STEPS;
+  private steps: OnboardingStep[] = [];
   private isVisible = false;
 
   initialize(): void {
@@ -101,6 +92,11 @@ class OnboardingUI {
   start(): void {
     this.initialize();
     if (!this.overlay) return;
+
+    // Initialize steps with current translations (allows language switching)
+    if (this.steps.length === 0) {
+      this.steps = getDefaultSteps();
+    }
 
     this.currentStep = 0;
     this.renderStep();
@@ -164,7 +160,7 @@ class OnboardingUI {
     this.overlay = document.createElement('div');
     this.overlay.className = 'onboarding';
     this.overlay.setAttribute('role', 'dialog');
-    this.overlay.setAttribute('aria-label', 'Welcome tour');
+    this.overlay.setAttribute('aria-label', t('onboarding.ariaLabel'));
     document.body.appendChild(this.overlay);
   }
 
@@ -187,8 +183,8 @@ class OnboardingUI {
         </div>
         
         <div class="onboarding__actions">
-          ${!isFirst ? '<button class="onboarding__btn onboarding__btn--secondary" data-action="prev">Back</button>' : '<button class="onboarding__btn onboarding__btn--secondary" data-action="skip">Skip tour</button>'}
-          <button class="onboarding__btn onboarding__btn--primary" data-action="next">${isLast ? "Let's begin" : 'Next'}</button>
+          ${!isFirst ? `<button class="onboarding__btn onboarding__btn--secondary" data-action="prev">${t('onboarding.buttons.back')}</button>` : `<button class="onboarding__btn onboarding__btn--secondary" data-action="skip">${t('onboarding.buttons.skip')}</button>`}
+          <button class="onboarding__btn onboarding__btn--primary" data-action="next">${isLast ? t('onboarding.buttons.begin') : t('onboarding.buttons.next')}</button>
         </div>
       </div>
     `;

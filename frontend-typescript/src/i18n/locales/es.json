@@ -28,53 +28,62 @@
   },
 
   "menu": {
-    "title": "Men\u00fa",
+    "title": "\u00bfQu\u00e9 sigue?",
     "yourStage": "Tu etapa",
     "nextStage": "Siguiente: {stage}",
-    "maxLevel": "\u00a1Nivel m\u00e1ximo!",
+    "maxLevel": "Compa\u00f1eros de Vida",
+    "unlockHint": "{remaining} para desbloquear",
+    "moreConversations": "{n} charlas m\u00e1s",
+    "moreDays": "{n} d\u00edas m\u00e1s",
+    "keepChatting": "Sigue charlando para desbloquear",
+    "almostThere": "\u00a1Casi listo!",
     "sections": {
-      "journey": "Tu Viaje",
-      "insights": "Perspectivas",
-      "sessions": "Sesiones y Diversi\u00f3n",
-      "customize": "Personalizar",
-      "account": "Cuenta y Seguridad",
+      "pinned": "Acceso R\u00e1pido",
+      "connect": "Conectar",
+      "grow": "Crecer",
+      "remember": "Recordar",
+      "personalize": "Hazlo Tuyo",
+      "account": "Cuenta",
       "admin": "Admin"
     },
     "items": {
       "yourJourney": "Tu Viaje",
-      "trustDetails": "Detalles de Confianza",
-      "progressAnalytics": "An\u00e1lisis de Progreso",
-      "predictionAccuracy": "Precisi\u00f3n de Predicciones",
+      "trustDetails": "Nuestra Relaci\u00f3n",
+      "progressAnalytics": "C\u00f3mo Est\u00e1s Creciendo",
+      "predictionAccuracy": "Mis Predicciones",
       "whatILearned": "Lo Que He Aprendido",
-      "memoryBrowser": "Explorador de Memoria",
-      "wellbeingDashboard": "Panel de Bienestar",
-      "conversationHistory": "Historial de Conversaciones",
-      "videoSessions": "Sesiones de Video",
-      "groupCoaching": "Coaching Grupal",
+      "memoryBrowser": "Nuestros Recuerdos",
+      "wellbeingDashboard": "Tu Bienestar",
+      "conversationHistory": "Conversaciones Pasadas",
+      "videoSessions": "Video Chat",
+      "groupCoaching": "Sesiones Grupales",
       "teamHuddles": "Reuniones de Equipo",
       "playGames": "Jugar",
       "musicalYou": "Tu M\u00fasica",
       "personalize": "Personalizar",
-      "voiceAccent": "Acento de Voz",
+      "voiceAccent": "Voz y Acento",
       "guidedPractices": "Pr\u00e1cticas Guiadas",
       "createPractice": "Crear Pr\u00e1ctica",
       "healthFitness": "Salud y Fitness",
       "calendar": "Calendario",
       "notifications": "Notificaciones",
-      "toggleTheme": "Cambiar Tema",
+      "toggleTheme": "Claro / Oscuro",
       "linkSpotify": "Conectar Spotify",
       "spotifyConnected": "Spotify Conectado",
       "yourPlan": "Tu Plan",
-      "manageBilling": "Gestionar Facturaci\u00f3n",
-      "voiceId": "ID de Voz",
-      "householdMembers": "Miembros del Hogar",
+      "manageBilling": "Configuraci\u00f3n de Pago",
+      "voiceId": "Tu Voz",
+      "householdMembers": "Tu Gente",
       "contactInfo": "Info de Contacto",
-      "exportData": "Exportar Datos",
+      "exportData": "Descarga Tu Historia",
       "shareFerni": "Compartir Ferni",
       "supportFerni": "Apoyar a Ferni",
       "takeTour": "Hacer el Tour",
       "language": "Idioma"
-    }
+    },
+    "pinItem": "Fijar arriba",
+    "unpinItem": "Desfijar",
+    "comingSoon": "Pr\u00f3ximamente"
   },
 
   "session": {
@@ -200,7 +209,239 @@
     "whatIsYourName": "\u00bfC\u00f3mo te gustar\u00eda que te llame?",
     "niceName": "\u00a1Encantado de conocerte, {name}!",
     "howAreYouFeeling": "\u00bfC\u00f3mo te sientes hoy?",
-    "readyToBegin": "\u00bfListo para empezar?"
+    "readyToBegin": "\u00bfListo para empezar?",
+    "ariaLabel": "Tour de bienvenida",
+    "steps": {
+      "welcome": {
+        "title": "Bienvenido a Ferni",
+        "description": "Tu equipo personal de coaches de vida con IA. Cada uno aporta sabidur\u00eda \u00fanica para apoyar tu viaje."
+      },
+      "voice": {
+        "title": "Solo Habla",
+        "description": "Toca el centro para iniciar una conversaci\u00f3n. Habla naturalmente - Ferni escucha y responde en tiempo real."
+      },
+      "personas": {
+        "title": "Conoce a Tu Equipo",
+        "description": "Seis coaches \u00fanicos con diferentes perspectivas. Cada uno entiende tu historia con el equipo."
+      },
+      "rituals": {
+        "title": "Pr\u00e1cticas Diarias",
+        "description": "Construye consistencia con rituales diarios cortos. Sigue tus rachas y celebra tu progreso."
+      },
+      "ready": {
+        "title": "Est\u00e1s Listo",
+        "description": "Eso es todo lo que necesitas saber. Descubre m\u00e1s mientras avanzas."
+      }
+    },
+    "buttons": {
+      "skip": "Omitir tour",
+      "back": "Atr\u00e1s",
+      "next": "Siguiente",
+      "begin": "Comencemos"
+    }
+  },
+
+  "manageSubscription": {
+    "label": "SUSCRIPCI\u00d3N",
+    "title": "Gestiona Tu Plan",
+    "expiresLabel": "Acceso hasta",
+    "renewsLabel": "Se renueva",
+    "billedThrough": "Facturado a trav\u00e9s de",
+    "buttons": {
+      "upgrade": "Mejorar a Premium",
+      "restore": "Restaurar Compras",
+      "restoring": "Restaurando...",
+      "manageApple": "Gestionar en Ajustes",
+      "manageStripe": "Gestionar Facturaci\u00f3n"
+    },
+    "apple": {
+      "instructionsTitle": "Para cancelar o cambiar tu plan:",
+      "step1": "Abre Ajustes en tu dispositivo",
+      "step2": "Toca tu nombre en la parte superior",
+      "step3": "Toca \"Suscripciones\"",
+      "step4": "Busca y toca \"Ferni\""
+    },
+    "stripe": {
+      "note": "Actualiza m\u00e9todo de pago, ve facturas o cancela cuando quieras"
+    },
+    "restore": {
+      "noFound": "No se encontraron compras",
+      "failed": "Error al restaurar"
+    },
+    "status": {
+      "free": "Est\u00e1s en el plan gratuito. Ferni siempre est\u00e1 aqu\u00ed para ti.",
+      "active": "Tu suscripci\u00f3n est\u00e1 activa. \u00a1Gracias por tu apoyo!",
+      "canceled": "Tu suscripci\u00f3n terminar\u00e1 pronto, pero siempre ser\u00e1s bienvenido.",
+      "pastDue": "Hubo un problema con tu pago. Por favor actualiza tu m\u00e9todo de pago.",
+      "default": "Est\u00e1s suscrito. \u00a1Gracias por tu apoyo!"
+    },
+    "freeNote": "Desbloquea sesiones ilimitadas, todo el equipo y personalizaci\u00f3n"
+  },
+
+  "musicDashboard": {
+    "title": "Tu M\u00fasica",
+    "loading": "Analizando tu ADN musical...",
+    "empty": {
+      "title": "\u00a1Descubramos Tu ADN Musical!",
+      "hint": "Juega {count} juegos m\u00e1s para obtener perspectivas completas"
+    },
+    "error": {
+      "hint": "\u00a1Juega algunos juegos musicales para construir tu perfil!"
+    },
+    "buttons": {
+      "startPlaying": "Empezar a Jugar",
+      "playGame": "Jugar Adivina la Canci\u00f3n"
+    },
+    "sections": {
+      "journey": "Tu Viaje",
+      "strengths": "Donde Brillas",
+      "growth": "Espacio para Crecer",
+      "milestones": "Logros",
+      "moments": "Momentos Memorables",
+      "personaStats": "Con Qui\u00e9n Has Jugado"
+    },
+    "stats": {
+      "gamesPlayed": "Juegos Jugados",
+      "bestStreak": "Mejor Racha",
+      "minutes": "Minutos",
+      "thisWeek": "Esta Semana"
+    },
+    "favorite": {
+      "label": "Favorito:"
+    },
+    "milestone": {
+      "nextLabel": "Siguiente Meta"
+    }
+  },
+
+  "groupCoaching": {
+    "title": "Coaching Grupal",
+    "loading": "Cargando...",
+    "participantsLabel": "participantes",
+    "buttons": {
+      "start": "Iniciar",
+      "join": "Unirse"
+    },
+    "empty": {
+      "title": "Sin sesiones activas",
+      "hint": "Crea una nueva sesi\u00f3n para comenzar"
+    },
+    "sessionTypes": {
+      "couple": {
+        "name": "Pareja",
+        "description": "Navega din\u00e1micas de relaci\u00f3n juntos"
+      },
+      "family": {
+        "name": "Familia",
+        "description": "Construye conexiones familiares m\u00e1s fuertes"
+      },
+      "team": {
+        "name": "Equipo",
+        "description": "Mejora la colaboraci\u00f3n laboral"
+      },
+      "peer": {
+        "name": "Apoyo Entre Pares",
+        "description": "Con\u00e9ctate con otros en viajes similares"
+      }
+    }
+  },
+
+  "videoSettings": {
+    "title": "Sesiones de Video",
+    "loading": "Cargando...",
+    "intro": "Elige c\u00f3mo quieres aparecer en tus sesiones de coaching.",
+    "controls": {
+      "title": "Controles R\u00e1pidos"
+    },
+    "camera": {
+      "on": "C\u00e1mara Encendida",
+      "off": "C\u00e1mara Apagada"
+    },
+    "screen": {
+      "on": "Dejar de Compartir",
+      "off": "Compartir Pantalla"
+    },
+    "modes": {
+      "title": "Modo de Visualizaci\u00f3n",
+      "avatar": {
+        "label": "Solo Avatar",
+        "description": "Solo el avatar de Ferni, sin video"
+      },
+      "video": {
+        "label": "Video",
+        "description": "Verte a ti y a Ferni"
+      },
+      "hybrid": {
+        "label": "H\u00edbrido",
+        "description": "Avatar con video opcional"
+      }
+    },
+    "quality": {
+      "title": "Calidad de Video",
+      "auto": "Auto (Recomendado)",
+      "high": "Alta",
+      "medium": "Media",
+      "low": "Baja (Ahorra Datos)"
+    },
+    "note": "Las sesiones de video funcionan mejor con buena iluminaci\u00f3n y conexi\u00f3n estable.",
+    "buttons": {
+      "retry": "Intentar de Nuevo"
+    }
+  },
+
+  "wearableSettings": {
+    "title": "Salud y Fitness",
+    "loading": "Cargando...",
+    "intro": "Conecta tus wearables para darle a Ferni contexto sobre tu salud y niveles de energ\u00eda.",
+    "sections": {
+      "devices": "Dispositivos",
+      "features": "Lo que Ferni puede ver"
+    },
+    "buttons": {
+      "connect": "Conectar",
+      "disconnect": "Desconectar"
+    },
+    "features": {
+      "stress": "Detecci\u00f3n de estr\u00e9s desde HRV",
+      "sleep": "An\u00e1lisis de calidad del sue\u00f1o",
+      "activity": "Seguimiento de actividad"
+    },
+    "privacy": {
+      "note": "Tus datos de salud permanecen privados. Solo compartimos perspectivas agregadas con tus sesiones de coaching."
+    },
+    "providers": {
+      "appleHealth": {
+        "name": "Apple Health",
+        "description": "Sincroniza con Apple Watch y datos de salud del iPhone"
+      },
+      "fitbit": {
+        "name": "Fitbit",
+        "description": "Conecta tu dispositivo Fitbit"
+      },
+      "garmin": {
+        "name": "Garmin",
+        "description": "Sincroniza con wearables Garmin"
+      },
+      "oura": {
+        "name": "Oura Ring",
+        "description": "Perspectivas de sue\u00f1o y preparaci\u00f3n"
+      },
+      "whoop": {
+        "name": "Whoop",
+        "description": "Seguimiento de recuperaci\u00f3n y esfuerzo"
+      }
+    }
+  },
+
+  "contactSettings": {
+    "verify": {
+      "sending": "Enviando c\u00f3digo...",
+      "withCode": "Verificar con c\u00f3digo"
+    },
+    "buttons": {
+      "saving": "Guardando...",
+      "save": "Guardar"
+    }
   },
 
   "accessibility": {

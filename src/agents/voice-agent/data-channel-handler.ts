@@ -115,6 +115,10 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
       if (message.type === 'voice-pack-change') {
         await handleVoicePackChange(message, ctx);
       }
+
+      if (message.type === 'claude_narration') {
+        await handleClaudeNarration(message, ctx);
+      }
     } catch {
       // Not JSON or not a valid request - this is expected for non-data-channel uses
       // Silently ignore as data channel is used for multiple message types
@@ -443,6 +447,52 @@ Wait for the user to respond before continuing. Be warm and supportive throughou
     await room.localParticipant?.publishData(new TextEncoder().encode(errorMsg), {
       reliable: true,
     });
+  }
+}
+
+/**
+ * Handle claude_narration messages - Claude Code CLI sending updates to narrate
+ *
+ * This enables voice-driven coding where:
+ * 1. User speaks to Ferni
+ * 2. Ferni triggers Claude Code via CLI
+ * 3. Claude streams progress back via data channel
+ * 4. Ferni speaks the progress updates
+ */
+async function handleClaudeNarration(
+  message: { text: string; narration_type: 'progress' | 'result' | 'tool' },
+  ctx: DataChannelContext
+): Promise<void> {
+  const { session } = ctx;
+  const { text, narration_type } = message;
+
+  if (!text || !session) {
+    getLogger().warn('Claude narration received but no text or session');
+    return;
+  }
+
+  getLogger().info(
+    { narration_type, textLength: text.length },
+    '🤖 Claude Code narration received'
+  );
+
+  try {
+    // Make Ferni speak Claude's update naturally
+    // Keep it brief and conversational
+    const instruction =
+      narration_type === 'result'
+        ? `Say this completion message naturally and warmly: "${text}"`
+        : narration_type === 'tool'
+          ? `Briefly mention: "${text}" - keep it very short, just a quick update`
+          : `Say this progress update naturally: "${text}"`;
+
+    session.generateReply({
+      instructions: instruction,
+    });
+
+    getLogger().info({ narration_type }, '🎙️ Ferni speaking Claude update');
+  } catch (narrationErr) {
+    getLogger().warn({ error: String(narrationErr) }, 'Failed to narrate Claude update');
   }
 }
 

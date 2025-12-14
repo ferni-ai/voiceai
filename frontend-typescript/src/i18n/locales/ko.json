@@ -200,7 +200,240 @@
     "whatIsYourName": "뭐라고 불러드릴까요?",
     "niceName": "만나서 반가워요, {name}님!",
     "howAreYouFeeling": "오늘 기분이 어떠세요?",
-    "readyToBegin": "시작할 준비가 되셨나요?"
+    "readyToBegin": "시작할 준비가 되셨나요?",
+    "ariaLabel": "환영 투어",
+    "steps": {
+      "welcome": {
+        "title": "Ferni에 오신 것을 환영합니다",
+        "description": "당신의 개인 AI 라이프 코치 팀. 각자 고유한 지혜로 당신의 여정을 지원합니다."
+      },
+      "voice": {
+        "title": "그냥 말하세요",
+        "description": "중앙을 탭하여 대화를 시작하세요. 자연스럽게 말하면 Ferni가 실시간으로 듣고 응답합니다."
+      },
+      "personas": {
+        "title": "팀을 만나보세요",
+        "description": "서로 다른 관점을 가진 6명의 코치. 각자 팀과의 당신의 역사를 이해합니다."
+      },
+      "rituals": {
+        "title": "일일 연습",
+        "description": "짧은 일일 의식으로 일관성을 구축하세요. 연속 기록을 추적하고 진행 상황을 축하하세요."
+      },
+      "ready": {
+        "title": "준비되었습니다",
+        "description": "알아야 할 것은 이게 전부입니다. 진행하면서 더 많은 것을 발견하세요."
+      }
+    },
+    "buttons": {
+      "skip": "투어 건너뛰기",
+      "back": "뒤로",
+      "next": "다음",
+      "begin": "시작하기"
+    }
+  },
+
+  "manageSubscription": {
+    "label": "구독",
+    "title": "플랜 관리",
+    "expiresLabel": "액세스 종료일",
+    "renewsLabel": "갱신",
+    "billedThrough": "청구 방식",
+    "buttons": {
+      "upgrade": "프리미엄으로 업그레이드",
+      "restore": "구매 복원",
+      "restoring": "복원 중...",
+      "manageApple": "설정에서 관리",
+      "manageStripe": "결제 관리"
+    },
+    "apple": {
+      "instructionsTitle": "플랜을 취소하거나 변경하려면:",
+      "step1": "기기에서 설정 열기",
+      "step2": "상단의 이름 탭",
+      "step3": "\"구독\" 탭",
+      "step4": "\"Ferni\" 찾아서 탭",
+      "note": "Apple은 iOS 설정을 통해 구독을 관리해야 합니다"
+    },
+    "stripe": {
+      "note": "결제 방법 업데이트, 청구서 보기 또는 언제든지 취소"
+    },
+    "restore": {
+      "noFound": "구매 내역 없음",
+      "failed": "복원 실패"
+    },
+    "status": {
+      "free": "무료 플랜을 사용 중입니다. Ferni는 항상 당신 곁에 있습니다.",
+      "active": "구독이 활성화되어 있습니다. 후원해 주셔서 감사합니다!",
+      "canceled": "구독이 곧 종료되지만, 언제든지 다시 돌아오실 수 있습니다.",
+      "pastDue": "결제에 문제가 발생했습니다. 결제 방법을 업데이트해 주세요.",
+      "default": "구독 중입니다. 지원해 주셔서 감사합니다!"
+    },
+    "freeNote": "무제한 세션, 전체 팀 및 개인화 잠금 해제"
+  },
+
+  "musicDashboard": {
+    "title": "뮤지컬 유",
+    "loading": "음악 DNA 분석 중...",
+    "empty": {
+      "title": "음악 DNA를 발견해 봅시다!",
+      "hint": "전체 인사이트를 위해 {count}개 더 플레이하세요"
+    },
+    "error": {
+      "hint": "프로필을 만들려면 음악 게임을 플레이하세요!"
+    },
+    "buttons": {
+      "startPlaying": "플레이 시작",
+      "playGame": "노래 맞추기 게임하기"
+    },
+    "sections": {
+      "journey": "당신의 여정",
+      "strengths": "당신이 빛나는 곳",
+      "growth": "성장의 여지",
+      "milestones": "성과",
+      "moments": "기억에 남는 순간",
+      "personaStats": "함께 플레이한 사람"
+    },
+    "stats": {
+      "gamesPlayed": "플레이한 게임",
+      "bestStreak": "최고 연속 기록",
+      "minutes": "분",
+      "thisWeek": "이번 주"
+    },
+    "favorite": {
+      "label": "즐겨찾기:"
+    },
+    "milestone": {
+      "nextLabel": "다음 목표"
+    }
+  },
+
+  "groupCoaching": {
+    "title": "그룹 코칭",
+    "loading": "로딩 중...",
+    "participantsLabel": "참가자",
+    "buttons": {
+      "start": "시작",
+      "join": "참여"
+    },
+    "empty": {
+      "title": "활성 세션 없음",
+      "hint": "시작하려면 새 세션을 만드세요"
+    },
+    "sessionTypes": {
+      "couple": {
+        "name": "커플",
+        "description": "관계 역학을 함께 탐색하세요"
+      },
+      "family": {
+        "name": "가족",
+        "description": "더 강한 가족 관계 구축"
+      },
+      "team": {
+        "name": "팀",
+        "description": "직장 협업 개선"
+      },
+      "peer": {
+        "name": "동료 지원",
+        "description": "비슷한 여정을 가진 사람들과 연결"
+      }
+    }
+  },
+
+  "videoSettings": {
+    "title": "영상 세션",
+    "loading": "로딩 중...",
+    "intro": "코칭 세션에서 어떻게 나타날지 선택하세요.",
+    "controls": {
+      "title": "빠른 제어"
+    },
+    "camera": {
+      "on": "카메라 켜기",
+      "off": "카메라 끄기"
+    },
+    "screen": {
+      "on": "공유 중지",
+      "off": "화면 공유"
+    },
+    "modes": {
+      "title": "디스플레이 모드",
+      "avatarOnly": {
+        "label": "아바타만",
+        "description": "Ferni의 아바타만, 비디오 없음"
+      },
+      "video": {
+        "label": "비디오",
+        "description": "자신과 Ferni 보기"
+      },
+      "hybrid": {
+        "label": "하이브리드",
+        "description": "선택적 비디오가 있는 아바타"
+      }
+    },
+    "quality": {
+      "title": "비디오 품질",
+      "auto": "자동 (권장)",
+      "high": "높음",
+      "medium": "보통",
+      "low": "낮음 (데이터 절약)"
+    },
+    "note": "비디오 세션은 좋은 조명과 안정적인 인터넷 연결에서 가장 잘 작동합니다.",
+    "buttons": {
+      "retry": "다시 시도"
+    }
+  },
+
+  "wearableSettings": {
+    "title": "건강 및 피트니스",
+    "loading": "로딩 중...",
+    "intro": "웨어러블을 연결하여 Ferni에게 건강 및 에너지 수준에 대한 맥락을 제공하세요.",
+    "sections": {
+      "devices": "기기",
+      "features": "Ferni가 볼 수 있는 것"
+    },
+    "buttons": {
+      "connect": "연결",
+      "disconnect": "연결 해제"
+    },
+    "features": {
+      "stress": "HRV를 통한 스트레스 감지",
+      "sleep": "수면 품질 분석",
+      "activity": "활동 추적"
+    },
+    "privacy": {
+      "note": "건강 데이터는 비공개로 유지됩니다. 코칭 세션과 집계된 인사이트만 공유합니다."
+    },
+    "providers": {
+      "appleHealth": {
+        "name": "Apple Health",
+        "description": "Apple Watch 및 iPhone 건강 데이터와 동기화"
+      },
+      "fitbit": {
+        "name": "Fitbit",
+        "description": "Fitbit 기기 연결"
+      },
+      "garmin": {
+        "name": "Garmin",
+        "description": "Garmin 웨어러블과 동기화"
+      },
+      "oura": {
+        "name": "Oura Ring",
+        "description": "수면 및 준비 인사이트"
+      },
+      "whoop": {
+        "name": "Whoop",
+        "description": "회복 및 부담 추적"
+      }
+    }
+  },
+
+  "contactSettings": {
+    "verify": {
+      "sending": "코드 전송 중...",
+      "withCode": "코드로 인증"
+    },
+    "buttons": {
+      "saving": "저장 중...",
+      "save": "저장"
+    }
   },
 
   "accessibility": {

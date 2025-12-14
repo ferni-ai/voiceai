@@ -13,6 +13,7 @@
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
+import { t } from '../i18n/index.js';
 
 // ============================================================================
 // TYPES
@@ -43,39 +44,27 @@ interface WearableSettingsCallbacks {
 
 const PROVIDERS: Array<{
   id: WearableProvider;
-  name: string;
   icon: string;
-  description: string;
 }> = [
   {
     id: 'apple_health',
-    name: 'Apple Health',
     icon: '❤️',
-    description: 'Connect via the Ferni iOS app',
   },
   {
     id: 'fitbit',
-    name: 'Fitbit',
     icon: '⌚',
-    description: 'Steps, sleep, and heart rate',
   },
   {
     id: 'garmin',
-    name: 'Garmin',
     icon: '🏃',
-    description: 'Activity and training data',
   },
   {
     id: 'oura',
-    name: 'Oura Ring',
     icon: '💍',
-    description: 'Sleep and readiness scores',
   },
   {
     id: 'whoop',
-    name: 'Whoop',
     icon: '📊',
-    description: 'Recovery and strain data',
   },
 ];
 
@@ -137,7 +126,10 @@ class WearableSettingsUI {
     this.panel.classList.add('wearable-settings--visible');
     this.isVisible = true;
 
-    await this.loadStatus();
+    await this.loadStatus().catch((error) => {
+      console.error('Failed to load wearable status:', error);
+      this.renderError(t('wearableSettings.errors.loadFailed'));
+    });
   }
 
   hide(): void {
@@ -152,7 +144,7 @@ class WearableSettingsUI {
     if (this.isVisible) {
       this.hide();
     } else {
-      this.show();
+      void this.show();
     }
   }
 
@@ -164,7 +156,7 @@ class WearableSettingsUI {
     this.panel = document.createElement('div');
     this.panel.className = 'wearable-settings';
     this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', 'Health & Fitness Settings');
+    this.panel.setAttribute('aria-label', t('wearableSettings.title'));
 
     this.wrapper = document.createElement('div');
     this.wrapper.className = 'wearable-settings__wrapper';
@@ -185,7 +177,7 @@ class WearableSettingsUI {
         this.status = response;
         this.renderContent();
       } else {
-        this.renderError('Unable to load wearable status');
+        this.renderError(t('wearableSettings.errors.loadFailed'));
       }
     } catch {
       this.status = {
@@ -209,12 +201,12 @@ class WearableSettingsUI {
     this.wrapper.innerHTML = `
       <header class="wearable-settings__header">
         <div class="wearable-settings__icon">${ICONS.activity}</div>
-        <h2 class="wearable-settings__title">Health & Fitness</h2>
-        <button class="wearable-settings__close" aria-label="Close">${ICONS.close}</button>
+        <h2 class="wearable-settings__title">${t('wearableSettings.title')}</h2>
+        <button class="wearable-settings__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
       <div class="wearable-settings__loading">
         <div class="wearable-settings__spinner"></div>
-        <p>Loading...</p>
+        <p>${t('wearableSettings.loading')}</p>
       </div>
     `;
 
@@ -225,22 +217,22 @@ class WearableSettingsUI {
     if (!this.wrapper || !this.status) return;
 
     const providersList = PROVIDERS.map((provider) => {
-      const connectionStatus = this.status?.status[provider.id] || 'disconnected';
+      const connectionStatus = this.status?.status[provider.id] ?? 'disconnected';
       const isConnected = connectionStatus === 'connected';
 
       return `
         <div class="wearable-settings__provider ${isConnected ? 'wearable-settings__provider--connected' : ''}">
           <div class="wearable-settings__provider-icon">${provider.icon}</div>
           <div class="wearable-settings__provider-info">
-            <span class="wearable-settings__provider-name">${provider.name}</span>
-            <span class="wearable-settings__provider-desc">${provider.description}</span>
+            <span class="wearable-settings__provider-name">${t(`wearableSettings.providers.${provider.id}.name`)}</span>
+            <span class="wearable-settings__provider-desc">${t(`wearableSettings.providers.${provider.id}.description`)}</span>
           </div>
-          <button 
+          <button
             class="wearable-settings__provider-btn ${isConnected ? 'wearable-settings__provider-btn--disconnect' : ''}"
             data-provider="${provider.id}"
             data-connected="${isConnected}"
           >
-            ${isConnected ? 'Disconnect' : 'Connect'}
+            ${isConnected ? t('wearableSettings.buttons.disconnect') : t('wearableSettings.buttons.connect')}
           </button>
         </div>
       `;
@@ -249,39 +241,39 @@ class WearableSettingsUI {
     this.wrapper.innerHTML = `
       <header class="wearable-settings__header">
         <div class="wearable-settings__icon">${ICONS.activity}</div>
-        <h2 class="wearable-settings__title">Health & Fitness</h2>
-        <button class="wearable-settings__close" aria-label="Close">${ICONS.close}</button>
+        <h2 class="wearable-settings__title">${t('wearableSettings.title')}</h2>
+        <button class="wearable-settings__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
 
       <div class="wearable-settings__content">
         <div class="wearable-settings__intro">
-          <p>Connect your wearables to give Ferni context about your health and energy levels.</p>
+          <p>${t('wearableSettings.intro')}</p>
         </div>
 
         <div class="wearable-settings__providers">
-          <h3>Devices</h3>
+          <h3>${t('wearableSettings.sections.devices')}</h3>
           ${providersList}
         </div>
 
         <div class="wearable-settings__features">
-          <h3>What Ferni can see</h3>
+          <h3>${t('wearableSettings.sections.features')}</h3>
           <label class="wearable-settings__toggle">
             <input type="checkbox" data-feature="stress" ${this.status.config.enableStressDetection ? 'checked' : ''}>
-            <span>Stress detection from HRV</span>
+            <span>${t('wearableSettings.features.stress')}</span>
           </label>
           <label class="wearable-settings__toggle">
             <input type="checkbox" data-feature="sleep" ${this.status.config.enableSleepAnalysis ? 'checked' : ''}>
-            <span>Sleep quality analysis</span>
+            <span>${t('wearableSettings.features.sleep')}</span>
           </label>
           <label class="wearable-settings__toggle">
             <input type="checkbox" data-feature="activity" ${this.status.config.enableActivityTracking ? 'checked' : ''}>
-            <span>Activity tracking</span>
+            <span>${t('wearableSettings.features.activity')}</span>
           </label>
         </div>
 
         <div class="wearable-settings__privacy">
           <div class="wearable-settings__privacy-icon">${ICONS.shield}</div>
-          <p>Your health data stays private. We only share aggregated insights with your coaching sessions.</p>
+          <p>${t('wearableSettings.privacy.note')}</p>
         </div>
       </div>
     `;
@@ -297,19 +289,19 @@ class WearableSettingsUI {
     this.wrapper.innerHTML = `
       <header class="wearable-settings__header">
         <div class="wearable-settings__icon">${ICONS.activity}</div>
-        <h2 class="wearable-settings__title">Health & Fitness</h2>
-        <button class="wearable-settings__close" aria-label="Close">${ICONS.close}</button>
+        <h2 class="wearable-settings__title">${t('wearableSettings.title')}</h2>
+        <button class="wearable-settings__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
       <div class="wearable-settings__error">
         <p>${message}</p>
-        <button class="wearable-settings__retry">Try Again</button>
+        <button class="wearable-settings__retry">${t('wearableSettings.buttons.tryAgain')}</button>
       </div>
     `;
 
     this.bindCloseButton();
     this.wrapper.querySelector('.wearable-settings__retry')?.addEventListener('click', () => {
       this.renderLoading();
-      this.loadStatus();
+      void this.loadStatus();
     });
   }
 
@@ -321,23 +313,25 @@ class WearableSettingsUI {
 
   private bindProviderButtons(): void {
     this.wrapper?.querySelectorAll('.wearable-settings__provider-btn').forEach((btn) => {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', () => {
         const htmlBtn = btn as HTMLButtonElement;
         const provider = htmlBtn.dataset.provider as WearableProvider;
         const isConnected = htmlBtn.dataset.connected === 'true';
 
-        if (isConnected) {
-          await this.disconnectProvider(provider);
-        } else {
-          await this.connectProvider(provider);
-        }
+        void (async () => {
+          if (isConnected) {
+            await this.disconnectProvider(provider);
+          } else {
+            await this.connectProvider(provider);
+          }
+        })();
       });
     });
   }
 
   private bindFeatureToggles(): void {
     this.wrapper?.querySelectorAll('.wearable-settings__toggle input').forEach((input) => {
-      input.addEventListener('change', async () => {
+      input.addEventListener('change', () => {
         const htmlInput = input as HTMLInputElement;
         const feature = htmlInput.dataset.feature;
 
@@ -346,7 +340,7 @@ class WearableSettingsUI {
         if (feature === 'sleep') config.enableSleepAnalysis = htmlInput.checked;
         if (feature === 'activity') config.enableActivityTracking = htmlInput.checked;
 
-        await apiPost('/api/wearable/config', config);
+        void apiPost('/api/wearable/config', config);
       });
     });
   }
@@ -359,7 +353,7 @@ class WearableSettingsUI {
       );
 
       if (response.success && response.authUrl) {
-        window.location.href = response.authUrl;
+        window.location.href = response.authUrl as string;
       }
     } catch (error) {
       console.error('Failed to connect provider:', error);
@@ -739,7 +733,7 @@ export function getWearableSettingsUI(): WearableSettingsUI {
 }
 
 export function showWearableSettings(): void {
-  getWearableSettingsUI().show();
+  void getWearableSettingsUI().show();
 }
 
 export function hideWearableSettings(): void {

@@ -12,6 +12,7 @@
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
+import { t } from '../i18n/index.js';
 
 // ============================================================================
 // TYPES
@@ -135,7 +136,7 @@ class VideoSettingsUI {
     this.panel = document.createElement('div');
     this.panel.className = 'video-settings';
     this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', 'Video Settings');
+    this.panel.setAttribute('aria-label', t('videoSettings.title'));
 
     this.wrapper = document.createElement('div');
     this.wrapper.className = 'video-settings__wrapper';
@@ -187,12 +188,12 @@ class VideoSettingsUI {
     this.wrapper.innerHTML = `
       <header class="video-settings__header">
         <div class="video-settings__icon">${ICONS.video}</div>
-        <h2 class="video-settings__title">Video Sessions</h2>
-        <button class="video-settings__close" aria-label="Close">${ICONS.close}</button>
+        <h2 class="video-settings__title">${t('videoSettings.title')}</h2>
+        <button class="video-settings__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
       <div class="video-settings__loading">
         <div class="video-settings__spinner"></div>
-        <p>Loading...</p>
+        <p>${t('common.loading')}</p>
       </div>
     `;
 
@@ -203,39 +204,39 @@ class VideoSettingsUI {
     if (!this.wrapper || !this.state || !this.config) return;
 
     const modeOptions = [
-      { id: 'avatar', label: 'Avatar Only', icon: ICONS.user, desc: 'See Ferni as an avatar' },
-      { id: 'video', label: 'Video', icon: ICONS.video, desc: 'Enable your camera' },
-      { id: 'hybrid', label: 'Hybrid', icon: ICONS.layout, desc: 'Avatar + small video' },
+      { id: 'avatar', label: t('videoSettings.modes.avatar.label'), icon: ICONS.user, desc: t('videoSettings.modes.avatar.description') },
+      { id: 'video', label: t('videoSettings.modes.video.label'), icon: ICONS.video, desc: t('videoSettings.modes.video.description') },
+      { id: 'hybrid', label: t('videoSettings.modes.hybrid.label'), icon: ICONS.layout, desc: t('videoSettings.modes.hybrid.description') },
     ];
 
     this.wrapper.innerHTML = `
       <header class="video-settings__header">
         <div class="video-settings__icon">${ICONS.video}</div>
-        <h2 class="video-settings__title">Video Sessions</h2>
-        <button class="video-settings__close" aria-label="Close">${ICONS.close}</button>
+        <h2 class="video-settings__title">${t('videoSettings.title')}</h2>
+        <button class="video-settings__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
 
       <div class="video-settings__content">
         <div class="video-settings__intro">
-          <p>Choose how you want to appear in your coaching sessions.</p>
+          <p>${t('videoSettings.intro')}</p>
         </div>
 
         <div class="video-settings__controls">
-          <h3>Quick Controls</h3>
-          
+          <h3>${t('videoSettings.controls.title')}</h3>
+
           <button class="video-settings__control ${this.state.isVideoEnabled ? 'video-settings__control--active' : ''}" data-action="toggle-video">
             <span class="video-settings__control-icon">${this.state.isVideoEnabled ? ICONS.video : ICONS.videoOff}</span>
-            <span class="video-settings__control-label">${this.state.isVideoEnabled ? 'Camera On' : 'Camera Off'}</span>
+            <span class="video-settings__control-label">${this.state.isVideoEnabled ? t('videoSettings.camera.on') : t('videoSettings.camera.off')}</span>
           </button>
 
           <button class="video-settings__control ${this.state.isScreenSharing ? 'video-settings__control--active' : ''}" data-action="toggle-screen">
             <span class="video-settings__control-icon">${ICONS.screen}</span>
-            <span class="video-settings__control-label">${this.state.isScreenSharing ? 'Stop Sharing' : 'Share Screen'}</span>
+            <span class="video-settings__control-label">${this.state.isScreenSharing ? t('videoSettings.screen.on') : t('videoSettings.screen.off')}</span>
           </button>
         </div>
 
         <div class="video-settings__modes">
-          <h3>Display Mode</h3>
+          <h3>${t('videoSettings.modes.title')}</h3>
           <div class="video-settings__mode-grid">
             ${modeOptions
               .map(
@@ -252,17 +253,17 @@ class VideoSettingsUI {
         </div>
 
         <div class="video-settings__quality">
-          <h3>Video Quality</h3>
+          <h3>${t('videoSettings.quality.title')}</h3>
           <select class="video-settings__quality-select" data-setting="quality">
-            <option value="auto" ${this.config.videoQuality === 'auto' ? 'selected' : ''}>Auto (Recommended)</option>
-            <option value="high" ${this.config.videoQuality === 'high' ? 'selected' : ''}>High</option>
-            <option value="medium" ${this.config.videoQuality === 'medium' ? 'selected' : ''}>Medium</option>
-            <option value="low" ${this.config.videoQuality === 'low' ? 'selected' : ''}>Low (Save Data)</option>
+            <option value="auto" ${this.config.videoQuality === 'auto' ? 'selected' : ''}>${t('videoSettings.quality.auto')}</option>
+            <option value="high" ${this.config.videoQuality === 'high' ? 'selected' : ''}>${t('videoSettings.quality.high')}</option>
+            <option value="medium" ${this.config.videoQuality === 'medium' ? 'selected' : ''}>${t('videoSettings.quality.medium')}</option>
+            <option value="low" ${this.config.videoQuality === 'low' ? 'selected' : ''}>${t('videoSettings.quality.low')}</option>
           </select>
         </div>
 
         <div class="video-settings__note">
-          <p>Video sessions work best with good lighting and a stable internet connection.</p>
+          <p>${t('videoSettings.note')}</p>
         </div>
       </div>
     `;
@@ -277,12 +278,12 @@ class VideoSettingsUI {
     this.wrapper.innerHTML = `
       <header class="video-settings__header">
         <div class="video-settings__icon">${ICONS.video}</div>
-        <h2 class="video-settings__title">Video Sessions</h2>
-        <button class="video-settings__close" aria-label="Close">${ICONS.close}</button>
+        <h2 class="video-settings__title">${t('videoSettings.title')}</h2>
+        <button class="video-settings__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
       <div class="video-settings__error">
         <p>${message}</p>
-        <button class="video-settings__retry">Try Again</button>
+        <button class="video-settings__retry">${t('videoSettings.buttons.retry')}</button>
       </div>
     `;
 

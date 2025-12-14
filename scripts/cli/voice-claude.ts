@@ -5,8 +5,12 @@
  * Talk to Ferni, who translates your requests into Claude Code commands.
  * Ferni narrates what Claude is doing and tells you when input is needed.
  *
- * Flow:
- *   You speak → Ferni understands → Claude Code executes → Ferni narrates
+ * Architecture:
+ *   Voice → LiveKit → Ferni (transcription) → Claude Code (stream-json) → Ferni (narration) → Voice
+ *
+ * Uses Claude Code's streaming JSON API for clean bidirectional communication:
+ *   --input-format stream-json   → Send messages as NDJSON
+ *   --output-format stream-json  → Receive events as NDJSON
  *
  * Prerequisites:
  *   1. Claude Code CLI installed: npm install -g @anthropic-ai/claude-code
@@ -23,6 +27,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import * as readline from 'readline';
 import { spawn, ChildProcess, execSync } from 'child_process';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = dirname(dirname(__dirname));
@@ -38,6 +43,86 @@ const CONFIG = {
   tokenServerUrl: process.env.CLI_TOKEN_SERVER || 'http://localhost:3001',
   livekitUrl: process.env.LIVEKIT_URL || '',
 };
+
+// ============================================================================
+// MCP NARRATION QUEUE (Reads from ferni-mcp-server.ts)
+// ============================================================================
+
+const MCP_STATE_DIR = join(PROJECT_ROOT, '.ferni-mcp');
+const MCP_NARRATION_FILE = join(MCP_STATE_DIR, 'narration.json');
+const MCP_STATE_FILE = join(MCP_STATE_DIR, 'state.json');
+
+interface NarrationMessage {
+  id: string;
+  text: string;
+  type: 'narration' | 'progress' | 'question' | 'completion';
+  timestamp: number;
+  processed: boolean;
+}
+
+interface FerniMcpState {
+  currentTask: string | null;
+  taskQueue: string[];
+  lastNarration: string | null;
+  lastNarrationTime: number | null;
+  voiceInputPending: boolean;
+  voiceInputResult: string | null;
+  progressUpdates: Array<{
+    message: string;
+    timestamp: number;
+    type: 'info' | 'success' | 'warning' | 'error';
+  }>;
+}
+
+function ensureMcpStateDir(): void {
+  if (!existsSync(MCP_STATE_DIR)) {
+    mkdirSync(MCP_STATE_DIR, { recursive: true });
+  }
+}
+
+function readNarrationQueue(): NarrationMessage[] {
+  if (!existsSync(MCP_NARRATION_FILE)) return [];
+  try {
+    return JSON.parse(readFileSync(MCP_NARRATION_FILE, 'utf-8'));
+  } catch {
+    return [];
+  }
+}
+
+function markNarrationsProcessed(ids: string[]): void {
+  if (ids.length === 0) return;
+  const queue = readNarrationQueue();
+  for (const msg of queue) {
+    if (ids.includes(msg.id)) {
+      msg.processed = true;
+    }
+  }
+  writeFileSync(MCP_NARRATION_FILE, JSON.stringify(queue, null, 2));
+}
+
+function getUnprocessedNarrations(): NarrationMessage[] {
+  return readNarrationQueue().filter((m) => !m.processed);
+}
+
+function setCurrentTask(task: string): void {
+  ensureMcpStateDir();
+  let state: FerniMcpState = {
+    currentTask: null,
+    taskQueue: [],
+    lastNarration: null,
+    lastNarrationTime: null,
+    voiceInputPending: false,
+    voiceInputResult: null,
+    progressUpdates: [],
+  };
+  if (existsSync(MCP_STATE_FILE)) {
+    try {
+      state = JSON.parse(readFileSync(MCP_STATE_FILE, 'utf-8'));
+    } catch {}
+  }
+  state.currentTask = task;
+  writeFileSync(MCP_STATE_FILE, JSON.stringify(state, null, 2));
+}
 
 // ============================================================================
 // COLORS
@@ -57,21 +142,49 @@ const colors = {
 };
 
 // ============================================================================
-// CLAUDE CODE PROCESS
+// CLAUDE CODE STREAMING JSON API
 // ============================================================================
+
+interface ClaudeEvent {
+  type: 'init' | 'system' | 'assistant' | 'user' | 'result';
+  session_id?: string;
+  message?: {
+    role: string;
+    content: Array<{
+      type: string;
+      text?: string;
+      name?: string;
+      input?: unknown;
+    }>;
+  };
+  status?: string;
+  subtype?: string;
+  result?: string;
+  duration_ms?: number;
+  total_cost_usd?: number;
+  num_turns?: number;
+}
 
 interface ClaudeState {
   process: ChildProcess | null;
-  isWaitingForInput: boolean;
-  lastActivity: string;
-  currentTask: string;
+  sessionId: string | null;
+  isWorking: boolean;
+  isReady: boolean;
+  currentTool: string | null;
+  lastMessage: string;
+  workingDir: string;
+  onOutput: ((event: ClaudeEvent) => void) | null;
 }
 
 const claudeState: ClaudeState = {
   process: null,
-  isWaitingForInput: false,
-  lastActivity: '',
-  currentTask: '',
+  sessionId: null,
+  isWorking: false,
+  isReady: true,
+  currentTool: null,
+  lastMessage: '',
+  workingDir: process.cwd(),
+  onOutput: null,
 };
 
 function checkClaudeInstalled(): boolean {
@@ -83,63 +196,106 @@ function checkClaudeInstalled(): boolean {
   }
 }
 
-function spawnClaude(workingDir: string): ChildProcess {
-  const claude = spawn('claude', ['--dangerously-skip-permissions'], {
-    cwd: workingDir,
-    stdio: ['pipe', 'pipe', 'pipe'],
-    env: {
-      ...process.env,
-      FORCE_COLOR: '0', // Disable colors for easier parsing
+function createUserMessage(text: string): string {
+  const message = {
+    type: 'user',
+    message: {
+      role: 'user',
+      content: [{ type: 'text', text }],
     },
-  });
-
-  return claude;
+  };
+  return JSON.stringify(message);
 }
 
-function parseClaudeOutput(data: string): {
-  type: 'working' | 'waiting' | 'done' | 'error' | 'info';
-  message: string;
+function parseClaudeEvent(line: string): ClaudeEvent | null {
+  try {
+    return JSON.parse(line);
+  } catch {
+    return null;
+  }
+}
+
+function formatClaudeOutput(event: ClaudeEvent): {
+  display: string;
+  narrate: string | null;
+  state: 'working' | 'done' | 'ready';
 } {
-  const text = data.toString().trim();
-
-  // Detect when Claude is waiting for input
-  if (
-    text.includes('What would you like') ||
-    text.includes('How can I help') ||
-    text.includes('Is there anything') ||
-    text.includes('Would you like me to') ||
-    text.includes('?') && text.length < 200
-  ) {
-    return { type: 'waiting', message: text };
+  // Handle system events (init, tool_use, tool_result)
+  if (event.type === 'system') {
+    if (event.subtype === 'init') {
+      claudeState.sessionId = event.session_id || null;
+      claudeState.isWorking = true;
+      return {
+        display: `${colors.dim}Session: ${event.session_id?.slice(0, 8)}...${colors.reset}`,
+        narrate: null,
+        state: 'working',
+      };
+    }
+    if (event.subtype === 'tool_use' && event.message?.content?.[0]) {
+      const content = event.message.content[0];
+      const toolName = content.name || 'tool';
+      claudeState.currentTool = toolName;
+      return {
+        display: `${colors.yellow}[${toolName}]${colors.reset}`,
+        narrate: null,
+        state: 'working',
+      };
+    }
+    if (event.subtype === 'tool_result') {
+      claudeState.currentTool = null;
+      return {
+        display: '',
+        narrate: null,
+        state: 'working',
+      };
+    }
+    return { display: '', narrate: null, state: 'working' };
   }
 
-  // Detect errors
-  if (text.includes('Error:') || text.includes('error:') || text.includes('failed')) {
-    return { type: 'error', message: text };
+  // Handle assistant messages
+  if (event.type === 'assistant') {
+    if (event.message?.content) {
+      const textContent = event.message.content.find((c) => c.type === 'text');
+      if (textContent?.text) {
+        claudeState.lastMessage = textContent.text;
+        return {
+          display: `${colors.cyan}Claude:${colors.reset} ${textContent.text}`,
+          narrate: textContent.text,
+          state: 'working', // Still working until we get result
+        };
+      }
+      // Check for tool use in assistant message
+      const toolContent = event.message.content.find((c) => c.type === 'tool_use');
+      if (toolContent?.name) {
+        claudeState.currentTool = toolContent.name;
+        return {
+          display: `${colors.yellow}[${toolContent.name}]${colors.reset}`,
+          narrate: null,
+          state: 'working',
+        };
+      }
+    }
+    return { display: '', narrate: null, state: 'working' };
   }
 
-  // Detect completion
-  if (
-    text.includes('Done!') ||
-    text.includes('Complete') ||
-    text.includes('finished') ||
-    text.includes('successfully')
-  ) {
-    return { type: 'done', message: text };
+  // Handle result - this is when Claude is done and ready for next input
+  if (event.type === 'result') {
+    claudeState.isWorking = false;
+    claudeState.isReady = true;
+    claudeState.currentTool = null;
+    const isSuccess = event.subtype === 'success';
+    const status = isSuccess ? colors.green : colors.red;
+    const costStr = event.total_cost_usd
+      ? ` ${colors.dim}($${event.total_cost_usd.toFixed(4)})${colors.reset}`
+      : '';
+    return {
+      display: `${status}[Ready]${colors.reset}${costStr}`,
+      narrate: null,
+      state: 'done',
+    };
   }
 
-  // Detect file operations
-  if (
-    text.includes('Reading') ||
-    text.includes('Writing') ||
-    text.includes('Creating') ||
-    text.includes('Editing') ||
-    text.includes('Searching')
-  ) {
-    return { type: 'working', message: text };
-  }
-
-  return { type: 'info', message: text };
+  return { display: '', narrate: null, state: 'working' };
 }
 
 // ============================================================================
@@ -175,98 +331,121 @@ async function fetchToken(
 }
 
 // ============================================================================
-// VOICE + CLAUDE INTEGRATION
+// CLAUDE CODE PROCESS
 // ============================================================================
 
-interface BridgeState {
-  room: any;
-  claudeProcess: ChildProcess | null;
-  pendingUserSpeech: string[];
-  isProcessing: boolean;
-  workingDir: string;
-}
+function spawnClaudeProcess(
+  workingDir: string,
+  sessionId: string | null,
+  message: string,
+  onOutput: (event: ClaudeEvent) => void
+): ChildProcess {
+  const args = [
+    '--print',
+    '--input-format', 'stream-json',
+    '--output-format', 'stream-json',
+    // Load Ferni MCP server for voice narration
+    '--mcp-config', join(PROJECT_ROOT, '.mcp.json'),
+    // Skip permissions for headless operation
+    '--dangerously-skip-permissions',
+  ];
 
-const bridgeState: BridgeState = {
-  room: null,
-  claudeProcess: null,
-  pendingUserSpeech: [],
-  isProcessing: false,
-  workingDir: process.cwd(),
-};
+  // Resume session if we have one
+  if (sessionId) {
+    args.push('--resume', sessionId);
+  }
 
-async function sendToAgent(room: any, message: string): Promise<void> {
-  // Send a data message to the agent
-  // The agent will speak this message via TTS
-  const payload = JSON.stringify({
-    type: 'narrator_message',
-    text: message,
-    source: 'claude_bridge',
+  const claude = spawn('claude', args, {
+    cwd: workingDir,
+    stdio: ['pipe', 'pipe', 'pipe'],
+    env: {
+      ...process.env,
+      FORCE_COLOR: '0',
+    },
   });
 
-  try {
-    const encoder = new TextEncoder();
-    await room.localParticipant?.publishData(encoder.encode(payload), { reliable: true });
-  } catch (err) {
-    console.log(`${colors.dim}[Could not send to agent: ${(err as Error).message}]${colors.reset}`);
-  }
-}
-
-async function startClaudeSession(workingDir: string): Promise<ChildProcess> {
-  console.log(`${colors.dim}Starting Claude Code in ${workingDir}...${colors.reset}`);
-
-  const claude = spawnClaude(workingDir);
-
+  // Parse NDJSON output
+  let buffer = '';
   claude.stdout?.on('data', (data) => {
-    const text = data.toString();
-    const parsed = parseClaudeOutput(text);
+    buffer += data.toString();
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
 
-    // Show in terminal
-    console.log(`${colors.cyan}Claude:${colors.reset} ${text}`);
-
-    // Update state
-    claudeState.lastActivity = text;
-
-    if (parsed.type === 'waiting') {
-      claudeState.isWaitingForInput = true;
-      console.log(`\n${colors.yellow}[Claude needs your input - speak your response]${colors.reset}\n`);
-    } else {
-      claudeState.isWaitingForInput = false;
+    for (const line of lines) {
+      if (line.trim()) {
+        const event = parseClaudeEvent(line);
+        if (event) {
+          onOutput(event);
+        }
+      }
     }
   });
 
   claude.stderr?.on('data', (data) => {
-    const text = data.toString();
-    console.log(`${colors.red}Claude Error:${colors.reset} ${text}`);
+    const text = data.toString().trim();
+    if (text && !text.includes('deprecated')) {
+      console.log(`${colors.dim}[stderr] ${text}${colors.reset}`);
+    }
   });
 
-  claude.on('close', (code) => {
-    console.log(`${colors.dim}Claude session ended (code: ${code})${colors.reset}`);
+  claude.on('close', () => {
     claudeState.process = null;
+    // Don't log - this is expected after each message
   });
+
+  // Send the message immediately
+  const jsonMessage = createUserMessage(message);
+  claude.stdin?.write(jsonMessage + '\n');
+  claude.stdin?.end(); // Signal we're done sending
 
   claudeState.process = claude;
+  claudeState.isWorking = true;
+  claudeState.isReady = false;
+
   return claude;
 }
 
 function sendToClaude(message: string): void {
-  if (!claudeState.process) {
-    console.log(`${colors.red}Claude is not running${colors.reset}`);
+  if (claudeState.isWorking && !claudeState.isReady) {
+    console.log(`${colors.yellow}[Claude is still working, please wait...]${colors.reset}`);
     return;
   }
 
-  console.log(`\n${colors.blue}You → Claude:${colors.reset} ${message}\n`);
-  claudeState.process.stdin?.write(message + '\n');
-  claudeState.isWaitingForInput = false;
+  console.log(`\n${colors.blue}You:${colors.reset} ${message}\n`);
+
+  // Set current task in MCP state so Claude can retrieve it via MCP tools
+  setCurrentTask(message);
+
+  // Spawn a new Claude process for this message
+  // It will resume the session if we have a sessionId
+  spawnClaudeProcess(
+    claudeState.workingDir,
+    claudeState.sessionId,
+    message,
+    claudeState.onOutput!
+  );
+}
+
+function initializeClaude(workingDir: string, onOutput: (event: ClaudeEvent) => void): void {
+  claudeState.workingDir = workingDir;
+  claudeState.onOutput = onOutput;
+  claudeState.isReady = true;
+  console.log(`${colors.dim}Claude Code ready (stream-json mode with session resumption)${colors.reset}`);
 }
 
 // ============================================================================
-// LIVEKIT CONNECTION
+// LIVEKIT + CLAUDE BRIDGE
 // ============================================================================
 
-async function connectToRoom(
+interface BridgeOptions {
+  debug: boolean;
+  workingDir: string;
+}
+
+async function connectVoiceToClaude(
   token: string,
   url: string,
-  options: { debug: boolean; workingDir: string }
+  options: BridgeOptions
 ): Promise<void> {
   const lk = await import('@livekit/rtc-node');
   const { Room, RoomEvent, dispose } = lk;
@@ -274,25 +453,65 @@ async function connectToRoom(
   console.log(`${colors.dim}Connecting to LiveKit...${colors.reset}`);
 
   const room = new Room();
-  bridgeState.room = room;
 
-  // Handle connection events
+  // Send narration to Ferni via data channel
+  const sendNarrationToFerni = async (text: string, type: 'progress' | 'result' | 'tool') => {
+    if (!text || !room.localParticipant) return;
+
+    try {
+      const message = JSON.stringify({
+        type: 'claude_narration',
+        text,
+        narration_type: type,
+        timestamp: Date.now(),
+      });
+      const encoder = new TextEncoder();
+      await room.localParticipant.publishData(encoder.encode(message), { reliable: true });
+
+      if (options.debug) {
+        console.log(`${colors.dim}[SENT TO FERNI] ${text.substring(0, 50)}...${colors.reset}`);
+      }
+    } catch (err) {
+      console.log(`${colors.dim}[Failed to send to Ferni: ${(err as Error).message}]${colors.reset}`);
+    }
+  };
+
+  // Handle Claude output - display and send to Ferni for narration
+  const handleClaudeOutput = (event: ClaudeEvent) => {
+    const formatted = formatClaudeOutput(event);
+
+    if (formatted.display) {
+      console.log(formatted.display);
+    }
+
+    // In debug mode, show raw events
+    if (options.debug && event.type !== 'system') {
+      console.log(`${colors.dim}[EVENT] ${JSON.stringify(event).substring(0, 200)}${colors.reset}`);
+    }
+
+    // Send narration to Ferni to speak via TTS
+    if (formatted.narrate) {
+      const narType = formatted.state === 'done' ? 'result' : 'progress';
+      void sendNarrationToFerni(formatted.narrate, narType);
+    }
+  };
+
+  // Connection events
   room.on(RoomEvent.Connected, () => {
     console.log(`${colors.green}Connected to Ferni!${colors.reset}`);
   });
 
-  room.on(RoomEvent.Disconnected, (reason?: string) => {
-    console.log(`\n${colors.yellow}Disconnected: ${reason || 'unknown'}${colors.reset}`);
+  room.on(RoomEvent.Disconnected, () => {
+    console.log(`\n${colors.yellow}Disconnected from voice${colors.reset}`);
   });
 
-  // Handle participants
   room.on(RoomEvent.ParticipantConnected, (participant) => {
     if (participant.identity?.includes('agent')) {
       console.log(`${colors.green}Ferni joined - ready to help with coding!${colors.reset}`);
     }
   });
 
-  // Handle transcription - THIS IS WHERE VOICE BECOMES TEXT
+  // Handle transcription - THIS IS WHERE VOICE BECOMES CLAUDE INPUT
   room.on(RoomEvent.TranscriptionReceived, (segments, participant) => {
     for (const segment of segments) {
       if (segment.final && segment.text) {
@@ -300,38 +519,16 @@ async function connectToRoom(
 
         if (isAgent) {
           // Ferni is speaking (narration)
-          console.log(`${colors.cyan}Ferni:${colors.reset} ${segment.text}`);
+          console.log(`${colors.magenta}Ferni:${colors.reset} ${segment.text}`);
         } else {
           // User is speaking - send to Claude!
-          console.log(`${colors.blue}You:${colors.reset} ${segment.text}`);
-
-          // If Claude is running and waiting for input, send it
-          if (claudeState.process && claudeState.isWaitingForInput) {
-            sendToClaude(segment.text);
-          } else if (claudeState.process) {
-            // Claude is working, queue the message
-            console.log(`${colors.dim}[Queued - Claude is still working]${colors.reset}`);
-            bridgeState.pendingUserSpeech.push(segment.text);
-          } else {
-            // No Claude session yet - start one with this request
-            sendToClaude(segment.text);
-          }
+          sendToClaude(segment.text);
         }
       }
     }
   });
 
-  // Handle data messages from agent
-  room.on(RoomEvent.DataReceived, (data, participant) => {
-    if (options.debug) {
-      try {
-        const msg = JSON.parse(new TextDecoder().decode(data));
-        console.log(`${colors.dim}[DATA] ${JSON.stringify(msg).substring(0, 100)}${colors.reset}`);
-      } catch {}
-    }
-  });
-
-  // Connect to room
+  // Connect to LiveKit room
   try {
     await room.connect(url, token, {
       autoSubscribe: true,
@@ -352,23 +549,64 @@ async function connectToRoom(
     console.log(`${colors.green}Microphone active!${colors.reset}`);
   } catch (err) {
     console.log(`${colors.yellow}Microphone error: ${(err as Error).message}${colors.reset}`);
+    console.log(`${colors.dim}You can still type commands.${colors.reset}`);
   }
 
-  // Start Claude session
-  await startClaudeSession(options.workingDir);
+  // Initialize Claude Code with streaming JSON (spawns per-message with session resumption)
+  initializeClaude(options.workingDir, handleClaudeOutput);
+
+  // Poll MCP narration queue for messages from Claude's MCP tool calls
+  let mcpPollInterval: NodeJS.Timeout | null = null;
+
+  const pollMcpNarrations = async () => {
+    const narrations = getUnprocessedNarrations();
+    if (narrations.length > 0) {
+      const ids: string[] = [];
+      for (const narration of narrations) {
+        ids.push(narration.id);
+
+        // Map MCP narration type to our narration type
+        const narType =
+          narration.type === 'completion'
+            ? 'result'
+            : narration.type === 'progress'
+              ? 'progress'
+              : 'progress';
+
+        // Display locally
+        console.log(`${colors.magenta}[MCP]${colors.reset} ${narration.text}`);
+
+        // Send to Ferni for TTS
+        await sendNarrationToFerni(narration.text, narType);
+      }
+      markNarrationsProcessed(ids);
+    }
+  };
+
+  // Start polling MCP queue every 500ms
+  mcpPollInterval = setInterval(pollMcpNarrations, 500);
+
+  // Initialize MCP state directory
+  ensureMcpStateDir();
 
   console.log(`
 ${colors.green}Ready!${colors.reset} Talk to Ferni about what you want to build.
 
+${colors.dim}How it works:${colors.reset}
+  1. Speak naturally - Ferni transcribes your voice
+  2. Your words are sent to Claude Code as commands
+  3. Claude works on your request (you'll see tool usage)
+  4. Results appear in the terminal
+
 ${colors.dim}Examples:${colors.reset}
-  "Hey Ferni, let's add a dark mode toggle to the settings page"
-  "Can you help me fix the bug in the login form?"
-  "I want to refactor the user service to use TypeScript"
+  "Add a dark mode toggle to the settings page"
+  "Fix the bug in the login form"
+  "Refactor the user service"
 
 ${colors.dim}Commands:${colors.reset}
   Type 'exit' to quit
   Type 'restart' to restart Claude
-  Type anything else to send directly to Claude
+  Or just type a message to send directly to Claude
 
 `);
 
@@ -383,15 +621,18 @@ ${colors.dim}Commands:${colors.reset}
 
     if (cmd === 'exit' || cmd === 'quit') {
       console.log(`\n${colors.dim}Shutting down...${colors.reset}`);
+      if (mcpPollInterval) clearInterval(mcpPollInterval);
       claudeState.process?.kill();
       await room.disconnect();
       dispose();
       console.log(`${colors.green}Goodbye!${colors.reset}\n`);
       process.exit(0);
-    } else if (cmd === 'restart') {
-      console.log(`${colors.dim}Restarting Claude...${colors.reset}`);
+    } else if (cmd === 'restart' || cmd === 'reset') {
+      console.log(`${colors.dim}Resetting session...${colors.reset}`);
       claudeState.process?.kill();
-      await startClaudeSession(options.workingDir);
+      claudeState.sessionId = null;
+      claudeState.isReady = true;
+      console.log(`${colors.green}Session reset. Speak to start fresh.${colors.reset}`);
     } else if (line.trim()) {
       // Send typed input to Claude
       sendToClaude(line.trim());
@@ -401,6 +642,7 @@ ${colors.dim}Commands:${colors.reset}
   // Handle Ctrl+C
   process.on('SIGINT', async () => {
     console.log(`\n${colors.dim}Shutting down...${colors.reset}`);
+    if (mcpPollInterval) clearInterval(mcpPollInterval);
     claudeState.process?.kill();
     await room.disconnect();
     dispose();
@@ -433,7 +675,7 @@ Talk to Ferni, who helps you code with Claude.
 ${colors.bold}Usage:${colors.reset}
   ferni code                    # Start voice coding session
   ferni code --dir ./myproject  # Work in a specific directory
-  ferni code --debug            # Show debug info
+  ferni code --debug            # Show debug info (raw JSON events)
 
 ${colors.bold}Prerequisites:${colors.reset}
   1. Claude Code CLI: npm install -g @anthropic-ai/claude-code
@@ -441,11 +683,16 @@ ${colors.bold}Prerequisites:${colors.reset}
   3. Agent: pnpm agent:dev
 
 ${colors.bold}How it works:${colors.reset}
+  Uses Claude Code's streaming JSON API for clean bidirectional communication:
+
   1. You speak to Ferni
-  2. Ferni understands your intent
-  3. Claude Code executes the task
-  4. Ferni narrates progress
-  5. When Claude needs input, Ferni asks you
+  2. Ferni transcribes and sends to Claude (stream-json input)
+  3. Claude executes, streaming events back (stream-json output)
+  4. You see tool usage, results, and responses in real-time
+  5. Speak again when Claude is ready for more input
+
+${colors.bold}Architecture:${colors.reset}
+  Voice → LiveKit → Gemini STT → Claude Code (NDJSON) → Terminal
 
 `);
     return;
@@ -476,7 +723,7 @@ ${colors.bold}${colors.magenta}╔═══════════════�
 ╚════════════════════════════════════════════════════════════╝${colors.reset}
 
 ${colors.dim}Talk to Ferni about what you want to build.
-Ferni will work with Claude Code to make it happen.${colors.reset}
+Using Claude Code's streaming JSON API for real-time communication.${colors.reset}
 
 `);
 
@@ -515,9 +762,9 @@ Ferni will work with Claude Code to make it happen.${colors.reset}
     process.exit(1);
   }
 
-  // Connect
+  // Connect voice to Claude
   try {
-    await connectToRoom(tokenData.token, livekitUrl, options);
+    await connectVoiceToClaude(tokenData.token, livekitUrl, options);
   } catch (err) {
     console.log(`${colors.red}Connection failed: ${(err as Error).message}${colors.reset}`);
     if (options.debug) {
@@ -580,7 +827,7 @@ ${colors.bold}${colors.magenta}╔═══════════════�
     return;
   }
 
-  await connectToRoom(tokenData.token, livekitUrl, options);
+  await connectVoiceToClaude(tokenData.token, livekitUrl, options);
 }
 
 main().catch((err) => {

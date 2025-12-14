@@ -40,23 +40,23 @@
   const styles = `
     .ferni-demo-trigger {
       position: fixed;
-      bottom: 24px;
-      right: 24px;
+      bottom: var(--space-6, 24px);
+      right: var(--space-6, 24px);
       z-index: 9998;
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 16px 24px;
+      gap: var(--space-3, 12px);
+      padding: var(--space-4, 16px) var(--space-6, 24px);
       background: linear-gradient(135deg, #5a7751 0%, #4a6741 50%, #3d5a35 100%);
       color: white;
       font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
       font-weight: 600;
       font-size: 16px;
       border: none;
-      border-radius: 50px;
+      border-radius: var(--radius-full, 50px);
       cursor: pointer;
-      box-shadow: 0 8px 32px rgba(74, 103, 65, 0.4), 0 4px 12px rgba(74, 103, 65, 0.2);
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: var(--shadow-lg, 0 8px 32px rgba(74, 103, 65, 0.4)), 0 4px 12px rgba(74, 103, 65, 0.2);
+      transition: all var(--duration-slow, 0.3s) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
     }
     
     .ferni-demo-trigger:hover {
@@ -85,16 +85,16 @@
     
     @media (max-width: 640px) {
       .ferni-demo-trigger {
-        padding: 14px 20px;
-        font-size: 14px;
+        padding: var(--space-3, 14px) var(--space-5, 20px);
+        font-size: var(--text-sm, 14px);
         bottom: 80px; /* Above mobile nav */
       }
       .ferni-demo-trigger-text {
         display: none;
       }
       .ferni-demo-trigger {
-        padding: 16px;
-        border-radius: 50%;
+        padding: var(--space-4, 16px);
+        border-radius: var(--radius-full, 50%);
       }
     }
     
@@ -106,10 +106,10 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 16px;
+      padding: var(--space-4, 16px);
       opacity: 0;
       visibility: hidden;
-      transition: all 0.3s ease;
+      transition: all var(--duration-slow, 0.3s) ease;
     }
     
     .ferni-demo-overlay.open {
@@ -130,8 +130,8 @@
       width: 100%;
       max-width: 400px;
       background: linear-gradient(180deg, #faf8f5 0%, #f5f0ea 100%);
-      border-radius: 32px;
-      box-shadow: 0 32px 64px rgba(0, 0, 0, 0.2);
+      border-radius: var(--radius-2xl, 32px);
+      box-shadow: var(--shadow-2xl, 0 32px 64px rgba(0, 0, 0, 0.2));
       overflow: hidden;
       transform: scale(0.9) translateY(20px);
       transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -143,15 +143,15 @@
     
     /* Modal Header */
     .ferni-demo-header {
-      padding: 24px 24px 16px;
+      padding: var(--space-6, 24px) var(--space-6, 24px) var(--space-4, 16px);
       text-align: center;
-      border-bottom: 1px solid rgba(44, 37, 32, 0.08);
+      border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
     }
     
     .ferni-demo-close {
       position: absolute;
-      top: 16px;
-      right: 16px;
+      top: var(--space-4, 16px);
+      right: var(--space-4, 16px);
       width: 36px;
       height: 36px;
       display: flex;
@@ -177,15 +177,15 @@
     .ferni-demo-timer {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
-      background: rgba(74, 103, 65, 0.1);
-      border-radius: 20px;
+      gap: var(--space-1, 6px);
+      padding: var(--space-1, 6px) var(--space-3, 14px);
+      background: var(--color-ferni-glow, rgba(74, 103, 65, 0.1));
+      border-radius: var(--radius-xl, 20px);
       font-family: 'JetBrains Mono', monospace;
-      font-size: 14px;
+      font-size: var(--text-sm, 14px);
       font-weight: 500;
-      color: #4a6741;
-      margin-bottom: 16px;
+      color: var(--color-ferni, #4a6741);
+      margin-bottom: var(--space-4, 16px);
     }
     
     .ferni-demo-timer.warning {
@@ -194,26 +194,26 @@
     }
     
     .ferni-demo-title {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-size: 20px;
+      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+      font-size: var(--text-xl, 20px);
       font-weight: 700;
-      color: #2c2520;
-      margin: 0 0 4px;
+      color: var(--color-text-primary, #2c2520);
+      margin: 0 0 var(--space-1, 4px);
     }
     
     .ferni-demo-subtitle {
-      font-size: 14px;
-      color: #70605a;
+      font-size: var(--text-sm, 14px);
+      color: var(--color-text-muted, #70605a);
       margin: 0;
     }
     
     /* Modal Body */
     .ferni-demo-body {
-      padding: 32px 24px;
+      padding: var(--space-8, 32px) var(--space-6, 24px);
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 24px;
+      gap: var(--space-6, 24px);
     }
     
     /* Avatar */
@@ -318,10 +318,10 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
+      gap: var(--space-1, 4px);
       height: 40px;
       opacity: 0;
-      transition: opacity 0.3s;
+      transition: opacity var(--duration-slow, 0.3s);
     }
     
     .ferni-demo-waveform.active {
@@ -331,8 +331,8 @@
     .ferni-demo-wave-bar {
       width: 4px;
       height: 8px;
-      background: #4a6741;
-      border-radius: 2px;
+      background: var(--color-ferni, #4a6741);
+      border-radius: var(--radius-xs, 2px);
       animation: ferni-wave 1s ease-in-out infinite;
     }
     
@@ -349,9 +349,9 @@
     
     /* Status Text */
     .ferni-demo-status {
-      font-size: 16px;
+      font-size: var(--text-base, 16px);
       font-weight: 500;
-      color: #2c2520;
+      color: var(--color-text-primary, #2c2520);
       text-align: center;
     }
     
@@ -363,14 +363,14 @@
     /* Action Button */
     .ferni-demo-action {
       width: 100%;
-      padding: 16px 24px;
-      background: linear-gradient(135deg, #5a7751 0%, #4a6741 100%);
+      padding: var(--space-4, 16px) var(--space-6, 24px);
+      background: linear-gradient(135deg, var(--color-ferni, #5a7751) 0%, var(--color-ferni-secondary, #4a6741) 100%);
       color: white;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      font-size: 16px;
+      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+      font-size: var(--text-base, 16px);
       font-weight: 600;
       border: none;
-      border-radius: 16px;
+      border-radius: var(--radius-lg, 16px);
       cursor: pointer;
       transition: all 0.3s;
       display: flex;
@@ -402,21 +402,21 @@
     
     /* Footer */
     .ferni-demo-footer {
-      padding: 16px 24px;
-      background: rgba(44, 37, 32, 0.03);
+      padding: var(--space-4, 16px) var(--space-6, 24px);
+      background: var(--color-bg-subtle, rgba(44, 37, 32, 0.03));
       text-align: center;
-      border-top: 1px solid rgba(44, 37, 32, 0.08);
+      border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
     }
     
     .ferni-demo-upgrade {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      font-size: 14px;
-      color: #4a6741;
+      gap: var(--space-1, 6px);
+      font-size: var(--text-sm, 14px);
+      color: var(--color-ferni, #4a6741);
       text-decoration: none;
       font-weight: 500;
-      transition: all 0.2s;
+      transition: all var(--duration-fast, 0.2s);
     }
     
     .ferni-demo-upgrade:hover {
@@ -426,21 +426,21 @@
     
     /* Error State */
     .ferni-demo-error {
-      padding: 16px;
-      background: rgba(196, 133, 106, 0.1);
-      border-radius: 12px;
+      padding: var(--space-4, 16px);
+      background: var(--color-jordan-glow, rgba(196, 133, 106, 0.1));
+      border-radius: var(--radius-md, 12px);
       text-align: center;
     }
     
     .ferni-demo-error-title {
       font-weight: 600;
-      color: #a86d55;
-      margin: 0 0 8px;
+      color: var(--color-jordan, #a86d55);
+      margin: 0 0 var(--space-2, 8px);
     }
     
     .ferni-demo-error-message {
-      font-size: 14px;
-      color: #70605a;
+      font-size: var(--text-sm, 14px);
+      color: var(--color-text-muted, #70605a);
       margin: 0;
     }
     

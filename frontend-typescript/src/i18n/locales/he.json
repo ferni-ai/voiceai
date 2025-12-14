@@ -200,7 +200,240 @@
     "whatIsYourName": "איך תרצה שאקרא לך?",
     "niceName": "נעים להכיר, {name}!",
     "howAreYouFeeling": "איך אתה מרגיש היום?",
-    "readyToBegin": "מוכן להתחיל?"
+    "readyToBegin": "מוכן להתחיל?",
+    "ariaLabel": "סיור היכרות",
+    "steps": {
+      "welcome": {
+        "title": "ברוך הבא ל-Ferni",
+        "description": "הצוות האישי שלך של מאמני חיים בינה מלאכותית. כל אחד מביא חוכמה ייחודית לתמוך במסע שלך."
+      },
+      "voice": {
+        "title": "פשוט דבר",
+        "description": "הקש על המרכז כדי להתחיל שיחה. דבר באופן טבעי - פרני מקשיב ומגיב בזמן אמת."
+      },
+      "personas": {
+        "title": "הכר את הצוות שלך",
+        "description": "שישה מאמנים עם נקודות מבט שונות. כל אחד מבין את ההיסטוריה שלך עם הצוות."
+      },
+      "rituals": {
+        "title": "תרגולים יומיים",
+        "description": "בנה עקביות עם טקסים יומיים קצרים. עקוב אחר רצפים וחגוג התקדמות."
+      },
+      "ready": {
+        "title": "אתה מוכן",
+        "description": "זה כל מה שאתה צריך לדעת. גלה עוד תוך כדי תנועה."
+      }
+    },
+    "buttons": {
+      "skip": "דלג על הסיור",
+      "back": "חזרה",
+      "next": "הבא",
+      "begin": "בוא נתחיל"
+    }
+  },
+
+  "manageSubscription": {
+    "label": "מנוי",
+    "title": "נהל את התוכנית שלך",
+    "expiresLabel": "גישה עד",
+    "renewsLabel": "מתחדש",
+    "billedThrough": "חיוב דרך",
+    "buttons": {
+      "upgrade": "שדרג לפרימיום",
+      "restore": "שחזר רכישות",
+      "restoring": "משחזר...",
+      "manageApple": "נהל בהגדרות",
+      "manageStripe": "נהל חיוב"
+    },
+    "apple": {
+      "instructionsTitle": "כדי לבטל או לשנות את התוכנית שלך:",
+      "step1": "פתח הגדרות במכשיר שלך",
+      "step2": "הקש על שמך בחלק העליון",
+      "step3": "הקש על \"מנויים\"",
+      "step4": "מצא והקש על \"Ferni\"",
+      "note": "Apple דורשת לנהל מנויים דרך הגדרות iOS"
+    },
+    "stripe": {
+      "note": "עדכן אמצעי תשלום, צפה בחשבוניות או בטל בכל עת"
+    },
+    "restore": {
+      "noFound": "לא נמצאו רכישות",
+      "failed": "השחזור נכשל"
+    },
+    "status": {
+      "free": "אתה בתוכנית החינמית. פרני תמיד כאן בשבילך.",
+      "active": "המנוי שלך פעיל. תודה שאתה תומך!",
+      "canceled": "המנוי שלך יסתיים בקרוב, אבל אתה מוזמן לחזור בכל עת.",
+      "pastDue": "הייתה בעיה בתשלום שלך. אנא עדכן את אמצעי התשלום שלך.",
+      "default": "אתה מנוי. תודה על התמיכה שלך!"
+    },
+    "freeNote": "פתח פגישות ללא הגבלה, הצוות המלא והתאמה אישית"
+  },
+
+  "musicDashboard": {
+    "title": "האני המוזיקלי",
+    "loading": "מנתח את ה-DNA המוזיקלי שלך...",
+    "empty": {
+      "title": "בוא נגלה את ה-DNA המוזיקלי שלך!",
+      "hint": "שחק עוד {count} משחקים לתובנות מלאות"
+    },
+    "error": {
+      "hint": "שחק כמה משחקי מוזיקה כדי לבנות את הפרופיל שלך!"
+    },
+    "buttons": {
+      "startPlaying": "התחל לשחק",
+      "playGame": "שחק נחש את השיר"
+    },
+    "sections": {
+      "journey": "המסע שלך",
+      "strengths": "איפה אתה מזהיר",
+      "growth": "מקום לצמיחה",
+      "milestones": "הישגים",
+      "moments": "רגעים בלתי נשכחים",
+      "personaStats": "עם מי שיחקת"
+    },
+    "stats": {
+      "gamesPlayed": "משחקים ששוחקו",
+      "bestStreak": "הרצף הטוב ביותר",
+      "minutes": "דקות",
+      "thisWeek": "השבוע"
+    },
+    "favorite": {
+      "label": "מועדף:"
+    },
+    "milestone": {
+      "nextLabel": "המטרה הבאה"
+    }
+  },
+
+  "groupCoaching": {
+    "title": "אימון קבוצתי",
+    "loading": "טוען...",
+    "participantsLabel": "משתתפים",
+    "buttons": {
+      "start": "התחל",
+      "join": "הצטרף"
+    },
+    "empty": {
+      "title": "אין פגישות פעילות",
+      "hint": "צור פגישה חדשה כדי להתחיל"
+    },
+    "sessionTypes": {
+      "couple": {
+        "name": "זוג",
+        "description": "נווטו בדינמיקה של מערכות יחסים ביחד"
+      },
+      "family": {
+        "name": "משפחה",
+        "description": "בנו קשרים משפחתיים חזקים יותר"
+      },
+      "team": {
+        "name": "צוות",
+        "description": "שפר שיתוף פעולה במקום העבודה"
+      },
+      "peer": {
+        "name": "תמיכת עמיתים",
+        "description": "התחבר לאחרים במסעות דומים"
+      }
+    }
+  },
+
+  "videoSettings": {
+    "title": "פגישות וידאו",
+    "loading": "טוען...",
+    "intro": "בחר איך אתה רוצה להופיע בפגישות האימון שלך.",
+    "controls": {
+      "title": "בקרות מהירות"
+    },
+    "camera": {
+      "on": "מצלמה פועלת",
+      "off": "מצלמה כבויה"
+    },
+    "screen": {
+      "on": "הפסק שיתוף",
+      "off": "שתף מסך"
+    },
+    "modes": {
+      "title": "מצב תצוגה",
+      "avatarOnly": {
+        "label": "אווטאר בלבד",
+        "description": "רק האווטאר של פרני, ללא וידאו"
+      },
+      "video": {
+        "label": "וידאו",
+        "description": "ראה את עצמך ואת פרני"
+      },
+      "hybrid": {
+        "label": "היברידי",
+        "description": "אווטאר עם וידאו אופציונלי"
+      }
+    },
+    "quality": {
+      "title": "איכות וידאו",
+      "auto": "אוטומטי (מומלץ)",
+      "high": "גבוה",
+      "medium": "בינוני",
+      "low": "נמוך (חסוך נתונים)"
+    },
+    "note": "פגישות וידאו עובדות הכי טוב עם תאורה טובה וחיבור אינטרנט יציב.",
+    "buttons": {
+      "retry": "נסה שוב"
+    }
+  },
+
+  "wearableSettings": {
+    "title": "בריאות וכושר",
+    "loading": "טוען...",
+    "intro": "חבר את המכשירים הלבישים שלך כדי לתת לפרני הקשר על רמות הבריאות והאנרגיה שלך.",
+    "sections": {
+      "devices": "מכשירים",
+      "features": "מה פרני יכול לראות"
+    },
+    "buttons": {
+      "connect": "חבר",
+      "disconnect": "התנתק"
+    },
+    "features": {
+      "stress": "זיהוי לחץ מ-HRV",
+      "sleep": "ניתוח איכות שינה",
+      "activity": "מעקב פעילות"
+    },
+    "privacy": {
+      "note": "נתוני הבריאות שלך נשארים פרטיים. אנחנו משתפים רק תובנות מצטברות עם פגישות האימון שלך."
+    },
+    "providers": {
+      "appleHealth": {
+        "name": "Apple Health",
+        "description": "סנכרן עם נתוני בריאות של Apple Watch ו-iPhone"
+      },
+      "fitbit": {
+        "name": "Fitbit",
+        "description": "חבר את מכשיר Fitbit שלך"
+      },
+      "garmin": {
+        "name": "Garmin",
+        "description": "סנכרן עם מכשירים לבישים של Garmin"
+      },
+      "oura": {
+        "name": "Oura Ring",
+        "description": "תובנות שינה ומוכנות"
+      },
+      "whoop": {
+        "name": "Whoop",
+        "description": "מעקב התאוששות ומאמץ"
+      }
+    }
+  },
+
+  "contactSettings": {
+    "verify": {
+      "sending": "שולח קוד...",
+      "withCode": "אמת עם קוד"
+    },
+    "buttons": {
+      "saving": "שומר...",
+      "save": "שמור"
+    }
   },
 
   "accessibility": {

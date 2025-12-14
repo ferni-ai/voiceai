@@ -13,7 +13,8 @@
     "subheadLine2": "וזוכר הכל.",
     "cta": {
       "primary": "הכירו את Ferni",
-      "secondary": "התקשרו ל-Ferni"
+      "secondary": "התקשרו ל-Ferni",
+      "talkNow": "דבר עם Ferni עכשיו"
     }
   },
 
@@ -126,6 +127,9 @@
   },
 
   "faq": {
+    "eyebrow": "שאלות ותשובות",
+    "headline": "שאלות",
+    "headlineBreak": "נפוצות",
     "sectionTitle": "שאלות נפוצות",
     "items": [
       {
@@ -168,6 +172,8 @@
   "footer": {
     "tagline": "מישהו שבאמת מבין.",
     "copyright": "Ferni AI. כל הזכויות שמורות.",
+    "allRightsReserved": "כל הזכויות שמורות.",
+    "madeBy": "נוצר עם ♥ על ידי AI, עבור בני אדם.",
     "product": "מוצר",
     "company": "חברה",
     "developers": "מפתחים",
@@ -188,6 +194,33 @@
   "common": {
     "learnMore": "למידע נוסף",
     "getStarted": "להתחיל",
+    "getStartedFree": "התחל בחינם",
+    "callPhone": "התקשר",
     "scrollToExplore": "גלול לחקור"
+  },
+
+  "accessibility": {
+    "nextStory": "הסיפור הבא",
+    "toggleMenu": "הפעל/כבה תפריט",
+    "twitter": "X (Twitter)",
+    "linkedin": "LinkedIn",
+    "instagram": "Instagram",
+    "tiktok": "TikTok",
+    "youtube": "YouTube"
+  },
+
+  "personas": {
+    "peter": {
+      "fullName": "פיטר ג'ון"
+    },
+    "maya": {
+      "fullName": "מאיה סנטוס"
+    },
+    "alex": {
+      "fullName": "אלכס צ'ן"
+    },
+    "jordan": {
+      "fullName": "ג'ורדן טיילור"
+    }
   }
 }

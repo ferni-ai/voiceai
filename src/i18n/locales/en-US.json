@@ -341,6 +341,53 @@
         "title": "Export Data",
         "description": "Download your conversation history"
       }
+    },
+    "wearableSettings": {
+      "title": "Health & Fitness",
+      "loading": "Loading...",
+      "intro": "Connect your wearables to give Ferni context about your health and energy levels.",
+      "sections": {
+        "devices": "Devices",
+        "features": "What Ferni can see"
+      },
+      "buttons": {
+        "connect": "Connect",
+        "disconnect": "Disconnect",
+        "tryAgain": "Try Again"
+      },
+      "features": {
+        "stress": "Stress detection from HRV",
+        "sleep": "Sleep quality analysis",
+        "activity": "Activity tracking"
+      },
+      "privacy": {
+        "note": "Your health data stays private. We only share aggregated insights with your coaching sessions."
+      },
+      "providers": {
+        "apple_health": {
+          "name": "Apple Health",
+          "description": "Connect via the Ferni iOS app"
+        },
+        "fitbit": {
+          "name": "Fitbit",
+          "description": "Steps, sleep, and heart rate"
+        },
+        "garmin": {
+          "name": "Garmin",
+          "description": "Activity and training data"
+        },
+        "oura": {
+          "name": "Oura Ring",
+          "description": "Sleep and readiness scores"
+        },
+        "whoop": {
+          "name": "Whoop",
+          "description": "Recovery and strain data"
+        }
+      },
+      "errors": {
+        "loadFailed": "Unable to load wearable status"
+      }
     }
   },
 

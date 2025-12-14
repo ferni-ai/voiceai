@@ -223,6 +223,7 @@ npm run test:coverage # Coverage report
 ### Features
 | Doc | Purpose |
 |-----|---------|
+| [`docs/VOICE-CODING.md`](./docs/VOICE-CODING.md) | Voice-driven coding with Claude Code |
 | [`docs/guides/FERNI-COMPLETE-GUIDE.md`](./docs/guides/FERNI-COMPLETE-GUIDE.md) | Full Ferni implementation |
 | [`docs/guides/creating-personas.md`](./docs/guides/creating-personas.md) | Building personas |
 | [`docs/architecture/MONETIZATION-SYSTEM.md`](./docs/architecture/MONETIZATION-SYSTEM.md) | Subscriptions & unlocks |
@@ -374,6 +375,56 @@ ferni voice --debug            # Show debug info
 - Connects to the REAL platform via LiveKit
 - Your mic → Gemini Live STT → Context Builders → LLM → Cartesia TTS → Your speakers
 - Full persistent memory and all persona capabilities
+
+### Voice-Driven Coding
+
+**Talk to Ferni, code with Claude** - use your voice to drive Claude Code with Ferni as your narrator. Services auto-start!
+
+```bash
+# Just run this - services start automatically
+ferni code
+
+# Options
+ferni code --dir ./myproject  # Work in a specific directory
+ferni code --debug            # Show MCP events and transcriptions
+ferni code --cloud            # Use production services
+```
+
+**Prerequisites:**
+1. Claude Code CLI: `npm install -g @anthropic-ai/claude-code`
+2. API keys configured in `.env`
+
+**How it works:**
+1. You speak → Ferni transcribes → Claude Code executes
+2. Claude uses MCP tools to narrate: `mcp__ferni__narrate`, `mcp__ferni__report_progress`
+3. Ferni speaks progress via TTS
+
+**Full documentation:** [`docs/VOICE-CODING.md`](./docs/VOICE-CODING.md)
+
+**Architecture:**
+
+```
+You speak → Ferni (STT) → Claude Code → MCP Tools → Ferni (TTS) → You hear
+                              │              │
+                              │              ├── mcp__ferni__narrate
+                              │              ├── mcp__ferni__report_progress
+                              │              └── mcp__ferni__task_complete
+                              │
+                              └── Edit, Bash, Read, Write (normal tools)
+```
+
+**Example conversation:**
+```
+You: "Create a function that validates emails"
+
+Ferni: "I'll create an email validation function for you"
+       [Claude editing utils/validation.ts...]
+Ferni: "Progress update: Created the validation function"
+Ferni: "All done! I created isValidEmail in utils/validation.ts"
+
+You: "Add tests for it"
+...
+```
 
 ### Voice Pipeline Debugging
 

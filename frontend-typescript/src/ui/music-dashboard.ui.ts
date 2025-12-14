@@ -13,6 +13,7 @@
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('MusicDashboard');
 
@@ -178,13 +179,13 @@ class MusicDashboardUI {
       <header class="music-dashboard__header">
         <div class="music-dashboard__header-content">
           <span class="music-dashboard__icon">${ICONS.music}</span>
-          <h2 class="music-dashboard__title">Musical You</h2>
+          <h2 class="music-dashboard__title">${t('musicDashboard.title')}</h2>
         </div>
         <button class="music-dashboard__close" aria-label="Close">${ICONS.close}</button>
       </header>
       <div class="music-dashboard__loading">
         <div class="music-dashboard__loading-spinner"></div>
-        <p>Analyzing your musical DNA...</p>
+        <p>${t('musicDashboard.loading')}</p>
       </div>
     `;
 
@@ -200,15 +201,15 @@ class MusicDashboardUI {
       <header class="music-dashboard__header">
         <div class="music-dashboard__header-content">
           <span class="music-dashboard__icon">${ICONS.music}</span>
-          <h2 class="music-dashboard__title">Musical You</h2>
+          <h2 class="music-dashboard__title">${t('musicDashboard.title')}</h2>
         </div>
         <button class="music-dashboard__close" aria-label="Close">${ICONS.close}</button>
       </header>
       <div class="music-dashboard__error">
         <div class="music-dashboard__error-icon">${ICONS.music}</div>
         <p class="music-dashboard__error-title">${message}</p>
-        <p class="music-dashboard__error-hint">Play some music games to build your profile!</p>
-        <button class="music-dashboard__cta">Start Playing</button>
+        <p class="music-dashboard__error-hint">${t('musicDashboard.error.hint')}</p>
+        <button class="music-dashboard__cta">${t('musicDashboard.buttons.startPlaying')}</button>
       </div>
     `;
 
@@ -244,7 +245,7 @@ class MusicDashboardUI {
       <header class="music-dashboard__header">
         <div class="music-dashboard__header-content">
           <span class="music-dashboard__icon">${ICONS.music}</span>
-          <h2 class="music-dashboard__title">Musical You</h2>
+          <h2 class="music-dashboard__title">${t('musicDashboard.title')}</h2>
         </div>
         <button class="music-dashboard__close" aria-label="Close">${ICONS.close}</button>
       </header>
@@ -272,19 +273,19 @@ class MusicDashboardUI {
       <header class="music-dashboard__header">
         <div class="music-dashboard__header-content">
           <span class="music-dashboard__icon">${ICONS.music}</span>
-          <h2 class="music-dashboard__title">Musical You</h2>
+          <h2 class="music-dashboard__title">${t('musicDashboard.title')}</h2>
         </div>
         <button class="music-dashboard__close" aria-label="Close">${ICONS.close}</button>
       </header>
 
       <div class="music-dashboard__empty">
         <div class="music-dashboard__empty-icon">${ICONS.music}</div>
-        <h3>Let's Discover Your Musical DNA!</h3>
+        <h3>${t('musicDashboard.empty.title')}</h3>
         <p>${insights.coachingMessage}</p>
         <p class="music-dashboard__empty-hint">
-          Play ${insights.gamesNeededForFullInsights} more games for full insights
+          ${t('musicDashboard.empty.hint', { count: insights.gamesNeededForFullInsights })}
         </p>
-        <button class="music-dashboard__cta">Play Name That Tune</button>
+        <button class="music-dashboard__cta">${t('musicDashboard.buttons.playGame')}</button>
       </div>
     `;
 
@@ -339,29 +340,29 @@ class MusicDashboardUI {
       <section class="music-dashboard__section">
         <h3 class="music-dashboard__section-title">
           <span class="music-dashboard__section-icon">${ICONS.trending}</span>
-          Your Journey
+          ${t('musicDashboard.sections.journey')}
         </h3>
         <div class="music-dashboard__stats-grid">
           <div class="music-dashboard__stat">
             <span class="music-dashboard__stat-value">${stats.totalGames}</span>
-            <span class="music-dashboard__stat-label">Games Played</span>
+            <span class="music-dashboard__stat-label">${t('musicDashboard.stats.gamesPlayed')}</span>
           </div>
           <div class="music-dashboard__stat">
             <span class="music-dashboard__stat-value">${stats.bestStreak}</span>
-            <span class="music-dashboard__stat-label">Best Streak</span>
+            <span class="music-dashboard__stat-label">${t('musicDashboard.stats.bestStreak')}</span>
           </div>
           <div class="music-dashboard__stat">
             <span class="music-dashboard__stat-value">${stats.totalMinutes}</span>
-            <span class="music-dashboard__stat-label">Minutes</span>
+            <span class="music-dashboard__stat-label">${t('musicDashboard.stats.minutes')}</span>
           </div>
           <div class="music-dashboard__stat">
             <span class="music-dashboard__stat-value">${stats.gamesThisWeek}</span>
-            <span class="music-dashboard__stat-label">This Week</span>
+            <span class="music-dashboard__stat-label">${t('musicDashboard.stats.thisWeek')}</span>
           </div>
         </div>
         ${stats.favoriteGameDisplayName ? `
           <p class="music-dashboard__favorite">
-            Favorite: <strong>${stats.favoriteGameDisplayName}</strong>
+            ${t('musicDashboard.favorite.label')} <strong>${stats.favoriteGameDisplayName}</strong>
           </p>
         ` : ''}
       </section>
@@ -388,7 +389,7 @@ class MusicDashboardUI {
       <section class="music-dashboard__section">
         <h3 class="music-dashboard__section-title">
           <span class="music-dashboard__section-icon">${ICONS.zap}</span>
-          Where You Shine
+          ${t('musicDashboard.sections.strengths')}
         </h3>
         <div class="music-dashboard__affinities">${strengthsHtml}</div>
       </section>
@@ -415,7 +416,7 @@ class MusicDashboardUI {
       <section class="music-dashboard__section">
         <h3 class="music-dashboard__section-title">
           <span class="music-dashboard__section-icon">${ICONS.target}</span>
-          Room to Grow
+          ${t('musicDashboard.sections.growth')}
         </h3>
         <div class="music-dashboard__affinities">${areasHtml}</div>
       </section>
@@ -435,7 +436,7 @@ class MusicDashboardUI {
 
     const nextHtml = nextMilestone ? `
       <div class="music-dashboard__next-milestone">
-        <span class="music-dashboard__next-label">Next Goal</span>
+        <span class="music-dashboard__next-label">${t('musicDashboard.milestone.nextLabel')}</span>
         <span class="music-dashboard__next-name">${nextMilestone.displayName}</span>
         <div class="music-dashboard__next-bar">
           <div class="music-dashboard__next-fill" style="width: ${Math.round(nextMilestone.progress)}%"></div>
@@ -448,7 +449,7 @@ class MusicDashboardUI {
       <section class="music-dashboard__section">
         <h3 class="music-dashboard__section-title">
           <span class="music-dashboard__section-icon">${ICONS.trophy}</span>
-          Achievements
+          ${t('musicDashboard.sections.milestones')}
         </h3>
         ${nextHtml}
         ${milestonesHtml ? `<div class="music-dashboard__milestones">${milestonesHtml}</div>` : ''}
@@ -474,7 +475,7 @@ class MusicDashboardUI {
       <section class="music-dashboard__section">
         <h3 class="music-dashboard__section-title">
           <span class="music-dashboard__section-icon">${ICONS.heart}</span>
-          Memorable Moments
+          ${t('musicDashboard.sections.moments')}
         </h3>
         <div class="music-dashboard__moments">${momentsHtml}</div>
       </section>
@@ -495,7 +496,7 @@ class MusicDashboardUI {
       <section class="music-dashboard__section">
         <h3 class="music-dashboard__section-title">
           <span class="music-dashboard__section-icon">${ICONS.user}</span>
-          Who You've Played With
+          ${t('musicDashboard.sections.personaStats')}
         </h3>
         <div class="music-dashboard__persona-stats">${statsHtml}</div>
       </section>

@@ -1,0 +1,20 @@
+{
+  "currentTask": null,
+  "taskQueue": [],
+  "lastNarration": "Hello world, testing MCP integration",
+  "lastNarrationTime": 1765718259321,
+  "voiceInputPending": false,
+  "voiceInputResult": null,
+  "progressUpdates": [
+    {
+      "message": "Started working on refactoring",
+      "timestamp": 1765718290829,
+      "type": "info"
+    },
+    {
+      "message": "Refactoring in progress - halfway through the changes",
+      "timestamp": 1765718294275,
+      "type": "info"
+    }
+  ]
+}

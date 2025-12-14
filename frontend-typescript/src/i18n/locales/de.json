@@ -200,7 +200,240 @@
     "whatIsYourName": "Wie soll ich Sie nennen?",
     "niceName": "Freut mich, {name}!",
     "howAreYouFeeling": "Wie fühlen Sie sich heute?",
-    "readyToBegin": "Bereit anzufangen?"
+    "readyToBegin": "Bereit anzufangen?",
+    "ariaLabel": "Willkommenstour",
+    "steps": {
+      "welcome": {
+        "title": "Willkommen bei Ferni",
+        "description": "Ihr persönliches Team von KI-Lebenscoaches. Jeder bringt einzigartige Weisheit, um Ihre Reise zu unterstützen."
+      },
+      "voice": {
+        "title": "Sprechen Sie einfach",
+        "description": "Tippen Sie in der Mitte, um ein Gespräch zu starten. Sprechen Sie natürlich - Ferni hört zu und antwortet in Echtzeit."
+      },
+      "personas": {
+        "title": "Lernen Sie Ihr Team kennen",
+        "description": "Sechs einzigartige Coaches mit verschiedenen Perspektiven. Jeder versteht Ihre Geschichte mit dem Team."
+      },
+      "rituals": {
+        "title": "Tägliche Praktiken",
+        "description": "Bauen Sie Konsistenz mit kurzen täglichen Ritualen auf. Verfolgen Sie Serien und feiern Sie Fortschritte."
+      },
+      "ready": {
+        "title": "Sie sind bereit",
+        "description": "Das ist alles, was Sie wissen müssen. Entdecken Sie mehr, während Sie unterwegs sind."
+      }
+    },
+    "buttons": {
+      "skip": "Tour überspringen",
+      "back": "Zurück",
+      "next": "Weiter",
+      "begin": "Lassen Sie uns beginnen"
+    }
+  },
+
+  "manageSubscription": {
+    "label": "ABONNEMENT",
+    "title": "Verwalten Sie Ihren Plan",
+    "expiresLabel": "Zugriff bis",
+    "renewsLabel": "Erneuert",
+    "billedThrough": "Berechnet bis",
+    "buttons": {
+      "upgrade": "Upgrade auf Premium",
+      "restore": "Käufe wiederherstellen",
+      "restoring": "Wird wiederhergestellt...",
+      "manageApple": "In Einstellungen verwalten",
+      "manageStripe": "Abrechnung verwalten"
+    },
+    "apple": {
+      "instructionsTitle": "Um Ihren Plan zu kündigen oder zu ändern:",
+      "step1": "Öffnen Sie Einstellungen auf Ihrem Gerät",
+      "step2": "Tippen Sie oben auf Ihren Namen",
+      "step3": "Tippen Sie auf \"Abos\"",
+      "step4": "Suchen und tippen Sie auf \"Ferni\"",
+      "note": "Apple erfordert, dass Abonnements über iOS-Einstellungen verwaltet werden"
+    },
+    "stripe": {
+      "note": "Aktualisieren Sie die Zahlungsmethode, sehen Sie Rechnungen ein oder kündigen Sie jederzeit"
+    },
+    "restore": {
+      "noFound": "Keine Käufe gefunden",
+      "failed": "Wiederherstellung fehlgeschlagen"
+    },
+    "status": {
+      "free": "Sie nutzen den kostenlosen Plan. Ferni ist immer für Sie da.",
+      "active": "Ihr Abonnement ist aktiv. Vielen Dank, dass Sie uns unterstützen!",
+      "canceled": "Ihr Abonnement endet bald, aber Sie sind jederzeit willkommen zurück.",
+      "pastDue": "Es gab ein Problem mit Ihrer Zahlung. Bitte aktualisieren Sie Ihre Zahlungsmethode.",
+      "default": "Sie sind abonniert. Vielen Dank für Ihre Unterstützung!"
+    },
+    "freeNote": "Freischalten Sie unbegrenzte Sitzungen, das vollständige Team und Personalisierung"
+  },
+
+  "musicDashboard": {
+    "title": "Musikalisches Du",
+    "loading": "Analysiere Deine musikalische DNA...",
+    "empty": {
+      "title": "Lassen Sie uns Ihre musikalische DNA entdecken!",
+      "hint": "Spielen Sie {count} weitere Spiele für vollständige Einblicke"
+    },
+    "error": {
+      "hint": "Spielen Sie einige Musikspiele, um Ihr Profil zu erstellen!"
+    },
+    "buttons": {
+      "startPlaying": "Spielen Sie",
+      "playGame": "Name That Tune spielen"
+    },
+    "sections": {
+      "journey": "Ihre Reise",
+      "strengths": "Wo Sie glänzen",
+      "growth": "Raum zum Wachsen",
+      "milestones": "Erfolge",
+      "moments": "Unvergessliche Momente",
+      "personaStats": "Mit wem Sie gespielt haben"
+    },
+    "stats": {
+      "gamesPlayed": "Gespielte Spiele",
+      "bestStreak": "Beste Serie",
+      "minutes": "Minuten",
+      "thisWeek": "Diese Woche"
+    },
+    "favorite": {
+      "label": "Favorit:"
+    },
+    "milestone": {
+      "nextLabel": "Nächstes Ziel"
+    }
+  },
+
+  "groupCoaching": {
+    "title": "Gruppencoaching",
+    "loading": "Laden...",
+    "participantsLabel": "Teilnehmer",
+    "buttons": {
+      "start": "Starten",
+      "join": "Beitreten"
+    },
+    "empty": {
+      "title": "Keine aktiven Sitzungen",
+      "hint": "Erstellen Sie eine neue Sitzung, um zu beginnen"
+    },
+    "sessionTypes": {
+      "couple": {
+        "name": "Paar",
+        "description": "Navigieren Sie gemeinsam durch Beziehungsdynamiken"
+      },
+      "family": {
+        "name": "Familie",
+        "description": "Bauen Sie stärkere Familienbeziehungen auf"
+      },
+      "team": {
+        "name": "Team",
+        "description": "Verbessern Sie die Zusammenarbeit am Arbeitsplatz"
+      },
+      "peer": {
+        "name": "Peer-Unterstützung",
+        "description": "Verbinden Sie sich mit anderen auf ähnlichen Reisen"
+      }
+    }
+  },
+
+  "videoSettings": {
+    "title": "Videositzungen",
+    "loading": "Laden...",
+    "intro": "Wählen Sie, wie Sie in Ihren Coaching-Sitzungen erscheinen möchten.",
+    "controls": {
+      "title": "Schnelle Steuerelemente"
+    },
+    "camera": {
+      "on": "Kamera an",
+      "off": "Kamera aus"
+    },
+    "screen": {
+      "on": "Freigabe beenden",
+      "off": "Bildschirm teilen"
+    },
+    "modes": {
+      "title": "Anzeigemodus",
+      "avatarOnly": {
+        "label": "Nur Avatar",
+        "description": "Nur Fernis Avatar, kein Video"
+      },
+      "video": {
+        "label": "Video",
+        "description": "Sehen Sie sich selbst und Ferni"
+      },
+      "hybrid": {
+        "label": "Hybrid",
+        "description": "Avatar mit optionalem Video"
+      }
+    },
+    "quality": {
+      "title": "Videoqualität",
+      "auto": "Automatisch (Empfohlen)",
+      "high": "Hoch",
+      "medium": "Mittel",
+      "low": "Niedrig (Daten sparen)"
+    },
+    "note": "Videositzungen funktionieren am besten mit guter Beleuchtung und einer stabilen Internetverbindung.",
+    "buttons": {
+      "retry": "Erneut versuchen"
+    }
+  },
+
+  "wearableSettings": {
+    "title": "Gesundheit und Fitness",
+    "loading": "Laden...",
+    "intro": "Verbinden Sie Ihre tragbaren Geräte, um Ferni Kontext über Ihre Gesundheit und Energielevel zu geben.",
+    "sections": {
+      "devices": "Geräte",
+      "features": "Was Ferni sehen kann"
+    },
+    "buttons": {
+      "connect": "Verbinden",
+      "disconnect": "Trennen"
+    },
+    "features": {
+      "stress": "Stresserkennung durch HRV",
+      "sleep": "Schlafqualitätsanalyse",
+      "activity": "Aktivitätsverfolgung"
+    },
+    "privacy": {
+      "note": "Ihre Gesundheitsdaten bleiben privat. Wir teilen nur aggregierte Einblicke mit Ihren Coaching-Sitzungen."
+    },
+    "providers": {
+      "appleHealth": {
+        "name": "Apple Health",
+        "description": "Synchronisieren Sie mit Apple Watch und iPhone-Gesundheitsdaten"
+      },
+      "fitbit": {
+        "name": "Fitbit",
+        "description": "Verbinden Sie Ihr Fitbit-Gerät"
+      },
+      "garmin": {
+        "name": "Garmin",
+        "description": "Synchronisieren Sie mit Garmin-Wearables"
+      },
+      "oura": {
+        "name": "Oura Ring",
+        "description": "Schlaf- und Leistungsbereitschaftseinblicke"
+      },
+      "whoop": {
+        "name": "Whoop",
+        "description": "Erholung und Belastungsverfolgung"
+      }
+    }
+  },
+
+  "contactSettings": {
+    "verify": {
+      "sending": "Code wird gesendet...",
+      "withCode": "Mit Code verifizieren"
+    },
+    "buttons": {
+      "saving": "Wird gespeichert...",
+      "save": "Speichern"
+    }
   },
 
   "accessibility": {

@@ -200,7 +200,240 @@
     "whatIsYourName": "您希望我怎麼稱呼您？",
     "niceName": "很高興認識您，{name}！",
     "howAreYouFeeling": "今天感覺如何？",
-    "readyToBegin": "準備好開始了嗎？"
+    "readyToBegin": "準備好開始了嗎？",
+    "ariaLabel": "歡迎導覽",
+    "steps": {
+      "welcome": {
+        "title": "歡迎來到Ferni",
+        "description": "您的個人AI人生教練團隊。每位教練都帶來獨特的智慧來支持您的旅程。"
+      },
+      "voice": {
+        "title": "只需說話",
+        "description": "點擊中心開始對話。自然地說話 - Ferni會即時傾聽和回應。"
+      },
+      "personas": {
+        "title": "認識您的團隊",
+        "description": "六位具有不同視角的教練。每位都了解您與團隊的歷史。"
+      },
+      "rituals": {
+        "title": "每日練習",
+        "description": "透過簡短的每日儀式建立一致性。追蹤連續記錄並慶祝進步。"
+      },
+      "ready": {
+        "title": "您已準備就緒",
+        "description": "這就是您需要知道的全部。隨著您的前進發現更多。"
+      }
+    },
+    "buttons": {
+      "skip": "略過導覽",
+      "back": "返回",
+      "next": "下一步",
+      "begin": "讓我們開始"
+    }
+  },
+
+  "manageSubscription": {
+    "label": "訂閱",
+    "title": "管理您的方案",
+    "expiresLabel": "存取直到",
+    "renewsLabel": "續訂",
+    "billedThrough": "帳單方式",
+    "buttons": {
+      "upgrade": "升級到進階版",
+      "restore": "恢復購買",
+      "restoring": "恢復中...",
+      "manageApple": "在設定中管理",
+      "manageStripe": "管理帳單"
+    },
+    "apple": {
+      "instructionsTitle": "要取消或變更您的方案：",
+      "step1": "在裝置上開啟設定",
+      "step2": "點擊頂部的您的名字",
+      "step3": "點擊「訂閱」",
+      "step4": "找到並點擊「Ferni」",
+      "note": "Apple要求透過iOS設定管理訂閱"
+    },
+    "stripe": {
+      "note": "更新付款方式、查看發票或隨時取消"
+    },
+    "restore": {
+      "noFound": "未找到購買記錄",
+      "failed": "恢復失敗"
+    },
+    "status": {
+      "free": "您使用的是免費方案。Ferni始終陪伴您。",
+      "active": "您的訂閱處於活躍狀態。感謝您的支持！",
+      "canceled": "您的訂閱即將結束，但隨時歡迎您回來。",
+      "pastDue": "您的付款出現問題。請更新您的付款方式。",
+      "default": "您已訂閱。感謝您的支持！"
+    },
+    "freeNote": "解鎖無限會話、完整團隊和個人化"
+  },
+
+  "musicDashboard": {
+    "title": "音樂的你",
+    "loading": "分析您的音樂DNA...",
+    "empty": {
+      "title": "讓我們發現您的音樂DNA！",
+      "hint": "再玩{count}個遊戲以獲得完整洞察"
+    },
+    "error": {
+      "hint": "玩一些音樂遊戲來建立您的檔案！"
+    },
+    "buttons": {
+      "startPlaying": "開始遊戲",
+      "playGame": "玩猜歌名遊戲"
+    },
+    "sections": {
+      "journey": "您的旅程",
+      "strengths": "您的閃光點",
+      "growth": "成長空間",
+      "milestones": "成就",
+      "moments": "難忘時刻",
+      "personaStats": "您一起玩的人"
+    },
+    "stats": {
+      "gamesPlayed": "已玩遊戲",
+      "bestStreak": "最佳連勝",
+      "minutes": "分鐘",
+      "thisWeek": "本週"
+    },
+    "favorite": {
+      "label": "最愛："
+    },
+    "milestone": {
+      "nextLabel": "下一個目標"
+    }
+  },
+
+  "groupCoaching": {
+    "title": "團體輔導",
+    "loading": "載入中...",
+    "participantsLabel": "參與者",
+    "buttons": {
+      "start": "開始",
+      "join": "加入"
+    },
+    "empty": {
+      "title": "沒有活動會話",
+      "hint": "建立新會話以開始"
+    },
+    "sessionTypes": {
+      "couple": {
+        "name": "情侶",
+        "description": "共同探索關係動態"
+      },
+      "family": {
+        "name": "家庭",
+        "description": "建立更牢固的家庭聯繫"
+      },
+      "team": {
+        "name": "團隊",
+        "description": "改善職場協作"
+      },
+      "peer": {
+        "name": "同儕支援",
+        "description": "與有類似旅程的人聯繫"
+      }
+    }
+  },
+
+  "videoSettings": {
+    "title": "視訊會話",
+    "loading": "載入中...",
+    "intro": "選擇您在輔導會話中的顯示方式。",
+    "controls": {
+      "title": "快速控制"
+    },
+    "camera": {
+      "on": "攝影機開啟",
+      "off": "攝影機關閉"
+    },
+    "screen": {
+      "on": "停止分享",
+      "off": "分享螢幕"
+    },
+    "modes": {
+      "title": "顯示模式",
+      "avatarOnly": {
+        "label": "僅頭像",
+        "description": "只有Ferni的頭像，無視訊"
+      },
+      "video": {
+        "label": "視訊",
+        "description": "看到您自己和Ferni"
+      },
+      "hybrid": {
+        "label": "混合",
+        "description": "帶可選視訊的頭像"
+      }
+    },
+    "quality": {
+      "title": "視訊品質",
+      "auto": "自動（推薦）",
+      "high": "高",
+      "medium": "中",
+      "low": "低（節省數據）"
+    },
+    "note": "視訊會話在良好的照明和穩定的網路連線下效果最佳。",
+    "buttons": {
+      "retry": "重試"
+    }
+  },
+
+  "wearableSettings": {
+    "title": "健康與健身",
+    "loading": "載入中...",
+    "intro": "連結您的穿戴裝置，為Ferni提供關於您健康和能量水平的背景資訊。",
+    "sections": {
+      "devices": "裝置",
+      "features": "Ferni可以看到的內容"
+    },
+    "buttons": {
+      "connect": "連結",
+      "disconnect": "中斷連結"
+    },
+    "features": {
+      "stress": "透過HRV檢測壓力",
+      "sleep": "睡眠品質分析",
+      "activity": "活動追蹤"
+    },
+    "privacy": {
+      "note": "您的健康資料保持私密。我們只與您的輔導會話分享彙總的洞察。"
+    },
+    "providers": {
+      "appleHealth": {
+        "name": "Apple Health",
+        "description": "與Apple Watch和iPhone健康資料同步"
+      },
+      "fitbit": {
+        "name": "Fitbit",
+        "description": "連結您的Fitbit裝置"
+      },
+      "garmin": {
+        "name": "Garmin",
+        "description": "與Garmin穿戴裝置同步"
+      },
+      "oura": {
+        "name": "Oura Ring",
+        "description": "睡眠和準備度洞察"
+      },
+      "whoop": {
+        "name": "Whoop",
+        "description": "恢復和負荷追蹤"
+      }
+    }
+  },
+
+  "contactSettings": {
+    "verify": {
+      "sending": "發送驗證碼...",
+      "withCode": "使用驗證碼驗證"
+    },
+    "buttons": {
+      "saving": "儲存中...",
+      "save": "儲存"
+    }
   },
 
   "accessibility": {

@@ -12,6 +12,7 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { appleIAPService, type SubscriptionStatus } from '../services/apple-iap.service.js';
 import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 
 const log = createLogger('ManageSubscription');
 
@@ -113,15 +114,19 @@ class ManageSubscriptionUI {
     const providerIcon = this.status?.provider === 'apple' ? ICONS.apple : ICONS.creditCard;
     const providerName = this.status?.provider === 'apple' ? 'Apple' : 'Stripe';
 
+    const expiresLabel = this.status?.status === 'canceled'
+      ? t('manageSubscription.expiresLabel')
+      : t('manageSubscription.renewsLabel');
+
     this.container.innerHTML = `
       <div class="manage-sub__backdrop"></div>
       <div class="manage-sub__card">
         <header class="manage-sub__header">
           <div class="manage-sub__title-wrap">
-            <span class="manage-sub__eyebrow">SUBSCRIPTION</span>
-            <h2 class="manage-sub__title">Manage Your Plan</h2>
+            <span class="manage-sub__eyebrow">${t('manageSubscription.label')}</span>
+            <h2 class="manage-sub__title">${t('manageSubscription.title')}</h2>
           </div>
-          <button class="manage-sub__close" aria-label="Close">
+          <button class="manage-sub__close" aria-label="${t('common.close')}">
             ${ICONS.close}
           </button>
         </header>
@@ -138,7 +143,7 @@ class ManageSubscriptionUI {
                 ? `
               <div class="manage-sub__plan-detail">
                 <span class="manage-sub__plan-icon">${ICONS.calendar}</span>
-                <span>${this.status.status === 'canceled' ? 'Access until' : 'Renews'}: ${this.formatDate(this.status.expiresDate)}</span>
+                <span>${expiresLabel}: ${this.formatDate(this.status.expiresDate)}</span>
               </div>
             `
                 : ''
@@ -148,7 +153,7 @@ class ManageSubscriptionUI {
                 ? `
               <div class="manage-sub__plan-detail">
                 <span class="manage-sub__plan-icon">${providerIcon}</span>
-                <span>Billed through ${providerName}</span>
+                <span>${t('manageSubscription.billedThrough')} ${providerName}</span>
               </div>
             `
                 : ''
@@ -202,13 +207,13 @@ class ManageSubscriptionUI {
       return `
         <div class="manage-sub__actions">
           <button class="manage-sub__btn manage-sub__btn--primary" data-action="upgrade">
-            Upgrade to Premium
+            ${t('manageSubscription.buttons.upgrade')}
           </button>
           ${
             appleIAPService.isIOS()
               ? `
             <button class="manage-sub__btn manage-sub__btn--secondary" data-action="restore">
-              Restore Purchases
+              ${t('manageSubscription.buttons.restore')}
             </button>
           `
               : ''
@@ -216,7 +221,7 @@ class ManageSubscriptionUI {
         </div>
         <p class="manage-sub__note">
           ${ICONS.info}
-          <span>Unlock unlimited sessions, the full team, and personalization</span>
+          <span>${t('manageSubscription.freeNote')}</span>
         </p>
       `;
     }
@@ -227,21 +232,21 @@ class ManageSubscriptionUI {
         <div class="manage-sub__actions">
           <button class="manage-sub__btn manage-sub__btn--primary" data-action="apple-manage">
             <span>${ICONS.externalLink}</span>
-            <span>Manage in Settings</span>
+            <span>${t('manageSubscription.buttons.manageApple')}</span>
           </button>
         </div>
         <div class="manage-sub__instructions">
-          <p class="manage-sub__instructions-title">To cancel or change your plan:</p>
+          <p class="manage-sub__instructions-title">${t('manageSubscription.apple.instructionsTitle')}</p>
           <ol class="manage-sub__steps">
-            <li>Open Settings on your device</li>
-            <li>Tap your name at the top</li>
-            <li>Tap "Subscriptions"</li>
-            <li>Find and tap "Ferni"</li>
+            <li>${t('manageSubscription.apple.step1')}</li>
+            <li>${t('manageSubscription.apple.step2')}</li>
+            <li>${t('manageSubscription.apple.step3')}</li>
+            <li>${t('manageSubscription.apple.step4')}</li>
           </ol>
         </div>
         <p class="manage-sub__note">
           ${ICONS.info}
-          <span>Apple requires subscriptions to be managed through iOS Settings</span>
+          <span>${t('manageSubscription.apple.note')}</span>
         </p>
       `;
     }
@@ -251,12 +256,12 @@ class ManageSubscriptionUI {
       <div class="manage-sub__actions">
         <button class="manage-sub__btn manage-sub__btn--primary" data-action="billing-portal">
           <span>${ICONS.externalLink}</span>
-          <span>Manage Billing</span>
+          <span>${t('manageSubscription.buttons.manageStripe')}</span>
         </button>
       </div>
       <p class="manage-sub__note">
         ${ICONS.info}
-        <span>Update payment method, view invoices, or cancel anytime</span>
+        <span>${t('manageSubscription.stripe.note')}</span>
       </p>
     `;
   }
@@ -313,7 +318,7 @@ class ManageSubscriptionUI {
     const btn = this.container?.querySelector('[data-action="restore"]') as HTMLButtonElement;
     if (btn) {
       btn.disabled = true;
-      btn.textContent = 'Restoring...';
+      btn.textContent = t('manageSubscription.buttons.restoring');
     }
 
     try {
@@ -325,18 +330,18 @@ class ManageSubscriptionUI {
         this.container?.remove();
         this.createModal();
       } else if (btn) {
-        btn.textContent = 'No purchases found';
+        btn.textContent = t('manageSubscription.restore.noFound');
         setTimeout(() => {
-          btn.textContent = 'Restore Purchases';
+          btn.textContent = t('manageSubscription.buttons.restore');
           btn.disabled = false;
         }, 2000);
       }
     } catch (error) {
       log.error('Restore failed:', error);
       if (btn) {
-        btn.textContent = 'Restore failed';
+        btn.textContent = t('manageSubscription.restore.failed');
         setTimeout(() => {
-          btn.textContent = 'Restore Purchases';
+          btn.textContent = t('manageSubscription.buttons.restore');
           btn.disabled = false;
         }, 2000);
       }
@@ -349,11 +354,11 @@ class ManageSubscriptionUI {
   private getTierDisplayName(): string {
     switch (this.status?.tier) {
       case 'partner':
-        return 'Partner';
+        return t('subscription.partner');
       case 'friend':
-        return 'Friend';
+        return t('subscription.friend');
       default:
-        return 'Free';
+        return t('subscription.free');
     }
   }
 
@@ -364,18 +369,18 @@ class ManageSubscriptionUI {
     const { tier, status } = this.status || { tier: 'free', status: 'active' };
 
     if (tier === 'free') {
-      return "You're on the free plan. Ferni is always here for you.";
+      return t('manageSubscription.status.free');
     }
 
     switch (status) {
       case 'active':
-        return 'Your subscription is active. Thank you for being a supporter!';
+        return t('manageSubscription.status.active');
       case 'canceled':
-        return "Your subscription will end soon, but you're welcome back anytime.";
+        return t('manageSubscription.status.canceled');
       case 'past_due':
-        return 'There was an issue with your payment. Please update your payment method.';
+        return t('manageSubscription.status.pastDue');
       default:
-        return "You're subscribed. Thank you for your support!";
+        return t('manageSubscription.status.default');
     }
   }
 

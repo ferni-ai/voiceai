@@ -426,6 +426,19 @@ export function getTeamUnlockState(
   profile: UserProfile | null,
   tier: 'free' | 'friend' | 'partner' = 'free'
 ): TeamUnlockState {
+  // BYPASS: When env var is set, return all members unlocked (for testing/demo)
+  // FIX BUG: This bypass was missing, causing context builder to tell Ferni
+  // "no team members available" even when BYPASS_TEAM_UNLOCKS=true
+  if (process.env['BYPASS_TEAM_UNLOCKS'] === 'true') {
+    return {
+      stage: 'deep-partnership', // Full access stage (highest level)
+      tier,
+      unlockedMembers: TEAM_MEMBERS.map((m) => m.memberId),
+      newlyUnlocked: undefined,
+      nextUnlock: undefined,
+    };
+  }
+
   // Calculate streaks from conversation history
   const streaks = calculateStreaks(profile);
 

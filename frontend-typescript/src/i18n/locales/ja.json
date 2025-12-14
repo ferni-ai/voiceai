@@ -200,7 +200,240 @@
     "whatIsYourName": "なんとお呼びすればいいですか？",
     "niceName": "はじめまして、{name}さん！",
     "howAreYouFeeling": "今日の気分はいかがですか？",
-    "readyToBegin": "始める準備はできましたか？"
+    "readyToBegin": "始める準備はできましたか？",
+    "ariaLabel": "ようこそツアー",
+    "steps": {
+      "welcome": {
+        "title": "Ferniへようこそ",
+        "description": "あなたの人生をサポートするAIライフコーチのチーム。それぞれがあなたの旅をサポートするユニークな知恵を持っています。"
+      },
+      "voice": {
+        "title": "話しかけるだけ",
+        "description": "中央をタップして会話を始めます。自然に話してください。Ferniは会話をリアルタイムで聞いて応答します。"
+      },
+      "personas": {
+        "title": "チームを紹介します",
+        "description": "異なる視点を持つ6人のユニークなコーチ。それぞれあなたとチームの歴史を理解しています。"
+      },
+      "rituals": {
+        "title": "毎日のプラクティス",
+        "description": "短い毎日のリチュアルで継続性を作ります。ストリークを追跡し、進捗を祝います。"
+      },
+      "ready": {
+        "title": "準備ができました",
+        "description": "知っておく必要があるのはこれだけです。進むにつれて詳細を発見してください。"
+      }
+    },
+    "buttons": {
+      "skip": "ツアーをスキップ",
+      "back": "戻る",
+      "next": "次へ",
+      "begin": "始めましょう"
+    }
+  },
+
+  "manageSubscription": {
+    "label": "サブスクリプション",
+    "title": "プランを管理",
+    "expiresLabel": "アクセス期限",
+    "renewsLabel": "更新予定日",
+    "billedThrough": "請求期間",
+    "buttons": {
+      "upgrade": "プレミアムにアップグレード",
+      "restore": "購入を復元",
+      "restoring": "復元中...",
+      "manageApple": "設定で管理",
+      "manageStripe": "請求を管理"
+    },
+    "apple": {
+      "instructionsTitle": "プランをキャンセルまたは変更するには:",
+      "step1": "デバイスで設定を開く",
+      "step2": "上部の自分の名前をタップ",
+      "step3": "「サブスクリプション」をタップ",
+      "step4": "「Ferni」を探してタップ",
+      "note": "AppleではサブスクリプションはiOS設定で管理する必要があります"
+    },
+    "stripe": {
+      "note": "支払い方法を更新、請求書を確認、または任意の時点でキャンセルしてください"
+    },
+    "restore": {
+      "noFound": "購入が見つかりません",
+      "failed": "復元に失敗しました"
+    },
+    "status": {
+      "free": "無料プランです。Ferniはいつもあなたのそばにいます。",
+      "active": "サブスクリプションが有効です。サポーターでいてくれてありがとうございます！",
+      "canceled": "サブスクリプションはまもなく終了しますが、いつでも戻ってくることができます。",
+      "pastDue": "支払いに問題がありました。支払い方法を更新してください。",
+      "default": "サブスクリプション中です。サポートしてくれてありがとうございます！"
+    },
+    "freeNote": "無制限のセッション、フルチーム、パーソナライゼーションのロックを解除"
+  },
+
+  "musicDashboard": {
+    "title": "ミュージカル・ユー",
+    "loading": "あなたの音楽DNAを分析中...",
+    "empty": {
+      "title": "あなたの音楽DNAを発見しましょう！",
+      "hint": "完全なインサイトを得るにはあと{count}ゲームプレイしてください"
+    },
+    "error": {
+      "hint": "音楽ゲームをプレイしてプロフィールを構築しましょう！"
+    },
+    "buttons": {
+      "startPlaying": "プレイを開始",
+      "playGame": "「当てられるかな？」をプレイ"
+    },
+    "sections": {
+      "journey": "あなたの旅",
+      "strengths": "あなたの輝き",
+      "growth": "成長の余地",
+      "milestones": "達成",
+      "moments": "忘れられない瞬間",
+      "personaStats": "プレイしたメンバー"
+    },
+    "stats": {
+      "gamesPlayed": "プレイ済みゲーム",
+      "bestStreak": "最高連続記録",
+      "minutes": "分",
+      "thisWeek": "今週"
+    },
+    "favorite": {
+      "label": "お気に入り:"
+    },
+    "milestone": {
+      "nextLabel": "次のゴール"
+    }
+  },
+
+  "groupCoaching": {
+    "title": "グループコーチング",
+    "loading": "読み込み中...",
+    "participantsLabel": "参加者",
+    "buttons": {
+      "start": "開始",
+      "join": "参加"
+    },
+    "empty": {
+      "title": "アクティブなセッションなし",
+      "hint": "新しいセッションを作成して始めましょう"
+    },
+    "sessionTypes": {
+      "couple": {
+        "name": "カップル",
+        "description": "関係のダイナミクスを一緒にナビゲート"
+      },
+      "family": {
+        "name": "ファミリー",
+        "description": "より強い家族関係を構築"
+      },
+      "team": {
+        "name": "チーム",
+        "description": "職場のコラボレーションを向上"
+      },
+      "peer": {
+        "name": "ピアサポート",
+        "description": "同じ旅をしている他の人とつながる"
+      }
+    }
+  },
+
+  "videoSettings": {
+    "title": "ビデオセッション",
+    "loading": "読み込み中...",
+    "intro": "コーチングセッションで自分がどのように表示されるかを選択してください。",
+    "controls": {
+      "title": "クイックコントロール"
+    },
+    "camera": {
+      "on": "カメラオン",
+      "off": "カメラオフ"
+    },
+    "screen": {
+      "on": "共有を停止",
+      "off": "スクリーンを共有"
+    },
+    "modes": {
+      "title": "表示モード",
+      "avatarOnly": {
+        "label": "アバターのみ",
+        "description": "Ferniのアバターのみ、ビデオなし"
+      },
+      "video": {
+        "label": "ビデオ",
+        "description": "自分とFerniを見る"
+      },
+      "hybrid": {
+        "label": "ハイブリッド",
+        "description": "オプショナルビデオ付きアバター"
+      }
+    },
+    "quality": {
+      "title": "ビデオ品質",
+      "auto": "自動（推奨）",
+      "high": "高",
+      "medium": "中",
+      "low": "低（データ節約）"
+    },
+    "note": "ビデオセッションは、良い照明と安定したインターネット接続で最適に機能します。",
+    "buttons": {
+      "retry": "もう一度試す"
+    }
+  },
+
+  "wearableSettings": {
+    "title": "健康とフィットネス",
+    "loading": "読み込み中...",
+    "intro": "ウェアラブルデバイスを接続して、Ferniに健康とエネルギーレベルについてのコンテキストを提供してください。",
+    "sections": {
+      "devices": "デバイス",
+      "features": "Ferniが見ることができるもの"
+    },
+    "buttons": {
+      "connect": "接続",
+      "disconnect": "切断"
+    },
+    "features": {
+      "stress": "HRVからのストレス検出",
+      "sleep": "睡眠品質分析",
+      "activity": "アクティビティトラッキング"
+    },
+    "privacy": {
+      "note": "あなたの健康データはプライベートのままです。コーチングセッションと集約されたインサイトのみを共有します。"
+    },
+    "providers": {
+      "appleHealth": {
+        "name": "Apple Health",
+        "description": "Apple WatchとiPhoneの健康データと同期"
+      },
+      "fitbit": {
+        "name": "Fitbit",
+        "description": "Fitbitデバイスを接続"
+      },
+      "garmin": {
+        "name": "Garmin",
+        "description": "Garminウェアラブルと同期"
+      },
+      "oura": {
+        "name": "Oura Ring",
+        "description": "睡眠と準備状態のインサイト"
+      },
+      "whoop": {
+        "name": "Whoop",
+        "description": "リカバリーとストレイントラッキング"
+      }
+    }
+  },
+
+  "contactSettings": {
+    "verify": {
+      "sending": "コード送信中...",
+      "withCode": "コードで確認"
+    },
+    "buttons": {
+      "saving": "保存中...",
+      "save": "保存"
+    }
   },
 
   "accessibility": {

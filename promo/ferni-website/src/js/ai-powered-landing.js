@@ -1390,19 +1390,19 @@
       /* Input area */
       .ferni-chat-panel__input-area {
         display: flex;
-        gap: 8px;
-        padding: 16px 20px;
-        border-top: 1px solid rgba(44, 37, 32, 0.08);
+        gap: var(--space-2, 8px);
+        padding: var(--space-4, 16px) var(--space-5, 20px);
+        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       }
       
       .ferni-chat-panel__input {
         flex: 1;
-        padding: 12px 16px;
-        border: 1px solid rgba(44, 37, 32, 0.12);
-        border-radius: 24px;
-        font-size: 14px;
+        padding: var(--space-3, 12px) var(--space-4, 16px);
+        border: 1px solid var(--color-border, rgba(44, 37, 32, 0.12));
+        border-radius: var(--radius-xl, 24px);
+        font-size: var(--text-sm, 14px);
         background: white;
-        transition: border-color 0.2s;
+        transition: border-color var(--duration-fast, 0.2s);
       }
       
       .ferni-chat-panel__input:focus {
@@ -1436,10 +1436,10 @@
       
       /* Footer */
       .ferni-chat-panel__footer {
-        padding: 12px 20px;
+        padding: var(--space-3, 12px) var(--space-5, 20px);
         text-align: center;
-        background: rgba(44, 37, 32, 0.03);
-        border-radius: 0 0 24px 24px;
+        background: var(--color-bg-subtle, rgba(44, 37, 32, 0.03));
+        border-radius: 0 0 var(--radius-xl, 24px) var(--radius-xl, 24px);
       }
       
       .ferni-chat-panel__upgrade {
@@ -1455,9 +1455,9 @@
       
       /* Upgrade prompt */
       .ferni-chat-upgrade-prompt {
-        background: linear-gradient(135deg, rgba(74, 103, 65, 0.1), rgba(90, 119, 81, 0.1));
-        padding: 20px;
-        border-radius: 16px;
+        background: linear-gradient(135deg, var(--color-ferni-glow, rgba(74, 103, 65, 0.1)), rgba(90, 119, 81, 0.1));
+        padding: var(--space-5, 20px);
+        border-radius: var(--radius-lg, 16px);
         text-align: center;
       }
       
@@ -1473,18 +1473,18 @@
       
       .team-card__preview-input {
         display: flex;
-        gap: 8px;
-        margin-top: 16px;
-        padding-top: 16px;
-        border-top: 1px solid rgba(44, 37, 32, 0.08);
+        gap: var(--space-2, 8px);
+        margin-top: var(--space-4, 16px);
+        padding-top: var(--space-4, 16px);
+        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       }
       
       .team-card__preview-input input {
         flex: 1;
-        padding: 10px 14px;
-        border: 1px solid rgba(44, 37, 32, 0.12);
-        border-radius: 20px;
-        font-size: 13px;
+        padding: var(--space-2, 10px) var(--space-3, 14px);
+        border: 1px solid var(--color-border, rgba(44, 37, 32, 0.12));
+        border-radius: var(--radius-xl, 20px);
+        font-size: var(--text-xs, 13px);
         background: white;
       }
       
@@ -1512,10 +1512,10 @@
       }
       
       .team-card__preview-response {
-        margin-top: 12px;
-        padding: 12px;
-        background: rgba(44, 37, 32, 0.03);
-        border-radius: 12px;
+        margin-top: var(--space-3, 12px);
+        padding: var(--space-3, 12px);
+        background: var(--color-bg-subtle, rgba(44, 37, 32, 0.03));
+        border-radius: var(--radius-md, 12px);
       }
       
       .team-card__preview-quote {
@@ -1532,9 +1532,9 @@
       
       .team-card__preview-traits {
         display: flex;
-        gap: 6px;
+        gap: var(--space-1, 6px);
         flex-wrap: wrap;
-        margin-top: 10px;
+        margin-top: var(--space-2, 10px);
       }
       
       .team-card__preview-traits .trait {
@@ -1599,8 +1599,8 @@
          ═══════════════════════════════════════════════════════════════════════════ */
       
       .social-proof-dynamic {
-        padding: 24px 0;
-        background: rgba(74, 103, 65, 0.05);
+        padding: var(--space-6, 24px) 0;
+        background: var(--color-ferni-glow, rgba(74, 103, 65, 0.05));
         border-top: 1px solid rgba(74, 103, 65, 0.1);
         border-bottom: 1px solid rgba(74, 103, 65, 0.1);
       }
@@ -1608,10 +1608,10 @@
       .social-proof-dynamic__inner {
         max-width: 800px;
         margin: 0 auto;
-        padding: 0 24px;
+        padding: 0 var(--space-6, 24px);
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: var(--space-4, 16px);
       }
       
       .social-proof-dynamic__avatar {
@@ -1642,17 +1642,17 @@
          ═══════════════════════════════════════════════════════════════════════════ */
       
       .smart-faq {
-        background: linear-gradient(135deg, rgba(74, 103, 65, 0.08), rgba(90, 119, 81, 0.05));
-        padding: 24px;
-        border-radius: 20px;
-        margin-bottom: 40px;
+        background: linear-gradient(135deg, var(--color-ferni-glow, rgba(74, 103, 65, 0.08)), rgba(90, 119, 81, 0.05));
+        padding: var(--space-6, 24px);
+        border-radius: var(--radius-xl, 20px);
+        margin-bottom: var(--space-10, 40px);
       }
       
       .smart-faq__header {
         display: flex;
         align-items: center;
-        gap: 12px;
-        margin-bottom: 16px;
+        gap: var(--space-3, 12px);
+        margin-bottom: var(--space-4, 16px);
       }
       
       .smart-faq__avatar {
@@ -1677,15 +1677,15 @@
       
       .smart-faq__input-area {
         display: flex;
-        gap: 10px;
+        gap: var(--space-2, 10px);
       }
       
       .smart-faq__input {
         flex: 1;
-        padding: 14px 20px;
-        border: 1px solid rgba(44, 37, 32, 0.12);
-        border-radius: 24px;
-        font-size: 15px;
+        padding: var(--space-3, 14px) var(--space-5, 20px);
+        border: 1px solid var(--color-border, rgba(44, 37, 32, 0.12));
+        border-radius: var(--radius-xl, 24px);
+        font-size: var(--text-base, 15px);
         background: white;
       }
       
@@ -1696,11 +1696,11 @@
       }
       
       .smart-faq__response {
-        margin-top: 20px;
-        padding: 20px;
+        margin-top: var(--space-5, 20px);
+        padding: var(--space-5, 20px);
         background: white;
-        border-radius: 16px;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+        border-radius: var(--radius-lg, 16px);
+        box-shadow: var(--shadow-sm, 0 2px 12px rgba(0, 0, 0, 0.05));
       }
       
       .smart-faq__answer {
@@ -1723,9 +1723,9 @@
       }
       
       .smart-faq__related {
-        margin-top: 16px;
-        padding-top: 16px;
-        border-top: 1px solid rgba(44, 37, 32, 0.08);
+        margin-top: var(--space-4, 16px);
+        padding-top: var(--space-4, 16px);
+        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       }
       
       .smart-faq__related p {
@@ -1770,10 +1770,10 @@
          ═══════════════════════════════════════════════════════════════════════════ */
       
       .memory-demo__interactive {
-        margin-top: 40px;
-        padding: 30px;
-        background: linear-gradient(135deg, rgba(74, 103, 65, 0.05), transparent);
-        border-radius: 24px;
+        margin-top: var(--space-10, 40px);
+        padding: var(--space-8, 30px);
+        background: linear-gradient(135deg, var(--color-ferni-glow, rgba(74, 103, 65, 0.05)), transparent);
+        border-radius: var(--radius-xl, 24px);
         border: 1px solid rgba(74, 103, 65, 0.15);
       }
       
@@ -1791,15 +1791,15 @@
       
       .memory-demo__input-area {
         display: flex;
-        gap: 12px;
+        gap: var(--space-3, 12px);
       }
       
       .memory-demo__input {
         flex: 1;
-        padding: 14px 20px;
-        border: 1px solid rgba(44, 37, 32, 0.15);
-        border-radius: 24px;
-        font-size: 15px;
+        padding: var(--space-3, 14px) var(--space-5, 20px);
+        border: 1px solid var(--color-border, rgba(44, 37, 32, 0.15));
+        border-radius: var(--radius-xl, 24px);
+        font-size: var(--text-base, 15px);
         background: white;
       }
       
@@ -1810,21 +1810,21 @@
       }
       
       .memory-demo__result {
-        margin-top: 24px;
+        margin-top: var(--space-6, 24px);
       }
       
       .memory-demo__visualization {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 20px;
+        gap: var(--space-5, 20px);
       }
       
       .memory-demo__today,
       .memory-demo__future {
-        padding: 20px;
+        padding: var(--space-5, 20px);
         background: white;
-        border-radius: 16px;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+        border-radius: var(--radius-lg, 16px);
+        box-shadow: var(--shadow-sm, 0 2px 12px rgba(0, 0, 0, 0.05));
       }
       
       .memory-demo__date {

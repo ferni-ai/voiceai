@@ -392,6 +392,19 @@ const COMMANDS: Record<string, CliCommand> = {
       'ferni voice --debug',
     ],
   },
+  code: {
+    name: 'Code',
+    description: 'Voice-driven coding with Ferni + Claude Code (auto-starts services)',
+    icon: '💻',
+    handler: handleCode,
+    subcommands: [],
+    examples: [
+      'ferni code                  # Start voice coding (auto-starts token server & agent)',
+      'ferni code --dir ./myproject',
+      'ferni code --debug          # Show MCP events and transcriptions',
+      'ferni code --cloud          # Use production services',
+    ],
+  },
   debug: {
     name: 'Debug',
     description: 'Troubleshooting workflows',
@@ -2992,6 +3005,156 @@ async function handleVoices(args: string[]): Promise<void> {
 async function handleVoice(args: string[]): Promise<void> {
   const { handleVoiceLive } = await import('./cli/voice-live.js');
   await handleVoiceLive(args);
+}
+
+// ============================================================================
+// VOICE + CLAUDE CODE COMMAND
+// ============================================================================
+
+interface ServiceStatus {
+  running: boolean;
+  pid?: number;
+}
+
+async function checkTokenServer(): Promise<ServiceStatus> {
+  try {
+    const response = await fetch('http://localhost:3001/health', { signal: AbortSignal.timeout(2000) });
+    return { running: response.ok };
+  } catch {
+    return { running: false };
+  }
+}
+
+async function checkAgent(): Promise<ServiceStatus> {
+  try {
+    const response = await fetch('http://localhost:8081/health', { signal: AbortSignal.timeout(2000) });
+    return { running: response.ok };
+  } catch {
+    return { running: false };
+  }
+}
+
+async function startTokenServer(): Promise<void> {
+  log.info('Starting token server...');
+  const tokenServer = spawn('node', ['token-server.js'], {
+    cwd: PROJECT_ROOT,
+    detached: true,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  tokenServer.unref();
+
+  // Wait for it to be ready
+  for (let i = 0; i < 30; i++) {
+    await new Promise((r) => setTimeout(r, 500));
+    const status = await checkTokenServer();
+    if (status.running) {
+      log.success('Token server started (port 3001)');
+      return;
+    }
+  }
+  throw new Error('Token server failed to start');
+}
+
+async function startAgent(): Promise<void> {
+  log.info('Starting voice agent...');
+  const agent = spawn('npx', ['tsx', 'src/agents/voice-worker-single-process.ts'], {
+    cwd: PROJECT_ROOT,
+    detached: true,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: {
+      ...process.env,
+      PORT: '8081',
+    },
+  });
+  agent.unref();
+
+  // Wait for it to be ready
+  for (let i = 0; i < 60; i++) {
+    await new Promise((r) => setTimeout(r, 1000));
+    const status = await checkAgent();
+    if (status.running) {
+      log.success('Voice agent started (port 8081)');
+      return;
+    }
+  }
+  throw new Error('Voice agent failed to start');
+}
+
+async function handleCode(args: string[]): Promise<void> {
+  log.header('💻 Voice-Driven Coding with Ferni + Claude');
+
+  // Check for --help
+  if (args.includes('--help') || args.includes('-h')) {
+    console.log(`
+${colors.bold}Voice-Driven Coding${colors.reset}
+
+Talk to Ferni, who helps you code with Claude Code.
+
+${colors.bold}Usage:${colors.reset}
+  ferni code                    # Start voice coding session
+  ferni code --dir ./myproject  # Work in a specific directory
+  ferni code --debug            # Show debug info
+  ferni code --no-voice         # Text-only mode (no mic)
+  ferni code --local            # Use local services (auto-start)
+  ferni code --cloud            # Use cloud services (production)
+
+${colors.bold}How it works:${colors.reset}
+  1. You speak to Ferni
+  2. Ferni transcribes and sends to Claude Code
+  3. Claude executes with MCP tools for voice feedback
+  4. Ferni narrates progress via TTS
+
+${colors.bold}MCP Tools Available to Claude:${colors.reset}
+  • mcp__ferni__narrate        - Speak to user
+  • mcp__ferni__report_progress - Update on task status
+  • mcp__ferni__task_complete  - Announce completion
+  • mcp__ferni__request_voice_input - Ask user questions
+`);
+    return;
+  }
+
+  const useCloud = args.includes('--cloud');
+  const skipVoice = args.includes('--no-voice');
+
+  if (!useCloud) {
+    // Check and start local services
+    console.log(`${colors.dim}Checking services...${colors.reset}\n`);
+
+    // 1. Token Server
+    const tokenStatus = await checkTokenServer();
+    if (tokenStatus.running) {
+      log.success('Token server running');
+    } else {
+      await startTokenServer();
+    }
+
+    // 2. Voice Agent
+    const agentStatus = await checkAgent();
+    if (agentStatus.running) {
+      log.success('Voice agent running');
+    } else {
+      await startAgent();
+    }
+
+    console.log('');
+  }
+
+  // 3. Check Claude Code is installed
+  try {
+    execSync('which claude', { stdio: 'pipe' });
+    log.success('Claude Code CLI found');
+  } catch {
+    log.error('Claude Code CLI not found!');
+    console.log(`\n${colors.yellow}Install it with:${colors.reset}`);
+    console.log(`${colors.dim}  npm install -g @anthropic-ai/claude-code${colors.reset}\n`);
+    return;
+  }
+
+  console.log('');
+
+  // Start the voice-claude bridge
+  const { handleVoiceClaude } = await import('./cli/voice-claude.js');
+  await handleVoiceClaude(args);
 }
 
 // ============================================================================
@@ -6365,7 +6528,34 @@ async function interactiveMode(): Promise<void> {
 ${colors.cyan}╔══════════════════════════════════════════════════════════════╗${colors.reset}
 ${colors.cyan}║${colors.reset}  ${colors.bold}${colors.green}FERNI${colors.reset} - Your AI Development Assistant                    ${colors.cyan}║${colors.reset}
 ${colors.cyan}╚══════════════════════════════════════════════════════════════╝${colors.reset}
+`);
 
+  // Auto-start essential services
+  console.log(`${colors.dim}Checking services...${colors.reset}`);
+
+  const tokenStatus = await checkTokenServer();
+  if (tokenStatus.running) {
+    console.log(`  ${colors.green}${icons.success}${colors.reset} Token server (port 3001)`);
+  } else {
+    try {
+      await startTokenServer();
+    } catch (err) {
+      console.log(`  ${colors.yellow}${icons.warning}${colors.reset} Token server: ${colors.dim}not started${colors.reset}`);
+    }
+  }
+
+  const agentStatus = await checkAgent();
+  if (agentStatus.running) {
+    console.log(`  ${colors.green}${icons.success}${colors.reset} Voice agent (port 8081)`);
+  } else {
+    try {
+      await startAgent();
+    } catch (err) {
+      console.log(`  ${colors.yellow}${icons.warning}${colors.reset} Voice agent: ${colors.dim}not started${colors.reset}`);
+    }
+  }
+
+  console.log(`
 ${colors.bold}What would you like to do?${colors.reset}
 
 `);
@@ -6663,6 +6853,8 @@ ${colors.bold}Commands:${colors.reset}
       'personas',
       'tools',
       'voices',
+      'voice',
+      'code',
       'validate',
       'generate',
       'rollout',

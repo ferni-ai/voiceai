@@ -13,7 +13,8 @@
     "subheadLine2": "ويتذكر كل شيء.",
     "cta": {
       "primary": "تعرف على Ferni",
-      "secondary": "اتصل بـ Ferni"
+      "secondary": "اتصل بـ Ferni",
+      "talkNow": "تحدث مع Ferni الآن"
     }
   },
 
@@ -126,6 +127,9 @@
   },
 
   "faq": {
+    "eyebrow": "أسئلة وأجوبة",
+    "headline": "الأسئلة",
+    "headlineBreak": "الشائعة",
     "sectionTitle": "الأسئلة الشائعة",
     "items": [
       {
@@ -168,6 +172,8 @@
   "footer": {
     "tagline": "شخص يفهم حقاً.",
     "copyright": "Ferni AI. جميع الحقوق محفوظة.",
+    "allRightsReserved": "جميع الحقوق محفوظة.",
+    "madeBy": "صنع بـ ♥ بواسطة الذكاء الاصطناعي، للبشر.",
     "product": "المنتج",
     "company": "الشركة",
     "developers": "المطورون",
@@ -188,6 +194,33 @@
   "common": {
     "learnMore": "اعرف المزيد",
     "getStarted": "ابدأ الآن",
+    "getStartedFree": "ابدأ مجاناً",
+    "callPhone": "اتصل",
     "scrollToExplore": "مرر للاستكشاف"
+  },
+
+  "accessibility": {
+    "nextStory": "القصة التالية",
+    "toggleMenu": "تبديل القائمة",
+    "twitter": "X (Twitter)",
+    "linkedin": "LinkedIn",
+    "instagram": "Instagram",
+    "tiktok": "TikTok",
+    "youtube": "YouTube"
+  },
+
+  "personas": {
+    "peter": {
+      "fullName": "بيتر جون"
+    },
+    "maya": {
+      "fullName": "مايا سانتوس"
+    },
+    "alex": {
+      "fullName": "أليكس تشين"
+    },
+    "jordan": {
+      "fullName": "جوردان تايلور"
+    }
   }
 }

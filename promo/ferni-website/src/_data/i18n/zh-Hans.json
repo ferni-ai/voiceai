@@ -13,7 +13,8 @@
     "subheadLine2": "并且记住一切。",
     "cta": {
       "primary": "认识Ferni",
-      "secondary": "致电Ferni"
+      "secondary": "致电Ferni",
+      "talkNow": "现在和Ferni对话"
     }
   },
 
@@ -126,6 +127,9 @@
   },
 
   "faq": {
+    "eyebrow": "问答",
+    "headline": "常见",
+    "headlineBreak": "问题",
     "sectionTitle": "常见问题",
     "items": [
       {
@@ -168,6 +172,8 @@
   "footer": {
     "tagline": "真正理解你的人。",
     "copyright": "Ferni AI。保留所有权利。",
+    "allRightsReserved": "版权所有。",
+    "madeBy": "由AI用♥制作，为人类服务。",
     "product": "产品",
     "company": "公司",
     "developers": "开发者",
@@ -188,6 +194,33 @@
   "common": {
     "learnMore": "了解更多",
     "getStarted": "开始使用",
+    "getStartedFree": "免费开始",
+    "callPhone": "拨打电话",
     "scrollToExplore": "滚动探索"
+  },
+
+  "accessibility": {
+    "nextStory": "下一个故事",
+    "toggleMenu": "切换菜单",
+    "twitter": "X (Twitter)",
+    "linkedin": "LinkedIn",
+    "instagram": "Instagram",
+    "tiktok": "TikTok",
+    "youtube": "YouTube"
+  },
+
+  "personas": {
+    "peter": {
+      "fullName": "彼得·约翰"
+    },
+    "maya": {
+      "fullName": "玛雅·桑托斯"
+    },
+    "alex": {
+      "fullName": "亚历克斯·陈"
+    },
+    "jordan": {
+      "fullName": "乔丹·泰勒"
+    }
   }
 }
