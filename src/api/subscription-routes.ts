@@ -130,6 +130,8 @@ async function checkCanStart(ctx: RequestContext): Promise<ResponseContext> {
 /**
  * POST /api/subscription/checkout
  * Create a Stripe checkout session
+ *
+ * Supports multi-currency via locale parameter
  */
 async function createCheckout(ctx: RequestContext): Promise<ResponseContext> {
   if (!isStripeConfigured()) {
@@ -147,6 +149,8 @@ async function createCheckout(ctx: RequestContext): Promise<ResponseContext> {
     cancelUrl?: string;
     email?: string;
     name?: string;
+    locale?: string; // e.g., 'en-US', 'ja', 'de'
+    currency?: string; // Optional override: 'USD', 'EUR', 'JPY', etc.
   };
 
   if (!body.userId || !body.tier) {
@@ -166,6 +170,13 @@ async function createCheckout(ctx: RequestContext): Promise<ResponseContext> {
   }
 
   try {
+    // Get currency from locale or explicit currency
+    let currency = body.currency;
+    if (!currency && body.locale) {
+      const { getCurrencyForLocale } = await import('../i18n/pricing.js');
+      currency = getCurrencyForLocale(body.locale as 'en-US');
+    }
+
     const session = await createCheckoutSession({
       userId: body.userId,
       tier: body.tier,
@@ -173,6 +184,7 @@ async function createCheckout(ctx: RequestContext): Promise<ResponseContext> {
       cancelUrl: body.cancelUrl || 'https://ferni.ai/subscription/cancel',
       email: body.email,
       name: body.name,
+      currency, // Pass currency to checkout session
     });
 
     return {
@@ -650,12 +662,41 @@ async function verifyCheckoutSession(ctx: RequestContext): Promise<ResponseConte
  * GET /api/subscription/config
  * Get public subscription configuration (for frontend)
  *
+ * Supports multi-currency pricing via locale query parameter or Accept-Language header.
+ *
  * NEW: "Ferni Free Forever" model
  * - Free tier: Unlimited conversations with Ferni, 7-min sessions
  * - Premium: Longer sessions, team access, cosmetics
  */
-async function getConfig(): Promise<ResponseContext> {
+async function getConfig(ctx: RequestContext): Promise<ResponseContext> {
   const isConfigured = isStripeConfigured();
+
+  // Determine locale from query param, header, or default
+  let locale = (ctx.query.locale as string) || 'en-US';
+  const acceptLanguage = ctx.headers['accept-language'];
+
+  // Import pricing module dynamically to avoid circular deps
+  const { getPricingForLocale, detectCurrencyFromHeader, LOCALE_CURRENCY } =
+    await import('../i18n/pricing.js');
+  type SupportedLocale = keyof typeof LOCALE_CURRENCY;
+
+  // Detect currency from Accept-Language if no explicit locale
+  let currency: string;
+  if (ctx.query.locale) {
+    const pricing = getPricingForLocale(locale as SupportedLocale);
+    currency = pricing.friend.currency;
+  } else if (typeof acceptLanguage === 'string') {
+    currency = detectCurrencyFromHeader(acceptLanguage);
+    // Map currency back to a locale for pricing
+    const foundLocale = Object.entries(LOCALE_CURRENCY).find(([, c]) => c === currency);
+    if (foundLocale) {
+      locale = foundLocale[0];
+    }
+  } else {
+    currency = 'USD';
+  }
+
+  const pricing = getPricingForLocale(locale as SupportedLocale);
 
   return {
     status: 200,
@@ -663,13 +704,17 @@ async function getConfig(): Promise<ResponseContext> {
     body: {
       enabled: isConfigured,
       model: 'ferni-free-forever', // New monetization model identifier
+      locale,
+      currency: pricing.friend.currency,
       tiers: [
         {
           id: 'free',
           name: 'Ferni Forever',
           // Dynamic session time from env var for A/B testing
           description: `Talk to Ferni unlimited times, forever. ${process.env.FREE_SESSION_MINUTES || '7'} minutes per conversation.`,
-          priceInCents: 0,
+          price: pricing.free.formatted,
+          priceInSmallestUnit: pricing.free.amountInSmallestUnit,
+          currency: pricing.free.currency,
           conversationsPerMonth: null, // UNLIMITED with Ferni!
           sessionMinutes: parseInt(process.env.FREE_SESSION_MINUTES || '7', 10), // Configurable for experiments
           teamAccess: 'ferni-only',
@@ -684,7 +729,9 @@ async function getConfig(): Promise<ResponseContext> {
           id: 'friend',
           name: 'Your Life Coach',
           description: 'Unlimited time with Ferni + meet the whole team',
-          priceInCents: 999,
+          price: pricing.friend.formatted,
+          priceInSmallestUnit: pricing.friend.amountInSmallestUnit,
+          currency: pricing.friend.currency,
           conversationsPerMonth: null,
           sessionMinutes: null, // Unlimited session time
           teamAccess: 'core-team',
@@ -700,7 +747,9 @@ async function getConfig(): Promise<ResponseContext> {
           id: 'partner',
           name: 'Partner in Growth',
           description: 'Full team access + exclusive cosmetics + priority',
-          priceInCents: 1999,
+          price: pricing.partner.formatted,
+          priceInSmallestUnit: pricing.partner.amountInSmallestUnit,
+          currency: pricing.partner.currency,
           conversationsPerMonth: null,
           sessionMinutes: null,
           teamAccess: 'full-team',

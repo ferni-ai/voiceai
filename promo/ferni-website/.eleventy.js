@@ -7,20 +7,31 @@ const syntaxHighlight = require('@11ty/eleventy-plugin-syntaxhighlight');
 // Load translation files
 const translations = {
   en: require('./src/_data/i18n/en.json'),
+  'en-GB': require('./src/_data/i18n/en-GB.json'),
   es: require('./src/_data/i18n/es.json'),
-  // Add more locales as they become available:
-  // fr: require('./src/_data/i18n/fr.json'),
-  // de: require('./src/_data/i18n/de.json'),
-  // ja: require('./src/_data/i18n/ja.json'),
+  fr: require('./src/_data/i18n/fr.json'),
+  de: require('./src/_data/i18n/de.json'),
+  ja: require('./src/_data/i18n/ja.json'),
+  ko: require('./src/_data/i18n/ko.json'),
+  'zh-Hans': require('./src/_data/i18n/zh-Hans.json'),
+  'zh-Hant': require('./src/_data/i18n/zh-Hant.json'),
+  ar: require('./src/_data/i18n/ar.json'),
+  he: require('./src/_data/i18n/he.json'),
 };
 
 // Supported locales with metadata
 const locales = [
-  { code: 'en', name: 'English', flag: '🇺🇸', direction: 'ltr', default: true },
-  { code: 'es', name: 'Español', flag: '🇪🇸', direction: 'ltr', default: false },
-  // { code: 'fr', name: 'Français', flag: '🇫🇷', direction: 'ltr', default: false },
-  // { code: 'de', name: 'Deutsch', flag: '🇩🇪', direction: 'ltr', default: false },
-  // { code: 'ja', name: '日本語', flag: '🇯🇵', direction: 'ltr', default: false },
+  { code: 'en', name: 'English (US)', nativeName: 'English', flag: '🇺🇸', direction: 'ltr', default: true },
+  { code: 'en-GB', name: 'English (UK)', nativeName: 'English', flag: '🇬🇧', direction: 'ltr', default: false },
+  { code: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸', direction: 'ltr', default: false },
+  { code: 'fr', name: 'French', nativeName: 'Français', flag: '🇫🇷', direction: 'ltr', default: false },
+  { code: 'de', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪', direction: 'ltr', default: false },
+  { code: 'ja', name: 'Japanese', nativeName: '日本語', flag: '🇯🇵', direction: 'ltr', default: false },
+  { code: 'ko', name: 'Korean', nativeName: '한국어', flag: '🇰🇷', direction: 'ltr', default: false },
+  { code: 'zh-Hans', name: 'Chinese (Simplified)', nativeName: '简体中文', flag: '🇨🇳', direction: 'ltr', default: false },
+  { code: 'zh-Hant', name: 'Chinese (Traditional)', nativeName: '繁體中文', flag: '🇹🇼', direction: 'ltr', default: false },
+  { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇸🇦', direction: 'rtl', default: false },
+  { code: 'he', name: 'Hebrew', nativeName: 'עברית', flag: '🇮🇱', direction: 'rtl', default: false },
 ];
 
 const defaultLocale = 'en';

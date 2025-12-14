@@ -225,16 +225,16 @@
 
   "navigation": {
     "main": [
-      { "title": "Features", "url": "/#features" },
-      { "title": "Team", "url": "/team/" },
-      { "title": "Pricing", "url": "/pricing/" },
-      { "title": "FAQ", "url": "/#faq" }
+      { "title": "Features", "url": "/#features", "i18nKey": "nav.features" },
+      { "title": "Team", "url": "/team/", "i18nKey": "nav.team" },
+      { "title": "About", "url": "/about/", "i18nKey": "nav.about" },
+      { "title": "FAQ", "url": "/#faq", "i18nKey": "nav.faq" }
     ],
     "mobile": [
-      { "title": "Features", "url": "/#features" },
-      { "title": "Team", "url": "/team/" },
-      { "title": "Developers", "url": "/#developers" },
-      { "title": "FAQ", "url": "/#faq" }
+      { "title": "Features", "url": "/#features", "i18nKey": "nav.features" },
+      { "title": "Team", "url": "/team/", "i18nKey": "nav.team" },
+      { "title": "About", "url": "/about/", "i18nKey": "nav.about" },
+      { "title": "FAQ", "url": "/#faq", "i18nKey": "nav.faq" }
     ],
     "footer": {
       "product": [

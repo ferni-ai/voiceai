@@ -222,6 +222,9 @@ export async function getOrCreateCustomer(
 
 /**
  * Create a checkout session for subscribing
+ *
+ * Supports multi-currency pricing via the `currency` parameter.
+ * If not specified, defaults to USD pricing.
  */
 export async function createCheckoutSession(params: {
   userId: string;
@@ -230,12 +233,32 @@ export async function createCheckoutSession(params: {
   cancelUrl: string;
   email?: string;
   name?: string;
+  currency?: string; // e.g., 'USD', 'EUR', 'JPY', etc.
 }): Promise<{ sessionId: string; url: string }> {
-  const { userId, tier, successUrl, cancelUrl, email, name } = params;
+  const { userId, tier, successUrl, cancelUrl, email, name, currency } = params;
 
-  const config = TIER_CONFIGS[tier];
-  if (!config.stripePriceId) {
-    throw new Error(`No Stripe price configured for tier: ${tier}`);
+  // Get the appropriate price ID based on currency
+  let priceId: string;
+  if (currency && currency !== 'USD') {
+    // Use locale-specific price ID from pricing module
+    try {
+      const { getStripePriceId } = await import('../i18n/pricing.js');
+      priceId = getStripePriceId(tier, currency as 'USD');
+    } catch {
+      // Fallback to default USD price
+      const config = TIER_CONFIGS[tier];
+      if (!config.stripePriceId) {
+        throw new Error(`No Stripe price configured for tier: ${tier}`);
+      }
+      priceId = config.stripePriceId;
+    }
+  } else {
+    // Default to USD price from tier config
+    const config = TIER_CONFIGS[tier];
+    if (!config.stripePriceId) {
+      throw new Error(`No Stripe price configured for tier: ${tier}`);
+    }
+    priceId = config.stripePriceId;
   }
 
   const stripe = await getStripe();
@@ -252,7 +275,7 @@ export async function createCheckoutSession(params: {
     payment_method_types: ['card'],
     line_items: [
       {
-        price: config.stripePriceId,
+        price: priceId,
         quantity: 1,
       },
     ],
@@ -261,6 +284,7 @@ export async function createCheckoutSession(params: {
     metadata: {
       ferni_user_id: userId,
       tier,
+      currency: currency || 'USD',
       // Experiment tracking - which session length variant is this user in?
       free_session_minutes: process.env.FREE_SESSION_MINUTES || '7',
       experiment_cohort: process.env.EXPERIMENT_COHORT || 'control',
@@ -269,6 +293,7 @@ export async function createCheckoutSession(params: {
       metadata: {
         ferni_user_id: userId,
         tier,
+        currency: currency || 'USD',
         free_session_minutes: process.env.FREE_SESSION_MINUTES || '7',
         experiment_cohort: process.env.EXPERIMENT_COHORT || 'control',
       },
@@ -279,7 +304,10 @@ export async function createCheckoutSession(params: {
     billing_address_collection: 'required',
   });
 
-  log.info({ userId, tier, sessionId: session.id }, 'Created checkout session');
+  log.info(
+    { userId, tier, currency: currency || 'USD', sessionId: session.id },
+    'Created checkout session'
+  );
 
   return {
     sessionId: session.id,

@@ -6,13 +6,23 @@
 <!-- Canonical URL -->
 <link rel="canonical" href="{{ site.url }}{{ page.url }}">
 
+<!-- Hreflang Tags for International SEO -->
+{% for localeItem in locales %}
+{% if localeItem.default %}
+<link rel="alternate" hreflang="{{ localeItem.code }}" href="{{ site.url }}{{ page.url }}">
+<link rel="alternate" hreflang="x-default" href="{{ site.url }}{{ page.url }}">
+{% else %}
+<link rel="alternate" hreflang="{{ localeItem.code }}" href="{{ site.url }}/{{ localeItem.code }}{{ page.url }}">
+{% endif %}
+{% endfor %}
+
 <!-- Open Graph -->
 <meta property="og:title" content="{{ title or site.name }}">
 <meta property="og:description" content="{{ description or site.tagline }}">
 <meta property="og:type" content="website">
 <meta property="og:url" content="{{ site.url }}{{ page.url }}">
 <meta property="og:site_name" content="{{ site.name }}">
-<meta property="og:locale" content="en_US">
+<meta property="og:locale" content="{{ (locale or 'en') | replace('-', '_') }}">
 {% if ogImage %}
 <meta property="og:image" content="{{ site.url }}{{ ogImage }}">
 {% else %}
