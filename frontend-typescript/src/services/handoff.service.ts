@@ -655,6 +655,134 @@ class HandoffService {
   }
 
   /**
+   * Send a handoff request to the backend via data channel.
+   * This is the canonical way to initiate a handoff from any UI component.
+   * 
+   * Features:
+   * - Rate limiting (800ms debounce)
+   * - Persona ID validation
+   * - Retry logic (up to 2 retries)
+   * - Proper error handling with callbacks
+   * 
+   * @param targetPersonaId - The persona to hand off to
+   * @param options - Optional configuration
+   * @returns Promise that resolves when request is sent (not when handoff completes)
+   */
+  async sendHandoffRequest(
+    targetPersonaId: PersonaId,
+    options?: {
+      /** Skip rate limiting check (use with caution) */
+      skipRateLimit?: boolean;
+      /** Custom failure handler */
+      onFailure?: (error: Error) => void;
+    }
+  ): Promise<boolean> {
+    const { skipRateLimit = false, onFailure } = options ?? {};
+
+    // Rate limit check
+    if (!skipRateLimit) {
+      const remainingMs = this.checkRateLimit();
+      if (remainingMs > 0) {
+        log.warn('Handoff request rate limited:', { remainingMs, target: targetPersonaId });
+        for (const callback of this.rateLimitedCallbacks) {
+          try {
+            callback(remainingMs);
+          } catch (err) {
+            log.error('Rate limit callback error:', err);
+          }
+        }
+        return false;
+      }
+      this.recordRequest();
+    }
+
+    // Validate persona ID
+    const persona = getPersona(targetPersonaId);
+    if (!persona || persona.id === 'ferni' && targetPersonaId !== 'ferni') {
+      const error = new Error(`Invalid persona ID: ${targetPersonaId}`);
+      log.error('Invalid handoff target:', { targetPersonaId });
+      onFailure?.(error);
+      return false;
+    }
+
+    // Check if already transitioning
+    if (this._isTransitioning) {
+      log.warn('Handoff already in progress, ignoring request:', { 
+        current: this._targetPersona, 
+        requested: targetPersonaId 
+      });
+      return false;
+    }
+
+    // Set transitioning state
+    this._isTransitioning = true;
+    this._targetPersona = targetPersonaId;
+
+    // Retry logic
+    const MAX_RETRIES = 2;
+    const RETRY_DELAY_MS = 500;
+
+    const attemptSend = async (attempt: number = 0): Promise<boolean> => {
+      try {
+        const { connectionService } = await import('./connection.service.js');
+        const room = connectionService.getRoom();
+
+        if (!room?.localParticipant) {
+          throw new Error('No room or local participant available');
+        }
+
+        const message = JSON.stringify({
+          type: 'handoff_request',
+          target: targetPersonaId,
+          timestamp: Date.now(),
+          attempt: attempt + 1,
+        });
+
+        log.debug('Sending handoff request:', { attempt: attempt + 1, target: targetPersonaId });
+
+        await room.localParticipant.publishData(new TextEncoder().encode(message), {
+          reliable: true,
+        });
+
+        log.info('Handoff request sent successfully:', { target: targetPersonaId });
+        
+        // Start timeout for handoff completion
+        this.startHandoffTimeout(targetPersonaId);
+        
+        return true;
+      } catch (err) {
+        if (attempt < MAX_RETRIES) {
+          log.warn('Handoff request failed, retrying:', { attempt: attempt + 1, error: String(err) });
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+          return attemptSend(attempt + 1);
+        }
+
+        // All retries failed
+        const error = err instanceof Error ? err : new Error(String(err));
+        log.error('Handoff request failed after all retries:', { error: error.message });
+        
+        // Reset state
+        this._isTransitioning = false;
+        this._targetPersona = null;
+        
+        // Notify failure
+        onFailure?.(error);
+        for (const callback of this.failedCallbacks) {
+          try {
+            callback(error.message, targetPersonaId);
+          } catch (cbErr) {
+            log.error('Failed callback error:', cbErr);
+          }
+        }
+        
+        return false;
+      }
+    };
+
+    return attemptSend();
+  }
+
+  /**
    * Get the current active agent.
    */
   getCurrentAgent(): PersonaId {
