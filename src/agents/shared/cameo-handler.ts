@@ -426,7 +426,9 @@ export function createCameoHandlers(config: CameoHandlerConfig) {
             },
             'Identity mismatch after cameo complete - LLM instructions may be inconsistent'
           );
-          diag.entry(`⚠️ Identity mismatch after cameo: expected ${expectedId}, got ${currentPersona?.id}`);
+          diag.entry(
+            `⚠️ Identity mismatch after cameo: expected ${expectedId}, got ${currentPersona?.id}`
+          );
         } else {
           logger.debug({ personaId: currentPersona?.id }, 'Identity validation passed after cameo');
         }

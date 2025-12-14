@@ -3220,6 +3220,70 @@ function addConversations(count: number): void {
   refreshPanel();
 }
 
+// ============================================================================
+// FIRST-TIME USER EXPERIENCE (FTUE) CONTROLS
+// ============================================================================
+
+function renderFTUEStatus(): string {
+  const status = modalCoordinator.getFirstTimeUserStatus();
+  const convCount = status.conversationCount;
+
+  return `
+    <div class="dev-ftue-info">
+      <div class="dev-ftue-count">
+        <span class="dev-ftue-count__number">${convCount}</span>
+        <span class="dev-ftue-count__label">conversations</span>
+      </div>
+      <div class="dev-ftue-badges">
+        ${status.unlockedFeatures
+          .map((f) => `<span class="dev-ftue-badge dev-ftue-badge--unlocked" title="Unlocked">✓ ${f}</span>`)
+          .join('')}
+        ${status.lockedFeatures
+          .map((f) => `<span class="dev-ftue-badge dev-ftue-badge--locked" title="Locked">🔒 ${f}</span>`)
+          .join('')}
+      </div>
+    </div>
+  `;
+}
+
+function refreshFTUEStatus(): void {
+  const statusEl = document.getElementById('dev-ftue-status');
+  if (statusEl) {
+    statusEl.innerHTML = renderFTUEStatus();
+  }
+}
+
+function handleFTUEAction(action: string): void {
+  switch (action) {
+    case 'reset':
+      modalCoordinator.resetToFirstTimeUser();
+      showDevToast('Reset to first-time user. Reload the page to test.', 'success');
+      log.info('🆕 Reset to first-time user experience');
+      break;
+    case 'simulate-1':
+      modalCoordinator.simulateConversations(1);
+      showDevToast('Simulated 1 conversation. Reload to see changes.', 'success');
+      log.info('🆕 Simulated 1 conversation');
+      break;
+    case 'simulate-3':
+      modalCoordinator.simulateConversations(3);
+      showDevToast('Simulated 3 conversations. Reload to see changes.', 'success');
+      log.info('🆕 Simulated 3 conversations');
+      break;
+    case 'simulate-5':
+      modalCoordinator.simulateConversations(5);
+      showDevToast('Simulated 5 conversations. Reload to see changes.', 'success');
+      log.info('🆕 Simulated 5 conversations');
+      break;
+    case 'simulate-10':
+      modalCoordinator.simulateConversations(10);
+      showDevToast('Simulated 10 conversations. Reload to see changes.', 'success');
+      log.info('🆕 Simulated 10 conversations');
+      break;
+  }
+  refreshFTUEStatus();
+}
+
 function triggerLimitModal(): void {
   import('./subscription.ui.js').then(({ showLimitReachedModal }) => {
     showLimitReachedModal(

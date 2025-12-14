@@ -21,10 +21,10 @@ import {
   getPersonaMemories,
   normalizePersonaId,
 } from '../../intelligence/context-builders/persona-memory.js';
-import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
-import { generateGreeting, type PersonaMemoryForGreeting } from '../../personas/greetings.js';
 import { generateAliveGreeting } from '../../personas/alive-greetings.js';
 import { generateAliveIntro } from '../../personas/alive-intros.js';
+import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
+import { generateGreeting, type PersonaMemoryForGreeting } from '../../personas/greetings.js';
 import { convertFromUserProfileEvents } from '../../personas/shared/life-events.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
@@ -290,7 +290,7 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
       diag.warn('Using fallback greeting - this should not happen');
     }
   }
-  
+
   diag.session('Greeting generated', {
     elapsedMs: Date.now() - greetingStart,
     usedWarmGreeting,

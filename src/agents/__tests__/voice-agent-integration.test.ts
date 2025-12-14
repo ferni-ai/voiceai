@@ -20,7 +20,7 @@
  * @module agents/__tests__/voice-agent-integration
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 // ============================================================================
 // TEST UTILITIES
@@ -112,20 +112,19 @@ describe('Voice Agent Test Utilities', () => {
 // ============================================================================
 
 import {
+  addKeyMoment,
   createInitialSessionState,
   createSessionStateManager,
-  updateUserIdentity,
-  updateConversation,
-  incrementTurn,
-  addKeyMoment,
-  recordStoryShared,
-  updateEmotional,
-  updateBundle,
-  updateTiming,
-  recordMemoryReferenced,
   hasReferencedMemory,
+  incrementTurn,
+  recordMemoryReferenced,
+  recordStoryShared,
   recordThemesMentioned,
-  hasThemeBeenMentioned,
+  updateBundle,
+  updateConversation,
+  updateEmotional,
+  updateTiming,
+  updateUserIdentity,
   type SessionState,
 } from '../session/session-state.js';
 
@@ -708,4 +707,3 @@ describe('Test Development Documentation', () => {
     expect(true).toBe(true);
   });
 });
-
