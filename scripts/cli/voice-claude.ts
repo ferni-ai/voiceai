@@ -528,6 +528,20 @@ async function connectVoiceToClaude(
     }
   });
 
+  // Register text stream handler for transcriptions (newer API)
+  room.registerTextStreamHandler('lk.transcription', async (reader, { identity }) => {
+    const text = await reader.readAll();
+    const isAgent = identity?.includes('agent');
+
+    if (isAgent) {
+      // Ferni is speaking (agent transcription)
+      console.log(`${colors.magenta}Ferni:${colors.reset} ${text}`);
+    } else if (text.trim()) {
+      // User is speaking - send to Claude!
+      sendToClaude(text);
+    }
+  });
+
   // Connect to LiveKit room
   try {
     await room.connect(url, token, {

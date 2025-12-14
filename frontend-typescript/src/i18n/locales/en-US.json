@@ -364,6 +364,10 @@
     },
     "modes": {
       "title": "Display Mode",
+      "avatar": {
+        "label": "Avatar Only",
+        "description": "Just Ferni's avatar, no video"
+      },
       "avatarOnly": {
         "label": "Avatar Only",
         "description": "Just Ferni's avatar, no video"
@@ -400,7 +404,11 @@
     },
     "buttons": {
       "connect": "Connect",
-      "disconnect": "Disconnect"
+      "disconnect": "Disconnect",
+      "tryAgain": "Try Again"
+    },
+    "errors": {
+      "loadFailed": "Unable to load wearable settings"
     },
     "features": {
       "stress": "Stress detection from HRV",
@@ -412,6 +420,10 @@
     },
     "providers": {
       "appleHealth": {
+        "name": "Apple Health",
+        "description": "Sync with Apple Watch and iPhone health data"
+      },
+      "apple_health": {
         "name": "Apple Health",
         "description": "Sync with Apple Watch and iPhone health data"
       },
@@ -448,6 +460,7 @@
   "accessibility": {
     "closeMenu": "Close menu",
     "openSettings": "Open settings",
+    "languageSelector": "Select language",
     "muteAudio": "Mute audio",
     "unmuteAudio": "Unmute audio",
     "endCall": "End call",

@@ -143,6 +143,16 @@ async function connectToRoom(
     }
   });
 
+  // Register text stream handler for transcriptions (newer API)
+  room.registerTextStreamHandler('lk.transcription', async (reader, { identity }) => {
+    const text = await reader.readAll();
+    const isAgent = identity?.includes('agent');
+    const speaker = isAgent ? `${colors.cyan}Ferni${colors.reset}` : `${colors.blue}You${colors.reset}`;
+    if (text.trim()) {
+      console.log(`${speaker}: ${text}`);
+    }
+  });
+
   // Handle data messages
   room.on(RoomEvent.DataReceived, (data, participant) => {
     if (options.debug) {

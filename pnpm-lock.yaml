@@ -156,9 +156,6 @@ importers:
       husky:
         specifier: ^9.1.7
         version: 9.1.7
-      node-pty:
-        specifier: 1.0.0
-        version: 1.0.0
       postject:
         specifier: 1.0.0-alpha.6
         version: 1.0.0-alpha.6
@@ -178,9 +175,9 @@ importers:
         specifier: ^4.0.14
         version: 4.0.14(@opentelemetry/api@1.9.0)(@types/node@20.19.25)(jiti@2.6.1)(jsdom@23.2.0)(tsx@4.20.6)(yaml@2.8.2)
     optionalDependencies:
-      ferni-speaker:
-        specifier: github:sethdford/ferni-speaker#v0.1.0
-        version: https://codeload.github.com/sethdford/ferni-speaker/tar.gz/99034254a600dc9b2105fbb2dccb1c85c34719ec
+      node-pty:
+        specifier: 1.0.0
+        version: 1.0.0
 
   design-system:
     devDependencies:
@@ -3762,11 +3759,6 @@ packages:
     peerDependenciesMeta:
       picomatch:
         optional: true
-
-  ferni-speaker@https://codeload.github.com/sethdford/ferni-speaker/tar.gz/99034254a600dc9b2105fbb2dccb1c85c34719ec:
-    resolution: {tarball: https://codeload.github.com/sethdford/ferni-speaker/tar.gz/99034254a600dc9b2105fbb2dccb1c85c34719ec}
-    version: 0.1.0
-    engines: {node: '>= 18'}
 
   fetch-blob@3.2.0:
     resolution: {integrity: sha512-7yAQpD2UMJzLi1Dqv7qFYnPbaPx7ZfFK6PiIxQ4PfkGPyNyl2Ugx+a/umUonmKqjhM4DnfbMvdX6otXq83soQQ==}
@@ -10007,9 +9999,6 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.3
 
-  ferni-speaker@https://codeload.github.com/sethdford/ferni-speaker/tar.gz/99034254a600dc9b2105fbb2dccb1c85c34719ec:
-    optional: true
-
   fetch-blob@3.2.0:
     dependencies:
       node-domexception: 1.0.0
@@ -11029,7 +11018,8 @@ snapshots:
 
   ms@2.1.3: {}
 
-  nan@2.24.0: {}
+  nan@2.24.0:
+    optional: true
 
   nano-spawn@2.0.0: {}
 
@@ -11072,6 +11062,7 @@ snapshots:
   node-pty@1.0.0:
     dependencies:
       nan: 2.24.0
+    optional: true
 
   npm-run-path@5.3.0:
     dependencies:
