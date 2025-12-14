@@ -136,6 +136,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
 
   // CONTEXT - Situational awareness
   [BuilderCategory.CONTEXT]: [
+    'tool-capabilities', // CRITICAL: Injects prominent tool capabilities so LLM knows what it can do
     'dynamic-tool-guidance', // High priority - injects tool hints based on user request
     'intent',
     'topics',

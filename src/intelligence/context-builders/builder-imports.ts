@@ -88,6 +88,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'cameo-opportunities': () => import('./cameo-opportunities.js'),
 
   // CONTEXT
+  'tool-capabilities': () => import('./tool-capabilities.js'),
   'dynamic-tool-guidance': () => import('./dynamic-tool-guidance.js'),
   intent: () => import('./intent.js'),
   topics: () => import('./topics.js'),
