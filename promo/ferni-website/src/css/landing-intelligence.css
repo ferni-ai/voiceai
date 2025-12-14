@@ -1006,7 +1006,7 @@
 .memory-demo__insights {
   background: var(--color-background-elevated, #fffdfb);
   border-radius: 24px;
-  padding: clamp(32px, 5vw, 48px);
+  padding: clamp(40px, 6vw, 56px);
   box-shadow:
     0 4px 6px rgba(0, 0, 0, 0.02),
     0 12px 40px rgba(0, 0, 0, 0.06);
@@ -1029,13 +1029,14 @@
   font-size: clamp(1.25rem, 2vw, 1.5rem);
   font-weight: 700;
   color: var(--color-text-primary, #2c2520);
-  margin-bottom: clamp(24px, 4vw, 40px);
+  margin-bottom: clamp(28px, 4vw, 40px);
   letter-spacing: -0.01em;
+  padding-left: 4px;
 }
 
 .memory-demo__insights-list {
   list-style: none;
-  padding: 0;
+  padding: 0 0 0 4px;
   margin: 0;
   display: flex;
   flex-direction: column;
@@ -1044,10 +1045,10 @@
 
 .memory-demo__insights-list li {
   display: flex;
-  gap: var(--space-4);
+  gap: 14px;
   align-items: flex-start;
-  padding-bottom: clamp(20px, 3vw, 28px);
-  border-bottom: 1px solid rgba(44, 37, 32, 0.08);
+  padding: 0 8px clamp(20px, 3vw, 24px) 8px;
+  border-bottom: 1px solid rgba(44, 37, 32, 0.06);
   opacity: 0;
   transform: translateY(10px);
   transition:
@@ -1067,12 +1068,13 @@
 
 .memory-demo__insight-icon {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--color-text-muted, #9a8f84);
+  margin-top: 1px;
 }
 
 .memory-demo__insight-icon svg {

@@ -2075,8 +2075,8 @@ class VoiceAgent extends voice.Agent<UserData> {
    * This is CRITICAL for identity switching to work properly!
    *
    * The LLM's base instructions are set at session start and determine
-   * who the AI thinks it is. Without updating _instructions, the LLM
-   * continues thinking it's the original persona (usually Ferni).
+   * who the AI thinks it is. This method now PROPERLY updates the live
+   * Gemini RealtimeSession, not just the voice agent's internal state.
    */
   setPersona(newPersona: PersonaConfig, userId?: string): void {
     const oldPersona = this.persona;
@@ -2101,8 +2101,99 @@ class VoiceAgent extends voice.Agent<UserData> {
         },
         '🎭 Persona AND LLM instructions updated'
       );
+
+      // FIX: Also update the LIVE Gemini RealtimeSession!
+      // The _instructions property only affects new sessions, not the current one.
+      // We need to call updateInstructions() on the actual RealtimeSession.
+      void this.updateLiveSession(newPersona, userId);
     } else {
       this.logger.warn({ personaId: newPersona.id }, '⚠️ New persona has no systemPrompt!');
+    }
+  }
+
+  /**
+   * Update the live Gemini RealtimeSession with new persona instructions and tools.
+   * This is the key to making handoffs work properly - we update the actual LLM session,
+   * not just the voice agent's internal state.
+   */
+  private async updateLiveSession(newPersona: PersonaConfig, userId?: string): Promise<void> {
+    try {
+      if (!this._currentSession) {
+        this.logger.warn('No current session to update');
+        return;
+      }
+
+      // Access the private 'activity' property which has the RealtimeSession
+      // This is a TypeScript escape hatch since the framework doesn't expose it directly
+      const activity = (this._currentSession as unknown as { activity?: unknown })['activity'] as
+        | {
+            realtimeLLMSession?: {
+              updateInstructions?: (instructions: string) => Promise<void>;
+              updateTools?: (tools: unknown) => Promise<void>;
+            };
+          }
+        | undefined;
+
+      const realtimeSession = activity?.realtimeLLMSession;
+
+      if (realtimeSession?.updateInstructions) {
+        // Build the full instructions with engagement context
+        let fullInstructions = newPersona.systemPrompt;
+
+        // Add engagement context if we have a user
+        if (userId) {
+          try {
+            const engagementContext = await buildEngagementContextPrompt(userId, newPersona.id);
+            if (engagementContext) {
+              fullInstructions = `${fullInstructions}\n${engagementContext}`;
+            }
+          } catch {
+            // Non-fatal
+          }
+        }
+
+        // Update the live LLM session instructions
+        await realtimeSession.updateInstructions(fullInstructions);
+        this.logger.info(
+          { personaId: newPersona.id, instructionsLength: fullInstructions.length },
+          '🎯 Live RealtimeSession instructions updated!'
+        );
+
+        // Also update tools if the session supports it
+        if (realtimeSession.updateTools) {
+          try {
+            const newTools = await buildAgentTools(newPersona.id);
+            const essentialTools = await buildEssentialTools();
+            const combinedTools = { ...essentialTools, ...newTools };
+
+            // Filter forbidden tools
+            const forbiddenTools =
+              (newPersona as { tools?: { forbidden?: string[] } })?.tools?.forbidden || [];
+            const filteredTools = Object.fromEntries(
+              Object.entries(combinedTools).filter(([name]) => !forbiddenTools.includes(name))
+            );
+
+            await realtimeSession.updateTools(filteredTools);
+            this.logger.info(
+              { personaId: newPersona.id, toolCount: Object.keys(filteredTools).length },
+              '🔧 Live RealtimeSession tools updated!'
+            );
+          } catch (toolErr) {
+            this.logger.warn(
+              { error: String(toolErr) },
+              'Failed to update live session tools (non-fatal)'
+            );
+          }
+        }
+      } else {
+        this.logger.debug('RealtimeSession.updateInstructions not available - using fallback');
+      }
+    } catch (error) {
+      // Non-fatal - the turn-processor identity injection will still work as fallback
+      this.logger.warn(
+        { error: String(error), personaId: newPersona.id },
+        'Failed to update live RealtimeSession (fallback to context injection)'
+      );
     }
   }
 

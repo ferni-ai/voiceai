@@ -1364,32 +1364,6 @@ description: Six AI specialists who actually listen, remember everything, and he
   </div>
 </section>
 
-{# TESTIMONIALS - What people are saying #}
-<section class="section section-testimonials" id="testimonials">
-  <div class="container">
-    <div class="section__header">
-      <p class="section__eyebrow">What People Say</p>
-      <h2 class="section__title">Real conversations. Real impact.</h2>
-      <p class="section__subtitle">Hear from people who've found their someone who gets it.</p>
-    </div>
-
-    <div class="testimonials-grid content-grid">
-      {%- for testimonial in site.testimonials %}
-      <div class="card card-testimonial{% if testimonial.featured %} card--featured{% endif %}">
-        <p class="testimonial-quote">"{{ testimonial.quote }}"</p>
-        <div class="testimonial-author">
-          <div class="testimonial-author-initials">{{ testimonial.initials }}</div>
-          <div class="testimonial-author-info">
-            <p class="testimonial-author-name">{{ testimonial.author }}</p>
-            <p class="testimonial-author-context">{{ testimonial.role }}</p>
-          </div>
-        </div>
-      </div>
-      {%- endfor %}
-    </div>
-  </div>
-</section>
-
 {# FINAL CTA - THE INVITATION #}
 <section class="section final-cta">
   <div class="container">
