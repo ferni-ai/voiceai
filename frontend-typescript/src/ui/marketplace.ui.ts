@@ -17,10 +17,14 @@
  *   openMarketplace();
  */
 
-import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { getPersona, isKnownPersonaId } from '../config/personas.js';
+import { t } from '../i18n/index.js';
 import { marketplaceService, type MarketplaceAgent } from '../services/marketplace.service.js';
+import {
+  rosterPreferences,
+  type TeamMemberId as RosterTeamMemberId,
+} from '../services/roster-preferences.service.js';
 import {
   getMemberStatus,
   getTeamMember,
@@ -39,7 +43,6 @@ import {
 } from './marketplace-permission-consent.ui.js';
 import { soundUI } from './sound.ui.js';
 import { refreshMarketplaceAgents } from './team.ui.js';
-import { rosterPreferences, type TeamMemberId as RosterTeamMemberId } from '../services/roster-preferences.service.js';
 
 const log = createLogger('Marketplace');
 
@@ -581,7 +584,7 @@ async function renderInstalledTab(): Promise<void> {
 /**
  * Render an employee card for the team narrative section.
  * FIX BUG: Shows locked state indicator for team members not yet unlocked.
- * 
+ *
  * For unlocked members, shows roster management buttons:
  * - "In Roster" with remove option if already in roster
  * - "Add to Roster" if not in roster
@@ -602,7 +605,8 @@ function renderEmployeeCard(
   const lockedClass = isLocked ? 'employee-card--locked' : '';
 
   // Check if this team member is in the user's roster (for unlocked members)
-  const isInRoster = !isLocked && rosterPreferences.isMemberVisible(personaId as RosterTeamMemberId);
+  const isInRoster =
+    !isLocked && rosterPreferences.isMemberVisible(personaId as RosterTeamMemberId);
 
   // Lock icon for locked members
   const lockIcon = isLocked
@@ -627,22 +631,23 @@ function renderEmployeeCard(
       : '';
 
   // Roster action button for unlocked members (not Ferni - Ferni is always in roster)
-  const rosterActionHtml = !isLocked && personaId !== 'ferni'
-    ? isInRoster
-      ? `<button class="employee-roster-action employee-roster-action--remove" data-roster-action="remove" data-persona-id="${personaId}" aria-label="Remove ${name} from roster">
+  const rosterActionHtml =
+    !isLocked && personaId !== 'ferni'
+      ? isInRoster
+        ? `<button class="employee-roster-action employee-roster-action--remove" data-roster-action="remove" data-persona-id="${personaId}" aria-label="Remove ${name} from roster">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
           <span>In Roster</span>
         </button>`
-      : `<button class="employee-roster-action employee-roster-action--add" data-roster-action="add" data-persona-id="${personaId}" aria-label="Add ${name} to roster">
+        : `<button class="employee-roster-action employee-roster-action--add" data-roster-action="add" data-persona-id="${personaId}" aria-label="Add ${name} to roster">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
           <span>Add to Roster</span>
         </button>`
-    : '';
+      : '';
 
   return `
     <div class="employee-card ${lockedClass}" data-persona="${personaId}" data-locked="${isLocked}" data-in-roster="${isInRoster}">
@@ -1201,15 +1206,10 @@ async function handleRosterAction(action: 'add' | 'remove', personaId: string): 
 
   // Refresh both marketplace content (to update button state) and team roster
   await refreshContent();
-  
-  // Dynamically import to refresh the roster UI
-  const { teamUI } = await import('./team.ui.js');
-  // Rebuild the roster to reflect the change
-  void import('../services/agents.service.js').then(async () => {
-    // The roster will rebuild on the next frame - trigger a re-render
-    // by dispatching a custom event that team.ui.ts can listen for
-    document.dispatchEvent(new CustomEvent('ferni:roster-changed'));
-  });
+
+  // Dispatch event to trigger roster rebuild
+  // team.ui.ts listens for this event and rebuilds the roster
+  document.dispatchEvent(new CustomEvent('ferni:roster-changed'));
 }
 
 function handleSearch(e: Event): void {

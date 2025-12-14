@@ -129,8 +129,8 @@ curl https://voice-agent-url/health
 curl -H "Authorization: Bearer $LIVEKIT_API_KEY" \
   https://your-livekit-url/twirp/livekit.RoomService/ListRooms
 
-# Check GCP logs
-gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=voiceai-agent" --limit=50
+# Check voice agent logs (GCE)
+npm run ops:logs
 ```
 
 **Common Fixes**:
@@ -217,10 +217,9 @@ curl -X POST https://ui-url/api/test-firestore
 ### Quick Rollback (< 5 minutes)
 
 ```bash
-# Rollback voice agent to previous revision
-gcloud run services update-traffic voiceai-agent \
-  --region=us-central1 \
-  --to-revisions=voiceai-agent-PREVIOUS:100
+# Rollback voice agent - redeploy previous commit
+git checkout HEAD~1 -- src/agents/
+npm run deploy:agent
 
 # Rollback UI server
 gcloud run services update-traffic john-bogle-ui \

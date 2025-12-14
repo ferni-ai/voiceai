@@ -113,7 +113,7 @@ npm run ops:logs:errors   # View error logs only
 
 | Service | URL | Health Endpoint |
 |---------|-----|-----------------|
-| Voice Agent | `https://voiceai-agent-1031920444452.us-central1.run.app` | `/health` |
+| Voice Agent (GCE) | `http://34.134.186.63:8080` | `/health` |
 | UI Server | `https://john-bogle-ui-1031920444452.us-central1.run.app` | `/health` |
 | App (Firebase) | `https://app.ferni.ai` | `/` |
 | Landing Page | `https://ferni.ai` | `/` |
@@ -146,8 +146,8 @@ npm run ops:logs:errors   # View error logs only
 ### Service Down
 
 1. Run health check: `npm run ops:health`
-2. If down, check Cloud Run console
-3. Manual restart: Redeploy via `npm run deploy:agent:async`
+2. If down, check GCE instance: `gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a`
+3. Manual restart: Redeploy via `npm run deploy:agent`
 
 ### Cost Spike
 

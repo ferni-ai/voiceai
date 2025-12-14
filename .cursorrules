@@ -30,20 +30,21 @@ Write code that is clean, maintainable, and production-ready - but never at the 
 
 ### Deployment Targets
 
-| Target          | URL                | What it serves                        |
-| --------------- | ------------------ | ------------------------------------- |
-| `ferni-prod`    | ferni-prod.web.app | Firebase Hosting (app)                |
-| `johnb-app`     | app.ferni.ai       | Firebase Hosting (app, custom domain) |
-| `ferni-landing` | ferni.ai           | Landing page                          |
-| `bogle-ui`      | (Cloud Run)        | Backend APIs                          |
+| Target             | URL                  | What it serves                        |
+| ------------------ | -------------------- | ------------------------------------- |
+| `ferni-prod`       | ferni-prod.web.app   | Firebase Hosting (app)                |
+| `johnb-app`        | app.ferni.ai         | Firebase Hosting (app, custom domain) |
+| `ferni-landing`    | ferni.ai             | Landing page                          |
+| `bogle-ui`         | (Cloud Run)          | Backend APIs                          |
+| `voiceai-agent-gce`| 34.134.186.63        | Voice Agent (GCE)                     |
 
-### After Making Changes - ALWAYS DEPLOY (Blue-Green)
+### After Making Changes - ALWAYS DEPLOY
 
 When you finish implementing a feature, **proactively suggest the correct deploy command**:
 
 | Files Changed                       | Deploy Command                | What it does                                |
 | ----------------------------------- | ----------------------------- | ------------------------------------------- |
-| `src/agents/**/*.ts` (voice agent)  | `npm run deploy:agent:async`  | Blue-green deploy voice agent               |
+| `src/agents/**/*.ts` (voice agent)  | `npm run deploy:agent`        | Deploy voice agent to GCE                   |
 | `src/**/*.ts` (backend)             | `npm run deploy:ui:async`     | Blue-green deploy UI backend                |
 | `frontend-typescript/src/*`         | `npm run deploy:frontend`     | Deploys to BOTH ferni-prod AND app.ferni.ai |
 | `frontend-typescript/firebase.json` | `npm run deploy:frontend`     | Updates Firebase rewrites                   |
@@ -56,15 +57,14 @@ When you finish implementing a feature, **proactively suggest the correct deploy
 
 | ❌ WRONG                              | ✅ RIGHT                       |
 | ------------------------------------- | ------------------------------ |
-| `gcloud run deploy voiceai-agent`     | `npm run deploy:agent:async`   |
-| `gcloud builds submit && gcloud run`  | `npm run deploy:agent:async`   |
+| `gcloud compute ssh ... docker run`   | `npm run deploy:agent`         |
 | `gcloud run deploy john-bogle-ui`     | `npm run deploy:ui:async`      |
 
-**Why?** The deploy script implements blue-green deployment:
-1. Deploy new revision with `--no-traffic`
-2. Health check the new revision
+**Why?** The deploy scripts implement proper deployment:
+1. Build and push container image
+2. Health check the new deployment
 3. Only shift traffic if healthy
-4. Keep old revision if health check fails
+4. Proper environment variable handling
 
 Direct gcloud deploys skip health checks and can push broken code to production.
 
@@ -92,15 +92,18 @@ Example rewrite for new `/api/newfeature` endpoint:
 
 ### CI/CD vs Manual Deploy
 
-- **Push to main** → CI/CD auto-deploys Cloud Run (voice agent + ui server)
+- **Push to main** → CI/CD auto-deploys Cloud Run (UI server only)
+- **Voice Agent (GCE)** → Manual: `npm run deploy:agent`
 - **Firebase Hosting** → Manual: `npm run deploy:frontend` or `npm run deploy:landing`
 
 ### Verification Commands
 
 ```bash
-curl https://app.ferni.ai/health          # Check backend
+curl https://app.ferni.ai/health          # Check UI backend
 curl https://app.ferni.ai/api/agents      # Check agents API
 curl https://app.ferni.ai/spotify/status  # Check Spotify
+curl http://34.134.186.63:8080/health     # Check voice agent (GCE)
+npm run ops:logs                          # View voice agent logs
 ```
 
 ---

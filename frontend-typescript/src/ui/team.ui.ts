@@ -155,7 +155,9 @@ export function initTeamUI(): void {
       });
     };
     document.addEventListener('ferni:roster-changed', rosterChangedHandler);
-    cleanupFunctions.push(() => document.removeEventListener('ferni:roster-changed', rosterChangedHandler));
+    cleanupFunctions.push(() =>
+      document.removeEventListener('ferni:roster-changed', rosterChangedHandler)
+    );
 
     // Subscribe to roster preferences changes
     const rosterPrefsCleanup = rosterPreferences.onChange(() => {
@@ -253,13 +255,88 @@ export function initTeamUI(): void {
 }
 
 /**
- * Handle when an agent is dropped onto the avatar (uninstall)
- * 🍴 The avatar "eats" the agent - satisfying uninstall UX
+ * Core team member IDs - used to distinguish from marketplace agents
+ */
+const CORE_TEAM_IDS = new Set([
+  'ferni',
+  'peter-john',
+  'maya-santos',
+  'jordan-taylor',
+  'alex-chen',
+  'nayan-patel',
+]);
+
+/**
+ * Handle when an agent/team member is dropped onto the avatar
+ * 🍴 The avatar "eats" them - satisfying removal UX
+ *
+ * Handles two cases:
+ * 1. Core team member: Removes from roster (can be added back via marketplace)
+ * 2. Marketplace agent: Uninstalls the agent
  */
 function handleAgentDropped(agentId: string): void {
-  log.debug('Avatar is eating agent:', agentId);
+  log.debug('Avatar is eating:', agentId);
 
-  // Get agent name for feedback
+  const element = teamMemberElements.get(agentId as PersonaId);
+
+  // Check if this is a core team member
+  if (CORE_TEAM_IDS.has(agentId)) {
+    // Can't remove Ferni!
+    if (agentId === 'ferni') {
+      log.debug('Cannot remove Ferni from roster');
+      toast.show({
+        message: "Ferni's always here for you",
+        duration: 2000,
+      });
+      return;
+    }
+
+    // Remove core team member from roster
+    const memberConfig = getTeamMember(agentId as UnlockTeamMemberId);
+    const name = memberConfig?.displayName || agentId;
+
+    rosterPreferences.removeMember(agentId as TeamMemberId);
+
+    log.info('Removed from roster:', name);
+    toast.show({
+      message: `${name} removed from roster`,
+      duration: 2000,
+    });
+
+    // Animate removal, then rebuild roster to reflect change
+    if (element) {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        // Skip animation, just rebuild roster
+        void loadDynamicAgents().catch((err) => {
+          log.warn('Failed to refresh roster after removal:', err);
+        });
+        return;
+      }
+
+      void element
+        .animate(
+          [
+            { transform: 'scale(1)', opacity: '1' },
+            { transform: 'scale(0)', opacity: '0' },
+          ],
+          {
+            duration: DURATION.SLOW,
+            easing: EASING.EASE_IN,
+            fill: 'forwards',
+          }
+        )
+        .finished.then(() => {
+          // Rebuild roster to reflect the change
+          void loadDynamicAgents().catch((err) => {
+            log.warn('Failed to refresh roster after removal:', err);
+          });
+        });
+    }
+
+    return;
+  }
+
+  // Handle marketplace agent uninstall
   const installedAgents = marketplaceService.getInstalledAgents();
   const agent = installedAgents.find((a) => a.id === agentId);
   const name = agent?.manifest?.identity?.name || agentId;
@@ -268,7 +345,6 @@ function handleAgentDropped(agentId: string): void {
   marketplaceService.uninstallAgent(agentId);
 
   // Remove from UI
-  const element = teamMemberElements.get(agentId as PersonaId);
   if (element) {
     // FIX BUG: Check reduced motion preference
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -770,10 +846,19 @@ function createTeamMemberElement(agent: ApiAgent): HTMLElement {
   element.setAttribute('role', 'button');
   element.setAttribute('tabindex', '0');
 
+  // 🍴 Make unlocked non-Ferni team members draggable - drag to avatar to remove from roster
+  const canDragToRemove = !agent.isCoordinator && !isLocked;
+  if (canDragToRemove) {
+    element.setAttribute('draggable', 'true');
+    element.setAttribute('data-core-team', 'true');
+  }
+
   // Update aria-label based on locked status
   const ariaLabel = isLocked
     ? `${agent.name} - locked. Keep talking to Ferni to unlock.`
-    : `Talk to ${agent.name}`;
+    : canDragToRemove
+      ? `Talk to ${agent.name}. Drag to avatar to remove from roster.`
+      : `Talk to ${agent.name}`;
   element.setAttribute('aria-label', ariaLabel);
   element.setAttribute('aria-pressed', 'false');
 
@@ -876,6 +961,53 @@ function attachEventListenersToElement(
     updateMagneticPull(element, e);
   });
   cleanupFunctions.push(moveCleanup);
+
+  // 🍴 Drag handlers for core team members - drag to avatar to remove from roster
+  if (
+    element.getAttribute('draggable') === 'true' &&
+    element.getAttribute('data-core-team') === 'true'
+  ) {
+    const dragStartCleanup = addListener(element, 'dragstart', (e) => {
+      if (!e.dataTransfer) return;
+
+      e.dataTransfer.setData('text/plain', personaId);
+      e.dataTransfer.effectAllowed = 'move';
+
+      // Visual feedback - element becomes semi-transparent
+      element.classList.add('team-member--dragging');
+
+      // Create a custom drag image (the avatar only)
+      const avatarEl = element.querySelector('.team-avatar') as HTMLElement;
+      if (avatarEl) {
+        const clone = avatarEl.cloneNode(true) as HTMLElement;
+        const gradient = avatarEl.style.getPropertyValue('--persona-gradient');
+        clone.style.cssText = `
+          position: absolute;
+          top: -1000px;
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          background: ${gradient || 'linear-gradient(135deg, var(--persona-secondary, #3d5a35), var(--persona-primary, #4a6741))'};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 600;
+          color: var(--persona-text, white);
+          font-size: var(--text-sm, 14px);
+        `;
+        document.body.appendChild(clone);
+        e.dataTransfer.setDragImage(clone, 24, 24);
+        // Clean up clone after drag starts
+        requestAnimationFrame(() => clone.remove());
+      }
+    });
+    cleanupFunctions.push(dragStartCleanup);
+
+    const dragEndCleanup = addListener(element, 'dragend', () => {
+      element.classList.remove('team-member--dragging');
+    });
+    cleanupFunctions.push(dragEndCleanup);
+  }
 }
 
 /**

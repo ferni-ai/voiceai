@@ -132,12 +132,11 @@ Traffic is **never shifted** until LiveKit workers signal they're ready:
 
 **Key files:** `scripts/deploy.ts`, `cloudbuild.yaml`, `cloudbuild-ui.yaml`
 
-### 🧟 Zombie Revision Prevention (CRITICAL for Voice Agent)
+### 🧟 Zombie Revision Prevention (for Cloud Run services)
 
-**The Problem:** Old Cloud Run revisions with `min-instances>0` keep running even with 0% HTTP traffic. For voice agents using LiveKit, these "zombies" register with LiveKit on startup but have stale WebSocket connections. LiveKit dispatches jobs to ALL registered workers (including zombies), causing failures:
-- `"runner initialization timed out"`
-- `"assignment for job timed out"`
-- `"LiveKit worker connection is dead"`
+**Note:** Voice agent now runs on GCE, so this only applies to `john-bogle-ui` and other Cloud Run services.
+
+**The Problem:** Old Cloud Run revisions with `min-instances>0` keep running even with 0% HTTP traffic.
 
 **The Solution:** The deploy script automatically cleans up old revisions after successful deployment.
 
@@ -147,25 +146,11 @@ pnpm ops:zombies
 
 # Fix zombie revisions (delete them)
 pnpm ops:zombies:fix
-
-# Quick fix for voice agent only
-pnpm ops:zombies:fix:agent
 ```
-
-**If you see these symptoms in production:**
-1. Run `pnpm ops:zombies` to check
-2. Run `pnpm ops:zombies:fix:agent` to fix
-3. Verify with `gcloud run revisions list --service=voiceai-agent --region=us-central1`
-
-**The deploy script handles this automatically by:**
-1. Deploying with `--no-traffic` and `--tag green`
-2. Health checking the new revision
-3. Shifting 100% traffic to the new revision
-4. **Deleting ALL old revisions** (not just leaving them with 0% traffic)
 
 **Key files:** `scripts/cleanup-zombies.ts`, `scripts/deploy.ts`
 
-## 🖥️ GCE Voice Agent Deployment (PREFERRED for Voice)
+## 🖥️ GCE Voice Agent Deployment (PRIMARY)
 
 **Why GCE instead of Cloud Run?**
 - WebRTC requires **UDP** for real-time voice (Cloud Run only supports TCP)
