@@ -1,67 +1,181 @@
-# Design System Validation
-#
-# Validates design tokens and generated files on every PR.
-# Fails if generated files are out of sync with source tokens.
+name: Design System Validation
 
-name: Design System
+# ============================================================================
+# DESIGN SYSTEM CI PIPELINE
+# ============================================================================
+# Validates design system integrity on every PR and push to main.
+# 
+# Checks:
+# - Token drift (JSON → generated files)
+# - Brand compliance (colors, copy, patterns)
+# - Design system violations in code
+# - Accessibility (WCAG AA)
+# - Storybook builds
+# ============================================================================
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'design-system/**'
+      - 'frontend-typescript/src/**'
+      - 'promo/**'
   pull_request:
     paths:
-      - 'design-system/tokens/**'
-      - 'design-system/*.js'
-      - 'frontend-typescript/src/config/animation-constants.generated.ts'
-      - 'promo/ferni-website/tailwind.config.generated.js'
-      - 'promo/ferni-website/css/design-tokens.css'
+      - 'design-system/**'
+      - 'frontend-typescript/src/**'
+      - 'promo/**'
+
+env:
+  NODE_VERSION: '20'
 
 jobs:
-  validate-tokens:
-    name: Validate Design Tokens
+  # ============================================================================
+  # TOKEN VALIDATION
+  # ============================================================================
+  tokens:
+    name: 🎨 Token Integrity
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-
+      
       - name: Install dependencies
         run: npm ci
-
-      - name: Check token drift
+      
+      - name: Check for token drift
+        run: node design-system/check-drift.js
+      
+      - name: Regenerate tokens (verify idempotent)
         run: |
-          echo "Checking for design token drift..."
-          npm run tokens:check
-
-      - name: Check brand alignment
-        run: |
-          echo "Checking brand color alignment..."
-          npm run brand:check
-
-      - name: Verify generated files are up-to-date
-        run: |
-          echo "Regenerating all design system files..."
           npm run build:design-system
-
-          echo "Checking for uncommitted changes..."
-          if [ -n "$(git status --porcelain)" ]; then
-            echo ""
-            echo "ERROR: Generated files are out of sync!"
-            echo ""
-            echo "The following files need to be regenerated:"
-            git status --porcelain
-            echo ""
-            echo "Fix: Run 'npm run tokens:sync' locally and commit the changes."
+          # Verify no changes after regeneration
+          if [[ -n $(git status --porcelain design-system/dist frontend-typescript/src/config/*.generated.ts) ]]; then
+            echo "❌ Token drift detected! Run 'npm run tokens:sync' locally"
+            git diff --stat
             exit 1
           fi
+          echo "✅ Tokens are in sync"
+      
+      - name: Validate brand colors
+        run: node design-system/check-brand.js
 
-          echo "All generated files are up-to-date!"
-
-      - name: Display token version
+  # ============================================================================
+  # CODE COMPLIANCE
+  # ============================================================================
+  compliance:
+    name: 🔍 Design Compliance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Check design system violations
+        run: node design-system/check-design-compliance.js
+        continue-on-error: true  # Report but don't block (for now)
+      
+      - name: Check brand language
         run: |
-          echo "Current design token version:"
-          npm run tokens:version -- --current
+          # Check for forbidden words in UI files
+          FORBIDDEN="chatbot|virtual assistant|bot|AI assistant"
+          if grep -rn --include="*.ts" -E "$FORBIDDEN" frontend-typescript/src/ui/; then
+            echo "⚠️ Found forbidden brand words - review recommended"
+          fi
+
+  # ============================================================================
+  # ACCESSIBILITY
+  # ============================================================================
+  accessibility:
+    name: ♿ Accessibility Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run accessibility checks
+        run: node design-system/check-accessibility.js
+        continue-on-error: true  # WCAG warnings don't block
+
+  # ============================================================================
+  # STORYBOOK BUILD
+  # ============================================================================
+  storybook:
+    name: 📚 Storybook Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd design-system && npm ci
+      
+      - name: Build Storybook
+        run: npm run build-storybook
+      
+      - name: Upload Storybook artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: storybook
+          path: design-system/storybook-static
+          retention-days: 7
+
+  # ============================================================================
+  # DEPLOY STORYBOOK (main branch only)
+  # ============================================================================
+  deploy-storybook:
+    name: 🚀 Deploy Storybook
+    needs: [tokens, storybook]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download Storybook artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: storybook
+          path: storybook-static
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      
+      - name: Upload to GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: storybook-static
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -84,6 +84,21 @@ node design-system/check-brand.js || {
 echo "  ✓ Design system checks passed"
 
 # =============================================================================
+# DESIGN SYSTEM COMPLIANCE (Non-blocking warnings)
+# =============================================================================
+echo ""
+echo "🔍 Design system compliance..."
+
+# Check for hardcoded colors, durations, console.logs in staged files
+node design-system/check-design-compliance.js --staged 2>/dev/null || {
+  echo ""
+  echo "  ⚠ Design compliance issues found (review recommended)"
+  echo "  Run 'npm run design:check' for details"
+}
+
+echo "  ✓ Design compliance check complete"
+
+# =============================================================================
 # BRAND COMPLIANCE CHECK (Non-blocking warnings)
 # =============================================================================
 echo ""
