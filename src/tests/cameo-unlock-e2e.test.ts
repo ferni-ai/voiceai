@@ -47,16 +47,14 @@ describe('Cameo Unlock - Topic Detection', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     // Clear session tracking between tests
-    const { clearSessionTracking } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { clearSessionTracking } =
+      await import('../intelligence/context-builders/cameo-unlock.js');
     clearSessionTracking();
   });
 
   it('should detect Maya topics (habits, routines)', async () => {
-    const { detectTopicMatch, SPECIALTY_TOPICS } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { detectTopicMatch, SPECIALTY_TOPICS } =
+      await import('../intelligence/context-builders/cameo-unlock.js');
 
     // Verify Maya's topics are defined
     expect(SPECIALTY_TOPICS['maya-santos']).toBeDefined();
@@ -75,9 +73,7 @@ describe('Cameo Unlock - Topic Detection', () => {
   });
 
   it('should detect Peter topics (data, finance, tracking)', async () => {
-    const { detectTopicMatch } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { detectTopicMatch } = await import('../intelligence/context-builders/cameo-unlock.js');
 
     const dataMatch = detectTopicMatch('I want to see the patterns in my behavior', 'peter-john');
     expect(dataMatch).toContain('pattern');
@@ -91,9 +87,7 @@ describe('Cameo Unlock - Topic Detection', () => {
   });
 
   it('should detect Alex topics (communication, boundaries)', async () => {
-    const { detectTopicMatch } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { detectTopicMatch } = await import('../intelligence/context-builders/cameo-unlock.js');
 
     const commMatch = detectTopicMatch('I need help with a difficult conversation', 'alex-chen');
     expect(commMatch).toContain('difficult conversation');
@@ -106,9 +100,7 @@ describe('Cameo Unlock - Topic Detection', () => {
   });
 
   it('should detect Jordan topics (planning, goals, life changes)', async () => {
-    const { detectTopicMatch } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { detectTopicMatch } = await import('../intelligence/context-builders/cameo-unlock.js');
 
     const planMatch = detectTopicMatch("I'm planning a big move next year", 'jordan-taylor');
     expect(planMatch).toContain('plan');
@@ -122,9 +114,7 @@ describe('Cameo Unlock - Topic Detection', () => {
   });
 
   it('should detect Nayan topics (wisdom, meaning, perspective)', async () => {
-    const { detectTopicMatch } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { detectTopicMatch } = await import('../intelligence/context-builders/cameo-unlock.js');
 
     const wisdomMatch = detectTopicMatch('I need some wisdom about this', 'nayan-patel');
     expect(wisdomMatch).toContain('wisdom');
@@ -132,18 +122,13 @@ describe('Cameo Unlock - Topic Detection', () => {
     const meaningMatch = detectTopicMatch("What's the meaning of all this?", 'nayan-patel');
     expect(meaningMatch).toContain('meaning');
 
-    const perspectiveMatch = detectTopicMatch(
-      'I need a bigger picture perspective',
-      'nayan-patel'
-    );
+    const perspectiveMatch = detectTopicMatch('I need a bigger picture perspective', 'nayan-patel');
     expect(perspectiveMatch).toContain('bigger picture');
     expect(perspectiveMatch).toContain('perspective');
   });
 
   it('should return empty array for non-matching topics', async () => {
-    const { detectTopicMatch } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { detectTopicMatch } = await import('../intelligence/context-builders/cameo-unlock.js');
 
     const noMatch = detectTopicMatch('The weather is nice today', 'maya-santos');
     expect(noMatch).toHaveLength(0);
@@ -160,16 +145,14 @@ describe('Cameo Unlock - Topic Detection', () => {
 describe('Cameo Unlock - Candidate Finding', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
-    const { clearSessionTracking } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { clearSessionTracking } =
+      await import('../intelligence/context-builders/cameo-unlock.js');
     clearSessionTracking();
   });
 
   it('should find candidate when topic matches eligible member', async () => {
-    const { findCameoUnlockCandidate } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { findCameoUnlockCandidate } =
+      await import('../intelligence/context-builders/cameo-unlock.js');
 
     // Create mock input with habit topic and enough conversations for Maya (10+)
     const mockInput = {
@@ -195,11 +178,7 @@ describe('Cameo Unlock - Candidate Finding', () => {
       consecutiveStreak: 3,
     };
 
-    const result = findCameoUnlockCandidate(
-      mockInput as never,
-      mockState as never,
-      new Set()
-    );
+    const result = findCameoUnlockCandidate(mockInput as never, mockState as never, new Set());
 
     expect(result.candidate).not.toBeNull();
     expect(result.candidate?.memberId).toBe('maya-santos');
@@ -208,9 +187,8 @@ describe('Cameo Unlock - Candidate Finding', () => {
   });
 
   it('should not find candidate if member already unlocked', async () => {
-    const { findCameoUnlockCandidate } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { findCameoUnlockCandidate } =
+      await import('../intelligence/context-builders/cameo-unlock.js');
 
     const mockInput = {
       persona: { id: 'ferni' },
@@ -229,24 +207,18 @@ describe('Cameo Unlock - Candidate Finding', () => {
       consecutiveStreak: 3,
     };
 
-    const result = findCameoUnlockCandidate(
-      mockInput as never,
-      mockState as never,
-      new Set()
-    );
+    const result = findCameoUnlockCandidate(mockInput as never, mockState as never, new Set());
 
     expect(result.candidate).toBeNull();
     // Maya is unlocked, so either no eligible members OR no topic match
     expect(
-      result.reason.includes('No members eligible') ||
-        result.reason.includes('No topic match')
+      result.reason.includes('No members eligible') || result.reason.includes('No topic match')
     ).toBe(true);
   });
 
   it('should not find candidate if already introduced this session', async () => {
-    const { findCameoUnlockCandidate, markIntroduced } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { findCameoUnlockCandidate, markIntroduced } =
+      await import('../intelligence/context-builders/cameo-unlock.js');
 
     // Mark Maya as already introduced
     markIntroduced('maya-santos');
@@ -287,16 +259,14 @@ describe('Cameo Unlock - Candidate Finding', () => {
 describe('Cameo Unlock - Fallback Logic', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
-    const { clearSessionTracking } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { clearSessionTracking } =
+      await import('../intelligence/context-builders/cameo-unlock.js');
     clearSessionTracking();
   });
 
   it('should trigger fallback after grace period without topic match', async () => {
-    const { findCameoUnlockCandidate } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { findCameoUnlockCandidate } =
+      await import('../intelligence/context-builders/cameo-unlock.js');
 
     // User has 13+ conversations (10 threshold + 3 grace period)
     const mockInput = {
@@ -315,11 +285,7 @@ describe('Cameo Unlock - Fallback Logic', () => {
       consecutiveStreak: 3,
     };
 
-    const result = findCameoUnlockCandidate(
-      mockInput as never,
-      mockState as never,
-      new Set()
-    );
+    const result = findCameoUnlockCandidate(mockInput as never, mockState as never, new Set());
 
     // Should find a fallback candidate
     expect(result.candidate).not.toBeNull();
@@ -328,9 +294,8 @@ describe('Cameo Unlock - Fallback Logic', () => {
   });
 
   it('should NOT trigger fallback before grace period ends', async () => {
-    const { findCameoUnlockCandidate } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { findCameoUnlockCandidate } =
+      await import('../intelligence/context-builders/cameo-unlock.js');
 
     // User has only 11 conversations (1 past threshold, not at grace period yet)
     const mockInput = {
@@ -349,11 +314,7 @@ describe('Cameo Unlock - Fallback Logic', () => {
       consecutiveStreak: 2,
     };
 
-    const result = findCameoUnlockCandidate(
-      mockInput as never,
-      mockState as never,
-      new Set()
-    );
+    const result = findCameoUnlockCandidate(mockInput as never, mockState as never, new Set());
 
     // Should NOT find a candidate yet
     expect(result.candidate).toBeNull();
@@ -368,16 +329,14 @@ describe('Cameo Unlock - Fallback Logic', () => {
 describe('Cameo Unlock - Session Tracking', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
-    const { clearSessionTracking } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { clearSessionTracking } =
+      await import('../intelligence/context-builders/cameo-unlock.js');
     clearSessionTracking();
   });
 
   it('should track introduced members for the session', async () => {
-    const { markIntroduced, wasIntroducedThisSession, clearSessionTracking } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { markIntroduced, wasIntroducedThisSession, clearSessionTracking } =
+      await import('../intelligence/context-builders/cameo-unlock.js');
 
     expect(wasIntroducedThisSession('maya-santos')).toBe(false);
 
@@ -394,9 +353,8 @@ describe('Cameo Unlock - Session Tracking', () => {
   });
 
   it('should prevent double introduction in same session', async () => {
-    const { findCameoUnlockCandidate, markIntroduced } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { findCameoUnlockCandidate, markIntroduced } =
+      await import('../intelligence/context-builders/cameo-unlock.js');
 
     const mockInput = {
       persona: { id: 'ferni' },
@@ -415,11 +373,7 @@ describe('Cameo Unlock - Session Tracking', () => {
     };
 
     // First call should find Maya
-    const result1 = findCameoUnlockCandidate(
-      mockInput as never,
-      mockState as never,
-      new Set()
-    );
+    const result1 = findCameoUnlockCandidate(mockInput as never, mockState as never, new Set());
     expect(result1.candidate?.memberId).toBe('maya-santos');
 
     // Mark Maya as introduced
@@ -554,9 +508,8 @@ describe('Cameo Unlock - Threshold Validation', () => {
 describe('Cameo Unlock - Full Flow Integration', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
-    const { clearSessionTracking } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { clearSessionTracking } =
+      await import('../intelligence/context-builders/cameo-unlock.js');
     clearSessionTracking();
   });
 
@@ -590,11 +543,7 @@ describe('Cameo Unlock - Full Flow Integration', () => {
     };
 
     // Step 2: Find candidate
-    const result = findCameoUnlockCandidate(
-      mockInput as never,
-      mockState as never,
-      new Set()
-    );
+    const result = findCameoUnlockCandidate(mockInput as never, mockState as never, new Set());
 
     expect(result.candidate).not.toBeNull();
     expect(result.candidate?.memberId).toBe('maya-santos');
@@ -634,9 +583,8 @@ describe('Cameo Unlock - Full Flow Integration', () => {
   });
 
   it('should complete fallback introduction flow', async () => {
-    const { findCameoUnlockCandidate, markIntroduced, clearSessionTracking } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { findCameoUnlockCandidate, markIntroduced, clearSessionTracking } =
+      await import('../intelligence/context-builders/cameo-unlock.js');
     const { cameoUnlockEvents } = await import('../tools/handoff/state.js');
 
     // User has exceeded grace period without topic match
@@ -657,11 +605,7 @@ describe('Cameo Unlock - Full Flow Integration', () => {
     };
 
     // Find fallback candidate
-    const result = findCameoUnlockCandidate(
-      mockInput as never,
-      mockState as never,
-      new Set()
-    );
+    const result = findCameoUnlockCandidate(mockInput as never, mockState as never, new Set());
 
     expect(result.candidate).not.toBeNull();
     expect(result.candidate?.isFallback).toBe(true);
@@ -694,16 +638,14 @@ describe('Cameo Unlock - Full Flow Integration', () => {
 describe('Cameo Unlock - Edge Cases', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
-    const { clearSessionTracking } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { clearSessionTracking } =
+      await import('../intelligence/context-builders/cameo-unlock.js');
     clearSessionTracking();
   });
 
   it('should not trigger for non-Ferni personas', async () => {
-    const { findCameoUnlockCandidate } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { findCameoUnlockCandidate } =
+      await import('../intelligence/context-builders/cameo-unlock.js');
 
     const mockInput = {
       persona: { id: 'maya-santos' }, // Not Ferni
@@ -724,11 +666,7 @@ describe('Cameo Unlock - Edge Cases', () => {
     // The context builder should skip non-Ferni personas,
     // so the raw findCandidate will still work, but the builder won't run
     // This test validates the topic detection still works
-    const result = findCameoUnlockCandidate(
-      mockInput as never,
-      mockState as never,
-      new Set()
-    );
+    const result = findCameoUnlockCandidate(mockInput as never, mockState as never, new Set());
 
     // Even though persona is Maya, the function still works
     // (the buildCameoUnlockContext wrapper handles persona filtering)
@@ -736,9 +674,8 @@ describe('Cameo Unlock - Edge Cases', () => {
   });
 
   it('should handle missing user profile gracefully', async () => {
-    const { findCameoUnlockCandidate } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { findCameoUnlockCandidate } =
+      await import('../intelligence/context-builders/cameo-unlock.js');
 
     const mockInput = {
       persona: { id: 'ferni' },
@@ -763,18 +700,14 @@ describe('Cameo Unlock - Edge Cases', () => {
   });
 
   it('should handle empty user text', async () => {
-    const { detectTopicMatch } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { detectTopicMatch } = await import('../intelligence/context-builders/cameo-unlock.js');
 
     const result = detectTopicMatch('', 'maya-santos');
     expect(result).toHaveLength(0);
   });
 
   it('should be case-insensitive in topic matching', async () => {
-    const { detectTopicMatch } = await import(
-      '../intelligence/context-builders/cameo-unlock.js'
-    );
+    const { detectTopicMatch } = await import('../intelligence/context-builders/cameo-unlock.js');
 
     const lowercase = detectTopicMatch('habits', 'maya-santos');
     const uppercase = detectTopicMatch('HABITS', 'maya-santos');

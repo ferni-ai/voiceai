@@ -216,11 +216,13 @@ class ResourceRegistry {
         fs.mkdirSync(CACHE_DIR, { recursive: true });
       }
 
-      // Build serializable cache data
+      // Build serializable cache data (include personality for session init)
       const cacheData: Record<string, {
         name: string;
         systemPrompt: string;
         voice: { voiceId: string; provider: string };
+        personality?: { warmth?: number; humorLevel?: number; directness?: number; energy?: number };
+        speechCharacteristics?: { baseSpeedMultiplier?: number; pauseMultiplier?: number };
       }> = {};
 
       for (const [id, config] of this.personas.configs.entries()) {
@@ -228,11 +230,15 @@ class ResourceRegistry {
           name?: string;
           systemPrompt?: string;
           voice?: { voiceId: string; provider: string };
+          personality?: { warmth?: number; humorLevel?: number; directness?: number; energy?: number };
+          speechCharacteristics?: { baseSpeedMultiplier?: number; pauseMultiplier?: number };
         };
         cacheData[id] = {
           name: persona.name || id,
           systemPrompt: persona.systemPrompt || '',
           voice: persona.voice || { voiceId: '', provider: 'cartesia' },
+          personality: persona.personality,
+          speechCharacteristics: persona.speechCharacteristics,
         };
       }
 

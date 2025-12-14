@@ -34,6 +34,16 @@ export interface PersonaCacheEntry {
     voiceId: string;
     provider: string;
   };
+  personality?: {
+    warmth?: number;
+    humorLevel?: number;
+    directness?: number;
+    energy?: number;
+  };
+  speechCharacteristics?: {
+    baseSpeedMultiplier?: number;
+    pauseMultiplier?: number;
+  };
 }
 
 interface WarmupStatus {
