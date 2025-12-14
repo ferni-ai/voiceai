@@ -546,6 +546,26 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           setTimeout(resolve, transitionDelayMs);
         });
 
+        // FIX BUG: Send soft_open_complete even when no banter
+        // This ensures frontend callbacks always fire for visual transition sync
+        if (!softOpenBanter) {
+          try {
+            const softOpenCompleteMsg = JSON.stringify({
+              type: 'soft_open_complete',
+              newAgent: persona.id,
+              previousAgent: prevPersona.id,
+              timestamp: Date.now(),
+            });
+            await ctx.room.localParticipant?.publishData(
+              new TextEncoder().encode(softOpenCompleteMsg),
+              { reliable: true }
+            );
+            diag.entry('🎭 soft_open_complete sent (no banter path)');
+          } catch (err) {
+            logger.warn({ error: String(err) }, 'Failed to send soft_open_complete (no banter)');
+          }
+        }
+
         // STEP 3: Switch the voice with retry logic
         // FIX BUG #47: Added retry mechanism for failed voice switches
         const MAX_VOICE_SWITCH_RETRIES = 2;

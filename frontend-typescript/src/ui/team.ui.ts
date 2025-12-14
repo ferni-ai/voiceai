@@ -1450,6 +1450,13 @@ function previewPersonaTheme(personaId: PersonaId): void {
 /**
  * Send a handoff request to the agent.
  * FIX BUG #46: Now provides user feedback on failures and resets transition state.
+ * 
+ * REFACTORED: Now uses handoffService.sendHandoffRequest() for consistency
+ * with marketplace.ui.ts and other entry points. This ensures:
+ * - Rate limiting (800ms debounce)
+ * - Retry logic (up to 2 retries)
+ * - Proper state management
+ * - Unified error handling
  */
 function sendHandoffRequest(targetPersonaId: PersonaId): void {
   log.debug('Sending handoff request to:', targetPersonaId);
@@ -1457,16 +1464,16 @@ function sendHandoffRequest(targetPersonaId: PersonaId): void {
   /**
    * Handle send failure with user feedback and state reset.
    */
-  const handleSendFailure = (error: unknown, context: string): void => {
-    log.error(`${context}:`, error);
+  const handleSendFailure = (error: Error): void => {
+    log.error('Handoff request failed:', error);
 
-    // Reset transition state on failure (handoffService internally tracks this)
+    // Reset transition state on failure
     // Clear switching feedback from UI
     const element = teamMemberElements.get(targetPersonaId);
     if (element) {
       removeClass(element, 'switching-to');
       addClass(element, 'send-failed');
-      setTimeout(() => removeClass(element, 'send-failed'), 1000);
+      setTimeout(() => removeClass(element, 'send-failed'), DURATION.GLACIAL / 1.5);
     }
 
     // Restore the current persona's highlighting
@@ -1479,62 +1486,34 @@ function sendHandoffRequest(targetPersonaId: PersonaId): void {
 
   // FIX BUG #54: Validate persona ID before sending to prevent arbitrary string injection
   if (!isKnownPersonaId(targetPersonaId)) {
-    handleSendFailure(
-      new Error(`Invalid persona ID: ${targetPersonaId}`),
-      `Cannot send handoff request: unknown persona "${targetPersonaId}"`
-    );
+    handleSendFailure(new Error(`Unknown persona: ${targetPersonaId}`));
     return;
   }
 
-  // FIX BUG #82: Add retry logic for failed handoff requests
-  const MAX_RETRIES = 2;
-  const RETRY_DELAY_MS = 500;
+  // Use handoffService for centralized handoff request handling
+  // This provides rate limiting, retry logic, and proper state management
+  void (async () => {
+    const success = await handoffService.sendHandoffRequest(targetPersonaId, {
+      onFailure: handleSendFailure,
+    });
 
-  const attemptSend = async (attempt: number = 0): Promise<void> => {
-    try {
-      const { connectionService } = await import('../services/connection.service.js');
-      const room = connectionService.getRoom();
-
-      if (!room) {
-        throw new Error('No room');
+    if (!success) {
+      // Request was rate limited or blocked - show visual feedback
+      const element = teamMemberElements.get(targetPersonaId);
+      if (element) {
+        removeClass(element, 'switching-to');
+        addClass(element, 'click-blocked');
+        setTimeout(() => removeClass(element, 'click-blocked'), DURATION.NORMAL);
       }
-      if (!room.localParticipant) {
-        throw new Error('No local participant');
+
+      // Restore current persona highlighting
+      const current = appState.get('activePersona');
+      const currentElement = teamMemberElements.get(current.id);
+      if (currentElement) {
+        removeClass(currentElement, 'switching-from');
       }
-
-      // Create handoff request message
-      const message = JSON.stringify({
-        type: 'handoff_request',
-        target: targetPersonaId,
-        timestamp: Date.now(),
-        attempt: attempt + 1, // Include attempt number for debugging
-      });
-
-      log.debug('Publishing handoff message:', { attempt: attempt + 1, message });
-
-      // Send via data channel
-      await room.localParticipant.publishData(new TextEncoder().encode(message), {
-        reliable: true,
-      });
-
-      log.info('Handoff request sent successfully to:', targetPersonaId);
-    } catch (err) {
-      if (attempt < MAX_RETRIES) {
-        log.warn('Handoff request failed, retrying:', {
-          attempt: attempt + 1,
-          retryDelayMs: RETRY_DELAY_MS,
-        });
-        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
-        return attemptSend(attempt + 1);
-      }
-      handleSendFailure(
-        err instanceof Error ? err : new Error(String(err)),
-        `Failed to send handoff request after ${MAX_RETRIES + 1} attempts`
-      );
     }
-  };
-
-  void attemptSend();
+  })();
 }
 
 /**

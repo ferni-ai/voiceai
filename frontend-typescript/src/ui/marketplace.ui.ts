@@ -1065,42 +1065,30 @@ async function handleEmployeeCardClick(personaId: string): Promise<void> {
   const connectionState = appState.get('connection');
 
   if (connectionState === 'connected') {
-    // Send handoff request when connected
+    // Send handoff request when connected via handoffService
+    // This ensures rate limiting, validation, retry logic, and proper state management
     log.debug('Connected - sending handoff request to:', personaId);
 
-    try {
-      const { connectionService } = await import('../services/connection.service.js');
-      const room = connectionService.getRoom();
+    const { handoffService } = await import('../services/handoff.service.js');
+    const { toast } = await import('./toast.ui.js');
 
-      if (!room?.localParticipant) {
-        log.error('No room or local participant for handoff');
-        // FIX: Show user feedback when room is unavailable
-        const { toast } = await import('./toast.ui.js');
-        toast.error('Connection lost. Please reconnect.');
-        return;
-      }
+    const success = await handoffService.sendHandoffRequest(personaId as PersonaId, {
+      onFailure: (error) => {
+        log.error('Handoff request failed:', error);
+        // Warm brand voice for error message
+        toast.error("Hmm, that didn't work. Want to try again?");
+        soundUI.play('click');
+      },
+    });
 
-      const message = JSON.stringify({
-        type: 'handoff_request',
-        target: personaId,
-        timestamp: Date.now(),
-      });
-
-      await room.localParticipant.publishData(new TextEncoder().encode(message), {
-        reliable: true,
-      });
-
+    if (success) {
       log.info('Handoff request sent from marketplace to:', personaId);
       soundUI.play('switch');
-
       // Close marketplace after initiating handoff
       closeMarketplace();
-    } catch (err) {
-      log.error('Failed to send handoff request:', err);
-      // FIX: Show user feedback on handoff failure
-      const { toast } = await import('./toast.ui.js');
-      toast.error('Handoff failed. Please try again.');
-      soundUI.play('click');
+    } else {
+      // Rate limited or validation failed - handoffService already handled notifications
+      log.debug('Handoff request not sent (rate limited or invalid)');
     }
   } else {
     // Preview the persona theme when disconnected
