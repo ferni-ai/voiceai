@@ -3,10 +3,14 @@
  *
  * Voice configurations for all personas.
  * Voice IDs are loaded dynamically from the voice registry.
+ * Model is loaded from environment variable.
  */
 
 import { getVoiceId } from '../../personas/voice-registry.js';
 import type { VoiceAgentId, VoiceConfig } from './types.js';
+
+// Cartesia model from env var - single source of truth
+const CARTESIA_MODEL = process.env.CARTESIA_MODEL || 'sonic-3';
 
 // ============================================================================
 // VOICE CONFIGURATION
@@ -24,7 +28,7 @@ export const VOICES: Record<VoiceAgentId, VoiceConfig> = {
       return getVoiceId('ferni');
     },
     name: 'Ferni',
-    model: 'sonic-3',
+    model: CARTESIA_MODEL,
     description: 'Confident, friendly coach - orchestrates the team',
   },
   // Team members
@@ -33,7 +37,7 @@ export const VOICES: Record<VoiceAgentId, VoiceConfig> = {
       return getVoiceId('peter-john');
     },
     name: 'Peter',
-    model: 'sonic-3',
+    model: CARTESIA_MODEL,
     description: 'Energetic, animated - the voice of stock picking enthusiasm',
   },
   'comm-specialist': {
@@ -41,7 +45,7 @@ export const VOICES: Record<VoiceAgentId, VoiceConfig> = {
       return getVoiceId('alex-chen');
     },
     name: 'Alex',
-    model: 'sonic-3',
+    model: CARTESIA_MODEL,
     description: 'Professional, efficient - communication specialist',
   },
   'spend-save': {
@@ -49,7 +53,7 @@ export const VOICES: Record<VoiceAgentId, VoiceConfig> = {
       return getVoiceId('maya-santos');
     },
     name: 'Maya',
-    model: 'sonic-3',
+    model: CARTESIA_MODEL,
     description: 'Warm, non-judgmental - spend & save specialist',
   },
   'event-planner': {
@@ -57,7 +61,7 @@ export const VOICES: Record<VoiceAgentId, VoiceConfig> = {
       return getVoiceId('jordan-taylor');
     },
     name: 'Jordan',
-    model: 'sonic-3',
+    model: CARTESIA_MODEL,
     description: 'Enthusiastic, organized - life & event planner',
   },
   // Canonical ID for coach
@@ -66,7 +70,7 @@ export const VOICES: Record<VoiceAgentId, VoiceConfig> = {
       return getVoiceId('ferni');
     },
     name: 'Ferni',
-    model: 'sonic-3',
+    model: CARTESIA_MODEL,
     description: 'Confident, friendly coach - orchestrates the team',
   },
   // Canonical IDs for team members
@@ -75,7 +79,7 @@ export const VOICES: Record<VoiceAgentId, VoiceConfig> = {
       return getVoiceId('alex-chen');
     },
     name: 'Alex',
-    model: 'sonic-3',
+    model: CARTESIA_MODEL,
     description: 'Professional, efficient - communication specialist',
   },
   'maya-santos': {
@@ -83,7 +87,7 @@ export const VOICES: Record<VoiceAgentId, VoiceConfig> = {
       return getVoiceId('maya-santos');
     },
     name: 'Maya',
-    model: 'sonic-3',
+    model: CARTESIA_MODEL,
     description: 'Warm, non-judgmental - spend & save specialist',
   },
   'jordan-taylor': {
@@ -91,7 +95,7 @@ export const VOICES: Record<VoiceAgentId, VoiceConfig> = {
       return getVoiceId('jordan-taylor');
     },
     name: 'Jordan',
-    model: 'sonic-3',
+    model: CARTESIA_MODEL,
     description: 'Enthusiastic, organized - life & event planner',
   },
   // Short aliases for team members
@@ -100,7 +104,7 @@ export const VOICES: Record<VoiceAgentId, VoiceConfig> = {
       return getVoiceId('alex-chen');
     },
     name: 'Alex',
-    model: 'sonic-3',
+    model: CARTESIA_MODEL,
     description: 'Professional, efficient - communication specialist',
   },
   maya: {
@@ -108,7 +112,7 @@ export const VOICES: Record<VoiceAgentId, VoiceConfig> = {
       return getVoiceId('maya-santos');
     },
     name: 'Maya',
-    model: 'sonic-3',
+    model: CARTESIA_MODEL,
     description: 'Warm, non-judgmental - spend & save specialist',
   },
   jordan: {
@@ -116,7 +120,7 @@ export const VOICES: Record<VoiceAgentId, VoiceConfig> = {
       return getVoiceId('jordan-taylor');
     },
     name: 'Jordan',
-    model: 'sonic-3',
+    model: CARTESIA_MODEL,
     description: 'Enthusiastic, organized - life & event planner',
   },
   // FIX BUG #voice-3: Added nayan-patel (lifetime advisor)
@@ -125,7 +129,7 @@ export const VOICES: Record<VoiceAgentId, VoiceConfig> = {
       return getVoiceId('nayan-patel');
     },
     name: 'Nayan',
-    model: 'sonic-3',
+    model: CARTESIA_MODEL,
     description: 'Calm, wise, meditative - the lifetime advisor and sage',
   },
   nayan: {
@@ -133,7 +137,7 @@ export const VOICES: Record<VoiceAgentId, VoiceConfig> = {
       return getVoiceId('nayan-patel');
     },
     name: 'Nayan',
-    model: 'sonic-3',
+    model: CARTESIA_MODEL,
     description: 'Calm, wise, meditative - the lifetime advisor and sage',
   },
   // Legacy aliases
@@ -142,7 +146,7 @@ export const VOICES: Record<VoiceAgentId, VoiceConfig> = {
       return getVoiceId('peter-john');
     },
     name: 'Peter',
-    model: 'sonic-3',
+    model: CARTESIA_MODEL,
     description: 'Energetic, animated - the voice of stock picking enthusiasm',
   },
 };

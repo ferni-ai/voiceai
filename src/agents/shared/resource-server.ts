@@ -393,13 +393,19 @@ function handleTTSRequest(reg: ResourceRegistry, request: ResourceRequest): Reso
       const personaConfig = payload.personaId ? reg.getPersonaConfig(payload.personaId) : null;
       if (personaConfig) {
         const persona = personaConfig as { voice?: { voiceId: string; provider: string } };
+        // Voice IDs and model from env vars - must match config/cartesia-config.ts
+        const defaultVoiceId =
+          process.env.FERNI_VOICE_ID ||
+          process.env.JACK_B_VOICE_ID ||
+          'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc';
+        const cartesiaModel = process.env.CARTESIA_MODEL || 'sonic-3';
         return {
           id: request.id,
           success: true,
           data: {
-            voiceId: persona.voice?.voiceId || 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
+            voiceId: persona.voice?.voiceId || defaultVoiceId,
             provider: persona.voice?.provider || 'cartesia',
-            model: 'sonic-3',
+            model: cartesiaModel,
             accent: 'american',
           },
         };
@@ -609,7 +615,7 @@ export async function getPrewarmedTTSConfig(personaId: string): Promise<{
     return {
       voiceId: persona.voice.voiceId,
       provider: persona.voice.provider,
-      model: 'sonic-3',
+      model: process.env.CARTESIA_MODEL || 'sonic-3',
       accent: 'american',
     };
   }

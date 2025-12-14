@@ -88,6 +88,23 @@ export interface TranscriptHandlerContext {
   };
 }
 
+/**
+ * ECHO PREVENTION COOLDOWN
+ *
+ * After the agent finishes speaking, there's a delay before the microphone
+ * stops picking up echo and the speech-to-text finishes processing. During
+ * this window, we should NOT use cached responses to prevent the agent from
+ * responding to its own echo (e.g., Ferni says "how are you?" → mic picks up
+ * echo → transcribes "how are you" → matches cached response → says "I'm doing
+ * well, thanks for asking!").
+ *
+ * 2 seconds is enough for:
+ * - Audio buffer flush (~200-500ms)
+ * - Speech-to-text processing (~500-1000ms)
+ * - Network latency buffer (~200ms)
+ */
+const ECHO_PREVENTION_COOLDOWN_MS = 2000;
+
 export interface TranscriptEvent {
   transcript: string;
   isFinal: boolean;
@@ -199,12 +216,30 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       // If we have a high-confidence cached response, say it immediately
       // This provides instant-feeling responses for common patterns (greetings, etc.)
       //
-      // IMPORTANT: Skip cache bypass if agent is currently speaking!
+      // IMPORTANT: Skip cache bypass if agent is currently speaking OR recently finished!
       // This prevents echo/feedback from triggering false responses.
       // e.g., Ferni says "Hey, how are you?" → mic picks up echo → transcribes "how are you"
       // → matches question_about_user pattern → would incorrectly say "I'm doing well..."
-      // (Note: isAgentCurrentlySpeaking already computed above for response anticipation)
-      const cached = !isAgentCurrentlySpeaking ? getCachedResponseIfAvailable(sessionId) : null;
+      //
+      // The cooldown period accounts for:
+      // - Short greetings where agent finishes before echo is transcribed
+      // - STT processing delay
+      // - Network latency
+      const lastAgentSpeechEnd = userData.lastAgentSpeechEndTime || 0;
+      const timeSinceAgentSpoke = Date.now() - lastAgentSpeechEnd;
+      const isInEchoCooldown = timeSinceAgentSpoke < ECHO_PREVENTION_COOLDOWN_MS;
+
+      // Skip cache if currently speaking OR within cooldown window
+      const shouldSkipCache = isAgentCurrentlySpeaking || isInEchoCooldown;
+      const cached = !shouldSkipCache ? getCachedResponseIfAvailable(sessionId) : null;
+
+      if (isInEchoCooldown && !isAgentCurrentlySpeaking) {
+        diag.state('⚡ CACHE BYPASS SKIPPED - Echo prevention cooldown', {
+          timeSinceAgentSpokeMs: timeSinceAgentSpoke,
+          cooldownMs: ECHO_PREVENTION_COOLDOWN_MS,
+          transcript: event.transcript.slice(0, 30),
+        });
+      }
 
       if (cached) {
         diag.state('⚡ CACHE BYPASS - Speaking cached response immediately', {
@@ -226,9 +261,12 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
           diag.warn('Cached response say failed', { error: String(sayErr) });
           // Fall through to normal processing
         }
-      } else if (isAgentCurrentlySpeaking && getCachedResponseIfAvailable(sessionId)) {
-        // Log when we skip cache due to agent speaking (echo prevention)
-        diag.state('⚡ CACHE BYPASS SKIPPED - Agent is speaking (echo prevention)');
+      } else if (shouldSkipCache && getCachedResponseIfAvailable(sessionId)) {
+        // Log when we skip cache due to agent speaking or cooldown (echo prevention)
+        if (isAgentCurrentlySpeaking) {
+          diag.state('⚡ CACHE BYPASS SKIPPED - Agent is speaking (echo prevention)');
+        }
+        // Cooldown skip is logged above already
       }
 
       processFinalTranscript({

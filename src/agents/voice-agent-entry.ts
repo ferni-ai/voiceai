@@ -277,13 +277,17 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     // Create a full persona config with defaults
     // Use 'as unknown as PersonaConfig' for fallback since we don't have all required fields
+    // Import voice config for correct fallback voice ID
+    const { getDefaultVoiceConfig } = await import('../config/cartesia-config.js');
+    const defaultVoice = getDefaultVoiceConfig();
+
     const sessionPersona = (persona || {
       id: personaId,
       name: personaId
         .split('-')
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(' '),
-      voice: { voiceId: 'a0e99841-438c-4a64-b679-ae501e7d6091', provider: 'cartesia' },
+      voice: { voiceId: defaultVoice.voiceId, provider: defaultVoice.provider },
       systemPrompt: cachedPrompt || `You are ${personaId}, a warm and supportive life coach.`,
       personality: { warmth: 0.7, humor: 0.4, directness: 0.6, energy: 0.6 },
       speechCharacteristics: { baseSpeedMultiplier: 1.0, pauseMultiplier: 1.0 },
@@ -403,10 +407,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // =========================================================================
     // VOICE LOCALIZATION (International Accent Support)
     // =========================================================================
-    const voiceConfig = sessionPersona.voice || {
-      voiceId: 'a0e99841-438c-4a64-b679-ae501e7d6091',
-      provider: 'cartesia',
-    };
+    const voiceConfig = sessionPersona.voice || defaultVoice;
 
     let effectiveVoiceId = voiceConfig.voiceId;
     let isLocalizedVoice = false;
@@ -919,7 +920,9 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
           const engagementDataSender = mod.getEngagementDataSender();
           // FIX AUDIT ISSUE: Use structural typing - ctx.room has localParticipant with publishData
           // which matches LiveKitRoomLike interface. Cast to that interface type.
-          engagementDataSender.setRoom(ctx.room as Parameters<typeof engagementDataSender.setRoom>[0]);
+          engagementDataSender.setRoom(
+            ctx.room as Parameters<typeof engagementDataSender.setRoom>[0]
+          );
           if (userId) {
             await engagementDataSender.sendEngagementData(userId);
           }

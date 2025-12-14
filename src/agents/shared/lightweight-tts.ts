@@ -15,12 +15,19 @@
 
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 
-// Default Ferni voice - MUST match VOICE_IDS.FERNI in config/voice-ids.ts
-// FIX: Previous value 'a0e99841-438c-4a64-b679-ae501e7d6091' was wrong and caused voice inconsistency
-const DEFAULT_VOICE_ID = 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc';
+// ============================================================================
+// VOICE CONFIGURATION - From Environment Variables
+// ============================================================================
 
-// Use the same model as PersonaAwareTTS for voice consistency
-const DEFAULT_MODEL = 'sonic-3';
+// Default Ferni voice - loaded from env var with fallback
+// IMPORTANT: These MUST match the values in .env and config/cartesia-config.ts
+const DEFAULT_VOICE_ID =
+  process.env.FERNI_VOICE_ID ||
+  process.env.JACK_B_VOICE_ID ||
+  'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc';
+
+// Cartesia model - loaded from env var with fallback
+const DEFAULT_MODEL = process.env.CARTESIA_MODEL || 'sonic-3';
 
 // ============================================================================
 // STATE
@@ -180,4 +187,3 @@ export async function waitForTTSPrewarm(): Promise<void> {
 export function getPrewarmedVoiceId(): string | null {
   return _prewarmedVoiceId;
 }
-

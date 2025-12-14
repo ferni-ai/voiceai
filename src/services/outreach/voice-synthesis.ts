@@ -40,35 +40,54 @@ export interface PersonaVoiceProfile {
 // PERSONA VOICE PROFILES
 // ============================================================================
 
-// Cartesia voice IDs for each persona
+// Voice IDs MUST match config/cartesia-config.ts and .env
+// These are the SAME voices used in the main voice agent
 const PERSONA_VOICES: Record<string, PersonaVoiceProfile> = {
   ferni: {
-    voiceId: process.env.FERNI_VOICE_ID || 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
+    voiceId:
+      process.env.FERNI_VOICE_ID ||
+      process.env.JACK_B_VOICE_ID ||
+      'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
     speed: 0.95,
     emotion: 'warm',
   },
   maya: {
-    voiceId: process.env.MAYA_VOICE_ID || '2ee87190-8f84-4925-97da-e52547f9462c',
+    voiceId:
+      process.env.MAYA_SANTOS_VOICE_ID ||
+      process.env.SPEND_SAVE_VOICE_ID ||
+      'eef47c0d-cb49-4160-a4a0-6b97ed4c81e6',
     speed: 1.0,
     emotion: 'encouraging',
   },
   peter: {
-    voiceId: process.env.PETER_VOICE_ID || 'ee82a0c0-d684-4a48-80f3-2e946c5f0e65',
+    voiceId:
+      process.env.PETER_JOHN_VOICE_ID ||
+      process.env.JACK_BOGLE_VOICE_ID ||
+      '3f04e815-3260-4f50-8fd9-af9c657be4c2',
     speed: 1.05,
     emotion: 'curious',
   },
   alex: {
-    voiceId: process.env.ALEX_VOICE_ID || 'd82ac70c-7a96-4a78-9d82-6a18c9e6b91c',
+    voiceId:
+      process.env.ALEX_CHEN_VOICE_ID ||
+      process.env.COMM_SPECIALIST_VOICE_ID ||
+      '81c164d9-7baa-419d-9f9a-6b18100a01ee',
     speed: 1.0,
     emotion: 'professional',
   },
   jordan: {
-    voiceId: process.env.JORDAN_VOICE_ID || 'f41ffa0a-2e97-4d4c-9a67-b82f67e9b231',
+    voiceId:
+      process.env.JORDAN_TAYLOR_VOICE_ID ||
+      process.env.EVENT_PLANNER_VOICE_ID ||
+      'b2d14370-c56b-4bdd-a6a3-71abe1b6e345',
     speed: 1.1,
     emotion: 'excited',
   },
   nayan: {
-    voiceId: process.env.NAYAN_VOICE_ID || '83af7f2b-9a60-4bc4-8f0c-6c7d8f0b2f71',
+    voiceId:
+      process.env.NAYAN_PATEL_VOICE_ID ||
+      process.env.NAYAN_VOICE_ID ||
+      '52f0a563-2a2a-4c4a-ab4f-000eaaed32b3',
     speed: 0.9,
     emotion: 'calm',
   },

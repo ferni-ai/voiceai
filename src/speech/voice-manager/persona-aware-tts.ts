@@ -20,6 +20,9 @@ import { handoffEvents } from '../../tools/handoff/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { PersonaVoiceConfig } from './types.js';
 
+// Cartesia model from env var - single source of truth
+const CARTESIA_MODEL = process.env.CARTESIA_MODEL || 'sonic-3';
+
 // ============================================================================
 // PERSONA-AWARE TTS
 // ============================================================================
@@ -71,10 +74,10 @@ export class PersonaAwareTTS extends tts.TTS {
     this.isLocalizedVoice = voiceConfig.isLocalizedVoice ?? this.accent !== 'american';
 
     // Create TTS instance for this persona's voice
-    // Using sonic-3 model (speed control not available - use SSML prosody instead)
+    // Using model from env var (speed control not available - use SSML prosody instead)
     // NOTE: For accents, the voiceId should already be a localized voice from Cartesia API
     this.personaTTS = new cartesia.TTS({
-      model: 'sonic-3',
+      model: CARTESIA_MODEL,
       voice: voiceConfig.voiceId,
       language: 'en', // Always 'en' - accent is determined by voice ID, not language param
     });
@@ -85,7 +88,7 @@ export class PersonaAwareTTS extends tts.TTS {
         voiceId: voiceConfig.voiceId,
         accent: this.accent,
         isLocalizedVoice: this.isLocalizedVoice,
-        model: 'sonic-3',
+        model: CARTESIA_MODEL,
       },
       '🌍 PersonaAwareTTS initialized with accent'
     );
@@ -250,7 +253,7 @@ export class PersonaAwareTTS extends tts.TTS {
     // Create new TTS instance with new voice
     // NOTE: For accents, newVoiceId should already be a localized voice ID
     this.personaTTS = new cartesia.TTS({
-      model: 'sonic-3',
+      model: CARTESIA_MODEL,
       voice: newVoiceId,
       language: 'en', // Always 'en' - accent is determined by voice ID
     });
