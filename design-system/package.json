@@ -7,6 +7,8 @@
     "build": "node build.js",
     "build:strict": "node build.js --strict",
     "build:content": "node generate-content-tokens.js",
+    "build:brand": "node generate-brand-tokens.js",
+    "build:all": "npm run build && npm run build:content && npm run build:brand",
     "check:a11y": "node check-accessibility.js",
     "check:a11y:strict": "node check-accessibility.js --strict",
     "check:a11y:fix": "node check-accessibility.js --fix",
@@ -36,7 +38,12 @@
   "exports": {
     ".": "./dist/tokens.css",
     "./tokens.css": "./dist/tokens.css",
-    "./tokens": "./dist/tokens.ts"
+    "./tokens": "./dist/tokens.ts",
+    "./content": "./dist/content.ts",
+    "./haptics": "./dist/haptics.ts",
+    "./personality": "./dist/personality.ts",
+    "./sonic": "./dist/sonic.ts",
+    "./illustration": "./dist/illustration.ts"
   }
 }
 
