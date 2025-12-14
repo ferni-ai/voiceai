@@ -23,7 +23,7 @@
  * 7. If unhealthy: rollback, keep blue running
  */
 
-import { execSync, spawn } from 'child_process';
+import { execSync } from 'child_process';
 import { dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -41,7 +41,7 @@ const CONFIG = {
   zone: process.env.GCP_ZONE || 'us-central1-a',
 
   // GCE Instance
-  instanceName: process.env.GCE_INSTANCE || 'voiceai-agent',
+  instanceName: process.env.GCE_INSTANCE || 'voiceai-agent-gce',
   instanceIp: process.env.GCE_IP || '34.134.186.63',
 
   // Container settings
@@ -210,7 +210,8 @@ function buildAndPush(): string {
   const fullImage = `${CONFIG.imageName}:${tag}`;
 
   log.substep(`Building: ${fullImage}`);
-  exec(`docker build -f docker/Dockerfile.agent -t ${fullImage} .`);
+  // 🐛 FIX: Force linux/amd64 platform for GCE compatibility (macOS builds ARM64 by default)
+  exec(`docker build --platform linux/amd64 -f docker/Dockerfile.agent -t ${fullImage} .`);
 
   log.substep('Pushing to Container Registry...');
   exec(`docker push ${fullImage}`);
@@ -228,7 +229,10 @@ function getCurrentSlot(): 'blue' | 'green' | null {
 
   try {
     // Check which container is running
-    const result = ssh(`docker ps --format '{{.Names}}' | grep -E 'voiceai-agent-(blue|green)' || true`, { silent: true });
+    const result = ssh(
+      `docker ps --format '{{.Names}}' | grep -E 'voiceai-agent-(blue|green)' || true`,
+      { silent: true }
+    );
 
     if (result.includes('blue')) {
       log.substep('Current slot: BLUE');
@@ -245,7 +249,11 @@ function getCurrentSlot(): 'blue' | 'green' | null {
   return null;
 }
 
-function deployToSlot(image: string, slot: 'blue' | 'green', secrets: Record<string, string>): void {
+function deployToSlot(
+  image: string,
+  slot: 'blue' | 'green',
+  secrets: Record<string, string>
+): void {
   log.step(`Deploying to ${slot.toUpperCase()} Slot`);
 
   const port = slot === 'blue' ? CONFIG.bluePort : CONFIG.greenPort;
@@ -295,7 +303,9 @@ function rollback(): void {
 
   // Find the previous image
   log.substep('Finding previous image...');
-  const images = ssh(`docker images ${CONFIG.imageName} --format '{{.Tag}}' | head -2`, { silent: true });
+  const images = ssh(`docker images ${CONFIG.imageName} --format '{{.Tag}}' | head -2`, {
+    silent: true,
+  });
   const tags = images.trim().split('\n').filter(Boolean);
 
   if (tags.length < 2) {
