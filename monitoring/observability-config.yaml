@@ -1,0 +1,306 @@
+# Ferni Voice AI - Observability Configuration
+# 
+# This configuration defines metrics, alerts, and dashboards for monitoring
+# the voice AI system health and performance.
+#
+# Key metrics tracked:
+# - Session contamination (CRITICAL)
+# - Vector store fallback mode (CRITICAL)
+# - Voice agent response latency
+# - Handoff success rates
+# - Memory persistence health
+
+# ============================================================================
+# METRICS DEFINITIONS
+# ============================================================================
+
+metrics:
+  # Session Health Metrics
+  session:
+    session_count:
+      type: counter
+      description: Total number of sessions started
+      labels: [persona_id, user_type]
+    
+    session_duration_seconds:
+      type: histogram
+      description: Duration of voice sessions
+      buckets: [30, 60, 120, 300, 600, 1200, 1800]
+    
+    concurrent_sessions:
+      type: gauge
+      description: Number of currently active sessions
+      labels: [persona_id]
+    
+    session_contamination_detected:
+      type: counter
+      description: CRITICAL - Cross-session state contamination events
+      labels: [source_session, contaminated_session]
+      severity: critical
+
+  # Vector Store Metrics
+  vector_store:
+    fallback_mode:
+      type: gauge
+      description: CRITICAL - 1 if vector store is in fallback mode, 0 otherwise
+      severity: critical
+    
+    recovery_attempts:
+      type: counter
+      description: Number of vector store recovery attempts
+    
+    recovery_success:
+      type: counter
+      description: Successful vector store recoveries
+    
+    cache_size:
+      type: gauge
+      description: Number of documents in fallback cache
+    
+    search_latency_ms:
+      type: histogram
+      description: Vector search latency
+      buckets: [10, 25, 50, 100, 250, 500, 1000]
+
+  # Voice Agent Metrics
+  voice_agent:
+    response_latency_ms:
+      type: histogram
+      description: Time from user speech end to agent speech start
+      buckets: [100, 200, 300, 500, 750, 1000, 2000]
+      labels: [persona_id]
+    
+    turn_count:
+      type: counter
+      description: Total conversation turns processed
+      labels: [persona_id]
+    
+    llm_latency_ms:
+      type: histogram
+      description: LLM response generation time
+      buckets: [100, 250, 500, 1000, 2000, 5000]
+    
+    tts_latency_ms:
+      type: histogram
+      description: Text-to-speech generation time
+      buckets: [50, 100, 200, 500, 1000]
+    
+    error_count:
+      type: counter
+      description: Voice agent errors
+      labels: [error_type, persona_id]
+
+  # Handoff Metrics
+  handoff:
+    total_handoffs:
+      type: counter
+      description: Total handoffs performed
+      labels: [from_persona, to_persona]
+    
+    handoff_latency_ms:
+      type: histogram
+      description: Time to complete persona handoff
+      buckets: [500, 1000, 2000, 3000, 5000]
+    
+    handoff_success_rate:
+      type: gauge
+      description: Percentage of successful handoffs
+    
+    handoff_failure:
+      type: counter
+      description: Failed handoff attempts
+      labels: [from_persona, to_persona, failure_reason]
+
+  # Memory Metrics
+  memory:
+    persistence_success:
+      type: counter
+      description: Successful memory persistence operations
+    
+    persistence_failure:
+      type: counter
+      description: Failed memory persistence operations
+      labels: [failure_reason]
+    
+    retrieval_latency_ms:
+      type: histogram
+      description: Memory retrieval latency
+      buckets: [10, 25, 50, 100, 250, 500]
+
+# ============================================================================
+# ALERTING RULES
+# ============================================================================
+
+alerts:
+  critical:
+    - name: VectorStoreFallbackMode
+      condition: vector_store.fallback_mode > 0
+      duration: 1m
+      severity: critical
+      message: "CRITICAL: Vector store running in fallback mode - data loss risk!"
+      runbook: docs/runbooks/vector-store-fallback.md
+      notification_channels: [pagerduty, slack-critical]
+    
+    - name: SessionContaminationDetected
+      condition: rate(session.session_contamination_detected[5m]) > 0
+      duration: 0s
+      severity: critical
+      message: "CRITICAL: Session state contamination detected - multiple users may be affected"
+      runbook: docs/runbooks/session-contamination.md
+      notification_channels: [pagerduty, slack-critical]
+
+  warning:
+    - name: HighResponseLatency
+      condition: histogram_quantile(0.99, voice_agent.response_latency_ms) > 500
+      duration: 5m
+      severity: warning
+      message: "Voice agent P99 response latency exceeds 500ms"
+      notification_channels: [slack-ops]
+    
+    - name: HighHandoffFailureRate
+      condition: rate(handoff.handoff_failure[5m]) / rate(handoff.total_handoffs[5m]) > 0.1
+      duration: 5m
+      severity: warning
+      message: "Handoff failure rate exceeds 10%"
+      notification_channels: [slack-ops]
+    
+    - name: VectorStoreRecoveryAttempts
+      condition: rate(vector_store.recovery_attempts[10m]) > 5
+      duration: 10m
+      severity: warning
+      message: "Multiple vector store recovery attempts - investigate root cause"
+      notification_channels: [slack-ops]
+    
+    - name: HighMemoryPersistenceFailure
+      condition: rate(memory.persistence_failure[5m]) > 0.01
+      duration: 5m
+      severity: warning
+      message: "Memory persistence failure rate elevated"
+      notification_channels: [slack-ops]
+
+  info:
+    - name: HighConcurrentSessions
+      condition: session.concurrent_sessions > 100
+      duration: 5m
+      severity: info
+      message: "High number of concurrent sessions - monitor capacity"
+      notification_channels: [slack-ops]
+
+# ============================================================================
+# DASHBOARD CONFIGURATION
+# ============================================================================
+
+dashboards:
+  voice_agent_overview:
+    title: "Ferni Voice Agent - Overview"
+    refresh: 30s
+    panels:
+      - title: "Active Sessions"
+        type: stat
+        metric: session.concurrent_sessions
+        thresholds:
+          warning: 50
+          critical: 100
+      
+      - title: "Response Latency P50/P99"
+        type: graph
+        metrics:
+          - histogram_quantile(0.50, voice_agent.response_latency_ms)
+          - histogram_quantile(0.99, voice_agent.response_latency_ms)
+        yaxis: "ms"
+      
+      - title: "Vector Store Health"
+        type: stat
+        metric: vector_store.fallback_mode == 0
+        display: "healthy/unhealthy"
+      
+      - title: "Handoffs by Persona"
+        type: piechart
+        metric: sum by (to_persona) (rate(handoff.total_handoffs[1h]))
+      
+      - title: "Session Duration Distribution"
+        type: heatmap
+        metric: session.session_duration_seconds
+
+  session_health:
+    title: "Session Health & Isolation"
+    refresh: 15s
+    panels:
+      - title: "Session Contamination Events"
+        type: stat
+        metric: sum(session.session_contamination_detected)
+        color: "red"
+        alert_if: "> 0"
+      
+      - title: "Sessions by Persona"
+        type: piechart
+        metric: sum by (persona_id) (session.session_count)
+      
+      - title: "Turn Count Over Time"
+        type: graph
+        metric: rate(voice_agent.turn_count[5m])
+
+  vector_store_health:
+    title: "Vector Store Health"
+    refresh: 30s
+    panels:
+      - title: "Fallback Mode Status"
+        type: stat
+        metric: vector_store.fallback_mode
+        display: "0 = healthy, 1 = FALLBACK"
+      
+      - title: "Recovery Attempts"
+        type: graph
+        metric: rate(vector_store.recovery_attempts[5m])
+      
+      - title: "Fallback Cache Size"
+        type: stat
+        metric: vector_store.cache_size
+      
+      - title: "Search Latency"
+        type: graph
+        metrics:
+          - histogram_quantile(0.50, vector_store.search_latency_ms)
+          - histogram_quantile(0.95, vector_store.search_latency_ms)
+
+# ============================================================================
+# SLOs (Service Level Objectives)
+# ============================================================================
+
+slos:
+  response_latency:
+    description: "Voice agent response latency"
+    target: 0.99
+    metric: voice_agent.response_latency_ms
+    threshold: 500  # 99% of requests < 500ms
+  
+  session_isolation:
+    description: "Session state isolation"
+    target: 1.0  # 100% - no contamination allowed
+    metric: session.session_contamination_detected
+    threshold: 0
+  
+  vector_store_availability:
+    description: "Vector store operating in normal mode"
+    target: 0.999
+    metric: vector_store.fallback_mode
+    threshold: 0
+
+# ============================================================================
+# NOTIFICATION CHANNELS
+# ============================================================================
+
+notification_channels:
+  pagerduty:
+    type: pagerduty
+    service_key: "${PAGERDUTY_SERVICE_KEY}"
+  
+  slack-critical:
+    type: slack
+    webhook_url: "${SLACK_CRITICAL_WEBHOOK}"
+    channel: "#ferni-critical"
+  
+  slack-ops:
+    type: slack
+    webhook_url: "${SLACK_OPS_WEBHOOK}"
+    channel: "#ferni-ops"
