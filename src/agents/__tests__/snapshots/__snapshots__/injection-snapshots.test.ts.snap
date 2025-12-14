@@ -1,0 +1,494 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Context Injection Snapshots > Celebration Injections > should produce consistent output for achievement 1`] = `
+[
+  {
+    "category": "achievement",
+    "content": "User achieved: Got promoted to senior engineer. Celebrate genuinely!",
+    "priority": 10,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Celebration Injections > should produce consistent output for combined celebration 1`] = `
+[
+  {
+    "category": "achievement",
+    "content": "User achieved: Completed marathon. Celebrate genuinely!",
+    "priority": 10,
+  },
+  {
+    "category": "milestone",
+    "content": "Milestone reached: 1 year of consistent exercise. This is a big moment!",
+    "priority": 10,
+  },
+  {
+    "category": "good_news",
+    "content": "User is sharing good news. Match their excitement!",
+    "priority": 9,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Celebration Injections > should produce consistent output for good news 1`] = `
+[
+  {
+    "category": "good_news",
+    "content": "User is sharing good news. Match their excitement!",
+    "priority": 9,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Celebration Injections > should produce consistent output for milestone 1`] = `
+[
+  {
+    "category": "milestone",
+    "content": "Milestone reached: 30-day meditation streak. This is a big moment!",
+    "priority": 10,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Combined Injection Sets > should produce consistent output for celebration scenario 1`] = `
+[
+  {
+    "category": "humanizing",
+    "content": "Be warm and present. You are ferni, speaking naturally and authentically.",
+    "priority": 8,
+  },
+  {
+    "category": "humanizing",
+    "content": "This is a returning user. Reference shared history naturally when relevant.",
+    "priority": 7,
+  },
+  {
+    "category": "humanizing",
+    "content": "Match the user's excited energy level appropriately.",
+    "priority": 9,
+  },
+  {
+    "category": "emotional",
+    "content": "User emotion detected: excited (intensity: 0.90)",
+    "priority": 8,
+  },
+  {
+    "category": "emotional",
+    "content": "Start response by acknowledging what user shared before continuing.",
+    "priority": 9,
+  },
+  {
+    "category": "achievement",
+    "content": "User achieved: Got the job offer. Celebrate genuinely!",
+    "priority": 10,
+  },
+  {
+    "category": "good_news",
+    "content": "User is sharing good news. Match their excitement!",
+    "priority": 9,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Combined Injection Sets > should produce consistent output for crisis scenario 1`] = `
+[
+  {
+    "category": "humanizing",
+    "content": "Be warm and present. You are ferni, speaking naturally and authentically.",
+    "priority": 8,
+  },
+  {
+    "category": "humanizing",
+    "content": "This is a returning user. Reference shared history naturally when relevant.",
+    "priority": 7,
+  },
+  {
+    "category": "humanizing",
+    "content": "Match the user's distressed energy level appropriately.",
+    "priority": 9,
+  },
+  {
+    "category": "humanizing",
+    "content": "Early conversation - focus on building rapport and understanding.",
+    "priority": 6,
+  },
+  {
+    "category": "emotional",
+    "content": "User emotion detected: hopeless (intensity: 0.95)",
+    "priority": 8,
+  },
+  {
+    "category": "emotional",
+    "content": "IMPORTANT: User shows signs of distress. Prioritize validation and support over advice.",
+    "priority": 10,
+  },
+  {
+    "category": "emotional",
+    "content": "User needs emotional support. Be empathetic and avoid problem-solving mode.",
+    "priority": 9,
+  },
+  {
+    "category": "emotional",
+    "content": "Start response by acknowledging what user shared before continuing.",
+    "priority": 9,
+  },
+  {
+    "category": "safety",
+    "content": "PRIORITY: Crisis indicators detected. 
+1. Acknowledge user's feelings directly
+2. Ask about their safety: "Are you safe right now?"
+3. Avoid dismissive language
+4. Stay present and connected
+5. Offer professional resources if appropriate",
+    "priority": 10,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Combined Injection Sets > should produce consistent output for new user greeting scenario 1`] = `
+[
+  {
+    "category": "humanizing",
+    "content": "Be warm and present. You are ferni, speaking naturally and authentically.",
+    "priority": 8,
+  },
+  {
+    "category": "humanizing",
+    "content": "Early conversation - focus on building rapport and understanding.",
+    "priority": 6,
+  },
+  {
+    "category": "emotional",
+    "content": "User emotion detected: curious (intensity: 0.60)",
+    "priority": 8,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Combined Injection Sets > should produce consistent output for support scenario 1`] = `
+[
+  {
+    "category": "humanizing",
+    "content": "Be warm and present. You are ferni, speaking naturally and authentically.",
+    "priority": 8,
+  },
+  {
+    "category": "humanizing",
+    "content": "This is a returning user. Reference shared history naturally when relevant.",
+    "priority": 7,
+  },
+  {
+    "category": "humanizing",
+    "content": "Match the user's sad energy level appropriately.",
+    "priority": 9,
+  },
+  {
+    "category": "emotional",
+    "content": "User emotion detected: sad (intensity: 0.70)",
+    "priority": 8,
+  },
+  {
+    "category": "emotional",
+    "content": "User needs emotional support. Be empathetic and avoid problem-solving mode.",
+    "priority": 9,
+  },
+  {
+    "category": "emotional",
+    "content": "Start response by acknowledging what user shared before continuing.",
+    "priority": 9,
+  },
+  {
+    "category": "memory",
+    "content": "Recent topics: grief, loss. Build on this context.",
+    "priority": 6,
+  },
+  {
+    "category": "memory",
+    "content": "Relevant past conversations:
+- User lost their father last month",
+    "priority": 7,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Emotional Injections > should produce consistent output for anxious state 1`] = `
+[
+  {
+    "category": "emotional",
+    "content": "User emotion detected: anxious (intensity: 0.75)",
+    "priority": 8,
+  },
+  {
+    "category": "emotional",
+    "content": "IMPORTANT: User shows signs of distress. Prioritize validation and support over advice.",
+    "priority": 10,
+  },
+  {
+    "category": "emotional",
+    "content": "User needs emotional support. Be empathetic and avoid problem-solving mode.",
+    "priority": 9,
+  },
+  {
+    "category": "emotional",
+    "content": "Start response by acknowledging what user shared before continuing.",
+    "priority": 9,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Emotional Injections > should produce consistent output for distressed state 1`] = `
+[
+  {
+    "category": "emotional",
+    "content": "User emotion detected: distressed (intensity: 0.90)",
+    "priority": 8,
+  },
+  {
+    "category": "emotional",
+    "content": "IMPORTANT: User shows signs of distress. Prioritize validation and support over advice.",
+    "priority": 10,
+  },
+  {
+    "category": "emotional",
+    "content": "User needs emotional support. Be empathetic and avoid problem-solving mode.",
+    "priority": 9,
+  },
+  {
+    "category": "emotional",
+    "content": "Start response by acknowledging what user shared before continuing.",
+    "priority": 9,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Emotional Injections > should produce consistent output for happy state 1`] = `
+[
+  {
+    "category": "emotional",
+    "content": "User emotion detected: happy (intensity: 0.80)",
+    "priority": 8,
+  },
+  {
+    "category": "emotional",
+    "content": "Start response by acknowledging what user shared before continuing.",
+    "priority": 9,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Emotional Injections > should produce consistent output for neutral state 1`] = `
+[
+  {
+    "category": "emotional",
+    "content": "User emotion detected: neutral (intensity: 0.50)",
+    "priority": 8,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Humanizing Injections > should produce consistent output for all personas > humanizing-alex 1`] = `
+[
+  {
+    "category": "humanizing",
+    "content": "Be warm and present. You are alex, speaking naturally and authentically.",
+    "priority": 8,
+  },
+  {
+    "category": "humanizing",
+    "content": "This is a returning user. Reference shared history naturally when relevant.",
+    "priority": 7,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Humanizing Injections > should produce consistent output for all personas > humanizing-ferni 1`] = `
+[
+  {
+    "category": "humanizing",
+    "content": "Be warm and present. You are ferni, speaking naturally and authentically.",
+    "priority": 8,
+  },
+  {
+    "category": "humanizing",
+    "content": "This is a returning user. Reference shared history naturally when relevant.",
+    "priority": 7,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Humanizing Injections > should produce consistent output for all personas > humanizing-jordan 1`] = `
+[
+  {
+    "category": "humanizing",
+    "content": "Be warm and present. You are jordan, speaking naturally and authentically.",
+    "priority": 8,
+  },
+  {
+    "category": "humanizing",
+    "content": "This is a returning user. Reference shared history naturally when relevant.",
+    "priority": 7,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Humanizing Injections > should produce consistent output for all personas > humanizing-maya 1`] = `
+[
+  {
+    "category": "humanizing",
+    "content": "Be warm and present. You are maya, speaking naturally and authentically.",
+    "priority": 8,
+  },
+  {
+    "category": "humanizing",
+    "content": "This is a returning user. Reference shared history naturally when relevant.",
+    "priority": 7,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Humanizing Injections > should produce consistent output for all personas > humanizing-nayan 1`] = `
+[
+  {
+    "category": "humanizing",
+    "content": "Be warm and present. You are nayan, speaking naturally and authentically.",
+    "priority": 8,
+  },
+  {
+    "category": "humanizing",
+    "content": "This is a returning user. Reference shared history naturally when relevant.",
+    "priority": 7,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Humanizing Injections > should produce consistent output for all personas > humanizing-peter 1`] = `
+[
+  {
+    "category": "humanizing",
+    "content": "Be warm and present. You are peter, speaking naturally and authentically.",
+    "priority": 8,
+  },
+  {
+    "category": "humanizing",
+    "content": "This is a returning user. Reference shared history naturally when relevant.",
+    "priority": 7,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Humanizing Injections > should produce consistent output for deep conversation 1`] = `
+[
+  {
+    "category": "humanizing",
+    "content": "Be warm and present. You are maya, speaking naturally and authentically.",
+    "priority": 8,
+  },
+  {
+    "category": "humanizing",
+    "content": "This is a returning user. Reference shared history naturally when relevant.",
+    "priority": 7,
+  },
+  {
+    "category": "humanizing",
+    "content": "Match the user's contemplative energy level appropriately.",
+    "priority": 9,
+  },
+  {
+    "category": "humanizing",
+    "content": "Deep conversation - feel comfortable going deeper into topics.",
+    "priority": 6,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Humanizing Injections > should produce consistent output for new user greeting 1`] = `
+[
+  {
+    "category": "humanizing",
+    "content": "Be warm and present. You are ferni, speaking naturally and authentically.",
+    "priority": 8,
+  },
+  {
+    "category": "humanizing",
+    "content": "Early conversation - focus on building rapport and understanding.",
+    "priority": 6,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Humanizing Injections > should produce consistent output for returning user 1`] = `
+[
+  {
+    "category": "humanizing",
+    "content": "Be warm and present. You are ferni, speaking naturally and authentically.",
+    "priority": 8,
+  },
+  {
+    "category": "humanizing",
+    "content": "This is a returning user. Reference shared history naturally when relevant.",
+    "priority": 7,
+  },
+  {
+    "category": "humanizing",
+    "content": "Match the user's happy energy level appropriately.",
+    "priority": 9,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Memory Injections > should produce consistent output with full memory context 1`] = `
+[
+  {
+    "category": "memory",
+    "content": "Recent topics: relationships, communication. Build on this context.",
+    "priority": 6,
+  },
+  {
+    "category": "memory",
+    "content": "Relevant past conversations:
+- User mentioned having difficulty with their manager last week
+- User is working on setting better boundaries
+- User has a partner named Alex",
+    "priority": 7,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Memory Injections > should produce consistent output with no memory 1`] = `[]`;
+
+exports[`Context Injection Snapshots > Memory Injections > should produce consistent output with topics only 1`] = `
+[
+  {
+    "category": "memory",
+    "content": "Recent topics: career, work-life balance, stress. Build on this context.",
+    "priority": 6,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Safety Injections > should produce consistent output for crisis detection 1`] = `
+[
+  {
+    "category": "safety",
+    "content": "PRIORITY: Crisis indicators detected. 
+1. Acknowledge user's feelings directly
+2. Ask about their safety: "Are you safe right now?"
+3. Avoid dismissive language
+4. Stay present and connected
+5. Offer professional resources if appropriate",
+    "priority": 10,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Safety Injections > should produce consistent output for high distress 1`] = `
+[
+  {
+    "category": "safety",
+    "content": "High distress detected. Prioritize emotional support and validation.",
+    "priority": 9,
+  },
+]
+`;
+
+exports[`Context Injection Snapshots > Safety Injections > should produce consistent output for no crisis 1`] = `[]`;

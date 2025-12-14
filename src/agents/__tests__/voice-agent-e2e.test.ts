@@ -222,11 +222,20 @@ describe('Voice Agent Child Module Structure', () => {
 
   it('should have PreloadedDeps with all required fields', () => {
     const deps = childModule.getPreloadedDeps();
+    // Match actual PreloadedDeps interface in voice-agent-child.ts
     const requiredFields = [
-      'voice', 'google', 'silero', 'genai',
-      'resourceServer', 'e2eDiagnostics', 'warmGreeting', 'selfHealing',
-      'voiceManager', 'personas', 'startup', 'voiceAgentEntry', 'voiceAgentSession',
-      'vadModel', 'personaBundlesReady',
+      'voice',
+      'google',
+      'silero',
+      'genai',
+      'cacheReader',
+      'e2eDiagnostics',
+      'warmGreeting',
+      'lightweightTTS',
+      'lightweightResilience',
+      'vadModel',
+      'personaBundlesReady',
+      'cartesiaTTSPrewarmed',
     ];
 
     for (const field of requiredFields) {
@@ -454,9 +463,9 @@ describe('Logging Coverage', () => {
     const fs = await import('fs/promises');
     const sourceCode = await fs.readFile(CONFIG.SRC_CHILD_PATH, 'utf-8');
 
-    // Should log when entry waits for prewarm
-    expect(sourceCode).toContain('Waiting for prewarm');
-    expect(sourceCode).toContain('Prewarm ready');
+    // Should log when entry waits for prewarm (actual messages from the source)
+    expect(sourceCode).toContain('Waiting for prewarm to complete');
+    expect(sourceCode).toContain('Prewarm signaled ready');
   });
 
   it('should log dependency state', async () => {

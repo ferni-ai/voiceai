@@ -1,0 +1,320 @@
+# Agent E2E Tests Workflow
+#
+# Runs comprehensive E2E tests for the voice agent:
+# - Unit tests for agents and conversation modules
+# - Integration tests with mocked services
+# - Contract tests for frontend messages
+# - Performance regression tests
+# - Chaos/resilience tests
+#
+# Triggers:
+# - Push to main (agents or conversation changes)
+# - Pull requests touching agents or conversation
+# - Manual dispatch
+
+name: Agent E2E Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/agents/**'
+      - 'src/conversation/**'
+      - 'src/speech/**'
+      - 'src/intelligence/**'
+  pull_request:
+    paths:
+      - 'src/agents/**'
+      - 'src/conversation/**'
+      - 'src/speech/**'
+      - 'src/intelligence/**'
+  workflow_dispatch:
+    inputs:
+      run_performance:
+        description: 'Run performance tests'
+        required: false
+        default: 'true'
+      run_chaos:
+        description: 'Run chaos tests'
+        required: false
+        default: 'true'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ==========================================================================
+  # UNIT TESTS
+  # ==========================================================================
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run agent unit tests
+        run: |
+          pnpm vitest run src/agents/__tests__/*.test.ts \
+            --reporter=verbose \
+            --coverage.enabled=true \
+            --coverage.reporter=text \
+            --coverage.reporter=lcov
+
+      - name: Run conversation unit tests
+        run: |
+          pnpm vitest run src/conversation/__tests__/*.test.ts \
+            --reporter=verbose
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/lcov.info
+          flags: unit-tests
+          name: agent-unit-tests
+
+  # ==========================================================================
+  # INTEGRATION TESTS
+  # ==========================================================================
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: unit-tests
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run session lifecycle tests
+        run: |
+          pnpm vitest run src/agents/__tests__/integration/session-lifecycle.test.ts \
+            --reporter=verbose
+
+      - name: Run turn processing tests
+        run: |
+          pnpm vitest run src/agents/__tests__/integration/turn-processing.test.ts \
+            --reporter=verbose
+
+      - name: Run multi-turn scenario tests
+        run: |
+          pnpm vitest run src/agents/__tests__/scenarios/*.test.ts \
+            --reporter=verbose
+
+  # ==========================================================================
+  # CONTRACT TESTS
+  # ==========================================================================
+  contract-tests:
+    name: Contract Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: unit-tests
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run frontend message contract tests
+        run: |
+          pnpm vitest run src/agents/__tests__/contracts/*.test.ts \
+            --reporter=verbose
+
+  # ==========================================================================
+  # SNAPSHOT TESTS
+  # ==========================================================================
+  snapshot-tests:
+    name: Snapshot Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: unit-tests
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run snapshot tests
+        run: |
+          pnpm vitest run src/agents/__tests__/snapshots/*.test.ts \
+            --reporter=verbose
+
+      - name: Check for snapshot updates
+        run: |
+          if git diff --name-only | grep -q "__snapshots__"; then
+            echo "::warning::Snapshots were updated. Please review and commit."
+            git diff --stat
+          fi
+
+  # ==========================================================================
+  # PERFORMANCE TESTS
+  # ==========================================================================
+  performance-tests:
+    name: Performance Regression Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [unit-tests, integration-tests]
+    if: ${{ github.event.inputs.run_performance != 'false' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run performance tests
+        run: |
+          pnpm vitest run src/agents/__tests__/performance/*.test.ts \
+            --reporter=verbose
+
+      - name: Generate performance report
+        run: |
+          echo "## Performance Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Performance budgets validated successfully." >> $GITHUB_STEP_SUMMARY
+
+  # ==========================================================================
+  # CHAOS TESTS
+  # ==========================================================================
+  chaos-tests:
+    name: Chaos/Resilience Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [unit-tests, integration-tests]
+    if: ${{ github.event.inputs.run_chaos != 'false' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run chaos tests
+        run: |
+          pnpm vitest run src/agents/__tests__/chaos/*.test.ts \
+            --reporter=verbose
+
+      - name: Run diagnostics integration tests
+        run: |
+          pnpm vitest run src/agents/__tests__/diagnostics/*.test.ts \
+            --reporter=verbose
+
+  # ==========================================================================
+  # ALL TESTS SUMMARY
+  # ==========================================================================
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs:
+      - unit-tests
+      - integration-tests
+      - contract-tests
+      - snapshot-tests
+      - performance-tests
+      - chaos-tests
+    if: always()
+
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "## Agent E2E Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | ${{ needs.unit-tests.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration Tests | ${{ needs.integration-tests.result == 'success' && '✅ Passed' || needs.integration-tests.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Contract Tests | ${{ needs.contract-tests.result == 'success' && '✅ Passed' || needs.contract-tests.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Snapshot Tests | ${{ needs.snapshot-tests.result == 'success' && '✅ Passed' || needs.snapshot-tests.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance Tests | ${{ needs.performance-tests.result == 'success' && '✅ Passed' || needs.performance-tests.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Chaos Tests | ${{ needs.chaos-tests.result == 'success' && '✅ Passed' || needs.chaos-tests.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check all passed
+        if: |
+          needs.unit-tests.result != 'success' ||
+          needs.integration-tests.result != 'success' ||
+          needs.contract-tests.result != 'success' ||
+          needs.snapshot-tests.result != 'success'
+        run: |
+          echo "Some required tests failed"
+          exit 1

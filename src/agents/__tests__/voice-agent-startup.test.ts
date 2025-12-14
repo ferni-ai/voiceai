@@ -127,15 +127,20 @@ describe('Voice Agent Child Module', () => {
     it('should export PreloadedDeps interface type', async () => {
       const childModule = await import('../voice-agent-child.js');
       const deps = childModule.getPreloadedDeps();
-      
-      // Verify structure (all initially null)
+
+      // Verify structure matches actual PreloadedDeps interface
       expect(deps).toHaveProperty('voice');
       expect(deps).toHaveProperty('google');
       expect(deps).toHaveProperty('silero');
       expect(deps).toHaveProperty('genai');
-      expect(deps).toHaveProperty('voiceAgentSession');
+      expect(deps).toHaveProperty('cacheReader');
+      expect(deps).toHaveProperty('e2eDiagnostics');
+      expect(deps).toHaveProperty('warmGreeting');
+      expect(deps).toHaveProperty('lightweightTTS');
+      expect(deps).toHaveProperty('lightweightResilience');
       expect(deps).toHaveProperty('vadModel');
       expect(deps).toHaveProperty('personaBundlesReady');
+      expect(deps).toHaveProperty('cartesiaTTSPrewarmed');
     });
   });
 
