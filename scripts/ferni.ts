@@ -20,19 +20,26 @@
  *   npm run ferni deploy ui
  */
 
-import { spawn, spawnSync, execSync } from 'child_process';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
-import * as readline from 'readline';
-import { existsSync, readFileSync } from 'fs';
+import { execSync, spawn, spawnSync } from 'child_process';
 import { config as dotenvConfig } from 'dotenv';
+import { existsSync, readFileSync } from 'fs';
+import { dirname, join } from 'path';
+import * as readline from 'readline';
+import { fileURLToPath } from 'url';
 
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROJECT_ROOT = dirname(__dirname);
+// Support both ESM (normal) and SEA binary (bundled) modes
+// In SEA binary mode, import.meta.url is set to a marker value at build time
+const isSEABinary = import.meta.url.includes('ferni-sea-binary');
+const __dirname = isSEABinary
+  ? join(process.cwd(), 'scripts')
+  : dirname(fileURLToPath(import.meta.url));
+
+const PROJECT_ROOT =
+  process.env.FERNI_PROJECT_ROOT || (isSEABinary ? process.cwd() : dirname(__dirname));
 
 // Load .env file from project root
 dotenvConfig({ path: join(PROJECT_ROOT, '.env') });
@@ -163,7 +170,11 @@ const COMMANDS: Record<string, CliCommand> = {
     icon: icons.agent,
     handler: handleAgents,
     subcommands: ['new', 'list', 'show', 'validate', 'install', 'uninstall', 'search'],
-    examples: ['ferni agents new', 'ferni agents list', 'ferni agents validate atlas-career-navigator'],
+    examples: [
+      'ferni agents new',
+      'ferni agents list',
+      'ferni agents validate atlas-career-navigator',
+    ],
   },
   logs: {
     name: 'Logs',
@@ -210,7 +221,17 @@ const COMMANDS: Record<string, CliCommand> = {
     description: 'Configure development environment',
     icon: icons.gear,
     script: 'scripts/setup.ts',
-    subcommands: ['local', 'icons', 'firestore', 'github', 'persistence', 'signing', 'slack', 'secrets', 'all'],
+    subcommands: [
+      'local',
+      'icons',
+      'firestore',
+      'github',
+      'persistence',
+      'signing',
+      'slack',
+      'secrets',
+      'all',
+    ],
     examples: ['ferni setup local', 'ferni setup all --yes'],
   },
   test: {
@@ -267,14 +288,27 @@ const COMMANDS: Record<string, CliCommand> = {
     icon: '🎨',
     handler: handleTokens,
     subcommands: ['sync', 'check', 'version', 'watch', 'brand'],
-    examples: ['ferni tokens sync', 'ferni tokens version patch "Fixed colors"', 'ferni tokens watch'],
+    examples: [
+      'ferni tokens sync',
+      'ferni tokens version patch "Fixed colors"',
+      'ferni tokens watch',
+    ],
   },
   design: {
     name: 'Design',
     description: 'Design system compliance & automation',
     icon: '🎨',
     handler: handleDesign,
-    subcommands: ['check', 'fix', 'ai-fix', 'priority', 'watch', 'storybook', 'wcag', 'brand-words'],
+    subcommands: [
+      'check',
+      'fix',
+      'ai-fix',
+      'priority',
+      'watch',
+      'storybook',
+      'wcag',
+      'brand-words',
+    ],
     examples: ['ferni design check', 'ferni design ai-fix', 'ferni design storybook'],
   },
   dev: {
@@ -396,7 +430,11 @@ const COMMANDS: Record<string, CliCommand> = {
     icon: '🏥',
     handler: handleSelfHeal,
     subcommands: ['health', 'circuits', 'restart', 'diagnose', 'anomalies'],
-    examples: ['ferni self-heal health', 'ferni self-heal circuits', 'ferni self-heal restart agent'],
+    examples: [
+      'ferni self-heal health',
+      'ferni self-heal circuits',
+      'ferni self-heal restart agent',
+    ],
   },
   circuits: {
     name: 'Circuits',
@@ -502,7 +540,11 @@ const COMMANDS: Record<string, CliCommand> = {
     icon: '📦',
     handler: handleReleaseAuto,
     subcommands: ['auto', 'notes', 'announce'],
-    examples: ['ferni release-auto auto', 'ferni release-auto notes', 'ferni release-auto announce'],
+    examples: [
+      'ferni release-auto auto',
+      'ferni release-auto notes',
+      'ferni release-auto announce',
+    ],
   },
   'deps-ai': {
     name: 'Deps AI',
@@ -518,7 +560,11 @@ const COMMANDS: Record<string, CliCommand> = {
     icon: '🚨',
     handler: handleIncidentCmd,
     subcommands: ['start', 'diagnose', 'postmortem', 'list'],
-    examples: ['ferni incident start', 'ferni incident diagnose', 'ferni incident postmortem INC-xxx'],
+    examples: [
+      'ferni incident start',
+      'ferni incident diagnose',
+      'ferni incident postmortem INC-xxx',
+    ],
   },
   refactor: {
     name: 'Refactor',
@@ -578,7 +624,11 @@ function runCommand(script: string, args: string[]): void {
 
 function execCommand(cmd: string): string {
   try {
-    return execSync(cmd, { encoding: 'utf-8', cwd: PROJECT_ROOT, stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+    return execSync(cmd, {
+      encoding: 'utf-8',
+      cwd: PROJECT_ROOT,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
   } catch {
     return '';
   }
@@ -586,7 +636,11 @@ function execCommand(cmd: string): string {
 
 function execCommandWithStatus(cmd: string): { output: string; success: boolean } {
   try {
-    const output = execSync(cmd, { encoding: 'utf-8', cwd: PROJECT_ROOT, stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+    const output = execSync(cmd, {
+      encoding: 'utf-8',
+      cwd: PROJECT_ROOT,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
     return { output, success: true };
   } catch (error) {
     return { output: (error as Error).message, success: false };
@@ -704,7 +758,10 @@ async function handleStatus(args: string[]): Promise<void> {
         const revResult = execCommand(revCmd);
         if (revResult) {
           const [revName, revStatus] = revResult.split('\t');
-          const statusIcon = revStatus === 'True' ? `${colors.green}●${colors.reset}` : `${colors.yellow}●${colors.reset}`;
+          const statusIcon =
+            revStatus === 'True'
+              ? `${colors.green}●${colors.reset}`
+              : `${colors.yellow}●${colors.reset}`;
           console.log(`    Revision: ${colors.dim}${revName}${colors.reset} ${statusIcon}`);
         }
       } else {
@@ -724,11 +781,16 @@ async function handleStatus(args: string[]): Promise<void> {
       const cmd = `gcloud run revisions list --service=${service} --project=${GCP_PROJECT} --region=${GCP_REGION} --limit=3 --format="table[no-heading](name,status.conditions[0].status,metadata.creationTimestamp)" 2>/dev/null`;
       const result = execCommand(cmd);
       if (result) {
-        result.split('\n').forEach(line => {
+        result.split('\n').forEach((line) => {
           const parts = line.trim().split(/\s+/);
           if (parts.length >= 2) {
-            const status = parts[1] === 'True' ? `${colors.green}✓${colors.reset}` : `${colors.yellow}○${colors.reset}`;
-            console.log(`    ${status} ${parts[0]} ${colors.dim}${parts.slice(2).join(' ')}${colors.reset}`);
+            const status =
+              parts[1] === 'True'
+                ? `${colors.green}✓${colors.reset}`
+                : `${colors.yellow}○${colors.reset}`;
+            console.log(
+              `    ${status} ${parts[0]} ${colors.dim}${parts.slice(2).join(' ')}${colors.reset}`
+            );
           }
         });
       }
@@ -762,7 +824,9 @@ async function handleStatus(args: string[]): Promise<void> {
       const healthUrl = `${url}/health`;
       const spinner = new Spinner(`Checking ${name} health...`);
       spinner.start();
-      const healthResult = execCommandWithStatus(`curl -s -o /dev/null -w "%{http_code}" "${healthUrl}" 2>/dev/null`);
+      const healthResult = execCommandWithStatus(
+        `curl -s -o /dev/null -w "%{http_code}" "${healthUrl}" 2>/dev/null`
+      );
       const isHealthy = healthResult.output === '200';
       spinner.stop(isHealthy);
       if (!isHealthy) {
@@ -792,21 +856,47 @@ async function handleDoctor(args: string[]): Promise<void> {
       { name: 'Node.js', cmd: 'node --version', expected: /^v\d+\.\d+/, required: true },
       { name: 'npm', cmd: 'npm --version', expected: /^\d+/, required: true },
       { name: 'TypeScript', cmd: 'npx tsc --version', expected: /Version/, required: true },
-      { name: 'gcloud CLI', cmd: 'gcloud --version 2>/dev/null | head -1', expected: /Google Cloud SDK/, required: true },
-      { name: 'Docker', cmd: 'docker --version 2>/dev/null', expected: /Docker version/, required: false },
-      { name: 'Firebase CLI', cmd: 'firebase --version 2>/dev/null', expected: /\d+\.\d+/, required: false },
-      { name: 'gh CLI', cmd: 'gh --version 2>/dev/null | head -1', expected: /gh version/, required: false },
+      {
+        name: 'gcloud CLI',
+        cmd: 'gcloud --version 2>/dev/null | head -1',
+        expected: /Google Cloud SDK/,
+        required: true,
+      },
+      {
+        name: 'Docker',
+        cmd: 'docker --version 2>/dev/null',
+        expected: /Docker version/,
+        required: false,
+      },
+      {
+        name: 'Firebase CLI',
+        cmd: 'firebase --version 2>/dev/null',
+        expected: /\d+\.\d+/,
+        required: false,
+      },
+      {
+        name: 'gh CLI',
+        cmd: 'gh --version 2>/dev/null | head -1',
+        expected: /gh version/,
+        required: false,
+      },
     ];
 
     for (const check of envChecks) {
       const result = execCommand(check.cmd);
       if (check.expected.test(result)) {
-        console.log(`  ${colors.green}${icons.success}${colors.reset} ${check.name}: ${colors.dim}${result.split('\n')[0]}${colors.reset}`);
+        console.log(
+          `  ${colors.green}${icons.success}${colors.reset} ${check.name}: ${colors.dim}${result.split('\n')[0]}${colors.reset}`
+        );
       } else if (check.required) {
-        console.log(`  ${colors.red}${icons.error}${colors.reset} ${check.name}: ${colors.dim}not found (required)${colors.reset}`);
+        console.log(
+          `  ${colors.red}${icons.error}${colors.reset} ${check.name}: ${colors.dim}not found (required)${colors.reset}`
+        );
         issues++;
       } else {
-        console.log(`  ${colors.yellow}${icons.warning}${colors.reset} ${check.name}: ${colors.dim}not found (optional)${colors.reset}`);
+        console.log(
+          `  ${colors.yellow}${icons.warning}${colors.reset} ${check.name}: ${colors.dim}not found (optional)${colors.reset}`
+        );
         warnings++;
       }
     }
@@ -828,7 +918,9 @@ async function handleDoctor(args: string[]): Promise<void> {
     for (const api of apis) {
       const spinner = new Spinner(`Checking ${api}...`);
       spinner.start();
-      const result = execCommand(`gcloud services list --enabled --filter="name:${api}" --format="value(name)" --project=${GCP_PROJECT} 2>/dev/null`);
+      const result = execCommand(
+        `gcloud services list --enabled --filter="name:${api}" --format="value(name)" --project=${GCP_PROJECT} 2>/dev/null`
+      );
       if (result.includes(api)) {
         spinner.stop(true);
       } else {
@@ -857,10 +949,14 @@ async function handleDoctor(args: string[]): Promise<void> {
       if (exists) {
         console.log(`  ${colors.green}${icons.success}${colors.reset} ${file.path}`);
       } else if (file.required) {
-        console.log(`  ${colors.red}${icons.error}${colors.reset} ${file.path} ${colors.dim}(${file.desc} - required)${colors.reset}`);
+        console.log(
+          `  ${colors.red}${icons.error}${colors.reset} ${file.path} ${colors.dim}(${file.desc} - required)${colors.reset}`
+        );
         issues++;
       } else {
-        console.log(`  ${colors.yellow}${icons.warning}${colors.reset} ${file.path} ${colors.dim}(${file.desc} - optional)${colors.reset}`);
+        console.log(
+          `  ${colors.yellow}${icons.warning}${colors.reset} ${file.path} ${colors.dim}(${file.desc} - optional)${colors.reset}`
+        );
         warnings++;
       }
     }
@@ -889,11 +985,16 @@ async function handleDoctor(args: string[]): Promise<void> {
     ];
 
     for (const varName of requiredVars) {
-      const hasVar = envContent.includes(`${varName}=`) && !envContent.includes(`${varName}=\n`) && !envContent.includes(`${varName}=""`);
+      const hasVar =
+        envContent.includes(`${varName}=`) &&
+        !envContent.includes(`${varName}=\n`) &&
+        !envContent.includes(`${varName}=""`);
       if (hasVar) {
         console.log(`  ${colors.green}${icons.success}${colors.reset} ${varName}`);
       } else {
-        console.log(`  ${colors.red}${icons.error}${colors.reset} ${varName} ${colors.dim}(missing or empty)${colors.reset}`);
+        console.log(
+          `  ${colors.red}${icons.error}${colors.reset} ${varName} ${colors.dim}(missing or empty)${colors.reset}`
+        );
         issues++;
       }
     }
@@ -929,14 +1030,16 @@ async function handleDb(args: string[]): Promise<void> {
 
     const spinner = new Spinner('Checking Firestore...');
     spinner.start();
-    const result = execCommand(`gcloud firestore databases describe --project=${GCP_PROJECT} 2>/dev/null`);
+    const result = execCommand(
+      `gcloud firestore databases describe --project=${GCP_PROJECT} 2>/dev/null`
+    );
     spinner.stop(!!result);
 
     if (result) {
       const lines = result.split('\n');
-      lines.forEach(line => {
+      lines.forEach((line) => {
         if (line.includes(':')) {
-          const [key, value] = line.split(':').map(s => s.trim());
+          const [key, value] = line.split(':').map((s) => s.trim());
           if (key && value) {
             console.log(`    ${colors.dim}${key}:${colors.reset} ${value}`);
           }
@@ -952,7 +1055,9 @@ async function handleDb(args: string[]): Promise<void> {
       console.log(`  ${colors.dim}${icons.bullet}${colors.reset} ${col}`);
     }
     console.log();
-    log.info(`View in console: https://console.cloud.google.com/firestore/databases/-default-/data?project=${GCP_PROJECT}`);
+    log.info(
+      `View in console: https://console.cloud.google.com/firestore/databases/-default-/data?project=${GCP_PROJECT}`
+    );
   }
 
   if (subcommand === 'backup') {
@@ -976,14 +1081,20 @@ async function handleDb(args: string[]): Promise<void> {
 
   if (subcommand === 'migrate') {
     log.info('Database migrations:');
-    console.log(`\n  ${colors.cyan}npx tsx scripts/migrate-memories.ts${colors.reset} - Migrate memory format`);
-    console.log(`  ${colors.cyan}npx tsx scripts/migrate-users.ts${colors.reset} - Migrate user schema\n`);
+    console.log(
+      `\n  ${colors.cyan}npx tsx scripts/migrate-memories.ts${colors.reset} - Migrate memory format`
+    );
+    console.log(
+      `  ${colors.cyan}npx tsx scripts/migrate-users.ts${colors.reset} - Migrate user schema\n`
+    );
   }
 
   if (subcommand === 'query') {
     log.info('Interactive query mode not yet implemented.');
     log.step('Use Firebase console for queries:');
-    console.log(`\n  ${colors.cyan}https://console.cloud.google.com/firestore/databases/-default-/data?project=${GCP_PROJECT}${colors.reset}\n`);
+    console.log(
+      `\n  ${colors.cyan}https://console.cloud.google.com/firestore/databases/-default-/data?project=${GCP_PROJECT}${colors.reset}\n`
+    );
   }
 }
 
@@ -1051,7 +1162,9 @@ async function handleTokens(args: string[]): Promise<void> {
       });
       const version = result.stdout?.toString().trim().split('\n').pop();
       console.log(`Current token version: ${colors.bold}${colors.green}${version}${colors.reset}`);
-      console.log(`\n${colors.dim}Bump version with: ferni tokens version <patch|minor|major> "change description"${colors.reset}`);
+      console.log(
+        `\n${colors.dim}Bump version with: ferni tokens version <patch|minor|major> "change description"${colors.reset}`
+      );
       return;
     }
 
@@ -1111,7 +1224,7 @@ async function handleDesign(args: string[]): Promise<void> {
 
     const extraArgs = args.slice(1);
     const checkArgs = ['design-system/check-design-compliance.js', ...extraArgs];
-    
+
     spawnSync('node', checkArgs, {
       cwd: PROJECT_ROOT,
       stdio: 'inherit',
@@ -1124,7 +1237,7 @@ async function handleDesign(args: string[]): Promise<void> {
     const isPriority = args.includes('--priority');
     const checkArgs = ['design-system/check-design-compliance.js', '--fix'];
     if (isPriority) checkArgs.push('--priority');
-    
+
     const result = spawnSync('node', checkArgs, {
       cwd: PROJECT_ROOT,
       stdio: 'inherit',
@@ -1138,7 +1251,9 @@ async function handleDesign(args: string[]): Promise<void> {
 
   if (subcommand === 'ai-fix') {
     console.log(`${colors.bold}🤖 AI-Powered Design System Fixer${colors.reset}\n`);
-    console.log(`${colors.dim}Ferni will use AI to intelligently fix violations...${colors.reset}\n`);
+    console.log(
+      `${colors.dim}Ferni will use AI to intelligently fix violations...${colors.reset}\n`
+    );
 
     // Check for API key
     if (!process.env.GOOGLE_API_KEY) {
@@ -1151,9 +1266,9 @@ async function handleDesign(args: string[]): Promise<void> {
 
     const extraArgs = args.slice(1);
     const fixArgs = ['design-system/ai-fix.js', ...extraArgs];
-    
+
     // If no args, run interactive mode
-    if (extraArgs.length === 0 || extraArgs.every(a => a.startsWith('--'))) {
+    if (extraArgs.length === 0 || extraArgs.every((a) => a.startsWith('--'))) {
       spawn('node', fixArgs, {
         cwd: PROJECT_ROOT,
         stdio: 'inherit',
@@ -1214,12 +1329,19 @@ async function handleDesign(args: string[]): Promise<void> {
 
   if (subcommand === 'brand-words') {
     console.log(`${colors.bold}Checking for forbidden brand words...${colors.reset}\n`);
-    
+
     const forbiddenWords = [
-      'chatbot', 'virtual assistant', 'AI assistant', 'bot',
-      'utilize', 'leverage', 'solution', 'platform', 'functionality'
+      'chatbot',
+      'virtual assistant',
+      'AI assistant',
+      'bot',
+      'utilize',
+      'leverage',
+      'solution',
+      'platform',
+      'functionality',
     ];
-    
+
     console.log(`${colors.dim}Scanning for: ${forbiddenWords.join(', ')}${colors.reset}\n`);
 
     let found = false;
@@ -1249,11 +1371,17 @@ async function handleDesign(args: string[]): Promise<void> {
   }
 
   // Show help if no valid subcommand
-  if (!['check', 'fix', 'ai-fix', 'priority', 'watch', 'storybook', 'wcag', 'brand-words'].includes(subcommand)) {
+  if (
+    !['check', 'fix', 'ai-fix', 'priority', 'watch', 'storybook', 'wcag', 'brand-words'].includes(
+      subcommand
+    )
+  ) {
     console.log(`${colors.bold}Available subcommands:${colors.reset}\n`);
     console.log(`  ${colors.cyan}check${colors.reset}        Check all files for violations`);
     console.log(`  ${colors.cyan}fix${colors.reset}          Rule-based auto-fix (fast, limited)`);
-    console.log(`  ${colors.cyan}ai-fix${colors.reset}       ${colors.magenta}🤖 AI-powered fix (smart, comprehensive)${colors.reset}`);
+    console.log(
+      `  ${colors.cyan}ai-fix${colors.reset}       ${colors.magenta}🤖 AI-powered fix (smart, comprehensive)${colors.reset}`
+    );
     console.log(`  ${colors.cyan}priority${colors.reset}     Check priority UI files only`);
     console.log(`  ${colors.cyan}watch${colors.reset}        Watch mode - auto-regenerate tokens`);
     console.log(`  ${colors.cyan}storybook${colors.reset}    Start Storybook for component docs`);
@@ -1262,10 +1390,18 @@ async function handleDesign(args: string[]): Promise<void> {
     console.log();
     console.log(`${colors.dim}Examples:${colors.reset}`);
     console.log(`  ferni design check`);
-    console.log(`  ferni design ai-fix                    ${colors.dim}# Interactive mode${colors.reset}`);
-    console.log(`  ferni design ai-fix --batch            ${colors.dim}# Fix all priority files${colors.reset}`);
-    console.log(`  ferni design ai-fix path/to/file.ts    ${colors.dim}# Fix specific file${colors.reset}`);
-    console.log(`  ferni design ai-fix --preview          ${colors.dim}# Preview without applying${colors.reset}`);
+    console.log(
+      `  ferni design ai-fix                    ${colors.dim}# Interactive mode${colors.reset}`
+    );
+    console.log(
+      `  ferni design ai-fix --batch            ${colors.dim}# Fix all priority files${colors.reset}`
+    );
+    console.log(
+      `  ferni design ai-fix path/to/file.ts    ${colors.dim}# Fix specific file${colors.reset}`
+    );
+    console.log(
+      `  ferni design ai-fix --preview          ${colors.dim}# Preview without applying${colors.reset}`
+    );
   }
 }
 
@@ -1291,7 +1427,7 @@ async function handleEnv(args: string[]): Promise<void> {
     }
 
     const content = readFileSync(envPath, 'utf-8');
-    const lines = content.split('\n').filter(l => l.trim() && !l.startsWith('#'));
+    const lines = content.split('\n').filter((l) => l.trim() && !l.startsWith('#'));
 
     let currentSection = '';
     for (const line of lines) {
@@ -1299,8 +1435,12 @@ async function handleEnv(args: string[]): Promise<void> {
         const [key, ...valueParts] = line.split('=');
         const value = valueParts.join('=');
         const hasValue = value && value !== '""' && value !== "''";
-        const icon = hasValue ? `${colors.green}●${colors.reset}` : `${colors.yellow}○${colors.reset}`;
-        const maskedValue = hasValue ? `${colors.dim}[set]${colors.reset}` : `${colors.dim}[empty]${colors.reset}`;
+        const icon = hasValue
+          ? `${colors.green}●${colors.reset}`
+          : `${colors.yellow}○${colors.reset}`;
+        const maskedValue = hasValue
+          ? `${colors.dim}[set]${colors.reset}`
+          : `${colors.dim}[empty]${colors.reset}`;
         console.log(`  ${icon} ${key} ${maskedValue}`);
       }
     }
@@ -1341,9 +1481,13 @@ async function handleEnv(args: string[]): Promise<void> {
       const regex = new RegExp(`^${key}=.+`, 'm');
       const hasValue = regex.test(content);
       if (hasValue) {
-        console.log(`    ${colors.green}${icons.success}${colors.reset} ${key} ${colors.dim}(${desc})${colors.reset}`);
+        console.log(
+          `    ${colors.green}${icons.success}${colors.reset} ${key} ${colors.dim}(${desc})${colors.reset}`
+        );
       } else {
-        console.log(`    ${colors.red}${icons.error}${colors.reset} ${key} ${colors.dim}(${desc})${colors.reset}`);
+        console.log(
+          `    ${colors.red}${icons.error}${colors.reset} ${key} ${colors.dim}(${desc})${colors.reset}`
+        );
         missingRequired++;
       }
     }
@@ -1353,9 +1497,13 @@ async function handleEnv(args: string[]): Promise<void> {
       const regex = new RegExp(`^${key}=.+`, 'm');
       const hasValue = regex.test(content);
       if (hasValue) {
-        console.log(`    ${colors.green}${icons.success}${colors.reset} ${key} ${colors.dim}(${desc})${colors.reset}`);
+        console.log(
+          `    ${colors.green}${icons.success}${colors.reset} ${key} ${colors.dim}(${desc})${colors.reset}`
+        );
       } else {
-        console.log(`    ${colors.dim}${icons.bullet}${colors.reset} ${key} ${colors.dim}(${desc})${colors.reset}`);
+        console.log(
+          `    ${colors.dim}${icons.bullet}${colors.reset} ${key} ${colors.dim}(${desc})${colors.reset}`
+        );
       }
     }
 
@@ -1383,26 +1531,27 @@ async function handleEnv(args: string[]): Promise<void> {
     const envContent = readFileSync(envPath, 'utf-8');
 
     const getKeys = (content: string) =>
-      content.split('\n')
-        .filter(l => l.includes('=') && !l.startsWith('#'))
-        .map(l => l.split('=')[0].trim());
+      content
+        .split('\n')
+        .filter((l) => l.includes('=') && !l.startsWith('#'))
+        .map((l) => l.split('=')[0].trim());
 
     const exampleKeys = new Set(getKeys(exampleContent));
     const envKeys = new Set(getKeys(envContent));
 
-    const missing = [...exampleKeys].filter(k => !envKeys.has(k));
-    const extra = [...envKeys].filter(k => !exampleKeys.has(k));
+    const missing = [...exampleKeys].filter((k) => !envKeys.has(k));
+    const extra = [...envKeys].filter((k) => !exampleKeys.has(k));
 
     if (missing.length === 0 && extra.length === 0) {
       log.success('No differences found');
     } else {
       if (missing.length > 0) {
         console.log(`  ${colors.red}Missing in .env:${colors.reset}`);
-        missing.forEach(k => console.log(`    ${colors.red}-${colors.reset} ${k}`));
+        missing.forEach((k) => console.log(`    ${colors.red}-${colors.reset} ${k}`));
       }
       if (extra.length > 0) {
         console.log(`  ${colors.yellow}Extra in .env (not in example):${colors.reset}`);
-        extra.forEach(k => console.log(`    ${colors.yellow}+${colors.reset} ${k}`));
+        extra.forEach((k) => console.log(`    ${colors.yellow}+${colors.reset} ${k}`));
       }
     }
   }
@@ -1412,7 +1561,9 @@ async function handleEnv(args: string[]): Promise<void> {
 
     const spinner = new Spinner('Fetching secrets...');
     spinner.start();
-    const result = execCommand(`gcloud secrets list --project=${GCP_PROJECT} --format="table(name,createTime)" 2>/dev/null`);
+    const result = execCommand(
+      `gcloud secrets list --project=${GCP_PROJECT} --format="table(name,createTime)" 2>/dev/null`
+    );
     spinner.stop(!!result);
 
     if (result) {
@@ -1422,7 +1573,9 @@ async function handleEnv(args: string[]): Promise<void> {
     }
 
     console.log();
-    log.info(`Manage secrets: https://console.cloud.google.com/security/secret-manager?project=${GCP_PROJECT}`);
+    log.info(
+      `Manage secrets: https://console.cloud.google.com/security/secret-manager?project=${GCP_PROJECT}`
+    );
   }
 
   if (subcommand === 'sync') {
@@ -1596,11 +1749,17 @@ async function handlePersonas(args: string[]): Promise<void> {
     if (existsSync(manifestPath)) {
       try {
         const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
-        console.log(`  ${colors.cyan}Display Name:${colors.reset} ${manifest.displayName || 'N/A'}`);
-        console.log(`  ${colors.cyan}Voice:${colors.reset} ${manifest.voice?.provider || 'N/A'} - ${manifest.voice?.id || 'N/A'}`);
+        console.log(
+          `  ${colors.cyan}Display Name:${colors.reset} ${manifest.displayName || 'N/A'}`
+        );
+        console.log(
+          `  ${colors.cyan}Voice:${colors.reset} ${manifest.voice?.provider || 'N/A'} - ${manifest.voice?.id || 'N/A'}`
+        );
         console.log(`  ${colors.cyan}Model:${colors.reset} ${manifest.model || 'default'}`);
         if (manifest.capabilities) {
-          console.log(`  ${colors.cyan}Capabilities:${colors.reset} ${manifest.capabilities.join(', ')}`);
+          console.log(
+            `  ${colors.cyan}Capabilities:${colors.reset} ${manifest.capabilities.join(', ')}`
+          );
         }
       } catch (e) {
         log.error('Failed to parse manifest');
@@ -1659,8 +1818,12 @@ async function handlePersonas(args: string[]): Promise<void> {
       const toolsDir = join(personaDir, persona, 'tools');
       const behaviorsDir = join(personaDir, persona, 'content', 'behaviors');
 
-      const tools = existsSync(toolsDir) ? execCommand(`ls ${toolsDir}/*.ts 2>/dev/null | wc -l`).trim() : '0';
-      const behaviors = existsSync(behaviorsDir) ? execCommand(`ls ${behaviorsDir}/*.json 2>/dev/null | wc -l`).trim() : '0';
+      const tools = existsSync(toolsDir)
+        ? execCommand(`ls ${toolsDir}/*.ts 2>/dev/null | wc -l`).trim()
+        : '0';
+      const behaviors = existsSync(behaviorsDir)
+        ? execCommand(`ls ${behaviorsDir}/*.json 2>/dev/null | wc -l`).trim()
+        : '0';
 
       totalTools += parseInt(tools);
       totalBehaviors += parseInt(behaviors);
@@ -1670,7 +1833,9 @@ async function handlePersonas(args: string[]): Promise<void> {
     }
 
     console.log();
-    console.log(`  ${colors.bold}Total:${colors.reset} ${personaList.length} personas, ${totalTools} tools, ${totalBehaviors} behaviors`);
+    console.log(
+      `  ${colors.bold}Total:${colors.reset} ${personaList.length} personas, ${totalTools} tools, ${totalBehaviors} behaviors`
+    );
   }
 
   if (subcommand === 'compare') {
@@ -1745,7 +1910,9 @@ async function handleQuality(args: string[]): Promise<void> {
         passed++;
       } else {
         failed++;
-        console.log(`\n${colors.dim}${result.stdout?.toString().slice(0, 500) || ''}${colors.reset}`);
+        console.log(
+          `\n${colors.dim}${result.stdout?.toString().slice(0, 500) || ''}${colors.reset}`
+        );
       }
     }
 
@@ -1818,8 +1985,12 @@ async function handlePR(args: string[]): Promise<void> {
     const behind = execCommand('git rev-list --count HEAD..origin/main 2>/dev/null || echo 0');
 
     console.log(`  Branch: ${colors.cyan}${branch}${colors.reset}`);
-    console.log(`  Uncommitted changes: ${uncommitted ? colors.yellow + 'Yes' : colors.green + 'None'}${colors.reset}`);
-    console.log(`  Behind main: ${behind !== '0' ? colors.yellow + behind + ' commits' : colors.green + 'Up to date'}${colors.reset}`);
+    console.log(
+      `  Uncommitted changes: ${uncommitted ? colors.yellow + 'Yes' : colors.green + 'None'}${colors.reset}`
+    );
+    console.log(
+      `  Behind main: ${behind !== '0' ? colors.yellow + behind + ' commits' : colors.green + 'Up to date'}${colors.reset}`
+    );
 
     console.log();
     if (allPassed && !uncommitted && behind === '0') {
@@ -1886,12 +2057,17 @@ async function handleTools(args: string[]): Promise<void> {
     console.log(`${colors.bold}Available LLM Tools:${colors.reset}\n`);
 
     // Get tool files
-    const toolFiles = execCommand(`find ${toolsDir} -name "*.ts" -type f ! -name "*.test.ts" ! -name "types.ts" ! -name "index.ts" ! -path "*/node_modules/*" 2>/dev/null`);
+    const toolFiles = execCommand(
+      `find ${toolsDir} -name "*.ts" -type f ! -name "*.test.ts" ! -name "types.ts" ! -name "index.ts" ! -path "*/node_modules/*" 2>/dev/null`
+    );
 
-    const tools = toolFiles.split('\n').filter(Boolean).map(f => {
-      const relative = f.replace(toolsDir + '/', '');
-      return relative.replace('.ts', '');
-    });
+    const tools = toolFiles
+      .split('\n')
+      .filter(Boolean)
+      .map((f) => {
+        const relative = f.replace(toolsDir + '/', '');
+        return relative.replace('.ts', '');
+      });
 
     // Group by directory
     const grouped: Record<string, string[]> = {};
@@ -1921,7 +2097,9 @@ async function handleTools(args: string[]): Promise<void> {
       return;
     }
 
-    const toolPath = execCommand(`find ${toolsDir} -name "${toolName}.ts" -type f ! -name "*.test.ts" 2>/dev/null | head -1`);
+    const toolPath = execCommand(
+      `find ${toolsDir} -name "${toolName}.ts" -type f ! -name "*.test.ts" 2>/dev/null | head -1`
+    );
 
     if (!toolPath) {
       log.error(`Tool not found: ${toolName}`);
@@ -1936,22 +2114,29 @@ async function handleTools(args: string[]): Promise<void> {
     console.log(`  ${colors.cyan}Lines:${colors.reset} ${lines}`);
 
     // Look for function definitions
-    const functions = execCommand(`grep -E "^(export )?(async )?function" "${toolPath}" 2>/dev/null | head -5`);
+    const functions = execCommand(
+      `grep -E "^(export )?(async )?function" "${toolPath}" 2>/dev/null | head -5`
+    );
     if (functions) {
       console.log(`\n  ${colors.cyan}Functions:${colors.reset}`);
-      functions.split('\n').filter(Boolean).forEach(fn => {
-        const match = fn.match(/function\s+(\w+)/);
-        if (match) {
-          console.log(`    ${colors.dim}${icons.bullet}${colors.reset} ${match[1]}`);
-        }
-      });
+      functions
+        .split('\n')
+        .filter(Boolean)
+        .forEach((fn) => {
+          const match = fn.match(/function\s+(\w+)/);
+          if (match) {
+            console.log(`    ${colors.dim}${icons.bullet}${colors.reset} ${match[1]}`);
+          }
+        });
     }
   }
 
   if (subcommand === 'stats') {
     console.log(`${colors.bold}Tool Statistics:${colors.reset}\n`);
 
-    const toolFiles = execCommand(`find ${toolsDir} -name "*.ts" -type f ! -name "*.test.ts" ! -name "types.ts" ! -name "index.ts" 2>/dev/null`);
+    const toolFiles = execCommand(
+      `find ${toolsDir} -name "*.ts" -type f ! -name "*.test.ts" ! -name "types.ts" ! -name "index.ts" 2>/dev/null`
+    );
     const tools = toolFiles.split('\n').filter(Boolean);
 
     let totalLines = 0;
@@ -2037,7 +2222,9 @@ async function handleJobs(args: string[]): Promise<void> {
     const spinner = new Spinner('Fetching Cloud Scheduler jobs...');
     spinner.start();
 
-    const result = execCommand(`gcloud scheduler jobs list --project=${GCP_PROJECT} --format="table(name,schedule,state,lastAttemptTime)" 2>/dev/null`);
+    const result = execCommand(
+      `gcloud scheduler jobs list --project=${GCP_PROJECT} --format="table(name,schedule,state,lastAttemptTime)" 2>/dev/null`
+    );
     spinner.stop(!!result);
 
     if (result) {
@@ -2056,7 +2243,9 @@ async function handleJobs(args: string[]): Promise<void> {
     const spinner = new Spinner('Checking job status...');
     spinner.start();
 
-    const result = execCommand(`gcloud scheduler jobs list --project=${GCP_PROJECT} --format="table(name,state,lastAttemptTime,status.code)" 2>/dev/null`);
+    const result = execCommand(
+      `gcloud scheduler jobs list --project=${GCP_PROJECT} --format="table(name,state,lastAttemptTime,status.code)" 2>/dev/null`
+    );
     spinner.stop(!!result);
 
     if (result) {
@@ -2139,10 +2328,16 @@ async function handleCosts(args: string[]): Promise<void> {
     console.log(`  ${colors.cyan}Active Resources:${colors.reset}`);
 
     const resources = [
-      { name: 'Cloud Run Services', cmd: `gcloud run services list --project=${GCP_PROJECT} --format="value(name)" 2>/dev/null | wc -l` },
+      {
+        name: 'Cloud Run Services',
+        cmd: `gcloud run services list --project=${GCP_PROJECT} --format="value(name)" 2>/dev/null | wc -l`,
+      },
       { name: 'Firestore Database', estimate: 'Standard pricing' },
       { name: 'Cloud Build', estimate: 'Pay per build minute' },
-      { name: 'Secret Manager', cmd: `gcloud secrets list --project=${GCP_PROJECT} --format="value(name)" 2>/dev/null | wc -l` },
+      {
+        name: 'Secret Manager',
+        cmd: `gcloud secrets list --project=${GCP_PROJECT} --format="value(name)" 2>/dev/null | wc -l`,
+      },
     ];
 
     for (const resource of resources) {
@@ -2161,7 +2356,9 @@ async function handleCosts(args: string[]): Promise<void> {
   if (subcommand === 'breakdown') {
     console.log(`${colors.bold}Cost Breakdown by Service:${colors.reset}\n`);
 
-    console.log(`  ${colors.dim}Note: Detailed cost breakdown requires BigQuery export setup${colors.reset}`);
+    console.log(
+      `  ${colors.dim}Note: Detailed cost breakdown requires BigQuery export setup${colors.reset}`
+    );
     console.log();
 
     // Show services
@@ -2190,8 +2387,12 @@ async function handleCosts(args: string[]): Promise<void> {
 
     console.log();
     console.log(`  ${colors.cyan}Quick links:${colors.reset}`);
-    console.log(`    Budgets: https://console.cloud.google.com/billing/budgets?project=${GCP_PROJECT}`);
-    console.log(`    Reports: https://console.cloud.google.com/billing/reports?project=${GCP_PROJECT}`);
+    console.log(
+      `    Budgets: https://console.cloud.google.com/billing/budgets?project=${GCP_PROJECT}`
+    );
+    console.log(
+      `    Reports: https://console.cloud.google.com/billing/reports?project=${GCP_PROJECT}`
+    );
   }
 
   if (subcommand === 'alerts') {
@@ -2371,9 +2572,13 @@ async function handleVoices(args: string[]): Promise<void> {
       try {
         const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
         if (manifest.voice?.id) {
-          console.log(`  ${colors.green}${icons.success}${colors.reset} ${persona}: ${manifest.voice.id}`);
+          console.log(
+            `  ${colors.green}${icons.success}${colors.reset} ${persona}: ${manifest.voice.id}`
+          );
         } else {
-          console.log(`  ${colors.yellow}${icons.warning}${colors.reset} ${persona}: No voice configured`);
+          console.log(
+            `  ${colors.yellow}${icons.warning}${colors.reset} ${persona}: No voice configured`
+          );
           allValid = false;
         }
       } catch {
@@ -2423,7 +2628,13 @@ async function handleDebug(args: string[]): Promise<void> {
 
     // Environment check
     output += `## Environment Variables (presence check)\n`;
-    const envVars = ['LIVEKIT_API_KEY', 'LIVEKIT_URL', 'GOOGLE_API_KEY', 'CARTESIA_API_KEY', 'STRIPE_SECRET_KEY'];
+    const envVars = [
+      'LIVEKIT_API_KEY',
+      'LIVEKIT_URL',
+      'GOOGLE_API_KEY',
+      'CARTESIA_API_KEY',
+      'STRIPE_SECRET_KEY',
+    ];
     for (const v of envVars) {
       output += `${v}: ${process.env[v] ? '✓ set' : '✗ missing'}\n`;
     }
@@ -2432,14 +2643,18 @@ async function handleDebug(args: string[]): Promise<void> {
     // Service status
     output += `## Service Status\n`;
     for (const [name, service] of Object.entries(SERVICES)) {
-      const status = execCommand(`gcloud run services describe ${service} --project=${GCP_PROJECT} --region=${GCP_REGION} --format="value(status.conditions[0].status)" 2>/dev/null`);
+      const status = execCommand(
+        `gcloud run services describe ${service} --project=${GCP_PROJECT} --region=${GCP_REGION} --format="value(status.conditions[0].status)" 2>/dev/null`
+      );
       output += `${name}: ${status === 'True' ? '✓ healthy' : '✗ unhealthy or not found'}\n`;
     }
     output += '\n';
 
     // Recent errors
     output += `## Recent Errors (last 10)\n`;
-    const errors = execCommand(`gcloud logging read "resource.type=cloud_run_revision AND severity>=ERROR" --limit=10 --project=${GCP_PROJECT} --format="table(timestamp,textPayload)" 2>/dev/null`);
+    const errors = execCommand(
+      `gcloud logging read "resource.type=cloud_run_revision AND severity>=ERROR" --limit=10 --project=${GCP_PROJECT} --format="table(timestamp,textPayload)" 2>/dev/null`
+    );
     output += errors || 'No recent errors found\n';
 
     // Write to file
@@ -2469,7 +2684,9 @@ async function handleDebug(args: string[]): Promise<void> {
     const spinner = new Spinner('Fetching error logs...');
     spinner.start();
 
-    const result = execCommand(`gcloud logging read "resource.type=cloud_run_revision AND severity>=ERROR" --limit=${limit} --project=${GCP_PROJECT} --format="table(timestamp,resource.labels.service_name,textPayload)" 2>/dev/null`);
+    const result = execCommand(
+      `gcloud logging read "resource.type=cloud_run_revision AND severity>=ERROR" --limit=${limit} --project=${GCP_PROJECT} --format="table(timestamp,resource.labels.service_name,textPayload)" 2>/dev/null`
+    );
 
     spinner.stop(true);
 
@@ -2493,7 +2710,9 @@ async function handleDebug(args: string[]): Promise<void> {
       const url = execCommand(urlCmd);
 
       if (url) {
-        const healthResult = execCommandWithStatus(`curl -s -o /dev/null -w "%{http_code}" "${url}/health" --max-time 5 2>/dev/null`);
+        const healthResult = execCommandWithStatus(
+          `curl -s -o /dev/null -w "%{http_code}" "${url}/health" --max-time 5 2>/dev/null`
+        );
         spinner.stop(healthResult.output === '200');
         if (healthResult.output !== '200') {
           console.log(`      ${colors.dim}HTTP ${healthResult.output || 'timeout'}${colors.reset}`);
@@ -2508,7 +2727,9 @@ async function handleDebug(args: string[]): Promise<void> {
     console.log(`\n  ${colors.cyan}Local Dev Servers:${colors.reset}`);
     for (const [name, port] of Object.entries(DEV_PORTS)) {
       const pids = execCommand(`lsof -i :${port} -t 2>/dev/null`);
-      const status = pids.trim() ? `${colors.green}✓${colors.reset} running (PID: ${pids.trim()})` : `${colors.dim}○${colors.reset} not running`;
+      const status = pids.trim()
+        ? `${colors.green}✓${colors.reset} running (PID: ${pids.trim()})`
+        : `${colors.dim}○${colors.reset} not running`;
       console.log(`    ${name} (${port}): ${status}`);
     }
 
@@ -2534,11 +2755,13 @@ async function handleDebug(args: string[]): Promise<void> {
     // Check .env file
     const envPath = join(PROJECT_ROOT, '.env');
     const envExists = existsSync(envPath);
-    console.log(`  .env file: ${envExists ? colors.green + '✓ exists' : colors.red + '✗ missing'}${colors.reset}`);
+    console.log(
+      `  .env file: ${envExists ? colors.green + '✓ exists' : colors.red + '✗ missing'}${colors.reset}`
+    );
 
     if (envExists) {
       const envContent = readFileSync(envPath, 'utf-8');
-      const envLines = envContent.split('\n').filter(l => l.includes('=') && !l.startsWith('#'));
+      const envLines = envContent.split('\n').filter((l) => l.includes('=') && !l.startsWith('#'));
       console.log(`  Variables defined: ${envLines.length}`);
 
       // Check critical vars
@@ -2552,8 +2775,11 @@ async function handleDebug(args: string[]): Promise<void> {
       ];
 
       for (const { key, desc } of critical) {
-        const hasValue = envContent.includes(`${key}=`) && !envContent.match(new RegExp(`${key}=\\s*$`, 'm'));
-        const status = hasValue ? `${colors.green}✓${colors.reset}` : `${colors.red}✗${colors.reset}`;
+        const hasValue =
+          envContent.includes(`${key}=`) && !envContent.match(new RegExp(`${key}=\\s*$`, 'm'));
+        const status = hasValue
+          ? `${colors.green}✓${colors.reset}`
+          : `${colors.red}✗${colors.reset}`;
         console.log(`    ${status} ${key} ${colors.dim}(${desc})${colors.reset}`);
       }
     }
@@ -2578,7 +2804,9 @@ async function handleDebug(args: string[]): Promise<void> {
     for (const { name, url } of endpoints) {
       const spinner = new Spinner(`Checking ${name}...`);
       spinner.start();
-      const result = execCommandWithStatus(`curl -s -o /dev/null -w "%{http_code}" "${url}" --max-time 5 2>/dev/null`);
+      const result = execCommandWithStatus(
+        `curl -s -o /dev/null -w "%{http_code}" "${url}" --max-time 5 2>/dev/null`
+      );
       const success = result.output.startsWith('2') || result.output.startsWith('3');
       spinner.stop(success);
       if (!success) {
@@ -2662,7 +2890,9 @@ async function handleIntegrations(args: string[]): Promise<void> {
     const hasKey = !!process.env[integration.envVar];
 
     if (!hasKey) {
-      console.log(`  ${colors.dim}○${colors.reset} ${integration.name}: ${colors.dim}not configured${colors.reset}`);
+      console.log(
+        `  ${colors.dim}○${colors.reset} ${integration.name}: ${colors.dim}not configured${colors.reset}`
+      );
       return false;
     }
 
@@ -2670,8 +2900,14 @@ async function handleIntegrations(args: string[]): Promise<void> {
       const spinner = new Spinner(`Checking ${integration.name}...`);
       spinner.start();
 
-      const result = execCommandWithStatus(`curl -s -o /dev/null -w "%{http_code}" "${integration.testUrl}" --max-time 5 2>/dev/null`);
-      const success = result.output.startsWith('2') || result.output.startsWith('3') || result.output === '401' || result.output === '403';
+      const result = execCommandWithStatus(
+        `curl -s -o /dev/null -w "%{http_code}" "${integration.testUrl}" --max-time 5 2>/dev/null`
+      );
+      const success =
+        result.output.startsWith('2') ||
+        result.output.startsWith('3') ||
+        result.output === '401' ||
+        result.output === '403';
 
       spinner.stop(success);
       if (!success) {
@@ -2679,7 +2915,9 @@ async function handleIntegrations(args: string[]): Promise<void> {
       }
       return success;
     } else {
-      console.log(`  ${colors.green}✓${colors.reset} ${integration.name}: ${colors.dim}API key configured${colors.reset}`);
+      console.log(
+        `  ${colors.green}✓${colors.reset} ${integration.name}: ${colors.dim}API key configured${colors.reset}`
+      );
       return true;
     }
   };
@@ -2696,12 +2934,16 @@ async function handleIntegrations(args: string[]): Promise<void> {
         const success = await checkIntegration(key, integration);
         if (success) healthy++;
       } else {
-        console.log(`  ${colors.dim}○${colors.reset} ${integration.name}: ${colors.dim}not configured${colors.reset}`);
+        console.log(
+          `  ${colors.dim}○${colors.reset} ${integration.name}: ${colors.dim}not configured${colors.reset}`
+        );
       }
     }
 
     console.log();
-    console.log(`  ${colors.bold}Summary:${colors.reset} ${healthy}/${configured} healthy, ${Object.keys(integrations).length - configured} not configured`);
+    console.log(
+      `  ${colors.bold}Summary:${colors.reset} ${healthy}/${configured} healthy, ${Object.keys(integrations).length - configured} not configured`
+    );
   } else if (integrations[subcommand]) {
     const integration = integrations[subcommand];
     console.log(`${colors.bold}Checking ${integration.name}...${colors.reset}\n`);
@@ -2731,7 +2973,8 @@ async function handleRelease(args: string[]): Promise<void> {
     // Get git info
     const branch = execCommand('git rev-parse --abbrev-ref HEAD');
     const lastTag = execCommand('git describe --tags --abbrev=0 2>/dev/null') || 'none';
-    const commitsSinceTag = execCommand(`git rev-list ${lastTag}..HEAD --count 2>/dev/null`) || 'N/A';
+    const commitsSinceTag =
+      execCommand(`git rev-list ${lastTag}..HEAD --count 2>/dev/null`) || 'N/A';
     const lastCommit = execCommand('git log -1 --format="%h %s"');
 
     console.log(`  Branch: ${colors.cyan}${branch}${colors.reset}`);
@@ -2741,18 +2984,23 @@ async function handleRelease(args: string[]): Promise<void> {
 
     // Check if there are uncommitted changes
     const uncommitted = execCommand('git status --porcelain');
-    console.log(`  Uncommitted changes: ${uncommitted ? colors.yellow + 'Yes' : colors.green + 'None'}${colors.reset}`);
+    console.log(
+      `  Uncommitted changes: ${uncommitted ? colors.yellow + 'Yes' : colors.green + 'None'}${colors.reset}`
+    );
 
     // Show deployed versions
     console.log(`\n  ${colors.cyan}Deployed Versions:${colors.reset}`);
     for (const [name, service] of Object.entries(SERVICES)) {
-      const revision = execCommand(`gcloud run services describe ${service} --project=${GCP_PROJECT} --region=${GCP_REGION} --format="value(status.latestReadyRevisionName)" 2>/dev/null`);
+      const revision = execCommand(
+        `gcloud run services describe ${service} --project=${GCP_PROJECT} --region=${GCP_REGION} --format="value(status.latestReadyRevisionName)" 2>/dev/null`
+      );
       console.log(`    ${name}: ${revision || 'not deployed'}`);
     }
   }
 
   if (subcommand === 'changelog') {
-    const sinceTag = args[1] || execCommand('git describe --tags --abbrev=0 2>/dev/null') || 'HEAD~20';
+    const sinceTag =
+      args[1] || execCommand('git describe --tags --abbrev=0 2>/dev/null') || 'HEAD~20';
 
     console.log(`${colors.bold}Changelog since ${sinceTag}:${colors.reset}\n`);
 
@@ -2783,19 +3031,19 @@ async function handleRelease(args: string[]): Promise<void> {
 
     if (features.length > 0) {
       console.log(`  ${colors.green}Features:${colors.reset}`);
-      features.forEach(c => console.log(`    • ${c}`));
+      features.forEach((c) => console.log(`    • ${c}`));
     }
     if (fixes.length > 0) {
       console.log(`  ${colors.yellow}Fixes:${colors.reset}`);
-      fixes.forEach(c => console.log(`    • ${c}`));
+      fixes.forEach((c) => console.log(`    • ${c}`));
     }
     if (refactors.length > 0) {
       console.log(`  ${colors.blue}Refactors:${colors.reset}`);
-      refactors.forEach(c => console.log(`    • ${c}`));
+      refactors.forEach((c) => console.log(`    • ${c}`));
     }
     if (other.length > 0) {
       console.log(`  ${colors.dim}Other:${colors.reset}`);
-      other.forEach(c => console.log(`    • ${c}`));
+      other.forEach((c) => console.log(`    • ${c}`));
     }
 
     console.log();
@@ -2870,10 +3118,15 @@ async function handleRelease(args: string[]): Promise<void> {
       console.log(`${colors.bold}Recent Tags:${colors.reset}\n`);
       const tags = execCommand('git tag -l --sort=-version:refname | head -10');
       if (tags) {
-        tags.split('\n').filter(Boolean).forEach(tag => {
-          const date = execCommand(`git log -1 --format="%ci" ${tag} 2>/dev/null`);
-          console.log(`  ${colors.cyan}${tag}${colors.reset} ${colors.dim}${date}${colors.reset}`);
-        });
+        tags
+          .split('\n')
+          .filter(Boolean)
+          .forEach((tag) => {
+            const date = execCommand(`git log -1 --format="%ci" ${tag} 2>/dev/null`);
+            console.log(
+              `  ${colors.cyan}${tag}${colors.reset} ${colors.dim}${date}${colors.reset}`
+            );
+          });
       } else {
         log.info('No tags found');
       }
@@ -2928,7 +3181,9 @@ async function handleRelease(args: string[]): Promise<void> {
     for (const tag of tags.split('\n').filter(Boolean)) {
       const date = execCommand(`git log -1 --format="%ci" ${tag} 2>/dev/null`).split(' ')[0];
       const commitCount = execCommand(`git rev-list ${tag} --count 2>/dev/null`);
-      console.log(`  ${colors.cyan}${tag.padEnd(12)}${colors.reset} ${colors.dim}${date}${colors.reset}  (${commitCount} commits total)`);
+      console.log(
+        `  ${colors.cyan}${tag.padEnd(12)}${colors.reset} ${colors.dim}${date}${colors.reset}  (${commitCount} commits total)`
+      );
     }
   }
 }
@@ -2953,7 +3208,9 @@ async function handleMigrate(args: string[]): Promise<void> {
     const spinner = new Spinner('Checking database connections...');
     spinner.start();
 
-    const firestoreCheck = execCommandWithStatus(`gcloud firestore databases describe --project=${GCP_PROJECT} 2>/dev/null`);
+    const firestoreCheck = execCommandWithStatus(
+      `gcloud firestore databases describe --project=${GCP_PROJECT} 2>/dev/null`
+    );
     spinner.stop(firestoreCheck.success);
 
     if (firestoreCheck.success) {
@@ -2987,11 +3244,13 @@ async function handleMigrate(args: string[]): Promise<void> {
       return;
     }
 
-    const spinner = new Spinner(migrationName ? `Running ${migrationName}...` : 'Running pending migrations...');
+    const spinner = new Spinner(
+      migrationName ? `Running ${migrationName}...` : 'Running pending migrations...'
+    );
     spinner.start();
 
     // Simulate migration run
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     spinner.stop(true);
     log.success('Migrations completed successfully');
@@ -3006,7 +3265,9 @@ async function handleMigrate(args: string[]): Promise<void> {
     log.info('Review changes before proceeding');
 
     console.log(`\n  ${colors.yellow}Steps to rollback manually:${colors.reset}`);
-    console.log(`    1. Review migration history: ${colors.cyan}ferni migrate history${colors.reset}`);
+    console.log(
+      `    1. Review migration history: ${colors.cyan}ferni migrate history${colors.reset}`
+    );
     console.log(`    2. Identify changes to revert`);
     console.log(`    3. Create a new migration to undo changes`);
   }
@@ -3074,7 +3335,9 @@ MIGRATION_EOF`);
     for (const file of files.split('\n').filter(Boolean)) {
       const basename = file.split('/').pop();
       const stats = execCommand(`stat -f "%Sm" -t "%Y-%m-%d" "${file}" 2>/dev/null`) || 'unknown';
-      console.log(`  ${colors.cyan}${basename}${colors.reset} ${colors.dim}(${stats})${colors.reset}`);
+      console.log(
+        `  ${colors.cyan}${basename}${colors.reset} ${colors.dim}(${stats})${colors.reset}`
+      );
     }
   }
 
@@ -3127,7 +3390,9 @@ async function handleSecrets(args: string[]): Promise<void> {
     const spinner = new Spinner('Fetching secrets from Secret Manager...');
     spinner.start();
 
-    const secrets = execCommand(`gcloud secrets list --project=${GCP_PROJECT} --format="value(name)" 2>/dev/null`);
+    const secrets = execCommand(
+      `gcloud secrets list --project=${GCP_PROJECT} --format="value(name)" 2>/dev/null`
+    );
     spinner.stop(!!secrets);
 
     if (secrets) {
@@ -3144,13 +3409,21 @@ async function handleSecrets(args: string[]): Promise<void> {
     const envPath = join(PROJECT_ROOT, '.env');
     if (existsSync(envPath)) {
       const envContent = readFileSync(envPath, 'utf-8');
-      const envKeys = envContent.split('\n')
-        .filter(line => line.includes('=') && !line.startsWith('#'))
-        .map(line => line.split('=')[0]);
+      const envKeys = envContent
+        .split('\n')
+        .filter((line) => line.includes('=') && !line.startsWith('#'))
+        .map((line) => line.split('=')[0]);
 
       for (const key of envKeys) {
-        if (key.includes('KEY') || key.includes('SECRET') || key.includes('PASSWORD') || key.includes('TOKEN')) {
-          console.log(`    ${colors.green}${icons.success}${colors.reset} ${key} ${colors.dim}(set)${colors.reset}`);
+        if (
+          key.includes('KEY') ||
+          key.includes('SECRET') ||
+          key.includes('PASSWORD') ||
+          key.includes('TOKEN')
+        ) {
+          console.log(
+            `    ${colors.green}${icons.success}${colors.reset} ${key} ${colors.dim}(set)${colors.reset}`
+          );
         }
       }
     } else {
@@ -3174,7 +3447,9 @@ async function handleSecrets(args: string[]): Promise<void> {
         console.log(`  ${colors.green}${icons.success}${colors.reset} ${secret}`);
         present++;
       } else {
-        console.log(`  ${colors.red}${icons.error}${colors.reset} ${secret} ${colors.dim}(missing)${colors.reset}`);
+        console.log(
+          `  ${colors.red}${icons.error}${colors.reset} ${secret} ${colors.dim}(missing)${colors.reset}`
+        );
         missing++;
       }
     }
@@ -3202,7 +3477,9 @@ async function handleSecrets(args: string[]): Promise<void> {
     log.warn('Secret rotation requires manual steps:');
     console.log(`\n  1. Generate new secret value from provider`);
     console.log(`  2. Update GCP Secret Manager:`);
-    console.log(`     ${colors.cyan}gcloud secrets versions add ${secretName} --data-file=-${colors.reset}`);
+    console.log(
+      `     ${colors.cyan}gcloud secrets versions add ${secretName} --data-file=-${colors.reset}`
+    );
     console.log(`  3. Update Cloud Run service:`);
     console.log(`     ${colors.cyan}ferni deploy agent${colors.reset}`);
     console.log(`  4. Update local .env file`);
@@ -3216,7 +3493,9 @@ async function handleSecrets(args: string[]): Promise<void> {
     spinner.start();
 
     // Get list of secrets from Secret Manager
-    const secrets = execCommand(`gcloud secrets list --project=${GCP_PROJECT} --format="value(name)" 2>/dev/null`);
+    const secrets = execCommand(
+      `gcloud secrets list --project=${GCP_PROJECT} --format="value(name)" 2>/dev/null`
+    );
     spinner.stop(!!secrets);
 
     if (secrets) {
@@ -3236,13 +3515,17 @@ async function handleSecrets(args: string[]): Promise<void> {
     const spinner = new Spinner('Scanning for hardcoded secrets...');
     spinner.start();
 
-    const suspiciousPatterns = execCommand(`grep -r --include="*.ts" --include="*.js" -E "(password|secret|apikey|api_key)\\s*[:=]\\s*['\"][^'\"]+['\"]" src/ 2>/dev/null | head -10`);
+    const suspiciousPatterns = execCommand(
+      `grep -r --include="*.ts" --include="*.js" -E "(password|secret|apikey|api_key)\\s*[:=]\\s*['\"][^'\"]+['\"]" src/ 2>/dev/null | head -10`
+    );
     spinner.stop(!suspiciousPatterns);
 
     if (suspiciousPatterns) {
       log.warn('Potential hardcoded secrets found:');
       for (const line of suspiciousPatterns.split('\n').filter(Boolean)) {
-        console.log(`  ${colors.yellow}${icons.warning}${colors.reset} ${line.substring(0, 100)}...`);
+        console.log(
+          `  ${colors.yellow}${icons.warning}${colors.reset} ${line.substring(0, 100)}...`
+        );
       }
     } else {
       log.success('No obvious hardcoded secrets detected');
@@ -3256,7 +3539,9 @@ async function handleSecrets(args: string[]): Promise<void> {
     if (gitignore.includes('.env')) {
       console.log(`\n  ${colors.green}${icons.success}${colors.reset} .env is in .gitignore`);
     } else {
-      console.log(`\n  ${colors.red}${icons.error}${colors.reset} .env NOT in .gitignore - add it immediately!`);
+      console.log(
+        `\n  ${colors.red}${icons.error}${colors.reset} .env NOT in .gitignore - add it immediately!`
+      );
     }
 
     // Check for .env files in git
@@ -3285,28 +3570,32 @@ async function handleSecrets(args: string[]): Promise<void> {
     const exampleContent = readFileSync(envExamplePath, 'utf-8');
 
     const envKeys = new Set(
-      envContent.split('\n')
-        .filter(line => line.includes('=') && !line.startsWith('#'))
-        .map(line => line.split('=')[0])
+      envContent
+        .split('\n')
+        .filter((line) => line.includes('=') && !line.startsWith('#'))
+        .map((line) => line.split('=')[0])
     );
 
     const exampleKeys = new Set(
-      exampleContent.split('\n')
-        .filter(line => line.includes('=') && !line.startsWith('#'))
-        .map(line => line.split('=')[0])
+      exampleContent
+        .split('\n')
+        .filter((line) => line.includes('=') && !line.startsWith('#'))
+        .map((line) => line.split('=')[0])
     );
 
-    const missingFromEnv = [...exampleKeys].filter(k => !envKeys.has(k));
-    const extraInEnv = [...envKeys].filter(k => !exampleKeys.has(k));
+    const missingFromEnv = [...exampleKeys].filter((k) => !envKeys.has(k));
+    const extraInEnv = [...envKeys].filter((k) => !exampleKeys.has(k));
 
     if (missingFromEnv.length > 0) {
       console.log(`  ${colors.yellow}Missing from .env:${colors.reset}`);
-      missingFromEnv.forEach(k => console.log(`    ${colors.red}${icons.error}${colors.reset} ${k}`));
+      missingFromEnv.forEach((k) =>
+        console.log(`    ${colors.red}${icons.error}${colors.reset} ${k}`)
+      );
     }
 
     if (extraInEnv.length > 0) {
       console.log(`\n  ${colors.cyan}Extra in .env (not in example):${colors.reset}`);
-      extraInEnv.forEach(k => console.log(`    ${colors.blue}${icons.info}${colors.reset} ${k}`));
+      extraInEnv.forEach((k) => console.log(`    ${colors.blue}${icons.info}${colors.reset} ${k}`));
     }
 
     if (missingFromEnv.length === 0 && extraInEnv.length === 0) {
@@ -3424,7 +3713,9 @@ async function handleDeps(args: string[]): Promise<void> {
       log.warn('This will update all packages to their latest semver-compatible versions');
       console.log(`\n  To update all: ${colors.cyan}npm update${colors.reset}`);
       console.log(`  To update specific: ${colors.cyan}ferni deps update <package>${colors.reset}`);
-      console.log(`  To update to latest: ${colors.cyan}npm install <package>@latest${colors.reset}`);
+      console.log(
+        `  To update to latest: ${colors.cyan}npm install <package>@latest${colors.reset}`
+      );
     }
   }
 
@@ -3446,7 +3737,9 @@ async function handleDeps(args: string[]): Promise<void> {
     console.log(`  ${colors.cyan}Dev Dependencies:${colors.reset} ${devDeps.length}`);
 
     // Check for duplicates in lock file
-    const duplicates = execCommand(`npm ls --all 2>/dev/null | grep -E "deduped|invalid" | head -10`);
+    const duplicates = execCommand(
+      `npm ls --all 2>/dev/null | grep -E "deduped|invalid" | head -10`
+    );
     if (duplicates) {
       console.log(`\n  ${colors.yellow}Potential issues:${colors.reset}`);
       console.log(duplicates);
@@ -3455,7 +3748,9 @@ async function handleDeps(args: string[]): Promise<void> {
     console.log(`\n  ${colors.bold}Cleanup commands:${colors.reset}`);
     console.log(`    ${colors.cyan}npm prune${colors.reset} - Remove extraneous packages`);
     console.log(`    ${colors.cyan}npm dedupe${colors.reset} - Reduce duplication`);
-    console.log(`    ${colors.cyan}rm -rf node_modules && npm install${colors.reset} - Fresh install`);
+    console.log(
+      `    ${colors.cyan}rm -rf node_modules && npm install${colors.reset} - Fresh install`
+    );
   }
 
   if (subcommand === 'licenses') {
@@ -3541,8 +3836,14 @@ async function handleSelfHealHealth(args: string[]): Promise<void> {
 
   // Check if backend is running by trying to import the modules
   try {
-    const healthModulePath = join(PROJECT_ROOT, 'dist', 'services', 'self-healing', 'health-monitors.js');
-    
+    const healthModulePath = join(
+      PROJECT_ROOT,
+      'dist',
+      'services',
+      'self-healing',
+      'health-monitors.js'
+    );
+
     if (!existsSync(healthModulePath)) {
       log.warn('Backend not built. Building now...');
       execSync('npm run build', { cwd: PROJECT_ROOT, stdio: 'inherit' });
@@ -3551,47 +3852,67 @@ async function handleSelfHealHealth(args: string[]): Promise<void> {
     // Try to reach the health endpoint
     const serviceUrl = process.env.FERNI_SERVICE_URL || 'https://app.ferni.ai';
     const healthUrl = `${serviceUrl}/health/circuits`;
-    
+
     const spinner = new Spinner('Checking health endpoint...');
     spinner.start();
-    
+
     const response = execCommandWithStatus(`curl -s "${healthUrl}" 2>/dev/null`);
     spinner.stop(response.success);
-    
+
     if (response.success && response.output) {
       try {
         const data = JSON.parse(response.output);
-        
+
         // Overall status
-        const statusColor = data.status === 'healthy' ? colors.green : 
-                           data.status === 'degraded' ? colors.yellow : colors.red;
-        console.log(`\n  ${colors.bold}Overall:${colors.reset} ${statusColor}${data.status.toUpperCase()}${colors.reset}`);
-        
+        const statusColor =
+          data.status === 'healthy'
+            ? colors.green
+            : data.status === 'degraded'
+              ? colors.yellow
+              : colors.red;
+        console.log(
+          `\n  ${colors.bold}Overall:${colors.reset} ${statusColor}${data.status.toUpperCase()}${colors.reset}`
+        );
+
         // Summary
         if (data.summary) {
           console.log(`\n  ${colors.bold}Summary:${colors.reset}`);
           console.log(`    Total Clients: ${data.summary.totalClients}`);
           console.log(`    Healthy: ${colors.green}${data.summary.healthyClients}${colors.reset}`);
           if (data.summary.openCircuits > 0) {
-            console.log(`    Open Circuits: ${colors.red}${data.summary.openCircuits}${colors.reset}`);
+            console.log(
+              `    Open Circuits: ${colors.red}${data.summary.openCircuits}${colors.reset}`
+            );
           }
           if (data.summary.halfOpenCircuits > 0) {
-            console.log(`    Half-Open: ${colors.yellow}${data.summary.halfOpenCircuits}${colors.reset}`);
+            console.log(
+              `    Half-Open: ${colors.yellow}${data.summary.halfOpenCircuits}${colors.reset}`
+            );
           }
         }
-        
+
         // HTTP Clients
         if (data.httpClients && data.httpClients.length > 0) {
           console.log(`\n  ${colors.bold}HTTP Clients:${colors.reset}`);
           for (const client of data.httpClients) {
-            const stateColor = client.state === 'closed' ? colors.green :
-                              client.state === 'half_open' ? colors.yellow : colors.red;
-            const stateIcon = client.state === 'closed' ? icons.success :
-                             client.state === 'half_open' ? icons.warning : icons.error;
-            console.log(`    ${stateColor}${stateIcon}${colors.reset} ${client.name.padEnd(20)} ${colors.dim}${client.successRate} (${client.totalRequests} requests)${colors.reset}`);
+            const stateColor =
+              client.state === 'closed'
+                ? colors.green
+                : client.state === 'half_open'
+                  ? colors.yellow
+                  : colors.red;
+            const stateIcon =
+              client.state === 'closed'
+                ? icons.success
+                : client.state === 'half_open'
+                  ? icons.warning
+                  : icons.error;
+            console.log(
+              `    ${stateColor}${stateIcon}${colors.reset} ${client.name.padEnd(20)} ${colors.dim}${client.successRate} (${client.totalRequests} requests)${colors.reset}`
+            );
           }
         }
-        
+
         // Unhealthy services
         if (data.unhealthyServices && data.unhealthyServices.length > 0) {
           console.log(`\n  ${colors.bold}${colors.red}Unhealthy Services:${colors.reset}`);
@@ -3599,34 +3920,50 @@ async function handleSelfHealHealth(args: string[]): Promise<void> {
             console.log(`    ${colors.red}${icons.error}${colors.reset} ${svc}`);
           }
         }
-        
       } catch {
         console.log(response.output);
       }
     } else {
       log.warn('Could not reach health endpoint. Running local checks...');
-      
+
       // Fallback: check critical services directly
       const checks = [
         { name: 'LiveKit', env: 'LIVEKIT_URL', checkFn: async () => !!process.env.LIVEKIT_URL },
-        { name: 'Cartesia', env: 'CARTESIA_API_KEY', checkFn: async () => !!process.env.CARTESIA_API_KEY },
-        { name: 'Gemini', env: 'GOOGLE_API_KEY', checkFn: async () => !!process.env.GOOGLE_API_KEY },
-        { name: 'Deepgram', env: 'DEEPGRAM_API_KEY', checkFn: async () => !!process.env.DEEPGRAM_API_KEY },
-        { name: 'OpenAI', env: 'OPENAI_API_KEY', checkFn: async () => !!process.env.OPENAI_API_KEY },
+        {
+          name: 'Cartesia',
+          env: 'CARTESIA_API_KEY',
+          checkFn: async () => !!process.env.CARTESIA_API_KEY,
+        },
+        {
+          name: 'Gemini',
+          env: 'GOOGLE_API_KEY',
+          checkFn: async () => !!process.env.GOOGLE_API_KEY,
+        },
+        {
+          name: 'Deepgram',
+          env: 'DEEPGRAM_API_KEY',
+          checkFn: async () => !!process.env.DEEPGRAM_API_KEY,
+        },
+        {
+          name: 'OpenAI',
+          env: 'OPENAI_API_KEY',
+          checkFn: async () => !!process.env.OPENAI_API_KEY,
+        },
       ];
-      
+
       for (const check of checks) {
         const hasKey = process.env[check.env];
-        const icon = hasKey ? `${colors.green}${icons.success}${colors.reset}` : `${colors.yellow}${icons.warning}${colors.reset}`;
+        const icon = hasKey
+          ? `${colors.green}${icons.success}${colors.reset}`
+          : `${colors.yellow}${icons.warning}${colors.reset}`;
         const status = hasKey ? 'configured' : 'not configured';
         console.log(`    ${icon} ${check.name.padEnd(15)} ${colors.dim}${status}${colors.reset}`);
       }
     }
-    
   } catch (error) {
     log.error(`Failed to check health: ${(error as Error).message}`);
   }
-  
+
   console.log();
 }
 
@@ -3638,60 +3975,76 @@ async function handleCircuits(args: string[]): Promise<void> {
   // Try to reach the health endpoint
   const serviceUrl = process.env.FERNI_SERVICE_URL || 'https://app.ferni.ai';
   const healthUrl = `${serviceUrl}/health/circuits`;
-  
+
   const spinner = new Spinner('Fetching circuit status...');
   spinner.start();
-  
+
   const response = execCommandWithStatus(`curl -s "${healthUrl}" 2>/dev/null`);
   spinner.stop(response.success);
-  
+
   if (!response.success || !response.output) {
     log.error('Could not reach health endpoint');
     console.log(`\n  Ensure the service is running at ${serviceUrl}`);
     return;
   }
-  
+
   try {
     const data = JSON.parse(response.output);
-    
+
     if (subcommand === 'status' || subcommand === 'all') {
       // Show all circuits
       if (data.httpClients && data.httpClients.length > 0) {
         for (const client of data.httpClients) {
-          const stateColor = client.state === 'closed' ? colors.green :
-                            client.state === 'half_open' ? colors.yellow : colors.red;
-          const stateIcon = client.state === 'closed' ? '●' :
-                           client.state === 'half_open' ? '◐' : '○';
-          console.log(`  ${stateColor}${stateIcon}${colors.reset} ${client.name.padEnd(25)} ${stateColor}${client.state.padEnd(10)}${colors.reset} ${colors.dim}${client.successRate}${colors.reset}`);
+          const stateColor =
+            client.state === 'closed'
+              ? colors.green
+              : client.state === 'half_open'
+                ? colors.yellow
+                : colors.red;
+          const stateIcon =
+            client.state === 'closed' ? '●' : client.state === 'half_open' ? '◐' : '○';
+          console.log(
+            `  ${stateColor}${stateIcon}${colors.reset} ${client.name.padEnd(25)} ${stateColor}${client.state.padEnd(10)}${colors.reset} ${colors.dim}${client.successRate}${colors.reset}`
+          );
         }
       } else {
         log.info('No circuit breakers registered');
       }
     }
-    
+
     if (subcommand === 'open') {
       // Show only open/degraded circuits
-      const unhealthy = (data.httpClients || []).filter((c: { state: string }) => c.state !== 'closed');
-      
+      const unhealthy = (data.httpClients || []).filter(
+        (c: { state: string }) => c.state !== 'closed'
+      );
+
       if (unhealthy.length === 0) {
         console.log(`  ${colors.green}${icons.success}${colors.reset} All circuits are healthy`);
       } else {
         console.log(`  ${colors.bold}${colors.red}Degraded Circuits:${colors.reset}\n`);
         for (const client of unhealthy) {
           const stateColor = client.state === 'half_open' ? colors.yellow : colors.red;
-          console.log(`    ${stateColor}${icons.warning}${colors.reset} ${client.name}: ${client.state}`);
+          console.log(
+            `    ${stateColor}${icons.warning}${colors.reset} ${client.name}: ${client.state}`
+          );
         }
       }
     }
-    
+
     if (subcommand === 'stats') {
       console.log(`\n  ${colors.bold}Statistics:${colors.reset}`);
       console.log(`    Total Clients:    ${data.summary?.totalClients || 0}`);
-      console.log(`    Healthy:          ${colors.green}${data.summary?.healthyClients || 0}${colors.reset}`);
-      console.log(`    Open:             ${colors.red}${data.summary?.openCircuits || 0}${colors.reset}`);
-      console.log(`    Half-Open:        ${colors.yellow}${data.summary?.halfOpenCircuits || 0}${colors.reset}`);
+      console.log(
+        `    Healthy:          ${colors.green}${data.summary?.healthyClients || 0}${colors.reset}`
+      );
+      console.log(
+        `    Open:             ${colors.red}${data.summary?.openCircuits || 0}${colors.reset}`
+      );
+      console.log(
+        `    Half-Open:        ${colors.yellow}${data.summary?.halfOpenCircuits || 0}${colors.reset}`
+      );
     }
-    
+
     if (subcommand === 'reset') {
       const circuitName = args[1];
       if (!circuitName) {
@@ -3701,12 +4054,11 @@ async function handleCircuits(args: string[]): Promise<void> {
       }
       log.warn(`Circuit reset not yet implemented via CLI. Use the admin API.`);
     }
-    
   } catch {
     log.error('Invalid response from health endpoint');
     console.log(response.output);
   }
-  
+
   console.log();
 }
 
@@ -3717,14 +4069,14 @@ async function handleRestartService(args: string[]): Promise<void> {
 
   if (subcommand === 'status') {
     console.log(`${colors.bold}Service Restart Status:${colors.reset}\n`);
-    
+
     for (const [name, service] of Object.entries(SERVICES)) {
       const spinner = new Spinner(`Checking ${name}...`);
       spinner.start();
-      
+
       const cmd = `gcloud run services describe ${service} --project=${GCP_PROJECT} --region=${GCP_REGION} --format="value(status.conditions[0].status,status.latestReadyRevisionName)" 2>/dev/null`;
       const result = execCommand(cmd);
-      
+
       if (result) {
         const [status, revision] = result.split('\t');
         spinner.stop(status === 'True');
@@ -3741,14 +4093,16 @@ async function handleRestartService(args: string[]): Promise<void> {
   if (subcommand === 'history') {
     console.log(`${colors.bold}Recent Restarts:${colors.reset}\n`);
     log.info('Restart history is tracked in the backend. Check logs for details.');
-    console.log(`\n  ${colors.cyan}gcloud logging read "resource.type=cloud_run_revision AND restart" --limit=10${colors.reset}`);
+    console.log(
+      `\n  ${colors.cyan}gcloud logging read "resource.type=cloud_run_revision AND restart" --limit=10${colors.reset}`
+    );
     return;
   }
 
   // Restart a specific service
-  const serviceName = subcommand === 'agent' ? SERVICES.agent : 
-                     subcommand === 'ui' ? SERVICES.ui : null;
-                     
+  const serviceName =
+    subcommand === 'agent' ? SERVICES.agent : subcommand === 'ui' ? SERVICES.ui : null;
+
   if (!serviceName) {
     log.error(`Unknown service: ${subcommand}`);
     console.log(`\n  Available: agent, ui`);
@@ -3756,16 +4110,17 @@ async function handleRestartService(args: string[]): Promise<void> {
   }
 
   const force = args.includes('--force') || args.includes('-f');
-  const reason = args.find(a => a.startsWith('--reason='))?.split('=')[1] || 'Manual restart via CLI';
+  const reason =
+    args.find((a) => a.startsWith('--reason='))?.split('=')[1] || 'Manual restart via CLI';
 
   console.log(`${colors.bold}Restarting ${subcommand}...${colors.reset}\n`);
-  
+
   if (!force) {
     log.warn('This will trigger a rolling restart (new revision deployment)');
     console.log(`\n  Service: ${colors.cyan}${serviceName}${colors.reset}`);
     console.log(`  Reason:  ${colors.dim}${reason}${colors.reset}`);
     console.log(`\n  Add ${colors.cyan}--force${colors.reset} to skip confirmation`);
-    
+
     const answer = await prompt(`\n${colors.yellow}Continue? [y/N]:${colors.reset} `);
     if (answer.toLowerCase() !== 'y') {
       console.log('\nAborted.');
@@ -3783,22 +4138,22 @@ async function handleRestartService(args: string[]): Promise<void> {
     --region=${GCP_REGION} \
     --update-annotations="run.googleapis.com/restart-timestamp=${timestamp}" \
     --format="value(status.latestCreatedRevisionName)" 2>&1`;
-  
+
   const result = execCommandWithStatus(cmd);
-  
+
   if (result.success && result.output) {
     spinner.stop(true);
     console.log(`\n  New revision: ${colors.green}${result.output.trim()}${colors.reset}`);
     log.success(`Service ${subcommand} restart triggered`);
-    
+
     // Wait for revision to be ready
     const waitSpinner = new Spinner('Waiting for revision to be ready...');
     waitSpinner.start();
-    
+
     // Poll for ready status (max 2 minutes)
     let ready = false;
     for (let i = 0; i < 24; i++) {
-      await new Promise(r => setTimeout(r, 5000));
+      await new Promise((r) => setTimeout(r, 5000));
       const statusCmd = `gcloud run services describe ${serviceName} --project=${GCP_PROJECT} --region=${GCP_REGION} --format="value(status.conditions[0].status)" 2>/dev/null`;
       const statusResult = execCommand(statusCmd);
       if (statusResult === 'True') {
@@ -3806,7 +4161,7 @@ async function handleRestartService(args: string[]): Promise<void> {
         break;
       }
     }
-    
+
     waitSpinner.stop(ready);
     if (ready) {
       log.success('Service is ready');
@@ -3827,7 +4182,7 @@ async function handleDiagnose(args: string[]): Promise<void> {
 
   if (!errorMessage || errorMessage.startsWith('--')) {
     // Check for --file flag
-    const fileFlag = args.find(a => a.startsWith('--file='));
+    const fileFlag = args.find((a) => a.startsWith('--file='));
     if (fileFlag) {
       const filePath = fileFlag.split('=')[1];
       log.info(`Reading errors from ${filePath}...`);
@@ -3839,7 +4194,7 @@ async function handleDiagnose(args: string[]): Promise<void> {
       }
       return;
     }
-    
+
     log.error('Please provide an error message to diagnose');
     console.log(`\n  Usage: ${colors.cyan}ferni diagnose "error message here"${colors.reset}`);
     console.log(`         ${colors.cyan}ferni diagnose --file=error.log${colors.reset}`);
@@ -3852,24 +4207,99 @@ async function handleDiagnose(args: string[]): Promise<void> {
 async function diagnoseError(errorMessage: string): Promise<void> {
   const spinner = new Spinner('Analyzing error...');
   spinner.start();
-  
+
   // Known patterns (from ai-diagnostics.ts)
   const patterns = [
-    { pattern: /assignment.*timed?\s*out/i, cause: 'LiveKit assignment timeout', fix: 'Retry dispatch', type: 'retry' },
-    { pattern: /runner initialization timed out/i, cause: 'Child process slow start', fix: 'Check resources', type: 'restart' },
-    { pattern: /No matching pid found/i, cause: 'Child process crashed', fix: 'Check child logs', type: 'restart' },
-    { pattern: /ERR_IPC_CHANNEL_CLOSED/i, cause: 'IPC channel closed', fix: 'Restart process', type: 'restart' },
-    { pattern: /ECONNRESET|socket hang up/i, cause: 'Connection reset', fix: 'Retry with backoff', type: 'retry' },
-    { pattern: /out of memory|heap/i, cause: 'Memory exhaustion', fix: 'Increase limits or restart', type: 'restart' },
-    { pattern: /ETIMEDOUT|connection.*timed?\s*out/i, cause: 'Network timeout', fix: 'Check connectivity', type: 'retry' },
-    { pattern: /rate.*limit|429/i, cause: 'Rate limit exceeded', fix: 'Wait and retry', type: 'retry' },
-    { pattern: /permission.*denied|unauthorized/i, cause: 'Authentication failed', fix: 'Check credentials', type: 'escalate' },
-    { pattern: /firestore.*error/i, cause: 'Database error', fix: 'Retry operation', type: 'retry' },
-    { pattern: /gemini.*error|generative.*ai/i, cause: 'Gemini API error', fix: 'Check API status', type: 'retry' },
-    { pattern: /cartesia.*error|tts.*failed/i, cause: 'TTS service error', fix: 'Check Cartesia status', type: 'retry' },
-    { pattern: /livekit.*disconnect/i, cause: 'LiveKit disconnected', fix: 'Reconnect', type: 'retry' },
-    { pattern: /context.*length.*exceeded/i, cause: 'Context too long', fix: 'Truncate history', type: 'retry' },
-    { pattern: /SIGKILL|OOMKilled/i, cause: 'Process killed by system', fix: 'Increase memory', type: 'restart' },
+    {
+      pattern: /assignment.*timed?\s*out/i,
+      cause: 'LiveKit assignment timeout',
+      fix: 'Retry dispatch',
+      type: 'retry',
+    },
+    {
+      pattern: /runner initialization timed out/i,
+      cause: 'Child process slow start',
+      fix: 'Check resources',
+      type: 'restart',
+    },
+    {
+      pattern: /No matching pid found/i,
+      cause: 'Child process crashed',
+      fix: 'Check child logs',
+      type: 'restart',
+    },
+    {
+      pattern: /ERR_IPC_CHANNEL_CLOSED/i,
+      cause: 'IPC channel closed',
+      fix: 'Restart process',
+      type: 'restart',
+    },
+    {
+      pattern: /ECONNRESET|socket hang up/i,
+      cause: 'Connection reset',
+      fix: 'Retry with backoff',
+      type: 'retry',
+    },
+    {
+      pattern: /out of memory|heap/i,
+      cause: 'Memory exhaustion',
+      fix: 'Increase limits or restart',
+      type: 'restart',
+    },
+    {
+      pattern: /ETIMEDOUT|connection.*timed?\s*out/i,
+      cause: 'Network timeout',
+      fix: 'Check connectivity',
+      type: 'retry',
+    },
+    {
+      pattern: /rate.*limit|429/i,
+      cause: 'Rate limit exceeded',
+      fix: 'Wait and retry',
+      type: 'retry',
+    },
+    {
+      pattern: /permission.*denied|unauthorized/i,
+      cause: 'Authentication failed',
+      fix: 'Check credentials',
+      type: 'escalate',
+    },
+    {
+      pattern: /firestore.*error/i,
+      cause: 'Database error',
+      fix: 'Retry operation',
+      type: 'retry',
+    },
+    {
+      pattern: /gemini.*error|generative.*ai/i,
+      cause: 'Gemini API error',
+      fix: 'Check API status',
+      type: 'retry',
+    },
+    {
+      pattern: /cartesia.*error|tts.*failed/i,
+      cause: 'TTS service error',
+      fix: 'Check Cartesia status',
+      type: 'retry',
+    },
+    {
+      pattern: /livekit.*disconnect/i,
+      cause: 'LiveKit disconnected',
+      fix: 'Reconnect',
+      type: 'retry',
+    },
+    {
+      pattern: /context.*length.*exceeded/i,
+      cause: 'Context too long',
+      fix: 'Truncate history',
+      type: 'retry',
+    },
+    {
+      pattern: /SIGKILL|OOMKilled/i,
+      cause: 'Process killed by system',
+      fix: 'Increase memory',
+      type: 'restart',
+    },
   ];
 
   spinner.stop(true);
@@ -3879,45 +4309,55 @@ async function diagnoseError(errorMessage: string): Promise<void> {
   for (const { pattern, cause, fix, type } of patterns) {
     if (pattern.test(errorMessage)) {
       matched = true;
-      
-      const typeColor = type === 'retry' ? colors.green :
-                       type === 'restart' ? colors.yellow : colors.red;
-      const typeIcon = type === 'retry' ? icons.success :
-                      type === 'restart' ? icons.warning : icons.error;
-      
+
+      const typeColor =
+        type === 'retry' ? colors.green : type === 'restart' ? colors.yellow : colors.red;
+      const typeIcon =
+        type === 'retry' ? icons.success : type === 'restart' ? icons.warning : icons.error;
+
       console.log(`  ${colors.bold}Root Cause:${colors.reset}     ${cause}`);
       console.log(`  ${colors.bold}Suggested Fix:${colors.reset}  ${fix}`);
-      console.log(`  ${colors.bold}Fix Type:${colors.reset}       ${typeColor}${typeIcon} ${type}${colors.reset}`);
-      console.log(`  ${colors.bold}Confidence:${colors.reset}     ${colors.green}High${colors.reset} (pattern match)`);
-      
+      console.log(
+        `  ${colors.bold}Fix Type:${colors.reset}       ${typeColor}${typeIcon} ${type}${colors.reset}`
+      );
+      console.log(
+        `  ${colors.bold}Confidence:${colors.reset}     ${colors.green}High${colors.reset} (pattern match)`
+      );
+
       // Provide actionable command
       console.log(`\n  ${colors.bold}Suggested Command:${colors.reset}`);
       if (type === 'retry') {
-        console.log(`    ${colors.dim}The system will automatically retry this operation${colors.reset}`);
+        console.log(
+          `    ${colors.dim}The system will automatically retry this operation${colors.reset}`
+        );
       } else if (type === 'restart') {
         console.log(`    ${colors.cyan}ferni restart agent${colors.reset}`);
       } else {
         console.log(`    ${colors.cyan}Check logs: ferni logs agent --errors${colors.reset}`);
       }
-      
+
       break;
     }
   }
 
   if (!matched) {
     console.log(`  ${colors.yellow}${icons.warning}${colors.reset} No known pattern matched`);
-    console.log(`\n  ${colors.bold}Error:${colors.reset} ${colors.dim}${errorMessage.substring(0, 200)}${errorMessage.length > 200 ? '...' : ''}${colors.reset}`);
+    console.log(
+      `\n  ${colors.bold}Error:${colors.reset} ${colors.dim}${errorMessage.substring(0, 200)}${errorMessage.length > 200 ? '...' : ''}${colors.reset}`
+    );
     console.log(`\n  ${colors.bold}Suggestions:${colors.reset}`);
     console.log(`    1. Check logs: ${colors.cyan}ferni logs agent --errors${colors.reset}`);
     console.log(`    2. Check health: ${colors.cyan}ferni self-heal health${colors.reset}`);
     console.log(`    3. Check circuits: ${colors.cyan}ferni circuits${colors.reset}`);
-    
+
     // Try Gemini if available
     if (process.env.GOOGLE_API_KEY) {
-      console.log(`\n  ${colors.dim}Advanced AI diagnosis available. Run with GOOGLE_API_KEY to enable.${colors.reset}`);
+      console.log(
+        `\n  ${colors.dim}Advanced AI diagnosis available. Run with GOOGLE_API_KEY to enable.${colors.reset}`
+      );
     }
   }
-  
+
   console.log();
 }
 
@@ -3928,15 +4368,19 @@ async function handleAnomalies(args: string[]): Promise<void> {
 
   // Try to reach the health endpoint
   const serviceUrl = process.env.FERNI_SERVICE_URL || 'https://app.ferni.ai';
-  
+
   if (subcommand === 'recent') {
     console.log(`  ${colors.dim}Anomaly history is stored in the backend.${colors.reset}`);
     console.log(`\n  ${colors.bold}To view anomalies:${colors.reset}`);
-    console.log(`    1. Check Cloud Monitoring: ${colors.cyan}https://console.cloud.google.com/monitoring${colors.reset}`);
-    console.log(`    2. Check logs: ${colors.cyan}ferni logs agent | grep -i anomaly${colors.reset}`);
+    console.log(
+      `    1. Check Cloud Monitoring: ${colors.cyan}https://console.cloud.google.com/monitoring${colors.reset}`
+    );
+    console.log(
+      `    2. Check logs: ${colors.cyan}ferni logs agent | grep -i anomaly${colors.reset}`
+    );
     console.log(`    3. Check circuits: ${colors.cyan}ferni circuits open${colors.reset}`);
   }
-  
+
   if (subcommand === 'service') {
     const serviceName = args[1];
     if (!serviceName) {
@@ -3945,19 +4389,23 @@ async function handleAnomalies(args: string[]): Promise<void> {
       console.log(`  Example: ${colors.cyan}ferni anomalies service livekit${colors.reset}`);
       return;
     }
-    
+
     console.log(`  ${colors.bold}Anomalies for ${serviceName}:${colors.reset}`);
     console.log(`\n  Check logs with:`);
-    console.log(`    ${colors.cyan}gcloud logging read "jsonPayload.service=\\"${serviceName}\\" AND jsonPayload.type=\\"anomaly\\"" --limit=20${colors.reset}`);
+    console.log(
+      `    ${colors.cyan}gcloud logging read "jsonPayload.service=\\"${serviceName}\\" AND jsonPayload.type=\\"anomaly\\"" --limit=20${colors.reset}`
+    );
   }
-  
+
   if (subcommand === 'stats') {
     console.log(`  ${colors.bold}Anomaly Statistics:${colors.reset}`);
     console.log(`\n  ${colors.dim}Statistics are tracked in Cloud Monitoring.${colors.reset}`);
     console.log(`\n  View dashboard:`);
-    console.log(`    ${colors.cyan}https://console.cloud.google.com/monitoring/dashboards?project=${GCP_PROJECT}${colors.reset}`);
+    console.log(
+      `    ${colors.cyan}https://console.cloud.google.com/monitoring/dashboards?project=${GCP_PROJECT}${colors.reset}`
+    );
   }
-  
+
   console.log();
 }
 
@@ -4076,12 +4524,54 @@ ${colors.bold}What would you like to do?${colors.reset}
   const commandList = Object.entries(COMMANDS);
 
   // Group commands by category
-  const devCommands = ['dev', 'deploy', 'build', 'test', 'setup', 'quality', 'pr', 'release', 'migrate', 'deps'];
-  const opsCommands = ['status', 'logs', 'doctor', 'db', 'env', 'jobs', 'costs', 'debug', 'integrations', 'secrets'];
+  const devCommands = [
+    'dev',
+    'deploy',
+    'build',
+    'test',
+    'setup',
+    'quality',
+    'pr',
+    'release',
+    'migrate',
+    'deps',
+  ];
+  const opsCommands = [
+    'status',
+    'logs',
+    'doctor',
+    'db',
+    'env',
+    'jobs',
+    'costs',
+    'debug',
+    'integrations',
+    'secrets',
+  ];
   const selfHealCommands = ['self-heal', 'circuits', 'restart', 'diagnose', 'anomalies'];
-  const agentCommands = ['agents', 'personas', 'tools', 'voices', 'validate', 'generate', 'rollout', 'audit', 'tokens', 'design'];
+  const agentCommands = [
+    'agents',
+    'personas',
+    'tools',
+    'voices',
+    'validate',
+    'generate',
+    'rollout',
+    'audit',
+    'tokens',
+    'design',
+  ];
   const aiCommands = ['ai', 'review', 'copy', 'test-gen', 'docs', 'perf', 'security', 'onboard'];
-  const advancedCommands = ['release-auto', 'deps-ai', 'incident', 'refactor', 'translate', 'flags', 'costs-ai', 'api'];
+  const advancedCommands = [
+    'release-auto',
+    'deps-ai',
+    'incident',
+    'refactor',
+    'translate',
+    'flags',
+    'costs-ai',
+    'api',
+  ];
 
   console.log(`  ${colors.bold}${colors.blue}Development${colors.reset}`);
   let index = 1;
@@ -4090,7 +4580,9 @@ ${colors.bold}What would you like to do?${colors.reset}
   for (const key of devCommands) {
     const cmd = COMMANDS[key];
     if (cmd) {
-      console.log(`    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`);
+      console.log(
+        `    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`
+      );
       indexMap[index] = key;
       index++;
     }
@@ -4100,7 +4592,9 @@ ${colors.bold}What would you like to do?${colors.reset}
   for (const key of opsCommands) {
     const cmd = COMMANDS[key];
     if (cmd) {
-      console.log(`    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`);
+      console.log(
+        `    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`
+      );
       indexMap[index] = key;
       index++;
     }
@@ -4110,7 +4604,9 @@ ${colors.bold}What would you like to do?${colors.reset}
   for (const key of selfHealCommands) {
     const cmd = COMMANDS[key];
     if (cmd) {
-      console.log(`    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`);
+      console.log(
+        `    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`
+      );
       indexMap[index] = key;
       index++;
     }
@@ -4120,7 +4616,9 @@ ${colors.bold}What would you like to do?${colors.reset}
   for (const key of agentCommands) {
     const cmd = COMMANDS[key];
     if (cmd) {
-      console.log(`    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`);
+      console.log(
+        `    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`
+      );
       indexMap[index] = key;
       index++;
     }
@@ -4130,7 +4628,9 @@ ${colors.bold}What would you like to do?${colors.reset}
   for (const key of aiCommands) {
     const cmd = COMMANDS[key];
     if (cmd) {
-      console.log(`    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`);
+      console.log(
+        `    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`
+      );
       indexMap[index] = key;
       index++;
     }
@@ -4140,7 +4640,9 @@ ${colors.bold}What would you like to do?${colors.reset}
   for (const key of advancedCommands) {
     const cmd = COMMANDS[key];
     if (cmd) {
-      console.log(`    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`);
+      console.log(
+        `    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`
+      );
       indexMap[index] = key;
       index++;
     }
@@ -4175,7 +4677,9 @@ ${colors.bold}What would you like to do?${colors.reset}
     console.log(`  ${colors.green} 0${colors.reset}) ${colors.dim}Back${colors.reset}`);
     console.log();
 
-    const subChoice = await prompt(`${colors.cyan}Enter choice [0-${cmd.subcommands.length}]:${colors.reset} `);
+    const subChoice = await prompt(
+      `${colors.cyan}Enter choice [0-${cmd.subcommands.length}]:${colors.reset} `
+    );
     const subNum = parseInt(subChoice, 10);
 
     if (subNum === 0) {
@@ -4231,12 +4735,54 @@ ${colors.bold}Commands:${colors.reset}
 
   // Group by category
   const categories = {
-    'Development': ['dev', 'deploy', 'build', 'test', 'setup', 'quality', 'pr', 'release', 'migrate', 'deps'],
-    'Operations': ['status', 'logs', 'doctor', 'db', 'env', 'jobs', 'costs', 'debug', 'integrations', 'secrets'],
+    Development: [
+      'dev',
+      'deploy',
+      'build',
+      'test',
+      'setup',
+      'quality',
+      'pr',
+      'release',
+      'migrate',
+      'deps',
+    ],
+    Operations: [
+      'status',
+      'logs',
+      'doctor',
+      'db',
+      'env',
+      'jobs',
+      'costs',
+      'debug',
+      'integrations',
+      'secrets',
+    ],
     'Self-Healing': ['self-heal', 'circuits', 'restart', 'diagnose', 'anomalies'],
-    'Agents & Quality': ['agents', 'personas', 'tools', 'voices', 'validate', 'generate', 'rollout', 'audit', 'tokens', 'design'],
+    'Agents & Quality': [
+      'agents',
+      'personas',
+      'tools',
+      'voices',
+      'validate',
+      'generate',
+      'rollout',
+      'audit',
+      'tokens',
+      'design',
+    ],
     'AI Automation': ['ai', 'review', 'copy', 'test-gen', 'docs', 'perf', 'security', 'onboard'],
-    'Advanced Automation': ['release-auto', 'deps-ai', 'incident', 'refactor', 'translate', 'flags', 'costs-ai', 'api'],
+    'Advanced Automation': [
+      'release-auto',
+      'deps-ai',
+      'incident',
+      'refactor',
+      'translate',
+      'flags',
+      'costs-ai',
+      'api',
+    ],
   };
 
   for (const [category, keys] of Object.entries(categories)) {
@@ -4244,9 +4790,13 @@ ${colors.bold}Commands:${colors.reset}
     for (const key of keys) {
       const cmd = COMMANDS[key];
       if (cmd) {
-        console.log(`    ${colors.green}${key.padEnd(12)}${colors.reset} ${cmd.icon} ${cmd.description}`);
+        console.log(
+          `    ${colors.green}${key.padEnd(12)}${colors.reset} ${cmd.icon} ${cmd.description}`
+        );
         if (cmd.subcommands) {
-          console.log(`    ${colors.dim}             → ${cmd.subcommands.join(', ')}${colors.reset}`);
+          console.log(
+            `    ${colors.dim}             → ${cmd.subcommands.join(', ')}${colors.reset}`
+          );
         }
       }
     }

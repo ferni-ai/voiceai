@@ -530,10 +530,7 @@ export class ConversationalRepairEngine {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const conversationalRepairRegistry = createSessionRegistry(
   (sessionId: string) => new ConversationalRepairEngine(),

@@ -48,7 +48,7 @@ export async function getStockQuote(symbol: string): Promise<string> {
   logger.info(`getStockQuote called for: ${symbol}`);
 
   const yahooClient = getYahooFinanceClient();
-  
+
   // Check if circuit is healthy before making request
   if (!yahooClient.isHealthy()) {
     logger.debug('Yahoo Finance circuit is open, trying Alpha Vantage directly');
@@ -85,7 +85,7 @@ export async function getStockQuote(symbol: string): Promise<string> {
       `Yahoo Finance error for ${symbol}, trying Alpha Vantage`
     );
   }
-  
+
   return await getStockQuoteAlphaVantage(symbol);
 }
 
@@ -168,7 +168,7 @@ function getStockFallback(symbol: string): string {
  */
 export async function getMarketOverview(): Promise<string> {
   const yahooClient = getYahooFinanceClient();
-  
+
   // If circuit is open, return fallback immediately
   if (!yahooClient.isHealthy()) {
     logger.debug('Yahoo Finance circuit is open, using market fallback');
@@ -176,7 +176,7 @@ export async function getMarketOverview(): Promise<string> {
   }
 
   const indices = ['^GSPC', '^DJI', '^IXIC']; // S&P 500, Dow, Nasdaq
-  
+
   const promises = indices.map(async (symbol) => {
     const { data } = await yahooClient.get<YahooFinanceResponse>(
       `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`
@@ -269,7 +269,8 @@ export async function getWeather(location: string): Promise<string> {
 
   // Step 2: Get weather from Google Weather API
   const weatherUrl = `https://weather.googleapis.com/v1/currentConditions:lookup?key=${apiKey}&location.latitude=${coords.lat}&location.longitude=${coords.lng}&unitsSystem=IMPERIAL`;
-  const { data: weatherData, error: weatherError } = await googleClient.get<WeatherResponse>(weatherUrl);
+  const { data: weatherData, error: weatherError } =
+    await googleClient.get<WeatherResponse>(weatherUrl);
 
   if (weatherError) {
     logger.warn({ error: weatherError.message }, 'Google Weather API request failed');
@@ -346,7 +347,7 @@ export async function getHistoricalEvent(): Promise<string | null> {
 
   if (data?.events?.length) {
     // Filter for finance/business related or significant historical events
-    const events = data.events;
+    const { events } = data;
     const relevantKeywords = [
       'stock',
       'market',

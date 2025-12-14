@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { UserProfile, KeyMoment, FamilyMember, LifeEvent } from '../../types/user-profile.js';
+import type { UserProfile, KeyMoment, FamilyMember, LifeEvent, FinancialGoal } from '../../types/user-profile.js';
 import type { VectorDocument } from '../vector-store.js';
 
 // Mock the logger
@@ -88,7 +88,7 @@ describe('User Memory Indexer', () => {
     type: type as KeyMoment['type'],
     summary: `Test moment ${id}`,
     topics: ['topic1', 'topic2'],
-    emotionalWeight: 0.8,
+    emotionalWeight: 'medium' as KeyMoment['emotionalWeight'],
     timestamp: new Date(),
     followUpNeeded: false,
   });
@@ -218,9 +218,10 @@ describe('User Memory Indexer', () => {
         keyMoments: [createKeyMoment('moment-1')],
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await indexUserMemories('test-user', profile, {
-        vectorStore: customStore as unknown as Parameters<typeof indexUserMemories>[2]['vectorStore'],
-      });
+        vectorStore: customStore,
+      } as any);
 
       expect(customStore.addDocument).toHaveBeenCalled();
       expect(mockAddDocument).not.toHaveBeenCalled();
@@ -235,7 +236,7 @@ describe('User Memory Indexer', () => {
             description: 'Started new job',
             date: new Date(),
             impact: 'positive',
-          } as LifeEvent,
+          } as unknown as LifeEvent,
         ],
       });
 
@@ -249,11 +250,11 @@ describe('User Memory Indexer', () => {
         goals: [
           {
             id: 'goal-1',
-            description: 'Save for retirement',
-            priority: 1,
+            name: 'Save for retirement',
+            priority: 'high',
             progress: 0.5,
             category: 'financial',
-          },
+          } as unknown as FinancialGoal,
         ],
       });
 
@@ -503,7 +504,7 @@ describe('User Memory Indexer Integration', () => {
   });
 
   it('should index and then retrieve stats', async () => {
-    const profile: UserProfile = {
+    const profile = {
       id: 'integration-user',
       name: 'Integration Test User',
       email: 'test@example.com',
@@ -515,12 +516,12 @@ describe('User Memory Indexer Integration', () => {
           type: 'breakthrough',
           summary: 'Had an important realization',
           topics: ['career', 'growth'],
-          emotionalWeight: 0.9,
+          emotionalWeight: 'heavy',
           timestamp: new Date(),
           followUpNeeded: true,
         },
       ],
-    } as UserProfile;
+    } as unknown as UserProfile;
 
     // Index the profile
     const indexResult = await indexUserMemories('integration-user', profile);

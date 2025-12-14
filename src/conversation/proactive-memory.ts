@@ -1212,10 +1212,7 @@ export class ProactiveMemoryEngine {
 // SESSION REGISTRY
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 /**
  * Session registry for proactive memory engines.

@@ -136,6 +136,8 @@ COPY --from=builder /app/src/personas/bundles/ ./dist/personas/bundles/
 # Set environment variables
 ENV NODE_ENV=production
 ENV PERSONA_ID=ferni
+# Enable single-process mode to avoid Cloud Run child process forking issues
+ENV USE_SINGLE_PROCESS=true
 
 # Node.js process optimizations for voice agent stability and fast startup
 # - --max-old-space-size=3072: 3GB heap for voice processing

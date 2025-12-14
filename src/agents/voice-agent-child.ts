@@ -412,8 +412,13 @@ export default defineAgent({
         log('PREWARM', '📦 Phase 2 imports completed, processing results...');
 
         // Extract results
-        const [cacheReaderResult, e2eResult, warmGreetingResult, lightweightTTSResult, lightweightResilienceResult] =
-          phase2Results;
+        const [
+          cacheReaderResult,
+          e2eResult,
+          warmGreetingResult,
+          lightweightTTSResult,
+          lightweightResilienceResult,
+        ] = phase2Results;
 
         logTiming(
           'Phase 2 TOTAL',
@@ -454,9 +459,12 @@ export default defineAgent({
         let ttsPrewarmPromise: Promise<void> | null = null;
         if (_preloadedDeps.lightweightTTS) {
           log('PREWARM', '🎤 Pre-warming TTS connection...');
-          ttsPrewarmPromise = _preloadedDeps.lightweightTTS.prewarmTTSConnection()
+          ttsPrewarmPromise = _preloadedDeps.lightweightTTS
+            .prewarmTTSConnection()
             .then(() => log('PREWARM', '✅ TTS pre-warmed'))
-            .catch(() => { /* Best effort */ });
+            .catch(() => {
+              /* Best effort */
+            });
         }
 
         // ══════════════════════════════════════════════════════════════════════

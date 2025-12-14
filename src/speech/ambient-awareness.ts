@@ -512,10 +512,7 @@ export class AmbientAwarenessService {
 // SINGLETON MANAGEMENT
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const ambientAwarenessRegistry = createSessionRegistry(
   (sessionId: string) => new AmbientAwarenessService(),

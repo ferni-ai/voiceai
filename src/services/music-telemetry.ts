@@ -244,10 +244,7 @@ class MusicTelemetryService {
     trace.failureReason = reason;
     trace.errorMessage = errorMessage;
 
-    log.warn(
-      { traceId, trackName: trace.trackName, reason, errorMessage },
-      '🎵 Playback failed'
-    );
+    log.warn({ traceId, trackName: trace.trackName, reason, errorMessage }, '🎵 Playback failed');
   }
 
   // ==========================================================================
@@ -518,4 +515,3 @@ export const musicTelemetry = {
 };
 
 export default getMusicTelemetry;
-

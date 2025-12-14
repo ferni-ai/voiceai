@@ -378,7 +378,7 @@ async function handleStartMonthly(
 /**
  * PUT /api/garden/subscription
  * Update monthly amount - redirects to Stripe billing portal
- * 
+ *
  * Users can manage their subscription (update amount, change payment method,
  * view invoices) through Stripe's hosted billing portal.
  */
@@ -446,7 +446,7 @@ async function handleUpdateMonthly(
 /**
  * DELETE /api/garden/subscription
  * Cancel monthly contribution - redirects to Stripe billing portal
- * 
+ *
  * Users can cancel their subscription through Stripe's hosted billing portal,
  * which handles all the edge cases (proration, final invoice, etc.)
  */

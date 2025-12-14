@@ -467,10 +467,7 @@ export class EnhancedTurnPredictionService {
 // SINGLETON MANAGEMENT
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const enhancedTurnPredictorRegistry = createSessionRegistry(
   (sessionId: string) => new EnhancedTurnPredictionService(sessionId),

@@ -77,7 +77,7 @@ class InProcessInferenceExecutor {
 
 export class InProcessJobExecutor {
   private opts: InProcessExecutorOptions;
-  private activeJobs: Map<string, ActiveJob> = new Map();
+  private activeJobs = new Map<string, ActiveJob>();
   private proc: JobProcess;
   private log: (msg: string, data?: Record<string, unknown>) => void;
 
@@ -252,4 +252,3 @@ export class InProcessJobExecutor {
     this.activeJobs.clear();
   }
 }
-

@@ -59,7 +59,7 @@ async function getPrewarmedResources(
 ): Promise<{ usePrewarmed: boolean; persona: PersonaConfig | null; systemPrompt: string | null }> {
   try {
     // Use lightweight cache reader if preloaded, otherwise fallback to resource-server
-    const cacheReader = preloaded?.cacheReader ?? await import('./shared/cache-reader.js');
+    const cacheReader = preloaded?.cacheReader ?? (await import('./shared/cache-reader.js'));
     const { isMainProcessWarmedUp, getPersonaConfig, getSystemPrompt } = cacheReader;
 
     if (isMainProcessWarmedUp()) {
@@ -194,14 +194,17 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
   try {
     const { getPreloadedDeps } = await import('./voice-agent-child.js');
     preloaded = getPreloadedDeps();
-  } catch { /* not running as child process */ }
+  } catch {
+    /* not running as child process */
+  }
 
   // Use preloaded modules or fallback to dynamic import
-  const e2eDiagnostics = preloaded?.e2eDiagnostics ?? await import('./shared/e2e-diagnostics.js');
+  const e2eDiagnostics = preloaded?.e2eDiagnostics ?? (await import('./shared/e2e-diagnostics.js'));
   const { e2e } = e2eDiagnostics;
 
   // Use lightweight resilience for basic withResilience (no AI diagnostics during normal flow)
-  const lightweightResilience = preloaded?.lightweightResilience ?? await import('./shared/lightweight-resilience.js');
+  const lightweightResilience =
+    preloaded?.lightweightResilience ?? (await import('./shared/lightweight-resilience.js'));
   const { withResilience, humanizeError } = lightweightResilience;
 
   let currentPhase: 'deps' | 'persona' | 'connect' | 'session' | 'greeting' | 'running' = 'deps';
@@ -215,8 +218,10 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // Step 1: Load voice dependencies
     e2e.resourceLoading('voice-dependencies');
     const depsStart = Date.now();
-    await withResilience(() => loadVoiceDeps(preloaded ?? undefined), {
-      maxRetries: 2, baseDelay: 1000, operationName: 'load-voice-deps',
+    await withResilience(async () => loadVoiceDeps(preloaded ?? undefined), {
+      maxRetries: 2,
+      baseDelay: 1000,
+      operationName: 'load-voice-deps',
     });
     e2e.resourceLoaded('voice-dependencies', Date.now() - depsStart);
 
@@ -227,8 +232,11 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     e2e.resourceLoading(`persona:${personaId}`);
     const personaStart = Date.now();
-    const { usePrewarmed, persona: cachedPersona, systemPrompt: cachedPrompt } =
-      await getPrewarmedResources(personaId, preloaded ?? undefined);
+    const {
+      usePrewarmed,
+      persona: cachedPersona,
+      systemPrompt: cachedPrompt,
+    } = await getPrewarmedResources(personaId, preloaded ?? undefined);
 
     let persona = cachedPersona;
     if (!usePrewarmed) {
@@ -244,19 +252,31 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     currentPhase = 'connect';
     e2e.sessionConnecting(roomName, ctx.job.participant?.identity || 'unknown');
     const connectStart = Date.now();
-    await withResilience(() => connectToRoom(ctx), {
-      maxRetries: 3, baseDelay: 500, maxDelay: 5000, operationName: 'room-connect',
+    await withResilience(async () => connectToRoom(ctx), {
+      maxRetries: 3,
+      baseDelay: 500,
+      maxDelay: 5000,
+      operationName: 'room-connect',
       onRetry: (attempt, error) => {
-        e2e.warn('SESSION', `Room connect retry (attempt ${attempt})`, { error: error.message, roomName });
+        e2e.warn('SESSION', `Room connect retry (attempt ${attempt})`, {
+          error: error.message,
+          roomName,
+        });
       },
     });
-    e2e.sessionConnected(jobId, roomName, ctx.room.localParticipant?.identity || 'agent', Date.now() - connectStart);
+    e2e.sessionConnected(
+      jobId,
+      roomName,
+      ctx.room.localParticipant?.identity || 'agent',
+      Date.now() - connectStart
+    );
 
     // Step 4: Create and start session
     currentPhase = 'session';
     e2e.resourceLoading('agent-session');
     const sessionStart = Date.now();
-    const systemPrompt = cachedPrompt || persona?.systemPrompt || 'You are Ferni, a helpful AI life coach.';
+    const systemPrompt =
+      cachedPrompt || persona?.systemPrompt || 'You are Ferni, a helpful AI life coach.';
     const created = await createSession(persona, systemPrompt, preloaded ?? undefined);
     session = created.session;
 
@@ -267,7 +287,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     // Step 5: Say greeting - use preloaded warmGreeting
     currentPhase = 'greeting';
-    const warmGreeting = preloaded?.warmGreeting ?? await import('./shared/warm-greeting.js');
+    const warmGreeting = preloaded?.warmGreeting ?? (await import('./shared/warm-greeting.js'));
     await session.say(
       warmGreeting.getWarmGreeting(personaId) || "Hey there! I'm Ferni. How can I help you today?"
     );
@@ -282,34 +302,50 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     // Run AI diagnosis (lazy-load heavy self-healing module only on error)
     const stageMap: Record<typeof currentPhase, 'unknown' | 'session' | 'entry'> = {
-      deps: 'entry', persona: 'entry', connect: 'session',
-      session: 'session', greeting: 'session', running: 'session',
+      deps: 'entry',
+      persona: 'entry',
+      connect: 'session',
+      session: 'session',
+      greeting: 'session',
+      running: 'session',
     };
     try {
       // Only load heavy AI diagnostics when an error actually occurs
       const selfHealing = await import('../services/self-healing/index.js');
       const diagnosis = await selfHealing.analyzeFailure([errObj.message, errObj.stack || ''], {
-        jobId, stage: stageMap[currentPhase],
+        jobId,
+        stage: stageMap[currentPhase],
         timing: { totalMs: Date.now() - startTime },
-        errorType: errObj.name, errorMessage: errObj.message,
+        errorType: errObj.name,
+        errorMessage: errObj.message,
       });
 
       e2e.custom('DIAGNOSIS', `AI analysis for session ${jobId}`, {
-        phase: currentPhase, rootCause: diagnosis.rootCause,
-        confidence: diagnosis.confidence, autoFixable: diagnosis.autoFixable,
+        phase: currentPhase,
+        rootCause: diagnosis.rootCause,
+        confidence: diagnosis.confidence,
+        autoFixable: diagnosis.autoFixable,
       });
 
       if (session && ctx.room.isConnected && diagnosis.humanExplanation) {
         const humanized = humanizeError(errObj);
         if (humanized.shouldNotifyUser) {
-          try { await session.say(humanized.userMessage); } catch { /* can't speak */ }
+          try {
+            await session.say(humanized.userMessage);
+          } catch {
+            /* can't speak */
+          }
         }
       }
-    } catch { /* diagnosis is best-effort */ }
+    } catch {
+      /* diagnosis is best-effort */
+    }
 
     try {
       if (!ctx.room.isConnected) await ctx.connect();
       await new Promise<void>((resolve) => ctx.room.on('disconnected', () => resolve()));
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 }

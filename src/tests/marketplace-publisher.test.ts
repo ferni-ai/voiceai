@@ -29,7 +29,7 @@ import type { ToolManifest, AgentManifest, TrustLevel } from '../marketplace/sch
 
 // Test fixtures
 const createValidToolManifest = (overrides: Partial<ToolManifest> = {}): ToolManifest => ({
-  id: 'test-tool-' + Date.now(),
+  id: `test-tool-${Date.now()}`,
   name: 'Test Tool',
   version: '1.0.0',
   publisher: {
@@ -88,7 +88,7 @@ const createValidToolManifest = (overrides: Partial<ToolManifest> = {}): ToolMan
 });
 
 const createValidAgentManifest = (overrides: Partial<AgentManifest> = {}): AgentManifest => ({
-  id: 'test-agent-' + Date.now(),
+  id: `test-agent-${Date.now()}`,
   name: 'Test Agent',
   displayName: 'Test Display Name',
   version: '1.0.0',

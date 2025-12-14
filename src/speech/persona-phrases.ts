@@ -348,7 +348,7 @@ export const ACKNOWLEDGMENT_PREFIXES: Record<string, Record<AcknowledgmentMood, 
 // Keep these SHORT and active - Ferni doesn't hedge or stall
 /**
  * HUMANIZATION FIX: Thinking fillers that feel natural, not robotic
- * 
+ *
  * Key changes:
  * - More variety to prevent repetition
  * - Includes incomplete thoughts (how real people think)

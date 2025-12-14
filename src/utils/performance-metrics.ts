@@ -136,11 +136,7 @@ export async function timeAsync<T>(
 /**
  * Synchronous version of timeAsync.
  */
-export function timeSync<T>(
-  name: string,
-  fn: () => T,
-  metadata?: Record<string, unknown>
-): T {
+export function timeSync<T>(name: string, fn: () => T, metadata?: Record<string, unknown>): T {
   const timerId = startTimer(name, metadata);
   try {
     return fn();
@@ -267,4 +263,3 @@ export const METRICS = {
 } as const;
 
 export type MetricName = (typeof METRICS)[keyof typeof METRICS];
-

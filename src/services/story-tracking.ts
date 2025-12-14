@@ -281,13 +281,19 @@ const storyGraphCache = new Map<string, StoryGraphConfig>();
  */
 export function registerStoryGraph(personaId: string, graph: StoryGraphConfig): void {
   storyGraphCache.set(personaId, graph);
-  logger.debug({ personaId, triggers: Object.keys(graph.context_triggers || {}).length }, 'Registered story graph');
+  logger.debug(
+    { personaId, triggers: Object.keys(graph.context_triggers || {}).length },
+    'Registered story graph'
+  );
 }
 
 /**
  * Detect context triggers in user message/context
  */
-function detectContextTriggers(userMood: string | undefined, currentTopic: string | undefined): string[] {
+function detectContextTriggers(
+  userMood: string | undefined,
+  currentTopic: string | undefined
+): string[] {
   const triggers: string[] = [];
   const moodLower = (userMood || '').toLowerCase();
   const topicLower = (currentTopic || '').toLowerCase();
@@ -295,12 +301,29 @@ function detectContextTriggers(userMood: string | undefined, currentTopic: strin
 
   // Map user context to story graph trigger keys
   const contextPatterns: Record<string, string[]> = {
-    user_facing_setback: ['setback', 'failed', 'failure', 'didn\'t work', 'went wrong', 'disappointed'],
-    user_made_mistake: ['mistake', 'messed up', 'screwed up', 'regret', 'shouldn\'t have'],
-    user_family_topic: ['family', 'parent', 'sibling', 'brother', 'sister', 'mom', 'dad', 'kids', 'children'],
+    user_facing_setback: [
+      'setback',
+      'failed',
+      'failure',
+      "didn't work",
+      'went wrong',
+      'disappointed',
+    ],
+    user_made_mistake: ['mistake', 'messed up', 'screwed up', 'regret', "shouldn't have"],
+    user_family_topic: [
+      'family',
+      'parent',
+      'sibling',
+      'brother',
+      'sister',
+      'mom',
+      'dad',
+      'kids',
+      'children',
+    ],
     user_travel_topic: ['travel', 'trip', 'vacation', 'abroad', 'country', 'visited'],
     user_career_question: ['career', 'job', 'work', 'profession', 'salary', 'promotion'],
-    user_feeling_overwhelmed: ['overwhelmed', 'too much', 'stressed', 'can\'t handle', 'drowning'],
+    user_feeling_overwhelmed: ['overwhelmed', 'too much', 'stressed', "can't handle", 'drowning'],
     user_mental_health: ['anxious', 'depressed', 'mental health', 'therapy', 'struggling'],
     user_questioning_self_worth: ['worth', 'enough', 'good enough', 'deserve', 'value'],
     user_discussing_patience: ['patience', 'waiting', 'takes time', 'slow'],
@@ -308,7 +331,7 @@ function detectContextTriggers(userMood: string | undefined, currentTopic: strin
   };
 
   for (const [trigger, keywords] of Object.entries(contextPatterns)) {
-    if (keywords.some(kw => combined.includes(kw))) {
+    if (keywords.some((kw) => combined.includes(kw))) {
       triggers.push(trigger);
     }
   }
@@ -318,7 +341,7 @@ function detectContextTriggers(userMood: string | undefined, currentTopic: strin
 
 /**
  * Find an appropriate story for the context
- * 
+ *
  * HUMANIZATION FIX: Now uses story graph context_triggers from bundles
  * for smarter, persona-specific story selection instead of basic keyword matching.
  */
@@ -353,10 +376,10 @@ export async function findStoryForContext(
   // HUMANIZATION FIX: Use story graph context triggers for smarter selection
   // Try bundle runtime first (preferred), fall back to cached story graph
   const detectedTriggers = detectContextTriggers(userMood, currentTopic);
-  
+
   // Collect recommended stories from matching triggers
   const graphRecommendations = new Map<string, { priority: number; trigger: string }>();
-  
+
   // PRIORITY 1: Use bundle runtime's getRecommendedStories if available
   if (context.bundleRuntime?.getRecommendedStories) {
     for (const trigger of detectedTriggers) {
@@ -369,11 +392,14 @@ export async function findStoryForContext(
             graphRecommendations.set(storyId, { priority: 8, trigger });
           }
         }
-        logger.debug({ trigger, count: recommendedStoryIds.length }, 'Bundle runtime recommended stories');
+        logger.debug(
+          { trigger, count: recommendedStoryIds.length },
+          'Bundle runtime recommended stories'
+        );
       }
     }
   }
-  
+
   // PRIORITY 2: Fall back to cached story graph
   const storyGraph = storyGraphCache.get(personaId);
   if (storyGraph?.context_triggers && graphRecommendations.size === 0) {
@@ -384,8 +410,9 @@ export async function findStoryForContext(
         if (triggerConfig.requires_trust && relationshipStage === 'stranger') {
           continue; // Skip stories requiring trust for strangers
         }
-        
-        const priorityScore = triggerConfig.priority === 'high' ? 10 : triggerConfig.priority === 'medium' ? 5 : 2;
+
+        const priorityScore =
+          triggerConfig.priority === 'high' ? 10 : triggerConfig.priority === 'medium' ? 5 : 2;
         for (const storyId of triggerConfig.recommended_stories) {
           const existing = graphRecommendations.get(storyId);
           if (!existing || existing.priority < priorityScore) {
@@ -404,7 +431,10 @@ export async function findStoryForContext(
     const graphRec = graphRecommendations.get(story.id);
     if (graphRec) {
       score += graphRec.priority; // 2-10 points based on priority
-      logger.debug({ storyId: story.id, trigger: graphRec.trigger, priority: graphRec.priority }, 'Story matched context trigger');
+      logger.debug(
+        { storyId: story.id, trigger: graphRec.trigger, priority: graphRec.priority },
+        'Story matched context trigger'
+      );
     }
 
     // Mood matching

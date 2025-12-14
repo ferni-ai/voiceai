@@ -150,10 +150,10 @@ export class AnalyticsWorker extends LocalWorker {
       // Record engagement signals to community insights
       for (const [, events] of byUser) {
         for (const event of events) {
-          const personaId = event.personaId;
-          const responseType = event.data.responseType as string || 'general';
-          const topic = event.data.topic as string || 'unknown';
-          const engagementScore = event.data.engagementScore as number ?? 0.5;
+          const { personaId } = event;
+          const responseType = (event.data.responseType as string) || 'general';
+          const topic = (event.data.topic as string) || 'unknown';
+          const engagementScore = (event.data.engagementScore as number) ?? 0.5;
 
           if (personaId) {
             communityInsights.recordEngagementSignal({
@@ -202,9 +202,9 @@ export class AnalyticsWorker extends LocalWorker {
 
       for (const event of batch) {
         const emotion = event.data.emotion as string | undefined;
-        const topic = event.data.topic as string || 'general';
-        const personaId = event.personaId;
-        const engagementScore = event.data.engagementScore as number ?? 0.5;
+        const topic = (event.data.topic as string) || 'general';
+        const { personaId } = event;
+        const engagementScore = (event.data.engagementScore as number) ?? 0.5;
 
         if (emotion && personaId) {
           // Record as engagement signal (emotion detection is a type of engagement)
@@ -258,8 +258,8 @@ export class AnalyticsWorker extends LocalWorker {
             relationshipStage: data.relationshipStage as string | undefined,
           },
           bestStrategy: data.bestStrategy as string,
-          improvement: data.improvement as number ?? 0.1,
-          confidence: data.confidence as number ?? 0.5,
+          improvement: (data.improvement as number) ?? 0.1,
+          confidence: (data.confidence as number) ?? 0.5,
         });
       }
 
@@ -302,9 +302,9 @@ export class AnalyticsWorker extends LocalWorker {
         // Record as engagement signal
         communityInsights.recordEngagementSignal({
           personaId,
-          responseType: data.responseType as string || 'insight',
+          responseType: (data.responseType as string) || 'insight',
           topic: data.topic as string,
-          engagementScore: data.engagementScore as number ?? 0.7,
+          engagementScore: (data.engagementScore as number) ?? 0.7,
           timestamp: new Date(),
         });
       }

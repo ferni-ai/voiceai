@@ -33,23 +33,26 @@ import {
 
 export interface RuntimeToolProxy {
   /** Execute a tool via the runtime */
-  execute(toolId: string, params: Record<string, unknown>): Promise<ToolExecutionResult>;
+  execute: (toolId: string, params: Record<string, unknown>) => Promise<ToolExecutionResult>;
 
   /** Get tool definitions for LLM function calling */
-  getToolDefinitions(): Promise<LLMToolDefinition[]>;
+  getToolDefinitions: () => Promise<LLMToolDefinition[]>;
 
   /** Get persona system prompt via runtime */
-  getSystemPrompt(): Promise<{
+  getSystemPrompt: () => Promise<{
     systemPrompt: string;
     greeting: string;
     voiceConfig: { provider: string; voiceId: string };
   }>;
 
   /** Recall memories via runtime */
-  recallMemories(query: string, limit?: number): Promise<Array<{ content: string; relevance: number }>>;
+  recallMemories: (
+    query: string,
+    limit?: number
+  ) => Promise<Array<{ content: string; relevance: number }>>;
 
   /** Store a memory via runtime */
-  storeMemory(content: string, metadata?: Record<string, unknown>): Promise<{ id: string }>;
+  storeMemory: (content: string, metadata?: Record<string, unknown>) => Promise<{ id: string }>;
 }
 
 export interface LLMToolDefinition {
@@ -147,10 +150,7 @@ class VoiceAgentRuntimeProxy implements RuntimeToolProxy {
 
   async getToolDefinitions(): Promise<LLMToolDefinition[]> {
     // Get standard runtime tools
-    const tools = await this.runtime.tools.listTools(
-      this.ctx.agentId,
-      this.ctx.subscriptionTier
-    );
+    const tools = await this.runtime.tools.listTools(this.ctx.agentId, this.ctx.subscriptionTier);
 
     const definitions: LLMToolDefinition[] = tools.map((tool) => ({
       type: 'function' as const,
@@ -207,7 +207,7 @@ class VoiceAgentRuntimeProxy implements RuntimeToolProxy {
 
   async recallMemories(
     query: string,
-    limit: number = 5
+    limit = 5
   ): Promise<Array<{ content: string; relevance: number }>> {
     const memories = await this.runtime.memory.recall(this.ctx.userId, query, { limit });
     return memories.map((m) => ({
@@ -216,10 +216,7 @@ class VoiceAgentRuntimeProxy implements RuntimeToolProxy {
     }));
   }
 
-  async storeMemory(
-    content: string,
-    metadata?: Record<string, unknown>
-  ): Promise<{ id: string }> {
+  async storeMemory(content: string, metadata?: Record<string, unknown>): Promise<{ id: string }> {
     return this.runtime.memory.store(this.ctx.userId, content, metadata);
   }
 }

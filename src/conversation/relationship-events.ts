@@ -542,10 +542,7 @@ export class RelationshipEventsEngine {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const relationshipEventsRegistry = createSessionRegistry(
   (userId: string) => new RelationshipEventsEngine(),

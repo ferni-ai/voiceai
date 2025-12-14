@@ -492,10 +492,7 @@ export class CognitiveLoadDetector {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const cognitiveLoadRegistry = createSessionRegistry(
   (sessionId: string) => new CognitiveLoadDetector(),

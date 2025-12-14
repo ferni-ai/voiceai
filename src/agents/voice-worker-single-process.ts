@@ -45,8 +45,8 @@ const moduleLoadStart = Date.now();
 
 import { AccessToken } from 'livekit-server-sdk';
 import { Room, RoomEvent } from '@livekit/rtc-node';
-import { JobContext, JobProcess, runWithJobContextAsync } from '@livekit/agents';
-import { JobType, ServerMessage, WorkerMessage, ParticipantPermission } from '@livekit/protocol';
+import { JobContext, JobProcess, runWithJobContextAsync, initializeLogger } from '@livekit/agents';
+import { JobType, ServerMessage, WorkerMessage, ParticipantPermission, WorkerStatus } from '@livekit/protocol';
 import type { Job } from '@livekit/protocol';
 import { WebSocket } from 'ws';
 import { EventEmitter } from 'node:events';
@@ -57,6 +57,9 @@ import { startup } from '../startup.js';
 
 const moduleLoadTime = Date.now() - moduleLoadStart;
 log('Modules loaded', { moduleLoadTimeMs: moduleLoadTime });
+
+// Initialize LiveKit SDK logger (required for runWithJobContextAsync)
+initializeLogger({ pretty: true, level: 'info' });
 
 // ============================================================================
 // CONFIGURATION
@@ -192,13 +195,20 @@ async function runJobInProcess(info: JobInfo): Promise<void> {
       }
     }, 10000);
 
+    log('Starting runWithJobContextAsync', { jobId });
     await runWithJobContextAsync(ctx, async () => {
+      log('Inside job context, calling runVoiceAgentSession', { jobId });
       try {
         await runVoiceAgentSession(ctx);
+        log('runVoiceAgentSession completed', { jobId });
+      } catch (sessionError) {
+        log('runVoiceAgentSession error', { jobId, error: String(sessionError) });
+        throw sessionError;
       } finally {
         clearTimeout(unconnectedTimeout);
       }
     });
+    log('runWithJobContextAsync completed', { jobId });
 
     // Wait for graceful close
     await new Promise<void>((resolve) => {
@@ -220,7 +230,6 @@ async function runJobInProcess(info: JobInfo): Promise<void> {
       durationMs: Date.now() - startTime,
       success: true,
     });
-
   } catch (error) {
     failedJobs++;
     activeJobs--;
@@ -230,7 +239,6 @@ async function runJobInProcess(info: JobInfo): Promise<void> {
       error: error instanceof Error ? error.message : String(error),
     });
     throw error;
-
   } finally {
     try {
       if (ctx.room.isConnected) {
@@ -257,14 +265,20 @@ async function connectToLiveKit(): Promise<void> {
   token.addGrant({ agent: true });
   const jwt = await token.toJwt();
 
-  // Build WebSocket URL (matching SDK: always uses Authorization header, optionally worker_token query)
-  const url = new URL(LIVEKIT_URL);
-  url.protocol = url.protocol.replace('http', 'ws');
-  url.pathname = '/agent';
+  // Build WebSocket URL (matching SDK exactly: url + "agent")
+  const baseUrl = new URL(LIVEKIT_URL);
+  baseUrl.protocol = baseUrl.protocol.replace('http', 'ws');
+  const url = new URL(baseUrl.toString() + 'agent');
 
-  log('Connecting to LiveKit', { url: url.toString() });
+  log('Connecting to LiveKit', { 
+    url: url.toString(),
+    apiKey: LIVEKIT_API_KEY.slice(0, 10) + '...',
+    hasSecret: !!LIVEKIT_API_SECRET,
+    jwtLength: jwt.length,
+  });
 
   return new Promise((resolve, reject) => {
+    // SDK uses Authorization header (line 281 in worker.js)
     ws = new WebSocket(url.toString(), {
       headers: { authorization: `Bearer ${jwt}` },
     });
@@ -292,6 +306,7 @@ async function connectToLiveKit(): Promise<void> {
           },
         },
       });
+      log('Sending register message', { agentName: AGENT_NAME, type: JobType.JT_ROOM });
       ws!.send(registerMsg.toBinary());
 
       resolve();
@@ -301,6 +316,7 @@ async function connectToLiveKit(): Promise<void> {
       try {
         const msg = new ServerMessage();
         msg.fromBinary(new Uint8Array(data));
+        log('Server message received', { case: msg.message?.case });
         await handleServerMessage(msg);
       } catch (error) {
         log('Error handling message', { error: String(error) });
@@ -329,7 +345,7 @@ function scheduleReconnect(): void {
   reconnectAttempts++;
 
   log('Scheduling reconnect', { attempt: reconnectAttempts, delayMs: delay });
-  setTimeout(() => connectToLiveKit().catch(console.error), delay);
+  setTimeout(async () => connectToLiveKit().catch(console.error), delay);
 }
 
 // Track pending jobs - we store the accept args we send in availability response
@@ -345,7 +361,7 @@ interface PendingJob {
 const pendingJobs = new Map<string, PendingJob>();
 
 async function handleServerMessage(msg: ServerMessage): Promise<void> {
-  const message = msg.message;
+  const { message } = msg;
   if (!message) return;
 
   switch (message.case) {
@@ -355,12 +371,44 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
         workerId,
         serverVersion: message.value.serverInfo?.version,
       });
+      
+      // CRITICAL: Send initial status update (SDK does this periodically)
+      // This tells LiveKit we're available to receive jobs
+      const statusMsg = new WorkerMessage({
+        message: {
+          case: 'updateWorker',
+          value: {
+            load: 0,
+            status: WorkerStatus.WS_AVAILABLE,
+          },
+        },
+      });
+      ws?.send(statusMsg.toBinary());
+      log('Sent WS_AVAILABLE status');
+      
+      // Start periodic status updates (SDK does this every 10 seconds)
+      setInterval(() => {
+        if (ws?.readyState === WebSocket.OPEN) {
+          const currentLoad = activeJobs > 0 ? 0.5 : 0;
+          const status = activeJobs >= 3 ? WorkerStatus.WS_FULL : WorkerStatus.WS_AVAILABLE;
+          const updateMsg = new WorkerMessage({
+            message: {
+              case: 'updateWorker',
+              value: {
+                load: currentLoad,
+                status,
+              },
+            },
+          });
+          ws.send(updateMsg.toBinary());
+        }
+      }, 10000);
       break;
     }
 
     case 'availability': {
       // Server is asking if we can handle a job
-      const job = message.value.job;
+      const { job } = message.value;
       if (!job) return;
 
       log('Job availability request', { jobId: job.id, roomName: job.room?.name });
@@ -479,5 +527,5 @@ const shutdown = async (signal: string) => {
   process.exit(0);
 };
 
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', async () => shutdown('SIGTERM'));
+process.on('SIGINT', async () => shutdown('SIGINT'));

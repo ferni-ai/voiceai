@@ -613,7 +613,7 @@ export function getMeaningfulSilenceResponse(
 
     // PRIORITY 2: Self-deprecating humor that's about THEM, not checking on user (10% chance)
     // Much lower chance than before - humor during silence often feels forced
-    if (Math.random() < 0.10 && recentEmotionalTone !== 'heavy') {
+    if (Math.random() < 0.1 && recentEmotionalTone !== 'heavy') {
       const humor = getPersonaHumor(persona);
       if (humor) {
         return {
@@ -1063,10 +1063,10 @@ function getPersonaHumor(persona: PersonaConfig): string | null {
 
 /**
  * HUMANIZATION FIX: Get a "thinking out loud" moment
- * 
+ *
  * Real humans don't tell jokes during silence - they process out loud.
  * This creates genuine connection by showing visible thought process.
- * 
+ *
  * Prioritizes content that connects to what the user just said.
  */
 function getThinkingOutLoudMoment(context: SilenceContext, _persona: PersonaConfig): string | null {
@@ -1076,7 +1076,7 @@ function getThinkingOutLoudMoment(context: SilenceContext, _persona: PersonaConf
   if (recentEmotionalTone === 'heavy' || (memorableMoments && memorableMoments.length > 0)) {
     const templates = THINKING_OUT_LOUD.afterPersonalShare;
     let response = randomFrom(templates);
-    
+
     // Substitute {topic} with something specific they mentioned
     if (memorableMoments && memorableMoments.length > 0) {
       response = response.replace('{topic}', memorableMoments[memorableMoments.length - 1]);
@@ -1086,7 +1086,7 @@ function getThinkingOutLoudMoment(context: SilenceContext, _persona: PersonaConf
       // Remove the {topic} reference if we don't have anything specific
       response = response.replace(/<break time="[^"]+"\/>About \{topic\}\./, '');
     }
-    
+
     return response;
   }
 

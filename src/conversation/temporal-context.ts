@@ -686,10 +686,7 @@ export class TemporalContextEngine {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const temporalContextRegistry = createSessionRegistry(
   (userId: string) => new TemporalContextEngine(),

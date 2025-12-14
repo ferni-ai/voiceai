@@ -336,16 +336,16 @@ export async function handleLandingIntelligenceRoutes(
       const experimentId = pathname.split('/')[4];
       const url = new URL(req.url || '', 'http://localhost');
       const userId = url.searchParams.get('userId') || 'anonymous';
-      
+
       try {
         // Import the feature flags service (Firestore-backed)
         const { isEnabled, getFlag: getFlagConfig } = await import('../services/feature-flags.js');
-        
+
         // Check if flag is enabled for this user (handles percentage rollout internally)
         const enabled = isEnabled(experimentId as Parameters<typeof isEnabled>[0], userId);
         const config = getFlagConfig(experimentId as Parameters<typeof isEnabled>[0]);
-        
-        sendJSON(res, { 
+
+        sendJSON(res, {
           variantId: enabled ? 'enabled' : 'control',
           reason: enabled ? 'enabled_for_user' : 'not_in_rollout',
           percentage: config.percentage,
@@ -373,10 +373,10 @@ export async function handleLandingIntelligenceRoutes(
           value?: number;
         }>;
       }>(req);
-      
+
       // Log events for analytics (stored in Firestore via analytics system)
       log.info({ eventCount: events?.length || 0 }, 'Received experiment events batch');
-      
+
       // Just acknowledge for now - analytics system handles storage
       sendJSON(res, { success: true, received: events?.length || 0 });
       return true;

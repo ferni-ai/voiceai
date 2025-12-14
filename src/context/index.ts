@@ -82,10 +82,7 @@ export type {
 // INTEGRATIONS (Trust + Memory Wiring)
 // ============================================================================
 
-export {
-  getIntegratedContextManager,
-  wireContextIntegrations,
-} from './integrations.js';
+export { getIntegratedContextManager, wireContextIntegrations } from './integrations.js';
 
 export type { ContextIntegrationOptions } from './integrations.js';
 

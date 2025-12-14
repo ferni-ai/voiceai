@@ -994,7 +994,7 @@ export class DJBooth {
    */
   private onMusicFading(track: MusicTrack): void {
     log.debug('🎧 Music fading - state tracked (speaking handled by music-handler)', {
-      track: track.name
+      track: track.name,
     });
     // State tracking only - music-handler.ts handles speaking
   }
@@ -1008,7 +1008,7 @@ export class DJBooth {
     if (!currentTrack) return;
 
     log.debug('🎧 Track changing - state tracked (speaking handled by music-handler)', {
-      from: currentTrack.name
+      from: currentTrack.name,
     });
     // State tracking only - music-handler.ts handles speaking
   }

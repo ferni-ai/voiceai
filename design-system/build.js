@@ -92,6 +92,25 @@ function generatePersonaCSS(personas) {
   return lines.join('\n');
 }
 
+function generateExternalBrandCSS(external) {
+  if (!external) return '';
+  const lines = [];
+  lines.push(':root {');
+  for (const [brandId, brandColors] of Object.entries(external)) {
+    // Skip description fields
+    if (brandId.startsWith('_')) continue;
+    const kebabId = camelToKebab(brandId);
+    if (brandColors.primary) {
+      lines.push(`  --external-${kebabId}-primary: ${brandColors.primary};`);
+    }
+    if (brandColors.glow) {
+      lines.push(`  --external-${kebabId}-glow: ${brandColors.glow};`);
+    }
+  }
+  lines.push('}');
+  return lines.join('\n');
+}
+
 // ============================================================================
 // TYPOGRAPHY CSS GENERATION
 // ============================================================================
@@ -2021,6 +2040,15 @@ function build() {
   output.push('   ======================================== */');
   output.push(generatePersonaCSS(colors.personas));
   output.push('');
+
+  // External brand colors (for marketplace)
+  if (colors.external) {
+    output.push('/* ========================================');
+    output.push('   EXTERNAL BRAND COLORS');
+    output.push('   ======================================== */');
+    output.push(generateExternalBrandCSS(colors.external));
+    output.push('');
+  }
 
   // Typography
   output.push('/* ========================================');

@@ -710,10 +710,7 @@ export class MicroAffirmationEngine {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const microAffirmationRegistry = createSessionRegistry(
   (sessionId: string) => new MicroAffirmationEngine(),

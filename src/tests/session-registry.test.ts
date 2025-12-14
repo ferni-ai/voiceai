@@ -446,4 +446,3 @@ describe('Edge Cases', () => {
     expect(instances.every((inst) => inst instanceof MockService)).toBe(true);
   });
 });
-

@@ -415,10 +415,7 @@ export function hookRealtimePreemptive(
 // SINGLETON MANAGEMENT
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const realtimePreemptiveRegistry = createSessionRegistry(
   (sessionId: string) => new RealtimePreemptiveProcessor(sessionId),

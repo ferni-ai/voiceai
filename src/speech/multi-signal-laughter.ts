@@ -510,10 +510,7 @@ export class MultiSignalLaughterDetector {
 // SINGLETON MANAGEMENT
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const laughterDetectorRegistry = createSessionRegistry(
   (sessionId: string) => new MultiSignalLaughterDetector(sessionId),

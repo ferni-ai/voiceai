@@ -156,11 +156,20 @@ export interface MusicPlayerEvents {
 }
 
 export interface TypedMusicPlayerEmitter {
-  on<K extends keyof MusicPlayerEvents>(event: K, listener: (...args: MusicPlayerEvents[K]) => void): this;
-  once<K extends keyof MusicPlayerEvents>(event: K, listener: (...args: MusicPlayerEvents[K]) => void): this;
-  off<K extends keyof MusicPlayerEvents>(event: K, listener: (...args: MusicPlayerEvents[K]) => void): this;
-  emit<K extends keyof MusicPlayerEvents>(event: K, ...args: MusicPlayerEvents[K]): boolean;
-  removeAllListeners<K extends keyof MusicPlayerEvents>(event?: K): this;
+  on: <K extends keyof MusicPlayerEvents>(
+    event: K,
+    listener: (...args: MusicPlayerEvents[K]) => void
+  ) => this;
+  once: <K extends keyof MusicPlayerEvents>(
+    event: K,
+    listener: (...args: MusicPlayerEvents[K]) => void
+  ) => this;
+  off: <K extends keyof MusicPlayerEvents>(
+    event: K,
+    listener: (...args: MusicPlayerEvents[K]) => void
+  ) => this;
+  emit: <K extends keyof MusicPlayerEvents>(event: K, ...args: MusicPlayerEvents[K]) => boolean;
+  removeAllListeners: <K extends keyof MusicPlayerEvents>(event?: K) => this;
 }
 
 // ============================================================================

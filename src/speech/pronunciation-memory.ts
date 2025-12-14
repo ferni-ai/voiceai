@@ -576,10 +576,7 @@ export function analyzePronunciationNeeds(text: string): string[] {
 // SESSION REGISTRY MANAGEMENT
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 /**
  * Session registry for pronunciation memory services.

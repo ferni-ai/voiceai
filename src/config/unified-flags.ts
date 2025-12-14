@@ -250,9 +250,8 @@ export const flags = {
     /**
      * Check if a specific voice humanization feature is enabled
      */
-    isFeatureEnabled: (
-      feature: Parameters<typeof isVoiceHumanizationFeatureEnabled>[0]
-    ) => isVoiceHumanizationFeatureEnabled(feature),
+    isFeatureEnabled: (feature: Parameters<typeof isVoiceHumanizationFeatureEnabled>[0]) =>
+      isVoiceHumanizationFeatureEnabled(feature),
 
     // Convenience getters for common checks
     get prosodyTurnPrediction() {
@@ -348,4 +347,3 @@ export type { FeatureFlags } from './feature-flags.js';
 export type { VoiceHumanizationFlags } from './voice-humanization-flags.js';
 
 export default flags;
-

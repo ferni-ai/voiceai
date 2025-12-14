@@ -239,7 +239,10 @@ function createRemoteProxyTool(
             const localTool = toolDef.create(ctx);
             return await localTool.execute(params);
           } catch (localError) {
-            log.error({ toolId: toolDef.id, error: String(localError) }, 'Local fallback also failed');
+            log.error(
+              { toolId: toolDef.id, error: String(localError) },
+              'Local fallback also failed'
+            );
           }
         }
 

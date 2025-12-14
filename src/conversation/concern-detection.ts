@@ -835,10 +835,7 @@ export class ConcernDetectionEngine {
 // SESSION REGISTRY
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 /**
  * Session registry for concern detection engines.

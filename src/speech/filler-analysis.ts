@@ -555,15 +555,13 @@ export class FillerAnalyzer {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
-const fillerAnalyzerRegistry = createSessionRegistry(
-  (sessionId: string) => new FillerAnalyzer(),
-  { name: 'FillerAnalyzer', cleanup: (analyzer) => analyzer.reset(), verbose: false }
-);
+const fillerAnalyzerRegistry = createSessionRegistry((sessionId: string) => new FillerAnalyzer(), {
+  name: 'FillerAnalyzer',
+  cleanup: (analyzer) => analyzer.reset(),
+  verbose: false,
+});
 
 registerGlobalRegistry(fillerAnalyzerRegistry);
 

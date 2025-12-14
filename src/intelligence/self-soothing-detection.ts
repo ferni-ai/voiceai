@@ -599,10 +599,7 @@ export class SelfSoothingDetector {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const selfSoothingRegistry = createSessionRegistry(
   (sessionId: string) => new SelfSoothingDetector(),

@@ -65,7 +65,7 @@ const unbundledPath = fileURLToPath(new URL(UNBUNDLED_AGENT_FILE, import.meta.ur
 const childAgentPath = existsSync(bundlePath) ? bundlePath : unbundledPath;
 const usingBundle = existsSync(bundlePath);
 
-log('Child agent configuration', { 
+log('Child agent configuration', {
   path: childAgentPath,
   usingBundle,
   bundleExists: existsSync(bundlePath),

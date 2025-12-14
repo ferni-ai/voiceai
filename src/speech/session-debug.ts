@@ -84,13 +84,16 @@ export interface SpeechModuleDebugInfo {
 // ============================================================================
 
 const moduleStartTime = Date.now();
-const sessionMetrics = new Map<string, {
-  startTime: Date;
-  backchannelCount: number;
-  turnPredictions: number;
-  emotionsDetected: Set<string>;
-  prosodyAnalyses: number;
-}>();
+const sessionMetrics = new Map<
+  string,
+  {
+    startTime: Date;
+    backchannelCount: number;
+    turnPredictions: number;
+    emotionsDetected: Set<string>;
+    prosodyAnalyses: number;
+  }
+>();
 
 // ============================================================================
 // SESSION TRACKING
@@ -326,4 +329,3 @@ export default {
   checkForLeaks,
   logModuleState,
 };
-

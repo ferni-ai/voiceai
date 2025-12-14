@@ -767,10 +767,7 @@ export class CommunityInsightsEngine {
     emotion?: string;
     personaId?: string;
   }): void {
-    getLogger().debug(
-      { insight },
-      'Insight recorded for community learning'
-    );
+    getLogger().debug({ insight }, 'Insight recorded for community learning');
   }
 
   // ==========================================================================

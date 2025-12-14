@@ -15,9 +15,33 @@
 
 import Stripe from 'stripe';
 import { getLogger } from '../../utils/safe-logger.js';
-import { getStore } from '../../memory/store-factory.js';
 import { recordUsage, calculateRevenueShare, markPayoutComplete } from './index.js';
 import type { MarketplaceId, UserId } from '../schema/types.js';
+
+// Firestore helpers for marketplace data
+async function savePurchase(purchase: MarketplacePurchase): Promise<void> {
+  const { getFirestore } = await import('firebase-admin/firestore');
+  const db = getFirestore();
+  await db.collection('marketplace_purchases').doc(purchase.id).set(purchase);
+}
+
+async function getPurchaseByPaymentIntent(paymentIntentId: string): Promise<MarketplacePurchase | null> {
+  const { getFirestore } = await import('firebase-admin/firestore');
+  const db = getFirestore();
+  const snapshot = await db
+    .collection('marketplace_purchases')
+    .where('stripePaymentIntentId', '==', paymentIntentId)
+    .limit(1)
+    .get();
+  if (snapshot.empty) return null;
+  return snapshot.docs[0].data() as MarketplacePurchase;
+}
+
+async function savePayout(payout: PublisherPayout): Promise<void> {
+  const { getFirestore } = await import('firebase-admin/firestore');
+  const db = getFirestore();
+  await db.collection('marketplace_payouts').doc(payout.id).set(payout);
+}
 
 const log = getLogger().child({ module: 'marketplace-stripe-webhooks' });
 
@@ -65,7 +89,7 @@ function getStripeClient(): Stripe {
     if (!secretKey) {
       throw new Error('STRIPE_SECRET_KEY not configured');
     }
-    stripeClient = new Stripe(secretKey, { apiVersion: '2024-12-18.acacia' });
+    stripeClient = new Stripe(secretKey, { apiVersion: '2025-11-17.clover' });
   }
   return stripeClient;
 }
@@ -138,10 +162,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session): Promis
     completedAt: new Date().toISOString(),
   };
 
-  // Save purchase to store
+  // Save purchase to Firestore
   try {
-    const store = await getStore();
-    await store.saveSetting(`marketplace_purchase:${purchase.id}`, purchase);
+    await savePurchase(purchase);
   } catch (error) {
     log.error({ error: String(error), purchase }, 'Failed to save purchase');
   }
@@ -277,8 +300,7 @@ async function handlePayoutPaid(payout: Stripe.Payout): Promise<void> {
   };
 
   try {
-    const store = await getStore();
-    await store.saveSetting(`marketplace_payout:${payoutRecord.id}`, payoutRecord);
+    await savePayout(payoutRecord);
   } catch (error) {
     log.error({ error: String(error), payoutRecord }, 'Failed to save payout record');
   }
