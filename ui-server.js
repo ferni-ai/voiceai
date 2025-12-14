@@ -378,7 +378,7 @@ function getDemoStatus(ip) {
 // ============================================================================
 // DEMO SESSION STORAGE (Remember conversations for account migration)
 // ============================================================================
-// 
+//
 // "Better than human" - We remember our first conversation even before
 // you formally introduce yourself. When a demo user creates an account,
 // Ferni warmly acknowledges: "I remember you! You mentioned X..."
@@ -393,19 +393,19 @@ const DEMO_SESSION_TTL_HOURS = 48; // Keep demo sessions for 48 hours
  */
 function createDemoSession(roomName, demoId, metadata = {}) {
   const claimToken = crypto.randomBytes(16).toString('hex');
-  
+
   const session = {
     roomName,
     demoId,
     claimToken,
     createdAt: Date.now(),
-    expiresAt: Date.now() + (DEMO_SESSION_TTL_HOURS * 60 * 60 * 1000),
+    expiresAt: Date.now() + DEMO_SESSION_TTL_HOURS * 60 * 60 * 1000,
     metadata,
     // Conversation data (populated by voice agent via webhook)
     conversation: {
       messages: [],
       highlights: [], // Key moments from the conversation
-      topics: [],     // Topics discussed
+      topics: [], // Topics discussed
       userMood: null, // Detected emotional state
       ferniNotes: '', // What Ferni wants to remember
     },
@@ -414,10 +414,10 @@ function createDemoSession(roomName, demoId, metadata = {}) {
     claimedBy: null,
     claimedAt: null,
   };
-  
+
   demoSessions.set(roomName, session);
   console.log(`📝 Demo session created: ${roomName} (claim: ${claimToken.substring(0, 8)}...)`);
-  
+
   return { claimToken, roomName, expiresAt: session.expiresAt };
 }
 
@@ -427,13 +427,13 @@ function createDemoSession(roomName, demoId, metadata = {}) {
 function getDemoSession(roomName) {
   const session = demoSessions.get(roomName);
   if (!session) return null;
-  
+
   // Check if expired
   if (Date.now() > session.expiresAt) {
     demoSessions.delete(roomName);
     return null;
   }
-  
+
   return session;
 }
 
@@ -464,14 +464,16 @@ function updateDemoSessionConversation(roomName, conversationData) {
     console.log(`⚠️ Demo session not found for update: ${roomName}`);
     return false;
   }
-  
+
   // Merge conversation data
   session.conversation = {
     ...session.conversation,
     ...conversationData,
   };
-  
-  console.log(`📝 Demo session updated: ${roomName} (${session.conversation.highlights?.length || 0} highlights)`);
+
+  console.log(
+    `📝 Demo session updated: ${roomName} (${session.conversation.highlights?.length || 0} highlights)`
+  );
   return true;
 }
 
@@ -481,11 +483,11 @@ function updateDemoSessionConversation(roomName, conversationData) {
  */
 function claimDemoSession(claimToken, firebaseUid) {
   const session = getDemoSessionByToken(claimToken);
-  
+
   if (!session) {
     return { success: false, error: 'Session not found or expired' };
   }
-  
+
   if (session.claimed) {
     // If already claimed by same user, return success
     if (session.claimedBy === firebaseUid) {
@@ -493,31 +495,34 @@ function claimDemoSession(claimToken, firebaseUid) {
     }
     return { success: false, error: 'Session already claimed by another user' };
   }
-  
+
   // Mark as claimed
   session.claimed = true;
   session.claimedBy = firebaseUid;
   session.claimedAt = Date.now();
-  
+
   console.log(`✅ Demo session claimed: ${session.roomName} by ${firebaseUid.substring(0, 8)}...`);
-  
+
   return { success: true, session };
 }
 
 // Cleanup expired demo sessions every hour
-setInterval(() => {
-  const now = Date.now();
-  let cleaned = 0;
-  for (const [roomName, session] of demoSessions.entries()) {
-    if (now > session.expiresAt) {
-      demoSessions.delete(roomName);
-      cleaned++;
+setInterval(
+  () => {
+    const now = Date.now();
+    let cleaned = 0;
+    for (const [roomName, session] of demoSessions.entries()) {
+      if (now > session.expiresAt) {
+        demoSessions.delete(roomName);
+        cleaned++;
+      }
     }
-  }
-  if (cleaned > 0) {
-    console.log(`🧹 Cleaned ${cleaned} expired demo sessions`);
-  }
-}, 60 * 60 * 1000);
+    if (cleaned > 0) {
+      console.log(`🧹 Cleaned ${cleaned} expired demo sessions`);
+    }
+  },
+  60 * 60 * 1000
+);
 
 // Get Spotify refresh token from file or .env
 function getSpotifyRefreshToken() {
@@ -3006,21 +3011,23 @@ const server = http.createServer(async (req, res) => {
         // Return the conversation data for migration
         const session = result.session;
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          success: true,
-          already_claimed: result.alreadyClaimed || false,
-          conversation: {
-            highlights: session.conversation.highlights,
-            topics: session.conversation.topics,
-            user_mood: session.conversation.userMood,
-            ferni_notes: session.conversation.ferniNotes,
-            message_count: session.conversation.messages?.length || 0,
-          },
-          metadata: {
-            accent: session.metadata.accent,
-            created_at: session.createdAt,
-          },
-        }));
+        res.end(
+          JSON.stringify({
+            success: true,
+            already_claimed: result.alreadyClaimed || false,
+            conversation: {
+              highlights: session.conversation.highlights,
+              topics: session.conversation.topics,
+              user_mood: session.conversation.userMood,
+              ferni_notes: session.conversation.ferniNotes,
+              message_count: session.conversation.messages?.length || 0,
+            },
+            metadata: {
+              accent: session.metadata.accent,
+              created_at: session.createdAt,
+            },
+          })
+        );
       } catch (err) {
         console.error('Demo claim error:', err);
         res.writeHead(500, { 'Content-Type': 'application/json' });

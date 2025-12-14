@@ -1,29 +1,29 @@
 /**
  * LiveKit Type Definitions
- * 
+ *
  * Extends and re-exports LiveKit client types with additional
  * application-specific typings.
  */
 
 // Re-export LiveKit types for convenience
 export type {
+  AudioTrack,
+  LocalParticipant,
+  LocalTrackPublication,
+  RemoteParticipant,
+  RemoteTrackPublication,
   Room,
   RoomOptions,
-  LocalParticipant,
-  RemoteParticipant,
   Track,
-  AudioTrack,
-  VideoTrack,
   TrackPublication,
-  RemoteTrackPublication,
-  LocalTrackPublication,
+  VideoTrack,
 } from 'livekit-client';
 
 export {
-  RoomEvent,
   ConnectionState as LiveKitConnectionState,
   Track as LiveKitTrack,
   ParticipantEvent,
+  RoomEvent,
   TrackEvent,
 } from 'livekit-client';
 
@@ -36,9 +36,9 @@ export {
  */
 export interface TokenResponse {
   readonly token: string;
-  readonly url: string;         // Server URL (wss://...)
-  readonly room: string;        // Room name
-  readonly username: string;    // Participant name
+  readonly url: string; // Server URL (wss://...)
+  readonly room: string; // Room name
+  readonly username: string; // Participant name
 }
 
 /**
@@ -71,7 +71,7 @@ export interface TokenRequest {
   readonly personaId: string;
   /** Firebase UID for cross-device user identification */
   readonly firebaseUid?: string;
-  /** 
+  /**
    * Claimed demo conversation data (Better than human)
    * Set when user came from landing page demo and claimed their conversation
    */
@@ -131,4 +131,3 @@ export function createInitialRoomState(): RoomState {
     hasActiveAudio: false,
   };
 }
-

@@ -1051,22 +1051,22 @@
   function showContinueExperience() {
     const infoEl = container.querySelector('.ferni-demo-info');
     const errorEl = container.querySelector('.ferni-demo-error');
-    
+
     // Hide error, show info with warm invitation
     errorEl.style.display = 'none';
     infoEl.style.display = 'flex';
-    
+
     const infoIcon = infoEl.querySelector('.ferni-demo-info-icon');
     const infoTitle = infoEl.querySelector('.ferni-demo-info-title');
     const infoMessage = infoEl.querySelector('.ferni-demo-info-message');
-    
+
     infoIcon.textContent = '💚';
-    infoTitle.textContent = "That was just the beginning";
+    infoTitle.textContent = 'That was just the beginning';
     infoMessage.innerHTML = `
       I loved getting to know you. Want to continue our conversation?<br>
       <span style="font-size: 13px; opacity: 0.8;">I'll remember everything we talked about.</span>
     `;
-    
+
     // Update action button to "Continue with Ferni"
     actionBtn.innerHTML = `
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1076,10 +1076,10 @@
     `;
     actionBtn.disabled = false;
     actionBtn.onclick = navigateToApp;
-    
+
     // Update status text
-    statusEl.textContent = "Session complete";
-    
+    statusEl.textContent = 'Session complete';
+
     // Hide timer and waveform
     timerEl.style.display = 'none';
     waveformEl.classList.remove('active');
@@ -1092,19 +1092,19 @@
    */
   function navigateToApp() {
     let url = CONFIG.upgradeUrl;
-    
+
     // Add claim token if available
     const claimToken = state.claimToken || localStorage.getItem(STORAGE_KEYS.CLAIM_TOKEN);
     if (claimToken) {
       url += `?claim=${encodeURIComponent(claimToken)}`;
       console.log('🎯 Navigating to app with claim token');
     }
-    
+
     // Track conversion
     if (window.FerniExperiments) {
       window.FerniExperiments.trackConversionForAll('demo_to_signup_clicked');
     }
-    
+
     window.location.href = url;
   }
 

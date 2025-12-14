@@ -27,6 +27,8 @@ import {
 
 // Services
 import { delightService } from './services/delight.service.js';
+import { checkAndClaimDemoSession, hasPendingClaim } from './services/demo-claim.service.js';
+import { getAuthToken } from './services/firebase-auth.service.js';
 import {
   audioService,
   connectionService,
@@ -37,12 +39,6 @@ import {
   spotifyService,
 } from './services/index.js';
 import { detectAndSyncTimezone } from './services/timezone.service.js';
-import {
-  checkAndClaimDemoSession,
-  getClaimedConversation,
-  hasPendingClaim,
-} from './services/demo-claim.service.js';
-import { getAuthToken } from './services/firebase-auth.service.js';
 
 // Core UI Components
 import { coachUI, initCoachUI } from './ui/coach.ui.js';
@@ -931,7 +927,7 @@ class VoiceAIApp {
             // Show warm acknowledgment
             const conversation = result.conversation;
             if (conversation && conversation.highlights && conversation.highlights.length > 0) {
-              toast.success("Welcome back! I remember our conversation.");
+              toast.success('Welcome back! I remember our conversation.');
             } else {
               toast.success("Welcome! So glad you're here.");
             }

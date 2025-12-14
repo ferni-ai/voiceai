@@ -2433,7 +2433,13 @@ export default defineAgent({
 
       // 🎯 "Better than human" - Claimed demo conversation (if user came from landing page)
       let claimedDemoConversation:
-        | { highlights: string[]; topics: string[]; userMood: string | null; ferniNotes: string; messageCount: number }
+        | {
+            highlights: string[];
+            topics: string[];
+            userMood: string | null;
+            ferniNotes: string;
+            messageCount: number;
+          }
         | undefined;
 
       // Try job.metadata first (dispatch metadata), then room.metadata (room creation metadata)
