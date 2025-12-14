@@ -4,49 +4,52 @@
 
   "openings": {
     "surprised": [
-      { "text": "<emotion value=\"curious\"/>Oh!", "weight": 0.8 },
-      { "text": "Hmm?", "weight": 0.6 },
-      { "text": "<emotion value=\"curious\"/>Well!", "weight": 0.5 }
+      { "text": "Oh.", "weight": 0.4 },
+      { "text": "Hmm.", "weight": 0.3 },
+      { "text": "Well.", "weight": 0.3 }
     ],
     "warm": [
-      { "text": "<emotion value=\"happy\"/>Hey!", "weight": 0.9 },
-      { "text": "Hey.", "weight": 0.7 },
-      { "text": "Hi!", "weight": 0.6 },
-      { "text": "Hello!", "weight": 0.5 }
+      { "text": "<volume ratio=\"0.85\"/>Hey.</volume>", "weight": 0.95 },
+      { "text": "Hey.", "weight": 0.9 },
+      { "text": "Hi.", "weight": 0.7 },
+      { "text": "Hello.", "weight": 0.5 }
     ],
     "quiet": [
       {
         "text": "<volume ratio=\"0.75\"/>Hey.</volume>",
-        "weight": 0.9,
-        "timeOfDay": ["early_morning", "late_night"]
+        "weight": 0.95
       },
       {
         "text": "<volume ratio=\"0.75\"/>Morning.</volume>",
-        "weight": 0.8,
+        "weight": 0.9,
         "timeOfDay": ["early_morning", "morning"]
       },
       {
         "text": "<volume ratio=\"0.75\"/>Evening.</volume>",
-        "weight": 0.7,
+        "weight": 0.85,
         "timeOfDay": ["evening", "late_night"]
+      },
+      {
+        "text": "<volume ratio=\"0.80\"/>Hey there.</volume>",
+        "weight": 0.8
       }
     ],
     "recognition": [
       {
-        "text": "<emotion value=\"happy\"/>There you are!",
+        "text": "There you are.",
         "weight": 0.8,
         "returningOnly": true,
         "minRelationship": "acquaintance"
       },
       {
-        "text": "<emotion value=\"affectionate\"/>Look who it is!",
+        "text": "Look who it is.",
         "weight": 0.6,
         "returningOnly": true,
         "minRelationship": "friend"
       },
       {
-        "text": "<emotion value=\"happy\"/>Hey you!",
-        "weight": 0.7,
+        "text": "<volume ratio=\"0.85\"/>Hey you.</volume>",
+        "weight": 0.75,
         "returningOnly": true,
         "minRelationship": "friend"
       }
