@@ -686,8 +686,9 @@ const PERSONA_FUN_MOMENTS: Record<string, string[]> = {
 /**
  * Get persona-specific fun moment
  */
-export function getPersonaFunMoment(personaId: string): string | null {
-  const normalizedId = personaId.toLowerCase().replace(/[^a-z]/g, '');
+export function getPersonaFunMoment(personaId: string | undefined | null): string | null {
+  // 🐛 FIX: Handle undefined/null personaId gracefully
+  const normalizedId = (personaId || 'ferni').toLowerCase().replace(/[^a-z]/g, '');
   const matchingKey = Object.keys(PERSONA_FUN_MOMENTS).find((key) => normalizedId.includes(key));
 
   const moments = PERSONA_FUN_MOMENTS[matchingKey || 'ferni'];
@@ -858,8 +859,9 @@ export class MusicHumanizationController {
   /**
    * Set persona for personalized interactions
    */
-  setPersona(personaId: string): void {
-    this.personaId = personaId;
+  setPersona(personaId: string | undefined | null): void {
+    // 🐛 FIX: Handle undefined/null personaId gracefully
+    this.personaId = personaId || 'ferni';
   }
 
   /**

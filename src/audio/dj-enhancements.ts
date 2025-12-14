@@ -102,9 +102,10 @@ const COUNTDOWN_PHRASES = {
  */
 export function getCountdownPhrase(
   moment: 'thirtySeconds' | 'fifteenSeconds' | 'fiveSeconds',
-  personaId: string
+  personaId: string | undefined | null
 ): string {
-  const normalizedId = personaId.toLowerCase().replace(/[^a-z]/g, '');
+  // 🐛 FIX: Handle undefined/null personaId gracefully
+  const normalizedId = (personaId || 'ferni').toLowerCase().replace(/[^a-z]/g, '');
   const phrases = COUNTDOWN_PHRASES[moment];
 
   // Find matching persona or default to ferni
@@ -263,7 +264,12 @@ export const PERSONA_DJ_STYLES: Record<string, PersonaDJStyle> = {
 /**
  * Get DJ style for a persona
  */
-export function getPersonaDJStyle(personaId: string): PersonaDJStyle {
+export function getPersonaDJStyle(personaId: string | undefined | null): PersonaDJStyle {
+  // 🐛 FIX: Handle undefined/null personaId gracefully - default to 'ferni'
+  if (!personaId) {
+    log.debug('getPersonaDJStyle called with undefined personaId, defaulting to ferni');
+    return PERSONA_DJ_STYLES.ferni;
+  }
   const normalizedId = personaId.toLowerCase().replace(/[^a-z]/g, '');
   const matchingKey = Object.keys(PERSONA_DJ_STYLES).find((key) => normalizedId.includes(key));
   return PERSONA_DJ_STYLES[matchingKey || 'ferni'];
@@ -321,8 +327,9 @@ const PERSONA_MUSIC_INTROS: Record<string, string[]> = {
 /**
  * Get a music intro phrase for a persona
  */
-export function getPersonaMusicIntro(personaId: string): string {
-  const normalizedId = personaId.toLowerCase().replace(/[^a-z]/g, '');
+export function getPersonaMusicIntro(personaId: string | undefined | null): string {
+  // 🐛 FIX: Handle undefined/null personaId gracefully
+  const normalizedId = (personaId || 'ferni').toLowerCase().replace(/[^a-z]/g, '');
   const matchingKey = Object.keys(PERSONA_MUSIC_INTROS).find((key) => normalizedId.includes(key));
   const intros = PERSONA_MUSIC_INTROS[matchingKey || 'ferni'];
   return intros[Math.floor(Math.random() * intros.length)];
@@ -373,11 +380,12 @@ export class ThinkingMusicController {
   /**
    * Set current persona (affects thinking music style)
    */
-  setPersona(personaId: string): void {
-    this.personaId = personaId;
+  setPersona(personaId: string | undefined | null): void {
+    // 🐛 FIX: Handle undefined/null personaId gracefully
+    this.personaId = personaId || 'ferni';
 
     // Adjust config based on persona DJ style
-    const style = getPersonaDJStyle(personaId);
+    const style = getPersonaDJStyle(this.personaId);
     if (style.silenceApproach === 'fill-immediately') {
       this.config.startDelay = 2000;
     } else if (style.silenceApproach === 'wait-for-moment') {
@@ -805,8 +813,9 @@ export class SessionFlowManager {
     };
   }
 
-  setPersona(personaId: string): void {
-    this.personaId = personaId;
+  setPersona(personaId: string | undefined | null): void {
+    // 🐛 FIX: Handle undefined/null personaId gracefully
+    this.personaId = personaId || 'ferni';
   }
 
   trackTopic(topic: string): void {
@@ -1149,10 +1158,12 @@ export class DJEnhancementController {
   /**
    * Set current persona
    */
-  setPersona(personaId: string): void {
-    this.personaId = personaId;
-    this.thinkingMusic.setPersona(personaId);
-    this.sessionFlow.setPersona(personaId);
+  setPersona(personaId: string | undefined | null): void {
+    // 🐛 FIX: Handle undefined/null personaId gracefully
+    const safePersonaId = personaId || 'ferni';
+    this.personaId = safePersonaId;
+    this.thinkingMusic.setPersona(safePersonaId);
+    this.sessionFlow.setPersona(safePersonaId);
   }
 
   /**

@@ -1051,21 +1051,29 @@ export class CallMusicPlayer {
 
       // Handle local file paths (e.g., /sounds/connect.mp3)
       if (url.startsWith('/') && !url.startsWith('//')) {
+        // 🐛 FIX: __dirname doesn't work correctly in ESM modules in Docker
+        // Use process.cwd() and explicit paths instead
+        const cwd = process.cwd();
+        
         // Try multiple locations for sound files:
-        // 1. Production (Docker): /app/sounds/ (sounds copied to container root)
+        // 1. Production (Docker): /app/sounds/ - sounds copied to container root
         // 2. Development: frontend-typescript/public/sounds/
-        const projectRoot = path.resolve(__dirname, '../../..');
         const possiblePaths = [
-          // Production: sounds are at /app/sounds/ in Docker container
-          path.join(projectRoot, url),
-          // Also check /app/sounds directly (working dir in container)
-          path.join(process.cwd(), url),
+          // Production: absolute path in Docker container
+          `/app${url}`,
+          // Also check relative to cwd (backup for Docker)
+          path.join(cwd, url),
+          // Sounds might be in /app/sounds directly (Docker copies them here)
+          path.join(cwd, 'sounds', path.basename(url)),
           // Development: sounds are in frontend-typescript/public
-          path.join(projectRoot, 'frontend-typescript/public', url),
+          path.join(cwd, 'frontend-typescript/public', url),
+          // Also try from src directory (development builds)
+          path.join(cwd, 'src', '..', 'frontend-typescript/public', url),
         ];
 
         let localPath: string | null = null;
         for (const p of possiblePaths) {
+          getLogger().debug({ path: p, exists: fs.existsSync(p) }, 'Checking sound file path');
           if (fs.existsSync(p)) {
             localPath = p;
             break;
@@ -1073,14 +1081,20 @@ export class CallMusicPlayer {
         }
 
         if (localPath) {
-          getLogger().debug({ localPath, url, triedPaths: possiblePaths }, 'Reading audio from local filesystem');
+          getLogger().info(
+            { localPath, url },
+            '🎵 Found local audio file'
+          );
           const fileBuffer = fs.readFileSync(localPath);
           buffer = fileBuffer.buffer.slice(
             fileBuffer.byteOffset,
             fileBuffer.byteOffset + fileBuffer.byteLength
           );
         } else {
-          getLogger().error({ url, triedPaths: possiblePaths }, 'Local audio file not found in any location');
+          getLogger().error(
+            { url, cwd, triedPaths: possiblePaths },
+            '🎵 Local audio file not found in any location'
+          );
           return null;
         }
       } else {
