@@ -16,10 +16,14 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { ferniExpressions } from './ferni-expressions.ui.js';
 
 const log = createLogger('PersonaMagic');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -136,7 +140,7 @@ export async function performMagicalHandoff(options: MagicalHandoffOptions): Pro
     }
     
     // Phase 7: Welcome expression
-    setTimeout(() => {
+    trackedTimeout(() => {
       ferniExpressions.happy(600);
     }, DURATION.FAST);
     
@@ -209,10 +213,10 @@ function showHandoffBanter(banter: string, fromName: string): void {
   });
   
   // Auto-dismiss after 3 seconds
-  banterTimeout = setTimeout(() => {
+  banterTimeout = trackedTimeout(() => {
     if (banterElement) {
       banterElement.classList.remove('visible');
-      setTimeout(() => {
+      trackedTimeout(() => {
         banterElement?.remove();
         banterElement = null;
       }, DURATION.NORMAL);

@@ -9,8 +9,12 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('SoundUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -287,7 +291,7 @@ export function play(name: SoundName): void {
   // Play single or multi-tone sound
   if (config.frequencies && config.delays) {
     config.frequencies.forEach((freq, i) => {
-      setTimeout(
+      trackedTimeout(
         () => {
           playTone({
             ...config,

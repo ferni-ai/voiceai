@@ -15,12 +15,16 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, STAGGER } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import {
   teamUnlockService,
   type TeamMemberConfig,
 } from '../services/team-unlock.service.js';
 
 const log = createLogger('TeamUnlockCelebration');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ICONS (Lucide-style, brand compliant)
@@ -121,7 +125,7 @@ export function hideCelebration(): void {
   
   celebrationModal.classList.remove('team-unlock-celebration--visible');
   
-  setTimeout(() => {
+  trackedTimeout(() => {
     celebrationModal?.remove();
     celebrationModal = null;
   }, DURATION.SLOW);

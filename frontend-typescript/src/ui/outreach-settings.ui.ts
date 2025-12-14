@@ -8,9 +8,13 @@
 import { t } from '../i18n/index.js';
 import { DURATION } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost } from '../utils/api.js';
 
 const log = createLogger('OutreachSettings');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -419,7 +423,7 @@ function setupEventListeners(panel: HTMLElement): void {
     await savePreferences();
 
     saveBtn.textContent = t('common.saved');
-    setTimeout(() => {
+    trackedTimeout(() => {
       saveBtn.textContent = t('buttons.savePreferences');
       saveBtn.disabled = false;
       close();
@@ -871,7 +875,7 @@ export function close(): void {
   settingsPanel.classList.remove('open');
 
   // Remove after animation
-  setTimeout(() => {
+  trackedTimeout(() => {
     settingsPanel?.remove();
     settingsPanel = null;
   }, DURATION.MODERATE);

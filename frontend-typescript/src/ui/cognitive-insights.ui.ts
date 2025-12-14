@@ -19,6 +19,7 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import {
   escapeHtml,
   ICONS,
@@ -26,6 +27,9 @@ import {
   renderCloseButton,
   STAGGER_DELAYS,
 } from './engagement-components.js';
+
+// Track setTimeout calls for memory leak prevention
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -186,7 +190,7 @@ class CognitiveInsightsUI {
     this.panel.classList.remove('cognitive-insights--visible');
     this.isVisible = false;
 
-    setTimeout(
+    trackedTimeout(
       () => {
         this.callbacks.onClose?.();
       },

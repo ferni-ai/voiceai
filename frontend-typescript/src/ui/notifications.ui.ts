@@ -14,12 +14,16 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, prefersReducedMotion } from '../config/animation-constants.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import {
   ICONS,
   injectSharedStyles,
   escapeHtml,
   type IconName,
 } from './engagement-components.js';
+
+// Track setTimeout calls for memory leak prevention
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -174,7 +178,7 @@ class NotificationsUI {
 
     // Auto-dismiss if configured
     if (notification.dismissAfter && notification.dismissAfter > 0) {
-      setTimeout(() => {
+      trackedTimeout(() => {
         this.dismiss(notification.id);
       }, notification.dismissAfter);
     }
@@ -195,7 +199,7 @@ class NotificationsUI {
 
     // Remove after animation
     const duration = prefersReducedMotion() ? 0 : DURATION.SLOW;
-    setTimeout(() => {
+    trackedTimeout(() => {
       element.remove();
       this.notifications.delete(id);
       this.callbacks.onDismiss?.(data);

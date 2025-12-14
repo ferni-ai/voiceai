@@ -13,9 +13,13 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 
 const log = createLogger('SplashScreen');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // CONSTANTS
@@ -163,7 +167,7 @@ function animatePhase(
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise(resolve => trackedTimeout(resolve, ms));
 }
 
 // ============================================================================

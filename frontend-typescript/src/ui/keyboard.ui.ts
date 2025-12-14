@@ -9,10 +9,14 @@
  */
 
 import type { PersonaId } from '../types/persona.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 // ============================================================================
 // TYPES
 // ============================================================================
+
+// Track setTimeout calls for memory leak prevention
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 interface KeyboardCallbacks {
   onConnect: () => void;
@@ -53,7 +57,7 @@ export function initKeyboardUI(cbs: KeyboardCallbacks): void {
   document.addEventListener('keydown', handleKeyDown);
   
   // Show hint briefly on first load (after a delay)
-  setTimeout(() => {
+  trackedTimeout(() => {
     showHint(3000);
   }, 2000);
   
@@ -275,7 +279,7 @@ function showHint(duration?: number): void {
   // Auto-hide after duration
   if (duration) {
     if (hintTimeout) clearTimeout(hintTimeout);
-    hintTimeout = setTimeout(() => {
+    hintTimeout = trackedTimeout(() => {
       hideHint();
     }, duration);
   }
@@ -287,7 +291,7 @@ function hideHint(): void {
   hintElement.classList.remove('visible');
   
   // Remove from DOM after animation
-  setTimeout(() => {
+  trackedTimeout(() => {
     hintElement?.classList.add('hidden');
   }, 300);
 }
@@ -308,7 +312,7 @@ function flashKey(key: string): void {
   keyElements?.forEach(el => {
     if (el.textContent === key || el.textContent?.includes(key)) {
       el.classList.add('active');
-      setTimeout(() => el.classList.remove('active'), 200);
+      trackedTimeout(() => el.classList.remove('active'), 200);
     }
   });
 }

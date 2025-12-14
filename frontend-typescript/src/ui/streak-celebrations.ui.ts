@@ -15,8 +15,12 @@
 import { DURATION, prefersReducedMotion } from '../config/animation-constants.js';
 import { STREAK_MILESTONES, getStreakMilestoneMessage } from './engagement-components.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('Celebrations');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -140,7 +144,7 @@ class StreakCelebrationsUI {
     }
 
     // Stop after duration
-    setTimeout(() => {
+    trackedTimeout(() => {
       this.stop();
     }, config.duration);
 
@@ -313,7 +317,7 @@ class StreakCelebrationsUI {
     const burstCount = Math.floor(count / 30);
     for (let b = 0; b < burstCount; b++) {
       // Delayed bursts create a cascading effect
-      setTimeout(() => {
+      trackedTimeout(() => {
         const bx = cx + (Math.random() - 0.5) * 300;
         const by = cy + (Math.random() - 0.5) * 200 - 50;
         const burstParticles = Math.floor(count / burstCount);

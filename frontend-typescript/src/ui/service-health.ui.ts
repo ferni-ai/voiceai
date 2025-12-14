@@ -12,10 +12,14 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet } from '../utils/api.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 
 const log = createLogger('ServiceHealth');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -544,10 +548,10 @@ if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       // Delay slightly to not compete with main app initialization
-      setTimeout(initServiceHealthUI, 2000);
+      trackedTimeout(initServiceHealthUI, 2000);
     });
   } else {
-    setTimeout(initServiceHealthUI, 2000);
+    trackedTimeout(initServiceHealthUI, 2000);
   }
 }
 

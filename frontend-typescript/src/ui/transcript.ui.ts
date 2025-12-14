@@ -6,8 +6,12 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('TranscriptUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // STATE
@@ -63,7 +67,7 @@ export function showTranscript(text: string, isFinal = false): void {
     textElement.classList.remove('typing');
     
     // Auto-hide after final text
-    hideTimeout = setTimeout(() => {
+    hideTimeout = trackedTimeout(() => {
       hide();
     }, 3000);
   } else {
@@ -97,7 +101,7 @@ export function hide(): void {
   container.classList.remove('visible');
   
   // Clean up after animation
-  setTimeout(() => {
+  trackedTimeout(() => {
     container?.classList.remove('exiting');
     if (textElement) {
       textElement.textContent = '';

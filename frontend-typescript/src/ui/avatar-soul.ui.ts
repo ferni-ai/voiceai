@@ -275,7 +275,7 @@ export function initAvatarSoul(): void {
   if (!avatarElement || !avatarContainer) {
     log.warn('Avatar elements not found, deferring initialization');
     // Try again after a short delay (DOM might not be ready)
-    setTimeout(initAvatarSoul, 500);
+    trackedTimeout(initAvatarSoul, 500);
     return;
   }
 
@@ -488,7 +488,7 @@ export function triggerWarmthBloom(intensity: number = 1, color?: string): void 
   warmthBloomElement.classList.add('active');
 
   // Remove class after animation
-  setTimeout(() => {
+  trackedTimeout(() => {
     warmthBloomElement?.classList.remove('active');
     warmthBloomElement?.style.removeProperty('--warmth-color');
   }, 1500);
@@ -594,7 +594,7 @@ function startSaccadeTimer(): void {
       SOUL_TIMING.SACCADE_MIN_INTERVAL +
       Math.random() * (SOUL_TIMING.SACCADE_MAX_INTERVAL - SOUL_TIMING.SACCADE_MIN_INTERVAL);
 
-    state.gaze.saccadeTimer = window.setTimeout(() => {
+    state.gaze.saccadeTimer = window.trackedTimeout(() => {
       if (!state.gaze.isThinking) {
         performSaccade();
       }
@@ -928,7 +928,7 @@ export function setExpressionWithAnticipation(
   playAnticipation(emotion);
 
   // Then trigger the actual expression change after lead time
-  setTimeout(() => {
+  trackedTimeout(() => {
     // Map emotion to expression
     const expressionMap: Record<string, Parameters<typeof ferniExpressions.setExpression>[0]> = {
       happy: 'happy',
@@ -1033,7 +1033,7 @@ export function triggerMemorySpark(): void {
 
   // Brief pupil dilation
   setPupilDilation('DILATED', 'fast');
-  setTimeout(() => setPupilDilation('INTERESTED', 'slow'), 400);
+  trackedTimeout(() => setPupilDilation('INTERESTED', 'slow'), 400);
 
   log.debug('Memory spark triggered');
 }
@@ -1299,7 +1299,7 @@ export function celebrateGrowth(): void {
 
   // Bump up glow
   setGlowBleed(0.7, GLOW_COLORS.WARM);
-  setTimeout(() => setGlowBleed(0.2), 1500);
+  trackedTimeout(() => setGlowBleed(0.2), 1500);
 
   log.debug('Growth celebration triggered');
 }
@@ -1410,7 +1410,7 @@ export function triggerCameoArrival(personaColor: string, isFirstCameo: boolean 
   // 5. Extra sparkle for first-time cameos
   if (isFirstCameo) {
     // Delayed memory spark for "oh, someone new!" feeling
-    setTimeout(() => {
+    trackedTimeout(() => {
       triggerMemorySpark();
     }, 300);
   }
@@ -1432,7 +1432,7 @@ export function triggerCameoReturn(): void {
   triggerWarmthBloom(0.7, GLOW_COLORS.WARM);
 
   // 3. Return to warm, present state
-  setTimeout(() => {
+  trackedTimeout(() => {
     setExpressionWithAnticipation('warm');
     setPupilDilation('NEUTRAL', 'slow');
   }, 200);

@@ -10,8 +10,12 @@ import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { resetPassword } from '../services/firebase-auth.service.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('PasswordResetUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ELEMENT REFERENCES
@@ -315,7 +319,7 @@ function closeResetModal(): void {
   card.style.opacity = '0';
   resetModal.classList.remove('visible');
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     resetModal?.remove();
     resetModal = null;
   }, DURATION.NORMAL);
@@ -365,7 +369,7 @@ async function handleResetSubmit(event: Event): Promise<void> {
     log.info('Password reset email sent');
 
     // Auto-close after showing success
-    setTimeout(() => closeResetModal(), 4000);
+    trackedTimeout(() => closeResetModal(), 4000);
   } catch (err) {
     loading.style.display = 'none';
     error.style.display = 'flex';

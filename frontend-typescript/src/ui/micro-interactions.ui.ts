@@ -16,11 +16,15 @@
  * NOTE: Hover effects removed for cleaner zen aesthetic.
  */
 
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import {
   DURATION,
   EASING,
   ANIMATION_PRESET,
 } from '../config/animation-constants.js';
+
+// Track setTimeout calls for memory leak prevention
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // STATE
@@ -322,7 +326,7 @@ export function celebrateConfetti(
   }
   
   // Clean up after animation
-  setTimeout(() => {
+  trackedTimeout(() => {
     container.remove();
   }, duration + 500);
 }
@@ -361,7 +365,7 @@ export function createSparkle(x: number, y: number, color?: string): void {
     easing: EASING.STANDARD,
   });
   
-  setTimeout(() => sparkle.remove(), DURATION.DRAMATIC);
+  trackedTimeout(() => sparkle.remove(), DURATION.DRAMATIC);
 }
 
 /**
@@ -380,7 +384,7 @@ export function sparkBurst(element: HTMLElement, count: number = 6): void {
     const x = centerX + Math.cos(angle) * radius;
     const y = centerY + Math.sin(angle) * radius;
     
-    setTimeout(() => createSparkle(x, y), i * 50);
+    trackedTimeout(() => createSparkle(x, y), i * 50);
   }
 }
 

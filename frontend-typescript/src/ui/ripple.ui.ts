@@ -1,8 +1,13 @@
 /**
  * Ripple UI - Material Design-inspired click ripples
- * 
+ *
  * Adds satisfying ripple effects to buttons and interactive elements.
  */
+
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+
+// Track setTimeout calls for memory leak prevention
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // STATE
@@ -63,7 +68,7 @@ function createRipple(element: HTMLElement, event: MouseEvent): void {
   element.appendChild(ripple);
   
   // Remove after animation
-  setTimeout(() => {
+  trackedTimeout(() => {
     ripple.remove();
   }, 600);
 }

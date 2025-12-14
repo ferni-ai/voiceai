@@ -35,6 +35,7 @@ import {
 } from '../services/team-unlock.service.js';
 import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { avatarFeedback } from './avatar-feedback.ui.js';
 // Disabled: Eye animations removed - keeping just zen blink
 // import { ferniEye } from './ferni-eye.ui.js';
@@ -99,8 +100,12 @@ import {
 // Dev Panel Modules (extracted for maintainability)
 import { handleOutreachAction as handleOutreachActionImpl } from './dev-panel/handlers/outreach.js';
 import { ICONS } from './dev-panel/icons.js';
+import { toast } from './toast.ui.js';
 
 const log = createLogger('DevPanel');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // CONFIG
@@ -299,7 +304,7 @@ export function hidePanel(): void {
   if (!panel) return;
 
   panel.classList.remove('dev-panel--visible');
-  setTimeout(() => {
+  trackedTimeout(() => {
     panel?.remove();
     panel = null;
   }, DURATION.SLOW);
@@ -495,7 +500,7 @@ function createPanel(): HTMLElement {
         </div>
       </section>
       
-      <!-- 💳 Subscription Controls -->
+      <!-- ${ICONS.creditCard} Subscription Controls -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.creditCard} Subscription Controls</h3>
         <p class="dev-section__desc">Admin controls for subscription gating</p>
@@ -544,7 +549,7 @@ function createPanel(): HTMLElement {
         </div>
       </section>
       
-      <!-- 🎮 Music Games -->
+      <!-- ${ICONS.gamepad} Music Games -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.gamepad} Music Games</h3>
         <p class="dev-section__desc">Test music games and dashboard</p>
@@ -570,7 +575,7 @@ function createPanel(): HTMLElement {
         </div>
       </section>
       
-      <!-- 🎵 Music Player Status -->
+      <!-- ${ICONS.music} Music Player Status -->
       <section class="dev-section" id="dev-music-status-section">
         <h3 class="dev-section__title">${ICONS.music} Music Player Status</h3>
         <p class="dev-section__desc">Real-time music player diagnostics</p>
@@ -590,59 +595,59 @@ function createPanel(): HTMLElement {
         </div>
       </section>
       
-      <!-- 🌟 Soul & Delight -->
+      <!-- ${ICONS.star} Soul & Delight -->
       <section class="dev-section dev-section--soul">
         <h3 class="dev-section__title">${ICONS.eye} Soul & Delight</h3>
         <p class="dev-section__desc">Delightful surprises that make Ferni feel alive</p>
         
         <!-- Core Soul Features -->
         <div class="dev-subsection">
-          <span class="dev-label">✨ Core Magic</span>
+          <span class="dev-label">${ICONS.sparkles} Core Magic</span>
           <div class="dev-soul-buttons">
             <button class="dev-soul-btn dev-soul-btn--primary" data-soul="awakening" title="First launch experience">
-              🌅 Awakening
+              ${ICONS.sunrise} Awakening
             </button>
           </div>
         </div>
         
         <!-- Reactions -->
         <div class="dev-subsection">
-          <span class="dev-label">💫 Reactions</span>
+          <span class="dev-label">${ICONS.sparkle} Reactions</span>
           <div class="dev-soul-buttons">
             <button class="dev-soul-btn" data-soul="celebrate" title="Celebration burst">
-              🎉 Celebrate
+              ${ICONS.party} Celebrate
             </button>
             <button class="dev-soul-btn" data-soul="empathy" title="Empathy pulse">
-              💙 Empathy
+              ${ICONS.heart} Empathy
             </button>
             <button class="dev-soul-btn" data-soul="wink" title="Quick wink">
-              😉 Wink
+              ${ICONS.wink} Wink
             </button>
             <button class="dev-soul-btn" data-soul="curious-tilt" title="Interested tilt">
-              🤔 Curious Tilt
+              ${ICONS.thinking} Curious Tilt
             </button>
           </div>
         </div>
         
         <!-- Ambient -->
         <div class="dev-subsection">
-          <span class="dev-label">🌙 Ambient</span>
+          <span class="dev-label">${ICONS.moon} Ambient</span>
           <div class="dev-soul-buttons">
             <button class="dev-soul-btn" data-soul="pause-tracking" title="Pause eye tracking 3s">
-              ⏸️ Pause Tracking
+              ${ICONS.pause} Pause Tracking
             </button>
             <button class="dev-soul-btn" data-soul="secret-smile" title="Avatar smiles secretly">
-              😊 Secret Smile
+              ${ICONS.smile} Secret Smile
             </button>
             <button class="dev-soul-btn" data-soul="sleepy" title="Late night yawn">
-              😴 Sleepy
+              ${ICONS.sleepy} Sleepy
             </button>
           </div>
         </div>
         
         <!-- Ideas for Future -->
         <div class="dev-subsection">
-          <span class="dev-label">💡 Ideas (Coming Soon)</span>
+          <span class="dev-label">${ICONS.lightbulb} Ideas (Coming Soon)</span>
           <div class="dev-soul-ideas">
             <span>Connection Spark</span>
             <span>Heartbeat Glow</span>
@@ -652,98 +657,98 @@ function createPanel(): HTMLElement {
         </div>
       </section>
       
-      <!-- 🎬 Avatar Lamp - Pixar Body Language -->
+      <!-- ${ICONS.movie} Avatar Lamp - Pixar Body Language -->
       <section class="dev-section dev-section--lamp">
-        <h3 class="dev-section__title">🎬 Avatar Lamp (Luxo Jr.)</h3>
+        <h3 class="dev-section__title">${ICONS.movie} Avatar Lamp (Luxo Jr.)</h3>
         <p class="dev-section__desc">Pixar-quality body language - no face, pure emotion</p>
         
         <!-- Core Movements -->
         <div class="dev-subsection">
-          <span class="dev-label">🦘 Core Movements</span>
+          <span class="dev-label">${ICONS.kangaroo} Core Movements</span>
           <div class="dev-lamp-buttons">
             <button class="dev-lamp-btn dev-lamp-btn--primary" data-lamp="bounce" title="Excitement bounce">
-              ⬆️ Bounce
+              ${ICONS.arrowUp} Bounce
             </button>
             <button class="dev-lamp-btn" data-lamp="bounce-big" title="Big celebration bounce">
-              🎉 Big Bounce
+              ${ICONS.party} Big Bounce
             </button>
             <button class="dev-lamp-btn" data-lamp="tilt-right" title="Curious tilt">
-              ↗️ Tilt Right
+              ${ICONS.arrowUpRight} Tilt Right
             </button>
             <button class="dev-lamp-btn" data-lamp="tilt-left" title="Confused tilt">
-              ↖️ Tilt Left
+              ${ICONS.arrowUpLeft} Tilt Left
             </button>
             <button class="dev-lamp-btn" data-lamp="tilt-forward" title="Listening lean">
-              ⬆️ Lean In
+              ${ICONS.arrowUp} Lean In
             </button>
           </div>
         </div>
         
         <!-- Reactions -->
         <div class="dev-subsection">
-          <span class="dev-label">💡 Reactions</span>
+          <span class="dev-label">${ICONS.lightbulb} Reactions</span>
           <div class="dev-lamp-buttons">
             <button class="dev-lamp-btn" data-lamp="perk-up" title="Aha! moment">
-              ⚡ Perk Up
+              ${ICONS.zap} Perk Up
             </button>
             <button class="dev-lamp-btn" data-lamp="nod" title="Understanding nod">
-              👍 Nod
+              ${ICONS.thumbsUp} Nod
             </button>
             <button class="dev-lamp-btn" data-lamp="nod-slow" title="Thoughtful nod">
-              🤔 Slow Nod
+              ${ICONS.thinking} Slow Nod
             </button>
             <button class="dev-lamp-btn" data-lamp="shake" title="Playful shake">
-              😆 Shake
+              ${ICONS.laughing} Shake
             </button>
             <button class="dev-lamp-btn" data-lamp="shrink" title="Empathy/sadness">
-              😢 Shrink
+              ${ICONS.frown} Shrink
             </button>
           </div>
         </div>
         
         <!-- Emotion Presets -->
         <div class="dev-subsection">
-          <span class="dev-label">🎭 Emotion Presets</span>
+          <span class="dev-label">${ICONS.drama} Emotion Presets</span>
           <div class="dev-lamp-buttons">
             <button class="dev-lamp-btn" data-lamp-emotion="happy" title="Happy">
-              😊 Happy
+              ${ICONS.smile} Happy
             </button>
             <button class="dev-lamp-btn" data-lamp-emotion="excited" title="Excited">
-              🤩 Excited
+              ${ICONS.sparkles} Excited
             </button>
             <button class="dev-lamp-btn" data-lamp-emotion="curious" title="Curious">
-              🤔 Curious
+              ${ICONS.thinking} Curious
             </button>
             <button class="dev-lamp-btn" data-lamp-emotion="listening" title="Listening">
-              👂 Listening
+              ${ICONS.mic} Listening
             </button>
             <button class="dev-lamp-btn" data-lamp-emotion="thinking" title="Thinking">
-              💭 Thinking
+              ${ICONS.messageCircle} Thinking
             </button>
             <button class="dev-lamp-btn" data-lamp-emotion="empathetic" title="Empathetic">
-              💙 Empathetic
+              ${ICONS.heart} Empathetic
             </button>
             <button class="dev-lamp-btn" data-lamp-emotion="proud" title="Proud">
-              🏆 Proud
+              ${ICONS.trophy} Proud
             </button>
             <button class="dev-lamp-btn" data-lamp-emotion="celebrating" title="Celebrating">
-              🎊 Celebrating
+              ${ICONS.confetti} Celebrating
             </button>
             <button class="dev-lamp-btn" data-lamp-emotion="neutral" title="Reset to neutral">
-              ⚪ Neutral
+              ${ICONS.circleEmpty} Neutral
             </button>
           </div>
         </div>
         
         <!-- Breathing Control -->
         <div class="dev-subsection">
-          <span class="dev-label">🫁 Breathing</span>
+          <span class="dev-label">${ICONS.activity} Breathing</span>
           <div class="dev-lamp-buttons">
             <button class="dev-lamp-btn" data-lamp="breathing-start" title="Start breathing">
-              ▶️ Start
+              ${ICONS.play} Start
             </button>
             <button class="dev-lamp-btn" data-lamp="breathing-stop" title="Stop breathing">
-              ⏹️ Stop
+              ${ICONS.stop} Stop
             </button>
           </div>
         </div>
@@ -771,106 +776,106 @@ function createPanel(): HTMLElement {
         <p class="dev-section__desc">Test Ferni's emotional animations</p>
         <div class="dev-expression-buttons">
           <button class="dev-expression-btn" data-expression="chuckle" title="For humor/jokes">
-            😊 Chuckle
+            ${ICONS.smile} Chuckle
           </button>
           <button class="dev-expression-btn" data-expression="empathy" title="For sad moments">
-            💙 Empathy
+            ${ICONS.heart} Empathy
           </button>
           <button class="dev-expression-btn" data-expression="delight" title="For excitement">
-            🎉 Delight
+            ${ICONS.party} Delight
           </button>
           <button class="dev-expression-btn" data-expression="contemplate" title="For deep moments">
-            🤔 Contemplate
+            ${ICONS.thinking} Contemplate
           </button>
           <button class="dev-expression-btn" data-expression="encourage" title="For motivation">
-            💪 Encourage
+            ${ICONS.flex} Encourage
           </button>
           <button class="dev-expression-btn" data-expression="surprise" title="For revelations">
-            😮 Surprise
+            ${ICONS.openMouth} Surprise
           </button>
           <button class="dev-expression-btn" data-expression="settle" title="For calming">
-            😌 Settle
+            ${ICONS.smile} Settle
           </button>
           <button class="dev-expression-btn" data-expression="blink" title="Zen blink">
-            👁️ Blink
+            ${ICONS.eye} Blink
           </button>
         </div>
         <div class="dev-expression-buttons" style="margin-top: 8px;">
           <button class="dev-expression-btn dev-expression-btn--feedback" data-expression="success" title="Success feedback">
-            ✓ Success
+            ${ICONS.check} Success
           </button>
           <button class="dev-expression-btn dev-expression-btn--feedback" data-expression="error" title="Error feedback">
-            ✕ Error
+            ${ICONS.x} Error
           </button>
           <button class="dev-expression-btn dev-expression-btn--feedback" data-expression="warning" title="Warning feedback">
-            ⚠ Warning
+            ${ICONS.alertTriangle} Warning
           </button>
           <button class="dev-expression-btn dev-expression-btn--feedback" data-expression="info" title="Info feedback">
-            ℹ Info
+            ${ICONS.info} Info
           </button>
         </div>
         
-        <!-- 🎉 NEW: Fun Micro-Reactions -->
+        <!-- ${ICONS.party} NEW: Fun Micro-Reactions -->
         <p class="dev-section__desc" style="margin-top: 12px;">Fun Reactions (delightful avatar movements)</p>
         <div class="dev-expression-buttons">
           <button class="dev-expression-btn dev-expression-btn--reaction" data-reaction="happy" title="Bounce for good news">
-            🥳 Happy
+            ${ICONS.party} Happy
           </button>
           <button class="dev-expression-btn dev-expression-btn--reaction" data-reaction="curious" title="Tilt for 'tell me more'">
-            🤨 Curious
+            ${ICONS.thinking} Curious
           </button>
           <button class="dev-expression-btn dev-expression-btn--reaction" data-reaction="empathy" title="Nod for understanding">
-            🫂 Empathy
+            ${ICONS.hugging} Empathy
           </button>
           <button class="dev-expression-btn dev-expression-btn--reaction" data-reaction="laugh" title="Wobble for humor">
-            😂 Laugh
+            ${ICONS.laughing} Laugh
           </button>
           <button class="dev-expression-btn dev-expression-btn--reaction" data-reaction="surprise" title="Pop for wow moments">
-            😲 Surprise
+            ${ICONS.surprised} Surprise
           </button>
         </div>
       </section>
       
-      <!-- 🎬 NEW: Ferni Expressions - Advanced Eye Lid Expressions -->
+      <!-- ${ICONS.movie} NEW: Ferni Expressions - Advanced Eye Lid Expressions -->
       <section class="dev-section">
-        <h3 class="dev-section__title">🎬 Ferni Expressions</h3>
+        <h3 class="dev-section__title">${ICONS.movie} Ferni Expressions</h3>
         <p class="dev-section__desc">Eye lid expressions & advanced reactions</p>
         
         <div class="dev-subsection">
           <span class="dev-label">Eye Lid Expressions</span>
           <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="happy" title="Squinted, warm">😊 Happy</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="delighted" title="Happy + sparkle">✨ Delighted</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="surprised" title="Wide eyes">😲 Surprised</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="curious" title="Head tilt">🤔 Curious</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="skeptical" title="One brow up">🤨 Skeptical</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="worried" title="Angled brows">😟 Worried</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="sad" title="Droopy lids">😢 Sad</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="sleepy" title="Heavy lids">😴 Sleepy</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="thinking" title="Looking away">💭 Thinking</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="empathetic" title="Soft understanding">🫂 Empathetic</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="excited" title="Wide + sparkle">🎉 Excited</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="neutral" title="Reset to neutral">😐 Neutral</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="happy" title="Squinted, warm">${ICONS.smile} Happy</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="delighted" title="Happy + sparkle">${ICONS.sparkles} Delighted</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="surprised" title="Wide eyes">${ICONS.surprised} Surprised</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="curious" title="Head tilt">${ICONS.thinking} Curious</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="skeptical" title="One brow up">${ICONS.thinking} Skeptical</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="worried" title="Angled brows">${ICONS.worried} Worried</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="sad" title="Droopy lids">${ICONS.frown} Sad</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="sleepy" title="Heavy lids">${ICONS.sleepy} Sleepy</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="thinking" title="Looking away">${ICONS.messageCircle} Thinking</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="empathetic" title="Soft understanding">${ICONS.hugging} Empathetic</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="excited" title="Wide + sparkle">${ICONS.party} Excited</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni" data-ferni-expr="neutral" title="Reset to neutral">${ICONS.meh} Neutral</button>
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">Advanced Reactions</span>
           <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="doubleTake" title="Look away → snap back">👀 Double-Take</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="heldPose" title="Hold at peak emotion">⏸️ Held Pose</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="lookAway" title="Thinking look away">🔄 Look Away</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="nervousEnergy" title="Fidget trembles">😰 Nervous</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="delightSparkle" title="Eye sparkle effect">💫 Sparkle</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="doubleTake" title="Look away → snap back">${ICONS.eye} Double-Take</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="heldPose" title="Hold at peak emotion">${ICONS.pause} Held Pose</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="lookAway" title="Thinking look away">${ICONS.refresh} Look Away</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="nervousEnergy" title="Fidget trembles">${ICONS.worried} Nervous</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni-react" data-ferni-react="delightSparkle" title="Eye sparkle effect">${ICONS.sparkle} Sparkle</button>
           </div>
         </div>
         
         <div class="dev-subsection">
           <span class="dev-label">Text-to-Icon Morph</span>
           <div class="dev-expression-buttons">
-            <button class="dev-expression-btn dev-expression-btn--ferni-morph" data-morph="lightbulb" title="Morph to idea icon">💡 Idea Morph</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni-morph" data-morph="heart" title="Morph to heart">❤️ Heart Morph</button>
-            <button class="dev-expression-btn dev-expression-btn--ferni-morph" data-morph="sparkles" title="Morph to sparkles">✨ Sparkle Morph</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni-morph" data-morph="lightbulb" title="Morph to idea icon">${ICONS.lightbulb} Idea Morph</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni-morph" data-morph="heart" title="Morph to heart">${ICONS.heart} Heart Morph</button>
+            <button class="dev-expression-btn dev-expression-btn--ferni-morph" data-morph="sparkles" title="Morph to sparkles">${ICONS.sparkles} Sparkle Morph</button>
           </div>
         </div>
       </section>
@@ -1010,7 +1015,7 @@ function createPanel(): HTMLElement {
         </div>
       </section>
 
-      <!-- 💚 Progressive Relationship Features -->
+      <!-- ${ICONS.heart} Progressive Relationship Features -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.leaf} Progressive Features</h3>
         <p class="dev-section__desc">Test relationship-building UI features</p>
@@ -1111,21 +1116,21 @@ function createPanel(): HTMLElement {
         <p class="dev-section__desc">Test bass-reactive music visualization</p>
         <div class="dev-music-buttons">
           <button class="dev-music-btn" data-action="start-music" title="Start simulated music">
-            ▶ Start Music
+            ${ICONS.play} Start Music
           </button>
           <button class="dev-music-btn" data-action="stop-music" title="Stop with fun outro">
-            ◼ Stop Music
+            ${ICONS.stop} Stop Music
           </button>
           <button class="dev-music-btn" data-action="duck-music" title="Simulate agent talking over music">
-            🔉 Duck
+            ${ICONS.volumeLow} Duck
           </button>
           <button class="dev-music-btn" data-action="unduck-music" title="Restore full volume">
-            🔊 Unduck
+            ${ICONS.volumeHigh} Unduck
           </button>
         </div>
         <div class="dev-music-buttons" style="margin-top: var(--space-2);">
           <button class="dev-music-btn" data-action="our-song" title="Test 'Our Song' - shared musical memory">
-            💚 Our Song
+            ${ICONS.heart} Our Song
           </button>
         </div>
       </section>
@@ -1140,16 +1145,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Voice Modes</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--mode" data-mode="start-listening" title="Simulate user speaking">
-              👂 Start Listening
+              ${ICONS.mic} Start Listening
             </button>
             <button class="dev-expression-btn dev-expression-btn--mode" data-mode="stop-listening" title="Stop listening mode">
-              🔇 Stop Listening
+              ${ICONS.volumeOff} Stop Listening
             </button>
             <button class="dev-expression-btn dev-expression-btn--mode" data-mode="start-speaking" title="Simulate agent speaking">
-              🗣️ Start Speaking
+              ${ICONS.speaker} Start Speaking
             </button>
             <button class="dev-expression-btn dev-expression-btn--mode" data-mode="stop-speaking" title="Stop speaking mode">
-              🤫 Stop Speaking
+              ${ICONS.volumeOff} Stop Speaking
             </button>
           </div>
         </div>
@@ -1159,16 +1164,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Greetings</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--greeting" data-greeting="morning" title="Morning energy">
-              🌅 Morning
+              ${ICONS.sunrise} Morning
             </button>
             <button class="dev-expression-btn dev-expression-btn--greeting" data-greeting="evening" title="Evening calm">
-              🌙 Evening
+              ${ICONS.moon} Evening
             </button>
             <button class="dev-expression-btn dev-expression-btn--greeting" data-greeting="latenight" title="Late night gentle">
-              🌃 Late Night
+              ${ICONS.moon} Late Night
             </button>
             <button class="dev-expression-btn dev-expression-btn--greeting" data-greeting="welcomeback" title="Returning user">
-              👋 Welcome Back
+              ${ICONS.hand} Welcome Back
             </button>
           </div>
         </div>
@@ -1178,16 +1183,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Celebrations</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="streak-5" title="5-day streak">
-              🔥 5-Day Streak
+              ${ICONS.flame} 5-Day Streak
             </button>
             <button class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="streak-30" title="30-day streak (max)">
-              🔥 30-Day Streak
+              ${ICONS.flame} 30-Day Streak
             </button>
             <button class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="goal" title="Goal completed">
-              🎯 Goal Complete
+              ${ICONS.target} Goal Complete
             </button>
             <button class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="team" title="Meet new team member">
-              🤝 New Team Member
+              ${ICONS.handshake} New Team Member
             </button>
           </div>
         </div>
@@ -1197,32 +1202,32 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Thinking</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--thinking" data-thinking="start" title="Deep contemplation">
-              🧠 Start Deep Thinking
+              ${ICONS.brain} Start Deep Thinking
             </button>
             <button class="dev-expression-btn dev-expression-btn--thinking" data-thinking="stop" title="Insight achieved">
-              💡 Stop (with insight)
+              ${ICONS.lightbulb} Stop (with insight)
             </button>
           </div>
         </div>
         
-        <!-- 🌅 Conversation Flow -->
+        <!-- ${ICONS.sunrise} Conversation Flow -->
         <div class="dev-subsection">
           <span class="dev-label">Conversation Flow</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--wrap-up" data-wrap-up="warm" title="Warm goodbye">
-              👋 Warm Goodbye
+              ${ICONS.hand} Warm Goodbye
             </button>
             <button class="dev-expression-btn dev-expression-btn--wrap-up" data-wrap-up="encouraging" title="Encouraging farewell">
-              💪 Encouraging
+              ${ICONS.flex} Encouraging
             </button>
             <button class="dev-expression-btn dev-expression-btn--wrap-up" data-wrap-up="thoughtful" title="Thoughtful goodbye">
-              🤔 Thoughtful
+              ${ICONS.thinking} Thoughtful
             </button>
             <button class="dev-expression-btn dev-expression-btn--wrap-up" data-wrap-up="caring" title="Caring goodbye">
-              💙 Caring
+              ${ICONS.heart} Caring
             </button>
             <button class="dev-expression-btn dev-expression-btn--wrap-up dev-expression-btn--reset" data-wrap-up="reset" title="Reset wrap-up state">
-              ↺ Reset
+              ${ICONS.rotateCcw} Reset
             </button>
           </div>
         </div>
@@ -1238,16 +1243,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Core Emotions</span>
           <div class="dev-emotion-buttons">
             <button class="dev-emotion-btn" data-emotion="neutral" title="Default calm state">
-              😐 Neutral
+              ${ICONS.meh} Neutral
             </button>
             <button class="dev-emotion-btn" data-emotion="happy" title="Positive, smiling waveform">
-              😊 Happy
+              ${ICONS.smile} Happy
             </button>
             <button class="dev-emotion-btn" data-emotion="excited" title="High energy, fast breathing">
-              🎉 Excited
+              ${ICONS.party} Excited
             </button>
             <button class="dev-emotion-btn" data-emotion="curious" title="Attentive, interested">
-              🤔 Curious
+              ${ICONS.thinking} Curious
             </button>
           </div>
         </div>
@@ -1256,16 +1261,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">More Emotions</span>
           <div class="dev-emotion-buttons">
             <button class="dev-emotion-btn" data-emotion="thinking" title="Slow, contemplative">
-              🧠 Thinking
+              ${ICONS.brain} Thinking
             </button>
             <button class="dev-emotion-btn" data-emotion="calm" title="Peaceful, slow breathing">
-              😌 Calm
+              ${ICONS.smile} Calm
             </button>
             <button class="dev-emotion-btn" data-emotion="sad" title="Empathetic, sighing">
-              😢 Sad
+              ${ICONS.frown} Sad
             </button>
             <button class="dev-emotion-btn" data-emotion="frustrated" title="Agitated, irregular">
-              😤 Frustrated
+              ${ICONS.angry} Frustrated
             </button>
           </div>
         </div>
@@ -1275,16 +1280,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Character Reactions</span>
           <div class="dev-emotion-buttons">
             <button class="dev-reaction-btn" data-reaction="nod" title="Agreement with follow-through">
-              👍 Nod
+              ${ICONS.thumbsUp} Nod
             </button>
             <button class="dev-reaction-btn" data-reaction="shake" title="Gentle disagreement">
-              👎 Shake
+              ${ICONS.thumbsDown} Shake
             </button>
             <button class="dev-reaction-btn" data-reaction="bounce" title="Excited hop with squash/stretch">
-              🦘 Bounce
+              ${ICONS.kangaroo} Bounce
             </button>
             <button class="dev-reaction-btn" data-reaction="celebrate" title="Full celebration sequence">
-              🎊 Celebrate
+              ${ICONS.confetti} Celebrate
             </button>
           </div>
         </div>
@@ -1294,13 +1299,13 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Flash Emotions (2s)</span>
           <div class="dev-emotion-buttons">
             <button class="dev-flash-btn" data-flash="excited" title="Brief excitement">
-              ⚡ Flash Excited
+              ${ICONS.zap} Flash Excited
             </button>
             <button class="dev-flash-btn" data-flash="happy" title="Brief happiness">
-              ⚡ Flash Happy
+              ${ICONS.zap} Flash Happy
             </button>
             <button class="dev-flash-btn" data-flash="curious" title="Brief curiosity">
-              ⚡ Flash Curious
+              ${ICONS.zap} Flash Curious
             </button>
           </div>
         </div>
@@ -1379,16 +1384,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Dramatic Moves</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--dramatic" data-dramatic="bounce" title="character-style bounce">
-              🎭 Dramatic Bounce
+              ${ICONS.drama} Dramatic Bounce
             </button>
             <button class="dev-expression-btn dev-expression-btn--dramatic" data-dramatic="wobble" title="Excited wobble">
-              🎪 Excited Wobble
+              ${ICONS.tent} Excited Wobble
             </button>
             <button class="dev-expression-btn dev-expression-btn--dramatic" data-dramatic="shake" title="Concerned head shake">
-              😟 Head Shake
+              ${ICONS.worried} Head Shake
             </button>
             <button class="dev-expression-btn dev-expression-btn--dramatic" data-dramatic="perky" title="Perky attention">
-              👀 Perky!
+              ${ICONS.eye} Perky!
             </button>
           </div>
         </div>
@@ -1398,16 +1403,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Ring & Aura Effects</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--ring" data-ring="heartbeat-slow" title="Calm heartbeat">
-              💓 Slow Beat
+              ${ICONS.heartPulse} Slow Beat
             </button>
             <button class="dev-expression-btn dev-expression-btn--ring" data-ring="heartbeat-fast" title="Excited heartbeat">
-              💗 Fast Beat
+              ${ICONS.heartPulse} Fast Beat
             </button>
             <button class="dev-expression-btn dev-expression-btn--ring" data-ring="heartbeat-stop" title="Stop heartbeat">
-              🔇 Stop Beat
+              ${ICONS.volumeOff} Stop Beat
             </button>
             <button class="dev-expression-btn dev-expression-btn--ring" data-ring="aura" title="Pulse emotion aura">
-              🌈 Aura Pulse
+              ${ICONS.rainbow} Aura Pulse
             </button>
           </div>
         </div>
@@ -1417,22 +1422,22 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Ripple & Burst</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--ripple" data-ripple="single" title="Single ripple">
-              🔘 Single Ripple
+              ${ICONS.circleDot} Single Ripple
             </button>
             <button class="dev-expression-btn dev-expression-btn--ripple" data-ripple="multi" title="Multiple ripples">
-              ⭕ Multi Ripple
+              ${ICONS.circle} Multi Ripple
             </button>
             <button class="dev-expression-btn dev-expression-btn--ripple" data-ripple="burst" title="Celebration burst">
-              💥 Burst!
+              ${ICONS.zap} Burst!
             </button>
             <button class="dev-expression-btn dev-expression-btn--ripple" data-ripple="big" title="BIG celebration">
-              🎆 BIG Celebration
+              ${ICONS.fireworks} BIG Celebration
             </button>
           </div>
         </div>
       </section>
       
-      <!-- 🚀 Ferni EQ - Superhuman Emotional Intelligence -->
+      <!-- ${ICONS.rocket} Ferni EQ - Superhuman Emotional Intelligence -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.sparkles} Ferni EQ</h3>
         <p class="dev-section__desc">Better than Human - micro-expressions, breath sync, active listening</p>
@@ -1442,16 +1447,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Micro-Expressions (Subliminal)</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--beyond" data-micro="recognition" title="Flash of recognition (80ms)">
-              👁️ Recognition
+              ${ICONS.eye} Recognition
             </button>
             <button class="dev-expression-btn dev-expression-btn--beyond" data-micro="concern_flash" title="Brief concern flash (60ms)">
-              😟 Concern Flash
+              ${ICONS.worried} Concern Flash
             </button>
             <button class="dev-expression-btn dev-expression-btn--beyond" data-micro="delight_flash" title="Micro-delight (100ms)">
-              ✨ Delight Flash
+              ${ICONS.sparkles} Delight Flash
             </button>
             <button class="dev-expression-btn dev-expression-btn--beyond" data-micro="warmth_pulse" title="Warmth pulse (120ms)">
-              💗 Warmth Pulse
+              ${ICONS.heartPulse} Warmth Pulse
             </button>
           </div>
         </div>
@@ -1461,16 +1466,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Active Listening</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--beyond" data-listen="micro-nod" title="Barely perceptible nod">
-              👤 Micro-Nod
+              ${ICONS.user} Micro-Nod
             </button>
             <button class="dev-expression-btn dev-expression-btn--beyond" data-listen="subtle-nod" title="Subtle acknowledgment nod">
-              👤 Subtle Nod
+              ${ICONS.user} Subtle Nod
             </button>
             <button class="dev-expression-btn dev-expression-btn--beyond" data-listen="visible-nod" title="Visible listening nod">
-              👤 Visible Nod
+              ${ICONS.user} Visible Nod
             </button>
             <button class="dev-expression-btn dev-expression-btn--beyond" data-listen="lean" title="Lean in with interest">
-              📐 Lean In
+              ${ICONS.layers} Lean In
             </button>
           </div>
         </div>
@@ -1480,13 +1485,13 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Concern Response</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--beyond" data-concern="mild" title="Mild concern (subtle)">
-              😐 Mild Concern
+              ${ICONS.meh} Mild Concern
             </button>
             <button class="dev-expression-btn dev-expression-btn--beyond" data-concern="moderate" title="Moderate concern (visible)">
-              😟 Moderate
+              ${ICONS.worried} Moderate
             </button>
             <button class="dev-expression-btn dev-expression-btn--beyond" data-concern="significant" title="Significant concern (active)">
-              😢 Significant
+              ${ICONS.frown} Significant
             </button>
           </div>
         </div>
@@ -1496,22 +1501,22 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Breath Sync</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--beyond" data-breath="slow" title="Sync to slow breath (10/min)">
-              🐢 Slow (10/min)
+              ${ICONS.turtle} Slow (10/min)
             </button>
             <button class="dev-expression-btn dev-expression-btn--beyond" data-breath="normal" title="Sync to normal breath (15/min)">
-              😌 Normal (15/min)
+              ${ICONS.smile} Normal (15/min)
             </button>
             <button class="dev-expression-btn dev-expression-btn--beyond" data-breath="fast" title="Sync to fast breath (20/min)">
-              💨 Fast (20/min)
+              ${ICONS.wind} Fast (20/min)
             </button>
             <button class="dev-expression-btn dev-expression-btn--beyond" data-breath="off" title="Disable breath sync">
-              🚫 Off
+              ${ICONS.ban} Off
             </button>
           </div>
         </div>
       </section>
       
-      <!-- 🔌 Connection & Audio Testing -->
+      <!-- ${ICONS.plug} Connection & Audio Testing -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.zap} Connection & Audio</h3>
         <p class="dev-section__desc">Test connection states and audio feedback</p>
@@ -1520,16 +1525,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Connection State</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--connection" data-connection="connecting" title="Show connecting state">
-              🔄 Connecting
+              ${ICONS.refresh} Connecting
             </button>
             <button class="dev-expression-btn dev-expression-btn--connection" data-connection="connected" title="Show connected state">
-              ✅ Connected
+              ${ICONS.checkCircle} Connected
             </button>
             <button class="dev-expression-btn dev-expression-btn--connection" data-connection="disconnected" title="Show disconnected state">
-              ❌ Disconnected
+              ${ICONS.xCircle} Disconnected
             </button>
             <button class="dev-expression-btn dev-expression-btn--connection" data-connection="error" title="Show error state">
-              ⚠️ Error
+              ${ICONS.alertTriangle} Error
             </button>
           </div>
         </div>
@@ -1538,28 +1543,28 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Sound Effects</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--sound" data-sound="connect" title="Play connect sound">
-              🔔 Connect
+              ${ICONS.bell} Connect
             </button>
             <button class="dev-expression-btn dev-expression-btn--sound" data-sound="disconnect" title="Play disconnect sound">
-              🔕 Disconnect
+              ${ICONS.bellOff} Disconnect
             </button>
             <button class="dev-expression-btn dev-expression-btn--sound" data-sound="success" title="Play success sound">
-              ✨ Success
+              ${ICONS.sparkles} Success
             </button>
             <button class="dev-expression-btn dev-expression-btn--sound" data-sound="error" title="Play error sound">
-              🚨 Error
+              ${ICONS.alertCircle} Error
             </button>
             <button class="dev-expression-btn dev-expression-btn--sound" data-sound="hover" title="Play hover sound">
-              👆 Hover
+              ${ICONS.pointer} Hover
             </button>
             <button class="dev-expression-btn dev-expression-btn--sound" data-sound="click" title="Play click sound">
-              👇 Click
+              ${ICONS.click} Click
             </button>
           </div>
         </div>
       </section>
       
-      <!-- 💬 Messages & Transcript -->
+      <!-- ${ICONS.chat} Messages & Transcript -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.drama} Messages & Transcript</h3>
         <p class="dev-section__desc">Inject test messages and transcript entries</p>
@@ -1568,16 +1573,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Message Type</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--message" data-message="user" title="Inject user message">
-              👤 User Message
+              ${ICONS.user} User Message
             </button>
             <button class="dev-expression-btn dev-expression-btn--message" data-message="agent" title="Inject agent message">
-              🤖 Agent Message
+              ${ICONS.robot} Agent Message
             </button>
             <button class="dev-expression-btn dev-expression-btn--message" data-message="thinking" title="Show thinking indicator">
-              💭 Thinking...
+              ${ICONS.messageCircle} Thinking...
             </button>
             <button class="dev-expression-btn dev-expression-btn--message" data-message="whisper" title="Show status whisper">
-              🤫 Whisper
+              ${ICONS.volumeOff} Whisper
             </button>
           </div>
         </div>
@@ -1586,22 +1591,22 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Toast Notifications</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--toast" data-toast="success" title="Show success toast">
-              ✅ Success
+              ${ICONS.checkCircle} Success
             </button>
             <button class="dev-expression-btn dev-expression-btn--toast" data-toast="error" title="Show error toast">
-              ❌ Error
+              ${ICONS.xCircle} Error
             </button>
             <button class="dev-expression-btn dev-expression-btn--toast" data-toast="info" title="Show info toast">
-              ℹ️ Info
+              ${ICONS.info} Info
             </button>
             <button class="dev-expression-btn dev-expression-btn--toast" data-toast="warning" title="Show warning toast">
-              ⚠️ Warning
+              ${ICONS.alertTriangle} Warning
             </button>
           </div>
         </div>
       </section>
       
-      <!-- 📱 Modals & Panels -->
+      <!-- ${ICONS.smartphone} Modals & Panels -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.users} Modals & Panels</h3>
         <p class="dev-section__desc">Open various app dialogs and panels</p>
@@ -1610,16 +1615,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Panels</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--modal" data-modal="analytics" title="Open analytics">
-              📊 Analytics
+              ${ICONS.barChart} Analytics
             </button>
             <button class="dev-expression-btn dev-expression-btn--modal" data-modal="history" title="Open conversation history">
-              📜 History
+              ${ICONS.scroll} History
             </button>
             <button class="dev-expression-btn dev-expression-btn--modal" data-modal="insights" title="Open insights">
-              🧠 Insights
+              ${ICONS.brain} Insights
             </button>
             <button class="dev-expression-btn dev-expression-btn--modal" data-modal="predictions" title="Open predictions">
-              🔮 Predictions
+              ${ICONS.crystalBall} Predictions
             </button>
           </div>
         </div>
@@ -1628,22 +1633,22 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Special</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--modal" data-modal="tour" title="Restart app tour">
-              🎯 Restart Tour
+              ${ICONS.target} Restart Tour
             </button>
             <button class="dev-expression-btn dev-expression-btn--modal" data-modal="daily" title="Open daily check-in">
-              ☀️ Daily Check-in
+              ${ICONS.sun} Daily Check-in
             </button>
             <button class="dev-expression-btn dev-expression-btn--modal" data-modal="huddle" title="Open team huddle">
-              🤝 Team Huddle
+              ${ICONS.handshake} Team Huddle
             </button>
             <button class="dev-expression-btn dev-expression-btn--modal" data-modal="marketplace" title="Open marketplace">
-              🏪 Marketplace
+              ${ICONS.store} Marketplace
             </button>
           </div>
         </div>
       </section>
       
-      <!-- 🕐 Time & Environment -->
+      <!-- ${ICONS.clock} Time & Environment -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.sun} Environment</h3>
         <p class="dev-section__desc">Override time of day and environment settings</p>
@@ -1652,19 +1657,19 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Time Override</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--time" data-time="morning" title="Set to morning (6am)">
-              🌅 Morning
+              ${ICONS.sunrise} Morning
             </button>
             <button class="dev-expression-btn dev-expression-btn--time" data-time="afternoon" title="Set to afternoon (2pm)">
-              ☀️ Afternoon
+              ${ICONS.sun} Afternoon
             </button>
             <button class="dev-expression-btn dev-expression-btn--time" data-time="evening" title="Set to evening (7pm)">
-              🌆 Evening
+              ${ICONS.sunset} Evening
             </button>
             <button class="dev-expression-btn dev-expression-btn--time" data-time="night" title="Set to night (11pm)">
-              🌙 Night
+              ${ICONS.moon} Night
             </button>
             <button class="dev-expression-btn dev-expression-btn--time" data-time="reset" title="Use real time">
-              🔄 Real Time
+              ${ICONS.refresh} Real Time
             </button>
           </div>
         </div>
@@ -1673,19 +1678,19 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Accessibility</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--a11y" data-a11y="reduce-motion" title="Toggle reduced motion">
-              🐢 Reduced Motion
+              ${ICONS.turtle} Reduced Motion
             </button>
             <button class="dev-expression-btn dev-expression-btn--a11y" data-a11y="high-contrast" title="Toggle high contrast">
-              🔲 High Contrast
+              ${ICONS.layers} High Contrast
             </button>
             <button class="dev-expression-btn dev-expression-btn--a11y" data-a11y="large-text" title="Toggle large text">
-              🔤 Large Text
+              ${ICONS.activity} Large Text
             </button>
           </div>
         </div>
       </section>
       
-      <!-- 🎲 Easter Eggs & Fun -->
+      <!-- ${ICONS.dice} Easter Eggs & Fun -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.sparkles} Easter Eggs</h3>
         <p class="dev-section__desc">Trigger hidden delights and special effects</p>
@@ -1694,22 +1699,22 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Special Effects</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--easter" data-easter="confetti" title="Confetti burst">
-              🎊 Confetti
+              ${ICONS.confetti} Confetti
             </button>
             <button class="dev-expression-btn dev-expression-btn--easter" data-easter="fireworks" title="Fireworks">
-              🎆 Fireworks
+              ${ICONS.fireworks} Fireworks
             </button>
             <button class="dev-expression-btn dev-expression-btn--easter" data-easter="party" title="Party mode">
-              🎉 Party Mode
+              ${ICONS.party} Party Mode
             </button>
             <button class="dev-expression-btn dev-expression-btn--easter" data-easter="zen" title="Zen moment">
-              🧘 Zen
+              ${ICONS.yoga} Zen
             </button>
           </div>
         </div>
       </section>
       
-      <!-- 🔧 App State Inspector -->
+      <!-- ${ICONS.wrench} App State Inspector -->
       <section class="dev-section dev-section--state">
         <h3 class="dev-section__title">${ICONS.code} State Inspector</h3>
         <p class="dev-section__desc">View and modify live app state</p>
@@ -1737,16 +1742,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Toggle States</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--state" data-state="toggle-mute" title="Toggle muted state">
-              🔇 Toggle Mute
+              ${ICONS.volumeOff} Toggle Mute
             </button>
             <button class="dev-expression-btn dev-expression-btn--state" data-state="refresh" title="Refresh state display">
-              🔄 Refresh
+              ${ICONS.refresh} Refresh
             </button>
           </div>
         </div>
       </section>
       
-      <!-- 🌊 Waveform Testing -->
+      <!-- ${ICONS.waves} Waveform Testing -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.music} Waveform States</h3>
         <p class="dev-section__desc">Test waveform visualization states</p>
@@ -1755,28 +1760,28 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Waveform Mode</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--waveform" data-waveform="idle" title="Idle state">
-              😴 Idle
+              ${ICONS.sleepy} Idle
             </button>
             <button class="dev-expression-btn dev-expression-btn--waveform" data-waveform="listening" title="Listening state">
-              👂 Listening
+              ${ICONS.mic} Listening
             </button>
             <button class="dev-expression-btn dev-expression-btn--waveform" data-waveform="speaking-low" title="Low intensity speaking">
-              🔈 Speaking Low
+              ${ICONS.volumeLow} Speaking Low
             </button>
             <button class="dev-expression-btn dev-expression-btn--waveform" data-waveform="speaking-med" title="Medium intensity speaking">
-              🔊 Speaking Med
+              ${ICONS.volumeHigh} Speaking Med
             </button>
             <button class="dev-expression-btn dev-expression-btn--waveform" data-waveform="speaking-high" title="High intensity speaking">
-              📢 Speaking High
+              ${ICONS.speaker} Speaking High
             </button>
             <button class="dev-expression-btn dev-expression-btn--waveform" data-waveform="thinking" title="Thinking state">
-              🤔 Thinking
+              ${ICONS.thinking} Thinking
             </button>
           </div>
         </div>
       </section>
       
-      <!-- 💀 Loading & Skeleton States -->
+      <!-- ${ICONS.skull} Loading & Skeleton States -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.refresh} Loading States</h3>
         <p class="dev-section__desc">Test skeleton loaders and loading indicators</p>
@@ -1785,22 +1790,22 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Loading UI</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--loading" data-loading="skeleton-avatar" title="Avatar skeleton">
-              👤 Avatar Skeleton
+              ${ICONS.user} Avatar Skeleton
             </button>
             <button class="dev-expression-btn dev-expression-btn--loading" data-loading="skeleton-team" title="Team skeleton">
-              👥 Team Skeleton
+              ${ICONS.users} Team Skeleton
             </button>
             <button class="dev-expression-btn dev-expression-btn--loading" data-loading="spinner" title="Show spinner">
-              ⏳ Spinner
+              ${ICONS.hourglass} Spinner
             </button>
             <button class="dev-expression-btn dev-expression-btn--loading" data-loading="clear" title="Clear loading states">
-              ✓ Clear All
+              ${ICONS.check} Clear All
             </button>
           </div>
         </div>
       </section>
       
-      <!-- 🎊 Streak Celebrations -->
+      <!-- ${ICONS.confetti} Streak Celebrations -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.sparkles} Streak Milestones</h3>
         <p class="dev-section__desc">Test all streak celebration levels</p>
@@ -1809,31 +1814,31 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Streak Days</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--streak" data-streak="3" title="3-day streak">
-              3️⃣ 3 Days
+              ${ICONS.activity} 3 Days
             </button>
             <button class="dev-expression-btn dev-expression-btn--streak" data-streak="7" title="7-day streak">
-              7️⃣ 7 Days
+              ${ICONS.activity} 7 Days
             </button>
             <button class="dev-expression-btn dev-expression-btn--streak" data-streak="14" title="14-day streak">
-              📅 14 Days
+              ${ICONS.calendar} 14 Days
             </button>
             <button class="dev-expression-btn dev-expression-btn--streak" data-streak="30" title="30-day streak">
-              🌙 30 Days
+              ${ICONS.moon} 30 Days
             </button>
             <button class="dev-expression-btn dev-expression-btn--streak" data-streak="60" title="60-day streak">
-              ⭐ 60 Days
+              ${ICONS.star} 60 Days
             </button>
             <button class="dev-expression-btn dev-expression-btn--streak" data-streak="90" title="90-day streak">
-              🏆 90 Days
+              ${ICONS.trophy} 90 Days
             </button>
             <button class="dev-expression-btn dev-expression-btn--streak" data-streak="365" title="365-day streak">
-              👑 365 Days!
+              ${ICONS.crown} 365 Days!
             </button>
           </div>
         </div>
       </section>
       
-      <!-- 📶 Network Simulation -->
+      <!-- ${ICONS.signalStrength} Network Simulation -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.zap} Network Simulation</h3>
         <p class="dev-section__desc">Simulate network conditions</p>
@@ -1842,16 +1847,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Connection Quality</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--network" data-network="excellent" title="Excellent connection">
-              📶 Excellent
+              ${ICONS.signalStrength} Excellent
             </button>
             <button class="dev-expression-btn dev-expression-btn--network" data-network="good" title="Good connection">
-              📶 Good
+              ${ICONS.signalStrength} Good
             </button>
             <button class="dev-expression-btn dev-expression-btn--network" data-network="poor" title="Poor connection">
-              📶 Poor
+              ${ICONS.signalStrength} Poor
             </button>
             <button class="dev-expression-btn dev-expression-btn--network" data-network="offline" title="Offline mode">
-              ❌ Offline
+              ${ICONS.xCircle} Offline
             </button>
           </div>
         </div>
@@ -1860,22 +1865,22 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Latency</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--latency" data-latency="0" title="No latency">
-              ⚡ 0ms
+              ${ICONS.zap} 0ms
             </button>
             <button class="dev-expression-btn dev-expression-btn--latency" data-latency="200" title="200ms latency">
-              🐢 200ms
+              ${ICONS.turtle} 200ms
             </button>
             <button class="dev-expression-btn dev-expression-btn--latency" data-latency="500" title="500ms latency">
-              🦥 500ms
+              ${ICONS.sloth} 500ms
             </button>
             <button class="dev-expression-btn dev-expression-btn--latency" data-latency="1000" title="1s latency">
-              🐌 1000ms
+              ${ICONS.snail} 1000ms
             </button>
           </div>
         </div>
       </section>
       
-      <!-- 🗑️ Storage & Data -->
+      <!-- ${ICONS.trash} Storage & Data -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.unlock} Storage & Data</h3>
         <p class="dev-section__desc">View and manage app storage</p>
@@ -1891,25 +1896,25 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Actions</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--storage" data-storage="view" title="View all storage">
-              👁️ View Storage
+              ${ICONS.eye} View Storage
             </button>
             <button class="dev-expression-btn dev-expression-btn--storage" data-storage="clear-cache" title="Clear cache">
-              🧹 Clear Cache
+              ${ICONS.brush} Clear Cache
             </button>
             <button class="dev-expression-btn dev-expression-btn--storage" data-storage="clear-marketplace" title="Clear installed marketplace agents">
-              🏪 Clear Marketplace
+              ${ICONS.store} Clear Marketplace
             </button>
             <button class="dev-expression-btn dev-expression-btn--storage" data-storage="clear-all" title="Clear ALL data (careful!)">
-              ⚠️ Clear ALL
+              ${ICONS.alertTriangle} Clear ALL
             </button>
             <button class="dev-expression-btn dev-expression-btn--storage" data-storage="export" title="Export storage to console">
-              📤 Export
+              ${ICONS.upload} Export
             </button>
           </div>
         </div>
       </section>
       
-      <!-- 🎭 Ambient & Particles -->
+      <!-- ${ICONS.drama} Ambient & Particles -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.sparkles} Ambient Effects</h3>
         <p class="dev-section__desc">Toggle ambient backgrounds and particles</p>
@@ -1918,16 +1923,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Effects</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--ambient" data-ambient="particles" title="Toggle particles">
-              ✨ Particles
+              ${ICONS.sparkles} Particles
             </button>
             <button class="dev-expression-btn dev-expression-btn--ambient" data-ambient="glow" title="Toggle ambient glow">
-              🌟 Ambient Glow
+              ${ICONS.star} Ambient Glow
             </button>
             <button class="dev-expression-btn dev-expression-btn--ambient" data-ambient="aurora" title="Toggle aurora">
-              🌌 Aurora
+              ${ICONS.aurora} Aurora
             </button>
             <button class="dev-expression-btn dev-expression-btn--ambient" data-ambient="off" title="Turn off all effects">
-              🚫 All Off
+              ${ICONS.ban} All Off
             </button>
           </div>
         </div>
@@ -1936,31 +1941,31 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Avatar Weather (${getCurrentSeason()})</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--weather dev-expression-btn--primary" data-weather="moment" title="Play brief seasonal moment">
-              ✨ Seasonal Moment
+              ${ICONS.sparkles} Seasonal Moment
             </button>
             <button class="dev-expression-btn dev-expression-btn--weather ${getCurrentWeather() === 'snow' ? 'active' : ''}" data-weather="snow" title="Snow around avatar">
-              ❄️
+              ${ICONS.snowflake}
             </button>
             <button class="dev-expression-btn dev-expression-btn--weather ${getCurrentWeather() === 'rain' ? 'active' : ''}" data-weather="rain" title="Rain">
-              🌧️
+              ${ICONS.cloudRain}
             </button>
             <button class="dev-expression-btn dev-expression-btn--weather ${getCurrentWeather() === 'leaves' ? 'active' : ''}" data-weather="leaves" title="Falling leaves">
-              🍂
+              ${ICONS.leaf}
             </button>
             <button class="dev-expression-btn dev-expression-btn--weather ${getCurrentWeather() === 'petals' ? 'active' : ''}" data-weather="petals" title="Cherry blossoms">
-              🌸
+              ${ICONS.flower}
             </button>
             <button class="dev-expression-btn dev-expression-btn--weather ${getCurrentWeather() === 'fireflies' ? 'active' : ''}" data-weather="fireflies" title="Fireflies">
-              🪲
+              ${ICONS.bug}
             </button>
             <button class="dev-expression-btn dev-expression-btn--weather" data-weather="none" title="Stop">
-              ✕
+              ${ICONS.x}
             </button>
           </div>
         </div>
       </section>
       
-      <!-- 📤 Proactive Outreach Testing -->
+      <!-- ${ICONS.upload} Proactive Outreach Testing -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.send} Proactive Outreach</h3>
         <p class="dev-section__desc">Test proactive outreach channels and triggers</p>
@@ -1976,16 +1981,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Test Channels</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--outreach dev-expression-btn--primary" data-outreach="check-config" title="Check if phone/email is configured">
-              🔍 Check Config
+              ${ICONS.search} Check Config
             </button>
             <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="test-sms" title="Send test SMS">
-              📱 Test SMS
+              ${ICONS.smartphone} Test SMS
             </button>
             <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="test-email" title="Send test email">
-              📧 Test Email
+              ${ICONS.mail} Test Email
             </button>
             <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="test-call" title="Make test call">
-              📞 Test Call
+              ${ICONS.phone} Test Call
             </button>
           </div>
         </div>
@@ -1994,16 +1999,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Trigger Types</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="trigger-commitment" title="Commitment check-in">
-              📋 Commitment
+              ${ICONS.clipboard} Commitment
             </button>
             <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="trigger-emotional" title="Emotional support">
-              💙 Emotional
+              ${ICONS.heart} Emotional
             </button>
             <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="trigger-celebration" title="Celebration">
-              🎉 Celebration
+              ${ICONS.party} Celebration
             </button>
             <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="trigger-thinking" title="Thinking of you">
-              💭 Thinking of You
+              ${ICONS.messageCircle} Thinking of You
             </button>
           </div>
         </div>
@@ -2012,22 +2017,22 @@ function createPanel(): HTMLElement {
           <span class="dev-label">View Data</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="view-pending" title="View pending outreach">
-              📋 Pending
+              ${ICONS.clipboard} Pending
             </button>
             <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="view-history" title="View outreach history">
-              📜 History
+              ${ICONS.scroll} History
             </button>
             <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="view-context" title="View user context">
-              🧠 Context
+              ${ICONS.brain} Context
             </button>
             <button class="dev-expression-btn dev-expression-btn--outreach" data-outreach="view-timing" title="View timing patterns">
-              ⏰ Timing
+              ${ICONS.alarm} Timing
             </button>
           </div>
         </div>
       </section>
       
-      <!-- 📊 Dashboards & Tools -->
+      <!-- ${ICONS.barChart} Dashboards & Tools -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.target} Dashboards & Tools</h3>
         <p class="dev-section__desc">Quick access to all monitoring dashboards</p>
@@ -2036,16 +2041,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Core Dashboards</span>
           <div class="dev-dashboard-links">
             <a class="dev-dashboard-link" href="/analytics-dashboard.html" target="_blank" title="Analytics Dashboard">
-              📈 Analytics
+              ${ICONS.trendingUp} Analytics
             </a>
             <a class="dev-dashboard-link" href="/metrics-dashboard.html" target="_blank" title="Metrics Dashboard">
-              📊 Metrics
+              ${ICONS.barChart} Metrics
             </a>
             <a class="dev-dashboard-link" href="/ux-dashboard.html" target="_blank" title="UX Dashboard">
-              🎨 UX
+              ${ICONS.colorPalette} UX
             </a>
             <a class="dev-dashboard-link" href="/error-dashboard.html" target="_blank" title="Error Dashboard">
-              ⚠️ Errors
+              ${ICONS.alertTriangle} Errors
             </a>
           </div>
         </div>
@@ -2054,16 +2059,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">AI & Voice</span>
           <div class="dev-dashboard-links">
             <a class="dev-dashboard-link" href="/llm-dashboard.html" target="_blank" title="LLM Dashboard">
-              🤖 LLM
+              ${ICONS.robot} LLM
             </a>
             <a class="dev-dashboard-link" href="/voice-presence-dashboard.html" target="_blank" title="Voice Presence Dashboard">
-              🎙️ Voice
+              ${ICONS.micFilled} Voice
             </a>
             <a class="dev-dashboard-link" href="/persona-dashboard.html" target="_blank" title="Persona Dashboard">
-              🎭 Personas
+              ${ICONS.drama} Personas
             </a>
             <a class="dev-dashboard-link" href="/cognitive-dashboard.html" target="_blank" title="Cognitive Dashboard">
-              🧠 Cognitive
+              ${ICONS.brain} Cognitive
             </a>
           </div>
         </div>
@@ -2072,16 +2077,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Infrastructure</span>
           <div class="dev-dashboard-links">
             <a class="dev-dashboard-link" href="/connection-dashboard.html" target="_blank" title="Connection Dashboard">
-              📶 Connection
+              ${ICONS.signalStrength} Connection
             </a>
             <a class="dev-dashboard-link" href="/memory-dashboard.html" target="_blank" title="Memory Dashboard">
-              💾 Memory
+              ${ICONS.save} Memory
             </a>
             <a class="dev-dashboard-link" href="/cost-dashboard.html" target="_blank" title="Cost Dashboard">
-              💰 Costs
+              ${ICONS.coins} Costs
             </a>
             <a class="dev-dashboard-link" href="/dora-dashboard.html" target="_blank" title="DORA Metrics">
-              🚀 DORA
+              ${ICONS.rocket} DORA
             </a>
           </div>
         </div>
@@ -2090,22 +2095,22 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Features & Tools</span>
           <div class="dev-dashboard-links">
             <a class="dev-dashboard-link" href="/handoff-dashboard.html" target="_blank" title="Handoff Dashboard">
-              🤝 Handoffs
+              ${ICONS.handshake} Handoffs
             </a>
             <a class="dev-dashboard-link" href="/outreach-dashboard.html" target="_blank" title="Outreach Dashboard">
-              📤 Outreach
+              ${ICONS.upload} Outreach
             </a>
             <a class="dev-dashboard-link" href="/tools-dashboard.html" target="_blank" title="Tools Dashboard">
-              🔧 Tools
+              ${ICONS.wrench} Tools
             </a>
             <a class="dev-dashboard-link" href="/experiments-dashboard.html" target="_blank" title="Experiments">
-              🧪 Experiments
+              ${ICONS.flask} Experiments
             </a>
             <a class="dev-dashboard-link" href="/feature-flags.html" target="_blank" title="Feature Flags">
-              🚩 Feature Flags
+              ${ICONS.flag} Feature Flags
             </a>
             <button class="dev-dashboard-link" data-action="open-evalops" title="EvalOps Dashboard (Cmd+Shift+E)">
-              🎯 EvalOps
+              ${ICONS.target} EvalOps
             </button>
           </div>
         </div>
@@ -2114,19 +2119,19 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Admin & Utilities</span>
           <div class="dev-dashboard-links">
             <a class="dev-dashboard-link" href="/admin.html" target="_blank" title="Admin Panel">
-              ⚙️ Admin
+              ${ICONS.cog} Admin
             </a>
             <a class="dev-dashboard-link" href="/observability-hub.html" target="_blank" title="Observability Hub">
-              👁️ Observability
+              ${ICONS.eye} Observability
             </a>
             <a class="dev-dashboard-link" href="/animation-playground.html" target="_blank" title="Animation Playground">
-              🎬 Animations
+              ${ICONS.movie} Animations
             </a>
           </div>
         </div>
       </section>
       
-      <!-- 🎬 Narrative System -->
+      <!-- ${ICONS.movie} Narrative System -->
       <section class="dev-section">
         <h3 class="dev-section__title">${ICONS.heart} Narrative System</h3>
         <p class="dev-section__desc">Test story beats, arcs, and emotional journeys</p>
@@ -2156,16 +2161,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Journey Beats</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="first_launch" title="First launch">
-              🌟 First Launch
+              ${ICONS.star} First Launch
             </button>
             <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="welcome_back" title="Welcome back">
-              👋 Welcome Back
+              ${ICONS.hand} Welcome Back
             </button>
             <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="streak_continues" title="Streak">
-              🔥 Streak
+              ${ICONS.flame} Streak
             </button>
             <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="connected" title="Connected">
-              ✨ Connected
+              ${ICONS.sparkles} Connected
             </button>
           </div>
         </div>
@@ -2174,16 +2179,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Conversation Flow</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="user_starts_speaking" title="User speaking">
-              🗣️ User Speaks
+              ${ICONS.speaker} User Speaks
             </button>
             <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="thinking" title="Thinking">
-              🤔 Thinking
+              ${ICONS.thinking} Thinking
             </button>
             <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="ferni_starts_speaking" title="Ferni speaking">
-              💬 Ferni Speaks
+              ${ICONS.chat} Ferni Speaks
             </button>
             <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="long_pause" title="Long pause">
-              ⏸️ Long Pause
+              ${ICONS.pause} Long Pause
             </button>
           </div>
         </div>
@@ -2192,16 +2197,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Emotional Moments</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="empathy_moment" title="Empathy">
-              💙 Empathy
+              ${ICONS.heart} Empathy
             </button>
             <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="user_vulnerable" title="Vulnerable">
-              🫂 Vulnerable
+              ${ICONS.hugging} Vulnerable
             </button>
             <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="user_frustrated" title="Frustrated">
-              😤 Frustrated
+              ${ICONS.angry} Frustrated
             </button>
             <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="user_sad" title="Sad">
-              😢 Sad
+              ${ICONS.frown} Sad
             </button>
           </div>
         </div>
@@ -2210,16 +2215,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Achievements</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="small_win" title="Small win">
-              ⭐ Small Win
+              ${ICONS.star} Small Win
             </button>
             <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="big_win" title="Big win">
-              🏆 Big Win
+              ${ICONS.trophy} Big Win
             </button>
             <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="breakthrough" title="Breakthrough">
-              💡 Breakthrough
+              ${ICONS.lightbulb} Breakthrough
             </button>
             <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="milestone_reached" title="Milestone">
-              🎯 Milestone
+              ${ICONS.target} Milestone
             </button>
           </div>
         </div>
@@ -2228,16 +2233,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Team & Special</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="persona_introduced" title="Persona intro">
-              🎭 Persona Intro
+              ${ICONS.drama} Persona Intro
             </button>
             <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="team_unlock" title="Team unlock">
-              🔓 Team Unlock
+              ${ICONS.unlock} Team Unlock
             </button>
             <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="birthday" title="Birthday">
-              🎂 Birthday
+              ${ICONS.cake} Birthday
             </button>
             <button class="dev-expression-btn dev-expression-btn--narrative" data-beat="morning_greeting" title="Morning">
-              ☀️ Morning
+              ${ICONS.sun} Morning
             </button>
           </div>
         </div>
@@ -2246,16 +2251,16 @@ function createPanel(): HTMLElement {
           <span class="dev-label">Story Arcs</span>
           <div class="dev-expression-buttons">
             <button class="dev-expression-btn dev-expression-btn--arc" data-arc="breakthrough" title="Breakthrough arc">
-              💡 Breakthrough Arc
+              ${ICONS.lightbulb} Breakthrough Arc
             </button>
             <button class="dev-expression-btn dev-expression-btn--arc" data-arc="deep_conversation" title="Deep conversation">
-              🫂 Deep Convo Arc
+              ${ICONS.hugging} Deep Convo Arc
             </button>
             <button class="dev-expression-btn dev-expression-btn--arc" data-arc="goal_completion" title="Goal completion">
-              🎯 Goal Complete Arc
+              ${ICONS.target} Goal Complete Arc
             </button>
             <button class="dev-expression-btn dev-expression-btn--arc" data-arc="frustration_support" title="Frustration support">
-              💙 Support Arc
+              ${ICONS.heart} Support Arc
             </button>
           </div>
         </div>
@@ -2367,7 +2372,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🎉 Fun reaction buttons
+  // ${ICONS.party} Fun reaction buttons
   container.querySelectorAll('[data-reaction]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const reaction = (btn as HTMLElement).dataset.reaction;
@@ -2377,7 +2382,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🎬 Ferni Expressions - Eye Lid Expressions
+  // ${ICONS.movie} Ferni Expressions - Eye Lid Expressions
   container.querySelectorAll('[data-ferni-expr]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const expr = (btn as HTMLElement).dataset.ferniExpr as EmotionalExpression;
@@ -2387,7 +2392,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🎬 Ferni Expressions - Advanced Reactions
+  // ${ICONS.movie} Ferni Expressions - Advanced Reactions
   container.querySelectorAll('[data-ferni-react]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const react = (btn as HTMLElement).dataset.ferniReact as DevPanelReaction;
@@ -2397,7 +2402,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🎬 Ferni Expressions - Text-to-Icon Morph
+  // ${ICONS.movie} Ferni Expressions - Text-to-Icon Morph
   container.querySelectorAll('[data-morph]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const morph = (btn as HTMLElement).dataset.morph;
@@ -2407,10 +2412,10 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 👁️ Ferni Eye - DISABLED (keeping just zen blink)
+  // ${ICONS.eye} Ferni Eye - DISABLED (keeping just zen blink)
   // Eye peek-through animations removed for simpler, calmer UX
 
-  // 🎬 Narrative story beat buttons
+  // ${ICONS.movie} Narrative story beat buttons
   container.querySelectorAll('[data-beat]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const beat = (btn as HTMLElement).dataset.beat as StoryBeat;
@@ -2422,7 +2427,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🎬 Narrative story arc buttons
+  // ${ICONS.movie} Narrative story arc buttons
   container.querySelectorAll('[data-arc]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const arc = (btn as HTMLElement).dataset.arc;
@@ -2434,24 +2439,24 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🎭 Ferni Moments buttons
+  // ${ICONS.drama} Ferni Moments buttons
   container.querySelectorAll('[data-moment]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const moment = (btn as HTMLElement).dataset.moment as MomentType;
       if (moment) {
         ferniMoments.play(moment);
-        log.info({ moment }, '🎭 Ferni moment triggered');
+        log.info({ moment }, '${ICONS.drama} Ferni moment triggered');
       }
     });
   });
 
-  // 🎉 Ferni Milestones buttons
+  // ${ICONS.party} Ferni Milestones buttons
   container.querySelectorAll('[data-milestone]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const milestone = (btn as HTMLElement).dataset.milestone as MilestoneType;
       if (milestone) {
         ferniMilestones.triggerMilestone(milestone);
-        log.info({ milestone }, '🎉 Ferni milestone triggered');
+        log.info({ milestone }, '${ICONS.party} Ferni milestone triggered');
       }
     });
   });
@@ -2459,7 +2464,7 @@ function createPanel(): HTMLElement {
   // Open journey button
   container.querySelector('[data-action="open-journey"]')?.addEventListener('click', () => {
     journeyUI.open();
-    log.info('📖 Journey view opened');
+    log.info('${ICONS.bookOpen} Journey view opened');
   });
 
   // Reset milestones button
@@ -2468,7 +2473,7 @@ function createPanel(): HTMLElement {
     log.info('All milestones reset');
   });
 
-  // 💚 Progressive Features - Trust Signals
+  // ${ICONS.heart} Progressive Features - Trust Signals
   container.querySelectorAll('[data-trust-signal]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const signalType = (btn as HTMLElement).dataset.trustSignal;
@@ -2495,11 +2500,11 @@ function createPanel(): HTMLElement {
           },
         })
       );
-      log.info({ signalType }, '💚 Trust signal triggered');
+      log.info({ signalType }, '${ICONS.heart} Trust signal triggered');
     });
   });
 
-  // 💚 Progressive Features - Stage Celebrations
+  // ${ICONS.heart} Progressive Features - Stage Celebrations
   container.querySelectorAll('[data-stage-celebrate]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const stage = (btn as HTMLElement).dataset.stageCelebrate as RelationshipStage;
@@ -2511,14 +2516,13 @@ function createPanel(): HTMLElement {
       showStageCelebration({
         previousStage,
         newStage: stage,
-        totalConversations: relationshipStageService.getMetrics().totalConversations,
-        daysTogether: relationshipStageService.getMetrics().daysSinceFirstMeeting,
+        timestamp: new Date().toISOString(),
       });
-      log.info({ stage }, '🎉 Stage celebration triggered');
+      log.info({ stage }, '${ICONS.party} Stage celebration triggered');
     });
   });
 
-  // 💚 Progressive Features - Persona Intros
+  // ${ICONS.heart} Progressive Features - Persona Intros
   container.querySelectorAll('[data-persona-intro]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const personaId = (btn as HTMLElement).dataset.personaIntro;
@@ -2526,11 +2530,11 @@ function createPanel(): HTMLElement {
 
       const { showPersonaIntro } = await import('./persona-intro.ui.js');
       showPersonaIntro(personaId);
-      log.info({ personaId }, '👋 Persona intro triggered');
+      log.info({ personaId }, '${ICONS.hand} Persona intro triggered');
     });
   });
 
-  // 💚 Progressive Features - Feature Hints
+  // ${ICONS.heart} Progressive Features - Feature Hints
   container.querySelectorAll('[data-feature-hint]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const hintId = (btn as HTMLElement).dataset.featureHint;
@@ -2538,7 +2542,7 @@ function createPanel(): HTMLElement {
 
       const { showHint } = await import('./feature-hints.ui.js');
       showHint(hintId);
-      log.info({ hintId }, '💡 Feature hint triggered');
+      log.info({ hintId }, '${ICONS.lightbulb} Feature hint triggered');
     });
   });
 
@@ -2629,7 +2633,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🎮 Game buttons
+  // ${ICONS.gamepad} Game buttons
   container.querySelectorAll('[data-game]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const game = (btn as HTMLElement).dataset.game;
@@ -2691,7 +2695,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🌅 Wrap-up buttons (conversation ending)
+  // ${ICONS.sunrise} Wrap-up buttons (conversation ending)
   container.querySelectorAll('[data-wrap-up]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const wrapUp = (btn as HTMLElement).dataset.wrapUp;
@@ -2723,7 +2727,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🚀 Ferni EQ - Micro-expression buttons
+  // ${ICONS.rocket} Ferni EQ - Micro-expression buttons
   container.querySelectorAll('[data-micro]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const micro = (btn as HTMLElement).dataset.micro as Parameters<
@@ -2734,7 +2738,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🚀 Ferni EQ - Active listening buttons
+  // ${ICONS.rocket} Ferni EQ - Active listening buttons
   container.querySelectorAll('[data-listen]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const listen = (btn as HTMLElement).dataset.listen;
@@ -2759,7 +2763,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🚀 Ferni EQ - Concern response buttons
+  // ${ICONS.rocket} Ferni EQ - Concern response buttons
   container.querySelectorAll('[data-concern]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const concern = (btn as HTMLElement).dataset.concern as 'mild' | 'moderate' | 'significant';
@@ -2778,7 +2782,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🚀 Ferni EQ - Breath sync buttons
+  // ${ICONS.rocket} Ferni EQ - Breath sync buttons
   container.querySelectorAll('[data-breath]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const breath = (btn as HTMLElement).dataset.breath;
@@ -2806,7 +2810,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🔌 Connection state buttons
+  // ${ICONS.plug} Connection state buttons
   container.querySelectorAll('[data-connection]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const state = (btn as HTMLElement).dataset.connection;
@@ -2814,7 +2818,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🔊 Sound effect buttons
+  // ${ICONS.volumeHigh} Sound effect buttons
   container.querySelectorAll('[data-sound]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const sound = (btn as HTMLElement).dataset.sound;
@@ -2822,7 +2826,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 💬 Message buttons
+  // ${ICONS.chat} Message buttons
   container.querySelectorAll('[data-message]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const message = (btn as HTMLElement).dataset.message;
@@ -2830,7 +2834,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🔔 Toast buttons
+  // ${ICONS.bell} Toast buttons
   container.querySelectorAll('[data-toast]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const toast = (btn as HTMLElement).dataset.toast;
@@ -2838,7 +2842,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 📱 Modal buttons
+  // ${ICONS.smartphone} Modal buttons
   container.querySelectorAll('[data-modal]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const modal = (btn as HTMLElement).dataset.modal;
@@ -2846,7 +2850,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🕐 Time buttons
+  // ${ICONS.clock} Time buttons
   container.querySelectorAll('[data-time]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const time = (btn as HTMLElement).dataset.time;
@@ -2854,7 +2858,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // ♿ Accessibility buttons
+  // ${ICONS.accessibility} Accessibility buttons
   container.querySelectorAll('[data-a11y]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const a11y = (btn as HTMLElement).dataset.a11y;
@@ -2862,7 +2866,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🎲 Easter egg buttons
+  // ${ICONS.dice} Easter egg buttons
   container.querySelectorAll('[data-easter]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const easter = (btn as HTMLElement).dataset.easter;
@@ -2870,7 +2874,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🔧 State buttons
+  // ${ICONS.wrench} State buttons
   container.querySelectorAll('[data-state]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const stateAction = (btn as HTMLElement).dataset.state;
@@ -2878,7 +2882,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🌊 Waveform buttons
+  // ${ICONS.waves} Waveform buttons
   container.querySelectorAll('[data-waveform]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const waveform = (btn as HTMLElement).dataset.waveform;
@@ -2886,7 +2890,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 💀 Loading buttons
+  // ${ICONS.skull} Loading buttons
   container.querySelectorAll('[data-loading]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const loading = (btn as HTMLElement).dataset.loading;
@@ -2894,7 +2898,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🎊 Streak buttons
+  // ${ICONS.confetti} Streak buttons
   container.querySelectorAll('[data-streak]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const streak = parseInt((btn as HTMLElement).dataset.streak!, 10);
@@ -2902,7 +2906,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 📶 Network buttons
+  // ${ICONS.signalStrength} Network buttons
   container.querySelectorAll('[data-network]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const network = (btn as HTMLElement).dataset.network;
@@ -2910,7 +2914,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // ⏱️ Latency buttons
+  // ${ICONS.stopwatch} Latency buttons
   container.querySelectorAll('[data-latency]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const latency = parseInt((btn as HTMLElement).dataset.latency!, 10);
@@ -2918,7 +2922,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🗑️ Storage buttons
+  // ${ICONS.trash} Storage buttons
   container.querySelectorAll('[data-storage]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const storage = (btn as HTMLElement).dataset.storage;
@@ -2926,7 +2930,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🎭 Ambient buttons
+  // ${ICONS.drama} Ambient buttons
   container.querySelectorAll('[data-ambient]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const ambient = (btn as HTMLElement).dataset.ambient;
@@ -2934,7 +2938,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 🌦️ Weather buttons
+  // ${ICONS.cloudSun} Weather buttons
   container.querySelectorAll('[data-weather]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const weather = (btn as HTMLElement).dataset.weather as WeatherType | 'moment';
@@ -2973,7 +2977,7 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // 📤 Outreach buttons
+  // ${ICONS.upload} Outreach buttons
   container.querySelectorAll('[data-outreach]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const outreach = (btn as HTMLElement).dataset.outreach;
@@ -3090,7 +3094,7 @@ async function openEvalOpsDashboard(): Promise<void> {
   try {
     const { showEvalOpsDashboard } = await import('./evalops-dashboard.ui.js');
     showEvalOpsDashboard();
-    log.info('🎯 Opened EvalOps dashboard');
+    log.info('${ICONS.target} Opened EvalOps dashboard');
   } catch (e) {
     log.error('Failed to open EvalOps dashboard:', e);
   }
@@ -3118,7 +3122,7 @@ function handleRosterAction(action: string): void {
 }
 
 /**
- * 🎮 Handle game button actions
+ * ${ICONS.gamepad} Handle game button actions
  */
 async function handleGameAction(action: string): Promise<void> {
   switch (action) {
@@ -3127,7 +3131,7 @@ async function handleGameAction(action: string): Promise<void> {
       try {
         const { showMusicDashboard } = await import('./music-dashboard.ui.js');
         showMusicDashboard();
-        log.info('📊 Opened Musical You dashboard');
+        log.info('${ICONS.barChart} Opened Musical You dashboard');
       } catch (e) {
         log.error('Failed to open music dashboard:', e);
       }
@@ -3177,10 +3181,10 @@ async function requestGameStart(gameType: string): Promise<void> {
 
     await room.localParticipant.publishData(new TextEncoder().encode(message), { reliable: true });
 
-    log.info({ gameType: mappedType }, '🎮 Sent game start request');
+    log.info({ gameType: mappedType }, '${ICONS.gamepad} Sent game start request');
     showToast(`Starting ${gameType.replace(/-/g, ' ')}...`, 'info');
   } catch (error) {
-    log.error({ error, gameType }, '🎮 Failed to send game start request');
+    log.error({ error, gameType }, '${ICONS.gamepad} Failed to send game start request');
     showToast('Failed to start game - try voice command', 'error');
   }
 }
@@ -3252,13 +3256,13 @@ function renderFTUEStatus(): string {
         ${status.unlockedFeatures
           .map(
             (f) =>
-              `<span class="dev-ftue-badge dev-ftue-badge--unlocked" title="Unlocked">✓ ${f}</span>`
+              `<span class="dev-ftue-badge dev-ftue-badge--unlocked" title="Unlocked">${ICONS.check} ${f}</span>`
           )
           .join('')}
         ${status.lockedFeatures
           .map(
             (f) =>
-              `<span class="dev-ftue-badge dev-ftue-badge--locked" title="Locked">🔒 ${f}</span>`
+              `<span class="dev-ftue-badge dev-ftue-badge--locked" title="Locked">${ICONS.lock} ${f}</span>`
           )
           .join('')}
       </div>
@@ -3277,27 +3281,27 @@ function handleFTUEAction(action: string): void {
   switch (action) {
     case 'reset':
       modalCoordinator.resetToFirstTimeUser();
-      showDevToast('Reset to first-time user. Reload the page to test.', 'success');
+      toast.success('Reset to first-time user. Reload the page to test.');
       log.info('🆕 Reset to first-time user experience');
       break;
     case 'simulate-1':
       modalCoordinator.simulateConversations(1);
-      showDevToast('Simulated 1 conversation. Reload to see changes.', 'success');
+      toast.success('Simulated 1 conversation. Reload to see changes.');
       log.info('🆕 Simulated 1 conversation');
       break;
     case 'simulate-3':
       modalCoordinator.simulateConversations(3);
-      showDevToast('Simulated 3 conversations. Reload to see changes.', 'success');
+      toast.success('Simulated 3 conversations. Reload to see changes.');
       log.info('🆕 Simulated 3 conversations');
       break;
     case 'simulate-5':
       modalCoordinator.simulateConversations(5);
-      showDevToast('Simulated 5 conversations. Reload to see changes.', 'success');
+      toast.success('Simulated 5 conversations. Reload to see changes.');
       log.info('🆕 Simulated 5 conversations');
       break;
     case 'simulate-10':
       modalCoordinator.simulateConversations(10);
-      showDevToast('Simulated 10 conversations. Reload to see changes.', 'success');
+      toast.success('Simulated 10 conversations. Reload to see changes.');
       log.info('🆕 Simulated 10 conversations');
       break;
   }
@@ -3395,13 +3399,13 @@ function updateSubscriptionStatusDisplay(): void {
 
   let status = '';
   if (bypass) {
-    status = '🔓 BYPASSED (Admin Mode)';
+    status = '${ICONS.unlock} BYPASSED (Admin Mode)';
   } else if (!enabled) {
-    status = '⏸️ Gating Disabled';
+    status = '${ICONS.pause} Gating Disabled';
   } else if (whitelist.length > 0) {
-    status = `✅ Active (${whitelist.length} whitelisted)`;
+    status = `${ICONS.checkCircle} Active (${whitelist.length} whitelisted)`;
   } else {
-    status = '✅ Active';
+    status = '${ICONS.checkCircle} Active';
   }
 
   statusEl.textContent = status;
@@ -3527,9 +3531,9 @@ function updateNarrativeStats(): void {
     if (turnsEl) turnsEl.textContent = stats.turns.toString();
     if (speakingEl) {
       if (stats.isFerniSpeaking) {
-        speakingEl.textContent = '🗣️ Ferni';
+        speakingEl.textContent = '${ICONS.speaker} Ferni';
       } else if (stats.isUserSpeaking) {
-        speakingEl.textContent = '👤 User';
+        speakingEl.textContent = '${ICONS.user} User';
       } else {
         speakingEl.textContent = '—';
       }
@@ -3634,7 +3638,7 @@ function triggerLampAction(action: string): void {
 
     case 'shrink':
       avatarLamp.shrink(0.5);
-      setTimeout(() => avatarLamp.unshrink(), 1500);
+      trackedTimeout(() => avatarLamp.unshrink(), 1500);
       log.info('Avatar Lamp: shrink');
       break;
 
@@ -3781,7 +3785,7 @@ function triggerExpression(expression: string): void {
       // Slow nod with empathetic emotion
       presenceUI.setVoiceEmotion('empathetic');
       presenceUI.nod();
-      setTimeout(() => presenceUI.setVoiceEmotion('neutral'), 2000);
+      trackedTimeout(() => presenceUI.setVoiceEmotion('neutral'), 2000);
       break;
 
     case 'delight':
@@ -3794,7 +3798,7 @@ function triggerExpression(expression: string): void {
       // Slow tilt with thoughtful emotion
       presenceUI.setVoiceEmotion('thoughtful');
       presenceUI.curiousTilt();
-      setTimeout(() => presenceUI.setVoiceEmotion('neutral'), 3000);
+      trackedTimeout(() => presenceUI.setVoiceEmotion('neutral'), 3000);
       break;
 
     case 'encourage':
@@ -3855,7 +3859,7 @@ function triggerExpression(expression: string): void {
 // function triggerFerniEye() { ... }
 
 // ============================================================================
-// 🎬 PIXAR EMOTIONS - Eye Lid Expressions & Advanced Reactions
+// ${ICONS.movie} PIXAR EMOTIONS - Eye Lid Expressions & Advanced Reactions
 // ============================================================================
 
 /**
@@ -3932,7 +3936,7 @@ async function triggerFerniMorph(iconType: string): Promise<void> {
   const iconElement = await ferniExpressions.morphTextToIcon(iconSvg, DURATION.MODERATE);
 
   // Hold the icon visible
-  await new Promise((resolve) => setTimeout(resolve, DURATION.CELEBRATION));
+  await new Promise((resolve) => trackedTimeout(() => resolve(undefined), DURATION.CELEBRATION));
 
   // Morph icon → text
   await ferniExpressions.morphIconToText(iconElement);
@@ -3965,14 +3969,14 @@ function triggerMusicAction(action: string): void {
       break;
 
     case 'our-song':
-      // 💚 Test "Our Song" - shared musical memory with heart indicator
+      // ${ICONS.heart} Test "Our Song" - shared musical memory with heart indicator
       testOurSong();
       break;
   }
 }
 
 /**
- * 💚 Test "Our Song" feature - shows Now Playing with heart indicator
+ * ${ICONS.heart} Test "Our Song" feature - shows Now Playing with heart indicator
  */
 async function testOurSong(): Promise<void> {
   const { nowPlayingUI } = await import('./now-playing.ui.js');
@@ -3992,7 +3996,7 @@ async function testOurSong(): Promise<void> {
   avatarFeedback.musicPresence();
   waveformUI.setMusicPlaying(true);
 
-  log.info('💚 Testing "Our Song" feature - showing shared memory indicator');
+  log.info('${ICONS.heart} Testing "Our Song" feature - showing shared memory indicator');
 }
 
 // ============================================================================
@@ -4075,7 +4079,7 @@ async function updateMusicStatusDisplay(): Promise<void> {
         <span class="dev-music-status__label">Spotify</span>
         <span class="dev-music-status__value">${
           status.spotifyStatus.linked
-            ? '✓ Linked' + (status.spotifyStatus.deviceConnected ? ' + Device' : ' (No Device)')
+            ? '${ICONS.check} Linked' + (status.spotifyStatus.deviceConnected ? ' + Device' : ' (No Device)')
             : 'Not Linked'
         }</span>
       </div>
@@ -4086,11 +4090,11 @@ async function updateMusicStatusDisplay(): Promise<void> {
     <div class="dev-music-status__grid">
       <div class="dev-music-status__item ${statusClass}">
         <span class="dev-music-status__label">Player</span>
-        <span class="dev-music-status__value">${status.initialized ? '✓ Ready' : '✗ Not Init'}</span>
+        <span class="dev-music-status__value">${status.initialized ? '${ICONS.check} Ready' : '${ICONS.x} Not Init'}</span>
       </div>
       <div class="dev-music-status__item ${playingClass}">
         <span class="dev-music-status__label">Playing</span>
-        <span class="dev-music-status__value">${status.isPlaying ? '▶ Yes' : '◼ No'}</span>
+        <span class="dev-music-status__value">${status.isPlaying ? '${ICONS.play} Yes' : '${ICONS.stop} No'}</span>
       </div>
       <div class="dev-music-status__item">
         <span class="dev-music-status__label">Volume</span>
@@ -4098,7 +4102,7 @@ async function updateMusicStatusDisplay(): Promise<void> {
       </div>
       <div class="dev-music-status__item ${itunesClass}">
         <span class="dev-music-status__label">iTunes</span>
-        <span class="dev-music-status__value">${status.itunesAvailable ? '✓ Available' : '✗ Down'}</span>
+        <span class="dev-music-status__value">${status.itunesAvailable ? '${ICONS.check} Available' : '${ICONS.x} Down'}</span>
       </div>
       ${spotifyHtml}
       ${
@@ -4127,11 +4131,11 @@ async function handleMusicStatusAction(action: string): Promise<void> {
         const response = await fetch('/api/music/test-itunes', { method: 'POST' });
         const result = await response.json();
         if (result.success) {
-          log.info({ track: result.track }, '✓ iTunes API working');
-          alert(`✓ iTunes API working!\n\nFound: ${result.track?.name} by ${result.track?.artist}`);
+          log.info({ track: result.track }, '${ICONS.check} iTunes API working');
+          alert(`${ICONS.check} iTunes API working!\n\nFound: ${result.track?.name} by ${result.track?.artist}`);
         } else {
-          log.warn({ error: result.error }, '✗ iTunes API failed');
-          alert(`✗ iTunes API failed\n\n${result.error}`);
+          log.warn({ error: result.error }, '${ICONS.x} iTunes API failed');
+          alert(`${ICONS.x} iTunes API failed\n\n${result.error}`);
         }
       } catch (e) {
         log.error({ error: e }, 'iTunes test failed');
@@ -4144,9 +4148,9 @@ async function handleMusicStatusAction(action: string): Promise<void> {
         const response = await fetch('/spotify/status');
         const result = await response.json();
         const statusLines = [
-          `Configured: ${result.configured ? '✓' : '✗'}`,
-          `Linked: ${result.linked ? '✓' : '✗'}`,
-          `Device Connected: ${result.deviceConnected ? '✓' : '✗'}`,
+          `Configured: ${result.configured ? '${ICONS.check}' : '${ICONS.x}'}`,
+          `Linked: ${result.linked ? '${ICONS.check}' : '${ICONS.x}'}`,
+          `Device Connected: ${result.deviceConnected ? '${ICONS.check}' : '${ICONS.x}'}`,
         ];
         alert(`Spotify Status:\n\n${statusLines.join('\n')}`);
         log.info({ status: result }, 'Spotify status check');
@@ -4240,7 +4244,7 @@ function triggerGreeting(greeting: string): void {
       // Sleepy late night - very gentle
       presenceUI.setVoiceEmotion('calm');
       triggerSleepy();
-      setTimeout(() => presenceUI.setVoiceEmotion('neutral'), 2000);
+      trackedTimeout(() => presenceUI.setVoiceEmotion('neutral'), 2000);
       log.info('Late night greeting triggered');
       break;
 
@@ -4248,7 +4252,7 @@ function triggerGreeting(greeting: string): void {
       // Happy to see you again!
       presenceUI.flashEmotion('happy', 2000);
       presenceUI.joy();
-      setTimeout(() => presenceUI.bounce(), 300);
+      trackedTimeout(() => presenceUI.bounce(), 300);
       log.info('Welcome back greeting triggered');
       break;
 
@@ -4289,7 +4293,7 @@ function triggerCelebration(celebration: string): void {
         { duration: 1200, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
       );
       // Double burst!
-      setTimeout(() => void celebrationBurst(), 400);
+      trackedTimeout(() => void celebrationBurst(), 400);
       log.info('30-day streak celebration triggered');
       break;
 
@@ -4305,7 +4309,7 @@ function triggerCelebration(celebration: string): void {
     case 'team':
       // New team member - thoughtful + excited
       presenceUI.flashEmotion('thoughtful', 1000);
-      setTimeout(() => {
+      trackedTimeout(() => {
         presenceUI.flashEmotion('excited', 2000);
         presenceUI.joy();
       }, 500);
@@ -4333,7 +4337,7 @@ function triggerThinking(thinking: string): void {
 }
 
 // ============================================================================
-// 🌅 WRAP-UP - Test conversation ending flow
+// ${ICONS.sunrise} WRAP-UP - Test conversation ending flow
 // ============================================================================
 
 function triggerWrapUp(sentiment: string): void {
@@ -4593,14 +4597,14 @@ function triggerReaction(reaction: string): void {
       log.info('Celebrate triggered');
       break;
 
-    // 🎉 NEW: Fun micro-reactions using CSS-based animations
+    // ${ICONS.party} NEW: Fun micro-reactions using CSS-based animations
     case 'happy':
     case 'curious':
     case 'empathy':
     case 'laugh':
     case 'surprise':
       avatarFeedback.react(reaction as 'happy' | 'curious' | 'empathy' | 'laugh' | 'surprise');
-      log.info({ reaction }, '🎉 Fun reaction triggered');
+      log.info({ reaction }, '${ICONS.party} Fun reaction triggered');
       break;
 
     default:
@@ -4656,7 +4660,7 @@ function triggerRippleEffect(ripple: string): void {
         ],
         { duration: 600, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }
       );
-      setTimeout(() => void celebrationBurst(), 300);
+      trackedTimeout(() => void celebrationBurst(), 300);
       log.info('BIG celebration triggered');
       break;
 
@@ -4670,7 +4674,7 @@ function triggerRippleEffect(ripple: string): void {
  */
 function createRipple(x: number, y: number, count = 1, delay = 0): void {
   for (let i = 0; i < count; i++) {
-    setTimeout(() => {
+    trackedTimeout(() => {
       const ripple = document.createElement('div');
       ripple.style.cssText = `
         position: fixed;
@@ -4709,7 +4713,7 @@ function createRipple(x: number, y: number, count = 1, delay = 0): void {
         }
       );
 
-      setTimeout(() => ripple.remove(), 850);
+      trackedTimeout(() => ripple.remove(), 850);
     }, i * delay);
   }
 }
@@ -4814,12 +4818,12 @@ function triggerMessage(message: string): void {
       break;
     case 'thinking':
       avatarFeedback.thinking();
-      setTimeout(() => avatarFeedback.stopThinking(), 3000);
+      trackedTimeout(() => avatarFeedback.stopThinking(), 3000);
       log.info('Triggered thinking state for 3s');
       break;
     case 'whisper':
       avatarFeedback.whisper('Testing the whisper feature...');
-      setTimeout(() => avatarFeedback.hideWhisper(), 3000);
+      trackedTimeout(() => avatarFeedback.hideWhisper(), 3000);
       log.info('Triggered whisper');
       break;
     default:
@@ -4978,8 +4982,8 @@ function triggerEasterEgg(easter: string): void {
     case 'fireworks':
       // Multiple confetti bursts
       createConfetti(30);
-      setTimeout(() => createConfetti(30), 200);
-      setTimeout(() => createConfetti(30), 400);
+      trackedTimeout(() => createConfetti(30), 200);
+      trackedTimeout(() => createConfetti(30), 400);
       presenceUI.flashEmotion('excited', 3000);
       log.info('Triggered fireworks');
       break;
@@ -5006,7 +5010,7 @@ function triggerEasterEgg(easter: string): void {
           { duration: 2000, easing: 'ease-in-out' }
         );
       }
-      log.info('PARTY MODE ACTIVATED! 🎉');
+      log.info('PARTY MODE ACTIVATED! ${ICONS.party}');
       break;
     case 'zen':
       // Calm zen moment
@@ -5022,7 +5026,7 @@ function triggerEasterEgg(easter: string): void {
           { duration: 4000, easing: 'ease-in-out', iterations: 3 }
         );
       }
-      setTimeout(() => presenceUI.setVoiceEmotion('neutral'), 12000);
+      trackedTimeout(() => presenceUI.setVoiceEmotion('neutral'), 12000);
       log.info('Zen moment triggered');
       break;
     default:
@@ -5077,7 +5081,7 @@ function createConfetti(count: number): void {
       }
     );
 
-    setTimeout(() => confetti.remove(), 4000);
+    trackedTimeout(() => confetti.remove(), 4000);
   }
 }
 
@@ -5159,7 +5163,7 @@ function triggerWaveformState(waveform: string): void {
       presenceUI.setSpeaking(false);
       presenceUI.setListening(false);
       avatarFeedback.thinking();
-      setTimeout(() => avatarFeedback.stopThinking(), 5000);
+      trackedTimeout(() => avatarFeedback.stopThinking(), 5000);
       log.info('Waveform: thinking (5s)');
       break;
     default:
@@ -5203,7 +5207,7 @@ function showAvatarSkeleton(): void {
   avatar.classList.add('skeleton-loading');
   avatar.style.setProperty('--skeleton-opacity', '0.7');
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     avatar.classList.remove('skeleton-loading');
     avatar.style.removeProperty('--skeleton-opacity');
   }, 3000);
@@ -5214,7 +5218,7 @@ function showTeamSkeleton(): void {
   if (!teamContainer) return;
 
   teamContainer.classList.add('skeleton-loading');
-  setTimeout(() => teamContainer.classList.remove('skeleton-loading'), 3000);
+  trackedTimeout(() => teamContainer.classList.remove('skeleton-loading'), 3000);
 }
 
 function showSpinner(): void {
@@ -5229,7 +5233,7 @@ function showSpinner(): void {
   document.body.appendChild(spinner);
   skeletonElements.push(spinner);
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     spinner.remove();
     skeletonElements = skeletonElements.filter((el) => el !== spinner);
   }, 3000);
@@ -5300,9 +5304,9 @@ function triggerStreakCelebration(days: number): void {
       presenceUI.flashEmotion('excited', 5000);
       void celebrationBurst();
       createConfetti(100);
-      setTimeout(() => void celebrationBurst(), 300);
-      setTimeout(() => createConfetti(50), 500);
-      setTimeout(() => void celebrationBurst(), 800);
+      trackedTimeout(() => void celebrationBurst(), 300);
+      trackedTimeout(() => createConfetti(50), 500);
+      trackedTimeout(() => void celebrationBurst(), 800);
       avatar?.animate(
         [
           { transform: 'scale(1) rotate(0deg)', filter: 'brightness(1)' },
@@ -5429,7 +5433,7 @@ function installDevFetchWrapper(): void {
 
     // Add latency delay
     if (latency > 0) {
-      await new Promise((resolve) => setTimeout(resolve, latency));
+      await new Promise((resolve) => trackedTimeout(() => resolve(undefined), latency));
     }
 
     // Call original fetch
@@ -5513,7 +5517,7 @@ function viewStorage(): void {
   // NOTE: Using console.group/log intentionally here for developer debugging
   // This is a dev-only feature that displays structured data in browser console
   // eslint-disable-next-line no-console
-  console.group('📦 Ferni Storage');
+  console.group('${ICONS.package} Ferni Storage');
   ferniKeys.forEach((key) => {
     // eslint-disable-next-line no-console
     console.log(`${key}:`, storageData[key]);
@@ -5552,7 +5556,7 @@ function clearMarketplaceAgents(): void {
       log.info({ count }, 'Cleared marketplace agents');
 
       // Reload to update UI
-      setTimeout(() => {
+      trackedTimeout(() => {
         window.location.reload();
       }, 500);
     } catch {
@@ -5567,7 +5571,7 @@ function clearMarketplaceAgents(): void {
 }
 
 function clearAllStorage(): void {
-  if (!confirm('⚠️ This will clear ALL Ferni data including your progress. Continue?')) {
+  if (!confirm('${ICONS.alertTriangle} This will clear ALL Ferni data including your progress. Continue?')) {
     return;
   }
 
@@ -5599,7 +5603,7 @@ function exportStorage(): void {
 
   // NOTE: Using console.log intentionally for developer debugging/export
   // eslint-disable-next-line no-console
-  console.log('📤 EXPORT DATA (copy this):');
+  console.log('${ICONS.upload} EXPORT DATA (copy this):');
   // eslint-disable-next-line no-console
   console.log(jsonData);
 
@@ -6777,7 +6781,7 @@ function injectStyles(): void {
       transform: scale(0.98);
     }
     
-    /* 🎵 Music Status Display */
+    /* ${ICONS.music} Music Status Display */
     .dev-music-status {
       margin-top: 8px;
     }

@@ -17,8 +17,12 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { getHapticsService } from '../services/haptics.service.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('ToastUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -185,7 +189,7 @@ export class ToastManager {
 
     // Auto dismiss
     const duration = config.duration ?? 2500;
-    const timeout = setTimeout(() => this.dismiss(id), duration);
+    const timeout = trackedTimeout(() => this.dismiss(id), duration);
 
     // Track toast
     this.activeToast = { id, element: toast, timeout };
@@ -209,7 +213,7 @@ export class ToastManager {
     // Animate out
     element.style.animation = `toast-out ${DURATION.NORMAL}ms ${EASING.STANDARD} forwards`;
 
-    setTimeout(() => {
+    trackedTimeout(() => {
       element.remove();
       this.activeToast = null;
 

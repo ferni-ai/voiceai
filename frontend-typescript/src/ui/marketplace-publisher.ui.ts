@@ -25,12 +25,16 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, STAGGER } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './toast.ui.js';
 
 // Use TIGHT for fast staggered animations
 const STAGGER_FAST = STAGGER.TIGHT;
 
 const log = createLogger('PublisherPortalUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -177,7 +181,7 @@ function announceToScreenReader(message: string): void {
   announcer.className = 'sr-only';
   announcer.textContent = message;
   document.body.appendChild(announcer);
-  setTimeout(() => announcer.remove(), 1000);
+  trackedTimeout(() => announcer.remove(), 1000);
 }
 
 // ============================================================================
@@ -233,7 +237,7 @@ export function closePublisherPortal(): void {
   if (!container) return;
 
   container.classList.remove('publisher-portal--visible');
-  setTimeout(() => {
+  trackedTimeout(() => {
     container?.remove();
     container = null;
   }, getAnimationDuration(DURATION.SLOW));

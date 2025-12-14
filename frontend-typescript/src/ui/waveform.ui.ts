@@ -24,8 +24,12 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import type { VoiceEmotion } from '../types/events.js';
 import type { PersonaId } from '../types/persona.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('Waveform');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // CONFIGURATION
@@ -367,7 +371,7 @@ export function setEmotion(emotion: VoiceEmotion, intensity: number = 1): void {
   startAnimation();
 
   // Clear emotion after duration
-  setTimeout(() => {
+  trackedTimeout(() => {
     if (currentEmotion === emotion) {
       container?.classList.remove('has-emotion');
       container?.removeAttribute('data-emotion');
@@ -381,12 +385,12 @@ export function setEmotion(emotion: VoiceEmotion, intensity: number = 1): void {
 export function celebrate(): void {
   setEmotion('excited', 1);
   container?.classList.add('celebrating');
-  setTimeout(() => container?.classList.remove('celebrating'), 1000);
+  trackedTimeout(() => container?.classList.remove('celebrating'), 1000);
 }
 
 export function thinkPulse(): void {
   container?.classList.add('think-pulse');
-  setTimeout(() => container?.classList.remove('think-pulse'), 600);
+  trackedTimeout(() => container?.classList.remove('think-pulse'), 600);
 }
 
 /**

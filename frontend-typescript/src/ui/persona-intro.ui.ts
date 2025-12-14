@@ -32,8 +32,12 @@ import {
   teamUnlockService,
 } from '../services/team-unlock.service.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('PersonaIntro');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -362,7 +366,7 @@ export function hidePersonaIntro(): void {
     modalCoordinator.release(`persona-intro-${currentPersona.id}`);
   }
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     modal?.remove();
     modal = null;
     currentPersona = null;

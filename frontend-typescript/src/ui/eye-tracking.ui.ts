@@ -28,8 +28,12 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('EyeTracking');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -214,7 +218,7 @@ export function pauseEyeTracking(id: string, duration: number): void {
   tracked.state.paused = true;
   tracked.state.target = { x: 0, y: 0 };
   
-  setTimeout(() => {
+  trackedTimeout(() => {
     if (tracked) {
       tracked.state.paused = false;
     }
@@ -268,7 +272,7 @@ export function lookAt(id: string, x: number, y: number, duration = 300): void {
   };
   
   // Resume normal tracking after duration
-  setTimeout(() => {
+  trackedTimeout(() => {
     if (tracked) {
       tracked.state.paused = false;
     }
@@ -388,7 +392,7 @@ function updateEyePosition(id: string): void {
 // ============================================================================
 
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise(resolve => trackedTimeout(resolve, ms));
 }
 
 // ============================================================================

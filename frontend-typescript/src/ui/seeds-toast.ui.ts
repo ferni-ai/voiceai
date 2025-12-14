@@ -12,8 +12,12 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('SeedsToast');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // STATE
@@ -212,7 +216,7 @@ function createSparkles(toast: HTMLElement, count = 8): void {
     toast.appendChild(sparkle);
 
     // Remove after animation
-    setTimeout(() => sparkle.remove(), 800);
+    trackedTimeout(() => sparkle.remove(), 800);
   }
 }
 
@@ -260,7 +264,7 @@ export function showSeedsToast(amount: number, reason: string, isCelebration = f
 
   // Auto-dismiss
   const duration = isCelebration ? 4000 : 3000;
-  dismissTimeout = setTimeout(() => {
+  dismissTimeout = trackedTimeout(() => {
     dismissToast();
   }, duration);
 
@@ -277,7 +281,7 @@ function dismissToast(): void {
   toast.classList.remove('visible');
   toast.classList.add('exiting');
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     toast.remove();
     if (currentToast === toast) {
       currentToast = null;

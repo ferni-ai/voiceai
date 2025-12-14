@@ -4,6 +4,24 @@
  *
  * REFACTORED: Now uses AgentDirectory for ID normalization.
  * The hardcoded mapping tables have been removed.
+ *
+ * ⚠️ MIGRATION NOTICE:
+ * This module contains GLOBAL state that is shared across all sessions.
+ * For new code, prefer the session-scoped state from './session-state.js':
+ *
+ * ```typescript
+ * // New (preferred) - session-isolated state
+ * import { getSessionState, getCurrentAgent } from './session-state.js';
+ * const state = getSessionState(sessionId);
+ * const agent = getCurrentAgent(state);
+ *
+ * // Old (legacy) - global state
+ * import { getCurrentAgent } from './state.js';
+ * const agent = getCurrentAgent();
+ * ```
+ *
+ * @see session-state.ts for the new session-scoped implementation
+ * @see docs/audits/AGENT-TRANSFER-BUGS-GAPS.md for migration context
  */
 
 import { EventEmitter } from 'events';
@@ -12,6 +30,15 @@ import { AgentDirectory, normalizeAgentIdSync } from '../../personas/agent-direc
 import type { AgentId } from '../../services/agent-bus.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { HandoffAnalytics, HandoffContext, HandoffRecord } from './types.js';
+
+// Re-export session-scoped state for new code
+export {
+  getSessionState,
+  hasSessionState,
+  removeSessionState,
+  getActiveSessionIds,
+  type HandoffSessionState,
+} from './session-state.js';
 
 // ============================================================================
 // HANDOFF EVENTS

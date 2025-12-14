@@ -33,9 +33,13 @@
 import { EASING } from '../config/animation-constants.js';
 import { gsap } from '../utils/gsap-setup.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { ferniExpressions } from './ferni-expressions.ui.js';
 
 const log = createLogger('AmbientLife');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // CONFIGURATION
@@ -112,7 +116,7 @@ export function initAmbientLife(): void {
 
   if (!state.avatarElement || !state.avatarContainer) {
     log.warn('Avatar not found, retrying...');
-    setTimeout(initAmbientLife, 500);
+    trackedTimeout(initAmbientLife, 500);
     return;
   }
 
@@ -148,7 +152,7 @@ function setupEventListeners(): void {
 
   window.addEventListener('ferni:agent-speech-end', () => {
     // Small delay before resuming to let conversation settle
-    setTimeout(() => {
+    trackedTimeout(() => {
       if (!state.isConversing) return;
       state.isConversing = false;
     }, 2000);
@@ -191,7 +195,7 @@ function scheduleNextAction(): void {
     interval *= 1 / CONFIG.NIGHT_ACTIVITY_MULTIPLIER; // Longer intervals at night
   }
 
-  state.actionTimer = window.setTimeout(() => {
+  state.actionTimer = window.trackedTimeout(() => {
     performRandomAction();
     scheduleNextAction();
   }, interval);

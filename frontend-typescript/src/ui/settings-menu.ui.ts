@@ -12,6 +12,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 // Relationship stage service - used for feature unlocking and progress display
 import {
   relationshipStageService,
@@ -19,6 +20,9 @@ import {
   UNLOCKABLE_FEATURES,
   type RelationshipStage,
 } from '../services/relationship-stage.service.js';
+
+// Track setTimeout calls for memory leak prevention
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 // Milestones - for journey progress indicator
 // Seeds display for personalization economy
 import { renderSeedsSettingsCard } from './seeds-display.ui.js';
@@ -615,7 +619,7 @@ class SettingsMenuUI {
         if (isLocked) {
           // Show a gentle animation indicating it's locked
           htmlBtn.classList.add('settings-menu__item--shake');
-          setTimeout(() => htmlBtn.classList.remove('settings-menu__item--shake'), 400);
+          trackedTimeout(() => htmlBtn.classList.remove('settings-menu__item--shake'), 400);
           return;
         }
 

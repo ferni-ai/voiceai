@@ -18,12 +18,16 @@ import { DURATION } from '../config/animation-constants.js';
 import { formatAmount, loadStripe } from '../services/monetization.service.js';
 import { apiFetch } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import type { GardenStatus, PlantSeedResponse, SubscriptionResponse, UserGarden } from '../types/seed-fund.types.js';
 import { getStatusDisplayName } from '../types/seed-fund.types.js';
 import { ferniFundStyles as styles, CLOSE_ICON, SEED_ICON, CHECK_ICON } from './ferni-fund.styles.js';
 import { toast } from './toast.ui.js';
 
 const log = createLogger('FerniFundUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // GARDEN API
@@ -430,7 +434,7 @@ export function close(): void {
   container.classList.remove('open');
   isOpen = false;
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     container?.remove();
     container = null;
   }, DURATION.MODERATE);
@@ -464,7 +468,7 @@ function showThankYouContent(impact: { conversationsSponsored: number; message: 
   isOpen = true;
 
   // Auto-close after 6 seconds
-  setTimeout(close, 6000);
+  trackedTimeout(close, 6000);
 }
 
 /**

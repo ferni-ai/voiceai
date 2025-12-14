@@ -1,12 +1,17 @@
 /**
  * Session Stats UI - Beautiful session statistics overlay
- * 
+ *
  * Shows:
  * - Time connected
  * - Messages exchanged
  * - Current persona
  * - Conversation topics
  */
+
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+
+// Track setTimeout calls for memory leak prevention
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -120,7 +125,7 @@ export function hide(): void {
   if (!container) return;
   
   container.classList.remove('visible');
-  setTimeout(() => {
+  trackedTimeout(() => {
     container?.classList.add('hidden');
   }, 300);
   

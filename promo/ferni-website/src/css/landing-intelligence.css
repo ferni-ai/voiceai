@@ -850,8 +850,9 @@
 }
 
 .memory-demo__card--ferni {
-  background: rgba(74, 103, 65, 0.1);
-  border: 2px solid var(--color-ferni, #4a6741);
+  background: linear-gradient(145deg, #4a6741, #3d5a35);
+  border: none;
+  box-shadow: 0 4px 20px rgba(74, 103, 65, 0.3);
 }
 
 .memory-demo__speaker {
@@ -862,7 +863,7 @@
 }
 
 .memory-demo__speaker--ferni {
-  color: var(--color-ferni, #4a6741);
+  color: rgba(255, 255, 255, 0.9);
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -879,6 +880,11 @@
   justify-content: center;
   font-size: 10px;
   font-weight: 700;
+}
+
+/* Avatar contrast inside Ferni card */
+.memory-demo__card--ferni .memory-demo__avatar {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .memory-demo__text {

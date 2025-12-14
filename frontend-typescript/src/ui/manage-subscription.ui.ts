@@ -12,9 +12,13 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { appleIAPService, type SubscriptionStatus } from '../services/apple-iap.service.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { t } from '../i18n/index.js';
 
 const log = createLogger('ManageSubscription');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ICONS (Lucide)
@@ -78,7 +82,7 @@ class ManageSubscriptionUI {
   close(): void {
     if (this.container) {
       this.container.classList.add('manage-sub--closing');
-      setTimeout(() => {
+      trackedTimeout(() => {
         this.container?.remove();
         this.container = null;
         this.callbacks.onClose?.();
@@ -331,7 +335,7 @@ class ManageSubscriptionUI {
         this.createModal();
       } else if (btn) {
         btn.textContent = t('manageSubscription.restore.noFound');
-        setTimeout(() => {
+        trackedTimeout(() => {
           btn.textContent = t('manageSubscription.buttons.restore');
           btn.disabled = false;
         }, 2000);
@@ -340,7 +344,7 @@ class ManageSubscriptionUI {
       log.error('Restore failed:', error);
       if (btn) {
         btn.textContent = t('manageSubscription.restore.failed');
-        setTimeout(() => {
+        trackedTimeout(() => {
           btn.textContent = t('manageSubscription.buttons.restore');
           btn.disabled = false;
         }, 2000);

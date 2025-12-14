@@ -18,8 +18,12 @@
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('FerniAwakens');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // CONSTANTS
@@ -153,7 +157,7 @@ export async function showFerniAwakens(): Promise<void> {
     resolveAwakening = resolve;
 
     // Allow dismissal after minimum time
-    setTimeout(() => {
+    trackedTimeout(() => {
       setupDismissal();
     }, TIMING.minimumShowTime);
   });
@@ -170,7 +174,7 @@ export function dismissAwakening(): void {
   // Animate out
   awakeningContainer.classList.add('ferni-awakens--exiting');
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     awakeningContainer?.remove();
     awakeningContainer = null;
     document.body.style.overflow = '';
@@ -340,7 +344,7 @@ function animate(
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => trackedTimeout(resolve, ms));
 }
 
 function setupDismissal(): void {

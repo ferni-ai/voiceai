@@ -25,9 +25,13 @@ import { modalCoordinator } from '../services/modal-coordinator.service.js';
 import { teamUnlockService } from '../services/team-unlock.service.js';
 import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './toast.ui.js';
 
 const log = createLogger('SubscriptionUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -253,13 +257,13 @@ async function verifyPaymentAndCelebrate(tier: string, sessionId: string | null)
       // Not verified yet - wait and retry (webhook might still be processing)
       if (attempt < maxAttempts - 1) {
         log.debug(`Payment not yet confirmed, attempt ${attempt + 1}/${maxAttempts}`);
-        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        await new Promise((resolve) => trackedTimeout(resolve, pollInterval));
       }
     } catch (error) {
       log.warn('Error verifying payment:', error);
       // Continue polling on error
       if (attempt < maxAttempts - 1) {
-        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        await new Promise((resolve) => trackedTimeout(resolve, pollInterval));
       }
     }
   }
@@ -270,7 +274,7 @@ async function verifyPaymentAndCelebrate(tier: string, sessionId: string | null)
   showUpgradeSuccessCelebration(tier);
 
   // Show a gentle note that it might take a moment
-  setTimeout(() => {
+  trackedTimeout(() => {
     toast.info('Your upgrade is processing. It may take a moment to reflect everywhere.');
   }, 2000);
 }
@@ -368,7 +372,7 @@ function showUpgradeSuccessCelebration(tier: string): void {
 
 function closeCelebration(container: HTMLElement): void {
   container.classList.remove('subscription-modal--visible');
-  setTimeout(() => {
+  trackedTimeout(() => {
     container.remove();
     restoreFocus();
 
@@ -405,7 +409,7 @@ function announceToScreenReader(message: string): void {
   announcer.textContent = message;
   document.body.appendChild(announcer);
 
-  setTimeout(() => announcer.remove(), 1000);
+  trackedTimeout(() => announcer.remove(), 1000);
 }
 
 // ============================================================================
@@ -534,7 +538,7 @@ export function hideModal(): void {
   modalCoordinator.release('subscription-upgrade');
   modalCoordinator.release('subscription-limit');
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     modal?.remove();
     modal = null;
     restoreFocus();
@@ -1674,9 +1678,9 @@ export function showUsageIndicator(): void {
   document.body.appendChild(indicator);
 
   // Auto-hide after 5 seconds
-  setTimeout(() => {
+  trackedTimeout(() => {
     indicator.classList.add('usage-indicator--hidden');
-    setTimeout(() => indicator.remove(), getAnimationDuration(DURATION.SLOW));
+    trackedTimeout(() => indicator.remove(), getAnimationDuration(DURATION.SLOW));
   }, 5000);
 }
 

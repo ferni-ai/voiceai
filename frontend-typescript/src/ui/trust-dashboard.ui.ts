@@ -15,10 +15,14 @@
 
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet } from '../utils/api.js';
 
 const log = createLogger('TrustDashboardUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -179,7 +183,7 @@ export function hideTrustDashboard(): void {
   if (!container) return;
 
   container.classList.remove('visible');
-  setTimeout(() => {
+  trackedTimeout(() => {
     container?.remove();
     container = null;
   }, DURATION.SLOW);

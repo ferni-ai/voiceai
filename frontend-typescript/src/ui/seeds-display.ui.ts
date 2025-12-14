@@ -15,8 +15,12 @@ import {
   isDailyBonusAvailable,
 } from '../services/seeds-economy.service.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('SeedsDisplay');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // STATE
@@ -369,7 +373,7 @@ export function updateSeedsDisplay(): void {
     if (current !== balance) {
       el.textContent = balance.toLocaleString();
       el.classList.add('animating');
-      setTimeout(() => el.classList.remove('animating'), 400);
+      trackedTimeout(() => el.classList.remove('animating'), 400);
     }
   });
 }

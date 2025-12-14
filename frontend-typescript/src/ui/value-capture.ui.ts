@@ -16,9 +16,13 @@ import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { contributeValue, formatAmount, loadStripe } from '../services/monetization.service.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './toast.ui.js';
 
 const log = createLogger('ValueCaptureUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -689,7 +693,7 @@ function showCelebrationOnly(): void {
   }
 
   // Auto-close after 4 seconds
-  setTimeout(close, 4000);
+  trackedTimeout(close, 4000);
 }
 
 async function processContribution(amountCents: number): Promise<void> {
@@ -772,7 +776,7 @@ export function close(): void {
   container.classList.remove('open');
   isOpen = false;
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     container?.remove();
     container = null;
     currentEvent = null;
@@ -793,7 +797,7 @@ export function showThankYou(message?: string): void {
   }
 
   // Auto-close after 5 seconds
-  setTimeout(close, 5000);
+  trackedTimeout(close, 5000);
 }
 
 /**
@@ -852,7 +856,7 @@ export function celebrateOnly(userId: string, event: ValueEvent): void {
   });
 
   // Auto-close after 5 seconds
-  setTimeout(close, 5000);
+  trackedTimeout(close, 5000);
 
   log.debug({ userId, eventType: event.type }, 'Celebration only shown');
 }

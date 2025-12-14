@@ -16,6 +16,7 @@
 import { getColorsFromApiOrGenerate } from '../config/persona-colors.js';
 import { fetchAgents, type ApiAgent } from '../services/agents.service.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './toast.ui.js';
 
 // Avatar Soul integration - dynamically imported to avoid circular deps
@@ -32,6 +33,9 @@ async function getAvatarSoul() {
 }
 
 const log = createLogger('AdminUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // STATE
@@ -767,10 +771,10 @@ function updateSoulPreview(action: string, value: string): void {
         spark.classList.remove('active');
         void spark.offsetWidth; // Force reflow
         spark.classList.add('active');
-        setTimeout(() => spark.classList.remove('active'), 800);
+        trackedTimeout(() => spark.classList.remove('active'), 800);
       } else if (value === 'comfortPulse' && comfort) {
         comfort.classList.add('active');
-        setTimeout(() => comfort.classList.remove('active'), 5000);
+        trackedTimeout(() => comfort.classList.remove('active'), 5000);
       }
       if (stateEl) stateEl.textContent = value === 'memorySpark' ? 'Memory Spark' : value === 'comfortPulse' ? 'Comfort' : value;
       break;
@@ -779,13 +783,13 @@ function updateSoulPreview(action: string, value: string): void {
       if (avatar) {
         avatar.classList.add('protective');
         const duration = value === 'mild' ? 2000 : value === 'moderate' ? 4000 : 6000;
-        setTimeout(() => avatar.classList.remove('protective'), duration);
+        trackedTimeout(() => avatar.classList.remove('protective'), duration);
       }
       if (glow) {
         glow.style.setProperty('--preview-glow-color', 'rgba(154, 123, 90, 0.5)');
         glow.classList.add('active');
         const duration = value === 'mild' ? 2000 : value === 'moderate' ? 4000 : 6000;
-        setTimeout(() => glow.classList.remove('active'), duration);
+        trackedTimeout(() => glow.classList.remove('active'), duration);
       }
       if (stateEl) stateEl.textContent = `Protective (${value})`;
       break;
@@ -845,7 +849,7 @@ async function handleSoulAction(action: string, value: string): Promise<void> {
         } else if (value === 'comfortPulse') {
           soul.avatarSoul.startComfortPulse();
           // Auto-stop after 5 seconds
-          setTimeout(() => soul.avatarSoul.stopComfortPulse(), 5000);
+          trackedTimeout(() => soul.avatarSoul.stopComfortPulse(), 5000);
         } else if (value === 'growthCelebration') {
           soul.avatarSoul.celebrateGrowth();
         }
@@ -857,7 +861,7 @@ async function handleSoulAction(action: string, value: string): Promise<void> {
           soul.avatarSoul.enterProtectiveMode();
           // Auto-exit after duration based on intensity
           const duration = value === 'mild' ? 2000 : value === 'moderate' ? 4000 : 6000;
-          setTimeout(() => soul.avatarSoul.exitProtectiveMode(), duration);
+          trackedTimeout(() => soul.avatarSoul.exitProtectiveMode(), duration);
         }
         toast.info(`Protective Mode: ${value}`);
         break;
@@ -945,7 +949,7 @@ function updateSoulPreviewSlider(type: string, value: number): void {
       if (avatar) {
         avatar.style.transition = 'transform 0.3s ease';
         avatar.style.transform = `scale(${1 + value * 0.1})`;
-        setTimeout(() => {
+        trackedTimeout(() => {
           avatar.style.transform = 'scale(1)';
         }, 300);
       }
@@ -1091,7 +1095,7 @@ function closeDetailPanel(): void {
   const panel = document.getElementById('adminDetailPanel');
   if (panel) {
     panel.classList.remove('open');
-    setTimeout(() => {
+    trackedTimeout(() => {
       panel.hidden = true;
     }, 300);
   }

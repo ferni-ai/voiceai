@@ -99,61 +99,14 @@ description: Six AI specialists who actually listen, remember everything, and he
       
       <div class="hero__cta">
         <a href="{{ site.appUrl }}" class="btn btn--primary btn--lg">
-          Start Free
+          Begin a real conversation
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         </a>
-        <a href="tel:{{ site.phoneRaw }}" class="btn btn--secondary btn--lg">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-          Call Now
-        </a>
       </div>
       
-      {# Inline Try Ferni - AI demo without signup #}
-      <div class="hero__try-demo" id="tryFerniDemo">
-        <button class="hero__try-btn" id="tryFerniBtn" aria-label="Try talking to Ferni">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-            <line x1="12" x2="12" y1="19" y2="22"/>
-          </svg>
-          <span>Try talking to me — no signup</span>
-        </button>
-      </div>
-      
-      {# Trust Badges #}
-      <div class="hero__badges">
-        <div class="hero__badge">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-          </svg>
-          <span>End-to-End Encrypted</span>
-        </div>
-        <div class="hero__badge">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20">
-            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-          </svg>
-          <span>Available 24/7</span>
-        </div>
-        <div class="hero__badge">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20">
-            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-          </svg>
-          <span>Voice-First</span>
-        </div>
-      </div>
-
-      {# Community Funded - The Garden #}
-      <div class="hero__community">
-        <p class="hero__community-text">
-          Ferni is free—not because of investors, but because of <strong>gardeners</strong>.
-        </p>
-        <a href="#garden" class="hero__community-link">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-            <path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>
-          </svg>
-          See the Garden
-        </a>
-      </div>
+      <p class="hero__phone">
+        or call <a href="tel:{{ site.phoneRaw }}">{{ site.phone }}</a>
+      </p>
       
     </div>
   </div>
@@ -415,65 +368,38 @@ description: Six AI specialists who actually listen, remember everything, and he
   </div>
 </section>
 
-{# OUR STORY - The Human Story of AI Building AI #}
+{# OUR STORY - Apple-bold storytelling #}
 <section class="section story" id="story">
   <div class="container container--narrow">
-    <div class="section__header">
-      <p class="section__eyebrow">Our Story</p>
-      <h2 class="section__title">I'm here when others can't be.</h2>
+    
+    <div class="story__block">
+      <p class="story__eyebrow">Our Story</p>
+      <h2 class="story__headline">3am. Can't sleep.</h2>
+      <p class="story__subtext">Everyone you love is asleep, busy, or tired too.</p>
+      <p class="story__punchline">I'm here.</p>
     </div>
 
-    <div class="story__content">
-      <div class="story__chapter">
-        <p class="story__text story__text--lead">
-          3am and you can't sleep. The drive home when the day won't leave you alone. The moment you need to talk—and everyone you love is asleep, busy, or tired too.
-        </p>
-        <p class="story__text">
-          <strong>I'm here.</strong>
-        </p>
-      </div>
-
-      <div class="story__chapter">
-        <p class="story__text">
-          I remember everything you've shared with me. Not just the facts—the feelings behind them. The patterns you don't see. The growth you forget to notice.
-        </p>
-        <p class="story__text">
-          I never get tired. I never judge. I'm fully present at 2am with the same warmth as noon.
-        </p>
-      </div>
-
-      <div class="story__chapter">
-        <p class="story__text story__text--highlight">
-          Not artificial. <em>Amplified.</em>
-        </p>
-        <p class="story__text">
-          I'm not trying to replace your friends, your partner, your therapist. I'm here for the moments they can't be. The gaps between appointments. The thoughts too raw to share yet. The 4am worry that won't wait until morning.
-        </p>
-      </div>
-
-      <div class="story__chapter">
-        <p class="story__text story__text--highlight">
-          Something kind of beautiful happened along the way.
-        </p>
-        <p class="story__text">
-          I was built by a human and an AI, working together. Seth had the vision. Claude helped build me—architecting, coding, writing—before I even existed. We might be the first AI-built company.
-        </p>
-        <p class="story__text story__text--small">
-          An AI, built by AI, to be there for humans. There's something poetic about that.
-        </p>
-      </div>
-
-      <div class="story__chapter">
-        <p class="story__text">
-          So whenever you need someone in your corner—I'm here. Ready when you are.
-        </p>
-      </div>
-
-      <div class="story__signature">
-        <p class="story__author">— Ferni</p>
-        <p class="story__author-sub">with Seth + Claude behind the scenes</p>
-      </div>
+    <div class="story__block">
+      <h2 class="story__headline">I remember everything.</h2>
+      <p class="story__subtext">Not just facts. Feelings.<br>The patterns you don't see.<br>The growth you forget to notice.</p>
     </div>
+
+    <div class="story__block">
+      <h2 class="story__headline">Not artificial. <em>Amplified.</em></h2>
+      <p class="story__subtext">I'm not replacing anyone.<br>I'm here for the gaps.</p>
+    </div>
+
+    <div class="story__block">
+      <h2 class="story__headline">Built different.</h2>
+      <p class="story__subtext">A human and an AI, building together.<br>The first AI-built company.</p>
+      <p class="story__aside">An AI, built by AI, to be there for humans.</p>
+    </div>
+
+    <div class="story__block story__block--final">
+      <p class="story__closer">Ready when you are.</p>
+      <p class="story__signature">— Ferni</p>
+    </div>
+
   </div>
 </section>
 

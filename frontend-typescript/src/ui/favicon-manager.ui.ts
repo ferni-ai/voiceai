@@ -17,9 +17,13 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION } from '../config/animation-constants.js';
 
 const log = createLogger('FaviconManager');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -518,7 +522,7 @@ function setupEventListeners(): void {
         break;
       case 'connected':
         // Brief connected state, then idle
-        setTimeout(() => setFaviconState('idle'), DURATION.CELEBRATION);
+        trackedTimeout(() => setFaviconState('idle'), DURATION.CELEBRATION);
         break;
       case 'disconnected':
         setFaviconState('idle');

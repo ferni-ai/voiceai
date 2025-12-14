@@ -17,12 +17,16 @@
  */
 
 import { EASING, STAGGER } from '../config/animation-constants.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
 
 const BASE_DELAY = STAGGER.TIGHT; // Base delay between characters (ms)
+
+// Track setTimeout calls for memory leak prevention
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // STATE
@@ -102,7 +106,7 @@ export function revealText(
   chars.forEach((span, i) => {
     const charDelay = delay + i * stagger;
     
-    setTimeout(() => {
+    trackedTimeout(() => {
       const anim = span.animate([
         // Starting position (below, small)
         { opacity: 0, transform: 'translateY(20px) scale(0.8)', offset: 0 },
@@ -213,12 +217,12 @@ export function typewriterEffect(
       const variance = Math.random() * delay * 0.5;
       const charDelay = char === ' ' ? delay * 0.5 : delay + variance;
       
-      timeoutId = setTimeout(typeNext, charDelay);
+      timeoutId = trackedTimeout(typeNext, charDelay);
     } else {
       // Typing complete
       if (cursorElement) {
         // Keep cursor blinking for a moment, then fade out
-        setTimeout(() => {
+        trackedTimeout(() => {
           if (cursorElement) {
             cursorElement.animate([
               { opacity: 1 },
@@ -237,7 +241,7 @@ export function typewriterEffect(
   };
   
   // Start typing after a brief pause
-  timeoutId = setTimeout(typeNext, 200);
+  timeoutId = trackedTimeout(typeNext, 200);
   
   // Return cancel function
   return () => {

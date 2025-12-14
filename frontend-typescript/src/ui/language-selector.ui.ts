@@ -5,6 +5,7 @@
  * Integrates with the i18n system for locale switching.
  */
 
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import {
   getLocale,
   setLocale,
@@ -14,6 +15,9 @@ import {
   type SupportedLocale,
   type LocaleInfo,
 } from '../i18n/index.js';
+
+// Track setTimeout calls for memory leak prevention
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // STATE
@@ -157,7 +161,7 @@ function toggleDropdown(container: HTMLElement, trigger: HTMLButtonElement, open
     // Focus first option when opening
     const firstOption = container.querySelector('.lang-option') as HTMLButtonElement;
     if (firstOption) {
-      setTimeout(() => firstOption.focus(), 10);
+      trackedTimeout(() => firstOption.focus(), 10);
     }
   } else {
     container.removeAttribute('data-open');

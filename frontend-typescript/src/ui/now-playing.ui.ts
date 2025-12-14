@@ -16,8 +16,12 @@ import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import type { MusicPlaybackState } from '../types/events.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('NowPlaying');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ICONS (Lucide-style, 2px stroke, rounded)
@@ -222,7 +226,7 @@ class NowPlayingUI {
     }
 
     // 🎧 FIX: Track the timeout and clear state properly
-    this.hideTimeoutId = setTimeout(() => {
+    this.hideTimeoutId = trackedTimeout(() => {
       this.container?.classList.remove('now-playing--visible', 'now-playing--collapsed');
       this.isVisible = false;
       this.isCollapsed = false;
@@ -368,7 +372,7 @@ class NowPlayingUI {
       hasDuration: !!trackDuration,
     });
 
-    this.safetyHideTimeoutId = setTimeout(() => {
+    this.safetyHideTimeoutId = trackedTimeout(() => {
       if (this.isVisible) {
         log.warn('Now Playing safety timer triggered - hiding stale card', {
           track: this.currentTrack?.name,
@@ -402,7 +406,7 @@ class NowPlayingUI {
       this.absoluteMaxTimeoutId = null;
     }
 
-    this.absoluteMaxTimeoutId = setTimeout(() => {
+    this.absoluteMaxTimeoutId = trackedTimeout(() => {
       if (this.isVisible) {
         log.warn('🎧 Now Playing absolute max timer triggered - force hiding', {
           track: this.currentTrack?.name,
@@ -499,7 +503,7 @@ class NowPlayingUI {
       this.autoCollapseTimeoutId = null;
     }
 
-    this.autoCollapseTimeoutId = setTimeout(() => {
+    this.autoCollapseTimeoutId = trackedTimeout(() => {
       if (this.isVisible && !this.isCollapsed) {
         this.collapse();
       }

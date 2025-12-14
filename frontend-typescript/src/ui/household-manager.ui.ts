@@ -13,11 +13,15 @@
 
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost, apiDelete } from '../utils/api.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { toast } from './toast.ui.js';
 
 const log = createLogger('HouseholdManager');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -877,7 +881,7 @@ export function hideHouseholdManager(): void {
   document.body.style.overflow = '';
 
   // Reset state after animation
-  setTimeout(() => {
+  trackedTimeout(() => {
     currentView = 'main';
     memberToRemove = null;
   }, DURATION.SLOW);
@@ -1106,7 +1110,7 @@ function renderCreateForm(content: HTMLElement): void {
   `;
 
   // Focus the input
-  setTimeout(() => {
+  trackedTimeout(() => {
     (document.getElementById('household-name') as HTMLInputElement)?.focus();
   }, DURATION.FAST);
 

@@ -10,9 +10,13 @@
 
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION } from '../config/animation-constants.js';
 
 const log = createLogger('OutreachScheduleUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -523,7 +527,7 @@ export function closeOutreachSchedule(): void {
 
   modalContainer.classList.remove('open');
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     modalContainer?.remove();
     modalContainer = null;
   }, DURATION.NORMAL);
@@ -854,11 +858,11 @@ async function showPreview(outreachId: string): Promise<void> {
     // Close handlers
     preview.querySelector('.outreach-preview-backdrop')?.addEventListener('click', () => {
       preview.classList.remove('open');
-      setTimeout(() => preview.remove(), 200);
+      trackedTimeout(() => preview.remove(), 200);
     });
     preview.querySelector('.outreach-preview-close')?.addEventListener('click', () => {
       preview.classList.remove('open');
-      setTimeout(() => preview.remove(), 200);
+      trackedTimeout(() => preview.remove(), 200);
     });
 
   } catch (error) {
@@ -1067,7 +1071,7 @@ async function showReschedule(outreachId: string): Promise<void> {
 
   const close = () => {
     reschedule.classList.remove('open');
-    setTimeout(() => reschedule.remove(), 200);
+    trackedTimeout(() => reschedule.remove(), 200);
   };
 
   reschedule.querySelector('.outreach-preview-backdrop')?.addEventListener('click', close);

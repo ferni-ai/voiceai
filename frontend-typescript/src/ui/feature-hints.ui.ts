@@ -30,8 +30,12 @@ import {
   type RelationshipStage,
 } from '../services/relationship-stage.service.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('FeatureHints');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -187,11 +191,11 @@ export function initFeatureHints(): void {
 
   // Also check on stage changes
   relationshipStageService.onStageChange(() => {
-    setTimeout(checkForHintOpportunities, 1000);
+    trackedTimeout(checkForHintOpportunities, 1000);
   });
 
   // Initial check
-  setTimeout(checkForHintOpportunities, 1000);
+  trackedTimeout(checkForHintOpportunities, 1000);
 
   isInitialized = true;
   log.debug('Feature hints system initialized');
@@ -326,7 +330,7 @@ function checkForHintOpportunities(): void {
 
     // Show after delay if specified
     if (hint.showAfterDelay) {
-      setTimeout(() => {
+      trackedTimeout(() => {
         if (!activeHints.has(hint.id) && !dismissedHints.has(hint.id)) {
           displayHint(hint);
         }
@@ -388,7 +392,7 @@ function showHintElement(hint: FeatureHint, target: Element): void {
 
   // Auto-dismiss after 15 seconds for non-spotlight hints
   if (hint.type !== 'spotlight') {
-    setTimeout(() => {
+    trackedTimeout(() => {
       if (activeHints.has(hint.id)) {
         dismissHint(hint.id);
       }

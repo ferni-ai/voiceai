@@ -17,8 +17,12 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { celebrationsUI } from './celebrations.ui.js';
 import { soundUI } from './sound.ui.js';
+
+// Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -398,7 +402,7 @@ function triggerKonamiCode(): void {
   
   // Temporary special effect
   document.body.classList.add('konami-mode');
-  setTimeout(() => {
+  trackedTimeout(() => {
     document.body.classList.remove('konami-mode');
     stopDanceParty();
   }, 8000);
@@ -437,7 +441,7 @@ function triggerRainbowMode(): void {
   showSecretMessage('Rainbow Mode', 'Full spectrum.');
   
   // Auto-disable after 10 seconds
-  setTimeout(() => {
+  trackedTimeout(() => {
     document.body.classList.remove('rainbow-mode');
   }, 10000);
 }
@@ -448,7 +452,7 @@ function triggerSecretWiggle(): void {
   if (avatar) {
     avatar.classList.add('secret-wiggle');
     soundUI.play('success');
-    setTimeout(() => {
+    trackedTimeout(() => {
       avatar.classList.remove('secret-wiggle');
     }, 1000);
   }
@@ -555,9 +559,9 @@ function showSecretMessage(title: string, subtitle: string): void {
     message.classList.add('visible');
   });
   
-  setTimeout(() => {
+  trackedTimeout(() => {
     message.classList.remove('visible');
-    setTimeout(() => message.remove(), 500);
+    trackedTimeout(() => message.remove(), 500);
   }, 3000);
 }
 
@@ -833,13 +837,13 @@ function triggerEyePoke(): void {
   avatarText.style.opacity = '0';
   avatarText.style.transform = 'scale(0.8)';
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     if (!eyeSvg) return;
     eyeSvg.style.opacity = '1';
     eyeSvg.style.transform = 'scale(1)';
 
     // Phase 2: Surprised wide-eye reaction (300ms after reveal)
-    setTimeout(() => {
+    trackedTimeout(() => {
       // Widen eye in surprise
       if (eyeWhite) {
         eyeWhite.animate(
@@ -865,49 +869,49 @@ function triggerEyePoke(): void {
       }
 
       // Phase 3: Rapid blink sequence (like being poked!) - 400ms after surprise
-      setTimeout(() => {
+      trackedTimeout(() => {
         // Blink 1: Fast squint
         if (upperLid && lowerLid) {
           upperLid.style.transform = 'translateY(18px)';
           lowerLid.style.transform = 'translateY(-18px)';
 
           // Open quickly
-          setTimeout(() => {
+          trackedTimeout(() => {
             upperLid.style.transform = 'translateY(0)';
             lowerLid.style.transform = 'translateY(0)';
 
             // Blink 2: Another quick blink
-            setTimeout(() => {
+            trackedTimeout(() => {
               upperLid.style.transform = 'translateY(18px)';
               lowerLid.style.transform = 'translateY(-18px)';
 
               // Open
-              setTimeout(() => {
+              trackedTimeout(() => {
                 upperLid.style.transform = 'translateY(0)';
                 lowerLid.style.transform = 'translateY(0)';
 
                 // Blink 3: Final settling blink
-                setTimeout(() => {
+                trackedTimeout(() => {
                   upperLid.style.transform = 'translateY(12px)';
                   lowerLid.style.transform = 'translateY(-12px)';
 
-                  setTimeout(() => {
+                  trackedTimeout(() => {
                     upperLid.style.transform = 'translateY(0)';
                     lowerLid.style.transform = 'translateY(0)';
 
                     // Phase 4: Reverse animation - hide eye, show FE (after 1.5s total eye time)
-                    setTimeout(() => {
+                    trackedTimeout(() => {
                       if (eyeSvg) {
                         eyeSvg.style.opacity = '0';
                         eyeSvg.style.transform = 'scale(0.8)';
                       }
 
-                      setTimeout(() => {
+                      trackedTimeout(() => {
                         avatarText.style.opacity = '1';
                         avatarText.style.transform = 'scale(1)';
 
                         // Reset state
-                        setTimeout(() => {
+                        trackedTimeout(() => {
                           avatarText.style.transition = '';
                           avatarText.style.transform = '';
                           eyePokeActive = false;
@@ -936,7 +940,7 @@ function scheduleRandomQuirk(): void {
   // Random time between 30-120 seconds
   const delay = 30000 + Math.random() * 90000;
   
-  quirkTimeoutId = setTimeout(() => {
+  quirkTimeoutId = trackedTimeout(() => {
     triggerRandomQuirk();
     scheduleRandomQuirk(); // Schedule next
   }, delay);
@@ -1186,9 +1190,9 @@ function showAchievementNotification(achievement: Achievement): void {
   soundUI.play('success');
   
   // Animate out after delay
-  setTimeout(() => {
+  trackedTimeout(() => {
     notification.style.transform = 'translateX(120%)';
-    setTimeout(() => notification.remove(), 400);
+    trackedTimeout(() => notification.remove(), 400);
   }, 4000);
 }
 
@@ -1217,7 +1221,7 @@ function handlePressStart(_e: MouseEvent | TouchEvent): void {
   // Record activity
   recordActivity();
 
-  longPressTimer = setTimeout(() => {
+  longPressTimer = trackedTimeout(() => {
     startPetting();
   }, LONG_PRESS_DURATION);
 }
@@ -1500,7 +1504,7 @@ function checkMorningStretch(): void {
     localStorage.setItem('ferni-last-interaction-date', today);
 
     // Small delay to let app initialize
-    setTimeout(() => {
+    trackedTimeout(() => {
       triggerMorningStretch();
     }, 1500);
   }

@@ -11,8 +11,12 @@ import { spotifyService } from '../services/spotify.service.js';
 import { getElementByIdOrNull, setText, addClass, removeClass, setClasses } from '../utils/dom.js';
 import { getDeviceId } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('SpotifyUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // Lucide music icon (no emojis per brand guidelines)
 const MUSIC_ICON = `<svg class="spotify-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`;
@@ -99,7 +103,7 @@ function handleOAuthCallback(): void {
     window.history.replaceState({}, '', window.location.pathname);
     
     // Hide after a few seconds
-    setTimeout(() => hideSpotifyStatus(), 4000);
+    trackedTimeout(() => hideSpotifyStatus(), 4000);
   }
 
   if (params.has('spotify_error')) {
@@ -111,7 +115,7 @@ function handleOAuthCallback(): void {
     window.history.replaceState({}, '', window.location.pathname);
     
     // Hide after a few seconds
-    setTimeout(() => hideSpotifyStatus(), 4000);
+    trackedTimeout(() => hideSpotifyStatus(), 4000);
   }
 }
 
@@ -129,7 +133,7 @@ async function handleLinkClick(): Promise<void> {
       isSpotifyLinked = false;
       updateLinkButton();
       showSpotifyStatus('Spotify disconnected', 'info');
-      setTimeout(() => hideSpotifyStatus(), 2500);
+      trackedTimeout(() => hideSpotifyStatus(), 2500);
     } catch (e) {
       log.error('Could not unlink Spotify:', e);
     }
@@ -211,7 +215,7 @@ function handleStateChange(state: SpotifyState, trackInfo?: TrackInfo): void {
     case 'paused':
       setText(text, 'Paused');
       // Hide after a bit
-      setTimeout(() => {
+      trackedTimeout(() => {
         if (spotifyService.getState() === 'paused' && statusContainer) {
           addClass(statusContainer, 'hidden');
         }

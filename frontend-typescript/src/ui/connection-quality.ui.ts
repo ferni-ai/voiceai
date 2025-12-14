@@ -1,8 +1,13 @@
 /**
  * Connection Quality UI - Network status indicator
- * 
+ *
  * Shows connection quality in an elegant, non-intrusive way.
  */
+
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+
+// Track setTimeout calls for memory leak prevention
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -71,7 +76,7 @@ export function hide(): void {
   
   container.classList.remove('visible');
   
-  setTimeout(() => {
+  trackedTimeout(() => {
     container?.classList.add('hidden');
   }, 300);
 }

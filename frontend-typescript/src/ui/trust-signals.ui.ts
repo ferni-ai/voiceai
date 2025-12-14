@@ -29,8 +29,12 @@ import {
   type RelationshipStage,
 } from '../services/relationship-stage.service.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('TrustSignals');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -347,7 +351,7 @@ function displaySignal(signal: TrustSignal): void {
   animateIn(element);
 
   // Auto-hide after delay
-  setTimeout(() => {
+  trackedTimeout(() => {
     if (visibleSignals.has(signal.id)) {
       dismissSignal(signal.id);
     }

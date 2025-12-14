@@ -28,8 +28,12 @@ import {
 // 🎭 Dynamic relationship-based subtitles for Ferni
 import { relationshipStageService } from '../services/relationship-stage.service.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('CoachUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ANIMATION PROFILE ADAPTER
@@ -301,12 +305,12 @@ export function updatePersonaDisplay(persona: PersonaConfig): void {
   
   // Play persona-specific entrance bounce
   const profile = getAnimationProfile();
-  setTimeout(() => {
+  trackedTimeout(() => {
     playReaction('bounce');
   }, profile.reactionDelay);
   
   // Remove transition class after animation completes
-  setTimeout(() => {
+  trackedTimeout(() => {
     elements?.container && removeClass(elements.container, 'persona-transitioning');
   }, 600);
 
@@ -422,7 +426,7 @@ export function flashAvatar(): void {
   if (!elements) return;
 
   addClass(elements.avatar, 'flash');
-  setTimeout(() => {
+  trackedTimeout(() => {
     if (elements) {
       removeClass(elements.avatar, 'flash');
     }
@@ -494,7 +498,7 @@ export function setEmotion(emotion: VoiceEmotion): void {
   const reaction = EMOTION_REACTIONS[emotion];
   if (reaction) {
     const profile = getAnimationProfile();
-    setTimeout(() => {
+    trackedTimeout(() => {
       playReaction(reaction);
     }, profile.reactionDelay);
   }

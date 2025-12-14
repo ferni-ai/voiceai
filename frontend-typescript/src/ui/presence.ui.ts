@@ -533,7 +533,7 @@ function startMicroIdleMovements(): void {
   const scheduleMicroMovement = () => {
     const delay = MICRO_IDLE_INTERVAL_MIN + Math.random() * (MICRO_IDLE_INTERVAL_MAX - MICRO_IDLE_INTERVAL_MIN);
     
-    microIdleTimeoutId = setTimeout(() => {
+    microIdleTimeoutId = trackedTimeout(() => {
       performMicroIdleMovement();
       scheduleMicroMovement();
     }, delay);
@@ -718,7 +718,7 @@ export function setSpeaking(speaking: boolean): void {
     // 🎬 Zen blink when stopping speaking (natural pause moment)
     if (wasSpeaking && !speaking) {
       // Small delay so it feels like end of thought, not interruption
-      setTimeout(() => performBlink(), 200);
+      trackedTimeout(() => performBlink(), 200);
     }
   }
   
@@ -786,7 +786,7 @@ export function setVoiceEmotion(emotion: VoiceEmotion, animate: boolean = true):
     
     // Remove transition class after animation
     if (animate) {
-      setTimeout(() => {
+      trackedTimeout(() => {
         avatarContainer?.classList.remove('transitioning');
       }, 800);
     }
@@ -850,7 +850,7 @@ export function flashEmotion(emotion: VoiceEmotion, durationMs: number = 600): v
     avatarContainer.style.setProperty('--glow-transition', VOICE_GLOW_TRANSITIONS.speakingStart);
   }
   
-  setTimeout(() => {
+  trackedTimeout(() => {
     setVoiceEmotion(previousEmotion, true);
   }, durationMs);
 }
@@ -1162,7 +1162,7 @@ export function settling(): Promise<void> {
         easing: EASING.GENTLE,
         fill: 'forwards',
       });
-      setTimeout(resolve, DURATION.DRAMATIC);
+      trackedTimeout(resolve, DURATION.DRAMATIC);
       return;
     }
     
@@ -1170,7 +1170,7 @@ export function settling(): Promise<void> {
     if (breathingAnimation) {
       // Slow down breathing to a stop
       breathingAnimation.playbackRate = 0.3;
-      setTimeout(() => {
+      trackedTimeout(() => {
         if (breathingAnimation) {
           breathingAnimation.pause();
         }
@@ -1180,7 +1180,7 @@ export function settling(): Promise<void> {
     // Stop the glow animation too
     if (glowAnimation) {
       glowAnimation.playbackRate = 0.3;
-      setTimeout(() => {
+      trackedTimeout(() => {
         if (glowAnimation) {
           glowAnimation.pause();
         }

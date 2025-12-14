@@ -10,9 +10,13 @@
 
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import type { ContinuousAuthStatus } from '../services/voice-auth.service.js';
 
 const log = createLogger('SpeakerChangeIndicator');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -382,7 +386,7 @@ function handleVerify(isSameUser: boolean): void {
     }));
 
     // Hide after brief confirmation
-    setTimeout(hide, 1500);
+    trackedTimeout(hide, 1500);
   }
 
   if (onVerifyCallback) {
@@ -393,7 +397,7 @@ function handleVerify(isSameUser: boolean): void {
 
 function scheduleAutoDismiss(): void {
   clearAutoDismiss();
-  dismissTimeout = window.setTimeout(hide, AUTO_DISMISS_MS);
+  dismissTimeout = window.trackedTimeout(hide, AUTO_DISMISS_MS);
 }
 
 function clearAutoDismiss(): void {

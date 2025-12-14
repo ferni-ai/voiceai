@@ -17,12 +17,16 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { teamUnlockService, TEAM_MEMBERS, type TeamMemberId } from '../services/team-unlock.service.js';
 import { rosterPreferences } from '../services/roster-preferences.service.js';
 import { relationshipStageService } from '../services/relationship-stage.service.js';
 import { getPersonaColorConfig } from '../config/persona-colors.js';
 
 const log = createLogger('TeamIntro');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ICONS (Lucide-style SVG)
@@ -147,7 +151,7 @@ export function hideTeamIntro(): void {
   modal.classList.remove('team-intro--visible');
   
   // Remove after animation
-  setTimeout(() => {
+  trackedTimeout(() => {
     modal?.remove();
     modal = null;
   }, DURATION.SLOW);
@@ -335,7 +339,7 @@ function handleAddToRoster(memberId: TeamMemberId, button: HTMLElement): void {
   log.info({ memberId }, 'Added team member to roster');
   
   // Close modal after a moment
-  setTimeout(() => {
+  trackedTimeout(() => {
     hideTeamIntro();
   }, 800);
 }

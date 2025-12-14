@@ -10,8 +10,12 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('EngageTrigger');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -187,7 +191,7 @@ class EngagementTriggerUI {
     if (!btn || prefersReducedMotion()) return;
 
     btn.classList.add('engagement-trigger-btn--pulse');
-    setTimeout(() => btn.classList.remove('engagement-trigger-btn--pulse'), 2000);
+    trackedTimeout(() => btn.classList.remove('engagement-trigger-btn--pulse'), 2000);
   }
 
   /**

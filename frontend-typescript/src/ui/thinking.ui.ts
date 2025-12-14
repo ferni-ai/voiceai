@@ -20,8 +20,12 @@ import { t } from '../i18n/index.js';
 import { normalizeAgentId } from '../config/personas.js';
 import type { PersonaId } from '../types/persona.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('ThinkingUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // STATE
@@ -232,7 +236,7 @@ function startMessageCycle(): void {
     if (textElement) {
       // Fade effect for smoother transitions
       textElement.style.opacity = '0.5';
-      setTimeout(() => {
+      trackedTimeout(() => {
         if (textElement) {
           textElement.textContent = messages[messageIndex] ?? 'Thinking...';
           textElement.style.opacity = '1';
@@ -242,11 +246,11 @@ function startMessageCycle(): void {
     
     // Schedule next change with slight randomization (1.8-2.5s)
     const nextDelay = 1800 + Math.random() * 700;
-    messageInterval = setTimeout(cycleMessage, nextDelay);
+    messageInterval = trackedTimeout(cycleMessage, nextDelay);
   };
   
   // Start cycling after initial delay
-  messageInterval = setTimeout(cycleMessage, 2200);
+  messageInterval = trackedTimeout(cycleMessage, 2200);
 }
 
 function stopMessageCycle(): void {

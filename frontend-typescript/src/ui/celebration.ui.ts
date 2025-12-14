@@ -12,8 +12,12 @@ import { getFerniAudioEngine } from '../services/ferni-audio.service.js';
 import { getGlowController } from '../services/glow-controller.service.js';
 import { getHapticsService } from '../services/haptics.service.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('CelebrationUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -429,7 +433,7 @@ export class CelebrationUI {
     this.animateConfetti();
 
     // Schedule stop
-    setTimeout(() => this.fadeOutConfetti(), duration - 500);
+    trackedTimeout(() => this.fadeOutConfetti(), duration - 500);
   }
 
   private createConfettiParticles(count: number): ConfettiParticle[] {
@@ -531,7 +535,7 @@ export class CelebrationUI {
   // ==========================================================================
 
   private wait(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise((resolve) => trackedTimeout(resolve, ms));
   }
 
   private async waitForCurrent(): Promise<void> {

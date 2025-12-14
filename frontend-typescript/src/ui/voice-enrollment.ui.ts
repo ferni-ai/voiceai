@@ -17,6 +17,7 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './toast.ui.js';
 import {
   getVoiceAuthService,
@@ -25,6 +26,9 @@ import {
 } from '../services/voice-auth.service.js';
 
 const log = createLogger('VoiceEnrollmentUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -561,7 +565,7 @@ export function hideVoiceEnrollmentModal(): void {
 
   modal.classList.remove('voice-enrollment-modal--visible');
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     modal?.remove();
     modal = null;
     currentState = 'idle';
@@ -961,7 +965,7 @@ async function handleStartEnrollment(): Promise<void> {
 
       // Small delay between samples
       if (i < requiredSamples - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => trackedTimeout(resolve, 500));
       }
     }
 

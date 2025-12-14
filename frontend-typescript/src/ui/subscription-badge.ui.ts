@@ -15,6 +15,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { modalCoordinator } from '../services/modal-coordinator.service.js';
 import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import {
   loadStatus as loadSubscriptionStatus,
   showUpgradeModal,
@@ -22,6 +23,9 @@ import {
 } from './subscription.ui.js';
 
 const log = createLogger('SubBadge');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -88,7 +92,7 @@ export function initSubscriptionBadge(): void {
   // Listen for conversation end to stop trial timer and refresh
   window.addEventListener('voiceai-disconnected', () => {
     stopTrialTimer();
-    setTimeout(() => void refreshStatus(), 2000);
+    trackedTimeout(() => void refreshStatus(), 2000);
   });
 
   // Listen for subscription upgrade to refresh immediately

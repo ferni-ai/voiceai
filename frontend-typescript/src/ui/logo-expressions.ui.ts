@@ -21,10 +21,14 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { createFerniLogo, type LogoExpression, type FerniLogoInstance } from './ferni-logo.ui.js';
 import { DURATION } from '../config/animation-constants.js';
 
 const log = createLogger('LogoExpressions');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // STATE
@@ -135,7 +139,7 @@ export function setLogoExpression(expression: LogoExpression, duration = 0): voi
 
   // If duration specified, return to zen after
   if (duration > 0) {
-    expressionTimeout = setTimeout(() => {
+    expressionTimeout = trackedTimeout(() => {
       logoInstance?.setExpression('zen');
       log.debug('Logo returned to zen');
     }, duration);
@@ -269,7 +273,7 @@ export const expressionPresets = {
 // ============================================================================
 
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise(resolve => trackedTimeout(resolve, ms));
 }
 
 // ============================================================================

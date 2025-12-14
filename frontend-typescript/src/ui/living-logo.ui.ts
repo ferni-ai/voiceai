@@ -17,10 +17,14 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { createFerniLogo, type LogoExpression, type FerniLogoInstance } from './ferni-logo.ui.js';
 import { EASING, prefersReducedMotion } from '../config/animation-constants.js';
 
 const log = createLogger('LivingLogo');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -178,7 +182,7 @@ export function setLogoState(state: LogoState): void {
     case 'celebrating':
       // Brief reaction, then back to normal
       pauseEyeTracking(800);
-      setTimeout(() => setLogoState('idle'), 1200);
+      trackedTimeout(() => setLogoState('idle'), 1200);
       break;
       
     case 'error':
@@ -220,7 +224,7 @@ export function setLogoExpression(expression: LogoExpression, duration = 0): voi
   logoInstance?.setExpression(expression);
   
   if (duration > 0) {
-    setTimeout(() => {
+    trackedTimeout(() => {
       const stateExpression = STATE_EXPRESSIONS[currentState];
       logoInstance?.setExpression(stateExpression);
     }, duration);
@@ -255,7 +259,7 @@ function pauseEyeTracking(duration: number): void {
   eyeTrackingEnabled = false;
   targetEyeOffset = { x: 0, y: 0 };
   
-  setTimeout(() => {
+  trackedTimeout(() => {
     eyeTrackingEnabled = true;
   }, duration);
 }
@@ -338,7 +342,7 @@ function setupEventListeners(): void {
         break;
       case 'connected':
         setLogoState('connected');
-        setTimeout(() => {
+        trackedTimeout(() => {
           if (currentState === 'connected') setLogoState('idle');
         }, 1000);
         break;

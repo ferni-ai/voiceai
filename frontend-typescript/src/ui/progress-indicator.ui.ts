@@ -24,6 +24,7 @@
 
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { 
   relationshipStageService, 
@@ -32,6 +33,9 @@ import {
 } from '../services/relationship-stage.service.js';
 
 const log = createLogger('ProgressIndicator');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ICONS (Lucide-style SVG)
@@ -351,7 +355,7 @@ function handleConversationStart(): void {
 function handleConversationEnd(): void {
   showIndicator();
   // Collapse after conversation ends
-  setTimeout(() => {
+  trackedTimeout(() => {
     if (isExpanded) {
       collapse();
     }

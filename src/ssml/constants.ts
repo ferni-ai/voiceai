@@ -431,6 +431,48 @@ export const FINANCIAL_PRONUNCIATIONS: PronunciationEntry[] = [
   { pattern: /\bWi-Fi\b/gi, replacement: 'why-fye', description: 'Wireless internet' },
 
   // -------------------------------------------------------------------------
+  // Programming Terms (commonly mispronounced by TTS)
+  // -------------------------------------------------------------------------
+  { pattern: /\bGUI\b/g, replacement: 'gooey', description: 'Graphical User Interface' },
+  { pattern: /\bGUIs\b/g, replacement: 'gooeys', description: 'Graphical User Interfaces' },
+  { pattern: /\bCLI\b/g, replacement: 'C L I', description: 'Command Line Interface' },
+  { pattern: /\bSQL\b/g, replacement: 'sequel', description: 'Database query language' },
+  { pattern: /\bnginx\b/gi, replacement: 'engine-X', description: 'Web server' },
+  { pattern: /\bsudo\b/g, replacement: 'soo-doo', description: 'Unix superuser command' },
+  { pattern: /\bYAML\b/g, replacement: 'yam-ul', description: 'Data format' },
+  { pattern: /\bJSON\b/g, replacement: 'jay-son', description: 'Data format' },
+  { pattern: /\bOAuth\b/gi, replacement: 'oh-auth', description: 'Authentication protocol' },
+  { pattern: /\bregex\b/gi, replacement: 'reg-ex', description: 'Regular expression' },
+  { pattern: /\bchar\b(?=\s|[,;:\.])/g, replacement: 'car', description: 'Character type' },
+  { pattern: /\bCUDA\b/g, replacement: 'koo-duh', description: 'NVIDIA parallel computing' },
+  { pattern: /\bPOSIX\b/g, replacement: 'pah-zix', description: 'Unix standard' },
+  { pattern: /\bLinux\b/g, replacement: 'LIN-ux', description: 'Operating system' },
+  { pattern: /\bGNU\b/g, replacement: 'g-new', description: 'GNU project' },
+  { pattern: /\bGit\b/g, replacement: 'git', description: 'Version control' },
+  { pattern: /\bGitHub\b/g, replacement: 'git-hub', description: 'Code hosting' },
+  {
+    pattern: /\bKubernetes\b/gi,
+    replacement: 'koo-ber-NET-eez',
+    description: 'Container orchestration',
+  },
+  { pattern: /\bk8s\b/gi, replacement: 'K eights', description: 'Kubernetes abbreviation' },
+  { pattern: /\bDocker\b/g, replacement: 'dock-er', description: 'Container platform' },
+  { pattern: /\bAWS\b/g, replacement: 'A W S', description: 'Amazon Web Services' },
+  { pattern: /\bGCP\b/g, replacement: 'G C P', description: 'Google Cloud Platform' },
+  { pattern: /\bazure\b/gi, replacement: 'AZH-ur', description: 'Microsoft cloud' },
+  { pattern: /\bGraphQL\b/gi, replacement: 'graf-Q-L', description: 'Query language' },
+  { pattern: /\bJWT\b/g, replacement: 'J W T', description: 'JSON Web Token' },
+  { pattern: /\bCSS\b/g, replacement: 'C S S', description: 'Cascading Style Sheets' },
+  { pattern: /\bHTML\b/g, replacement: 'H T M L', description: 'Markup language' },
+  { pattern: /\bHTTP\b/g, replacement: 'H T T P', description: 'Web protocol' },
+  { pattern: /\bHTTPS\b/g, replacement: 'H T T P S', description: 'Secure web protocol' },
+  { pattern: /\bSSH\b/g, replacement: 'S S H', description: 'Secure Shell' },
+  { pattern: /\bFTP\b/g, replacement: 'F T P', description: 'File Transfer Protocol' },
+  { pattern: /\bREST\b/g, replacement: 'rest', description: 'API architecture' },
+  { pattern: /\bSDK\b/g, replacement: 'S D K', description: 'Software Development Kit' },
+  { pattern: /\bIDE\b/g, replacement: 'I D E', description: 'Integrated Development Environment' },
+
+  // -------------------------------------------------------------------------
   // Social Media & Communication
   // -------------------------------------------------------------------------
   { pattern: /\bDM\b/g, replacement: 'D M', description: 'Direct Message' },
@@ -477,13 +519,98 @@ export const FINANCIAL_PRONUNCIATIONS: PronunciationEntry[] = [
   // =========================================================================
 
   // -------------------------------------------------------------------------
-  // Japanese Terms Ferni might use
+  // Western US / Wyoming Place Names (Ferni's home)
+  // -------------------------------------------------------------------------
+  { pattern: /\bTetons?\b/g, replacement: 'Tee-ton', description: 'Grand Teton mountains' },
+  { pattern: /\bGrand\s+Teton\b/gi, replacement: 'Grand Tee-ton', description: 'Grand Teton' },
+  { pattern: /\bCheyenne\b/g, replacement: 'shy-ann', description: 'Wyoming capital' },
+  { pattern: /\bLaramie\b/g, replacement: 'LAIR-uh-mee', description: 'Wyoming city' },
+  { pattern: /\bShoshone\b/gi, replacement: 'sho-SHO-nee', description: 'Native nation/places' },
+  { pattern: /\bDubois\b/g, replacement: 'doo-BOYZ', description: 'Wyoming town (not French)' },
+  { pattern: /\bPopo\s+Agie\b/gi, replacement: 'po-PO-zhuh', description: 'Wyoming river' },
+  { pattern: /\bAbsaroka\b/gi, replacement: 'ab-SORE-kuh', description: 'Mountain range' },
+  { pattern: /\bCoeur\s+d['']?Alene\b/gi, replacement: 'core-duh-LANE', description: 'Idaho city' },
+  { pattern: /\bBoise\b/g, replacement: 'BOY-see', description: 'Idaho capital' },
+  { pattern: /\bSequoia\b/gi, replacement: 'seh-KWOY-uh', description: 'Trees/park' },
+  { pattern: /\bYosemite\b/gi, replacement: 'yo-SEM-ih-tee', description: 'National park' },
+  { pattern: /\bWillamette\b/gi, replacement: 'wih-LAM-et', description: 'Oregon valley/river' },
+  { pattern: /\bSpokan[e]?\b/gi, replacement: 'spo-CAN', description: 'Washington city' },
+  { pattern: /\bPuyallup\b/gi, replacement: 'pyoo-AL-up', description: 'Washington city' },
+  { pattern: /\bCascade[s]?\b/gi, replacement: 'kass-KADE', description: 'Mountain range' },
+
+  // -------------------------------------------------------------------------
+  // Utah Place Names
+  // -------------------------------------------------------------------------
+  { pattern: /\bTooele\b/gi, replacement: 'too-WILL-uh', description: 'Utah county/city' },
+  { pattern: /\bDuchesne\b/gi, replacement: 'doo-SHAYN', description: 'Utah county/city' },
+  { pattern: /\bMoab\b/g, replacement: 'MO-ab', description: 'Utah city near Arches' },
+  { pattern: /\bUinta[h]?\b/gi, replacement: 'yoo-IN-tuh', description: 'Utah mountains/county' },
+  { pattern: /\bWasatch\b/gi, replacement: 'WAH-satch', description: 'Utah mountain range' },
+  { pattern: /\bHurricane\b/g, replacement: 'HER-ih-kun', description: 'Utah city pronunciation' },
+  { pattern: /\bNephi\b/g, replacement: 'NEE-fye', description: 'Utah city' },
+  { pattern: /\bLehi\b/g, replacement: 'LEE-high', description: 'Utah city' },
+  { pattern: /\bKanab\b/gi, replacement: 'kuh-NAB', description: 'Utah city' },
+  { pattern: /\bWeber\b/g, replacement: 'WEE-ber', description: 'Utah county/river' },
+  { pattern: /\bEscalante\b/gi, replacement: 'es-kuh-LAN-tee', description: 'Utah town/canyon' },
+  { pattern: /\bHeber\b/g, replacement: 'HEE-ber', description: 'Utah city' },
+  { pattern: /\bPanguitch\b/gi, replacement: 'PAN-gwich', description: 'Utah town' },
+  { pattern: /\bParowan\b/gi, replacement: 'puh-ROW-an', description: 'Utah town' },
+  { pattern: /\bSanpete\b/gi, replacement: 'SAN-peet', description: 'Utah county' },
+  { pattern: /\bSevier\b/gi, replacement: 'suh-VEER', description: 'Utah county/river' },
+  { pattern: /\bTimpanogos\b/gi, replacement: 'tim-puh-NO-gus', description: 'Utah mountain' },
+  { pattern: /\bBonneville\b/gi, replacement: 'BON-uh-vil', description: 'Utah salt flats' },
+  { pattern: /\bZion\b/g, replacement: 'ZY-un', description: 'Utah national park' },
+
+  // -------------------------------------------------------------------------
+  // Japanese Terms Ferni might use (lived in Tokyo, mentor Tanaka-san)
   // -------------------------------------------------------------------------
   { pattern: /\bwabi-sabi\b/gi, replacement: 'wah-bee sah-bee', description: 'Japanese aesthetic' },
   { pattern: /\bikigai\b/gi, replacement: 'ee-kee-guy', description: 'Reason for being' },
   { pattern: /\bkaizen\b/gi, replacement: 'ky-zen', description: 'Continuous improvement' },
   { pattern: /\bshinrin-yoku\b/gi, replacement: 'shin-rin yoh-koo', description: 'Forest bathing' },
   { pattern: /\bkintsugi\b/gi, replacement: 'keen-tsoo-gee', description: 'Golden repair' },
+  { pattern: /\bganbatte\b/gi, replacement: 'gahn-BAH-teh', description: 'Do your best' },
+  { pattern: /\bshoganai\b/gi, replacement: 'sho-GAH-nai', description: 'It cannot be helped' },
+  {
+    pattern: /\bmono no aware\b/gi,
+    replacement: 'MOH-no no ah-WAH-reh',
+    description: 'Pathos of things',
+  },
+  { pattern: /\bomoiyari\b/gi, replacement: 'oh-MOY-yah-ree', description: 'Empathy/compassion' },
+  {
+    pattern: /\bnatsukashii\b/gi,
+    replacement: 'nah-tsoo-KAH-shee',
+    description: 'Nostalgic longing',
+  },
+  { pattern: /\bgaman\b/gi, replacement: 'GAH-mahn', description: 'Endurance/patience' },
+  { pattern: /\bmottainai\b/gi, replacement: 'moht-TYE-nai', description: 'Waste nothing' },
+  { pattern: /\byugen\b/gi, replacement: 'YOO-gen', description: 'Profound mystery/depth' },
+  {
+    pattern: /\bichi-?go ichi-?e\b/gi,
+    replacement: 'ee-chee-go ee-chee-eh',
+    description: 'One time one meeting',
+  },
+  { pattern: /\bsatori\b/gi, replacement: 'sah-TOH-ree', description: 'Enlightenment' },
+  { pattern: /\bsensei\b/gi, replacement: 'SEN-say', description: 'Teacher/master' },
+  {
+    pattern: /\bsake\b(?=\s+(is|was|drink|cup|bottle|rice))/gi,
+    replacement: 'SAH-keh',
+    description: 'Japanese rice wine',
+  },
+  { pattern: /\bumami\b/gi, replacement: 'oo-MAH-mee', description: 'Fifth taste/savory' },
+  { pattern: /\btsunami\b/gi, replacement: 'tsoo-NAH-mee', description: 'Tidal wave' },
+  { pattern: /\bbonsai\b/gi, replacement: 'BON-sigh', description: 'Miniature tree art' },
+  { pattern: /\btatami\b/gi, replacement: 'tah-TAH-mee', description: 'Japanese floor mat' },
+  { pattern: /\bdojo\b/gi, replacement: 'DOH-joh', description: 'Training hall' },
+  { pattern: /\bfuton\b/gi, replacement: 'FOO-tahn', description: 'Japanese bedding' },
+  { pattern: /\bramen\b/gi, replacement: 'RAH-men', description: 'Japanese noodle soup' },
+  { pattern: /\bmatcha\b/gi, replacement: 'MAH-chah', description: 'Green tea powder' },
+  { pattern: /\bshoyu\b/gi, replacement: 'SHO-yoo', description: 'Soy sauce' },
+  { pattern: /\bmiso\b/gi, replacement: 'MEE-so', description: 'Fermented soybean paste' },
+  { pattern: /\bwasabi\b/gi, replacement: 'wah-SAH-bee', description: 'Japanese horseradish' },
+  { pattern: /\bedamame\b/gi, replacement: 'ed-ah-MAH-meh', description: 'Soybean pods' },
+  { pattern: /\bkombucha\b/gi, replacement: 'kom-BOO-chah', description: 'Fermented tea' },
+  { pattern: /\btofu\b/gi, replacement: 'TOH-foo', description: 'Bean curd' },
 
   // -------------------------------------------------------------------------
   // Countries & Languages

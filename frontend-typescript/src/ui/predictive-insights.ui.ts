@@ -17,8 +17,12 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('PredictiveInsightsUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -188,7 +192,7 @@ class PredictiveInsightsUI {
     // Auto-dismiss after delay (unless urgent)
     if (insight.priority !== 'urgent') {
       const delay = insight.priority === 'high' ? 30000 : 15000;
-      setTimeout(() => {
+      trackedTimeout(() => {
         this.dismissInsight(insight.id, false);
       }, delay);
     }
@@ -284,7 +288,7 @@ class PredictiveInsightsUI {
     card.classList.remove('visible');
     card.classList.add('dismissing');
 
-    setTimeout(() => {
+    trackedTimeout(() => {
       card.remove();
       this.activeCards.delete(id);
     }, DURATION.NORMAL);

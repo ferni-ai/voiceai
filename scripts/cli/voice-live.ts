@@ -91,6 +91,15 @@ interface SoundConfig {
 }
 
 const SOUND_CONFIGS: Record<string, SoundConfig> = {
+  // Dramatic entrance - quick ascending flourish
+  intro: {
+    type: 'sine',
+    tones: [
+      { frequency: 392.0, delay: 0, duration: 0.12, volume: 0.1 },       // G4
+      { frequency: 493.88, delay: 0.06, duration: 0.12, volume: 0.1 },   // B4
+      { frequency: 587.33, delay: 0.12, duration: 0.18, volume: 0.12 },  // D5 (held longer)
+    ],
+  },
   // C major chord ascending - connect feel
   connect: {
     type: 'sine',
@@ -162,9 +171,17 @@ function playSoundSynth(soundName: keyof typeof SOUND_CONFIGS): void {
 /**
  * Play a sound - uses MP3 or synth based on FERNI_SOUNDS env var.
  */
-function playSound(soundName: 'connect' | 'disconnect' | 'goodbye' | 'hangup'): void {
+function playSound(soundName: 'intro' | 'connect' | 'disconnect' | 'goodbye' | 'hangup'): void {
   if (SOUND_MODE === 'mp3') {
-    playSoundMP3(soundName);
+    // Map sound names to MP3 files
+    const mp3Map: Record<string, string> = {
+      intro: 'dramatic-entrance',
+      connect: 'connect',
+      disconnect: 'disconnect',
+      goodbye: 'disconnect', // goodbye uses disconnect MP3
+      hangup: 'disconnect', // no separate hangup MP3
+    };
+    playSoundMP3(mp3Map[soundName] || soundName);
   } else {
     playSoundSynth(soundName);
   }
@@ -467,6 +484,8 @@ async function connectToRoom(
       console.log(`${colors.yellow}Mic process error: ${err.message}${colors.reset}`);
     });
 
+    // Play intro sound when microphone is ready (dramatic-entrance.mp3)
+    playSound('intro');
     console.log(`${colors.green}Microphone active - start speaking!${colors.reset}`);
   } catch (err) {
     console.log(`${colors.yellow}Microphone error: ${(err as Error).message}${colors.reset}`);

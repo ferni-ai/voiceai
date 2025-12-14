@@ -13,9 +13,13 @@
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { t } from '../i18n/index.js';
 
 const log = createLogger('MusicDashboard');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES (matching backend MusicInsights)
@@ -511,7 +515,7 @@ class MusicDashboardUI {
       el.style.opacity = '0';
       el.style.transform = 'translateY(20px)';
       
-      setTimeout(() => {
+      trackedTimeout(() => {
         el.style.transition = `opacity ${DURATION.SLOW}ms ${EASING.STANDARD}, transform ${DURATION.SLOW}ms ${EASING.STANDARD}`;
         el.style.opacity = '1';
         el.style.transform = 'translateY(0)';

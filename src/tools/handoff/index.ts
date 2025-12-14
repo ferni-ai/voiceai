@@ -127,3 +127,45 @@ export { createHandoffTools } from './handoff-factory.js';
 // Re-export types and utilities
 export type { HandoffAnalytics, HandoffEventData } from './types.js';
 export { createHandoffEvent } from './types.js';
+
+// =============================================================================
+// SESSION-SCOPED STATE (NEW - Preferred for new code)
+// =============================================================================
+
+/**
+ * Session-scoped state management for multi-session isolation.
+ * Use these functions when you have access to a sessionId.
+ *
+ * @example
+ * import { getSessionState } from './handoff/index.js';
+ * const state = getSessionState(sessionId);
+ * const agent = state.currentAgent;
+ */
+export {
+  // Session state management
+  getSessionState,
+  hasSessionState,
+  removeSessionState,
+  getActiveSessionIds,
+  // Session-scoped operations
+  toCanonicalId as toCanonicalIdSession,
+  isSameAgent as isSameAgentSession,
+  isHandoffAllowed as isHandoffAllowedSession,
+  getCurrentAgent as getCurrentAgentSession,
+  setCurrentAgent as setCurrentAgentSession,
+  recordHandoff as recordHandoffSession,
+  captureHandoffContext as captureHandoffContextSession,
+  hasMetPersona as hasMetPersonaSession,
+  markPersonaAsMet as markPersonaAsMetSession,
+  updateUserContext as updateUserContextSession,
+  incrementMeetingCount as incrementMeetingCountSession,
+  getMeetingCount as getMeetingCountSession,
+  setLastTopic as setLastTopicSession,
+  getLastTopic as getLastTopicSession,
+  resetSessionState,
+  initializeFromPersistent,
+  exportForPersistence,
+  getSessionAnalytics,
+  // Type export
+  type HandoffSessionState,
+} from './session-state.js';

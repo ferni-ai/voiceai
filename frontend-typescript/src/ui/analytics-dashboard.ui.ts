@@ -13,10 +13,14 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 // ============================================================================
 // TYPES
 // ============================================================================
+
+// Track setTimeout calls for memory leak prevention
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 export interface StreakTrend {
   date: string;
@@ -704,7 +708,7 @@ class AnalyticsDashboardUI {
 
   private animateCharts(): void {
     // Animate bar fills
-    setTimeout(() => {
+    trackedTimeout(() => {
       this.wrapper
         ?.querySelectorAll('.analytics__mood-bar-fill, .analytics__streak-bar-fill')
         .forEach((el) => {

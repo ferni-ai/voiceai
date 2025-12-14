@@ -25,9 +25,13 @@ import {
   type CosmeticType,
 } from '../services/cosmetics.service.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './toast.ui.js';
 
 const log = createLogger('PersonalizeUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // STATE
@@ -765,7 +769,7 @@ export function close(): void {
     cosmeticsUnsubscribe = null;
   }
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     container?.remove();
     container = null;
   }, DURATION.MODERATE);

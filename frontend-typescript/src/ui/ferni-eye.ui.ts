@@ -1,12 +1,12 @@
 /**
  * Ferni Eye UI - Awareness Presence Indicator
- * 
+ *
  * Three testable modes for finding the right balance:
- * 
+ *
  * 1. PUPIL: Simple dark circle + catchlight (Pixar lamp style)
  * 2. SPARKLE: Just a sparkle/star (ultra minimal, Apple-esque)
  * 3. GLOW: Original orb with subtle glow changes (no eye at all)
- * 
+ *
  * Philosophy: The awareness should feel like a surprise gift, not a constant feature.
  * It appears rarely enough to be delightful, not expected.
  */
@@ -41,21 +41,21 @@ interface EyeState {
 
 const CONFIG = {
   // Random peek timing (milliseconds)
-  peekIntervalMin: 45000,    // At least 45 seconds between peeks
-  peekIntervalMax: 120000,   // At most 2 minutes between peeks
-  peekChance: 0.4,           // 40% chance to actually peek when timer fires
-  
+  peekIntervalMin: 45000, // At least 45 seconds between peeks
+  peekIntervalMax: 120000, // At most 2 minutes between peeks
+  peekChance: 0.4, // 40% chance to actually peek when timer fires
+
   // Blink timing
   blinkIntervalMin: 2500,
   blinkIntervalMax: 6000,
-  
+
   // Cursor tracking
-  trackingStrength: 12,      // Max pixels pupil can move
-  trackingSmoothing: 0.12,   // How smooth the tracking is
-  trackingDeadzone: 60,      // Pixels from center before tracking starts
-  
+  trackingStrength: 12, // Max pixels pupil can move
+  trackingSmoothing: 0.12, // How smooth the tracking is
+  trackingDeadzone: 60, // Pixels from center before tracking starts
+
   // Animation durations
-  peekDuration: 2000,        // How long the eye stays visible during peek
+  peekDuration: 2000, // How long the eye stays visible during peek
   blinkDuration: 150,
   winkDuration: 400,
 };
@@ -98,30 +98,30 @@ export function initFerniEye(): void {
   eyeElement = document.getElementById('ferniEye');
   glowElement = document.getElementById('ferniAwareGlow');
   avatarElement = document.getElementById('coachAvatar');
-  
+
   if (!eyeElement) {
     log.warn('Ferni eye element not found');
     return;
   }
-  
+
   pupilGroup = eyeElement.querySelector('.ferni-eye__pupil-group') as SVGGElement;
-  
+
   // Skip random animations if user prefers reduced motion
   if (prefersReducedMotion()) {
     log.info('Ferni eye animations limited: user prefers reduced motion');
     return;
   }
-  
+
   // Start random peek timer
   scheduleNextPeek();
-  
+
   // Listen for mouse movement
   document.addEventListener('mousemove', handleMouseMove, { passive: true });
-  
+
   // Listen for avatar hover
   avatarElement?.addEventListener('mouseenter', handleAvatarHover);
   avatarElement?.addEventListener('mouseleave', handleAvatarLeave);
-  
+
   log.info('🎬 Ferni awareness initialized - ready for Pixar moments!');
 }
 
@@ -156,11 +156,11 @@ export function disposeFerniEye(): void {
  */
 export function setAwarenessStyle(style: AwarenessStyle): void {
   state.currentStyle = style;
-  
+
   if (eyeElement) {
     eyeElement.setAttribute('data-style', style);
   }
-  
+
   log.info({ style }, '🎨 Awareness style changed');
 }
 
@@ -180,9 +180,9 @@ export function getAwarenessStyle(): AwarenessStyle {
  */
 function scheduleNextPeek(): void {
   if (peekTimer) clearTimeout(peekTimer);
-  
+
   const delay = randomBetween(CONFIG.peekIntervalMin, CONFIG.peekIntervalMax);
-  
+
   peekTimer = setTimeout(() => {
     // Random chance to actually peek
     if (Math.random() < CONFIG.peekChance) {
@@ -191,7 +191,7 @@ function scheduleNextPeek(): void {
     // Schedule next one regardless
     scheduleNextPeek();
   }, delay);
-  
+
   log.debug(`Next peek scheduled in ${Math.round(delay / 1000)}s`);
 }
 
@@ -207,36 +207,36 @@ function scheduleNextPeek(): void {
  */
 export function triggerPeek(): void {
   if (state.isAnimating) return;
-  
+
   state.isAnimating = true;
   state.currentAnimation = 'peek';
-  
+
   // GLOW MODE: Use the glow overlay instead of eye
   if (state.currentStyle === 'glow') {
     if (!glowElement) return;
-    
+
     resetAnimationClasses();
     glowElement.classList.add('glow-peek');
     startGlowTracking();
-    
+
     trackedTimeout(() => {
       stopGlowTracking();
       glowElement?.classList.remove('glow-peek');
       state.isAnimating = false;
       state.currentAnimation = null;
     }, CONFIG.peekDuration + 200);
-    
+
     log.debug('✨ Glow peek triggered!');
     return;
   }
-  
+
   // PUPIL/SPARKLE MODE: Use the eye element
   if (!eyeElement) return;
-  
+
   resetAnimationClasses();
   eyeElement.classList.add('eye-peek');
   startTracking();
-  
+
   // Maybe look around during the peek (only for pupil mode)
   if (state.currentStyle === 'pupil') {
     trackedTimeout(() => {
@@ -245,7 +245,7 @@ export function triggerPeek(): void {
       }
     }, 400);
   }
-  
+
   // Clean up after animation
   trackedTimeout(() => {
     stopTracking();
@@ -253,7 +253,7 @@ export function triggerPeek(): void {
     state.isAnimating = false;
     state.currentAnimation = null;
   }, CONFIG.peekDuration);
-  
+
   log.debug('👁️ Peek triggered!');
 }
 
@@ -262,7 +262,7 @@ export function triggerPeek(): void {
  */
 export function triggerBlink(): void {
   if (!eyeElement || !state.isVisible) return;
-  
+
   eyeElement.classList.add('eye-blink');
 
   trackedTimeout(() => {
@@ -275,9 +275,9 @@ export function triggerBlink(): void {
  */
 export function triggerWink(): void {
   if (!eyeElement) return;
-  
+
   state.isAnimating = true;
-  
+
   // Show eye if not visible
   showEye();
 
@@ -293,7 +293,7 @@ export function triggerWink(): void {
     }
     state.isAnimating = false;
   }, CONFIG.winkDuration + 200);
-  
+
   log.debug('😉 Wink triggered!');
 }
 
@@ -314,10 +314,10 @@ export function triggerCurious(): void {
     log.debug('✨ Glow curious triggered!');
     return;
   }
-  
+
   // PUPIL/SPARKLE MODE
   if (!eyeElement) return;
-  
+
   showEye();
   eyeElement.classList.add('eye-curious');
 
@@ -327,7 +327,7 @@ export function triggerCurious(): void {
       hideEye();
     }
   }, 800);
-  
+
   log.debug('🤔 Curious triggered!');
 }
 
@@ -343,14 +343,14 @@ export function showEye(): void {
     startGlowTracking();
     return;
   }
-  
+
   // PUPIL/SPARKLE MODE
   if (!eyeElement) return;
-  
+
   eyeElement.classList.add('eye-visible');
   state.isVisible = true;
   startTracking();
-  
+
   // Only schedule blinks for pupil mode
   if (state.currentStyle === 'pupil') {
     scheduleRandomBlinks();
@@ -368,10 +368,10 @@ export function hideEye(): void {
     stopGlowTracking();
     return;
   }
-  
+
   // PUPIL/SPARKLE MODE
   if (!eyeElement) return;
-  
+
   eyeElement.classList.remove('eye-visible');
   state.isVisible = false;
   stopTracking();
@@ -387,7 +387,7 @@ export function hideEye(): void {
 
 function startTracking(): void {
   if (state.isTracking || prefersReducedMotion()) return;
-  
+
   state.isTracking = true;
   trackingFrame = requestAnimationFrame(updateTracking);
 }
@@ -407,17 +407,17 @@ function stopTracking(): void {
 
 function updateTracking(): void {
   if (!state.isTracking || !pupilGroup || !avatarElement) return;
-  
+
   // Get avatar center
   const rect = avatarElement.getBoundingClientRect();
   const centerX = rect.left + rect.width / 2;
   const centerY = rect.top + rect.height / 2;
-  
+
   // Calculate distance from center
   const dx = lastMousePosition.x - centerX;
   const dy = lastMousePosition.y - centerY;
   const distance = Math.sqrt(dx * dx + dy * dy);
-  
+
   // Only track if outside deadzone
   if (distance > CONFIG.trackingDeadzone) {
     // Normalize and apply strength
@@ -429,16 +429,20 @@ function updateTracking(): void {
   } else {
     targetPupilOffset = { x: 0, y: 0 };
   }
-  
+
   // Smooth interpolation
   currentPupilOffset = {
-    x: currentPupilOffset.x + (targetPupilOffset.x - currentPupilOffset.x) * CONFIG.trackingSmoothing,
-    y: currentPupilOffset.y + (targetPupilOffset.y - currentPupilOffset.y) * CONFIG.trackingSmoothing,
+    x:
+      currentPupilOffset.x +
+      (targetPupilOffset.x - currentPupilOffset.x) * CONFIG.trackingSmoothing,
+    y:
+      currentPupilOffset.y +
+      (targetPupilOffset.y - currentPupilOffset.y) * CONFIG.trackingSmoothing,
   };
-  
+
   // Apply transform
   pupilGroup.style.transform = `translate(${currentPupilOffset.x}px, ${currentPupilOffset.y}px)`;
-  
+
   // Continue loop
   trackingFrame = requestAnimationFrame(updateTracking);
 }
@@ -467,21 +471,21 @@ function stopGlowTracking(): void {
 
 function updateGlowTracking(): void {
   if (!glowElement || !avatarElement) return;
-  
+
   // Get avatar center
   const rect = avatarElement.getBoundingClientRect();
   const centerX = rect.left + rect.width / 2;
   const centerY = rect.top + rect.height / 2;
-  
+
   // Calculate direction from avatar to cursor
   const dx = lastMousePosition.x - centerX;
   const dy = lastMousePosition.y - centerY;
   const distance = Math.sqrt(dx * dx + dy * dy);
-  
+
   // Map cursor position to glow position (20% - 80% range)
   let glowX = 50;
   let glowY = 50;
-  
+
   if (distance > CONFIG.trackingDeadzone) {
     // Normalize direction
     const nx = dx / distance;
@@ -490,7 +494,7 @@ function updateGlowTracking(): void {
     glowX = 50 + nx * 25;
     glowY = 50 + ny * 25;
   }
-  
+
   // Apply as radial gradient position
   glowElement.style.background = `radial-gradient(
     circle at ${glowX}% ${glowY}%,
@@ -498,7 +502,7 @@ function updateGlowTracking(): void {
     rgba(255, 255, 255, 0.1) 30%,
     transparent 60%
   )`;
-  
+
   // Continue loop
   glowTrackingFrame = requestAnimationFrame(updateGlowTracking);
 }
@@ -530,9 +534,9 @@ function handleAvatarLeave(): void {
 
 function scheduleRandomBlinks(): void {
   if (!state.isVisible) return;
-  
+
   const delay = randomBetween(CONFIG.blinkIntervalMin, CONFIG.blinkIntervalMax);
-  
+
   blinkTimer = setTimeout(() => {
     if (state.isVisible) {
       triggerBlink();
@@ -556,13 +560,9 @@ function resetAnimationClasses(): void {
     'eye-look-around',
     'eye-sparkle'
   );
-  
+
   // Reset glow element classes
-  glowElement?.classList.remove(
-    'glow-visible',
-    'glow-peek',
-    'glow-curious'
-  );
+  glowElement?.classList.remove('glow-visible', 'glow-peek', 'glow-curious');
 }
 
 function randomBetween(min: number, max: number): number {
@@ -589,4 +589,3 @@ export const ferniEye = {
 };
 
 export default ferniEye;
-

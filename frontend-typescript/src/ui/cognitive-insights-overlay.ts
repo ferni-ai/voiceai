@@ -22,7 +22,10 @@
  * ```
  */
 
-// Animation constants imported when needed
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+
+// Track setTimeout calls for memory leak prevention
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -268,9 +271,9 @@ export function showCognitiveInsight(options: CognitiveInsightOptions): void {
   });
   
   // Auto-hide
-  hideTimeout = setTimeout(() => {
+  hideTimeout = trackedTimeout(() => {
     el.classList.remove('visible');
-    setTimeout(() => {
+    trackedTimeout(() => {
       if (el.parentNode) {
         el.remove();
       }
@@ -287,7 +290,7 @@ export function showCognitiveInsight(options: CognitiveInsightOptions): void {
 export function hideCognitiveInsight(): void {
   if (currentInsight) {
     currentInsight.classList.remove('visible');
-    setTimeout(() => {
+    trackedTimeout(() => {
       if (currentInsight) {
         currentInsight.remove();
         currentInsight = null;

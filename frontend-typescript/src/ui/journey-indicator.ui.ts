@@ -20,10 +20,14 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { getCelebratedCount, getTotalMilestonesCount } from './ferni-milestones.ui.js';
 import { journeyUI } from './journey.ui.js';
 
 const log = createLogger('JourneyIndicator');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // STATE
@@ -67,7 +71,7 @@ function create(): void {
   const avatarContainer = document.querySelector('.avatar-container');
   if (!avatarContainer) {
     log.warn('Avatar container not found, retrying...');
-    setTimeout(create, 1000);
+    trackedTimeout(create, 1000);
     return;
   }
 

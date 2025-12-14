@@ -15,12 +15,16 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { outreachService } from '../services/outreach.service.js';
 import { showNotification } from '../services/push-notifications.service.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { haptics } from '../utils/haptics.js';
 import { celebrationsUI } from './celebrations.ui.js';
 import { ferniMoments } from './ferni-moments.ui.js';
 import { soundUI } from './sound.ui.js';
 
 const log = createLogger('FerniMilestones');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -943,7 +947,7 @@ function processQueue(): void {
 
   if (isConnected && isSpeaking) {
     // Wait and try again
-    setTimeout(processQueue, 3000);
+    trackedTimeout(processQueue, 3000);
     return;
   }
 
@@ -953,7 +957,7 @@ function processQueue(): void {
   showMilestoneCelebration(milestone).then(() => {
     isCelebrating = false;
     // Process next after a pause
-    setTimeout(processQueue, 2000);
+    trackedTimeout(processQueue, 2000);
   });
 }
 
@@ -1210,7 +1214,7 @@ async function animateCelebrationOut(display: HTMLElement): Promise<void> {
 }
 
 function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => trackedTimeout(resolve, ms));
 }
 
 // ============================================================================

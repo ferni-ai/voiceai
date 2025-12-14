@@ -9,8 +9,12 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('MoodUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -248,9 +252,9 @@ function showHolidayIndicator(message: string): void {
   });
   
   // Remove after a few seconds
-  setTimeout(() => {
+  trackedTimeout(() => {
     indicator.classList.remove('visible');
-    setTimeout(() => indicator.remove(), 500);
+    trackedTimeout(() => indicator.remove(), 500);
   }, 5000);
 }
 
@@ -484,7 +488,7 @@ function showRelationshipTransition(newStage: RelationshipStage): void {
   document.body.appendChild(indicator);
 
   // Remove after animation
-  setTimeout(() => indicator.remove(), 2000);
+  trackedTimeout(() => indicator.remove(), 2000);
 }
 
 /**

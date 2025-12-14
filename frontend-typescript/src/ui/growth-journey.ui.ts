@@ -41,9 +41,13 @@ import {
   type Season,
 } from '../services/growth-journey.service.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './toast.ui.js';
 
 const log = createLogger('GrowthJourneyUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // STATE
@@ -667,7 +671,7 @@ function showCelebration(milestone: JourneyMilestone): void {
   document.body.appendChild(celebration);
 
   // Auto-close after 2 seconds
-  setTimeout(() => {
+  trackedTimeout(() => {
     celebration.remove();
     style.remove();
   }, 2000);
@@ -731,7 +735,7 @@ export function close(): void {
     progressUnsubscribe = null;
   }
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     container?.remove();
     container = null;
   }, DURATION.MODERATE);

@@ -15,12 +15,16 @@
 
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 // Note: appState imported for future use with evalops state sync
 import type { AppState as _AppState } from '../state/app.state.js';
 import { toast } from './toast.ui.js';
 
 const log = createLogger('EvalOpsDashboard');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -780,7 +784,7 @@ export function hideEvalOpsDashboard(): void {
   
   container.classList.remove('evalops-container--visible');
   
-  setTimeout(() => {
+  trackedTimeout(() => {
     container?.remove();
     container = null;
     isVisible = false;

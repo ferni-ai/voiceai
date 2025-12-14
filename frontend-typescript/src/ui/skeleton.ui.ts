@@ -7,6 +7,11 @@
  * Uses design system tokens for all animations and colors.
  */
 
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+
+// Track setTimeout calls for memory leak prevention
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
+
 // ============================================================================
 // CONSTANTS
 // ============================================================================
@@ -250,7 +255,7 @@ export function hide(): void {
         isVisible = false;
 
         // Remove from DOM after transition
-        setTimeout(() => {
+        trackedTimeout(() => {
           if (skeletonContainer && !isVisible) {
             skeletonContainer.remove();
             skeletonContainer = null;

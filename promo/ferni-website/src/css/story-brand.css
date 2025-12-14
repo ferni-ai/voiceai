@@ -688,6 +688,27 @@ button {
   }
 }
 
+/* Phone link - subtle secondary action */
+.hero__phone {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--color-text-muted);
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-10);
+}
+
+.hero__phone a {
+  color: var(--color-ferni);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+  transition: color var(--duration-fast) ease;
+}
+
+.hero__phone a:hover {
+  color: var(--color-ferni-dark);
+  text-decoration: underline;
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;

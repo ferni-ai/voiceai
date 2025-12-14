@@ -16,12 +16,16 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 // ============================================================================
 // STATE
 // ============================================================================
 
 let isInitialized = false;
+
+// Track setTimeout calls for memory leak prevention
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 let prefersReducedMotion = false;
 
 // Animation elements and IDs
@@ -113,7 +117,7 @@ export function stopWarmthPulse(): void {
     // Fade out
     overlay.style.transition = 'opacity 0.5s ease-out';
     overlay.style.opacity = '0';
-    setTimeout(() => overlay.remove(), 500);
+    trackedTimeout(() => overlay.remove(), 500);
   }
 }
 
@@ -281,7 +285,7 @@ export function createDustParticles(container?: HTMLElement): void {
     dustContainer.appendChild(particle);
     
     // Animate dust rising
-    setTimeout(() => {
+    trackedTimeout(() => {
       particle.animate([
         { 
           transform: 'translate(0, 0) scale(1)', 
@@ -312,7 +316,7 @@ export function createDustParticles(container?: HTMLElement): void {
   }
   
   // Remove container after all particles done
-  setTimeout(() => {
+  trackedTimeout(() => {
     removeDustParticles();
   }, 5500);
 }
@@ -380,7 +384,7 @@ export function animateProgressStep(stepElement: HTMLElement, stepIndex: number)
   
   const delay = stepIndex * 150;
   
-  setTimeout(() => {
+  trackedTimeout(() => {
     stepElement.animate([
       { transform: 'scale(0) rotate(-10deg)', opacity: 0, offset: 0 },
       { transform: 'scale(1.2) rotate(5deg)', opacity: 1, offset: 0.5 },

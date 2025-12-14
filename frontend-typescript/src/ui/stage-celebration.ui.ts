@@ -30,9 +30,13 @@ import {
   type StageChangeEvent,
 } from '../services/relationship-stage.service.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { getCelebrationUI } from './celebration.ui.js';
 
 const log = createLogger('StageCelebration');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -277,7 +281,7 @@ export function hideStageCelebration(): void {
   const currentStage = relationshipStageService.getMetrics().stage;
   modalCoordinator.release(`stage-celebration-${currentStage}`);
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     modal?.remove();
     modal = null;
   }, DURATION.SLOW);

@@ -27,8 +27,12 @@ import {
 } from '@design-system/tokens';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('AnimationOrch');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -189,7 +193,7 @@ export function animatePersonaTransition(
       // (The actual persona change happens in app.ts)
 
       // Entry animation - new persona arrives
-      setTimeout(() => {
+      trackedTimeout(() => {
         const entryAnimation = avatar.animate([
           { transform: 'scale(0.85) rotate(5deg) translateX(20px)', opacity: 0 },
           { transform: 'scale(0.95) rotate(2deg)', opacity: 0.8 },
@@ -223,7 +227,7 @@ export function animatePersonaTransition(
         });
       });
 
-      setTimeout(() => {
+      trackedTimeout(() => {
         [name, subtitle].forEach(el => {
           el.animate([
             { opacity: 0, transform: 'translateY(5px)' },

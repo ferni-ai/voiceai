@@ -17,12 +17,16 @@
  */
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
 type CelebrationIntensity = 'subtle' | 'gentle' | 'warm' | 'intense';
+
+// Track setTimeout calls for memory leak prevention
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 interface WarmthOptions {
   intensity?: CelebrationIntensity;
@@ -184,7 +188,7 @@ export function warmthGlow(options: WarmthOptions = {}): void {
   target.classList.add('warmth-glow', `warmth-${intensity}`);
 
   // Clean up after animation
-  setTimeout(() => {
+  trackedTimeout(() => {
     target.classList.remove('warmth-glow', `warmth-${intensity}`);
   }, duration);
 }
@@ -201,7 +205,7 @@ export function gentleBounce(options: WarmthOptions = {}): void {
 
   target.classList.add('gentle-bounce');
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     target.classList.remove('gentle-bounce');
   }, DURATION.DRAMATIC);
 }
@@ -218,7 +222,7 @@ export function connectionWarmth(options: WarmthOptions = {}): void {
 
   target.classList.add('connection-warmth');
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     target.classList.remove('connection-warmth');
   }, DURATION.GLACIAL);
 }
@@ -235,7 +239,7 @@ export function softAcknowledge(options: WarmthOptions = {}): void {
 
   target.classList.add('soft-acknowledge');
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     target.classList.remove('soft-acknowledge');
   }, DURATION.MODERATE);
 }
@@ -308,7 +312,7 @@ export function celebrateFirstConnection(): void {
   const app = document.getElementById('app');
   if (app && !prefersReducedMotion()) {
     app.classList.add('first-connection');
-    setTimeout(() => app.classList.remove('first-connection'), DURATION.GLACIAL * 1.33);
+    trackedTimeout(() => app.classList.remove('first-connection'), DURATION.GLACIAL * 1.33);
   }
 }
 

@@ -10,10 +10,14 @@
  */
 
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { getVoiceAuthService } from '../services/voice-auth.service.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 
 const log = createLogger('VoiceIdBadge');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // CONSTANTS
@@ -224,7 +228,7 @@ export function initVoiceIdBadge(): void {
       log.info('Voice ID badge initialized');
     } else {
       // Retry after a short delay
-      setTimeout(checkAndInit, 500);
+      trackedTimeout(checkAndInit, 500);
     }
   };
   

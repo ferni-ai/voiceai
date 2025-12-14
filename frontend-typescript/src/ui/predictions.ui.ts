@@ -23,8 +23,12 @@ import {
 import { engagementService, type PredictionData } from '../services/engagement.service.js';
 import { isDemoDataEnabled, getDemoPredictions, calculateDemoPredictionAccuracy } from '../services/engagement-demo-data.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('PredictionsUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -263,7 +267,7 @@ export class PredictionsUI {
     // Bind events
     const closeModal = () => {
       modal.classList.remove('prediction-resolution-modal--visible');
-      setTimeout(() => modal.remove(), prefersReducedMotion() ? 0 : DURATION.NORMAL);
+      trackedTimeout(() => modal.remove(), prefersReducedMotion() ? 0 : DURATION.NORMAL);
     };
 
     modal.querySelector('.prediction-resolution-modal__backdrop')?.addEventListener('click', closeModal);
@@ -486,7 +490,7 @@ export class PredictionsUI {
     this.container.setAttribute('aria-hidden', 'true');
     
     // Wait for animation before hiding
-    setTimeout(() => {
+    trackedTimeout(() => {
       this.container?.classList.remove('predictions-panel--visible');
     }, prefersReducedMotion() ? 0 : DURATION.NORMAL);
   }

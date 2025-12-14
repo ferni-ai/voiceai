@@ -8,9 +8,13 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './toast.ui.js';
 
 const log = createLogger('GamePicker');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -123,7 +127,7 @@ class GamePickerUI {
     
     this.container.classList.remove('game-picker--visible');
     
-    setTimeout(() => {
+    trackedTimeout(() => {
       this.container?.remove();
       this.container = null;
       this.isVisible = false;

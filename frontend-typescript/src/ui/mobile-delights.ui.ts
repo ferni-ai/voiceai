@@ -20,9 +20,13 @@
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { avatarLookAt, pauseAvatarEyeTracking } from './eye-tracking.ui.js';
 
 const log = createLogger('MobileDelights');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -366,7 +370,7 @@ function handleTapToLook(e: TouchEvent): void {
   const avatar = document.querySelector('#coachAvatar');
   if (avatar) {
     avatar.classList.add('tap-noticed');
-    setTimeout(() => avatar.classList.remove('tap-noticed'), 300);
+    trackedTimeout(() => avatar.classList.remove('tap-noticed'), 300);
   }
 
   // Subtle haptic
@@ -462,7 +466,7 @@ function handlePullEnd(): void {
     const avatar = document.querySelector('#coachAvatar');
     if (avatar) {
       avatar.classList.add('pull-activated');
-      setTimeout(() => avatar.classList.remove('pull-activated'), 500);
+      trackedTimeout(() => avatar.classList.remove('pull-activated'), 500);
     }
   }
 
@@ -528,7 +532,7 @@ function resetPullFeedback(): void {
   if (avatar) {
     avatar.style.transition = `transform ${DURATION.MODERATE}ms ${EASING.SPRING}`;
     avatar.style.transform = '';
-    setTimeout(() => {
+    trackedTimeout(() => {
       avatar.style.transition = '';
     }, DURATION.MODERATE);
   }
@@ -537,7 +541,7 @@ function resetPullFeedback(): void {
     avatarRing.style.transition = `transform ${DURATION.MODERATE}ms ${EASING.SPRING}, opacity ${DURATION.MODERATE}ms ease`;
     avatarRing.style.transform = '';
     avatarRing.style.opacity = '';
-    setTimeout(() => {
+    trackedTimeout(() => {
       avatarRing.style.transition = '';
     }, DURATION.MODERATE);
   }
@@ -586,7 +590,7 @@ function startHeartbeat(): void {
     if (beatCount % 4 === 1) {
       vibrate(15); // First beat (stronger)
     } else if (beatCount % 4 === 2) {
-      setTimeout(() => vibrate(8), 150); // Second beat (softer, quick follow)
+      trackedTimeout(() => vibrate(8), 150); // Second beat (softer, quick follow)
     }
     // Beats 3 and 4 are rest
   }, 500); // ~60 BPM resting heart rate

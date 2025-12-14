@@ -23,8 +23,12 @@ import {
   type AuthState,
 } from '../services/firebase-auth.service.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('AccountButtonUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // ELEMENT REFERENCES
@@ -509,7 +513,7 @@ function closeModal(): void {
   card.style.opacity = '0';
   accountModal.classList.remove('visible');
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     accountModal?.remove();
     accountModal = null;
   }, DURATION.NORMAL);
@@ -556,7 +560,7 @@ function showModalSuccess(): void {
   success.style.display = 'flex';
 
   // Auto-close after success
-  setTimeout(() => closeModal(), 2000);
+  trackedTimeout(() => closeModal(), 2000);
 }
 
 /**
@@ -713,7 +717,7 @@ function showAccountMenu(): void {
       document.removeEventListener('click', closeMenu);
     }
   };
-  setTimeout(() => document.addEventListener('click', closeMenu), 0);
+  trackedTimeout(() => document.addEventListener('click', closeMenu), 0);
 
   document.body.appendChild(menu);
 }

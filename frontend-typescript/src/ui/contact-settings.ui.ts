@@ -14,9 +14,13 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { getUserTimezone } from '../services/timezone.service.js';
 
 const log = createLogger('ContactSettingsUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -1063,7 +1067,7 @@ export function close(): void {
   modalContainer.classList.remove('open');
   document.removeEventListener('keydown', handleEscape);
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     modalContainer?.remove();
     modalContainer = null;
   }, DURATION.NORMAL);

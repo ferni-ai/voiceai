@@ -13,10 +13,14 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, STAGGER, prefersReducedMotion } from '../config/animation-constants.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 // ============================================================================
 // TYPES
 // ============================================================================
+
+// Track setTimeout calls for memory leak prevention
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 export interface TeamHuddleParticipant {
   personaId: string;
@@ -307,7 +311,7 @@ class TeamHuddleUI {
       htmlEl.style.opacity = '0';
       htmlEl.style.transform = 'translateY(20px)';
 
-      setTimeout(() => {
+      trackedTimeout(() => {
         htmlEl.style.transition = `opacity ${DURATION.SLOW}ms ${EASING.EXPO_OUT}, transform ${DURATION.SLOW}ms ${EASING.SPRING}`;
         htmlEl.style.opacity = '1';
         htmlEl.style.transform = 'translateY(0)';

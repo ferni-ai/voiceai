@@ -12,10 +12,14 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 // ============================================================================
 // TYPES
 // ============================================================================
+
+// Track setTimeout calls for memory leak prevention
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 export interface CategoryAccuracy {
   category: string;
@@ -207,7 +211,7 @@ class PredictionTrackerUI {
   }
 
   private animateProgress(): void {
-    setTimeout(() => {
+    trackedTimeout(() => {
       const ring = this.wrapper?.querySelector('.pred-tracker__ring') as HTMLElement;
       if (ring) {
         ring.classList.add('pred-tracker__ring--animated');

@@ -32,6 +32,7 @@ import {
 import { appState } from '../state/app.state.js';
 import type { PersonaId } from '../types/persona.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import {
   requestPermissionConsent,
   type MarketplaceItem,
@@ -40,6 +41,9 @@ import { soundUI } from './sound.ui.js';
 import { refreshMarketplaceAgents } from './team.ui.js';
 
 const log = createLogger('Marketplace');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // PERSONA COLORS - Use CSS variables from design system tokens.css
@@ -120,7 +124,7 @@ function announceToScreenReader(message: string): void {
     'position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;';
   announcer.textContent = message;
   document.body.appendChild(announcer);
-  setTimeout(() => announcer.remove(), 1000);
+  trackedTimeout(() => announcer.remove(), 1000);
 }
 
 // ============================================================================
@@ -1425,7 +1429,7 @@ function closeDetailPanel(): void {
   detailPanel.classList.remove('open');
   soundUI.play('switch');
 
-  setTimeout(() => {
+  trackedTimeout(() => {
     detailPanel?.remove();
     detailPanel = null;
   }, DURATION.SLOW);
@@ -1838,7 +1842,7 @@ function debounce<T extends (...args: unknown[]) => void>(
   let timeoutId: ReturnType<typeof setTimeout>;
   return (...args: Parameters<T>) => {
     clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => fn(...args), delay);
+    timeoutId = trackedTimeout(() => fn(...args), delay);
   };
 }
 

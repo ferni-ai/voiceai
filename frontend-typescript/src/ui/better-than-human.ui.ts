@@ -20,6 +20,7 @@
 import { EASING } from '../config/animation-constants.js';
 import { emotionState, type EmotionId } from '../emotion/emotion-state.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { ferniExpressions, type EmotionalExpression } from './ferni-expressions.ui.js';
 
 // Avatar Soul integration - will be loaded dynamically to avoid circular deps
@@ -38,6 +39,9 @@ async function getAvatarSoul() {
 }
 
 const log = createLogger('FerniEQ');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // MICRO-EXPRESSION TIMING ENFORCEMENT
@@ -430,7 +434,7 @@ export function playMicroExpression(type: keyof typeof MICRO_EXPRESSIONS): void 
   })();
 
   // Quick return to previous state after enforced micro-expression duration
-  setTimeout(() => {
+  trackedTimeout(() => {
     const currentEmotion = emotionState.emotion.id;
     const expressionMap: Record<EmotionId, EmotionalExpression> = {
       neutral: 'neutral',
@@ -512,7 +516,7 @@ export function detectAndTriggerMicroExpression(content: {
   if (content.isVulnerable) {
     playMicroExpression('protective');
     // Follow up with warmth after brief delay
-    setTimeout(() => playMicroExpression('warmth_pulse'), 200);
+    trackedTimeout(() => playMicroExpression('warmth_pulse'), 200);
     return;
   }
 
@@ -521,7 +525,7 @@ export function detectAndTriggerMicroExpression(content: {
     playMicroExpression('pride_flash');
     // Sometimes follow with delight
     if (Math.random() < 0.4) {
-      setTimeout(() => playMicroExpression('delight_flash'), 150);
+      trackedTimeout(() => playMicroExpression('delight_flash'), 150);
     }
     return;
   }
@@ -645,7 +649,7 @@ function performListeningLean(): void {
   );
 
   // Return to neutral after a bit
-  setTimeout(() => {
+  trackedTimeout(() => {
     avatarContainer?.animate([{ transform: 'translateY(-2px)' }, { transform: 'translateY(0)' }], {
       duration: 600,
       easing: EASING.GENTLE,
@@ -1065,7 +1069,7 @@ export function anticipateEmotion(partial: {
       soul.pupilRespondToEmotion(emotion, 0.8);
     }
     // Expression follows the anticipation
-    setTimeout(() => {
+    trackedTimeout(() => {
       ferniExpressions.setExpression(expression, duration);
     }, 150); // Matches ANTICIPATION_LEAD_TIME
 

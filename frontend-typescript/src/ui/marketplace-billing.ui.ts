@@ -20,11 +20,15 @@ import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 // toast is available if needed for error messages
 // import { toast } from './toast.ui.js';
 
 const log = createLogger('BillingUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -161,7 +165,7 @@ function announceToScreenReader(message: string): void {
     'position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;';
   announcer.textContent = message;
   document.body.appendChild(announcer);
-  setTimeout(() => announcer.remove(), 1000);
+  trackedTimeout(() => announcer.remove(), 1000);
 }
 
 // ============================================================================
@@ -213,7 +217,7 @@ export function closeBillingDashboard(): void {
   if (!container) return;
 
   container.classList.remove('billing-dashboard--visible');
-  setTimeout(() => {
+  trackedTimeout(() => {
     container?.remove();
     container = null;
   }, getAnimationDuration(DURATION.SLOW));

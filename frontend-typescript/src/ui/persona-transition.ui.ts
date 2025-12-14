@@ -12,10 +12,14 @@
  */
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 // ============================================================================
 // TYPES
 // ============================================================================
+
+// Track setTimeout calls for memory leak prevention
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 export interface PersonaTransitionData {
   fromPersonaId: string;
@@ -133,7 +137,7 @@ class PersonaTransitionUI {
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise(resolve => trackedTimeout(resolve, ms));
   }
 
   private escapeHtml(text: string): string {

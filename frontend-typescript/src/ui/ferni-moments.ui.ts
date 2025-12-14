@@ -33,9 +33,13 @@
 import { DURATION } from '../config/animation-constants.js';
 import { gsap } from '../utils/gsap-setup.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { morphIconToText, morphTextToIcon, setExpression } from './ferni-expressions.ui.js';
 
 const log = createLogger('FerniMoments');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // GSAP helper - convert ms to seconds
 const toSeconds = (ms: number) => ms / 1000;
@@ -509,12 +513,12 @@ export function playCelebration(intensity: 'small' | 'medium' | 'big' = 'medium'
   playMoment('celebration');
 
   if (intensity === 'medium' || intensity === 'big') {
-    setTimeout(() => playMoment('sparkle'), 500);
+    trackedTimeout(() => playMoment('sparkle'), 500);
   }
 
   if (intensity === 'big') {
-    setTimeout(() => playMoment('hearts'), 1000);
-    setTimeout(() => playMoment('trophy'), 1500);
+    trackedTimeout(() => playMoment('hearts'), 1000);
+    trackedTimeout(() => playMoment('trophy'), 1500);
   }
 }
 
@@ -631,7 +635,7 @@ async function playDramaticIconMoment(iconSvg: string, config: MomentConfig): Pr
   const holdDuration = Math.max(config.duration - DURATION.MODERATE - DURATION.MODERATE, 300);
 
   // Wait for hold, then morph back
-  await new Promise((resolve) => setTimeout(resolve, holdDuration));
+  await new Promise((resolve) => trackedTimeout(resolve, holdDuration));
 
   // Morph icon → text with spring physics
   await morphIconToText(iconElement);
@@ -1114,7 +1118,7 @@ function startTimeAwareness(): void {
       // Only auto-play on significant transitions
       if (timeSlot === 'morning' || timeSlot === 'evening' || timeSlot === 'lateNight') {
         // Subtle moment on time transition
-        setTimeout(() => {
+        trackedTimeout(() => {
           const moment = getTimeOfDayMoment();
           if (moment) playMoment(moment);
         }, 2000); // Delay so it doesn't feel jarring
@@ -1247,5 +1251,5 @@ export async function triggerMoment(type: MomentType): Promise<void> {
   // Wait for animation to complete (most moments are ~1-2 seconds)
   const config = MOMENTS[type];
   const duration = config?.duration || 1000;
-  return new Promise((resolve) => setTimeout(resolve, duration));
+  return new Promise((resolve) => trackedTimeout(resolve, duration));
 }

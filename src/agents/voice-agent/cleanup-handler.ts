@@ -76,9 +76,9 @@ export interface CleanupContext {
   sessionPersona: PersonaConfig;
   voiceHumanization: VoiceHumanizationCleanup | null;
   utilitiesCleanup?: () => Promise<void>;
-  patternAnalyzer: { endSession: (sessionId: string) => void };
+  patternAnalyzer?: { endSession: (sessionId: string) => void };
   autoOptimizer: { endSession: (sessionId: string) => void };
-  feedbackCollector: { flush: () => Promise<void> };
+  feedbackCollector?: { flush: () => Promise<void> };
   // Additional cleanup functions
   dataChannelCleanup?: () => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -581,14 +581,14 @@ async function cleanupGames(sessionId: string): Promise<void> {
 
 function cleanupOptimization(
   sessionId: string,
-  patternAnalyzer: { endSession: (sessionId: string) => void },
-  autoOptimizer: { endSession: (sessionId: string) => void },
-  feedbackCollector: { flush: () => Promise<void> }
+  patternAnalyzer?: { endSession: (sessionId: string) => void },
+  autoOptimizer?: { endSession: (sessionId: string) => void },
+  feedbackCollector?: { flush: () => Promise<void> }
 ): void {
   try {
-    patternAnalyzer.endSession(sessionId);
-    autoOptimizer.endSession(sessionId);
-    void feedbackCollector.flush();
+    patternAnalyzer?.endSession(sessionId);
+    autoOptimizer?.endSession(sessionId);
+    if (feedbackCollector) if (feedbackCollector) void feedbackCollector.flush();
     diag.session('Optimization data flushed');
   } catch (e) {
     log().debug({ error: String(e) }, 'Optimization flush failed (non-fatal)');

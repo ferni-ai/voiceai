@@ -19,8 +19,12 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('WeatherEffects');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -215,7 +219,7 @@ export function playSeasonalMoment(): void {
   if (weather !== 'none') {
     startWeather(weather);
     // Auto-stop after a few seconds - it's a moment, not permanent
-    setTimeout(() => stopWeather(), 8000);
+    trackedTimeout(() => stopWeather(), 8000);
   }
 }
 

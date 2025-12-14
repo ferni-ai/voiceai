@@ -78,7 +78,10 @@ function categorizePatterns(): PatternCategory[] {
     {
       name: 'japanese_cultural',
       // Requires specific word stems
-      quickCheck: (text) => /wabi|ikigai|kaizen|shinrin|kintsugi/i.test(text),
+      quickCheck: (text) =>
+        /wabi|ikigai|kaizen|shinrin|kintsugi|ganbatte|shoganai|mono no aware|omoiyari|natsukashii|gaman|mottainai|yugen|ichi.?go|satori|sensei|sake|umami|tsunami|bonsai|tatami|dojo|futon|ramen|matcha|shoyu|miso|wasabi|edamame|kombucha|tofu/i.test(
+          text
+        ),
       patterns: [],
     },
   ];

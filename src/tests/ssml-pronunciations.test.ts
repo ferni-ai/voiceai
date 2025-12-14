@@ -300,7 +300,7 @@ describe('SSML Pronunciation Dictionary', () => {
   // CULTURAL & JAPANESE TERMS
   // =========================================================================
   describe('Cultural & Japanese Terms', () => {
-    it('should pronounce Japanese concepts correctly', () => {
+    it('should pronounce Japanese philosophical concepts correctly', () => {
       expect(
         containsTextIgnoringSsml(tagTextWithSsml('Embrace wabi-sabi'), 'wah-bee sah-bee')
       ).toBe(true);
@@ -316,6 +316,73 @@ describe('SSML Pronunciation Dictionary', () => {
       expect(
         containsTextIgnoringSsml(tagTextWithSsml('Like kintsugi repairs'), 'keen-tsoo-gee')
       ).toBe(true);
+    });
+
+    it('should pronounce Japanese emotional/cultural concepts correctly', () => {
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Ganbatte!'), 'gahn-BAH-teh')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Shoganai, it happens'), 'sho-GAH-nai')).toBe(
+        true
+      );
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Practice gaman'), 'GAH-mahn')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Mottainai mindset'), 'moht-TYE-nai')).toBe(
+        true
+      );
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Show omoiyari'), 'oh-MOY-yah-ree')).toBe(
+        true
+      );
+    });
+
+    it('should pronounce Japanese food terms correctly', () => {
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Good ramen'), 'RAH-men')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Matcha latte'), 'MAH-chah')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Add wasabi'), 'wah-SAH-bee')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Miso soup'), 'MEE-so')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Order edamame'), 'ed-ah-MAH-meh')).toBe(
+        true
+      );
+    });
+
+    it('should pronounce other Japanese terms correctly', () => {
+      expect(containsTextIgnoringSsml(tagTextWithSsml('My sensei taught'), 'SEN-say')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('At the dojo'), 'DOH-joh')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('On a futon'), 'FOO-tahn')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('The tsunami hit'), 'tsoo-NAH-mee')).toBe(
+        true
+      );
+    });
+  });
+
+  // =========================================================================
+  // UTAH PLACE NAMES
+  // =========================================================================
+  describe('Utah Place Names', () => {
+    it('should pronounce Utah cities correctly', () => {
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Tooele County'), 'too-WILL-uh')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Visit Moab'), 'MO-ab')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Lehi tech hub'), 'LEE-high')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Nephi is south'), 'NEE-fye')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Heber Valley'), 'HEE-ber')).toBe(true);
+    });
+
+    it('should pronounce Utah geographic features correctly', () => {
+      expect(containsTextIgnoringSsml(tagTextWithSsml('The Wasatch Front'), 'WAH-satch')).toBe(
+        true
+      );
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Uinta Mountains'), 'yoo-IN-tuh')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Mount Timpanogos'), 'tim-puh-NO-gus')).toBe(
+        true
+      );
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Sevier River'), 'suh-VEER')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Bonneville Salt Flats'), 'BON-uh-vil')).toBe(
+        true
+      );
+    });
+
+    it('should pronounce Utah national parks correctly', () => {
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Visit Zion'), 'ZY-un')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Escalante canyons'), 'es-kuh-LAN-tee')).toBe(
+        true
+      );
     });
   });
 
@@ -395,6 +462,98 @@ describe('SSML Pronunciation Dictionary', () => {
       expect(containsTextIgnoringSsml(tagTextWithSsml('From the UK'), 'U K')).toBe(true);
       expect(containsTextIgnoringSsml(tagTextWithSsml('The EU regulations'), 'E U')).toBe(true);
       expect(containsTextIgnoringSsml(tagTextWithSsml('UN resolution'), 'U N')).toBe(true);
+    });
+  });
+
+  // =========================================================================
+  // WESTERN US / WYOMING PLACE NAMES
+  // =========================================================================
+  describe('Western US Place Names', () => {
+    it('should pronounce Teton/Tetons correctly', () => {
+      expect(containsTextIgnoringSsml(tagTextWithSsml('The Tetons are beautiful'), 'Tee-ton')).toBe(
+        true
+      );
+      expect(
+        containsTextIgnoringSsml(
+          tagTextWithSsml('Visit Grand Teton National Park'),
+          'Grand Tee-ton'
+        )
+      ).toBe(true);
+    });
+
+    it('should pronounce Wyoming cities correctly', () => {
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Cheyenne is the capital'), 'shy-ann')).toBe(
+        true
+      );
+      expect(
+        containsTextIgnoringSsml(tagTextWithSsml('University of Laramie'), 'LAIR-uh-mee')
+      ).toBe(true);
+    });
+
+    it('should pronounce western geographic terms correctly', () => {
+      expect(containsTextIgnoringSsml(tagTextWithSsml('The Shoshone people'), 'sho-SHO-nee')).toBe(
+        true
+      );
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Fishing the Popo Agie'), 'po-PO-zhuh')).toBe(
+        true
+      );
+      expect(containsTextIgnoringSsml(tagTextWithSsml('The Absaroka Range'), 'ab-SORE-kuh')).toBe(
+        true
+      );
+    });
+
+    it('should pronounce Pacific Northwest places correctly', () => {
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Visit Yosemite'), 'yo-SEM-ih-tee')).toBe(
+        true
+      );
+      expect(
+        containsTextIgnoringSsml(tagTextWithSsml('Willamette Valley wines'), 'wih-LAM-et')
+      ).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Boise Idaho'), 'BOY-see')).toBe(true);
+    });
+  });
+
+  // =========================================================================
+  // PROGRAMMING TERMS
+  // =========================================================================
+  describe('Programming Terms', () => {
+    it('should pronounce interface acronyms correctly', () => {
+      expect(containsTextIgnoringSsml(tagTextWithSsml('The GUI is intuitive'), 'gooey')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Use the CLI'), 'C L I')).toBe(true);
+    });
+
+    it('should pronounce data formats correctly', () => {
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Write SQL queries'), 'sequel')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Parse the JSON'), 'jay-son')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('YAML config files'), 'yam-ul')).toBe(true);
+    });
+
+    it('should pronounce DevOps tools correctly', () => {
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Configure nginx'), 'engine-X')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Run sudo command'), 'soo-doo')).toBe(true);
+      expect(
+        containsTextIgnoringSsml(tagTextWithSsml('Deploy to Kubernetes'), 'koo-ber-NET-eez')
+      ).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Use k8s'), 'K eights')).toBe(true);
+    });
+
+    it('should pronounce cloud platforms correctly', () => {
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Deploy to AWS'), 'A W S')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Use GCP'), 'G C P')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Microsoft Azure'), 'AZH-ur')).toBe(true);
+    });
+
+    it('should pronounce web protocols correctly', () => {
+      expect(containsTextIgnoringSsml(tagTextWithSsml('HTTPS is secure'), 'H T T P S')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('SSH into the server'), 'S S H')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('REST API design'), 'rest')).toBe(true);
+    });
+
+    it('should pronounce development tools correctly', () => {
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Use an SDK'), 'S D K')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Open your IDE'), 'I D E')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Write OAuth'), 'oh-auth')).toBe(true);
+      expect(containsTextIgnoringSsml(tagTextWithSsml('Use GraphQL'), 'graf-Q-L')).toBe(true);
     });
   });
 

@@ -14,9 +14,13 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost } from '../utils/api.js';
 
 const log = createLogger('AccentSettingsUI');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -770,7 +774,7 @@ async function savePreference(): Promise<void> {
     log.info('Accent preference saved:', state.currentAccent);
 
     // Close after a short delay
-    setTimeout(() => {
+    trackedTimeout(() => {
       close();
     }, 2000);
   } catch (err) {
@@ -822,7 +826,7 @@ export function close(): void {
   document.removeEventListener('keydown', handleKeyDown);
 
   // Remove after animation
-  setTimeout(() => {
+  trackedTimeout(() => {
     if (modalContainer) {
       modalContainer.remove();
       modalContainer = null;
