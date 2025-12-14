@@ -3,14 +3,12 @@
     <!-- App identity -->
     <string name="app_name">Ferni</string>
     <string name="title_activity_main">Ferni</string>
-    <string name="package_name">com.sethdford.voiceai</string>
-    <string name="custom_url_scheme">com.sethdford.voiceai</string>
 
     <!-- App tagline -->
     <string name="app_tagline">Your AI life coach</string>
     <string name="app_description">Finally, someone who actually listens.</string>
 
-    <!-- Permission rationales (shown when requesting permissions) -->
+    <!-- Permission rationales -->
     <string name="permission_microphone_title">Microphone Access</string>
     <string name="permission_microphone_rationale">Ferni needs microphone access to have voice conversations with you.</string>
     <string name="permission_camera_title">Camera Access</string>

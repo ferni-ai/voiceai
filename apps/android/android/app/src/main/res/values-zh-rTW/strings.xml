@@ -1,0 +1,56 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <!-- App identity -->
+    <string name="app_name">Ferni</string>
+    <string name="title_activity_main">Ferni</string>
+
+    <!-- App tagline -->
+    <string name="app_tagline">您的AI人生教練</string>
+    <string name="app_description">終於，有人真正在傾聽。</string>
+
+    <!-- Permission rationales -->
+    <string name="permission_microphone_title">麥克風權限</string>
+    <string name="permission_microphone_rationale">Ferni需要麥克風權限來與您進行語音對話。</string>
+    <string name="permission_camera_title">相機權限</string>
+    <string name="permission_camera_rationale">相機權限可啟用視訊通話和文件掃描功能。</string>
+    <string name="permission_bluetooth_title">藍牙權限</string>
+    <string name="permission_bluetooth_rationale">藍牙可讓Ferni與您的無線耳機配合使用。</string>
+    <string name="permission_notifications_title">通知</string>
+    <string name="permission_notifications_rationale">開啟通知以接收Ferni的簽到和提醒。</string>
+
+    <!-- Common actions -->
+    <string name="action_allow">允許</string>
+    <string name="action_deny">拒絕</string>
+    <string name="action_cancel">取消</string>
+    <string name="action_ok">確定</string>
+    <string name="action_settings">設定</string>
+    <string name="action_retry">重試</string>
+    <string name="action_continue">繼續</string>
+
+    <!-- Connection status -->
+    <string name="status_connecting">正在連接Ferni…</string>
+    <string name="status_connected">已連接</string>
+    <string name="status_disconnected">已斷開</string>
+    <string name="status_reconnecting">正在重新連接…</string>
+    <string name="status_offline">您已離線</string>
+
+    <!-- Error messages -->
+    <string name="error_no_internet">無網路連線。請檢查您的網路並重試。</string>
+    <string name="error_connection_failed">無法連接。請重試。</string>
+    <string name="error_microphone_unavailable">麥克風不可用。請檢查您的裝置設定。</string>
+    <string name="error_permission_denied">權限被拒絕。您可以在設定中啟用。</string>
+    <string name="error_generic">出了點問題。請重試。</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_conversations">對話</string>
+    <string name="notification_channel_conversations_desc">活躍語音對話通知</string>
+    <string name="notification_channel_reminders">提醒</string>
+    <string name="notification_channel_reminders_desc">Ferni的簽到和定時提醒</string>
+    <string name="notification_active_call">語音對話進行中</string>
+    <string name="notification_tap_to_return">點擊返回對話</string>
+
+    <!-- WebView fallback -->
+    <string name="no_webview_text">此應用程式需要WebView才能運行</string>
+    <string name="webview_error_title">無法載入</string>
+    <string name="webview_error_message">載入應用程式時出現問題。請檢查您的網路連線。</string>
+</resources>

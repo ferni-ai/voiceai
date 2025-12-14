@@ -1,0 +1,28 @@
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ferni Orb Icon - Static for ICO conversion -->
+  <defs>
+    <!-- Orb gradient -->
+    <linearGradient id="orbGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="50%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+    <!-- Highlight -->
+    <radialGradient id="highlight" cx="35%" cy="30%" r="40%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.35)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="256" height="256" rx="48" fill="#F5F1E8"/>
+
+  <!-- Glow ring -->
+  <circle cx="128" cy="128" r="104" fill="none" stroke="#4a6741" stroke-width="4" opacity="0.25"/>
+
+  <!-- Main orb -->
+  <circle cx="128" cy="128" r="88" fill="url(#orbGrad)"/>
+
+  <!-- Highlight -->
+  <circle cx="128" cy="128" r="88" fill="url(#highlight)"/>
+</svg>

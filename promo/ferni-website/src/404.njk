@@ -1,7 +1,7 @@
 ---
 layout: layouts/story-brand.njk
-title: Page Not Found
-description: The page you're looking for doesn't exist. Let's get you back on track.
+title: "{{ 'errorPage.title' | t }}"
+description: "{{ 'errorPage.subtitle' | t }}"
 permalink: /404.html
 ---
 
@@ -9,7 +9,7 @@ permalink: /404.html
   <section class="section error-hero">
     <div class="container">
       <div class="error-hero__content">
-        
+
         {# Ferni Avatar - Looking confused/curious #}
         <div class="hero-ferni hero-ferni--confused" aria-hidden="true">
           <div class="hero-ferni__glow"></div>
@@ -19,33 +19,31 @@ permalink: /404.html
             <span class="hero-ferni__text">?</span>
           </div>
         </div>
-        
-        <h1 class="error-hero__headline">Lost in thought?</h1>
-        <p class="error-hero__subhead">
-          The page you're looking for doesn't exist. But that's okay—even the best journeys have unexpected turns.
-        </p>
-        
+
+        <h1 class="error-hero__headline">{{ 'errorPage.title' | t }}</h1>
+        <p class="error-hero__subhead">{{ 'errorPage.subtitle' | t }}</p>
+
         <div class="error-hero__cta">
-          <a href="/" class="btn btn--primary btn--lg">
-            Go Home
+          <a href="{{ '/' | localizeUrl }}" class="btn btn--primary btn--lg">
+            {{ 'errorPage.goHome' | t }}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </a>
           <a href="tel:{{ site.phoneRaw }}" class="btn btn--secondary btn--lg">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-            Talk to Ferni
+            {{ 'errorPage.callFerni' | t }}
           </a>
         </div>
-        
+
         <div class="error-hero__suggestions">
-          <p class="error-hero__suggestions-label">Maybe try one of these:</p>
+          <p class="error-hero__suggestions-label">{{ 'errorPage.suggestionsLabel' | t }}</p>
           <div class="error-hero__links">
-            <a href="/#team" class="error-hero__link">Meet the Team</a>
-            <a href="/#pricing" class="error-hero__link">View Pricing</a>
-            <a href="/#faq" class="error-hero__link">Read FAQs</a>
-            <a href="/blog/" class="error-hero__link">Read Blog</a>
+            <a href="{{ '/#team' | localizeUrl }}" class="error-hero__link">{{ 'errorPage.meetTeam' | t }}</a>
+            <a href="{{ '/#pricing' | localizeUrl }}" class="error-hero__link">{{ 'errorPage.viewPricing' | t }}</a>
+            <a href="{{ '/#faq' | localizeUrl }}" class="error-hero__link">{{ 'errorPage.readFaq' | t }}</a>
+            <a href="{{ '/blog/' | localizeUrl }}" class="error-hero__link">{{ 'errorPage.readBlog' | t }}</a>
           </div>
         </div>
-        
+
       </div>
     </div>
   </section>
@@ -147,11 +145,11 @@ permalink: /404.html
   .error-hero__headline {
     font-size: var(--text-h1);
   }
-  
+
   .error-hero__cta {
     flex-direction: column;
   }
-  
+
   .error-hero__links {
     flex-direction: column;
     gap: var(--space-3);

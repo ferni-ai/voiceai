@@ -72,7 +72,8 @@ export type ToolDomain =
   | 'timeless-perspective' // Wisdom from history, philosophy, and long-term thinking
   | 'workflow-mastery' // Workflow optimization, process improvement, efficiency
   | 'habit-persistence' // Habit tracking persistence and behavioral insights
-  | 'milestone-mastery'; // Milestone tracking and achievement recognition
+  | 'milestone-mastery' // Milestone tracking and achievement recognition
+  | 'developer'; // Developer tools for debugging and testing
 
 /**
  * All available tool domains
@@ -130,6 +131,7 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'workflow-mastery',
   'habit-persistence',
   'milestone-mastery',
+  'developer',
 ] as const;
 
 // ============================================================================
@@ -205,6 +207,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   'workflow-mastery': 'productivity', // Process optimization
   'habit-persistence': 'lifestyle', // Habit tracking persistence
   'milestone-mastery': 'lifestyle', // Achievement tracking
+  developer: 'information', // Developer tools
 };
 
 // ============================================================================

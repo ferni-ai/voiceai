@@ -1,0 +1,56 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <!-- App identity -->
+    <string name="app_name">Ferni</string>
+    <string name="title_activity_main">Ferni</string>
+
+    <!-- App tagline -->
+    <string name="app_tagline">Votre coach de vie IA</string>
+    <string name="app_description">Enfin, quelqu\'un qui écoute vraiment.</string>
+
+    <!-- Permission rationales -->
+    <string name="permission_microphone_title">Accès au microphone</string>
+    <string name="permission_microphone_rationale">Ferni a besoin d\'accéder au microphone pour avoir des conversations vocales avec vous.</string>
+    <string name="permission_camera_title">Accès à la caméra</string>
+    <string name="permission_camera_rationale">L\'accès à la caméra permet les conversations vidéo et la numérisation de documents.</string>
+    <string name="permission_bluetooth_title">Accès Bluetooth</string>
+    <string name="permission_bluetooth_rationale">Le Bluetooth permet à Ferni de fonctionner avec vos écouteurs sans fil.</string>
+    <string name="permission_notifications_title">Notifications</string>
+    <string name="permission_notifications_rationale">Activez les notifications pour recevoir des suivis et des rappels de Ferni.</string>
+
+    <!-- Common actions -->
+    <string name="action_allow">Autoriser</string>
+    <string name="action_deny">Refuser</string>
+    <string name="action_cancel">Annuler</string>
+    <string name="action_ok">OK</string>
+    <string name="action_settings">Paramètres</string>
+    <string name="action_retry">Réessayer</string>
+    <string name="action_continue">Continuer</string>
+
+    <!-- Connection status -->
+    <string name="status_connecting">Connexion à Ferni…</string>
+    <string name="status_connected">Connecté</string>
+    <string name="status_disconnected">Déconnecté</string>
+    <string name="status_reconnecting">Reconnexion…</string>
+    <string name="status_offline">Vous êtes hors ligne</string>
+
+    <!-- Error messages -->
+    <string name="error_no_internet">Pas de connexion internet. Veuillez vérifier votre connexion et réessayer.</string>
+    <string name="error_connection_failed">Impossible de se connecter. Veuillez réessayer.</string>
+    <string name="error_microphone_unavailable">Le microphone n\'est pas disponible. Veuillez vérifier les paramètres de votre appareil.</string>
+    <string name="error_permission_denied">Permission refusée. Vous pouvez l\'activer dans les Paramètres.</string>
+    <string name="error_generic">Une erreur s\'est produite. Veuillez réessayer.</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_conversations">Conversations</string>
+    <string name="notification_channel_conversations_desc">Notifications de conversations vocales actives</string>
+    <string name="notification_channel_reminders">Rappels</string>
+    <string name="notification_channel_reminders_desc">Suivis et rappels programmés de Ferni</string>
+    <string name="notification_active_call">Conversation vocale en cours</string>
+    <string name="notification_tap_to_return">Appuyez pour revenir à la conversation</string>
+
+    <!-- WebView fallback -->
+    <string name="no_webview_text">Cette application nécessite WebView pour fonctionner</string>
+    <string name="webview_error_title">Impossible de charger</string>
+    <string name="webview_error_message">Un problème est survenu lors du chargement de l\'application. Veuillez vérifier votre connexion internet.</string>
+</resources>
