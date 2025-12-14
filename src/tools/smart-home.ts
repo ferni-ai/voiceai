@@ -78,7 +78,7 @@ async function homeAssistantRequest<T = unknown>(
   }
 
   const haClient = getHomeAssistantClient();
-  
+
   // Check circuit health - fail fast if Home Assistant is down
   if (!haClient.isHealthy()) {
     getLogger().debug('Home Assistant circuit is open, skipping request');
@@ -86,12 +86,12 @@ async function homeAssistantRequest<T = unknown>(
   }
 
   const url = `${HOME_ASSISTANT_URL}/api/${endpoint}`;
-  
+
   if (method === 'POST') {
     const { data, error } = await haClient.post<T>(url, body, {
       headers: { Authorization: `Bearer ${HOME_ASSISTANT_TOKEN}` },
     });
-    
+
     if (error) {
       getLogger().warn({ endpoint, error: error.message }, 'Home Assistant request failed');
       return null;
@@ -101,7 +101,7 @@ async function homeAssistantRequest<T = unknown>(
     const { data, error } = await haClient.get<T>(url, {
       headers: { Authorization: `Bearer ${HOME_ASSISTANT_TOKEN}` },
     });
-    
+
     if (error) {
       getLogger().warn({ endpoint, error: error.message }, 'Home Assistant request failed');
       return null;
@@ -111,15 +111,15 @@ async function homeAssistantRequest<T = unknown>(
 }
 
 // Type for Home Assistant states response
-type HomeAssistantState = {
+interface HomeAssistantState {
   entity_id?: string;
   attributes?: { friendly_name?: string; [key: string]: unknown };
   state?: string;
-};
+}
 
 async function getHomeAssistantDevices(): Promise<SmartDevice[]> {
   const states = await homeAssistantRequest<HomeAssistantState[]>('states');
-  
+
   if (!states) {
     return [];
   }
@@ -164,7 +164,7 @@ async function callHomeAssistantService(
     entity_id: entityId,
     ...data,
   });
-  
+
   return result !== null;
 }
 
@@ -187,7 +187,7 @@ async function getHueLights(): Promise<SmartDevice[]> {
   }
 
   const hueClient = getHueClient();
-  
+
   // Check circuit health
   if (!hueClient.isHealthy()) {
     getLogger().debug('Hue circuit is open, skipping request');
@@ -220,7 +220,7 @@ async function setHueLight(lightId: string, on: boolean, brightness?: number): P
   }
 
   const hueClient = getHueClient();
-  
+
   if (!hueClient.isHealthy()) {
     getLogger().debug('Hue circuit is open, cannot control light');
     return false;
@@ -248,12 +248,12 @@ async function setHueLight(lightId: string, on: boolean, brightness?: number): P
 // ============================================================================
 
 // Type for LIFX lights response
-type LifxLight = {
+interface LifxLight {
   id?: string;
   label?: string;
   power?: string;
   brightness?: number;
-};
+}
 
 async function getLifxLights(): Promise<SmartDevice[]> {
   if (!LIFX_TOKEN) {
@@ -261,7 +261,7 @@ async function getLifxLights(): Promise<SmartDevice[]> {
   }
 
   const lifxClient = getLifxClient();
-  
+
   // Check circuit health
   if (!lifxClient.isHealthy()) {
     getLogger().debug('LIFX circuit is open, skipping request');
@@ -300,7 +300,7 @@ async function setLifxLight(
   }
 
   const lifxClient = getLifxClient();
-  
+
   if (!lifxClient.isHealthy()) {
     getLogger().debug('LIFX circuit is open, cannot control light');
     return false;
@@ -407,7 +407,8 @@ export async function controlDevice(
 
     case 'lifx':
       if (device.type === 'light') {
-        const lifxPower = action === 'on' || action === 'set' ? 'on' : action === 'off' ? 'off' : undefined;
+        const lifxPower =
+          action === 'on' || action === 'set' ? 'on' : action === 'off' ? 'off' : undefined;
         success = await setLifxLight(
           device.id,
           lifxPower,

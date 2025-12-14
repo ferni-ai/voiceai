@@ -951,10 +951,7 @@ export class PredictiveAnticipationEngine {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 // Note: This uses userId as key for cross-session learning when available
 const predictiveAnticipationRegistry = createSessionRegistry(

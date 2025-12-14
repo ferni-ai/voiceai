@@ -591,10 +591,7 @@ export class EmotionalAftercareEngine {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const emotionalAftercareRegistry = createSessionRegistry(
   (sessionId: string) => new EmotionalAftercareEngine(),

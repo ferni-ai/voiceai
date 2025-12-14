@@ -580,9 +580,7 @@ export async function notifyDDoSAlert(details: DDoSAlertDetails): Promise<boolea
       topIps: topIpsText,
       topEndpoints: topEndpointsText,
     },
-    actionUrl: process.env.DASHBOARD_URL
-      ? `${process.env.DASHBOARD_URL}/security`
-      : undefined,
+    actionUrl: process.env.DASHBOARD_URL ? `${process.env.DASHBOARD_URL}/security` : undefined,
     actionText: 'View Security Dashboard',
   });
 }

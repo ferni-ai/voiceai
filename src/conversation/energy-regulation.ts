@@ -573,10 +573,7 @@ export class EnergyRegulationEngine {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const energyRegulationRegistry = createSessionRegistry(
   (sessionId: string) => new EnergyRegulationEngine(),

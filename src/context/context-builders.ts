@@ -271,9 +271,7 @@ export function buildSharedContent(
   let daysSinceLastContact: number | undefined;
   if (userProfile?.lastContact) {
     const lastContact = new Date(userProfile.lastContact);
-    daysSinceLastContact = Math.floor(
-      (Date.now() - lastContact.getTime()) / (1000 * 60 * 60 * 24)
-    );
+    daysSinceLastContact = Math.floor((Date.now() - lastContact.getTime()) / (1000 * 60 * 60 * 24));
   }
 
   // Build active life events

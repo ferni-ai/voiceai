@@ -1,9 +1,9 @@
 /**
  * Worker Server
- * 
+ *
  * HTTP server wrapper for background workers running as Cloud Run services.
  * Provides health checks and graceful shutdown handling.
- * 
+ *
  * Usage:
  *   WORKER_TYPE=trust node dist/workers/server.js
  *   WORKER_TYPE=analytics node dist/workers/server.js
@@ -11,8 +11,8 @@
 
 import { createServer, type IncomingMessage, type ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
-import { 
-  startTrustWorker, 
+import {
+  startTrustWorker,
   startAnalyticsWorker,
   getTrustWorker,
   getAnalyticsWorker,
@@ -51,7 +51,7 @@ let workerStarted = false;
 
 function getHealthResponse(): HealthResponse {
   let stats;
-  
+
   try {
     if (WORKER_TYPE === 'trust') {
       stats = getTrustWorker().getStats();
@@ -65,14 +65,16 @@ function getHealthResponse(): HealthResponse {
         messagesReceived: trustStats.messagesReceived + analyticsStats.messagesReceived,
         messagesProcessed: trustStats.messagesProcessed + analyticsStats.messagesProcessed,
         messagesFailed: trustStats.messagesFailed + analyticsStats.messagesFailed,
-        averageProcessingMs: (trustStats.averageProcessingMs + analyticsStats.averageProcessingMs) / 2,
-        lastProcessedAt: Math.max(trustStats.lastProcessedAt || 0, analyticsStats.lastProcessedAt || 0) || null,
+        averageProcessingMs:
+          (trustStats.averageProcessingMs + analyticsStats.averageProcessingMs) / 2,
+        lastProcessedAt:
+          Math.max(trustStats.lastProcessedAt || 0, analyticsStats.lastProcessedAt || 0) || null,
       };
     }
   } catch {
     // Worker not started yet
   }
-  
+
   return {
     status: workerStarted ? 'healthy' : 'unhealthy',
     worker: WORKER_TYPE,
@@ -83,14 +85,14 @@ function getHealthResponse(): HealthResponse {
 
 function handleRequest(req: IncomingMessage, res: ServerResponse): void {
   const url = req.url || '/';
-  
+
   if (url === '/health' || url === '/healthz') {
     const health = getHealthResponse();
     res.writeHead(health.status === 'healthy' ? 200 : 503, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(health));
     return;
   }
-  
+
   if (url === '/ready' || url === '/readyz') {
     if (workerStarted) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -101,14 +103,14 @@ function handleRequest(req: IncomingMessage, res: ServerResponse): void {
     }
     return;
   }
-  
+
   if (url === '/stats') {
     const health = getHealthResponse();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(health.stats || {}));
     return;
   }
-  
+
   // 404 for everything else
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Not found' }));
@@ -120,12 +122,12 @@ function handleRequest(req: IncomingMessage, res: ServerResponse): void {
 
 async function main(): Promise<void> {
   startTime = Date.now();
-  
+
   log.info({ workerType: WORKER_TYPE, port: PORT }, 'Starting worker server');
-  
+
   // Create HTTP server for health checks
   const server = createServer(handleRequest);
-  
+
   // Start HTTP server
   await new Promise<void>((resolve) => {
     server.listen(PORT, () => {
@@ -133,7 +135,7 @@ async function main(): Promise<void> {
       resolve();
     });
   });
-  
+
   // Start the appropriate worker
   try {
     switch (WORKER_TYPE) {
@@ -141,46 +143,46 @@ async function main(): Promise<void> {
         await startTrustWorker();
         log.info('Trust worker started');
         break;
-        
+
       case 'analytics':
         await startAnalyticsWorker();
         log.info('Analytics worker started');
         break;
-        
+
       case 'all':
       default:
         await startAllWorkers();
         log.info('All workers started');
         break;
     }
-    
+
     workerStarted = true;
     log.info({ workerType: WORKER_TYPE, startupMs: Date.now() - startTime }, 'Worker ready');
   } catch (error) {
     log.error({ error: String(error) }, 'Worker startup failed');
     process.exit(1);
   }
-  
+
   // ============================================================================
   // GRACEFUL SHUTDOWN
   // ============================================================================
-  
+
   const shutdown = async (signal: string): Promise<void> => {
     log.info({ signal }, 'Received shutdown signal');
-    
+
     // Stop accepting new connections
     server.close();
-    
+
     // Stop workers
     await stopAllWorkers();
-    
+
     log.info('Shutdown complete');
     process.exit(0);
   };
-  
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
-  process.on('SIGINT', () => shutdown('SIGINT'));
-  
+
+  process.on('SIGTERM', async () => shutdown('SIGTERM'));
+  process.on('SIGINT', async () => shutdown('SIGINT'));
+
   // Keep alive
   log.info('Worker server running. Press Ctrl+C to stop.');
 }
@@ -190,4 +192,3 @@ main().catch((error) => {
   log.error({ error: String(error) }, 'Fatal error');
   process.exit(1);
 });
-

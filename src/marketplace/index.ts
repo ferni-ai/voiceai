@@ -19,7 +19,7 @@
  */
 
 // Schema exports
-export * from './schema/index.js';
+export type * from './schema/index.js';
 
 // Executor exports
 export {

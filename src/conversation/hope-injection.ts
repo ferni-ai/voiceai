@@ -617,10 +617,7 @@ export class HopeInjectionEngine {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const hopeInjectionRegistry = createSessionRegistry(
   (sessionId: string) => new HopeInjectionEngine(),

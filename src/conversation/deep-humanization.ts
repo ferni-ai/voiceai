@@ -863,7 +863,9 @@ export class DeepHumanizationEngine {
       const movedContent = content.moved as { reactions?: string[] };
       phrases = movedContent.reactions || [];
     } else if (
-      context.userMessage.match(/\b(finally|for the first time|i did it|it worked|managed to|succeeded)\b/i) &&
+      context.userMessage.match(
+        /\b(finally|for the first time|i did it|it worked|managed to|succeeded)\b/i
+      ) &&
       content.delight
     ) {
       reactionType = 'delight';
@@ -894,7 +896,8 @@ export class DeepHumanizationEngine {
     if (!reactionType || phrases.length === 0) return null;
 
     // Increased probability: 55% for surprise/moved (strong triggers), 45% for others
-    const probability = (reactionType === 'genuine_surprise' || reactionType === 'moved') ? 0.55 : 0.45;
+    const probability =
+      reactionType === 'genuine_surprise' || reactionType === 'moved' ? 0.55 : 0.45;
     if (Math.random() > probability) return null;
 
     this.recordInjection('live_reaction');

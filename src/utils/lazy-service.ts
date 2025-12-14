@@ -98,8 +98,11 @@ export const lazyServices = {
    * Only used when someone visits the marketing site
    */
   landingIntelligence: lazyService(
-    () => import('../services/landing-intelligence/index.js'),
-    { name: 'landing-intelligence', preloadDelay: 30000 }
+    async () => import('../services/landing-intelligence/index.js'),
+    {
+      name: 'landing-intelligence',
+      preloadDelay: 30000,
+    }
   ),
 
   /**
@@ -107,35 +110,37 @@ export const lazyServices = {
    * Only used for research-related queries
    */
   scientificKnowledge: lazyService(
-    () => import('../services/scientific-knowledge/index.js'),
-    { name: 'scientific-knowledge' }
+    async () => import('../services/scientific-knowledge/index.js'),
+    {
+      name: 'scientific-knowledge',
+    }
   ),
 
   /**
    * Predictive insights engine
    * Only used for analytics dashboards
    */
-  predictiveInsights: lazyService(
-    () => import('../services/predictive-insights/index.js'),
-    { name: 'predictive-insights' }
-  ),
+  predictiveInsights: lazyService(async () => import('../services/predictive-insights/index.js'), {
+    name: 'predictive-insights',
+  }),
 
   /**
    * Wisdom synthesis service
    * Only used for wisdom aggregation jobs
    */
-  wisdomSynthesis: lazyService(
-    () => import('../services/wisdom-synthesis/index.js'),
-    { name: 'wisdom-synthesis' }
-  ),
+  wisdomSynthesis: lazyService(async () => import('../services/wisdom-synthesis/index.js'), {
+    name: 'wisdom-synthesis',
+  }),
 
   /**
    * Behavioral economics patterns
    * Only used for nudge recommendations
    */
   behavioralEconomics: lazyService(
-    () => import('../services/behavioral-economics/index.js'),
-    { name: 'behavioral-economics' }
+    async () => import('../services/behavioral-economics/index.js'),
+    {
+      name: 'behavioral-economics',
+    }
   ),
 
   /**
@@ -143,10 +148,11 @@ export const lazyServices = {
    * Only used for wellness coaching
    */
   somaticIntelligence: lazyService(
-    () => import('../services/somatic-intelligence/index.js'),
-    { name: 'somatic-intelligence' }
+    async () => import('../services/somatic-intelligence/index.js'),
+    {
+      name: 'somatic-intelligence',
+    }
   ),
 };
 
 export type LazyServices = typeof lazyServices;
-

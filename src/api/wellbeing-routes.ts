@@ -800,13 +800,12 @@ function calculateCorrelation(x: number[], y: number[]): number {
 // ============================================================================
 
 export function registerWellbeingRoutes(router: Router): void {
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
   router.get('/api/wellbeing/dashboard', getDashboard);
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
+
   router.get('/api/wellbeing/trends', getTrends);
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
+
   router.get('/api/wellbeing/insights', getInsights);
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
+
   router.post('/api/wellbeing/snapshot', postSnapshot);
 
   log.info('Wellbeing routes registered');

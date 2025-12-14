@@ -548,10 +548,7 @@ export class WordTimingRhythmService {
 // SINGLETON MANAGEMENT
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const wordTimingRegistry = createSessionRegistry(
   (sessionId: string) => new WordTimingRhythmService(sessionId),

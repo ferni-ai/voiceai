@@ -177,26 +177,36 @@ function extractDates(turns: ConversationTurn[], context: ExtractionContext): Im
 function isLikelyDateText(text: string): boolean {
   if (!text) return false;
   const lower = text.toLowerCase();
-  
+
   // Month names
   const monthNames = [
-    'january', 'february', 'march', 'april', 'may', 'june',
-    'july', 'august', 'september', 'october', 'november', 'december',
+    'january',
+    'february',
+    'march',
+    'april',
+    'may',
+    'june',
+    'july',
+    'august',
+    'september',
+    'october',
+    'november',
+    'december',
   ];
-  
+
   // Check for month name (with optional day)
-  if (monthNames.some(m => lower.includes(m))) return true;
-  
+  if (monthNames.some((m) => lower.includes(m))) return true;
+
   // Check for year (4 digits in reasonable range)
   const yearMatch = text.match(/^(\d{4})$/);
   if (yearMatch) {
     const year = parseInt(yearMatch[1], 10);
     if (year >= 1900 && year <= 2100) return true;
   }
-  
+
   // Check for MM/DD or similar formats
   if (/\d+\/\d+/.test(text)) return true;
-  
+
   return false;
 }
 

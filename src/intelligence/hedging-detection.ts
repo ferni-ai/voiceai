@@ -446,10 +446,7 @@ export class HedgingDetector {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const hedgingDetectorRegistry = createSessionRegistry(
   (sessionId: string) => new HedgingDetector(),

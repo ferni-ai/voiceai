@@ -153,7 +153,7 @@ async function searchDoorDash(
   if (DOORDASH_API_KEY && DOORDASH_DEVELOPER_ID) {
     try {
       // DoorDash Drive API endpoint
-      const response = await doorDashCircuitBreaker.execute(() =>
+      const response = await doorDashCircuitBreaker.execute(async () =>
         fetch('https://openapi.doordash.com/drive/v2/stores', {
           headers: {
             Authorization: `Bearer ${DOORDASH_API_KEY}`,
@@ -228,7 +228,7 @@ async function createDoorDashDelivery(order: {
     // Create JWT for authentication
     const jwt = await createDoorDashJWT();
 
-    const response = await doorDashCircuitBreaker.execute(() =>
+    const response = await doorDashCircuitBreaker.execute(async () =>
       fetch('https://openapi.doordash.com/drive/v2/deliveries', {
         method: 'POST',
         headers: {
@@ -341,7 +341,7 @@ async function getUberToken(): Promise<string | null> {
   }
 
   try {
-    const response = await uberCircuitBreaker.execute(() =>
+    const response = await uberCircuitBreaker.execute(async () =>
       fetch('https://login.uber.com/oauth/v2/token', {
         method: 'POST',
         headers: {

@@ -279,12 +279,7 @@ describe('Marketplace Billing System', () => {
     });
 
     it('should handle zero revenue', () => {
-      const share = calculateRevenueShare(
-        'tool-abc',
-        'publisher-123',
-        '2024-01',
-        0
-      );
+      const share = calculateRevenueShare('tool-abc', 'publisher-123', '2024-01', 0);
 
       expect(share.grossRevenueCents).toBe(0);
       expect(share.platformFeeCents).toBe(0);
@@ -313,7 +308,7 @@ describe('Marketplace Billing System', () => {
       const payouts = getPendingPayouts('publisher-123');
 
       expect(payouts).toHaveLength(2);
-      expect(payouts.every(p => p.publisherId === 'publisher-123')).toBe(true);
+      expect(payouts.every((p) => p.publisherId === 'publisher-123')).toBe(true);
     });
 
     it('should return empty array for publisher with no payouts', () => {
@@ -343,7 +338,7 @@ describe('Marketplace Billing System', () => {
       const history = getUsageHistory('user-123');
 
       expect(history).toHaveLength(2);
-      expect(history.every(r => r.userId === 'user-123')).toBe(true);
+      expect(history.every((r) => r.userId === 'user-123')).toBe(true);
     });
 
     it('should filter by item ID', () => {

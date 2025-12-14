@@ -573,10 +573,7 @@ export class NarrativeArcTracker {
 // SESSION REGISTRY
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 /**
  * Session registry for narrative arc trackers.

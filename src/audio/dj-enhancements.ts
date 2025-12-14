@@ -521,14 +521,20 @@ export class ThinkingMusicController {
     };
 
     // Register the listener
-    player.on('stateChange', this.stateChangeListener as (state: string, track: unknown, isAmbient: boolean) => void);
+    player.on(
+      'stateChange',
+      this.stateChangeListener as (state: string, track: unknown, isAmbient: boolean) => void
+    );
   }
 
   private clearStateChangeListener(): void {
     if (this.stateChangeListener) {
       try {
         const player = getMusicPlayer();
-        player.off('stateChange', this.stateChangeListener as (state: string, track: unknown, isAmbient: boolean) => void);
+        player.off(
+          'stateChange',
+          this.stateChangeListener as (state: string, track: unknown, isAmbient: boolean) => void
+        );
       } catch {
         // Player might not be initialized
       }

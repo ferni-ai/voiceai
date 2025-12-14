@@ -576,10 +576,7 @@ export function decidePreemptiveGeneration(
 // SINGLETON MANAGEMENT
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const turnPredictionRegistry = createSessionRegistry(
   (sessionId: string) => new TurnPredictionService(),

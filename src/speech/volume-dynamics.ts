@@ -443,10 +443,7 @@ export class VolumeDynamicsTracker {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const volumeDynamicsRegistry = createSessionRegistry(
   (sessionId: string) => new VolumeDynamicsTracker(),

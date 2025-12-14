@@ -658,16 +658,16 @@ export class SessionIntelligenceOrchestrator {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 // Note: Uses composite key sessionId:userId for user-scoped intelligence
 const sessionIntelligenceRegistry = createSessionRegistry(
   (key: string) => {
     const [sessionId, userId] = key.split(':');
-    return new SessionIntelligenceOrchestrator(sessionId, userId === 'anonymous' ? undefined : userId);
+    return new SessionIntelligenceOrchestrator(
+      sessionId,
+      userId === 'anonymous' ? undefined : userId
+    );
   },
   { name: 'SessionIntelligence', cleanup: (orchestrator) => orchestrator.reset(), verbose: false }
 );

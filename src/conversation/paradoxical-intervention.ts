@@ -530,10 +530,7 @@ export class ParadoxicalInterventionEngine {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const paradoxicalInterventionRegistry = createSessionRegistry(
   (sessionId: string) => new ParadoxicalInterventionEngine(),

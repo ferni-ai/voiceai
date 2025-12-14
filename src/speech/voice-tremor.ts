@@ -520,10 +520,7 @@ export class VoiceTremorDetector {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const voiceTremorRegistry = createSessionRegistry(
   (sessionId: string) => new VoiceTremorDetector(),

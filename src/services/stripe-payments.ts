@@ -156,7 +156,7 @@ export async function createPaymentIntent(params: {
     journey_companion: 'Season Companion - Support your journey',
   };
 
-  const paymentIntent = await stripeCircuitBreaker.execute(() =>
+  const paymentIntent = await stripeCircuitBreaker.execute(async () =>
     stripe.paymentIntents.create({
       amount: amountCents,
       currency: 'usd',
@@ -198,7 +198,7 @@ export async function verifyPayment(paymentIntentId: string): Promise<{
   userId: string;
 }> {
   const stripe = await getStripe();
-  const paymentIntent = await stripeCircuitBreaker.execute(() =>
+  const paymentIntent = await stripeCircuitBreaker.execute(async () =>
     stripe.paymentIntents.retrieve(paymentIntentId)
   );
 

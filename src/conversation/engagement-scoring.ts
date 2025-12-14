@@ -508,10 +508,7 @@ export class EngagementScorer {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const engagementScorerRegistry = createSessionRegistry(
   (sessionId: string) => new EngagementScorer(),

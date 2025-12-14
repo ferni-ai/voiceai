@@ -25,11 +25,7 @@ import {
   listAgents,
   getExecutionHistory,
 } from '../marketplace/index.js';
-import type {
-  ToolManifest,
-  AgentManifest,
-  TrustLevel,
-} from '../marketplace/schema/types.js';
+import type { ToolManifest, AgentManifest, TrustLevel } from '../marketplace/schema/types.js';
 
 const log = getLogger().child({ module: 'publisher-api' });
 
@@ -197,7 +193,7 @@ export function registerPublisherRoutes(app: Express): void {
     '/api/marketplace/publisher/submit',
     requirePublisher,
     async (req: Request, res: Response) => {
-      const publisher = (req as Request & { publisher: PublisherSession }).publisher;
+      const { publisher } = req as Request & { publisher: PublisherSession };
       const body = req.body as SubmissionRequest;
 
       log.info({ publisherId: publisher.publisherId, type: body.type }, 'Submission received');
@@ -266,7 +262,7 @@ export function registerPublisherRoutes(app: Express): void {
     '/api/marketplace/publisher/:id',
     requirePublisher,
     async (req: Request, res: Response) => {
-      const publisher = (req as Request & { publisher: PublisherSession }).publisher;
+      const { publisher } = req as Request & { publisher: PublisherSession };
       const { id } = req.params;
       const body = req.body as { type: 'tool' | 'agent'; manifest: ToolManifest | AgentManifest };
 
@@ -324,11 +320,11 @@ export function registerPublisherRoutes(app: Express): void {
     '/api/marketplace/publisher/items',
     requirePublisher,
     async (req: Request, res: Response) => {
-      const publisher = (req as Request & { publisher: PublisherSession }).publisher;
+      const { publisher } = req as Request & { publisher: PublisherSession };
       const { type } = req.query;
 
       try {
-        let items: Array<ToolManifest | AgentManifest> = [];
+        const items: Array<ToolManifest | AgentManifest> = [];
 
         if (!type || type === 'tool') {
           const tools = listTools().filter((t) => t.publisher.id === publisher.publisherId);
@@ -366,7 +362,7 @@ export function registerPublisherRoutes(app: Express): void {
     '/api/marketplace/publisher/:id/analytics',
     requirePublisher,
     async (req: Request, res: Response) => {
-      const publisher = (req as Request & { publisher: PublisherSession }).publisher;
+      const { publisher } = req as Request & { publisher: PublisherSession };
       const { id } = req.params;
       const { period = '30d' } = req.query;
 
@@ -456,7 +452,7 @@ export function registerPublisherRoutes(app: Express): void {
     '/api/marketplace/publisher/:id',
     requirePublisher,
     async (req: Request, res: Response) => {
-      const publisher = (req as Request & { publisher: PublisherSession }).publisher;
+      const { publisher } = req as Request & { publisher: PublisherSession };
       const { id } = req.params;
 
       try {
@@ -481,7 +477,8 @@ export function registerPublisherRoutes(app: Express): void {
 
         res.json({
           success: true,
-          message: 'Item scheduled for removal. Existing installations will continue to work for 30 days.',
+          message:
+            'Item scheduled for removal. Existing installations will continue to work for 30 days.',
         });
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
@@ -497,7 +494,7 @@ export function registerPublisherRoutes(app: Express): void {
     '/api/marketplace/publisher/profile',
     requirePublisher,
     async (req: Request, res: Response) => {
-      const publisher = (req as Request & { publisher: PublisherSession }).publisher;
+      const { publisher } = req as Request & { publisher: PublisherSession };
 
       try {
         const tools = listTools().filter((t) => t.publisher.id === publisher.publisherId);

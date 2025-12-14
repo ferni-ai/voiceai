@@ -773,11 +773,8 @@ export class AgentEvolutionEngine {
   recordToolUsage(personaId: string, toolName: string, success: boolean): void {
     const state = this.getOrCreateState(personaId);
     // Simple recording - can be enhanced later for more detailed tracking
-    getLogger().debug(
-      { personaId, toolName, success },
-      'Tool usage recorded'
-    );
-    
+    getLogger().debug({ personaId, toolName, success }, 'Tool usage recorded');
+
     // State is accessed, no need to track timestamp as it's not in the interface
   }
 
@@ -789,10 +786,7 @@ export class AgentEvolutionEngine {
     personaId: string,
     pattern: { type: string; context: string; success: boolean }
   ): void {
-    getLogger().debug(
-      { personaId, pattern },
-      'Pattern recorded for evolution tracking'
-    );
+    getLogger().debug({ personaId, pattern }, 'Pattern recorded for evolution tracking');
   }
 
   // ==========================================================================

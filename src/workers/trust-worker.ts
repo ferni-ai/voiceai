@@ -34,10 +34,7 @@ import {
   generateCelebration,
 } from '../services/trust-systems/small-wins.js';
 import { getDueMoments } from '../services/trust-systems/thinking-of-you.js';
-import {
-  saveTrustProfiles,
-  periodicSync,
-} from '../services/trust-systems/persistence.js';
+import { saveTrustProfiles, periodicSync } from '../services/trust-systems/persistence.js';
 
 // ============================================================================
 // TRUST WORKER

@@ -486,10 +486,7 @@ export class EnergyDynamicsTracker {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const energyDynamicsRegistry = createSessionRegistry(
   (sessionId: string) => new EnergyDynamicsTracker(),

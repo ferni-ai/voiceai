@@ -576,10 +576,7 @@ export class SubtextDetectionEngine {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const subtextDetectionRegistry = createSessionRegistry(
   (sessionId: string) => new SubtextDetectionEngine(),

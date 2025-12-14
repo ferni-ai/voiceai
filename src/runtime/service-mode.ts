@@ -83,55 +83,55 @@ export interface ToolExecutionResult {
 // ============================================================================
 
 export interface IToolService {
-  execute(
+  execute: (
     toolId: string,
     parameters: Record<string, unknown>,
     context: ToolExecutionContext
-  ): Promise<ToolExecutionResult>;
+  ) => Promise<ToolExecutionResult>;
 
-  listTools(
+  listTools: (
     agentId: string,
     subscriptionTier: string
-  ): Promise<Array<{ id: string; name: string; description: string; domain: string }>>;
+  ) => Promise<Array<{ id: string; name: string; description: string; domain: string }>>;
 
-  health(): Promise<{ healthy: boolean; latencyMs: number }>;
+  health: () => Promise<{ healthy: boolean; latencyMs: number }>;
 }
 
 export interface IPersonaService {
-  getSystemPrompt(params: {
+  getSystemPrompt: (params: {
     personaId: string;
     userId: string;
     conversationHistory?: Array<{ role: string; content: string }>;
-  }): Promise<{
+  }) => Promise<{
     systemPrompt: string;
     greeting: string;
     voiceConfig: { provider: string; voiceId: string };
   }>;
 
-  getPersona(personaId: string): Promise<{
+  getPersona: (personaId: string) => Promise<{
     id: string;
     name: string;
     description: string;
     capabilities: string[];
   } | null>;
 
-  health(): Promise<{ healthy: boolean; latencyMs: number }>;
+  health: () => Promise<{ healthy: boolean; latencyMs: number }>;
 }
 
 export interface IMemoryService {
-  recall(
+  recall: (
     userId: string,
     query: string,
     options?: { limit?: number; threshold?: number }
-  ): Promise<Array<{ content: string; relevance: number; timestamp: number }>>;
+  ) => Promise<Array<{ content: string; relevance: number; timestamp: number }>>;
 
-  store(
+  store: (
     userId: string,
     content: string,
     metadata?: Record<string, unknown>
-  ): Promise<{ id: string }>;
+  ) => Promise<{ id: string }>;
 
-  health(): Promise<{ healthy: boolean; latencyMs: number }>;
+  health: () => Promise<{ healthy: boolean; latencyMs: number }>;
 }
 
 // ============================================================================
@@ -145,10 +145,10 @@ export interface IRuntime {
   readonly memory: IMemoryService;
 
   /** Graceful shutdown */
-  shutdown(): Promise<void>;
+  shutdown: () => Promise<void>;
 
   /** Health check all services */
-  health(): Promise<{
+  health: () => Promise<{
     overall: 'healthy' | 'degraded' | 'unhealthy';
     services: Record<string, { healthy: boolean; latencyMs: number }>;
   }>;
@@ -210,7 +210,9 @@ class LocalToolService implements IToolService {
         agentDisplayName: context.agentDisplayName,
         services: {
           has: () => false,
-          get: () => { throw new Error('Service not available'); },
+          get: () => {
+            throw new Error('Service not available');
+          },
           getOptional: () => undefined,
         },
       });
@@ -245,7 +247,10 @@ class LocalToolService implements IToolService {
     }
   }
 
-  async listTools(agentId: string, subscriptionTier: string): Promise<Array<{ id: string; name: string; description: string; domain: string }>> {
+  async listTools(
+    agentId: string,
+    subscriptionTier: string
+  ): Promise<Array<{ id: string; name: string; description: string; domain: string }>> {
     if (!this.initialized) {
       await this.initialize();
     }
@@ -274,7 +279,9 @@ class LocalToolService implements IToolService {
 
 class LocalPersonaService implements IPersonaService {
   private initialized = false;
-  private AgentRegistry: typeof import('../personas/registry/unified-registry.js').AgentRegistry | null = null;
+  private AgentRegistry:
+    | typeof import('../personas/registry/unified-registry.js').AgentRegistry
+    | null = null;
   private bundleLoader: typeof import('../personas/bundles/loader.js') | null = null;
 
   async initialize(): Promise<void> {
@@ -403,9 +410,10 @@ class LocalMemoryService implements IMemoryService {
     return results.map((r) => ({
       content: r.document.text,
       relevance: r.score,
-      timestamp: r.document.metadata?.timestamp instanceof Date
-        ? r.document.metadata.timestamp.getTime()
-        : Date.now(),
+      timestamp:
+        r.document.metadata?.timestamp instanceof Date
+          ? r.document.metadata.timestamp.getTime()
+          : Date.now(),
     }));
   }
 
@@ -495,7 +503,7 @@ class RemoteToolService implements IToolService {
         throw new Error(`HTTP ${response.status}: ${await response.text()}`);
       }
 
-      const result = await response.json() as {
+      const result = (await response.json()) as {
         status?: string;
         result?: { data?: Record<string, unknown>; summary?: string };
         error?: { code: string; message: string; userMessage: string; retryable: boolean };
@@ -537,7 +545,10 @@ class RemoteToolService implements IToolService {
     }
   }
 
-  async listTools(agentId: string, subscriptionTier: string): Promise<Array<{ id: string; name: string; description: string; domain: string }>> {
+  async listTools(
+    agentId: string,
+    subscriptionTier: string
+  ): Promise<Array<{ id: string; name: string; description: string; domain: string }>> {
     const response = await fetch(`${this.url}/ferni.tools.v1.ToolService/ListTools`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -547,7 +558,9 @@ class RemoteToolService implements IToolService {
       }),
     });
 
-    const result = await response.json() as { tools?: Array<{ id: string; name: string; description: string; domain: string }> };
+    const result = (await response.json()) as {
+      tools?: Array<{ id: string; name: string; description: string; domain: string }>;
+    };
     return result.tools || [];
   }
 
@@ -559,7 +572,7 @@ class RemoteToolService implements IToolService {
         headers: { 'Content-Type': 'application/json' },
         body: '{}',
       });
-      const result = await response.json() as { status?: string };
+      const result = (await response.json()) as { status?: string };
       return {
         healthy: result.status === 'SERVICE_HEALTH_HEALTHY',
         latencyMs: Date.now() - start,
@@ -683,7 +696,9 @@ class RemoteMemoryService implements IMemoryService {
       throw new Error(`HTTP ${response.status}: ${await response.text()}`);
     }
 
-    const result = await response.json() as { memories?: Array<{ content: string; relevance: number; timestamp: number }> };
+    const result = (await response.json()) as {
+      memories?: Array<{ content: string; relevance: number; timestamp: number }>;
+    };
     return result.memories || [];
   }
 
@@ -813,9 +828,15 @@ export async function createRuntime(config?: Partial<RuntimeConfig>): Promise<IR
   } else if (mode === 'remote') {
     // All services are remote
     const urls = config?.services || {};
-    tools = new RemoteToolService(urls.toolService || process.env.TOOL_SERVICE_URL || 'http://localhost:50051');
-    personas = new RemotePersonaService(urls.personaService || process.env.PERSONA_SERVICE_URL || 'http://localhost:50052');
-    memory = new RemoteMemoryService(urls.memoryService || process.env.MEMORY_SERVICE_URL || 'http://localhost:50053');
+    tools = new RemoteToolService(
+      urls.toolService || process.env.TOOL_SERVICE_URL || 'http://localhost:50051'
+    );
+    personas = new RemotePersonaService(
+      urls.personaService || process.env.PERSONA_SERVICE_URL || 'http://localhost:50052'
+    );
+    memory = new RemoteMemoryService(
+      urls.memoryService || process.env.MEMORY_SERVICE_URL || 'http://localhost:50053'
+    );
   } else {
     // Hybrid: mix of local and remote based on config
     const overrides = config?.localOverrides || {};
@@ -823,15 +844,21 @@ export async function createRuntime(config?: Partial<RuntimeConfig>): Promise<IR
 
     tools = overrides.tools
       ? new LocalToolService()
-      : new RemoteToolService(urls.toolService || process.env.TOOL_SERVICE_URL || 'http://localhost:50051');
+      : new RemoteToolService(
+          urls.toolService || process.env.TOOL_SERVICE_URL || 'http://localhost:50051'
+        );
 
     personas = overrides.personas
       ? new LocalPersonaService()
-      : new RemotePersonaService(urls.personaService || process.env.PERSONA_SERVICE_URL || 'http://localhost:50052');
+      : new RemotePersonaService(
+          urls.personaService || process.env.PERSONA_SERVICE_URL || 'http://localhost:50052'
+        );
 
     memory = overrides.memory
       ? new LocalMemoryService()
-      : new RemoteMemoryService(urls.memoryService || process.env.MEMORY_SERVICE_URL || 'http://localhost:50053');
+      : new RemoteMemoryService(
+          urls.memoryService || process.env.MEMORY_SERVICE_URL || 'http://localhost:50053'
+        );
   }
 
   const runtime = new Runtime(mode, tools, personas, memory);

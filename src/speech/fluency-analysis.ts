@@ -444,10 +444,7 @@ export class FluencyAnalyzer {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 const fluencyAnalyzerRegistry = createSessionRegistry(
   (sessionId: string) => new FluencyAnalyzer(),

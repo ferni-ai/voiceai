@@ -66,7 +66,11 @@ function createMockResponse(): ServerResponse & {
     _statusCode: 200,
     _headers: {} as Record<string, string>,
     _body: '',
-    writeHead: vi.fn(function (this: typeof res, statusCode: number, headers?: Record<string, string>) {
+    writeHead: vi.fn(function (
+      this: typeof res,
+      statusCode: number,
+      headers?: Record<string, string>
+    ) {
       this._statusCode = statusCode;
       if (headers) {
         Object.assign(this._headers, headers);
@@ -587,4 +591,3 @@ describe('DDoS Protection', () => {
     });
   });
 });
-

@@ -377,4 +377,3 @@ describe('Crossfade Timing Optimization', () => {
     expect(typeof player.crossfadeTo).toBe('function');
   });
 });
-

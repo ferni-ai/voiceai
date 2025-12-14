@@ -577,15 +577,13 @@ export class BreathDetector {
 // SINGLETON
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
-const breathDetectorRegistry = createSessionRegistry(
-  (sessionId: string) => new BreathDetector(),
-  { name: 'BreathDetector', cleanup: (detector) => detector.reset(), verbose: false }
-);
+const breathDetectorRegistry = createSessionRegistry((sessionId: string) => new BreathDetector(), {
+  name: 'BreathDetector',
+  cleanup: (detector) => detector.reset(),
+  verbose: false,
+});
 
 registerGlobalRegistry(breathDetectorRegistry);
 

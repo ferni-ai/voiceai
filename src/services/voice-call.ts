@@ -70,7 +70,7 @@ export async function generatePersonaVoice(
   const voiceId = getVoiceId(personaId);
 
   try {
-    const response = await cartesiaCircuitBreaker.execute(() =>
+    const response = await cartesiaCircuitBreaker.execute(async () =>
       fetch('https://api.cartesia.ai/tts/bytes', {
         method: 'POST',
         headers: {

@@ -24,13 +24,11 @@ export async function runVoiceAgentSession(ctx: JobContext): Promise<void> {
   try {
     // Import entry module on-demand (not preloaded to keep child lightweight)
     const { runFullVoiceAgentEntry } = await import('./voice-agent-entry.js');
-    
-    process.stderr.write(
-      `[voice-agent-session] Entry ready in ${Date.now() - startTime}ms\n`
-    );
-    
+
+    process.stderr.write(`[voice-agent-session] Entry ready in ${Date.now() - startTime}ms\n`);
+
     await runFullVoiceAgentEntry(ctx);
-    
+
     process.stderr.write(`[voice-agent-session] Session completed.\n`);
   } catch (error) {
     const errorMsg = error instanceof Error ? error.stack || error.message : String(error);

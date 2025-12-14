@@ -398,10 +398,7 @@ export class EmotionalContagionService {
 // SESSION REGISTRY
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../utils/session-registry.js';
 
 /**
  * Session registry for emotional contagion services.
