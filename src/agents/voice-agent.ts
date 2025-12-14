@@ -2431,6 +2431,11 @@ export default defineAgent({
       const defaultPersonaId = process.env.PERSONA_ID || 'ferni';
       let requestedPersonaId = defaultPersonaId;
 
+      // 🎯 "Better than human" - Claimed demo conversation (if user came from landing page)
+      let claimedDemoConversation:
+        | { highlights: string[]; topics: string[]; userMood: string | null; ferniNotes: string; messageCount: number }
+        | undefined;
+
       // Try job.metadata first (dispatch metadata), then room.metadata (room creation metadata)
       try {
         if (ctx.job.metadata) {
@@ -2438,6 +2443,14 @@ export default defineAgent({
           if (metadata.persona_id) {
             requestedPersonaId = metadata.persona_id;
             diag.session('Persona from job.metadata', { personaId: requestedPersonaId });
+          }
+          // Extract claimed demo conversation if present
+          if (metadata.claimed_demo_conversation) {
+            claimedDemoConversation = metadata.claimed_demo_conversation;
+            diag.session('🎯 Claimed demo conversation detected', {
+              highlights: claimedDemoConversation?.highlights?.length || 0,
+              topics: claimedDemoConversation?.topics?.length || 0,
+            });
           }
         }
 
@@ -3182,6 +3195,8 @@ export default defineAgent({
         utilitiesProactiveOpener: utilitiesProactiveOpener ?? undefined,
         session,
         tagGreeting,
+        // 🎯 "Better than human" - Pass claimed demo conversation for warm acknowledgment
+        claimedDemoConversation,
       });
 
       diag.section('SESSION INITIALIZED');

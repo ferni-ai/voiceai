@@ -18,9 +18,9 @@
  *   - Agent handoff tester
  */
 
-import { t } from '../i18n/index.js';
 import type { VoiceEmotion } from '@design-system/tokens';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
 import { modalCoordinator } from '../services/modal-coordinator.service.js';
 import {
   relationshipStageService,
@@ -2302,7 +2302,15 @@ function createPanel(): HTMLElement {
   container.querySelectorAll('.dev-action-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const action = (btn as HTMLElement).dataset.action;
-      handleAction(action!);
+      if (action) handleAction(action);
+    });
+  });
+
+  // FTUE buttons (First-Time User Experience)
+  container.querySelectorAll('[data-ftue]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const action = (btn as HTMLElement).dataset.ftue;
+      if (action) handleFTUEAction(action);
     });
   });
 
@@ -2465,16 +2473,18 @@ function createPanel(): HTMLElement {
     btn.addEventListener('click', async () => {
       const signalType = (btn as HTMLElement).dataset.trustSignal;
       if (!signalType) return;
-      
+
       const testMessages: Record<string, string> = {
         growth: "I noticed you handled that conversation differently than before. You're growing.",
         boundary: "I remember you asked me not to bring up work stress. I'm respecting that.",
-        callback: "Remember when you told me about your coffee ritual? I think about that sometimes.",
-        small_win: "You actually did it! You asked for help when you needed it.",
-        thinking_of_you: "I was just thinking about how you mentioned wanting more peaceful mornings.",
-        reading_lines: "I sense there might be something more you want to talk about.",
+        callback:
+          'Remember when you told me about your coffee ritual? I think about that sometimes.',
+        small_win: 'You actually did it! You asked for help when you needed it.',
+        thinking_of_you:
+          'I was just thinking about how you mentioned wanting more peaceful mornings.',
+        reading_lines: 'I sense there might be something more you want to talk about.',
       };
-      
+
       // Dispatch the event that the trust signals UI listens for
       window.dispatchEvent(
         new CustomEvent('ferni:backend-trust-signal', {
@@ -2494,7 +2504,7 @@ function createPanel(): HTMLElement {
     btn.addEventListener('click', async () => {
       const stage = (btn as HTMLElement).dataset.stageCelebrate as RelationshipStage;
       if (!stage) return;
-      
+
       // Import and trigger the stage celebration
       const { showStageCelebration } = await import('./stage-celebration.ui.js');
       const previousStage = relationshipStageService.getStage();
@@ -2513,7 +2523,7 @@ function createPanel(): HTMLElement {
     btn.addEventListener('click', async () => {
       const personaId = (btn as HTMLElement).dataset.personaIntro;
       if (!personaId) return;
-      
+
       const { showPersonaIntro } = await import('./persona-intro.ui.js');
       showPersonaIntro(personaId);
       log.info({ personaId }, '👋 Persona intro triggered');
@@ -2525,7 +2535,7 @@ function createPanel(): HTMLElement {
     btn.addEventListener('click', async () => {
       const hintId = (btn as HTMLElement).dataset.featureHint;
       if (!hintId) return;
-      
+
       const { showHint } = await import('./feature-hints.ui.js');
       showHint(hintId);
       log.info({ hintId }, '💡 Feature hint triggered');
@@ -2540,18 +2550,22 @@ function createPanel(): HTMLElement {
   });
 
   // Toggle progress indicator
-  container.querySelector('[data-action="toggle-progress"]')?.addEventListener('click', async () => {
-    const { toggleProgressIndicator } = await import('./progress-indicator.ui.js');
-    toggleProgressIndicator();
-    log.info('Progress indicator toggled');
-  });
+  container
+    .querySelector('[data-action="toggle-progress"]')
+    ?.addEventListener('click', async () => {
+      const { toggleProgressIndicator } = await import('./progress-indicator.ui.js');
+      toggleProgressIndicator();
+      log.info('Progress indicator toggled');
+    });
 
   // Expand progress indicator
-  container.querySelector('[data-action="expand-progress"]')?.addEventListener('click', async () => {
-    const { expandProgressIndicator } = await import('./progress-indicator.ui.js');
-    expandProgressIndicator();
-    log.info('Progress indicator expanded');
-  });
+  container
+    .querySelector('[data-action="expand-progress"]')
+    ?.addEventListener('click', async () => {
+      const { expandProgressIndicator } = await import('./progress-indicator.ui.js');
+      expandProgressIndicator();
+      log.info('Progress indicator expanded');
+    });
 
   // Outreach test buttons
   container.querySelectorAll('[data-outreach]').forEach((btn) => {
@@ -3236,10 +3250,16 @@ function renderFTUEStatus(): string {
       </div>
       <div class="dev-ftue-badges">
         ${status.unlockedFeatures
-          .map((f) => `<span class="dev-ftue-badge dev-ftue-badge--unlocked" title="Unlocked">✓ ${f}</span>`)
+          .map(
+            (f) =>
+              `<span class="dev-ftue-badge dev-ftue-badge--unlocked" title="Unlocked">✓ ${f}</span>`
+          )
           .join('')}
         ${status.lockedFeatures
-          .map((f) => `<span class="dev-ftue-badge dev-ftue-badge--locked" title="Locked">🔒 ${f}</span>`)
+          .map(
+            (f) =>
+              `<span class="dev-ftue-badge dev-ftue-badge--locked" title="Locked">🔒 ${f}</span>`
+          )
           .join('')}
       </div>
     </div>
@@ -6424,6 +6444,95 @@ function injectStyles(): void {
       font-size: 0.7rem;
       color: rgba(255, 255, 255, 0.4);
       margin: -8px 0 12px;
+    }
+    
+    /* FTUE (First-Time User Experience) */
+    .dev-ftue-info {
+      background: rgba(74, 103, 65, 0.15);
+      border: 1px solid rgba(74, 103, 65, 0.3);
+      border-radius: var(--radius-lg, 12px);
+      padding: var(--space-3, 12px);
+      margin-bottom: var(--space-3, 12px);
+    }
+    
+    .dev-ftue-count {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-2, 8px);
+      margin-bottom: var(--space-2, 8px);
+    }
+    
+    .dev-ftue-count__number {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #4a6741;
+      font-family: 'Plus Jakarta Sans', var(--font-body, system-ui), sans-serif;
+    }
+    
+    .dev-ftue-count__label {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .dev-ftue-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-1, 4px);
+    }
+    
+    .dev-ftue-badge {
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+    
+    .dev-ftue-badge--unlocked {
+      background: rgba(74, 103, 65, 0.3);
+      color: #90d080;
+    }
+    
+    .dev-ftue-badge--locked {
+      background: rgba(255, 100, 100, 0.2);
+      color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .dev-ftue-legend {
+      margin-top: var(--space-3, 12px);
+      padding: var(--space-3, 12px);
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: var(--radius-md, 8px);
+      font-size: 0.7rem;
+    }
+    
+    .dev-ftue-legend h4 {
+      margin: 0 0 var(--space-2, 8px);
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .dev-ftue-legend ul {
+      margin: 0;
+      padding-left: var(--space-4, 16px);
+      color: rgba(255, 255, 255, 0.4);
+    }
+    
+    .dev-ftue-legend li {
+      margin-bottom: 2px;
+    }
+    
+    .dev-ftue-legend strong {
+      color: rgba(255, 255, 255, 0.7);
+    }
+    
+    .dev-action-btn--warning {
+      background: rgba(255, 150, 100, 0.15) !important;
+      border-color: rgba(255, 150, 100, 0.3) !important;
+      color: #ffc080 !important;
+    }
+    
+    .dev-action-btn--warning:hover {
+      background: rgba(255, 150, 100, 0.25) !important;
     }
     
     /* Expression Buttons */
