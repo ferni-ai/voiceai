@@ -17,7 +17,6 @@ description: Six AI specialists who actually listen, remember everything, and he
     <ul class="nav__links">
       <li><a href="#story" class="nav__link">Our Story</a></li>
       <li><a href="#team" class="nav__link">Team</a></li>
-      <li><a href="#pricing" class="nav__link">Pricing</a></li>
       <li><a href="#faq" class="nav__link">FAQ</a></li>
     </ul>
     
@@ -48,7 +47,6 @@ description: Six AI specialists who actually listen, remember everything, and he
   <nav class="mobile-menu__nav">
     <a href="#story">Our Story</a>
     <a href="#team">Meet the Team</a>
-    <a href="#pricing">Pricing</a>
     <a href="#faq">FAQ</a>
     <a href="tel:{{ site.phoneRaw }}">Call {{ site.phone }}</a>
   </nav>
@@ -171,8 +169,8 @@ description: Six AI specialists who actually listen, remember everything, and he
       <div class="stat__label">Gardeners</div>
     </div>
     <div class="stat">
-      <div class="stat__value">$0</div>
-      <div class="stat__label">Paywalls</div>
+      <div class="stat__value">∞</div>
+      <div class="stat__label">Memory</div>
     </div>
     <div class="stat">
       <div class="stat__value">24/7</div>
@@ -414,7 +412,7 @@ description: Six AI specialists who actually listen, remember everything, and he
     <div class="garden__content">
       <div class="garden__intro">
         <p class="garden__lead">
-          Most AI companies charge $20-50/month. We asked: <em>what if we just... didn't?</em>
+          Most AI companies prioritize growth over connection. We asked: <em>what if we prioritized people?</em>
         </p>
         <p class="garden__text">
           Ferni doesn't have investors demanding growth. It has a community planting seeds. When people who can afford to give a little do, everyone benefits.
@@ -1175,19 +1173,6 @@ description: Six AI specialists who actually listen, remember everything, and he
       </div>
       
       <div class="proof-table__row">
-        <div class="proof-table__col proof-table__col--label">Cost</div>
-        <div class="proof-table__col proof-table__col--coach">
-          <span class="proof-table__bad">$150-300/session</span>
-        </div>
-        <div class="proof-table__col proof-table__col--friend">
-          <span class="proof-table__neutral">Free (but limited)</span>
-        </div>
-        <div class="proof-table__col proof-table__col--ferni">
-          <span class="proof-table__good">$9.99/mo unlimited</span>
-        </div>
-      </div>
-      
-      <div class="proof-table__row">
         <div class="proof-table__col proof-table__col--label">Availability</div>
         <div class="proof-table__col proof-table__col--coach">
           <span class="proof-table__bad">1 hour/week, 6-week wait</span>
@@ -1372,7 +1357,7 @@ description: Six AI specialists who actually listen, remember everything, and he
       <details class="faq-item">
         <summary class="faq-item__question">How is this different from a friend or a coach?</summary>
         <div class="faq-item__answer">
-          <p>Your coach has other clients and charges $200+ per session. Your friend has their own life and forgets what you told them. I'm always available, remember everything, never judge, and bring six specialized perspectives to every conversation. I'm here when they can't be.</p>
+          <p>Your coach has other clients and limited hours. Your friend has their own life and forgets what you told them. I'm always available, remember everything, never judge, and bring six specialized perspectives to every conversation. I'm here when they can't be.</p>
         </div>
       </details>
     </div>
@@ -1401,61 +1386,6 @@ description: Six AI specialists who actually listen, remember everything, and he
         </div>
       </div>
       {%- endfor %}
-    </div>
-  </div>
-</section>
-
-{# PRICING #}
-<section class="section pricing" id="pricing">
-  <div class="container">
-    <div class="section__header">
-      <p class="section__eyebrow">Pricing</p>
-      <h2 class="section__title">Start free. Upgrade when ready.</h2>
-      <p class="section__subtitle">Everyone deserves a life coach. That's why Ferni is free to start.</p>
-    </div>
-    
-    <div class="pricing-grid content-grid">
-      <div class="pricing-card">
-        <h3 class="pricing-card__name">Free</h3>
-        <p class="pricing-card__price">$0<span>/mo</span></p>
-        <p class="pricing-card__description">Get started with Ferni</p>
-        <ul class="pricing-card__features">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>5 conversations/month</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Talk to Ferni (Life Coach)</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Voice & text</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Conversation memory</li>
-        </ul>
-        <a href="{{ site.appUrl }}" class="btn btn--secondary pricing-card__cta">Begin Free</a>
-      </div>
-      
-      <div class="pricing-card pricing-card--featured">
-        <span class="pricing-card__badge">Most Popular</span>
-        <h3 class="pricing-card__name">Friend</h3>
-        <p class="pricing-card__price">$9.99<span>/mo</span></p>
-        <p class="pricing-card__description">Unlimited access to the team</p>
-        <ul class="pricing-card__features">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unlimited conversations</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>All 6 AI specialists</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Priority response time</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Progress tracking</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Weekly insights</li>
-        </ul>
-        <a href="{{ site.appUrl }}" class="btn btn--primary pricing-card__cta">Start Free Trial</a>
-      </div>
-      
-      <div class="pricing-card">
-        <h3 class="pricing-card__name">Partner</h3>
-        <p class="pricing-card__price">$19.99<span>/mo</span></p>
-        <p class="pricing-card__description">Premium + exclusive features</p>
-        <ul class="pricing-card__features">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Everything in Friend</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Nayan (Sage) exclusive</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Advanced analytics</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Calendar integration</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Early access</li>
-        </ul>
-        <a href="{{ site.appUrl }}" class="btn btn--secondary pricing-card__cta">Start Free Trial</a>
-      </div>
     </div>
   </div>
 </section>
@@ -1493,58 +1423,52 @@ description: Six AI specialists who actually listen, remember everything, and he
 
 </main>
 
-{# FOOTER #}
-<footer class="footer">
+{# FOOTER - Bold & Beautiful #}
+<footer class="footer footer--bold">
   <div class="footer__inner">
-    <div class="footer__grid">
-      <div class="footer__brand">
-        <a href="/" class="footer__logo">
-          <div class="persona-avatar persona-avatar--sm persona-avatar--ferni">
-            <div class="persona-avatar__ring"></div>
-            <div class="persona-avatar__orb">
-              <span class="persona-avatar__text">FE</span>
-            </div>
-          </div>
-          <span class="nav__logo-text">Ferni</span>
-        </a>
-        <p class="footer__tagline">The AI that actually listens. Six specialists, one conversation, infinite memory.</p>
+    
+    <div class="footer__hero">
+      <h2 class="footer__headline">Ready when you are.</h2>
+      <p class="footer__subline">No pressure. No pitch. Just a conversation.</p>
+      <a href="{{ site.appUrl }}" class="footer__cta">
+        Begin
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+
+    <div class="footer__nav">
+      <div class="footer__nav-group">
+        <h3 class="footer__nav-title">Explore</h3>
+        <a href="/story/">Our Story</a>
+        <a href="/team/">Meet the Team</a>
+        <a href="/garden/">The Garden</a>
       </div>
-      
-      <div>
-        <h4 class="footer__column-title">Product</h4>
-        <ul class="footer__links">
-          <li><a href="#team">Meet the Team</a></li>
-          <li><a href="#features">Features</a></li>
-          <li><a href="#pricing">Pricing</a></li>
-        </ul>
+      <div class="footer__nav-group">
+        <h3 class="footer__nav-title">Learn</h3>
+        <a href="/blog/">Blog</a>
+        <a href="/how-it-works/">How It Works</a>
+        <a href="/faq/">FAQ</a>
       </div>
-      
-      <div>
-        <h4 class="footer__column-title">Company</h4>
-        <ul class="footer__links">
-          <li><a href="/about/">About</a></li>
-          <li><a href="/blog/">Blog</a></li>
-          <li><a href="/contact/">Contact</a></li>
-        </ul>
-      </div>
-      
-      <div>
-        <h4 class="footer__column-title">Connect</h4>
-        <ul class="footer__links">
-          <li><a href="{{ site.appUrl }}">Web App</a></li>
-          <li><a href="tel:{{ site.phoneRaw }}">Call Ferni</a></li>
-          <li><a href="{{ site.social.twitter }}">Twitter</a></li>
-        </ul>
+      <div class="footer__nav-group">
+        <h3 class="footer__nav-title">Connect</h3>
+        <a href="tel:{{ site.phoneRaw }}">Call Ferni</a>
+        <a href="{{ site.social.twitter }}">Twitter</a>
+        <a href="mailto:hello@ferni.ai">Email</a>
       </div>
     </div>
-    
+
     <div class="footer__bottom">
-      <p class="footer__copyright">&copy; 2025 Ferni. All rights reserved.</p>
+      <div class="footer__brand-mark">
+        <span class="footer__logo-text">Ferni</span>
+        <span class="footer__motto">Better than human.</span>
+      </div>
       <div class="footer__legal">
+        <span>&copy; 2025 Ferni</span>
         <a href="/privacy/">Privacy</a>
         <a href="/terms/">Terms</a>
       </div>
     </div>
+
   </div>
 </footer>
 

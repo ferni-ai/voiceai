@@ -74,7 +74,15 @@ interface RelationshipData {
 // STAGE DEFINITIONS
 // ============================================================================
 
-/** Stage thresholds - what it takes to advance */
+/**
+ * Stage thresholds - what it takes to advance.
+ *
+ * CAMEO UNLOCK SYSTEM: Thresholds increased to allow for natural,
+ * contextual introductions. Ferni introduces team members when
+ * relevant topics come up, making unlocks feel organic.
+ *
+ * Maya unlocks at 10 (not 2) so users know Ferni before meeting teammates.
+ */
 const STAGE_THRESHOLDS: Record<
   RelationshipStage,
   {
@@ -84,10 +92,10 @@ const STAGE_THRESHOLDS: Record<
   }
 > = {
   'first-meeting': { minConversations: 0, minDays: 0, minStreak: 0 },
-  'getting-started': { minConversations: 2, minDays: 0, minStreak: 0 },
-  'building-trust': { minConversations: 7, minDays: 3, minStreak: 2 },
-  established: { minConversations: 20, minDays: 14, minStreak: 5 },
-  'deep-partnership': { minConversations: 50, minDays: 30, minStreak: 10 },
+  'getting-started': { minConversations: 10, minDays: 0, minStreak: 0 },
+  'building-trust': { minConversations: 15, minDays: 5, minStreak: 3 },
+  established: { minConversations: 30, minDays: 21, minStreak: 7 },
+  'deep-partnership': { minConversations: 60, minDays: 45, minStreak: 14 },
 };
 
 /**

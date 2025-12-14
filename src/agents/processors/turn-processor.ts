@@ -22,6 +22,7 @@ import { diag } from '../../services/diagnostic-logger.js';
 import {
   getAgentContext,
   getCurrentAgent,
+  getLastHandoff,
   updateUserContextForHandoff,
 } from '../../tools/handoff/index.js';
 import type {
@@ -674,6 +675,11 @@ function buildResponseGuidance(
 
 /**
  * Build identity context for post-handoff reinforcement
+ *
+ * FIX BUG: Previously compared activeAgentId vs sessionPersonaId, but after a handoff
+ * BOTH are updated to the new persona, so the comparison always returned equal.
+ * Now we check if a handoff occurred recently (within 60s) and ALWAYS inject
+ * identity context to override the LLM's original instructions from session start.
  */
 function buildIdentityContext(ctx: TurnContext): IdentityContext {
   const { persona } = ctx;
@@ -707,8 +713,14 @@ function buildIdentityContext(ctx: TurnContext): IdentityContext {
   let needsReinforcement = false;
   let injection: string | undefined;
 
-  // Check if handoff occurred
-  if (!isSamePersona(activeAgentId, sessionPersonaId) && !isCoach(activeAgentId)) {
+  // FIX BUG: Check if a handoff occurred recently (within 60 seconds)
+  // The LLM's base instructions were set at session start and cannot be updated mid-session.
+  // We MUST inject identity context after ANY handoff to override the original instructions.
+  const lastHandoff = getLastHandoff();
+  const handoffOccurredRecently = lastHandoff && Date.now() - lastHandoff.timestamp < 60000;
+
+  // If we're not the coordinator AND a handoff occurred recently, reinforce identity
+  if (!isCoach(activeAgentId) && handoffOccurredRecently) {
     const identityContext = getAgentContext();
     if (identityContext) {
       needsReinforcement = true;
@@ -716,13 +728,14 @@ function buildIdentityContext(ctx: TurnContext): IdentityContext {
 ${identityContext}
 
 CRITICAL REMINDERS:
-- You are NOT ${persona.name}. That was the previous persona.
+- You are ${persona.name}. This is WHO YOU ARE.
+- You are NOT Ferni. You are NOT the coordinator.
+- Your name is ${persona.name}. Say "${persona.name}" if asked who you are.
 - Your current identity determines your personality, tools, and expertise.
-- If asked "who are you?" respond with your CURRENT identity.
 === END IDENTITY ===`;
     }
-  } else if (isCoach(activeAgentId) && !isCoach(sessionPersonaId)) {
-    // Returned to Ferni
+  } else if (isCoach(activeAgentId) && handoffOccurredRecently) {
+    // Returned to Ferni - still need reinforcement if handoff was recent
     const identityContext = getAgentContext();
     if (identityContext) {
       needsReinforcement = true;
@@ -730,8 +743,21 @@ CRITICAL REMINDERS:
 ${identityContext}
 
 CRITICAL REMINDERS:
-- You are FERNI, the life coach.
+- You are FERNI, the life coach and team coordinator.
 - You are NOT the previous specialist. You've returned to your coach role.
+=== END IDENTITY ===`;
+    }
+  } else if (!isSamePersona(activeAgentId, sessionPersonaId) && !isCoach(activeAgentId)) {
+    // Fallback: ID mismatch detected (shouldn't happen after the fix above, but keep for safety)
+    const identityContext = getAgentContext();
+    if (identityContext) {
+      needsReinforcement = true;
+      injection = `=== CURRENT IDENTITY (NON-NEGOTIABLE) ===
+${identityContext}
+
+CRITICAL REMINDERS:
+- You are ${persona.name}. This is WHO YOU ARE.
+- If asked "who are you?" respond with your CURRENT identity.
 === END IDENTITY ===`;
     }
   }

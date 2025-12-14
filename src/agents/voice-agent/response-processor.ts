@@ -16,16 +16,16 @@
  * @module voice-agent/response-processor
  */
 
+import { getResponseDynamicsEngine } from '../../conversation/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
-import { getResponseDynamicsEngine } from '../../conversation/index.js';
-import type { UserData } from '../shared/types.js';
+import type { CartesiaEmotion } from '../../speech/cartesia-expressiveness.js';
 import {
   enhanceResponseWithSesame,
   getPreparedResponse,
 } from '../../speech/sesame-inspired/index.js';
-import type { CartesiaEmotion } from '../../speech/cartesia-expressiveness.js';
+import type { UserData } from '../shared/types.js';
 
 // ============================================================================
 // TYPES
@@ -81,7 +81,9 @@ export interface EmotionModulation {
  * 11. Track response for dynamics
  * 12. FINAL SANITIZATION (safety net)
  */
-export async function processResponse(ctx: ResponseProcessorContext): Promise<ResponseProcessorResult> {
+export async function processResponse(
+  ctx: ResponseProcessorContext
+): Promise<ResponseProcessorResult> {
   const startTime = Date.now();
   const appliedFeatures: string[] = [];
 
@@ -205,11 +207,7 @@ export async function processResponse(ctx: ResponseProcessorContext): Promise<Re
   // 10. VOICE HUMANIZATION (laughter, contagion, rhythm, breathing)
   // ============================================================
   if (sessionId) {
-    const voiceHumanResult = await applyVoiceHumanization(
-      processedText,
-      sessionId,
-      userData
-    );
+    const voiceHumanResult = await applyVoiceHumanization(processedText, sessionId, userData);
     if (voiceHumanResult.wasApplied) {
       processedText = voiceHumanResult.text;
       appliedFeatures.push(...voiceHumanResult.features);
@@ -277,7 +275,7 @@ const AGENT_FAREWELL_PATTERNS = [
 function detectAgentFarewell(text: string): boolean {
   // Only check the last 150 characters to avoid false positives
   const lastPart = text.slice(-150);
-  return AGENT_FAREWELL_PATTERNS.some(pattern => pattern.test(lastPart));
+  return AGENT_FAREWELL_PATTERNS.some((pattern) => pattern.test(lastPart));
 }
 
 /**
@@ -322,11 +320,7 @@ function applyAmbientAwareness(text: string, userData: UserData): string {
 
   // Only prepend if response isn't already about pausing
   const lowerText = text.toLowerCase();
-  if (
-    !lowerText.includes('pause') &&
-    !lowerText.includes('later') &&
-    !lowerText.includes('busy')
-  ) {
+  if (!lowerText.includes('pause') && !lowerText.includes('later') && !lowerText.includes('busy')) {
     diag.info('🔊 Offered to pause due to noisy environment', { acknowledgment });
     return `${acknowledgment} But if you'd like to keep going - ${text}`;
   }
@@ -353,9 +347,8 @@ async function applyUnifiedHumanization(
     `session-${persona.id}`;
 
   try {
-    const { humanizeAgentResponse, recordVulnerabilityEvent } = await import(
-      '../integrations/conversation-session-integration.js'
-    );
+    const { humanizeAgentResponse, recordVulnerabilityEvent } =
+      await import('../integrations/conversation-session-integration.js');
 
     const humanized = await humanizeAgentResponse(agentSessionId, rawText, {
       userMessage: userData.lastUserMessage || '',
@@ -442,7 +435,9 @@ async function applySsmlTagging(
 
     // Track humor and story for calibration
     const lowerText = rawText.toLowerCase();
-    const humorIndicators = /\b(haha|joke|kidding|😄|😂|funny|amusing|ironic)\b|!.*!/.test(lowerText);
+    const humorIndicators = /\b(haha|joke|kidding|😄|😂|funny|amusing|ironic)\b|!.*!/.test(
+      lowerText
+    );
     const storyIndicators =
       /\b(remember when|back when|once upon|let me tell you|there was|i knew a|story|reminds me)\b/.test(
         lowerText
@@ -476,9 +471,8 @@ async function recordResponse(
   // Record for repair detection
   try {
     const { recordAdviceGivenToSession } = await import('../processors/injection-builders.js');
-    const { recordAgentResponse } = await import(
-      '../../conversation/advanced-humanization-integration.js'
-    );
+    const { recordAgentResponse } =
+      await import('../../conversation/advanced-humanization-integration.js');
 
     // Check if this was advice
     const lowerResponse = rawText.toLowerCase();
@@ -505,9 +499,8 @@ async function recordResponse(
 
   // EvalOps evaluation (fire-and-forget)
   try {
-    const { evaluateAgentResponse } = await import(
-      '../../services/evalops/voice-agent-integration.js'
-    );
+    const { evaluateAgentResponse } =
+      await import('../../services/evalops/voice-agent-integration.js');
     const lastUserMsg = userData.lastUserMessage || '';
 
     if (lastUserMsg) {
@@ -531,12 +524,10 @@ async function applyHumanListeningAdjustments(
   sessionId: string
 ): Promise<{ text: string; wasApplied: boolean }> {
   try {
-    const { getHumanListeningResult } = await import(
-      '../../intelligence/context-builders/human-listening.js'
-    );
-    const { applyHumanListeningAdjustments: applySsml } = await import(
-      '../../speech/emotion-matching.js'
-    );
+    const { getHumanListeningResult } =
+      await import('../../intelligence/context-builders/human-listening.js');
+    const { applyHumanListeningAdjustments: applySsml } =
+      await import('../../speech/emotion-matching.js');
 
     const listeningResult = getHumanListeningResult(sessionId);
 
@@ -583,12 +574,7 @@ function applySesameEnhancement(
     }
 
     // Apply the Sesame enhancement pipeline
-    const result = enhanceResponseWithSesame(
-      sessionId,
-      text,
-      detectedEmotion,
-      turnNumber
-    );
+    const result = enhanceResponseWithSesame(sessionId, text, detectedEmotion, turnNumber);
 
     // Filter out features that were already applied by other processors
     const newFeatures = result.features.filter(
@@ -642,9 +628,8 @@ async function applyDynamicSpeedControl(
   userData: UserData
 ): Promise<{ text: string; wasApplied: boolean }> {
   try {
-    const { getHumanListeningResult } = await import(
-      '../../intelligence/context-builders/human-listening.js'
-    );
+    const { getHumanListeningResult } =
+      await import('../../intelligence/context-builders/human-listening.js');
     const { applyDynamicSpeed, getPersonaSpeedProfile, calculatePersonaAdjustedSpeed } =
       await import('../integrations/dynamic-speed-integration.js');
     const { getEmotionalArcTracker } = await import('../../conversation/index.js');
@@ -732,9 +717,7 @@ async function applyVoiceHumanization(
   let result = text;
 
   try {
-    const { getVoiceHumanizationService } = await import(
-      '../../speech/voice-humanization.js'
-    );
+    const { getVoiceHumanizationService } = await import('../../speech/voice-humanization.js');
     const { getEmotionalContagionService } = await import('../../speech/emotional-contagion.js');
     const { getSessionFlags } = await import('../../config/voice-humanization-flags.js');
     const { getWordTimingRhythmService } = await import('../../speech/word-timing-rhythm.js');
@@ -759,7 +742,10 @@ async function applyVoiceHumanization(
     const voiceEmotion = userData?.voiceEmotion;
     if (voiceEmotion) {
       const emotionalArc = getEmotionalArcTracker();
-      const hints = contagionService.getContinuityHints(emotionalArc.getArc(), voiceEmotion.primary);
+      const hints = contagionService.getContinuityHints(
+        emotionalArc.getArc(),
+        voiceEmotion.primary
+      );
 
       if (hints.prosody.speedAdjust !== 0 || hints.prosody.volumeAdjust !== 1.0) {
         const speedRatio = Math.max(0.6, Math.min(1.5, 1 + hints.prosody.speedAdjust));
@@ -779,8 +765,7 @@ async function applyVoiceHumanization(
         emotion: voiceEmotion.primary || 'neutral',
         valence: voiceEmotion.valence || 0,
         arousal: voiceEmotion.arousal || 0.5,
-        warmth:
-          voiceEmotion.arousal > 0.6 ? 'high' : voiceEmotion.arousal > 0.4 ? 'medium' : 'low',
+        warmth: voiceEmotion.arousal > 0.6 ? 'high' : voiceEmotion.arousal > 0.4 ? 'medium' : 'low',
         wasSupporting: voiceEmotion.stressLevel > 0.5,
       });
     }
@@ -828,4 +813,3 @@ async function applyVoiceHumanization(
 }
 
 export default processResponse;
-

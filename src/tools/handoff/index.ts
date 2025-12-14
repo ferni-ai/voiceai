@@ -23,18 +23,18 @@ export type * from './types.js';
 // NOTE: handoffEvents is no longer exported from executor.js - it's imported from state.js
 // This ensures a single shared EventEmitter instance across the entire handoff system
 export {
+  captureHandoffContext as captureHandoffContextNew,
+  clearHandoffHistory as clearHandoffHistoryNew,
   executeHandoff,
   // handoffEvents removed - use the one from state.js exports below
   getCurrentAgent as getCurrentAgentNew,
-  setCurrentAgent as setCurrentAgentNew,
-  isSameAgent as isSameAgentNew,
-  isHandoffAllowed as isHandoffAllowedNew,
-  resetHandoffState as resetHandoffStateNew,
-  captureHandoffContext as captureHandoffContextNew,
   getHandoffContext as getHandoffContextNew,
   getHandoffHistory as getHandoffHistoryNew,
   getLastHandoff as getLastHandoffNew,
-  clearHandoffHistory as clearHandoffHistoryNew,
+  isHandoffAllowed as isHandoffAllowedNew,
+  isSameAgent as isSameAgentNew,
+  resetHandoffState as resetHandoffStateNew,
+  setCurrentAgent as setCurrentAgentNew,
   type ExecuteHandoffOptions,
   type HandoffResult,
 } from './executor.js';
@@ -42,18 +42,18 @@ export {
 // Factory - Dynamic tool generation
 export {
   buildHandoffTools,
-  getHandoffToolsForAgent,
+  clearHandoffToolCache,
   createHandoffTools as createHandoffToolDefinitions,
+  findHandoffTarget,
+  getAgentNameFromToolName,
   getHandoffTool,
   getHandoffToolForAgent,
-  findHandoffTarget,
   getHandoffToolNames,
-  clearHandoffToolCache,
+  getHandoffToolsForAgent,
   isHandoffToolName,
-  getAgentNameFromToolName,
+  type BuildHandoffToolsOptions,
   type HandoffToolDefinition,
   type HandoffToolSet,
-  type BuildHandoffToolsOptions,
 } from './handoff-factory.js';
 
 // =============================================================================
@@ -63,70 +63,71 @@ export {
 
 // Detection exports
 export {
-  shouldHandoffToPeter,
   shouldHandoffToAlex,
-  shouldHandoffToMaya,
-  shouldHandoffToJordan,
   shouldHandoffToFerni,
+  shouldHandoffToJordan,
+  shouldHandoffToMaya,
   shouldHandoffToNayan,
+  shouldHandoffToPeter,
 } from './detection.js';
 
 // State management exports (all from state.js - no more legacy re-exports!)
 export {
-  // Event emitter
-  handoffEvents,
-  // ID utilities
-  toCanonicalId,
-  normalizeAgentId,
-  isSameAgent,
-  isHandoffAllowed,
-  // Current agent state
-  getCurrentAgent,
-  setCurrentAgent,
-  isCurrentAgent,
-  // Handoff history
-  recordHandoff,
-  getHandoffHistory,
-  getLastHandoff,
-  clearHandoffHistory,
-  resetHandoffState,
+  cameoUnlockEvents,
   // Context
   captureHandoffContext,
-  getHandoffContext,
+  clearHandoffHistory,
   formatHandoffContextForAgent,
   getAgentContext,
   getAgentContextAsync,
   getAgentDisplayName,
-  // Met personas tracking
-  hasMetPersona,
-  markPersonaAsMet,
-  resetMetPersonas,
-  getMetPersonas,
+  // Current agent state
+  getCurrentAgent,
   // Analytics
   getHandoffAnalytics,
+  getHandoffContext,
+  getHandoffHistory,
+  getLastEmotionAnalysis,
+  getLastHandoff,
+  getLastTopicForPersona,
+  getLastTopicsPerPersona,
+  getLastUserMessage,
+  getMeetingCount,
+  getMeetingCounts,
+  getMetPersonas,
+  getTeamForHandoff,
+  // Event emitters
+  handoffEvents,
+  // Met personas tracking
+  hasMetPersona,
+  incrementMeetingCount,
+  initializeHandoffContext,
+  isCurrentAgent,
+  isHandoffAllowed,
+  isSameAgent,
   logHandoffAnalytics,
+  markPersonaAsMet,
+  normalizeAgentId,
+  // Handoff history
+  recordHandoff,
+  resetHandoffState,
+  resetMetPersonas,
+  setCurrentAgent,
+  setLastTopicForPersona,
+  // Handoff suggestions
+  suggestHandoff, // CAMEO UNLOCK: For team member introductions
+  // ID utilities
+  toCanonicalId,
   // User context functions
   updateUserContextForHandoff,
-  getLastUserMessage,
-  getLastEmotionAnalysis,
-  initializeHandoffContext,
-  getMeetingCounts,
-  getLastTopicsPerPersona,
-  setLastTopicForPersona,
-  getLastTopicForPersona,
-  incrementMeetingCount,
-  getMeetingCount,
-  // Handoff suggestions
-  suggestHandoff,
-  getTeamForHandoff,
 } from './state.js';
 
 // Tool creation (from factory)
 export { createHandoffTools } from './handoff-factory.js';
 
 // Re-export types and utilities
-export type { HandoffAnalytics, HandoffEventData } from './types.js';
 export { createHandoffEvent } from './types.js';
+export type { HandoffAnalytics, HandoffEventData } from './types.js';
 
 // =============================================================================
 // SESSION-SCOPED STATE (NEW - Preferred for new code)
@@ -142,30 +143,30 @@ export { createHandoffEvent } from './types.js';
  * const agent = state.currentAgent;
  */
 export {
+  captureHandoffContext as captureHandoffContextSession,
+  exportForPersistence,
+  getActiveSessionIds,
+  getCurrentAgent as getCurrentAgentSession,
+  getLastTopic as getLastTopicSession,
+  getMeetingCount as getMeetingCountSession,
+  getSessionAnalytics,
   // Session state management
   getSessionState,
+  hasMetPersona as hasMetPersonaSession,
   hasSessionState,
+  incrementMeetingCount as incrementMeetingCountSession,
+  initializeFromPersistent,
+  isHandoffAllowed as isHandoffAllowedSession,
+  isSameAgent as isSameAgentSession,
+  markPersonaAsMet as markPersonaAsMetSession,
+  recordHandoff as recordHandoffSession,
   removeSessionState,
-  getActiveSessionIds,
+  resetSessionState,
+  setCurrentAgent as setCurrentAgentSession,
+  setLastTopic as setLastTopicSession,
   // Session-scoped operations
   toCanonicalId as toCanonicalIdSession,
-  isSameAgent as isSameAgentSession,
-  isHandoffAllowed as isHandoffAllowedSession,
-  getCurrentAgent as getCurrentAgentSession,
-  setCurrentAgent as setCurrentAgentSession,
-  recordHandoff as recordHandoffSession,
-  captureHandoffContext as captureHandoffContextSession,
-  hasMetPersona as hasMetPersonaSession,
-  markPersonaAsMet as markPersonaAsMetSession,
   updateUserContext as updateUserContextSession,
-  incrementMeetingCount as incrementMeetingCountSession,
-  getMeetingCount as getMeetingCountSession,
-  setLastTopic as setLastTopicSession,
-  getLastTopic as getLastTopicSession,
-  resetSessionState,
-  initializeFromPersistent,
-  exportForPersistence,
-  getSessionAnalytics,
   // Type export
   type HandoffSessionState,
 } from './session-state.js';

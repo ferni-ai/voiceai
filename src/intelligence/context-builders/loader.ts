@@ -132,6 +132,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'handoff',
     'role-boundaries',
     'cameo-opportunities',
+    'cameo-unlock', // Natural team member introductions
   ],
 
   // CONTEXT - Situational awareness

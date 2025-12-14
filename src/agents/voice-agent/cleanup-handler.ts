@@ -48,7 +48,7 @@ import { clearEmotionalArc } from '../../intelligence/context-builders/advanced-
 import { clearSession as clearHumeSession } from '../../services/emotion-analysis/hume.js';
 
 // Handoff event emitter for cleanup
-import { handoffEvents } from '../../tools/handoff/index.js';
+import { cameoUnlockEvents, handoffEvents } from '../../tools/handoff/index.js';
 
 /**
  * Voice humanization integration interface for cleanup
@@ -83,6 +83,8 @@ export interface CleanupContext {
   dataChannelCleanup?: () => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   handoffHandler?: (data: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  cameoUnlockHandler?: (data: any) => void; // CAMEO UNLOCK: Team member introduction handler
   cameoCleanup?: () => void;
   musicCleanup?: () => void;
   // User data for trial tracking
@@ -108,6 +110,7 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
     feedbackCollector,
     dataChannelCleanup,
     handoffHandler,
+    cameoUnlockHandler,
     cameoCleanup,
     musicCleanup,
     userData,
@@ -124,6 +127,11 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
 
     if (handoffHandler) {
       handoffEvents.off('voiceSwitch', handoffHandler);
+    }
+
+    // CAMEO UNLOCK: Remove team member introduction listener
+    if (cameoUnlockHandler) {
+      cameoUnlockEvents.off('memberUnlocked', cameoUnlockHandler);
     }
 
     if (cameoCleanup) {

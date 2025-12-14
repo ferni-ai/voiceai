@@ -61,6 +61,11 @@ import {
 } from '../utils/tone-detection.js';
 // 🌉 Humanization Bridge - Connects backend humanization to frontend EQ
 import { humanizationBridge } from '../services/humanization-bridge.service.js';
+// 🎭 Persona Intro - Team member unlock modal
+import { personaIntro } from '../ui/persona-intro.ui.js';
+// 🔓 Team unlock service - For marking members as unlocked
+// 🎉 Roster preferences - For adding members to the roster
+import { addMemberToRoster, type TeamMemberId } from '../services/roster-preferences.service.js';
 
 const log = createLogger('DataMessageHandlers');
 
@@ -168,6 +173,12 @@ export function handleDataMessage(message: DataMessage): void {
       if (typeof message['text'] === 'string') {
         messageUI.show(message['text'], 'info');
       }
+      break;
+
+    case 'cameo_unlock':
+      // 🎭 CAMEO UNLOCK: Ferni just introduced a new team member!
+      // This is triggered when Ferni uses the introduceMember tool
+      handleCameoUnlock(message as CameoUnlockMessage);
       break;
 
     case 'transcript':
@@ -1010,6 +1021,98 @@ export function handleWrapUp(event: WrapUpEvent): void {
   if (event.message) {
     messageUI.show(event.message, 'info', 3000);
   }
+}
+
+// ============================================================================
+// CAMEO UNLOCK: Team Member Introduction
+// ============================================================================
+
+/**
+ * Message sent when Ferni introduces a new team member.
+ * This is the "cameo unlock" moment - a celebration!
+ */
+interface CameoUnlockMessage {
+  type: 'cameo_unlock';
+  memberId: string;
+  displayName: string;
+  role: string;
+  spokenIntro: string;
+  timestamp: number;
+}
+
+/**
+ * Type guard for cameo unlock messages.
+ */
+function isCameoUnlockMessage(message: DataMessage): message is CameoUnlockMessage {
+  return (
+    message.type === 'cameo_unlock' &&
+    typeof (message as CameoUnlockMessage).memberId === 'string' &&
+    typeof (message as CameoUnlockMessage).displayName === 'string'
+  );
+}
+
+/**
+ * Handle cameo unlock events from the voice agent.
+ *
+ * CAMEO UNLOCK SYSTEM: This is triggered when Ferni uses the introduceMember tool
+ * to formally introduce a new team member to the user.
+ *
+ * Flow:
+ * 1. Ferni speaks the introduction aloud (handled by voice agent)
+ * 2. This data message arrives after Ferni has spoken
+ * 3. We mark the member as unlocked
+ * 4. We add them to the user's roster
+ * 5. We show the beautiful intro modal
+ * 6. Play celebration sound
+ */
+export function handleCameoUnlock(event: CameoUnlockMessage): void {
+  log.info('🎭 Cameo unlock event received!', {
+    memberId: event.memberId,
+    displayName: event.displayName,
+    role: event.role,
+  });
+
+  // Validate the message
+  if (!isCameoUnlockMessage(event)) {
+    log.warn('Invalid cameo unlock message:', event);
+    return;
+  }
+
+  // 1. Celebrate! Play unlock sound
+  soundUI.play('unlock');
+
+  // 2. Show warm expression - Ferni is introducing a friend!
+  ferniExpressions.delight();
+
+  // 3. Mark the member as unlocked and add to roster
+  // This persists the unlock so it survives page refresh
+  try {
+    // Add to the visible roster
+    addMemberToRoster(event.memberId as TeamMemberId);
+    log.info('🎭 Added team member to roster:', event.memberId);
+  } catch (err) {
+    log.warn('Failed to add member to roster:', err);
+  }
+
+  // 4. Brief delay to let Ferni's spoken intro finish, then show the modal
+  // The voice agent sends this message after Ferni speaks, but we add
+  // a small buffer for the TTS to complete
+  setTimeout(() => {
+    // Show the beautiful 3-screen intro modal
+    personaIntro.show(event.memberId);
+    log.info('🎭 Showing persona intro modal for:', event.memberId);
+  }, 1500); // 1.5s buffer after Ferni's intro
+
+  // 5. Dispatch event for other UI components (e.g., team roster refresh)
+  window.dispatchEvent(
+    new CustomEvent('ferni:team-member-unlocked', {
+      detail: {
+        memberId: event.memberId,
+        displayName: event.displayName,
+        role: event.role,
+      },
+    })
+  );
 }
 
 /**

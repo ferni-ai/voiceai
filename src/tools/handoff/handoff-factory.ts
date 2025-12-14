@@ -28,6 +28,7 @@ import { AgentRegistry, type Agent } from '../../personas/registry/unified-regis
 import { TEAM_MEMBERS } from '../../services/team-unlocks.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { executeHandoff } from './executor.js';
+import { cameoUnlockEvents } from './state.js';
 
 // FIX BUG: Use safe-logger utility instead of console fallback
 // This follows project conventions and provides consistent logging
@@ -585,6 +586,82 @@ This is NOT a full handoff - you remain the active speaker.`,
         instructions: `The teammate has said hello. Now YOU (the current agent) should continue the conversation.
 Say something like "That was ${matchedTeammate.displayName}! They're great. As we get to know each other better, you'll unlock full conversations with them. For now, how can I help you with [topic]?"
 Do NOT try to transfer to them. This was just a quick hello.`,
+      };
+    },
+  });
+
+  // CAMEO UNLOCK: Introduce a new team member and unlock them
+  // This is the "big moment" - Ferni formally introduces a teammate for the first time
+  tools.introduceMember = llm.tool({
+    description: `CAMEO UNLOCK: Formally introduce a team member to the user for the FIRST TIME.
+Use ONLY when the cameo_unlock_introduction context hint appears.
+This unlocks the team member so the user can talk to them.
+YOU speak the introduction message naturally, then this tool notifies the frontend to show a celebration.`,
+    parameters: z.object({
+      memberId: z
+        .string()
+        .describe(
+          'The team member ID to introduce (e.g., "maya-santos", "peter-john", "alex-chen", "jordan-taylor", "nayan-patel")'
+        ),
+      spoken_intro: z
+        .string()
+        .optional()
+        .describe('What you just said to introduce them (for the frontend to display)'),
+    }),
+    execute: async ({ memberId, spoken_intro }, _runContext) => {
+      // Find the team member
+      const member = TEAM_MEMBERS.find(
+        (m) =>
+          m.memberId === memberId || m.memberId.replace(/-/g, '_') === memberId.replace(/-/g, '_')
+      );
+
+      if (!member) {
+        return {
+          success: false,
+          error: `Unknown team member: ${memberId}`,
+        };
+      }
+
+      // Mark as introduced in the cameo unlock session tracker
+      // This prevents re-introduction in the same session
+      try {
+        const { markIntroduced } =
+          await import('../../intelligence/context-builders/cameo-unlock.js');
+        markIntroduced(member.memberId);
+      } catch {
+        // Non-critical - continue anyway
+      }
+
+      getLogger().info(
+        { memberId: member.memberId, displayName: member.displayName },
+        '🎭 Cameo unlock: Team member introduced!'
+      );
+
+      // Emit event for voice agent to send data message to frontend
+      cameoUnlockEvents.emit('memberUnlocked', {
+        memberId: member.memberId,
+        displayName: member.displayName,
+        role: member.role,
+        spokenIntro: spoken_intro || member.introductionMessage,
+      });
+
+      return {
+        success: true,
+        memberId: member.memberId,
+        displayName: member.displayName,
+        role: member.role,
+        spoken_intro: spoken_intro || member.introductionMessage,
+        // Signal to frontend to show the unlock celebration
+        trigger_cameo_unlock: true,
+        instructions: `Great! You've introduced ${member.displayName}. 
+The user now has access to talk with them.
+
+AFTER this tool completes:
+1. The frontend will show a brief celebration modal
+2. Offer to connect them: "Would you like to talk with ${member.displayName} about this?"
+3. If they say yes, use the handoffTo${member.displayName.split(' ')[0]} tool
+
+Remember: This is a special moment! The user just unlocked a new friend.`,
       };
     },
   });

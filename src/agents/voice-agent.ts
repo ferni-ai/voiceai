@@ -270,7 +270,11 @@ import { getEngagementDataSender } from '../services/engagement-data-sender.js';
 import { getRitualOnboardingService } from '../services/ritual-onboarding.js';
 
 // Handoff system (for multi-persona support)
-import { handoffEvents, initializeHandoffContext } from '../tools/handoff/index.js';
+import {
+  cameoUnlockEvents,
+  handoffEvents,
+  initializeHandoffContext,
+} from '../tools/handoff/index.js';
 import { createHandoffHandler, type VoiceAgentRef } from './shared/handoff-handler.js';
 
 // Cameo system (for team member pop-ins)
@@ -2905,6 +2909,42 @@ export default defineAgent({
       // Assign to reference for use in async event handlers (handoffs)
       voiceAgentRef = voiceAgent;
 
+      // ============================================================
+      // CAMEO UNLOCK EVENT HANDLER - Team member introduction system
+      // ============================================================
+      // Listen for when Ferni introduces a new team member using the introduceMember tool.
+      // This sends a data message to the frontend to trigger the unlock celebration modal.
+      const cameoUnlockHandler = async (data: {
+        memberId: string;
+        displayName: string;
+        role: string;
+        spokenIntro: string;
+      }) => {
+        try {
+          diag.session('🎭 Cameo unlock event received', { memberId: data.memberId });
+
+          // Send data message to frontend for unlock celebration
+          await voiceAgent.sendDataMessage('cameo_unlock', {
+            memberId: data.memberId,
+            displayName: data.displayName,
+            role: data.role,
+            spokenIntro: data.spokenIntro,
+            timestamp: Date.now(),
+          });
+
+          diag.session('🎭 Cameo unlock data message sent to frontend', {
+            memberId: data.memberId,
+          });
+        } catch (err) {
+          diag.error('Cameo unlock handler error', { error: String(err) });
+        }
+      };
+
+      const wrappedCameoUnlockHandler = (data: Parameters<typeof cameoUnlockHandler>[0]) => {
+        void cameoUnlockHandler(data);
+      };
+      cameoUnlockEvents.on('memberUnlocked', wrappedCameoUnlockHandler);
+
       // ===============================================
       // STEP 7: PARALLEL INITIALIZATION (PERF OPTIMIZATION)
       // ===============================================
@@ -3281,6 +3321,7 @@ export default defineAgent({
           feedbackCollector,
           dataChannelCleanup: dataChannelResult.cleanup,
           handoffHandler: wrappedHandoffHandler,
+          cameoUnlockHandler: wrappedCameoUnlockHandler,
           cameoCleanup: cleanupCameoHandlers || undefined,
           musicCleanup: musicResult.clearTimers,
           userData,

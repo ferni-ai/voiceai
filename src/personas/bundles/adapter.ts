@@ -9,36 +9,31 @@ import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { getLogger } from '../../utils/safe-logger.js';
 
-import type {
-  LoadedPersonaBundle,
-  BundleBehaviors,
-  BundleStory,
-  PersonaBundleManifest,
-} from './types.js';
-import type {
-  PersonaConfig,
-  VoiceConfig,
-  SpeechCharacteristics,
-  IdentityConfig,
-  CommunicationConfig,
-  PersonalityConfig,
-  KnowledgeConfig,
-  StoryConfig,
-  PetPeeveConfig,
-  BackchannelConfig,
-  SilenceFillerConfig,
-  EmotionalExpressionConfig,
-  GreetingStyle,
-  HumorStyle,
-} from '../types.js';
+import { registerBundleHumanization } from '../../conversation/humanizing-config.js';
 import {
   registerBundleBackchannels,
-  registerBundleEntrances,
   registerBundleCelebrations,
+  registerBundleEntrances,
   registerBundleGoodbyes,
   registerBundleStorytelling,
 } from '../theatrical.js';
-import { registerBundleHumanization } from '../../conversation/humanizing-config.js';
+import type {
+  BackchannelConfig,
+  CommunicationConfig,
+  EmotionalExpressionConfig,
+  GreetingStyle,
+  HumorStyle,
+  IdentityConfig,
+  KnowledgeConfig,
+  PersonaConfig,
+  PersonalityConfig,
+  PetPeeveConfig,
+  SilenceFillerConfig,
+  SpeechCharacteristics,
+  StoryConfig,
+  VoiceConfig,
+} from '../types.js';
+import type { BundleBehaviors, LoadedPersonaBundle, PersonaBundleManifest } from './types.js';
 
 // ============================================================================
 // HELPER FUNCTIONS FOR TYPE CONVERSION
@@ -125,18 +120,25 @@ export async function bundleToPersonaConfig(bundle: LoadedPersonaBundle): Promis
   };
 
   // Marketplace agents may have knowledge.domains instead of role.domains
-  const knowledgeDomains = (manifest as { knowledge?: { domains?: string[] } }).knowledge?.domains ?? [];
+  const knowledgeDomains =
+    (manifest as { knowledge?: { domains?: string[] } }).knowledge?.domains ?? [];
   const role = manifest.role ?? {
     id: manifest.identity?.id ?? 'assistant',
     domains: knowledgeDomains,
-    responsibilities: [] as string[]
+    responsibilities: [] as string[],
   };
   // If role exists but domains is empty, try knowledge.domains as fallback
   if (role.domains?.length === 0 && knowledgeDomains.length > 0) {
     role.domains = knowledgeDomains;
   }
 
-  const personality = manifest.personality ?? { warmth: 0.7, humor_level: 0.4, directness: 0.6, energy: 0.6, traits: [] as string[] };
+  const personality = manifest.personality ?? {
+    warmth: 0.7,
+    humor_level: 0.4,
+    directness: 0.6,
+    energy: 0.6,
+    traits: [] as string[],
+  };
 
   // Register bundle backchannels with the theatrical system
   // This makes them available to the BackchannelingSystem for natural responses

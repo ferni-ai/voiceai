@@ -9,10 +9,14 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { UrlWithParsedQuery } from 'url';
-import { createLogger } from '../utils/safe-logger.js';
 import {
-  generateChatGreeting,
+  answerSmartFAQ,
   generateDemoConversation,
+  generateHoverPreview,
+  generatePersonalizedHero,
+  generatePersonaPreview,
+  generateSentimentReactiveCopy,
+  generateSocialProof,
   getOptimalSectionOrder,
   getReturningVisitorContext,
   getReturningVisitorExperience,
@@ -21,18 +25,11 @@ import {
   recordVisitorSession,
   // AI Interactions
   sendDemoChatMessage,
-  generatePersonaPreview,
-  answerSmartFAQ,
-  generatePersonalizedHero,
-  generateSocialProof,
-  generateHoverPreview,
-  generateSentimentReactiveCopy,
-  type BehaviorSignals,
   type LandingOptimizationRequest,
-  type PersonaPreviewRequest,
-  type SmartFAQRequest,
   type PersonalizedHeroRequest,
+  type PersonaPreviewRequest,
   type SentimentCopyRequest,
+  type SmartFAQRequest,
 } from '../services/landing-intelligence/index.js';
 import {
   getLandingIntelligenceFlags,
@@ -41,6 +38,7 @@ import {
 } from '../services/landing-intelligence/lifecycle.js';
 import { getQuickOptimization } from '../services/landing-intelligence/orchestrator.js';
 import { generateVisitorId } from '../services/landing-intelligence/returning-visitor.js';
+import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'LandingIntelligenceHandler' });
 
@@ -76,6 +74,187 @@ async function parseBody<T>(req: IncomingMessage): Promise<T> {
     });
     req.on('error', reject);
   });
+}
+
+// ============================================================================
+// VOICE DEMO - AI-powered demo response generator
+// ============================================================================
+
+interface VoiceDemoResponse {
+  response: string;
+  insights: Array<{ label: string; value: string }>;
+  emotion?: string;
+}
+
+/**
+ * Generate a thoughtful AI response for the voice demo.
+ * Uses pattern matching for fast, reliable responses.
+ * Falls back to Ferni's empathetic coaching style.
+ */
+async function generateVoiceDemoResponse(
+  transcript: string,
+  sessionId?: string
+): Promise<VoiceDemoResponse> {
+  const lowerTranscript = transcript.toLowerCase().trim();
+
+  log.info({ transcript: transcript.slice(0, 100), sessionId }, 'Voice demo request');
+
+  // Pattern-based responses for common topics
+  // These are designed to showcase Ferni's empathetic coaching style
+
+  // STRESS / OVERWHELM
+  if (/stress|overwhelm|anxious|anxiety|worried|panic|too much/.test(lowerTranscript)) {
+    return {
+      response:
+        'I hear that weight in your words. Stress has a way of making everything feel heavier than it needs to be. What if we started with just one small thing you could take off your plate right now?',
+      insights: [
+        { label: 'Emotion', value: 'Feeling overwhelmed' },
+        { label: 'Pattern', value: 'Taking on too much' },
+        { label: 'Approach', value: 'One small win first' },
+      ],
+      emotion: 'empathy',
+    };
+  }
+
+  // SLEEP / TIRED
+  if (/sleep|tired|exhausted|insomnia|can't sleep|restless|fatigue/.test(lowerTranscript)) {
+    return {
+      response:
+        "Rest isn't just about sleep—it's about giving your mind permission to pause. What's keeping your thoughts running even when you're tired?",
+      insights: [
+        { label: 'Concern', value: 'Rest and recovery' },
+        { label: 'Connection', value: 'Mind-body balance' },
+        { label: 'Focus', value: 'What needs settling' },
+      ],
+      emotion: 'caring',
+    };
+  }
+
+  // WORK / CAREER
+  if (/work|job|career|boss|coworker|office|profession|promotion|quit/.test(lowerTranscript)) {
+    return {
+      response:
+        "Work takes up so much of our lives. I'm curious—when you think about your work, what's the feeling that comes up first?",
+      insights: [
+        { label: 'Topic', value: 'Career & purpose' },
+        { label: 'Approach', value: 'Exploring feelings' },
+        { label: 'Goal', value: 'Understanding your relationship with work' },
+      ],
+      emotion: 'curious',
+    };
+  }
+
+  // RELATIONSHIPS
+  if (
+    /relationship|partner|spouse|boyfriend|girlfriend|husband|wife|dating|marriage|friend|family/.test(
+      lowerTranscript
+    )
+  ) {
+    return {
+      response:
+        "Relationships are where we do some of our deepest growing—and sometimes our hardest work. Tell me more about what's on your mind.",
+      insights: [
+        { label: 'Topic', value: 'Relationships' },
+        { label: 'Strength', value: 'Seeking understanding' },
+        { label: 'Next step', value: 'Exploring dynamics' },
+      ],
+      emotion: 'warmth',
+    };
+  }
+
+  // MOTIVATION / STUCK
+  if (
+    /motivat|stuck|procrastinat|can't start|no energy|giving up|don't know what to do/.test(
+      lowerTranscript
+    )
+  ) {
+    return {
+      response:
+        "Feeling stuck isn't a character flaw—it's often a sign that something deeper needs attention. What were you trying to do before you felt this way?",
+      insights: [
+        { label: 'State', value: 'Feeling stuck' },
+        { label: 'Reframe', value: 'Signal, not failure' },
+        { label: 'Direction', value: 'Finding the root cause' },
+      ],
+      emotion: 'encouraging',
+    };
+  }
+
+  // DECISION / CHOICE
+  if (/decis|choice|decide|choose|should I|option|uncertain|what do I do/.test(lowerTranscript)) {
+    return {
+      response:
+        "Big decisions can feel paralyzing because they matter to you. Let's slow down—what are you really weighing here?",
+      insights: [
+        { label: 'Challenge', value: 'Decision making' },
+        { label: 'Why hard', value: 'It matters to you' },
+        { label: 'Approach', value: 'Understanding the stakes' },
+      ],
+      emotion: 'thoughtful',
+    };
+  }
+
+  // HAPPY / GOOD NEWS
+  if (
+    /happy|excited|great news|amazing|wonderful|celebrate|good thing|accomplished/.test(
+      lowerTranscript
+    )
+  ) {
+    return {
+      response:
+        'I can feel the energy in that! Those moments of joy deserve to be savored. What made this feel so special?',
+      insights: [
+        { label: 'Emotion', value: 'Joy & excitement' },
+        { label: 'Approach', value: 'Savoring the moment' },
+        { label: 'Goal', value: 'Understanding what matters' },
+      ],
+      emotion: 'joyful',
+    };
+  }
+
+  // LONELY / ISOLATED
+  if (/lonely|alone|isolated|no one|nobody understands|miss|disconnected/.test(lowerTranscript)) {
+    return {
+      response:
+        "Loneliness can feel like being in a room full of people but still feeling invisible. I'm here, and I'm listening. What would help you feel more connected right now?",
+      insights: [
+        { label: 'Emotion', value: 'Feeling alone' },
+        { label: 'Validation', value: 'Your feelings matter' },
+        { label: 'Direction', value: 'Building connection' },
+      ],
+      emotion: 'present',
+    };
+  }
+
+  // SELF-DOUBT / CONFIDENCE
+  if (
+    /not good enough|imposter|doubt myself|insecure|confident|self-esteem|failure/.test(
+      lowerTranscript
+    )
+  ) {
+    return {
+      response:
+        "Those inner critics can be so loud sometimes. But here's what I notice—you're aware of these thoughts, and that awareness is actually a strength. What triggered this feeling?",
+      insights: [
+        { label: 'Pattern', value: 'Self-doubt' },
+        { label: 'Reframe', value: 'Awareness is strength' },
+        { label: 'Next step', value: 'Finding the trigger' },
+      ],
+      emotion: 'supportive',
+    };
+  }
+
+  // DEFAULT - Open-ended exploration
+  const truncatedTranscript = transcript.length > 60 ? transcript.slice(0, 60) + '...' : transcript;
+  return {
+    response: `I'm listening. "${truncatedTranscript}"—that sounds important. Can you tell me more about what's behind that?`,
+    insights: [
+      { label: 'Approach', value: 'Curious exploration' },
+      { label: 'Style', value: 'Open-ended listening' },
+      { label: 'Goal', value: 'Understanding your perspective' },
+    ],
+    emotion: 'curious',
+  };
 }
 
 // ============================================================================
@@ -514,6 +693,22 @@ export async function handleLandingIntelligenceRoutes(
       }
 
       const result = await generateSentimentReactiveCopy(body);
+      sendJSON(res, result);
+      return true;
+    }
+
+    // ============================================================================
+    // POST /api/landing/voice-demo - Voice demo interaction
+    // ============================================================================
+    if (pathname === '/api/landing/voice-demo' && method === 'POST') {
+      const body = await parseBody<{ transcript: string; sessionId?: string }>(req);
+
+      if (!body.transcript || typeof body.transcript !== 'string') {
+        sendError(res, 'transcript required', 400);
+        return true;
+      }
+
+      const result = await generateVoiceDemoResponse(body.transcript, body.sessionId);
       sendJSON(res, result);
       return true;
     }

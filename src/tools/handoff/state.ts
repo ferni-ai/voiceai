@@ -33,10 +33,10 @@ import type { HandoffAnalytics, HandoffContext, HandoffRecord } from './types.js
 
 // Re-export session-scoped state for new code
 export {
+  getActiveSessionIds,
   getSessionState,
   hasSessionState,
   removeSessionState,
-  getActiveSessionIds,
   type HandoffSessionState,
 } from './session-state.js';
 
@@ -57,6 +57,19 @@ export const handoffEvents = new EventEmitter();
 
 // Increase max listeners to handle multiple concurrent handoffs
 handoffEvents.setMaxListeners(20);
+
+/**
+ * Global event emitter for cameo unlock events.
+ *
+ * CAMEO UNLOCK SYSTEM: These events fire when Ferni introduces a new team member.
+ * The voice agent listens for these and sends data messages to the frontend.
+ *
+ * Events:
+ * - 'memberUnlocked': Fired when introduceMember tool completes, with:
+ *   { memberId, displayName, role, spokenIntro }
+ */
+export const cameoUnlockEvents = new EventEmitter();
+cameoUnlockEvents.setMaxListeners(10);
 
 // ============================================================================
 // STATE

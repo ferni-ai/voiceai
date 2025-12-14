@@ -86,6 +86,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   handoff: () => import('./handoff.js'),
   'role-boundaries': () => import('./role-boundaries.js'),
   'cameo-opportunities': () => import('./cameo-opportunities.js'),
+  'cameo-unlock': () => import('./cameo-unlock.js'), // Natural team member introductions
 
   // CONTEXT
   'tool-capabilities': () => import('./tool-capabilities.js'),
