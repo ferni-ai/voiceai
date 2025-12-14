@@ -22,6 +22,8 @@ import { STORY_ARCS } from './story-arcs.js';
 import { type DetectedEmotion } from './emotion-analyzer.js';
 // 🎬 Ferni Expressions - Avatar expressions respond to user emotions
 import { ferniExpressions } from '../ui/ferni-expressions.ui.js';
+// 📳 Haptics - Touch feedback for emotional connection
+import { haptics } from '../utils/haptics.js';
 
 const log = createLogger('NarrativeBridge');
 
@@ -110,22 +112,30 @@ function setupConnectionListeners(): void {
   // Connection starting
   document.addEventListener('ferni:connecting', () => {
     void playBeat('connecting');
+    // Gentle anticipation haptic
+    haptics.softTap();
   });
   
   // Connection established
   document.addEventListener('ferni:connected', () => {
     startSession();
     void playBeat('connected');
+    // Warm welcome haptic - the Ferni breath
+    haptics.connectionSuccess();
   });
   
   // Connection lost
   document.addEventListener('ferni:connection-lost', () => {
     void playBeat('connection_lost');
+    // Subtle farewell haptic
+    haptics.connectionLost();
   });
   
   // Reconnected
   document.addEventListener('ferni:reconnected', () => {
     void playBeat('reconnected');
+    // Gentle "I'm back" haptic
+    haptics.warmPulse();
   });
   
   // Disconnected (intentional)

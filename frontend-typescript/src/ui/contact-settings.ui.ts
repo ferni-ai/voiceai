@@ -433,9 +433,9 @@ function injectStyles(): void {
 
     .contact-settings-error {
       padding: 12px 16px;
-      background: rgba(220, 38, 38, 0.1);
+      background: var(--color-error-bg, rgba(220, 38, 38, 0.1));
       border-radius: var(--radius-md, 8px);
-      color: #dc2626;
+      color: var(--color-error, #dc2626);
       font-size: 13px;
       margin-bottom: 16px;
     }

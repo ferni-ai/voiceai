@@ -15,6 +15,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { outreachService } from '../services/outreach.service.js';
 import { showNotification } from '../services/push-notifications.service.js';
 import { createLogger } from '../utils/logger.js';
+import { haptics } from '../utils/haptics.js';
 import { celebrationsUI } from './celebrations.ui.js';
 import { ferniMoments } from './ferni-moments.ui.js';
 import { soundUI } from './sound.ui.js';
@@ -980,8 +981,12 @@ async function showMilestoneCelebration(milestone: Milestone): Promise<void> {
   // Play appropriate sound
   if (isBigMilestone) {
     soundUI.play('celebrate');
+    // Big win deserves big haptics
+    haptics.bigWin();
   } else {
     soundUI.play('success');
+    // Small win - gentle celebration haptic
+    haptics.smallWin();
   }
 
   // Trigger Ferni Moment expression based on category

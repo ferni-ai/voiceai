@@ -1618,7 +1618,7 @@ function injectSoulStyles(): void {
       position: absolute;
       inset: 15%;
       border-radius: 50%;
-      background: #0a0908;
+      background: var(--color-background-inverse, #0a0908);
     }
     
     .pupil-reflection {
@@ -1978,7 +1978,7 @@ function injectSoulStyles(): void {
     
     [data-theme="light"] .pupil-inner,
     [data-theme="zen"] .pupil-inner {
-      background: #1a1612;
+      background: var(--color-text-primary, #1a1612);
     }
     
     [data-theme="light"] .soul-grain-overlay,
