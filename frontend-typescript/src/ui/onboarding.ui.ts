@@ -12,6 +12,7 @@
  */
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
 
 // ============================================================================
 // TYPES
