@@ -100,7 +100,7 @@ function createAccountButton(): void {
   container.innerHTML = `
     <button class="account-button" aria-label="${t('accessibility.accountSettings')}">
       ${LUCIDE_USER_ICON}
-      <span class="account-button-text">Save</span>
+      <span class="account-button-text">Remember me</span>
     </button>
   `;
 
@@ -169,13 +169,13 @@ function updateButtonState(state: AuthState): void {
     textSpan.textContent = state.displayName || state.email?.split('@')[0] || 'Account';
     button.setAttribute('aria-label', `Account menu for ${state.email || 'linked account'}`);
   } else if (state.isAuthenticated) {
-    // Anonymous user - show invite to link
-    textSpan.textContent = t('common.save');
-    button.setAttribute('aria-label', t('accessibility.saveConversations'));
+    // Anonymous user - warm invitation to be remembered
+    textSpan.textContent = 'Remember me';
+    button.setAttribute('aria-label', 'Let Ferni remember you across devices');
   } else {
     // Not configured or error
-    textSpan.textContent = t('buttons.signIn');
-    button.setAttribute('aria-label', t('accessibility.signInToAccount'));
+    textSpan.textContent = 'Remember me';
+    button.setAttribute('aria-label', 'Let Ferni remember you across devices');
   }
 }
 
@@ -199,9 +199,9 @@ function showLinkAccountModal(): void {
     <div class="account-modal-card" role="dialog" aria-labelledby="account-modal-title">
       <header class="account-modal-header">
         <div>
-          <span class="eyebrow">YOUR RELATIONSHIP</span>
-          <h2 id="account-modal-title">Save Our Conversations</h2>
-          <p class="tagline">Access Ferni from any device, and never lose what we've shared.</p>
+          <span class="eyebrow">OUR RELATIONSHIP</span>
+          <h2 id="account-modal-title">Let me remember you</h2>
+          <p class="tagline">I'll never forget what we've shared—from any device, anytime.</p>
         </div>
         <button class="close-btn" aria-label="${t('common.close')}">${LUCIDE_CLOSE_ICON}</button>
       </header>
@@ -231,22 +231,22 @@ function showLinkAccountModal(): void {
             <label for="account-password">Password</label>
             <input type="password" id="account-password" name="password" required minlength="6" autocomplete="new-password" />
           </div>
-          <button type="submit" class="submit-btn">Create Account</button>
+          <button type="submit" class="submit-btn">Remember me</button>
         </form>
         
         <p class="privacy-note">
-          Your conversations stay private. We only use your email to sync across devices.
+          Your conversations stay between us. I just need a way to find you again.
         </p>
       </div>
       
       <div class="account-modal-loading" style="display: none;">
         <div class="spinner"></div>
-        <p>Connecting...</p>
+        <p>Making a note...</p>
       </div>
       
       <div class="account-modal-success" style="display: none;">
         ${LUCIDE_CHECK_ICON}
-        <p>Account linked! Your relationship is saved.</p>
+        <p>I'll remember you now. Wherever you go, I'll know you.</p>
       </div>
       
       <div class="account-modal-error" style="display: none;">
@@ -643,9 +643,10 @@ function showAccountMenu(): void {
   menu.className = 'account-menu';
   menu.innerHTML = `
     <div class="account-menu-item account-info">
-      <span class="account-email">${currentAuthState.email || 'Linked Account'}</span>
+      <span class="account-label">I'll remember you as</span>
+      <span class="account-email">${currentAuthState.email || currentAuthState.displayName || 'You'}</span>
     </div>
-    <button class="account-menu-item" data-action="signout">Sign Out</button>
+    <button class="account-menu-item" data-action="signout">Forget this device</button>
   `;
 
   Object.assign(menu.style, {
@@ -680,9 +681,16 @@ function showAccountMenu(): void {
     .account-info {
       border-bottom: 1px solid var(--color-border-subtle, rgba(0,0,0,0.1));
       cursor: default;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
     .account-info:hover {
       background: none;
+    }
+    .account-label {
+      font-size: 0.75rem;
+      color: var(--color-text-muted, #8a7f75);
     }
     .account-email {
       font-weight: 500;

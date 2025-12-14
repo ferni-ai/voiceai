@@ -11,10 +11,14 @@
  * It appears rarely enough to be delightful, not expected.
  */
 
-import { createLogger } from '../utils/logger.js';
 import { prefersReducedMotion } from '../config/animation-constants.js';
+import { createLogger } from '../utils/logger.js';
+import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
 const log = createLogger('FerniEye');
+
+// FIX BUG: Track all setTimeout calls for proper cleanup
+const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -125,14 +129,17 @@ export function initFerniEye(): void {
  * Dispose of the Ferni Eye system
  */
 export function disposeFerniEye(): void {
+  // FIX BUG: Clear all tracked timeouts first
+  clearAllTimeouts();
+
   if (peekTimer) clearTimeout(peekTimer);
   if (blinkTimer) clearTimeout(blinkTimer);
   if (trackingFrame) cancelAnimationFrame(trackingFrame);
-  
+
   document.removeEventListener('mousemove', handleMouseMove);
   avatarElement?.removeEventListener('mouseenter', handleAvatarHover);
   avatarElement?.removeEventListener('mouseleave', handleAvatarLeave);
-  
+
   eyeElement = null;
   glowElement = null;
   pupilGroup = null;
@@ -212,7 +219,7 @@ export function triggerPeek(): void {
     glowElement.classList.add('glow-peek');
     startGlowTracking();
     
-    setTimeout(() => {
+    trackedTimeout(() => {
       stopGlowTracking();
       glowElement?.classList.remove('glow-peek');
       state.isAnimating = false;
@@ -232,7 +239,7 @@ export function triggerPeek(): void {
   
   // Maybe look around during the peek (only for pupil mode)
   if (state.currentStyle === 'pupil') {
-    setTimeout(() => {
+    trackedTimeout(() => {
       if (Math.random() > 0.5) {
         eyeElement?.classList.add('eye-look-around');
       }
@@ -240,7 +247,7 @@ export function triggerPeek(): void {
   }
   
   // Clean up after animation
-  setTimeout(() => {
+  trackedTimeout(() => {
     stopTracking();
     resetAnimationClasses();
     state.isAnimating = false;
@@ -257,8 +264,8 @@ export function triggerBlink(): void {
   if (!eyeElement || !state.isVisible) return;
   
   eyeElement.classList.add('eye-blink');
-  
-  setTimeout(() => {
+
+  trackedTimeout(() => {
     eyeElement?.classList.remove('eye-blink');
   }, CONFIG.blinkDuration);
 }
@@ -273,12 +280,12 @@ export function triggerWink(): void {
   
   // Show eye if not visible
   showEye();
-  
-  setTimeout(() => {
+
+  trackedTimeout(() => {
     eyeElement?.classList.add('eye-wink');
   }, 100);
-  
-  setTimeout(() => {
+
+  trackedTimeout(() => {
     eyeElement?.classList.remove('eye-wink');
     // Hide after wink if it wasn't visible before
     if (!state.isVisible) {
@@ -298,7 +305,7 @@ export function triggerCurious(): void {
   if (state.currentStyle === 'glow') {
     if (!glowElement) return;
     glowElement.classList.add('glow-visible', 'glow-curious');
-    setTimeout(() => {
+    trackedTimeout(() => {
       glowElement?.classList.remove('glow-curious');
       if (!state.isTracking) {
         glowElement?.classList.remove('glow-visible');
@@ -313,8 +320,8 @@ export function triggerCurious(): void {
   
   showEye();
   eyeElement.classList.add('eye-curious');
-  
-  setTimeout(() => {
+
+  trackedTimeout(() => {
     eyeElement?.classList.remove('eye-curious');
     if (!state.isTracking) {
       hideEye();
