@@ -4,7 +4,6 @@
     "name": "한국어",
     "direction": "ltr"
   },
-
   "hero": {
     "eyebrow": "AI 코치를 만나세요",
     "headline": "인간보다",
@@ -17,7 +16,6 @@
       "talkNow": "지금 Ferni와 대화하기"
     }
   },
-
   "superpowers": {
     "memory": {
       "title": "완벽한 기억",
@@ -40,7 +38,6 @@
       "description": "멈춤을 알아챕니다. 회피를. 보이지 않는 패턴을. 이해는 듣는 것만이 아닙니다—진정으로 아는 것입니다."
     }
   },
-
   "team": {
     "sectionTitle": "팀 소개",
     "sectionSubtitle": "당신을 위해 함께 일하는 여섯 명의 뛰어난 전문가",
@@ -75,7 +72,6 @@
       "sampleQuote": "'언젠가' 일본에 가고 싶다고 했죠. 실제 날짜를 정해봐요."
     }
   },
-
   "pricing": {
     "sectionTitle": "간단한 요금제",
     "headline": "무료로 시작.",
@@ -125,7 +121,6 @@
       ]
     }
   },
-
   "faq": {
     "sectionTitle": "자주 묻는 질문",
     "eyebrow": "질문과 답변",
@@ -158,17 +153,14 @@
       }
     ]
   },
-
   "testimonials": {
     "sectionTitle": "사람들의 이야기"
   },
-
   "trust": {
     "title": "신뢰 위에 구축.",
     "description": "당신의 대화는 당신의 것. 항상. 엔터프라이즈급 암호화를 사용하며 데이터를 판매하지 않습니다.",
     "cta": "개인정보 보호정책 읽기"
   },
-
   "footer": {
     "tagline": "진정으로 이해해주는 존재.",
     "copyright": "Ferni AI. 모든 권리 보유.",
@@ -180,7 +172,6 @@
     "connect": "연결",
     "legal": "법적 정보"
   },
-
   "nav": {
     "features": "기능",
     "team": "팀",
@@ -190,7 +181,6 @@
     "about": "회사 소개",
     "contact": "문의"
   },
-
   "common": {
     "learnMore": "자세히 알아보기",
     "getStarted": "시작하기",
@@ -198,7 +188,6 @@
     "scrollToExplore": "스크롤하여 탐색",
     "callPhone": "전화하기"
   },
-
   "accessibility": {
     "nextStory": "다음 스토리",
     "toggleMenu": "메뉴 전환",
@@ -209,11 +198,29 @@
     "tiktok": "TikTok",
     "youtube": "YouTube"
   },
-
   "personas": {
-    "peter": { "fullName": "피터 존" },
-    "maya": { "fullName": "마야 산토스" },
-    "alex": { "fullName": "알렉스 첸" },
-    "jordan": { "fullName": "조던 테일러" }
+    "peter": {
+      "fullName": "피터 존"
+    },
+    "maya": {
+      "fullName": "마야 산토스"
+    },
+    "alex": {
+      "fullName": "알렉스 첸"
+    },
+    "jordan": {
+      "fullName": "조던 테일러"
+    }
+  },
+  "errorPage": {
+    "title": "생각에 빠져 계신가요?",
+    "subtitle": "다시 정상 궤도로 돌아가요.",
+    "goHome": "홈으로",
+    "callFerni": "Ferni에게 전화",
+    "suggestionsLabel": "또는 다음 중 하나를 시도해 보세요:",
+    "meetTeam": "팀 소개",
+    "viewPricing": "요금제 보기",
+    "readFaq": "FAQ 읽기",
+    "readBlog": "블로그 읽기"
   }
 }

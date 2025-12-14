@@ -198,6 +198,24 @@ export async function executeCameo(
     };
   }
 
+  // FIX BUG: Add global rate limiting (minimum 800ms between ANY cameos)
+  const MIN_CAMEO_INTERVAL_MS = 800;
+  if (state.lastCameoEndTime) {
+    const timeSinceLastCameo = Date.now() - state.lastCameoEndTime;
+    if (timeSinceLastCameo < MIN_CAMEO_INTERVAL_MS) {
+      log.debug(
+        { timeSinceLastCameo, minInterval: MIN_CAMEO_INTERVAL_MS },
+        'Cameo rate limited - too soon after previous cameo'
+      );
+      return {
+        success: false,
+        error: 'Rate limited - too soon after previous cameo',
+        blockedByCooldown: true,
+        cooldownRemaining: MIN_CAMEO_INTERVAL_MS - timeSinceLastCameo,
+      };
+    }
+  }
+
   // Check session limit (use user preference if available)
   const maxCameos = userPrefs?.maxCameosPerSession ?? CAMEO_CONFIG.maxCameosPerSession;
   if (state.totalCameosThisSession >= maxCameos) {

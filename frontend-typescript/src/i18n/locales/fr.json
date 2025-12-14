@@ -23,7 +23,12 @@
     "download": "Télécharger",
     "copy": "Copier",
     "copied": "Copié !",
-    "new": "NOUVEAU"
+    "new": "NOUVEAU",
+    "saving": "Enregistrement...",
+    "saved": "Enregistré !",
+    "processing": "Traitement...",
+    "adding": "Ajout...",
+    "errorRetry": "Erreur - Réessayer"
   },
   "menu": {
     "title": "Et maintenant ?",
@@ -350,7 +355,7 @@
     "modes": {
       "title": "Mode d'Affichage",
       "avatarOnly": {
-        "label": "Avatar Uniquement",
+        "label": "Avatar uniquement",
         "description": "Juste l'avatar de Ferni, pas de vidéo"
       },
       "video": {
@@ -362,8 +367,8 @@
         "description": "Avatar avec vidéo optionnelle"
       },
       "avatar": {
-        "label": "",
-        "description": ""
+        "label": "Avatar uniquement",
+        "description": "Juste l'avatar de Ferni, pas de vidéo"
       }
     },
     "quality": {
@@ -389,7 +394,7 @@
     "buttons": {
       "connect": "Connecter",
       "disconnect": "Déconnecter",
-      "tryAgain": ""
+      "tryAgain": "Réessayer"
     },
     "features": {
       "stress": "Détection du stress à partir de la VFC",
@@ -421,12 +426,12 @@
         "description": "Suivi de la récupération et de la charge"
       },
       "apple_health": {
-        "name": "",
-        "description": ""
+        "name": "Apple Health",
+        "description": "Synchroniser avec les données de santé Apple Watch et iPhone"
       }
     },
     "errors": {
-      "loadFailed": ""
+      "loadFailed": "Impossible de charger les paramètres des appareils"
     }
   },
   "contactSettings": {
@@ -446,6 +451,96 @@
     "unmuteAudio": "Activer le son",
     "endCall": "Terminer l'appel",
     "skipToContent": "Aller au contenu principal",
-    "languageSelector": ""
+    "languageSelector": "Sélectionner la langue",
+    "saveConversations": "Sauvegardez vos conversations en créant un compte",
+    "signInToAccount": "Connectez-vous à votre compte",
+    "accountMenu": "Menu du compte",
+    "refreshData": "Actualiser les données",
+    "exportData": "Exporter vos données",
+    "accountSettings": "Paramètres du compte",
+    "dismiss": "Fermer",
+    "dismissNotification": "Fermer la notification",
+    "closeDashboard": "Fermer le tableau de bord",
+    "closeSubscription": "Fermer les options d'abonnement",
+    "closeDetails": "Fermer les détails",
+    "closePublisher": "Fermer le portail éditeur",
+    "closeBilling": "Fermer le tableau de facturation",
+    "closeSettings": "Fermer les paramètres",
+    "closeHistory": "Fermer l'historique",
+    "closeAdmin": "Fermer le panneau admin",
+    "closeHuddle": "Fermer le huddle",
+    "closeStats": "Fermer les statistiques",
+    "refresh": "Actualiser",
+    "backToItems": "Retour aux éléments",
+    "collapse": "Réduire",
+    "expandGarden": "Développer les détails du jardin",
+    "collapseGarden": "Réduire les détails du jardin",
+    "howToPlay": "Comment jouer",
+    "toggleQuietHours": "Activer/désactiver heures calmes",
+    "yourNewPlan": "Votre nouveau forfait",
+    "subscriptionPlans": "Forfaits d'abonnement",
+    "options": "Options",
+    "featuresIncluded": "Fonctionnalités incluses",
+    "searchCoaches": "Rechercher des coachs",
+    "filterBySpecialty": "Filtrer par spécialité",
+    "availableCoaches": "Coachs disponibles",
+    "portalSections": "Sections du portail",
+    "submitNewItem": "Soumettre un nouvel élément",
+    "openDailyPractice": "Ouvrir la pratique quotidienne",
+    "openPredictions": "Ouvrir les prédictions",
+    "shareJourney": "Partager votre parcours",
+    "forgetThis": "Oublier ceci",
+    "cancelInstallation": "Annuler l'installation",
+    "sharedMusicalMemory": "Souvenir musical partagé",
+    "viewOutreachSchedule": "Voir le calendrier de contact",
+    "ferniLogo": "Logo Ferni"
+  },
+  "buttons": {
+    "signIn": "Se connecter",
+    "signOut": "Se déconnecter",
+    "signUp": "S'inscrire",
+    "savePreferences": "Enregistrer les préférences",
+    "savePreference": "Enregistrer la préférence",
+    "choose": "Choisir",
+    "refresh": "Actualiser",
+    "exportData": "Exporter les données"
+  },
+  "mobile": {
+    "pullToConnect": "Tirez pour connecter",
+    "releaseToConnect": "Relâchez pour connecter",
+    "pullToRefresh": "Tirez pour actualiser",
+    "releaseToRefresh": "Relâchez pour actualiser"
+  },
+  "placeholders": {
+    "customAmount": "Montant personnalisé",
+    "searchConversations": "Rechercher des conversations...",
+    "enterValue": "Entrez la valeur réelle",
+    "emailExample": "vous@exemple.com",
+    "phoneExample": "+33 (1) 23-45-67-89",
+    "memberName": "Leur nom",
+    "householdName": "La famille Dupont",
+    "displayName": "Votre nom préféré",
+    "marketplaceSearch": "Qui recherchez-vous ?",
+    "codeInput": "• • • • • •",
+    "colleagueEmail": "collegue@entreprise.com",
+    "welcomeMessageExample": "ex., Bienvenue chez {orgName}! Ferni est là pour soutenir votre croissance et votre bien-être.",
+    "companyValuesExample": "ex., Intégrité, Innovation, Orientation Client, Travail d'équipe",
+    "toolIdExample": "mon-super-outil",
+    "toolNameExample": "Mon Super Outil",
+    "versionExample": "1.0.0",
+    "toolDescription": "Que fait votre outil/agent?"
+  },
+  "household": {
+    "addToHousehold": "Ajouter au foyer",
+    "title": "Foyer",
+    "members": "Membres",
+    "addMember": "Ajouter un membre",
+    "removeMember": "Supprimer un membre"
+  },
+  "titles": {
+    "sharedSong": "Une chanson que nous partageons",
+    "dailyPractice": "Pratique quotidienne",
+    "predictions": "Prédictions",
+    "runScenario": "Exécuter le scénario"
   }
 }

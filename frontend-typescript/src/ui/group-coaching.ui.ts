@@ -212,7 +212,7 @@ class GroupCoachingUI {
       <header class="group-coaching__header">
         <div class="group-coaching__icon">${ICONS.users}</div>
         <h2 class="group-coaching__title">${t('groupCoaching.title')}</h2>
-        <button class="group-coaching__close" aria-label="Close">${ICONS.close}</button>
+        <button class="group-coaching__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
       <div class="group-coaching__loading">
         <div class="group-coaching__spinner"></div>
@@ -254,7 +254,7 @@ class GroupCoachingUI {
       <header class="group-coaching__header">
         <div class="group-coaching__icon">${ICONS.users}</div>
         <h2 class="group-coaching__title">${t('groupCoaching.title')}</h2>
-        <button class="group-coaching__close" aria-label="Close">${ICONS.close}</button>
+        <button class="group-coaching__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
 
       <div class="group-coaching__content">
@@ -300,7 +300,7 @@ class GroupCoachingUI {
       <header class="group-coaching__header">
         <button class="group-coaching__back" data-action="back">←</button>
         <h2 class="group-coaching__title">New Session</h2>
-        <button class="group-coaching__close" aria-label="Close">${ICONS.close}</button>
+        <button class="group-coaching__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
 
       <div class="group-coaching__content">
@@ -337,7 +337,7 @@ class GroupCoachingUI {
       <header class="group-coaching__header">
         <button class="group-coaching__back" data-action="back">←</button>
         <h2 class="group-coaching__title">${typeInfo?.name || 'Session'}</h2>
-        <button class="group-coaching__close" aria-label="Close">${ICONS.close}</button>
+        <button class="group-coaching__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
 
       <div class="group-coaching__content">
@@ -398,7 +398,7 @@ class GroupCoachingUI {
       <header class="group-coaching__header">
         <div class="group-coaching__icon">${ICONS.users}</div>
         <h2 class="group-coaching__title">${t('groupCoaching.title')}</h2>
-        <button class="group-coaching__close" aria-label="Close">${ICONS.close}</button>
+        <button class="group-coaching__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
       <div class="group-coaching__error">
         <p>${message}</p>

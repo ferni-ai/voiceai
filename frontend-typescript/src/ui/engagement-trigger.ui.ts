@@ -7,6 +7,7 @@
  * Brand-aligned: minimalist, unobtrusive, zen aesthetic.
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -71,14 +72,14 @@ class EngagementTriggerUI {
     this.container = document.createElement('div');
     this.container.className = 'engagement-triggers';
     this.container.innerHTML = `
-      <button class="engagement-trigger-btn" id="engagementTriggerBtn" aria-label="Open daily practice" title="Daily Practice">
+      <button class="engagement-trigger-btn" id="engagementTriggerBtn" aria-label="${t('accessibility.openDailyPractice')}" title="${t('titles.dailyPractice')}">
         <svg class="engagement-trigger-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/>
           <path d="M12 6v6l4 2"/>
         </svg>
         <span class="engagement-trigger-btn__badge" id="engagementBadge"></span>
       </button>
-      <button class="engagement-trigger-btn" id="predictionsTriggerBtn" aria-label="Open predictions" title="Predictions">
+      <button class="engagement-trigger-btn" id="predictionsTriggerBtn" aria-label="${t('accessibility.openPredictions')}" title="${t('titles.predictions')}">
         <svg class="engagement-trigger-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
         </svg>

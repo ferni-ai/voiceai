@@ -12,6 +12,7 @@
  * @module AccountButtonUI
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import {
   linkWithApple,
@@ -97,7 +98,7 @@ function createAccountButton(): void {
   const container = document.createElement('div');
   container.className = 'account-button-container';
   container.innerHTML = `
-    <button class="account-button" aria-label="Account settings">
+    <button class="account-button" aria-label="${t('accessibility.accountSettings')}">
       ${LUCIDE_USER_ICON}
       <span class="account-button-text">Save</span>
     </button>
@@ -169,12 +170,12 @@ function updateButtonState(state: AuthState): void {
     button.setAttribute('aria-label', `Account menu for ${state.email || 'linked account'}`);
   } else if (state.isAuthenticated) {
     // Anonymous user - show invite to link
-    textSpan.textContent = 'Save';
-    button.setAttribute('aria-label', 'Save your conversations by creating an account');
+    textSpan.textContent = t('common.save');
+    button.setAttribute('aria-label', t('accessibility.saveConversations'));
   } else {
     // Not configured or error
-    textSpan.textContent = 'Sign In';
-    button.setAttribute('aria-label', 'Sign in to your account');
+    textSpan.textContent = t('buttons.signIn');
+    button.setAttribute('aria-label', t('accessibility.signInToAccount'));
   }
 }
 
@@ -202,7 +203,7 @@ function showLinkAccountModal(): void {
           <h2 id="account-modal-title">Save Our Conversations</h2>
           <p class="tagline">Access Ferni from any device, and never lose what we've shared.</p>
         </div>
-        <button class="close-btn" aria-label="Close">${LUCIDE_CLOSE_ICON}</button>
+        <button class="close-btn" aria-label="${t('common.close')}">${LUCIDE_CLOSE_ICON}</button>
       </header>
       
       <div class="account-modal-content">

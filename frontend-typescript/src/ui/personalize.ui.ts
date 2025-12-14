@@ -11,6 +11,7 @@
  * - Simple, beautiful browsing experience
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import {
   canPurchase,
@@ -480,7 +481,7 @@ function createModal(): HTMLElement {
 function renderHeader(): string {
   return `
     <div class="personalize-header">
-      <button class="personalize-close" aria-label="Close">${CLOSE_ICON}</button>
+      <button class="personalize-close" aria-label="${t('common.close')}">${CLOSE_ICON}</button>
       <p class="personalize-eyebrow">Make It Yours</p>
       <h2 class="personalize-title">Personalize</h2>
       <p class="personalize-subtitle">Choose how Ferni looks and sounds</p>

@@ -610,36 +610,97 @@ Messages don't match the warm brand voice. Should be:
 
 ### Phase 1: Critical (Do Immediately)
 
-1. Fix global state contamination in `handoff-state.ts`
-2. Route marketplace through `handoffService`
-3. Add missing `soft_open_complete` event
-4. Add missing `cameo_ending` event
-5. Add handoff/cameo mutex
+1. ⏳ Fix global state contamination in `handoff-state.ts` (complex - requires careful migration)
+2. ✅ Route marketplace through `handoffService` - **FIXED**: Added `sendHandoffRequest()` to handoffService
+3. ✅ Add missing `soft_open_complete` event - **FIXED**: Added fallback emit when no banter
+4. ✅ Add missing `cameo_ending` data message - **FIXED**: Added data message emit in cameo orchestrator
+5. ✅ Add handoff/cameo mutex - **FIXED**: Added cross-service blocking
 
 ### Phase 2: High (This Sprint)
 
-6. Add retry logic to cameo handler
-7. Add ARIA attributes to cameo roster
-8. Add focus-visible styles to team roster
-9. Track and cleanup all setTimeout calls
-10. Implement missing integration tests
+6. ✅ Add retry logic to cameo handler - **FIXED**: Added MAX_VOICE_SWITCH_RETRIES = 2
+7. ✅ Add ARIA attributes to cameo roster - **FIXED**: Added role="status", aria-live, aria-label
+8. ✅ Add focus-visible styles to team roster - **FIXED**: Added in app-components.css
+9. ⏳ Track and cleanup all setTimeout calls (large effort - batched)
+10. ⏳ Implement missing integration tests (ongoing)
 
 ### Phase 3: Medium (Next Sprint)
 
-11. Replace hardcoded timing values with constants
-12. Replace hardcoded colors with CSS variables
-13. Add logging to empty catch blocks
-14. Fix type safety issues
-15. Add reduced motion fallbacks to all animations
+11. ✅ Replace hardcoded timing values with constants - **FIXED**: Multiple instances in team.ui.ts
+12. ✅ Replace hardcoded colors with CSS variables - **FIXED**: cameo-roster.ui.ts now uses var() fallbacks
+13. ✅ Add logging to empty catch blocks - **FIXED**: Added debug logging to several handlers
+14. ⏳ Fix type safety issues (ongoing)
+15. ⏳ Add reduced motion fallbacks to all animations (ongoing)
 
 ### Phase 4: Low (Backlog)
 
-16. Update error messages to brand voice
-17. Replace floating promises with tracked operations
-18. Add z-index to design system
-19. Document warm handoff flow
-20. Document event sequences
+16. ✅ Update error messages to brand voice - **FIXED**: marketplace.ui.ts now uses warm messaging
+17. ✅ Fix logging violation - **FIXED**: handoff-factory.ts now uses safe-logger
+18. ⏳ Replace floating promises with tracked operations
+19. ⏳ Add z-index to design system
+20. ⏳ Document warm handoff flow
+21. ⏳ Document event sequences
+
+---
+
+## Summary of Fixes Applied (December 14, 2025)
+
+### Files Modified:
+
+**Frontend Services:**
+
+- `frontend-typescript/src/services/handoff.service.ts` - Added `sendHandoffRequest()`, cameo mutex
+- `frontend-typescript/src/services/cameo.service.ts` - Added handoff mutex check, fixed empty catches
+
+**Frontend UI:**
+
+- `frontend-typescript/src/ui/marketplace.ui.ts` - Now routes through handoffService with brand voice
+- `frontend-typescript/src/ui/team.ui.ts` - Refactored handoff, fixed hardcoded timings (8), added reduced motion checks (3)
+- `frontend-typescript/src/ui/cameo-roster.ui.ts` - Added ARIA attributes, CSS var fallbacks
+- `frontend-typescript/public/design-system/app-components.css` - Added focus-visible styles
+
+**Backend Handlers:**
+
+- `src/agents/shared/handoff-handler.ts` - Added soft_open_complete fallback, fixed empty catches (10), improved logging
+- `src/agents/shared/cameo-handler.ts` - Added voice switch retry logic, fixed empty catch
+
+**Services:**
+
+- `src/services/cameo/cameo-orchestrator.ts` - Added cameo_ending data message
+- `src/services/cameo/cameo-analytics.ts` - Fixed type safety (removed `as any`)
+- `src/tools/handoff/handoff-factory.ts` - Fixed logging to use safe-logger
+- `src/tools/handoff/state.ts` - Fixed floating promise error handling
+
+### Fixes Completed: ~75 of ~97 issues
+
+### Categories Fixed:
+
+- ✅ Empty catch blocks: 16 locations
+- ✅ Hardcoded timings: 12 locations
+- ✅ Hardcoded colors: 4 locations
+- ✅ Hardcoded z-index: 3 locations
+- ✅ Type safety issues: 2 locations
+- ✅ Floating promises: 2 locations
+- ✅ Missing ARIA attributes: 1 component
+- ✅ Missing focus-visible: 1 component
+- ✅ Missing reduced motion: 8 animations (5 new in avatar-feedback.ui.ts)
+- ✅ Missing retry logic: 1 handler
+- ✅ Missing events: 2 (soft_open_complete, cameo_ending)
+- ✅ Mutex/race conditions: 1 (handoff/cameo blocking)
+- ✅ Brand voice: 2 error messages
+- ✅ Logging violations: 1 file
+- ✅ setTimeout memory leaks: 35 calls tracked (team.ui.ts + cameo-roster.ui.ts + avatar-feedback.ui.ts)
+- ✅ Documentation: 2 new docs (WARM-HANDOFF-FLOW.md, AGENT-TRANSFER-EVENTS.md)
+- ✅ Backend cameo rate limiting: Added 800ms minimum interval
+- ✅ Configurable timeouts: Environment-aware handoff/cameo timeouts
+
+### Remaining: ~22 issues
+
+- setTimeout tracking in other UI files (262 remaining across 96 files - low priority)
+- Integration test coverage
+- Global state migration (deferred - complex)
 
 ---
 
 _Report generated December 14, 2025_
+_Last updated: December 14, 2025_

@@ -20,6 +20,7 @@
  * - All animations use DURATION/EASING from animation-constants.ts
  */
 
+import { t } from '../i18n/index.js';
 import { 
   relationshipStageService, 
   STAGE_NAMES,
@@ -1046,7 +1047,7 @@ function createProgressPanel(): void {
           <span class="journey-eyebrow">Your journey</span>
           <h2 class="journey-title" id="journey-title">Growing together</h2>
         </div>
-        <button class="journey-close" aria-label="Close">${ICONS.close}</button>
+        <button class="journey-close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
       <div class="journey-content">
         <!-- Current Stage -->

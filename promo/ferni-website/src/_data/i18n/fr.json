@@ -4,7 +4,6 @@
     "name": "Français",
     "direction": "ltr"
   },
-
   "hero": {
     "eyebrow": "Rencontrez Votre Coach IA",
     "headline": "Mieux que",
@@ -17,7 +16,6 @@
       "talkNow": "Parlez à Ferni maintenant"
     }
   },
-
   "superpowers": {
     "memory": {
       "title": "Mémoire Parfaite",
@@ -40,7 +38,6 @@
       "description": "On remarque la pause. La déviation. Le schéma que vous ne voyez pas. Comprendre, ce n'est pas seulement écouter — c'est vraiment saisir."
     }
   },
-
   "team": {
     "sectionTitle": "Rencontrez l'Équipe",
     "sectionSubtitle": "Six esprits brillants travaillant ensemble pour vous",
@@ -75,7 +72,6 @@
       "sampleQuote": "Vous avez mentionné vouloir visiter le Japon 'un jour.' Faisons-en un vrai jour."
     }
   },
-
   "pricing": {
     "sectionTitle": "Tarification Simple",
     "headline": "Commencez gratuit.",
@@ -125,7 +121,6 @@
       ]
     }
   },
-
   "faq": {
     "sectionTitle": "Questions Fréquentes",
     "eyebrow": "Questions et réponses",
@@ -158,17 +153,14 @@
       }
     ]
   },
-
   "testimonials": {
     "sectionTitle": "Ce Que Les Gens Disent"
   },
-
   "trust": {
     "title": "Construit sur la confiance.",
     "description": "Vos conversations vous appartiennent. Toujours. Nous utilisons un cryptage de niveau entreprise et ne vendons jamais vos données.",
     "cta": "Lire notre Politique de Confidentialité"
   },
-
   "footer": {
     "tagline": "Quelqu'un qui comprend vraiment.",
     "copyright": "Ferni AI. Tous droits réservés.",
@@ -180,7 +172,6 @@
     "connect": "Connexion",
     "legal": "Juridique"
   },
-
   "nav": {
     "features": "Fonctionnalités",
     "team": "Équipe",
@@ -190,7 +181,6 @@
     "about": "À Propos",
     "contact": "Contact"
   },
-
   "common": {
     "learnMore": "En savoir plus",
     "getStarted": "Commencer",
@@ -198,7 +188,6 @@
     "scrollToExplore": "Défiler pour explorer",
     "callPhone": "Appeler"
   },
-
   "accessibility": {
     "nextStory": "Histoire suivante",
     "toggleMenu": "Basculer le menu",
@@ -209,11 +198,29 @@
     "tiktok": "TikTok",
     "youtube": "YouTube"
   },
-
   "personas": {
-    "peter": { "fullName": "Peter John" },
-    "maya": { "fullName": "Maya Santos" },
-    "alex": { "fullName": "Alex Chen" },
-    "jordan": { "fullName": "Jordan Taylor" }
+    "peter": {
+      "fullName": "Peter John"
+    },
+    "maya": {
+      "fullName": "Maya Santos"
+    },
+    "alex": {
+      "fullName": "Alex Chen"
+    },
+    "jordan": {
+      "fullName": "Jordan Taylor"
+    }
+  },
+  "errorPage": {
+    "title": "Perdu dans vos pensées ?",
+    "subtitle": "Remettons-vous sur la bonne voie.",
+    "goHome": "Accueil",
+    "callFerni": "Appeler Ferni",
+    "suggestionsLabel": "Ou essayez l'un de ceux-ci :",
+    "meetTeam": "Rencontrer l'équipe",
+    "viewPricing": "Voir les tarifs",
+    "readFaq": "Lire la FAQ",
+    "readBlog": "Lire notre blog"
   }
 }

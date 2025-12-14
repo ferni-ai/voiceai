@@ -5,6 +5,7 @@
  * Integrates with the voice agent to start games.
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { toast } from './toast.ui.js';
@@ -152,7 +153,7 @@ class GamePickerUI {
           <span class="game-picker__eyebrow">LET'S PLAY</span>
           <h2 class="game-picker__title">Music Games</h2>
           <p class="game-picker__subtitle">Pick a game to play together</p>
-          <button class="game-picker__close" aria-label="Close">
+          <button class="game-picker__close" aria-label="${t('common.close')}">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -166,7 +167,7 @@ class GamePickerUI {
         
         <footer class="game-picker__footer">
           <p>Or just say "Let's play a game" to Ferni!</p>
-          <button class="game-picker__help-btn" aria-label="How to play">
+          <button class="game-picker__help-btn" aria-label="${t('accessibility.howToPlay')}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"></circle>
               <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
@@ -261,7 +262,7 @@ class GamePickerUI {
       <div class="game-help-modal">
         <div class="game-help-modal__backdrop"></div>
         <div class="game-help-modal__content">
-          <button class="game-help-modal__close" aria-label="Close">
+          <button class="game-help-modal__close" aria-label="${t('common.close')}">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>

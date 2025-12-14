@@ -23,7 +23,12 @@
     "download": "Descargar",
     "copy": "Copiar",
     "copied": "¡Copiado!",
-    "new": "NUEVO"
+    "new": "NUEVO",
+    "saving": "Guardando...",
+    "saved": "¡Guardado!",
+    "processing": "Procesando...",
+    "adding": "Añadiendo...",
+    "errorRetry": "Error - Intentar de nuevo"
   },
   "menu": {
     "title": "¿Qué sigue?",
@@ -248,7 +253,7 @@
       "step2": "Toca tu nombre en la parte superior",
       "step3": "Toca \"Suscripciones\"",
       "step4": "Busca y toca \"Ferni\"",
-      "note": ""
+      "note": "Apple requiere que las suscripciones se gestionen a través de los Ajustes de iOS"
     },
     "stripe": {
       "note": "Actualiza método de pago, ve facturas o cancela cuando quieras"
@@ -350,7 +355,7 @@
     "modes": {
       "title": "Modo de Visualización",
       "avatar": {
-        "label": "Solo Avatar",
+        "label": "Solo avatar",
         "description": "Solo el avatar de Ferni, sin video"
       },
       "video": {
@@ -362,8 +367,8 @@
         "description": "Avatar con video opcional"
       },
       "avatarOnly": {
-        "label": "",
-        "description": ""
+        "label": "Solo avatar",
+        "description": "Solo el avatar de Ferni, sin video"
       }
     },
     "quality": {
@@ -389,7 +394,7 @@
     "buttons": {
       "connect": "Conectar",
       "disconnect": "Desconectar",
-      "tryAgain": ""
+      "tryAgain": "Intentar de nuevo"
     },
     "features": {
       "stress": "Detección de estrés desde HRV",
@@ -421,12 +426,12 @@
         "description": "Seguimiento de recuperación y esfuerzo"
       },
       "apple_health": {
-        "name": "",
-        "description": ""
+        "name": "Apple Health",
+        "description": "Sincroniza con los datos de salud de Apple Watch y iPhone"
       }
     },
     "errors": {
-      "loadFailed": ""
+      "loadFailed": "No se pudieron cargar los ajustes de dispositivos"
     }
   },
   "contactSettings": {
@@ -446,6 +451,96 @@
     "unmuteAudio": "Activar audio",
     "endCall": "Terminar llamada",
     "skipToContent": "Saltar al contenido principal",
-    "languageSelector": ""
+    "languageSelector": "Seleccionar idioma",
+    "saveConversations": "Guarda tus conversaciones creando una cuenta",
+    "signInToAccount": "Inicia sesión en tu cuenta",
+    "accountMenu": "Menú de cuenta",
+    "refreshData": "Actualizar datos",
+    "exportData": "Exportar tus datos",
+    "accountSettings": "Ajustes de cuenta",
+    "dismiss": "Descartar",
+    "dismissNotification": "Descartar notificación",
+    "closeDashboard": "Cerrar panel",
+    "closeSubscription": "Cerrar opciones de suscripción",
+    "closeDetails": "Cerrar detalles",
+    "closePublisher": "Cerrar portal de publicador",
+    "closeBilling": "Cerrar panel de facturación",
+    "closeSettings": "Cerrar ajustes",
+    "closeHistory": "Cerrar historial",
+    "closeAdmin": "Cerrar panel de administración",
+    "closeHuddle": "Cerrar reunión",
+    "closeStats": "Cerrar estadísticas",
+    "refresh": "Actualizar",
+    "backToItems": "Volver a los elementos",
+    "collapse": "Contraer",
+    "expandGarden": "Expandir detalles del jardín",
+    "collapseGarden": "Contraer detalles del jardín",
+    "howToPlay": "Cómo jugar",
+    "toggleQuietHours": "Alternar horas silenciosas",
+    "yourNewPlan": "Tu nuevo plan",
+    "subscriptionPlans": "Planes de suscripción",
+    "options": "Opciones",
+    "featuresIncluded": "Funciones incluidas",
+    "searchCoaches": "Buscar coaches",
+    "filterBySpecialty": "Filtrar por especialidad",
+    "availableCoaches": "Coaches disponibles",
+    "portalSections": "Secciones del portal",
+    "submitNewItem": "Enviar nuevo elemento",
+    "openDailyPractice": "Abrir práctica diaria",
+    "openPredictions": "Abrir predicciones",
+    "shareJourney": "Compartir tu viaje",
+    "forgetThis": "Olvidar esto",
+    "cancelInstallation": "Cancelar instalación",
+    "sharedMusicalMemory": "Memoria musical compartida",
+    "viewOutreachSchedule": "Ver calendario de contacto",
+    "ferniLogo": "Logo de Ferni"
+  },
+  "buttons": {
+    "signIn": "Iniciar sesión",
+    "signOut": "Cerrar sesión",
+    "signUp": "Registrarse",
+    "savePreferences": "Guardar preferencias",
+    "savePreference": "Guardar preferencia",
+    "choose": "Elegir esto",
+    "refresh": "Actualizar",
+    "exportData": "Exportar datos"
+  },
+  "mobile": {
+    "pullToConnect": "Tira para conectar",
+    "releaseToConnect": "Suelta para conectar",
+    "pullToRefresh": "Tira para actualizar",
+    "releaseToRefresh": "Suelta para actualizar"
+  },
+  "placeholders": {
+    "customAmount": "Cantidad personalizada",
+    "searchConversations": "Buscar conversaciones...",
+    "enterValue": "Ingresa el valor real",
+    "emailExample": "tu@ejemplo.com",
+    "phoneExample": "+34 (91) 123-4567",
+    "memberName": "Su nombre",
+    "householdName": "La familia García",
+    "displayName": "Tu nombre preferido",
+    "marketplaceSearch": "¿A quién buscas?",
+    "codeInput": "• • • • • •",
+    "colleagueEmail": "colega@empresa.com",
+    "welcomeMessageExample": "ej., ¡Bienvenido a {orgName}! Ferni está aquí para apoyar tu crecimiento y bienestar.",
+    "companyValuesExample": "ej., Integridad, Innovación, Enfoque al Cliente, Trabajo en Equipo",
+    "toolIdExample": "mi-herramienta-genial",
+    "toolNameExample": "Mi Herramienta Genial",
+    "versionExample": "1.0.0",
+    "toolDescription": "¿Qué hace tu herramienta/agente?"
+  },
+  "household": {
+    "addToHousehold": "Añadir al hogar",
+    "title": "Hogar",
+    "members": "Miembros",
+    "addMember": "Añadir miembro",
+    "removeMember": "Eliminar miembro"
+  },
+  "titles": {
+    "sharedSong": "Una canción que compartimos",
+    "dailyPractice": "Práctica diaria",
+    "predictions": "Predicciones",
+    "runScenario": "Ejecutar escenario"
   }
 }

@@ -5,6 +5,7 @@
  * Allows users to configure when, how, and what types of outreach they receive.
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet, apiPost } from '../utils/api.js';
@@ -160,7 +161,7 @@ function createSettingsPanel(): HTMLElement {
           <h2 class="outreach-settings-title">Stay Connected</h2>
           <p class="outreach-settings-subtitle">Control how I check in with you</p>
         </div>
-        <button class="outreach-settings-close" aria-label="Close settings">
+        <button class="outreach-settings-close" aria-label="${t('accessibility.closeSettings')}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
@@ -412,14 +413,14 @@ function setupEventListeners(panel: HTMLElement): void {
   // Save button
   panel.querySelector('.outreach-settings-save')?.addEventListener('click', async () => {
     const saveBtn = panel.querySelector('.outreach-settings-save') as HTMLButtonElement;
-    saveBtn.textContent = 'Saving...';
+    saveBtn.textContent = t('common.saving');
     saveBtn.disabled = true;
 
     await savePreferences();
 
-    saveBtn.textContent = '✓ Saved!';
+    saveBtn.textContent = t('common.saved');
     setTimeout(() => {
-      saveBtn.textContent = 'Save Preferences';
+      saveBtn.textContent = t('buttons.savePreferences');
       saveBtn.disabled = false;
       close();
     }, 1000);

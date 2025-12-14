@@ -11,6 +11,7 @@
  *   - Phone verification via SMS code
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { getUserTimezone } from '../services/timezone.service.js';
@@ -593,7 +594,7 @@ function render(): void {
   if (!modal) return;
 
   modal.innerHTML = `
-    <button class="contact-settings-close" aria-label="Close">
+    <button class="contact-settings-close" aria-label="${t('common.close')}">
       ${ICONS.close}
     </button>
     
@@ -623,7 +624,7 @@ function render(): void {
               type="tel" 
               class="contact-settings-input" 
               id="phone-input"
-              placeholder="+1 (555) 123-4567"
+              placeholder="${t('placeholders.phoneExample')}"
               value="${state.contactInfo.phone || ''}"
               ${state.isVerifying ? 'disabled' : ''}
             />
@@ -665,7 +666,7 @@ function render(): void {
               type="email" 
               class="contact-settings-input" 
               id="email-input"
-              placeholder="you@example.com"
+              placeholder="${t('placeholders.emailExample')}"
               value="${state.contactInfo.email || ''}"
             />
             ${state.contactInfo.emailVerified ? `
@@ -684,7 +685,7 @@ function render(): void {
             type="text" 
             class="contact-settings-input" 
             id="name-input"
-            placeholder="Your preferred name"
+            placeholder="${t('placeholders.displayName')}"
             value="${state.contactInfo.preferredName || ''}"
           />
         </div>
@@ -708,7 +709,7 @@ function render(): void {
               class="contact-settings-toggle ${state.contactInfo.quietHoursEnabled !== false ? 'active' : ''}"
               id="quiet-hours-toggle"
               aria-pressed="${state.contactInfo.quietHoursEnabled !== false}"
-              aria-label="Toggle quiet hours"
+              aria-label="${t('accessibility.toggleQuietHours')}"
             >
               <span class="contact-settings-toggle-knob"></span>
             </button>
@@ -745,7 +746,7 @@ function render(): void {
         Maybe later
       </button>
       <button class="contact-settings-btn contact-settings-btn--primary" id="save-btn" ${state.isSaving ? 'disabled' : ''}>
-        ${state.isSaving ? 'Saving...' : 'Save'}
+        ${state.isSaving ? t('common.saving') : 'Save'}
       </button>
     </div>
   `;

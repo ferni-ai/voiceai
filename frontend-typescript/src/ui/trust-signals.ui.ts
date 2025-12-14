@@ -1,19 +1,19 @@
 /**
  * Trust Signals UI - "Ferni Noticed..."
- * 
+ *
  * Surfaces the backend trust systems to users in a delightful, non-intrusive way.
  * Shows when Ferni notices something meaningful:
  * - Growth moments ("I noticed you handled that differently...")
  * - Boundaries respected ("I remember you said...")
  * - Callbacks to shared history ("Remember when...")
  * - Small wins celebrated ("You actually did it!")
- * 
+ *
  * DESIGN PHILOSOPHY:
  * - Feels like a friend remembering something meaningful
  * - Non-intrusive - appears as floating cards, not modals
  * - Dismissible but memorable
  * - Progressive disclosure based on relationship stage
- * 
+ *
  * BRAND COMPLIANCE:
  * - Warm, human messaging
  * - Lucide SVG icons only
@@ -21,9 +21,14 @@
  * - Subtle, organic animations
  */
 
-import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
-import { relationshipStageService, type RelationshipStage } from '../services/relationship-stage.service.js';
+import { modalCoordinator } from '../services/modal-coordinator.service.js';
+import {
+  relationshipStageService,
+  type RelationshipStage,
+} from '../services/relationship-stage.service.js';
+import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('TrustSignals');
 
@@ -31,13 +36,13 @@ const log = createLogger('TrustSignals');
 // TYPES
 // ============================================================================
 
-export type TrustSignalType = 
-  | 'growth'           // Noticed personal growth
-  | 'boundary'         // Respecting a boundary
-  | 'callback'         // Shared history reference
-  | 'small_win'        // Celebrating effort
-  | 'thinking_of_you'  // Proactive care
-  | 'reading_lines';   // Noticed unspoken emotion
+export type TrustSignalType =
+  | 'growth' // Noticed personal growth
+  | 'boundary' // Respecting a boundary
+  | 'callback' // Shared history reference
+  | 'small_win' // Celebrating effort
+  | 'thinking_of_you' // Proactive care
+  | 'reading_lines'; // Noticed unspoken emotion
 
 export interface TrustSignal {
   id: string;
@@ -73,11 +78,14 @@ const ICONS = {
 // SIGNAL TYPE CONFIG
 // ============================================================================
 
-const SIGNAL_CONFIG: Record<TrustSignalType, {
-  icon: string;
-  color: string;
-  prefix: string;
-}> = {
+const SIGNAL_CONFIG: Record<
+  TrustSignalType,
+  {
+    icon: string;
+    color: string;
+    prefix: string;
+  }
+> = {
   growth: {
     icon: ICONS.leaf,
     color: 'var(--color-semantic-success, #4a8560)',
@@ -141,28 +149,28 @@ let dismissedSignals: Set<string> = new Set();
  */
 export function initTrustSignals(customConfig?: Partial<TrustSignalsConfig>): void {
   if (isInitialized) return;
-  
+
   cleanupOrphanedElements();
   injectStyles();
   createContainer();
-  
+
   if (customConfig) {
     config = { ...config, ...customConfig };
   }
-  
+
   // Load dismissed signals from storage
   loadDismissedSignals();
-  
+
   // Listen for trust signal events from backend
   window.addEventListener('ferni:trust-signal', handleTrustSignalEvent as EventListener);
-  
+
   isInitialized = true;
   log.debug('Trust signals UI initialized');
 }
 
 function cleanupOrphanedElements(): void {
-  document.querySelectorAll('.trust-signals-container').forEach(el => el.remove());
-  document.querySelectorAll('#trust-signals-styles').forEach(el => el.remove());
+  document.querySelectorAll('.trust-signals-container').forEach((el) => el.remove());
+  document.querySelectorAll('#trust-signals-styles').forEach((el) => el.remove());
 }
 
 function createContainer(): void {
@@ -179,33 +187,46 @@ function createContainer(): void {
 
 /**
  * Show a trust signal to the user.
+ * Gated on 5+ conversations - trust signals are for established relationships.
  */
 export function showTrustSignal(signal: Omit<TrustSignal, 'id' | 'timestamp'>): void {
+  // FIRST CONVERSATION IS ONBOARDING - no trust signals until 5+ conversations
+  if (!modalCoordinator.hasMinimumConversations(5)) {
+    log.debug('Trust signal hidden - need 5+ conversations first');
+    return;
+  }
+
+  // Don't show during active conversation
+  if (modalCoordinator.isConversationActive()) {
+    log.debug('Trust signal hidden - conversation active');
+    return;
+  }
+
   // Check relationship stage
   const currentStage = relationshipStageService.getStage();
   if (!isStageAtOrBeyond(currentStage, config.minStage)) {
     log.debug('Trust signal hidden - relationship not yet at required stage');
     return;
   }
-  
+
   // Generate ID
   const fullSignal: TrustSignal = {
     ...signal,
     id: `signal-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     timestamp: Date.now(),
   };
-  
+
   // Check if already dismissed (same type + similar message)
   const signalKey = `${signal.type}:${signal.title}`;
   if (dismissedSignals.has(signalKey)) {
     log.debug('Trust signal already dismissed by user');
     return;
   }
-  
+
   // Add to queue
   signalQueue.push(fullSignal);
   processQueue();
-  
+
   log.info('Trust signal shown', { type: signal.type, title: signal.title });
 }
 
@@ -215,19 +236,19 @@ export function showTrustSignal(signal: Omit<TrustSignal, 'id' | 'timestamp'>): 
 export function dismissSignal(signalId: string): void {
   const element = visibleSignals.get(signalId);
   if (!element) return;
-  
+
   animateOut(element).then(() => {
     element.remove();
     visibleSignals.delete(signalId);
-    
+
     // Find and mark as dismissed
-    const signal = signalQueue.find(s => s.id === signalId);
+    const signal = signalQueue.find((s) => s.id === signalId);
     if (signal) {
       const signalKey = `${signal.type}:${signal.title}`;
       dismissedSignals.add(signalKey);
       saveDismissedSignals();
     }
-    
+
     processQueue();
   });
 }
@@ -245,41 +266,47 @@ export function dismissAllSignals(): void {
  * Manually trigger common trust signals for testing.
  */
 export const trustSignalHelpers = {
-  growthMoment: (observation: string) => showTrustSignal({
-    type: 'growth',
-    title: 'Something different',
-    message: observation,
-  }),
-  
-  boundaryRespected: (boundary: string) => showTrustSignal({
-    type: 'boundary',
-    title: "I won't forget",
-    message: boundary,
-  }),
-  
-  sharedMemory: (memory: string) => showTrustSignal({
-    type: 'callback',
-    title: 'A shared moment',
-    message: memory,
-  }),
-  
-  smallWin: (win: string) => showTrustSignal({
-    type: 'small_win',
-    title: 'Look at you',
-    message: win,
-  }),
-  
-  thinkingOfYou: (thought: string) => showTrustSignal({
-    type: 'thinking_of_you',
-    title: 'About you',
-    message: thought,
-  }),
-  
-  readingBetweenLines: (observation: string) => showTrustSignal({
-    type: 'reading_lines',
-    title: "What I'm hearing",
-    message: observation,
-  }),
+  growthMoment: (observation: string) =>
+    showTrustSignal({
+      type: 'growth',
+      title: 'Something different',
+      message: observation,
+    }),
+
+  boundaryRespected: (boundary: string) =>
+    showTrustSignal({
+      type: 'boundary',
+      title: "I won't forget",
+      message: boundary,
+    }),
+
+  sharedMemory: (memory: string) =>
+    showTrustSignal({
+      type: 'callback',
+      title: 'A shared moment',
+      message: memory,
+    }),
+
+  smallWin: (win: string) =>
+    showTrustSignal({
+      type: 'small_win',
+      title: 'Look at you',
+      message: win,
+    }),
+
+  thinkingOfYou: (thought: string) =>
+    showTrustSignal({
+      type: 'thinking_of_you',
+      title: 'About you',
+      message: thought,
+    }),
+
+  readingBetweenLines: (observation: string) =>
+    showTrustSignal({
+      type: 'reading_lines',
+      title: "What I'm hearing",
+      message: observation,
+    }),
 };
 
 // ============================================================================
@@ -298,8 +325,8 @@ function handleTrustSignalEvent(event: CustomEvent<TrustSignal>): void {
 
 function processQueue(): void {
   // Remove any that are already visible
-  signalQueue = signalQueue.filter(s => !visibleSignals.has(s.id));
-  
+  signalQueue = signalQueue.filter((s) => !visibleSignals.has(s.id));
+
   // Show signals up to max
   while (signalQueue.length > 0 && visibleSignals.size < config.maxVisible) {
     const signal = signalQueue.shift();
@@ -311,14 +338,14 @@ function processQueue(): void {
 
 function displaySignal(signal: TrustSignal): void {
   if (!container) return;
-  
+
   const element = createSignalElement(signal);
   container.appendChild(element);
   visibleSignals.set(signal.id, element);
-  
+
   // Animate in
   animateIn(element);
-  
+
   // Auto-hide after delay
   setTimeout(() => {
     if (visibleSignals.has(signal.id)) {
@@ -333,12 +360,12 @@ function displaySignal(signal: TrustSignal): void {
 
 function createSignalElement(signal: TrustSignal): HTMLElement {
   const signalConfig = SIGNAL_CONFIG[signal.type];
-  
+
   const element = document.createElement('div');
   element.className = `trust-signal trust-signal--${signal.type}`;
   element.setAttribute('role', 'status');
   element.setAttribute('data-signal-id', signal.id);
-  
+
   element.innerHTML = `
     <div class="trust-signal-icon" style="background: ${signalConfig.color}">
       ${signalConfig.icon}
@@ -348,18 +375,18 @@ function createSignalElement(signal: TrustSignal): HTMLElement {
       <p class="trust-signal-title">${escapeHtml(signal.title)}</p>
       <p class="trust-signal-message">${escapeHtml(signal.message)}</p>
     </div>
-    <button class="trust-signal-close" aria-label="Dismiss">
+    <button class="trust-signal-close" aria-label="${t('accessibility.dismiss')}">
       ${ICONS.close}
     </button>
   `;
-  
+
   // Close button handler
   const closeBtn = element.querySelector('.trust-signal-close');
   closeBtn?.addEventListener('click', (e) => {
     e.stopPropagation();
     dismissSignal(signal.id);
   });
-  
+
   return element;
 }
 
@@ -373,32 +400,38 @@ function animateIn(element: HTMLElement): void {
     element.style.transform = 'translateX(0)';
     return;
   }
-  
-  element.animate([
-    { opacity: 0, transform: 'translateX(100%)' },
-    { opacity: 1, transform: 'translateX(0)' },
-  ], {
-    duration: DURATION.DELIBERATE,
-    easing: EASING.SPRING,
-    fill: 'forwards',
-  });
+
+  element.animate(
+    [
+      { opacity: 0, transform: 'translateX(100%)' },
+      { opacity: 1, transform: 'translateX(0)' },
+    ],
+    {
+      duration: DURATION.DELIBERATE,
+      easing: EASING.SPRING,
+      fill: 'forwards',
+    }
+  );
 }
 
 async function animateOut(element: HTMLElement): Promise<void> {
   if (prefersReducedMotion()) {
     return;
   }
-  
-  return new Promise(resolve => {
-    const animation = element.animate([
-      { opacity: 1, transform: 'translateX(0)' },
-      { opacity: 0, transform: 'translateX(100%)' },
-    ], {
-      duration: DURATION.SLOW,
-      easing: EASING.STANDARD,
-      fill: 'forwards',
-    });
-    
+
+  return new Promise((resolve) => {
+    const animation = element.animate(
+      [
+        { opacity: 1, transform: 'translateX(0)' },
+        { opacity: 0, transform: 'translateX(100%)' },
+      ],
+      {
+        duration: DURATION.SLOW,
+        easing: EASING.STANDARD,
+        fill: 'forwards',
+      }
+    );
+
     animation.onfinish = () => resolve();
   });
 }
@@ -457,7 +490,7 @@ function saveDismissedSignals(): void {
 
 function injectStyles(): void {
   if (document.getElementById('trust-signals-styles')) return;
-  
+
   styleElement = document.createElement('style');
   styleElement.id = 'trust-signals-styles';
   styleElement.textContent = `
@@ -662,7 +695,7 @@ function injectStyles(): void {
       }
     }
   `;
-  
+
   document.head.appendChild(styleElement);
 }
 
@@ -695,4 +728,3 @@ export const trustSignalsUI = {
 };
 
 export default trustSignalsUI;
-

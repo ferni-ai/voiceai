@@ -12,6 +12,7 @@
  * - Humanized, encouraging copy
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, prefersReducedMotion } from '../config/animation-constants.js';
 import {
   ICONS,
@@ -248,7 +249,7 @@ class NotificationsUI {
           </button>
         ` : ''}
       </div>
-      <button class="notification__close engagement-close-btn" type="button" aria-label="Dismiss notification">
+      <button class="notification__close engagement-close-btn" type="button" aria-label="${t('accessibility.dismissNotification')}">
         ${ICONS.close}
       </button>
     `;

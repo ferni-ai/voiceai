@@ -12,6 +12,7 @@
  * @module NextCheckinUI
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
@@ -330,7 +331,7 @@ class NextCheckinWidget {
     const timeStr = formatRelativeTime(this.nextOutreach.scheduledFor);
 
     this.element.innerHTML = `
-      <div class="next-checkin-widget ${compact ? 'next-checkin-widget--compact' : ''}" role="button" tabindex="0" aria-label="View outreach schedule">
+      <div class="next-checkin-widget ${compact ? 'next-checkin-widget--compact' : ''}" role="button" tabindex="0" aria-label="${t('accessibility.viewOutreachSchedule')}">
         <div class="next-checkin-icon" style="background: ${color}">
           ${initial}
         </div>

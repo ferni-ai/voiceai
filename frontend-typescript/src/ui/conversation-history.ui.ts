@@ -12,6 +12,7 @@
  * - Respects prefers-reduced-motion
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING, STAGGER, prefersReducedMotion } from '../config/animation-constants.js';
 
 // ============================================================================
@@ -195,7 +196,7 @@ class ConversationHistoryUI {
       <div class="history__card">
         <header class="history__header">
           <h2 class="history__title">Your Journey</h2>
-          <button class="history__close" aria-label="Close history">
+          <button class="history__close" aria-label="${t('accessibility.closeHistory')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"/>
               <line x1="6" y1="6" x2="18" y2="18"/>

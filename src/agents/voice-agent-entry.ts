@@ -339,12 +339,29 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     e2e.sessionStarted(jobId, personaId);
     process.stderr.write(`[voice-agent-entry] Session started in ${Date.now() - startTime}ms!\n`);
 
-    // Step 5: Say greeting - use preloaded warmGreeting
+    // Step 5: Wait for participant to join BEFORE speaking greeting
+    // This is CRITICAL - RoomIO.init() waits for participant before calling audioOutput.start()
+    // Without this, session.say() will block forever because captureFrame() awaits startedFuture
     currentPhase = 'greeting';
+    process.stderr.write(`[voice-agent-entry] 👤 Waiting for participant to join...\n`);
+    const participantWaitStart = Date.now();
+    const participant = await ctx.waitForParticipant();
+    process.stderr.write(
+      `[voice-agent-entry] 👤 Participant joined: ${participant.identity} (waited ${Date.now() - participantWaitStart}ms)\n`
+    );
+
+    // Step 6: Say greeting - use preloaded warmGreeting
+    process.stderr.write(`[voice-agent-entry] 🎤 Starting greeting phase...\n`);
     const warmGreeting = preloaded?.warmGreeting ?? (await import('./shared/warm-greeting.js'));
     // FIX BUG: Generate persona-specific fallback greeting instead of hardcoded Ferni
     const fallbackGreeting = `Hey there! I'm ${personaDisplayName}. How can I help you today?`;
-    await session.say(warmGreeting.getWarmGreeting(personaId) || fallbackGreeting);
+    const greetingText = warmGreeting.getWarmGreeting(personaId) || fallbackGreeting;
+    process.stderr.write(`[voice-agent-entry] 🎤 Speaking greeting: "${greetingText.slice(0, 80)}..."\n`);
+    const sayStart = Date.now();
+    const speechHandle = session.say(greetingText);
+    // Wait for actual audio playout to complete (not just queueing)
+    await speechHandle.waitForPlayout();
+    process.stderr.write(`[voice-agent-entry] 🎤 Greeting spoken in ${Date.now() - sayStart}ms\n`);
 
     currentPhase = 'running';
     await new Promise<void>((resolve) => {

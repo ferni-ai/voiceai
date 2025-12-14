@@ -521,9 +521,17 @@ export function getAgentDisplayName(agentId: string): string {
 
   // Try to get from cached directory (fast path)
   // Fall back to ID if cache not ready
-  void AgentDirectory.getDisplayName(canonical).then((name) => {
-    // This is async but we return sync - the next call will have it cached
-  });
+  // FIX BUG: Add error handling to prevent unhandled promise rejections
+  AgentDirectory.getDisplayName(canonical)
+    .then(() => {
+      // This is async but we return sync - the next call will have it cached
+    })
+    .catch((err) => {
+      getLogger().debug(
+        { error: String(err), agentId: canonical },
+        'Failed to cache agent display name'
+      );
+    });
 
   // Return first name from ID as fallback (e.g., 'peter-john' → 'Peter')
   const firstName = canonical.split('-')[0];

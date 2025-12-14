@@ -1,0 +1,13 @@
+{
+  "": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.build/FerniVoice.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.build/FerniVoice.o",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.build/master.swiftdeps"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/FerniVoiceApp.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.build/FerniVoiceApp.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.build/FerniVoiceApp~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.build/FerniVoiceApp.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.build/FerniVoiceApp.dia"
+  }
+}

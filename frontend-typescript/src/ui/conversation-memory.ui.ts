@@ -8,6 +8,7 @@
  * timeline visualization and searchable conversation history.
  */
 
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
 
@@ -656,7 +657,7 @@ function createModal(): void {
         <p class="memory-modal__eyebrow">Your Journey</p>
         <h2 id="memory-title" class="memory-modal__title">What I Remember</h2>
         <p class="memory-modal__subtitle">Browse our conversations and what I've learned about you</p>
-        <button class="memory-modal__close" aria-label="Close">${ICONS.close}</button>
+        <button class="memory-modal__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
       
       <div id="memory-stats" class="memory-stats"></div>
@@ -665,7 +666,7 @@ function createModal(): void {
         <input 
           type="search" 
           class="memory-search__input" 
-          placeholder="Search conversations..."
+          placeholder="${t('placeholders.searchConversations')}"
           id="memory-search-input"
         />
       </div>

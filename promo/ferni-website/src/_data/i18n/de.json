@@ -4,7 +4,6 @@
     "name": "Deutsch",
     "direction": "ltr"
   },
-
   "hero": {
     "eyebrow": "Treffen Sie Ihren KI-Coach",
     "headline": "Besser als",
@@ -17,7 +16,6 @@
       "talkNow": "Jetzt mit Ferni sprechen"
     }
   },
-
   "superpowers": {
     "memory": {
       "title": "Perfektes Gedächtnis",
@@ -40,7 +38,6 @@
       "description": "Wir bemerken die Pause. Die Ablenkung. Das Muster, das Sie nicht sehen. Verstehen heißt nicht nur zuhören – es heißt wirklich begreifen."
     }
   },
-
   "team": {
     "sectionTitle": "Das Team kennenlernen",
     "sectionSubtitle": "Sechs brillante Köpfe arbeiten für Sie zusammen",
@@ -75,7 +72,6 @@
       "sampleQuote": "Sie haben erwähnt, 'irgendwann' Japan besuchen zu wollen. Machen wir daraus einen echten Tag."
     }
   },
-
   "pricing": {
     "sectionTitle": "Einfache Preise",
     "headline": "Kostenlos starten.",
@@ -125,7 +121,6 @@
       ]
     }
   },
-
   "faq": {
     "sectionTitle": "Häufig Gestellte Fragen",
     "eyebrow": "Fragen und Antworten",
@@ -158,17 +153,14 @@
       }
     ]
   },
-
   "testimonials": {
     "sectionTitle": "Was Menschen Sagen"
   },
-
   "trust": {
     "title": "Auf Vertrauen gebaut.",
     "description": "Ihre Gespräche gehören Ihnen. Immer. Wir verwenden Enterprise-Verschlüsselung und verkaufen niemals Ihre Daten.",
     "cta": "Unsere Datenschutzrichtlinie lesen"
   },
-
   "footer": {
     "tagline": "Jemand, der wirklich versteht.",
     "copyright": "Ferni AI. Alle Rechte vorbehalten.",
@@ -180,7 +172,6 @@
     "connect": "Verbinden",
     "legal": "Rechtliches"
   },
-
   "nav": {
     "features": "Funktionen",
     "team": "Team",
@@ -190,7 +181,6 @@
     "about": "Über uns",
     "contact": "Kontakt"
   },
-
   "common": {
     "learnMore": "Mehr erfahren",
     "getStarted": "Loslegen",
@@ -198,7 +188,6 @@
     "scrollToExplore": "Scrollen zum Entdecken",
     "callPhone": "Anrufen"
   },
-
   "accessibility": {
     "nextStory": "Nächste Geschichte",
     "toggleMenu": "Menü umschalten",
@@ -209,11 +198,29 @@
     "tiktok": "TikTok",
     "youtube": "YouTube"
   },
-
   "personas": {
-    "peter": { "fullName": "Peter John" },
-    "maya": { "fullName": "Maya Santos" },
-    "alex": { "fullName": "Alex Chen" },
-    "jordan": { "fullName": "Jordan Taylor" }
+    "peter": {
+      "fullName": "Peter John"
+    },
+    "maya": {
+      "fullName": "Maya Santos"
+    },
+    "alex": {
+      "fullName": "Alex Chen"
+    },
+    "jordan": {
+      "fullName": "Jordan Taylor"
+    }
+  },
+  "errorPage": {
+    "title": "In Gedanken verloren?",
+    "subtitle": "Lass uns dich zurück auf Kurs bringen.",
+    "goHome": "Startseite",
+    "callFerni": "Ferni anrufen",
+    "suggestionsLabel": "Oder probiere eines davon:",
+    "meetTeam": "Das Team kennenlernen",
+    "viewPricing": "Preise ansehen",
+    "readFaq": "FAQ lesen",
+    "readBlog": "Unseren Blog lesen"
   }
 }

@@ -11,6 +11,7 @@
  *   - Persist preference to backend
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet, apiPost } from '../utils/api.js';
@@ -604,7 +605,7 @@ function render(): void {
     <div class="accent-settings-overlay ${state.isOpen ? 'open' : ''}">
       <div class="accent-settings-backdrop"></div>
       <div class="accent-settings-modal">
-        <button class="accent-settings-close" aria-label="Close">${ICONS.close}</button>
+        <button class="accent-settings-close" aria-label="${t('common.close')}">${ICONS.close}</button>
         
         <div class="accent-settings-header">
           <div class="accent-settings-icon">${ICONS.mic}</div>
@@ -657,7 +658,7 @@ function render(): void {
           ${state.success ? `<div class="accent-message success">${state.success}</div>` : ''}
 
           <button class="accent-save-btn" ${state.isSaving ? 'disabled' : ''}>
-            ${state.isSaving ? 'Saving...' : 'Save Preference'}
+            ${state.isSaving ? t('common.saving') : 'Save Preference'}
           </button>
         </div>
       </div>

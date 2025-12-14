@@ -11,6 +11,7 @@
  *   - Warmth-focused animations
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
 
@@ -187,7 +188,7 @@ class CalendarSettingsUI {
       <header class="calendar-settings__header">
         <div class="calendar-settings__icon">${ICONS.calendar}</div>
         <h2 class="calendar-settings__title">Calendar</h2>
-        <button class="calendar-settings__close" aria-label="Close">
+        <button class="calendar-settings__close" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
       </header>
@@ -281,7 +282,7 @@ class CalendarSettingsUI {
       <header class="calendar-settings__header">
         <div class="calendar-settings__icon">${ICONS.calendar}</div>
         <h2 class="calendar-settings__title">Calendar</h2>
-        <button class="calendar-settings__close" aria-label="Close">
+        <button class="calendar-settings__close" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
       </header>
@@ -301,7 +302,7 @@ class CalendarSettingsUI {
       <header class="calendar-settings__header">
         <div class="calendar-settings__icon">${ICONS.calendar}</div>
         <h2 class="calendar-settings__title">Calendar</h2>
-        <button class="calendar-settings__close" aria-label="Close">
+        <button class="calendar-settings__close" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
       </header>

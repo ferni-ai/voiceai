@@ -456,20 +456,26 @@ export async function getPersonaStats(
     const totalDuration = engagements.reduce((sum, e) => sum + e.durationMs, 0);
 
     // Calculate per-trigger-type stats
-    const triggerTypeStats: PersonaEngagementStats['triggerTypeStats'] = {} as any;
+    // FIX BUG: Build stats incrementally then cast to full Record for return
+    const triggerTypeStatsBuilder: Partial<
+      Record<CameoTriggerType, { count: number; positiveRate: number }>
+    > = {};
     for (const engagement of engagements) {
-      if (!triggerTypeStats[engagement.triggerType]) {
-        triggerTypeStats[engagement.triggerType] = { count: 0, positiveRate: 0 };
+      if (!triggerTypeStatsBuilder[engagement.triggerType]) {
+        triggerTypeStatsBuilder[engagement.triggerType] = { count: 0, positiveRate: 0 };
       }
-      triggerTypeStats[engagement.triggerType].count++;
+      triggerTypeStatsBuilder[engagement.triggerType]!.count++;
     }
 
     // Calculate positive rates per trigger type
-    for (const triggerType of Object.keys(triggerTypeStats) as CameoTriggerType[]) {
+    for (const triggerType of Object.keys(triggerTypeStatsBuilder) as CameoTriggerType[]) {
       const typeEngagements = engagements.filter((e) => e.triggerType === triggerType);
       const positiveCount = typeEngagements.filter((e) => e.userRespondedPositively).length;
-      triggerTypeStats[triggerType].positiveRate = positiveCount / typeEngagements.length;
+      triggerTypeStatsBuilder[triggerType]!.positiveRate = positiveCount / typeEngagements.length;
     }
+
+    // Cast to full Record - only contains trigger types that were actually seen
+    const triggerTypeStats = triggerTypeStatsBuilder as PersonaEngagementStats['triggerTypeStats'];
 
     return {
       personaId,
@@ -519,7 +525,8 @@ export async function getGlobalPersonaStats(
     const totalDuration = engagements.reduce((sum, e) => sum + (e.durationMs || 0), 0);
 
     // Calculate per-trigger-type stats
-    const triggerTypeStats: PersonaEngagementStats['triggerTypeStats'] = {} as PersonaEngagementStats['triggerTypeStats'];
+    const triggerTypeStats: PersonaEngagementStats['triggerTypeStats'] =
+      {} as PersonaEngagementStats['triggerTypeStats'];
     for (const engagement of engagements) {
       if (!triggerTypeStats[engagement.triggerType]) {
         triggerTypeStats[engagement.triggerType] = { count: 0, positiveRate: 0 };

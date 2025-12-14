@@ -13,6 +13,7 @@
  * - Never guilt-inducing
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION } from '../config/animation-constants.js';
 import { formatAmount, loadStripe } from '../services/monetization.service.js';
 import { apiFetch } from '../utils/api-helpers.js';
@@ -128,7 +129,7 @@ async function createModal(): Promise<HTMLElement> {
   overlay.innerHTML = `
     <div class="ferni-fund-backdrop"></div>
     <div class="ferni-fund-card" role="dialog" aria-labelledby="ferni-fund-title">
-      <button class="ferni-fund-close" aria-label="Close">${CLOSE_ICON}</button>
+      <button class="ferni-fund-close" aria-label="${t('common.close')}">${CLOSE_ICON}</button>
       <div class="ferni-fund-content">
         ${renderContributionForm(gardenStatus)}
       </div>
@@ -216,7 +217,7 @@ function renderContributionForm(gardenStatus: GardenStatus | null): string {
     <input
       type="text"
       class="ferni-fund-custom-input"
-      placeholder="Or enter custom amount"
+      placeholder="${t('placeholders.customAmount')}"
       inputmode="decimal"
     />
 
@@ -492,7 +493,7 @@ function renderUserImpact(
 
   return `
     <div class="ferni-fund-impact-view">
-      <button class="ferni-fund-close" aria-label="Close">${CLOSE_ICON}</button>
+      <button class="ferni-fund-close" aria-label="${t('common.close')}">${CLOSE_ICON}</button>
 
       <div class="ferni-fund-header">
         <h2>Your Garden Impact</h2>

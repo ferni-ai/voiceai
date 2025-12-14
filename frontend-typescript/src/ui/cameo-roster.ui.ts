@@ -47,6 +47,32 @@ let teamDivider: HTMLElement | null = null;
 // Animation state
 let currentAnimation: Animation | null = null;
 
+// FIX BUG: Track all setTimeout IDs for cleanup to prevent memory leaks
+const activeTimeouts: Set<ReturnType<typeof setTimeout>> = new Set();
+
+/**
+ * Tracked setTimeout that automatically removes itself when done.
+ * All timeouts are cleared on cleanup() to prevent memory leaks during HMR.
+ */
+function trackedTimeout(callback: () => void, delay: number): ReturnType<typeof setTimeout> {
+  const id = setTimeout(() => {
+    activeTimeouts.delete(id);
+    callback();
+  }, delay);
+  activeTimeouts.add(id);
+  return id;
+}
+
+/**
+ * Clear all tracked timeouts (called on cleanup).
+ */
+function clearAllTrackedTimeouts(): void {
+  for (const id of activeTimeouts) {
+    clearTimeout(id);
+  }
+  activeTimeouts.clear();
+}
+
 // ============================================================================
 // INITIALIZATION
 // ============================================================================
@@ -98,6 +124,9 @@ function findRosterElements(): boolean {
 }
 
 export function disposeCameoRoster(): void {
+  // FIX BUG: Clear all tracked timeouts to prevent memory leaks
+  clearAllTrackedTimeouts();
+
   if (cameoElement) {
     cameoElement.remove();
     cameoElement = null;
@@ -209,7 +238,7 @@ async function handleCameoStartAsync(
   animateFerniShift('left');
 
   // Phase 2: Insert and animate the cameo element
-  setTimeout(() => {
+  trackedTimeout(() => {
     if (!cameoElement || !rosterContainer || !ferniElement) {
       log.error('Lost elements during cameo animation');
       return;
@@ -427,7 +456,7 @@ function animateCameoPopIn(element: HTMLElement, isFirstCameo: boolean): void {
 
   // Extra celebration for first cameo
   if (isFirstCameo) {
-    setTimeout(() => {
+    trackedTimeout(() => {
       createWelcomeSparkles(element);
     }, duration * 0.6);
   }
@@ -492,7 +521,7 @@ async function animateCameoPopOut(element: HTMLElement): Promise<void> {
 
     // Pulse the marketplace button when cameo "enters" it
     if (marketplaceBtn) {
-      setTimeout(() => {
+      trackedTimeout(() => {
         pulseMarketplaceButton();
       }, DURATION.MODERATE * 0.7);
     }
@@ -537,14 +566,14 @@ function createWelcomeSparkles(element: HTMLElement): void {
       position: fixed;
       width: 4px;
       height: 4px;
-      background: white;
+      background: var(--color-sparkle, white);
       border-radius: 50%;
       left: ${centerX}px;
       top: ${centerY}px;
       transform: translate(-50%, -50%);
       pointer-events: none;
-      z-index: 1000;
-      box-shadow: 0 0 6px white, 0 0 12px rgba(255, 255, 255, 0.6);
+      z-index: var(--z-dropdown, 1000);
+      box-shadow: 0 0 6px var(--color-sparkle, white), 0 0 12px var(--color-glow-white, rgba(255, 255, 255, 0.6));
     `;
 
     document.body.appendChild(sparkle);
@@ -566,7 +595,7 @@ function createWelcomeSparkles(element: HTMLElement): void {
       }
     );
 
-    setTimeout(() => sparkle.remove(), DURATION.MODERATE);
+    trackedTimeout(() => sparkle.remove(), DURATION.MODERATE);
   }
 }
 
@@ -583,7 +612,7 @@ function injectCameoRosterStyles(): void {
     /* Cameo team member in roster - OVERRIDE entrance animation opacity */
     .team-member--cameo {
       position: relative;
-      z-index: 10;
+      z-index: var(--z-docked, 10);
       /* Override entrance-roster opacity: 0 rule */
       animation: none !important;
     }

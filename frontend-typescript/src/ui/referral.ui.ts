@@ -15,6 +15,7 @@
  * - Warm, personal, never salesy
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
@@ -138,7 +139,7 @@ function createModal(): void {
   modal.innerHTML = `
     <div class="referral-backdrop"></div>
     <div class="referral-content">
-      <button class="referral-close" aria-label="Close">
+      <button class="referral-close" aria-label="${t('common.close')}">
         ${ICONS.close}
       </button>
 

@@ -15,6 +15,7 @@
  * - Focus on value/ROI for decision makers
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { toast } from './toast.ui.js';
@@ -848,7 +849,7 @@ function renderHeader(): string {
           <p class="b2b-admin-subtitle">${currentOrg?.plan || 'Growth'} Plan · ${currentOrg?.activeSeats || 0}/${currentOrg?.seatCount || 0} seats</p>
         </div>
       </div>
-      <button class="b2b-admin-close" aria-label="Close">${CLOSE_ICON}</button>
+      <button class="b2b-admin-close" aria-label="${t('common.close')}">${CLOSE_ICON}</button>
     </div>
   `;
 }
@@ -1022,10 +1023,10 @@ function renderTeam(): string {
       </div>
       <div class="b2b-admin-section-content">
         <div class="b2b-admin-invite-form">
-          <input 
-            type="email" 
-            class="b2b-admin-invite-input" 
-            placeholder="colleague@company.com"
+          <input
+            type="email"
+            class="b2b-admin-invite-input"
+            placeholder="${t('placeholders.colleagueEmail')}"
             id="invite-email"
           />
           <select class="b2b-admin-invite-select" id="invite-role">
@@ -1082,20 +1083,20 @@ function renderSettings(): string {
       <div class="b2b-admin-section-content">
         <div class="b2b-admin-form-group">
           <label class="b2b-admin-form-label">Welcome Message</label>
-          <textarea 
-            class="b2b-admin-form-textarea" 
+          <textarea
+            class="b2b-admin-form-textarea"
             id="welcome-message"
-            placeholder="e.g., Welcome to ${currentOrg?.name || 'our team'}! Ferni is here to support your growth and wellbeing."
+            placeholder="${t('placeholders.welcomeMessageExample', { orgName: currentOrg?.name || 'our team' })}"
           >${currentOrg?.config?.welcomeMessage || ''}</textarea>
           <p class="b2b-admin-form-help">This message appears when team members first use Ferni.</p>
         </div>
 
         <div class="b2b-admin-form-group">
           <label class="b2b-admin-form-label">Company Values</label>
-          <textarea 
-            class="b2b-admin-form-textarea" 
+          <textarea
+            class="b2b-admin-form-textarea"
             id="company-values"
-            placeholder="e.g., Integrity, Innovation, Customer Focus, Teamwork"
+            placeholder="${t('placeholders.companyValuesExample')}"
           >${currentOrg?.config?.companyValues?.join(', ') || ''}</textarea>
           <p class="b2b-admin-form-help">Ferni will incorporate these values in relevant conversations.</p>
         </div>

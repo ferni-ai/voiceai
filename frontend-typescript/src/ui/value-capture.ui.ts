@@ -12,6 +12,7 @@
  * - Beautiful confetti and animations
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { contributeValue, formatAmount, loadStripe } from '../services/monetization.service.js';
 import { createLogger } from '../utils/logger.js';
@@ -505,7 +506,7 @@ function createModal(event: ValueEvent): HTMLElement {
     <div class="value-capture-backdrop"></div>
     <div class="value-capture-card" role="dialog" aria-labelledby="value-capture-title">
       <div class="value-capture-confetti">${createConfetti()}</div>
-      <button class="value-capture-close" aria-label="Close">${CLOSE_ICON}</button>
+      <button class="value-capture-close" aria-label="${t('common.close')}">${CLOSE_ICON}</button>
       <div class="value-capture-content">
         ${renderCelebration(event, celebration)}
       </div>
@@ -583,7 +584,7 @@ function renderCelebration(
       <input
         type="text"
         class="value-capture-custom-input"
-        placeholder="Custom amount"
+        placeholder="${t('placeholders.customAmount')}"
         inputmode="decimal"
       />
 
@@ -825,7 +826,7 @@ export function celebrateOnly(userId: string, event: ValueEvent): void {
     <div class="value-capture-backdrop"></div>
     <div class="value-capture-card" role="dialog">
       <div class="value-capture-confetti">${createConfetti()}</div>
-      <button class="value-capture-close" aria-label="Close">${CLOSE_ICON}</button>
+      <button class="value-capture-close" aria-label="${t('common.close')}">${CLOSE_ICON}</button>
       <div class="value-capture-content">
         <div class="value-capture-header">
           <div class="value-capture-icon">${icon}</div>

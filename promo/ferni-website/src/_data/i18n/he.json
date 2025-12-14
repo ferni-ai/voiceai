@@ -4,7 +4,6 @@
     "name": "עברית",
     "direction": "rtl"
   },
-
   "hero": {
     "eyebrow": "הכירו את המאמן AI שלכם",
     "headline": "טוב יותר",
@@ -17,7 +16,6 @@
       "talkNow": "דבר עם Ferni עכשיו"
     }
   },
-
   "superpowers": {
     "memory": {
       "title": "זיכרון מושלם",
@@ -40,7 +38,6 @@
       "description": "אנחנו שמים לב להפסקה. להתחמקות. לדפוס שאתה לא רואה. הבנה זה לא רק להקשיב—זה באמת להבין."
     }
   },
-
   "team": {
     "sectionTitle": "הכירו את הצוות",
     "sectionSubtitle": "שישה מוחות מבריקים שעובדים יחד בשבילך",
@@ -75,7 +72,6 @@
       "sampleQuote": "הזכרת שרצית לבקר ביפן 'יום אחד'. בוא נהפוך את זה ליום אמיתי."
     }
   },
-
   "pricing": {
     "sectionTitle": "תמחור פשוט",
     "headline": "התחל בחינם.",
@@ -125,7 +121,6 @@
       ]
     }
   },
-
   "faq": {
     "eyebrow": "שאלות ותשובות",
     "headline": "שאלות",
@@ -158,17 +153,14 @@
       }
     ]
   },
-
   "testimonials": {
     "sectionTitle": "מה אנשים אומרים"
   },
-
   "trust": {
     "title": "בנוי על אמון.",
     "description": "השיחות שלך הן שלך. תמיד. אנחנו משתמשים בהצפנה ברמה ארגונית ואף פעם לא מוכרים את הנתונים שלך.",
     "cta": "קרא את מדיניות הפרטיות שלנו"
   },
-
   "footer": {
     "tagline": "מישהו שבאמת מבין.",
     "copyright": "Ferni AI. כל הזכויות שמורות.",
@@ -180,7 +172,6 @@
     "connect": "התחבר",
     "legal": "משפטי"
   },
-
   "nav": {
     "features": "תכונות",
     "team": "צוות",
@@ -190,7 +181,6 @@
     "about": "אודות",
     "contact": "צור קשר"
   },
-
   "common": {
     "learnMore": "למידע נוסף",
     "getStarted": "להתחיל",
@@ -198,7 +188,6 @@
     "callPhone": "התקשר",
     "scrollToExplore": "גלול לחקור"
   },
-
   "accessibility": {
     "nextStory": "הסיפור הבא",
     "toggleMenu": "הפעל/כבה תפריט",
@@ -209,7 +198,6 @@
     "tiktok": "TikTok",
     "youtube": "YouTube"
   },
-
   "personas": {
     "peter": {
       "fullName": "פיטר ג'ון"
@@ -223,5 +211,16 @@
     "jordan": {
       "fullName": "ג'ורדן טיילור"
     }
+  },
+  "errorPage": {
+    "title": "אבוד במחשבות?",
+    "subtitle": "בוא נחזיר אותך למסלול.",
+    "goHome": "דף הבית",
+    "callFerni": "התקשר לפרני",
+    "suggestionsLabel": "או נסה אחד מאלה:",
+    "meetTeam": "הכר את הצוות",
+    "viewPricing": "צפה במחירים",
+    "readFaq": "קרא שאלות נפוצות",
+    "readBlog": "קרא את הבלוג שלנו"
   }
 }

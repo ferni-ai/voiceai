@@ -20,6 +20,7 @@
  *   - Focus management
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { toast } from './toast.ui.js';
@@ -224,7 +225,7 @@ function createContainer(): HTMLElement {
     <div class="admin-backdrop"></div>
     <div class="admin-panel">
       <header class="admin-header">
-        <button class="admin-close" aria-label="Close admin panel">
+        <button class="admin-close" aria-label="${t('accessibility.closeAdmin')}">
           ${ICONS.close}
         </button>
         <h1 class="admin-title">Marketplace Admin</h1>

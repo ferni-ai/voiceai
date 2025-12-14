@@ -8,6 +8,7 @@
  * just curious and caring.
  */
 
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import type { ContinuousAuthStatus } from '../services/voice-auth.service.js';
 
@@ -322,7 +323,7 @@ function showIndicator(state: IndicatorState, title: string, message: string): v
 
   container.className = `speaker-change-indicator speaker-change-indicator--${stateClass}`;
   container.innerHTML = `
-    <button class="speaker-change-indicator__dismiss" aria-label="Dismiss">${ICONS.x}</button>
+    <button class="speaker-change-indicator__dismiss" aria-label="${t('accessibility.dismiss')}">${ICONS.x}</button>
     <div class="speaker-change-indicator__icon">${icon}</div>
     <div class="speaker-change-indicator__content">
       <span class="speaker-change-indicator__title">${title}</span>

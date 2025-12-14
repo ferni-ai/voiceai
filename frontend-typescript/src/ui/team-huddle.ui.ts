@@ -11,6 +11,7 @@
  *   - Each persona has their signature color accent
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING, STAGGER, prefersReducedMotion } from '../config/animation-constants.js';
 
 // ============================================================================
@@ -202,7 +203,7 @@ class TeamHuddleUI {
           ${typeIcon}
           <span>${typeLabel}</span>
         </div>
-        <button class="team-huddle__close" aria-label="Close huddle">
+        <button class="team-huddle__close" aria-label="${t('accessibility.closeHuddle')}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>

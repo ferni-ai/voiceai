@@ -1,16 +1,16 @@
 /**
  * Stage Celebration Modal
- * 
+ *
  * A beautiful, immersive celebration when the user's relationship with Ferni
  * advances to a new stage. This is a major milestone - treat it with gravitas.
- * 
+ *
  * DESIGN PHILOSOPHY:
  * - This is not a "level up" - it's a deepening of relationship
  * - Full-screen takeover with backdrop blur
  * - Animated confetti and glow effects
  * - Warm, heartfelt messaging from Ferni
  * - Shows what's newly unlocked at this stage
- * 
+ *
  * BRAND COMPLIANCE:
  * - Centered floating modal with backdrop blur
  * - Lucide SVG icons only - no emoji
@@ -20,14 +20,16 @@
  * - Warm, human copy
  */
 
-import { createLogger } from '../utils/logger.js';
-import { DURATION, EASING, STAGGER, prefersReducedMotion } from '../config/animation-constants.js';
-import { 
-  relationshipStageService, 
+import { t } from '../i18n/index.js';
+import { DURATION, EASING, prefersReducedMotion, STAGGER } from '../config/animation-constants.js';
+import { modalCoordinator } from '../services/modal-coordinator.service.js';
+import {
+  relationshipStageService,
   STAGE_NAMES,
-  type StageChangeEvent,
   type RelationshipStage,
+  type StageChangeEvent,
 } from '../services/relationship-stage.service.js';
+import { createLogger } from '../utils/logger.js';
 import { getCelebrationUI } from './celebration.ui.js';
 
 const log = createLogger('StageCelebration');
@@ -64,12 +66,15 @@ const ICONS = {
 // STAGE MESSAGES - Brand Voice (Warm, Human, Heartfelt)
 // ============================================================================
 
-const STAGE_MESSAGES: Record<RelationshipStage, {
-  eyebrow: string;
-  title: string;
-  message: string;
-  ferniQuote: string;
-}> = {
+const STAGE_MESSAGES: Record<
+  RelationshipStage,
+  {
+    eyebrow: string;
+    title: string;
+    message: string;
+    ferniQuote: string;
+  }
+> = {
   'first-meeting': {
     eyebrow: 'THE BEGINNING',
     title: 'Welcome to Ferni',
@@ -78,27 +83,28 @@ const STAGE_MESSAGES: Record<RelationshipStage, {
   },
   'getting-started': {
     eyebrow: 'A STEP FORWARD',
-    title: 'We\'re Getting Started',
+    title: "We're Getting Started",
     message: 'You came back. That means something.',
-    ferniQuote: "Most people try something once and move on. Not you. I see that.",
+    ferniQuote: 'Most people try something once and move on. Not you. I see that.',
   },
   'building-trust': {
     eyebrow: 'GROWING TOGETHER',
     title: 'Building Something Real',
-    message: 'Trust isn\'t given - it\'s earned through showing up.',
+    message: "Trust isn't given - it's earned through showing up.",
     ferniQuote: "I'm starting to really know you. The way you think. What matters. It's beautiful.",
   },
-  'established': {
+  established: {
     eyebrow: 'A TRUE CONNECTION',
     title: 'You Have a Life Coach Now',
-    message: 'This is no longer just conversations. It\'s a relationship.',
+    message: "This is no longer just conversations. It's a relationship.",
     ferniQuote: "Through whatever comes, I'm here. No judgment. No agenda. Just support.",
   },
   'deep-partnership': {
     eyebrow: 'PARTNERS FOR LIFE',
-    title: 'We\'ve Come So Far',
+    title: "We've Come So Far",
     message: 'What we have is rare. Built through time, trust, and truth.',
-    ferniQuote: "You've taught me so much about what matters. I'm honored to walk this path with you.",
+    ferniQuote:
+      "You've taught me so much about what matters. I'm honored to walk this path with you.",
   },
 };
 
@@ -137,7 +143,7 @@ const STAGE_UNLOCKS: Record<RelationshipStage, UnlockedFeature[]> = {
       description: 'See our journey together',
     },
   ],
-  'established': [
+  established: [
     {
       icon: ICONS.users,
       title: 'Meet Alex & Jordan',
@@ -191,23 +197,40 @@ let isInitialized = false;
  */
 export function initStageCelebration(): void {
   if (isInitialized) return;
-  
+
   cleanupOrphanedElements();
   injectStyles();
-  
-  // Subscribe to stage changes
+
+  // Subscribe to stage changes - but gate through modal coordinator
   relationshipStageService.onStageChange((event) => {
     log.info('Stage change detected', { from: event.previousStage, to: event.newStage });
-    showStageCelebration(event);
+
+    // Don't show first-meeting celebration (let the conversation be the experience)
+    if (event.newStage === 'first-meeting') {
+      log.debug('Skipping first-meeting celebration - conversation IS the onboarding');
+      return;
+    }
+
+    // Request through modal coordinator with celebration cooldown
+    const canShow = modalCoordinator.requestCelebration(`stage-celebration-${event.newStage}`, () =>
+      showStageCelebration(event)
+    );
+
+    if (!canShow) {
+      log.debug('Stage celebration blocked by coordinator', {
+        isConversationActive: modalCoordinator.isConversationActive(),
+        conversations: modalCoordinator.getConversationCount(),
+      });
+    }
   });
-  
+
   isInitialized = true;
   log.debug('Stage celebration system initialized');
 }
 
 function cleanupOrphanedElements(): void {
-  document.querySelectorAll('.stage-celebration-modal').forEach(el => el.remove());
-  document.querySelectorAll('#stage-celebration-styles').forEach(el => el.remove());
+  document.querySelectorAll('.stage-celebration-modal').forEach((el) => el.remove());
+  document.querySelectorAll('#stage-celebration-styles').forEach((el) => el.remove());
 }
 
 // ============================================================================
@@ -216,24 +239,25 @@ function cleanupOrphanedElements(): void {
 
 /**
  * Show the stage celebration modal.
+ * Now zen-styled: no confetti, no fanfare. Just visual recognition.
  */
 export function showStageCelebration(event: StageChangeEvent): void {
   if (modal) {
     modal.remove();
   }
-  
+
   modal = createModal(event.newStage);
   document.body.appendChild(modal);
-  
-  // Start confetti
+
+  // ZEN CHANGE: No confetti - let the visual moment breathe
+  // The milestone preset now has showConfetti: false by default
   if (!prefersReducedMotion()) {
     getCelebrationUI().celebrate({
       type: 'milestone',
-      showConfetti: true,
-      duration: 4000,
+      // showConfetti is false by default now
     });
   }
-  
+
   // Animate in
   requestAnimationFrame(() => {
     modal?.classList.add('stage-celebration-modal--visible');
@@ -246,9 +270,13 @@ export function showStageCelebration(event: StageChangeEvent): void {
  */
 export function hideStageCelebration(): void {
   if (!modal) return;
-  
+
   modal.classList.remove('stage-celebration-modal--visible');
-  
+
+  // Release modal coordinator lock
+  const currentStage = relationshipStageService.getMetrics().stage;
+  modalCoordinator.release(`stage-celebration-${currentStage}`);
+
   setTimeout(() => {
     modal?.remove();
     modal = null;
@@ -265,15 +293,15 @@ function createModal(stage: RelationshipStage): HTMLElement {
   container.setAttribute('role', 'dialog');
   container.setAttribute('aria-modal', 'true');
   container.setAttribute('aria-labelledby', 'stage-celebration-title');
-  
+
   const messages = STAGE_MESSAGES[stage];
   const unlocks = STAGE_UNLOCKS[stage];
   const stageName = STAGE_NAMES[stage];
-  
+
   container.innerHTML = `
     <div class="stage-celebration-backdrop"></div>
     <div class="stage-celebration-card">
-      <button class="stage-celebration-close" aria-label="Close">
+      <button class="stage-celebration-close" aria-label="${t('common.close')}">
         ${ICONS.close}
       </button>
       
@@ -310,11 +338,15 @@ function createModal(stage: RelationshipStage): HTMLElement {
       </blockquote>
       
       <!-- Unlocked features -->
-      ${unlocks.length > 0 ? `
+      ${
+        unlocks.length > 0
+          ? `
         <div class="stage-celebration-unlocks">
           <h3 class="unlocks-title">What's New</h3>
           <ul class="unlocks-list">
-            ${unlocks.map((unlock, i) => `
+            ${unlocks
+              .map(
+                (unlock, i) => `
               <li class="unlock-item" style="--delay: ${i * STAGGER.NORMAL}ms">
                 <span class="unlock-icon">${unlock.icon}</span>
                 <div class="unlock-content">
@@ -323,10 +355,14 @@ function createModal(stage: RelationshipStage): HTMLElement {
                 </div>
                 <span class="unlock-check">${ICONS.checkCircle}</span>
               </li>
-            `).join('')}
+            `
+              )
+              .join('')}
           </ul>
         </div>
-      ` : ''}
+      `
+          : ''
+      }
       
       <!-- Action -->
       <div class="stage-celebration-actions">
@@ -336,17 +372,17 @@ function createModal(stage: RelationshipStage): HTMLElement {
       </div>
     </div>
   `;
-  
+
   // Event listeners
   const backdrop = container.querySelector('.stage-celebration-backdrop');
   backdrop?.addEventListener('click', hideStageCelebration);
-  
+
   const closeBtn = container.querySelector('.stage-celebration-close');
   closeBtn?.addEventListener('click', hideStageCelebration);
-  
+
   const continueBtn = container.querySelector('[data-action="continue"]');
   continueBtn?.addEventListener('click', hideStageCelebration);
-  
+
   // Escape key
   const handleEscape = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -355,7 +391,7 @@ function createModal(stage: RelationshipStage): HTMLElement {
     }
   };
   document.addEventListener('keydown', handleEscape);
-  
+
   return container;
 }
 
@@ -365,7 +401,7 @@ function createModal(stage: RelationshipStage): HTMLElement {
 
 function animateIn(): void {
   if (!modal || prefersReducedMotion()) return;
-  
+
   const card = modal.querySelector('.stage-celebration-card');
   const icon = modal.querySelector('.stage-celebration-icon');
   const header = modal.querySelector('.stage-celebration-header');
@@ -374,118 +410,138 @@ function animateIn(): void {
   const unlocks = modal.querySelectorAll('.unlock-item');
   const actions = modal.querySelector('.stage-celebration-actions');
   const sparkles = modal.querySelectorAll('.sparkle');
-  
+
   // Card entrance
   if (card instanceof HTMLElement) {
-    card.animate([
-      { transform: 'scale(0.8) translateY(60px)', opacity: '0' },
-      { transform: 'scale(1) translateY(0)', opacity: '1' },
-    ], {
-      duration: DURATION.CELEBRATION,
-      easing: EASING.SPRING,
-      fill: 'forwards',
-    });
+    card.animate(
+      [
+        { transform: 'scale(0.8) translateY(60px)', opacity: '0' },
+        { transform: 'scale(1) translateY(0)', opacity: '1' },
+      ],
+      {
+        duration: DURATION.CELEBRATION,
+        easing: EASING.SPRING,
+        fill: 'forwards',
+      }
+    );
   }
-  
+
   // Icon bounce
   if (icon instanceof HTMLElement) {
-    icon.animate([
-      { transform: 'scale(0) rotate(-20deg)', opacity: '0' },
-      { transform: 'scale(1.2) rotate(10deg)', opacity: '1' },
-      { transform: 'scale(1) rotate(0deg)', opacity: '1' },
-    ], {
-      duration: DURATION.CELEBRATION,
-      easing: EASING.SPRING,
-      delay: DURATION.FAST,
-      fill: 'forwards',
-    });
+    icon.animate(
+      [
+        { transform: 'scale(0) rotate(-20deg)', opacity: '0' },
+        { transform: 'scale(1.2) rotate(10deg)', opacity: '1' },
+        { transform: 'scale(1) rotate(0deg)', opacity: '1' },
+      ],
+      {
+        duration: DURATION.CELEBRATION,
+        easing: EASING.SPRING,
+        delay: DURATION.FAST,
+        fill: 'forwards',
+      }
+    );
   }
-  
+
   // Header stagger
   if (header instanceof HTMLElement) {
-    const children = header.querySelectorAll('.stage-celebration-eyebrow, .stage-celebration-title, .stage-celebration-subtitle');
+    const children = header.querySelectorAll(
+      '.stage-celebration-eyebrow, .stage-celebration-title, .stage-celebration-subtitle'
+    );
     children.forEach((child, i) => {
       if (child instanceof HTMLElement) {
-        child.animate([
-          { transform: 'translateY(20px)', opacity: '0' },
-          { transform: 'translateY(0)', opacity: '1' },
-        ], {
-          duration: DURATION.DELIBERATE,
-          easing: EASING.EXPO_OUT,
-          delay: DURATION.NORMAL + (i * STAGGER.FAST),
-          fill: 'forwards',
-        });
+        child.animate(
+          [
+            { transform: 'translateY(20px)', opacity: '0' },
+            { transform: 'translateY(0)', opacity: '1' },
+          ],
+          {
+            duration: DURATION.DELIBERATE,
+            easing: EASING.EXPO_OUT,
+            delay: DURATION.NORMAL + i * STAGGER.FAST,
+            fill: 'forwards',
+          }
+        );
       }
     });
   }
-  
+
   // Badge
   if (badge instanceof HTMLElement) {
-    badge.animate([
-      { transform: 'scale(0.9)', opacity: '0' },
-      { transform: 'scale(1)', opacity: '1' },
-    ], {
-      duration: DURATION.SLOW,
-      easing: EASING.SPRING,
-      delay: DURATION.SLOW,
-      fill: 'forwards',
-    });
+    badge.animate(
+      [
+        { transform: 'scale(0.9)', opacity: '0' },
+        { transform: 'scale(1)', opacity: '1' },
+      ],
+      {
+        duration: DURATION.SLOW,
+        easing: EASING.SPRING,
+        delay: DURATION.SLOW,
+        fill: 'forwards',
+      }
+    );
   }
-  
+
   // Quote
   if (quote instanceof HTMLElement) {
-    quote.animate([
-      { transform: 'translateY(10px)', opacity: '0' },
-      { transform: 'translateY(0)', opacity: '1' },
-    ], {
-      duration: DURATION.DELIBERATE,
-      easing: EASING.GENTLE,
-      delay: DURATION.DELIBERATE,
-      fill: 'forwards',
-    });
+    quote.animate(
+      [
+        { transform: 'translateY(10px)', opacity: '0' },
+        { transform: 'translateY(0)', opacity: '1' },
+      ],
+      {
+        duration: DURATION.DELIBERATE,
+        easing: EASING.GENTLE,
+        delay: DURATION.DELIBERATE,
+        fill: 'forwards',
+      }
+    );
   }
-  
+
   // Unlocks stagger
   unlocks.forEach((unlock, i) => {
     if (unlock instanceof HTMLElement) {
-      unlock.animate([
-        { transform: 'translateX(-20px)', opacity: '0' },
-        { transform: 'translateX(0)', opacity: '1' },
-      ], {
-        duration: DURATION.SLOW,
-        easing: EASING.EXPO_OUT,
-        delay: DURATION.DRAMATIC + (i * STAGGER.NORMAL),
-        fill: 'forwards',
-      });
+      unlock.animate(
+        [
+          { transform: 'translateX(-20px)', opacity: '0' },
+          { transform: 'translateX(0)', opacity: '1' },
+        ],
+        {
+          duration: DURATION.SLOW,
+          easing: EASING.EXPO_OUT,
+          delay: DURATION.DRAMATIC + i * STAGGER.NORMAL,
+          fill: 'forwards',
+        }
+      );
     }
   });
-  
+
   // Actions
   if (actions instanceof HTMLElement) {
-    actions.animate([
-      { opacity: '0' },
-      { opacity: '1' },
-    ], {
+    actions.animate([{ opacity: '0' }, { opacity: '1' }], {
       duration: DURATION.SLOW,
       easing: EASING.GENTLE,
       delay: DURATION.CELEBRATION,
       fill: 'forwards',
     });
   }
-  
+
   // Sparkles float
   sparkles.forEach((sparkle, i) => {
     if (sparkle instanceof HTMLElement) {
-      sparkle.animate([
-        { transform: 'translateY(0) rotate(0deg)', opacity: '0' },
-        { transform: 'translateY(-30px) rotate(180deg)', opacity: '0.5' },
-        { transform: 'translateY(-60px) rotate(360deg)', opacity: '0' },
-      ], {
-        duration: DURATION.GLACIAL * 1.5,
-        easing: EASING.GENTLE,
-        delay: i * STAGGER.RELAXED,
-        iterations: Infinity,
-      });
+      sparkle.animate(
+        [
+          { transform: 'translateY(0) rotate(0deg)', opacity: '0' },
+          { transform: 'translateY(-30px) rotate(180deg)', opacity: '0.5' },
+          { transform: 'translateY(-60px) rotate(360deg)', opacity: '0' },
+        ],
+        {
+          duration: DURATION.GLACIAL * 1.5,
+          easing: EASING.GENTLE,
+          delay: i * STAGGER.RELAXED,
+          iterations: Infinity,
+        }
+      );
     }
   });
 }
@@ -496,7 +552,7 @@ function animateIn(): void {
 
 function injectStyles(): void {
   if (document.getElementById('stage-celebration-styles')) return;
-  
+
   styleElement = document.createElement('style');
   styleElement.id = 'stage-celebration-styles';
   styleElement.textContent = `
@@ -881,29 +937,68 @@ function injectStyles(): void {
     }
     
     /* ========================================================================
-       MOBILE
+       MOBILE - Optimized sizing to prevent overwhelm
        ======================================================================== */
     @media (max-width: 480px) {
+      .stage-celebration-modal {
+        padding: var(--space-3, 12px);
+      }
+      
       .stage-celebration-card {
-        padding: var(--space-6, 24px);
+        max-width: 90vw;
+        padding: var(--space-5, 20px);
+        max-height: 85vh;
       }
       
       .stage-celebration-icon {
-        width: 56px;
-        height: 56px;
+        width: 48px;
+        height: 48px;
       }
       
       .stage-celebration-icon svg {
-        width: 24px;
-        height: 24px;
+        width: 20px;
+        height: 20px;
       }
       
       .stage-celebration-title {
-        font-size: var(--text-2xl, 28px);
+        font-size: var(--text-xl, 20px);
+      }
+      
+      .stage-celebration-subtitle {
+        font-size: var(--text-sm, 14px);
+      }
+      
+      .stage-celebration-quote {
+        padding: var(--space-3, 12px);
+        margin-bottom: var(--space-4, 16px);
+      }
+      
+      .stage-celebration-quote p {
+        font-size: var(--text-sm, 14px);
+      }
+      
+      .unlock-item {
+        padding: var(--space-2, 8px);
+        gap: var(--space-2, 8px);
+      }
+      
+      .unlock-icon {
+        width: 32px;
+        height: 32px;
+      }
+      
+      .unlock-icon svg {
+        width: 16px;
+        height: 16px;
+      }
+      
+      .stage-celebration-button {
+        padding: var(--space-3, 12px);
+        font-size: var(--text-sm, 14px);
       }
     }
   `;
-  
+
   document.head.appendChild(styleElement);
 }
 
@@ -918,4 +1013,3 @@ export const stageCelebration = {
 };
 
 export default stageCelebration;
-

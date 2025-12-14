@@ -22,6 +22,7 @@
  * - Lucide icons
  */
 
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { 
@@ -270,7 +271,7 @@ function renderExpanded(
     <div class="progress-expanded">
       <div class="progress-header">
         <span class="progress-eyebrow">YOUR JOURNEY</span>
-        <button class="progress-collapse-btn" aria-label="Collapse">
+        <button class="progress-collapse-btn" aria-label="${t('accessibility.collapse')}">
           ${ICONS.chevronDown}
         </button>
       </div>

@@ -1,20 +1,20 @@
 /**
  * Persona Introduction Flow
- * 
+ *
  * A beautiful, 3-screen guided introduction when a new team member unlocks.
  * This isn't just "content unlocked" - it's Ferni introducing you to a friend.
- * 
+ *
  * FLOW:
  * 1. The Introduction - Ferni introduces the persona
  * 2. Their Specialty - What they're uniquely good at
  * 3. Getting Started - First conversation prompt
- * 
+ *
  * DESIGN PHILOSOPHY:
  * - Feels like meeting a friend-of-a-friend
  * - Each persona has their own personality in the intro
  * - Builds anticipation for the first conversation
  * - Optional - user can skip to talk immediately
- * 
+ *
  * BRAND COMPLIANCE:
  * - Centered floating modal with backdrop blur
  * - Lucide SVG icons only
@@ -23,9 +23,15 @@
  * - Warm, human copy
  */
 
-import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING, STAGGER, prefersReducedMotion } from '../config/animation-constants.js';
-import { type TeamMemberConfig, TEAM_MEMBERS, teamUnlockService } from '../services/team-unlock.service.js';
+import { t } from '../i18n/index.js';
+import { modalCoordinator } from '../services/modal-coordinator.service.js';
+import {
+  type TeamMemberConfig,
+  TEAM_MEMBERS,
+  teamUnlockService,
+} from '../services/team-unlock.service.js';
+import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('PersonaIntro');
 
@@ -63,33 +69,33 @@ const ICONS = {
 // ============================================================================
 
 const PERSONA_COLORS: Record<string, { primary: string; secondary: string; tint: string }> = {
-  'ferni': { 
-    primary: 'var(--persona-ferni-primary, #4a6741)', 
+  ferni: {
+    primary: 'var(--persona-ferni-primary, #4a6741)',
     secondary: 'var(--persona-ferni-secondary, #3d5a35)',
     tint: 'rgba(74, 103, 65, 0.1)',
   },
-  'maya-santos': { 
-    primary: 'var(--persona-maya-primary, #a67a6a)', 
+  'maya-santos': {
+    primary: 'var(--persona-maya-primary, #a67a6a)',
     secondary: 'var(--persona-maya-secondary, #8a635a)',
     tint: 'rgba(166, 122, 106, 0.1)',
   },
-  'peter-john': { 
-    primary: 'var(--persona-peter-primary, #3a6b73)', 
+  'peter-john': {
+    primary: 'var(--persona-peter-primary, #3a6b73)',
     secondary: 'var(--persona-peter-secondary, #2d5359)',
     tint: 'rgba(58, 107, 115, 0.1)',
   },
-  'alex-chen': { 
-    primary: 'var(--persona-alex-primary, #5a6b8a)', 
+  'alex-chen': {
+    primary: 'var(--persona-alex-primary, #5a6b8a)',
     secondary: 'var(--persona-alex-secondary, #4a5a73)',
     tint: 'rgba(90, 107, 138, 0.1)',
   },
-  'jordan-taylor': { 
-    primary: 'var(--persona-jordan-primary, #c4856a)', 
+  'jordan-taylor': {
+    primary: 'var(--persona-jordan-primary, #c4856a)',
     secondary: 'var(--persona-jordan-secondary, #a86d55)',
     tint: 'rgba(196, 133, 106, 0.1)',
   },
-  'nayan-patel': { 
-    primary: 'var(--persona-nayan-primary, #9a7b5a)', 
+  'nayan-patel': {
+    primary: 'var(--persona-nayan-primary, #9a7b5a)',
     secondary: 'var(--persona-nayan-secondary, #8a6a4a)',
     tint: 'rgba(154, 123, 90, 0.1)',
   },
@@ -122,9 +128,10 @@ const PERSONA_INTROS: Record<string, Omit<PersonaIntroData, 'persona'>> = {
       },
     ],
     firstConversationPrompt: "What's one small thing you've been putting off?",
-    funFact: "Maya once helped someone finally learn guitar by having them just hold it for 2 minutes a day. Three months later? First song.",
+    funFact:
+      'Maya once helped someone finally learn guitar by having them just hold it for 2 minutes a day. Three months later? First song.',
   },
-  
+
   'peter-john': {
     steps: [
       {
@@ -136,7 +143,7 @@ const PERSONA_INTROS: Record<string, Omit<PersonaIntroData, 'persona'>> = {
       {
         eyebrow: 'HIS SUPERPOWER',
         title: 'Finding Hidden Patterns',
-        body: "Peter tracks what most people ignore - the small correlations between your mood, sleep, habits, and outcomes. Over time, he helps you understand yourself in ways that feel almost magical.",
+        body: 'Peter tracks what most people ignore - the small correlations between your mood, sleep, habits, and outcomes. Over time, he helps you understand yourself in ways that feel almost magical.',
         buttonText: 'How does he help?',
       },
       {
@@ -147,9 +154,10 @@ const PERSONA_INTROS: Record<string, Omit<PersonaIntroData, 'persona'>> = {
       },
     ],
     firstConversationPrompt: "What's a decision you've been thinking about lately?",
-    funFact: "Peter once predicted a user would get sick 3 days before they did, just from subtle changes in their conversation patterns.",
+    funFact:
+      'Peter once predicted a user would get sick 3 days before they did, just from subtle changes in their conversation patterns.',
   },
-  
+
   'alex-chen': {
     steps: [
       {
@@ -172,9 +180,10 @@ const PERSONA_INTROS: Record<string, Omit<PersonaIntroData, 'persona'>> = {
       },
     ],
     firstConversationPrompt: "Is there a conversation you've been putting off?",
-    funFact: "Alex helped someone negotiate a 40% raise with just three sentences they'd never thought to say.",
+    funFact:
+      "Alex helped someone negotiate a 40% raise with just three sentences they'd never thought to say.",
   },
-  
+
   'jordan-taylor': {
     steps: [
       {
@@ -197,9 +206,10 @@ const PERSONA_INTROS: Record<string, Omit<PersonaIntroData, 'persona'>> = {
       },
     ],
     firstConversationPrompt: "What's something you've always wanted to do but never planned?",
-    funFact: "Jordan helped someone plan their dream wedding in 6 weeks after they'd been 'figuring it out' for 2 years.",
+    funFact:
+      "Jordan helped someone plan their dream wedding in 6 weeks after they'd been 'figuring it out' for 2 years.",
   },
-  
+
   'nayan-patel': {
     steps: [
       {
@@ -222,7 +232,8 @@ const PERSONA_INTROS: Record<string, Omit<PersonaIntroData, 'persona'>> = {
       },
     ],
     firstConversationPrompt: "What's something you've been thinking about deeply lately?",
-    funFact: "Nayan once answered a question with silence that lasted 30 seconds. The user said it was the most helpful thing anyone had ever done.",
+    funFact:
+      'Nayan once answered a question with silence that lasted 30 seconds. The user said it was the most helpful thing anyone had ever done.',
   },
 };
 
@@ -248,30 +259,40 @@ let introShownFor: Set<string> = new Set();
  */
 export function initPersonaIntro(): void {
   if (isInitialized) return;
-  
+
   cleanupOrphanedElements();
   injectStyles();
   loadShownIntros();
-  
-  // Subscribe to unlock events - show intro instead of basic celebration
+
+  // Subscribe to unlock events - gate through modal coordinator
   teamUnlockService.onUnlock((member) => {
     // Skip if already shown or no intro data
     if (introShownFor.has(member.id) || !PERSONA_INTROS[member.id]) {
       log.debug('Skipping persona intro - already shown or no data');
       return;
     }
-    
-    // Show intro flow
-    showPersonaIntro(member.id);
+
+    // Gate through modal coordinator - don't show during conversation
+    // and respect cooldown between modals
+    const canShow = modalCoordinator.request(
+      `persona-intro-${member.id}`,
+      'high',
+      () => showPersonaIntroInternal(member.id),
+      { requireMinConversations: 2 }
+    );
+
+    if (!canShow) {
+      log.debug('Persona intro blocked by modal coordinator', { personaId: member.id });
+    }
   });
-  
+
   isInitialized = true;
   log.debug('Persona intro system initialized');
 }
 
 function cleanupOrphanedElements(): void {
-  document.querySelectorAll('.persona-intro-modal').forEach(el => el.remove());
-  document.querySelectorAll('#persona-intro-styles').forEach(el => el.remove());
+  document.querySelectorAll('.persona-intro-modal').forEach((el) => el.remove());
+  document.querySelectorAll('#persona-intro-styles').forEach((el) => el.remove());
 }
 
 // ============================================================================
@@ -280,33 +301,51 @@ function cleanupOrphanedElements(): void {
 
 /**
  * Show the persona introduction flow.
+ * Public API - goes through modal coordinator.
  */
 export function showPersonaIntro(personaId: string): void {
-  const persona = TEAM_MEMBERS.find(m => m.id === personaId);
+  const canShow = modalCoordinator.request(
+    `persona-intro-${personaId}`,
+    'high',
+    () => showPersonaIntroInternal(personaId),
+    { requireMinConversations: 2 }
+  );
+
+  if (!canShow) {
+    log.debug('Persona intro blocked by modal coordinator', { personaId });
+  }
+}
+
+/**
+ * Internal function to actually show the intro (called by modal coordinator).
+ */
+function showPersonaIntroInternal(personaId: string): void {
+  const persona = TEAM_MEMBERS.find((m) => m.id === personaId);
   const introContent = PERSONA_INTROS[personaId];
-  
+
   if (!persona || !introContent) {
     log.warn('No intro data for persona', { personaId });
+    modalCoordinator.release(`persona-intro-${personaId}`);
     return;
   }
-  
+
   currentPersona = persona;
   currentIntroData = { persona, ...introContent };
   currentStep = 0;
-  
+
   if (modal) {
     modal.remove();
   }
-  
+
   modal = createModal();
   document.body.appendChild(modal);
-  
+
   // Animate in
   requestAnimationFrame(() => {
     modal?.classList.add('persona-intro-modal--visible');
     renderStep();
   });
-  
+
   log.info('Showing persona intro', { personaId });
 }
 
@@ -315,9 +354,14 @@ export function showPersonaIntro(personaId: string): void {
  */
 export function hidePersonaIntro(): void {
   if (!modal) return;
-  
+
   modal.classList.remove('persona-intro-modal--visible');
-  
+
+  // Release modal coordinator lock
+  if (currentPersona) {
+    modalCoordinator.release(`persona-intro-${currentPersona.id}`);
+  }
+
   setTimeout(() => {
     modal?.remove();
     modal = null;
@@ -332,7 +376,7 @@ export function hidePersonaIntro(): void {
  */
 export function nextStep(): void {
   if (!currentIntroData) return;
-  
+
   if (currentStep < currentIntroData.steps.length - 1) {
     currentStep++;
     renderStep();
@@ -357,12 +401,14 @@ export function prevStep(): void {
 export function skipIntro(): void {
   markIntroShown();
   hidePersonaIntro();
-  
+
   // Switch to the persona
   if (currentPersona) {
-    window.dispatchEvent(new CustomEvent('ferni:switch-persona', {
-      detail: { personaId: currentPersona.id },
-    }));
+    window.dispatchEvent(
+      new CustomEvent('ferni:switch-persona', {
+        detail: { personaId: currentPersona.id },
+      })
+    );
   }
 }
 
@@ -372,15 +418,17 @@ export function skipIntro(): void {
 function finishIntro(): void {
   markIntroShown();
   hidePersonaIntro();
-  
+
   // Switch to the persona with the first conversation prompt
   if (currentPersona && currentIntroData) {
-    window.dispatchEvent(new CustomEvent('ferni:switch-persona', {
-      detail: { 
-        personaId: currentPersona.id,
-        initialPrompt: currentIntroData.firstConversationPrompt,
-      },
-    }));
+    window.dispatchEvent(
+      new CustomEvent('ferni:switch-persona', {
+        detail: {
+          personaId: currentPersona.id,
+          initialPrompt: currentIntroData.firstConversationPrompt,
+        },
+      })
+    );
   }
 }
 
@@ -394,24 +442,24 @@ function createModal(): HTMLElement {
   container.setAttribute('role', 'dialog');
   container.setAttribute('aria-modal', 'true');
   container.setAttribute('aria-labelledby', 'persona-intro-title');
-  
+
   container.innerHTML = `
     <div class="persona-intro-backdrop"></div>
     <div class="persona-intro-card">
-      <button class="persona-intro-close" aria-label="Close">
+      <button class="persona-intro-close" aria-label="${t('common.close')}">
         ${ICONS.close}
       </button>
       <div class="persona-intro-content"></div>
     </div>
   `;
-  
+
   // Event listeners
   const backdrop = container.querySelector('.persona-intro-backdrop');
   backdrop?.addEventListener('click', skipIntro);
-  
+
   const closeBtn = container.querySelector('.persona-intro-close');
   closeBtn?.addEventListener('click', skipIntro);
-  
+
   // Escape key
   const handleEscape = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -420,24 +468,24 @@ function createModal(): HTMLElement {
     }
   };
   document.addEventListener('keydown', handleEscape);
-  
+
   return container;
 }
 
 function renderStep(): void {
   if (!modal || !currentIntroData || !currentPersona) return;
-  
+
   const content = modal.querySelector('.persona-intro-content');
   if (!content) return;
-  
+
   const step = currentIntroData.steps[currentStep];
   if (!step) return;
-  
+
   const colors = PERSONA_COLORS[currentPersona.id] ?? PERSONA_COLORS['ferni'];
   const isFirstStep = currentStep === 0;
   const isLastStep = currentStep === currentIntroData.steps.length - 1;
   const initials = getInitials(currentPersona.displayName);
-  
+
   content.innerHTML = `
     <!-- Avatar -->
     <div class="persona-intro-avatar" style="background: ${colors.primary}">
@@ -447,10 +495,14 @@ function renderStep(): void {
     
     <!-- Step indicators -->
     <div class="persona-intro-steps">
-      ${currentIntroData.steps.map((_, i) => `
+      ${currentIntroData.steps
+        .map(
+          (_, i) => `
         <span class="step-dot ${i === currentStep ? 'step-dot--active' : ''} ${i < currentStep ? 'step-dot--complete' : ''}"
               style="--active-color: ${colors.primary}"></span>
-      `).join('')}
+      `
+        )
+        .join('')}
     </div>
     
     <!-- Content -->
@@ -459,24 +511,32 @@ function renderStep(): void {
     <p class="persona-intro-body">${step.body}</p>
     
     <!-- Fun fact on first step -->
-    ${isFirstStep ? `
+    ${
+      isFirstStep
+        ? `
       <div class="persona-intro-funfact" style="background: ${colors.tint}; border-color: ${colors.primary}">
         <span class="funfact-icon">${ICONS.sparkles}</span>
         <p>${currentIntroData.funFact}</p>
       </div>
-    ` : ''}
+    `
+        : ''
+    }
     
     <!-- Actions -->
     <div class="persona-intro-actions">
-      ${!isFirstStep ? `
+      ${
+        !isFirstStep
+          ? `
         <button class="persona-intro-btn persona-intro-btn--secondary" data-action="prev">
           Back
         </button>
-      ` : `
+      `
+          : `
         <button class="persona-intro-btn persona-intro-btn--secondary" data-action="skip">
           Skip intro
         </button>
-      `}
+      `
+      }
       <button class="persona-intro-btn persona-intro-btn--primary" data-action="next" style="background: ${colors.primary}">
         ${isLastStep ? ICONS.messageCircle : ''}
         <span>${step.buttonText}</span>
@@ -484,17 +544,17 @@ function renderStep(): void {
       </button>
     </div>
   `;
-  
+
   // Event listeners
   const prevBtn = content.querySelector('[data-action="prev"]');
   prevBtn?.addEventListener('click', prevStep);
-  
+
   const skipBtn = content.querySelector('[data-action="skip"]');
   skipBtn?.addEventListener('click', skipIntro);
-  
+
   const nextBtn = content.querySelector('[data-action="next"]');
   nextBtn?.addEventListener('click', nextStep);
-  
+
   // Animate
   animateStepIn(content);
 }
@@ -505,27 +565,30 @@ function renderStep(): void {
 
 function animateStepIn(content: Element): void {
   if (prefersReducedMotion()) return;
-  
+
   const avatar = content.querySelector('.persona-intro-avatar');
   const eyebrow = content.querySelector('.persona-intro-eyebrow');
   const title = content.querySelector('.persona-intro-title');
   const body = content.querySelector('.persona-intro-body');
   const funfact = content.querySelector('.persona-intro-funfact');
   const actions = content.querySelector('.persona-intro-actions');
-  
+
   const elements = [avatar, eyebrow, title, body, funfact, actions].filter(Boolean);
-  
+
   elements.forEach((el, i) => {
     if (el instanceof HTMLElement) {
-      el.animate([
-        { opacity: 0, transform: 'translateY(20px)' },
-        { opacity: 1, transform: 'translateY(0)' },
-      ], {
-        duration: DURATION.DELIBERATE,
-        easing: EASING.EXPO_OUT,
-        delay: i * STAGGER.FAST,
-        fill: 'forwards',
-      });
+      el.animate(
+        [
+          { opacity: 0, transform: 'translateY(20px)' },
+          { opacity: 1, transform: 'translateY(0)' },
+        ],
+        {
+          duration: DURATION.DELIBERATE,
+          easing: EASING.EXPO_OUT,
+          delay: i * STAGGER.FAST,
+          fill: 'forwards',
+        }
+      );
     }
   });
 }
@@ -535,7 +598,12 @@ function animateStepIn(content: Element): void {
 // ============================================================================
 
 function getInitials(name: string): string {
-  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 }
 
 function markIntroShown(): void {
@@ -576,7 +644,7 @@ function saveShownIntros(): void {
 
 function injectStyles(): void {
   if (document.getElementById('persona-intro-styles')) return;
-  
+
   styleElement = document.createElement('style');
   styleElement.id = 'persona-intro-styles';
   styleElement.textContent = `
@@ -910,7 +978,7 @@ function injectStyles(): void {
       }
     }
   `;
-  
+
   document.head.appendChild(styleElement);
 }
 
@@ -928,4 +996,3 @@ export const personaIntro = {
 };
 
 export default personaIntro;
-

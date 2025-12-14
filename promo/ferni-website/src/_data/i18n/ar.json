@@ -4,7 +4,6 @@
     "name": "العربية",
     "direction": "rtl"
   },
-
   "hero": {
     "eyebrow": "تعرف على مدربك الذكي",
     "headline": "أفضل من",
@@ -17,7 +16,6 @@
       "talkNow": "تحدث مع Ferni الآن"
     }
   },
-
   "superpowers": {
     "memory": {
       "title": "ذاكرة مثالية",
@@ -40,7 +38,6 @@
       "description": "نلاحظ التوقف. التجنب. النمط الذي لا تراه. الفهم ليس مجرد الاستماع—إنه الإدراك الحقيقي."
     }
   },
-
   "team": {
     "sectionTitle": "تعرف على الفريق",
     "sectionSubtitle": "ستة عقول لامعة تعمل معاً من أجلك",
@@ -75,7 +72,6 @@
       "sampleQuote": "ذكرت أنك تريد زيارة اليابان 'يوماً ما'. لنجعله يوماً حقيقياً."
     }
   },
-
   "pricing": {
     "sectionTitle": "أسعار بسيطة",
     "headline": "ابدأ مجاناً.",
@@ -125,7 +121,6 @@
       ]
     }
   },
-
   "faq": {
     "eyebrow": "أسئلة وأجوبة",
     "headline": "الأسئلة",
@@ -158,17 +153,14 @@
       }
     ]
   },
-
   "testimonials": {
     "sectionTitle": "ماذا يقول الناس"
   },
-
   "trust": {
     "title": "مبني على الثقة.",
     "description": "محادثاتك ملكك. دائماً. نستخدم تشفيراً على مستوى المؤسسات ولا نبيع بياناتك أبداً.",
     "cta": "اقرأ سياسة الخصوصية"
   },
-
   "footer": {
     "tagline": "شخص يفهم حقاً.",
     "copyright": "Ferni AI. جميع الحقوق محفوظة.",
@@ -180,7 +172,6 @@
     "connect": "تواصل",
     "legal": "قانوني"
   },
-
   "nav": {
     "features": "الميزات",
     "team": "الفريق",
@@ -190,7 +181,6 @@
     "about": "عن الشركة",
     "contact": "تواصل معنا"
   },
-
   "common": {
     "learnMore": "اعرف المزيد",
     "getStarted": "ابدأ الآن",
@@ -198,7 +188,6 @@
     "callPhone": "اتصل",
     "scrollToExplore": "مرر للاستكشاف"
   },
-
   "accessibility": {
     "nextStory": "القصة التالية",
     "toggleMenu": "تبديل القائمة",
@@ -209,7 +198,6 @@
     "tiktok": "TikTok",
     "youtube": "YouTube"
   },
-
   "personas": {
     "peter": {
       "fullName": "بيتر جون"
@@ -223,5 +211,16 @@
     "jordan": {
       "fullName": "جوردان تايلور"
     }
+  },
+  "errorPage": {
+    "title": "تائه في الأفكار؟",
+    "subtitle": "دعنا نعيدك إلى المسار الصحيح.",
+    "goHome": "الصفحة الرئيسية",
+    "callFerni": "اتصل بفيرني",
+    "suggestionsLabel": "أو جرب أحد هذه:",
+    "meetTeam": "تعرف على الفريق",
+    "viewPricing": "عرض الأسعار",
+    "readFaq": "اقرأ الأسئلة الشائعة",
+    "readBlog": "اقرأ مدونتنا"
   }
 }

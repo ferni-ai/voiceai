@@ -21,6 +21,7 @@
  * - Settings menu "Your Journey"
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { 
   relationshipStageService, 
@@ -374,7 +375,7 @@ function createModal(): void {
         <div class="journey-header__text">
           <span class="journey-eyebrow">YOUR JOURNEY</span>
         </div>
-        <button class="journey-close" aria-label="Close">
+        <button class="journey-close" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
       </header>
@@ -450,7 +451,7 @@ function createModal(): void {
 
       <footer class="journey-footer">
         <p>Every moment matters. Keep going.</p>
-        <button class="journey-share" aria-label="Share your journey">
+        <button class="journey-share" aria-label="${t('accessibility.shareJourney')}">
           ${ICONS.share}
           <span>Share</span>
         </button>

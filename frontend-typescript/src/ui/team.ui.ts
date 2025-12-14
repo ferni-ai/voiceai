@@ -48,6 +48,40 @@ let rosterContainer: HTMLElement | null = null;
 const teamMemberElements: Map<PersonaId, HTMLElement> = new Map();
 const cleanupFunctions: (() => void)[] = [];
 
+// FIX BUG: Track all setTimeout IDs for cleanup to prevent memory leaks
+const activeTimeouts: Set<ReturnType<typeof setTimeout>> = new Set();
+
+/**
+ * Tracked setTimeout that automatically removes itself when done.
+ * All timeouts are cleared on dispose() to prevent memory leaks during HMR.
+ */
+function trackedTimeout(callback: () => void, delay: number): ReturnType<typeof setTimeout> {
+  const id = setTimeout(() => {
+    activeTimeouts.delete(id);
+    callback();
+  }, delay);
+  activeTimeouts.add(id);
+  return id;
+}
+
+/**
+ * Clear a tracked timeout early (e.g., if animation is cancelled).
+ */
+function clearTrackedTimeout(id: ReturnType<typeof setTimeout>): void {
+  clearTimeout(id);
+  activeTimeouts.delete(id);
+}
+
+/**
+ * Clear all tracked timeouts (called on dispose).
+ */
+function clearAllTrackedTimeouts(): void {
+  for (const id of activeTimeouts) {
+    clearTimeout(id);
+  }
+  activeTimeouts.clear();
+}
+
 /** FIX BUG #57: ARIA live region for announcing handoff status to screen readers */
 let ariaLiveRegion: HTMLElement | null = null;
 
@@ -106,7 +140,10 @@ export function initTeamUI(): void {
         message: `You're ${progressPercent}% of the way to meeting ${member.displayName}!`,
         duration: 4000,
       });
-      log.debug('Showed almost there notification:', { memberId: member.id, progress: progressPercent });
+      log.debug('Showed almost there notification:', {
+        memberId: member.id,
+        progress: progressPercent,
+      });
     });
     cleanupFunctions.push(almostThereCleanup);
 
@@ -164,6 +201,20 @@ export function initTeamUI(): void {
     });
     cleanupFunctions.push(unsubCancelled);
 
+    // FIX BUG: Show visual feedback when handoff is rate limited
+    const unsubRateLimited = handoffService.onHandoffRateLimited((_remainingMs) => {
+      // Play feedback sound
+      void import('./sound.ui.js').then(({ soundUI }) => {
+        soundUI.play('error');
+      });
+      // Show subtle toast
+      toast.show({
+        message: 'Take your time - one switch at a time',
+        duration: 2000,
+      });
+    });
+    cleanupFunctions.push(unsubRateLimited);
+
     // WARM HANDOFF: Listen for soft_open_complete to sync roster visual transition
     // This ensures the roster moves AFTER the departing persona finishes speaking
     const unsubSoftOpen = handoffService.onSoftOpenComplete((toPersona, fromPersona) => {
@@ -200,6 +251,12 @@ function handleAgentDropped(agentId: string): void {
   // Remove from UI
   const element = teamMemberElements.get(agentId as PersonaId);
   if (element) {
+    // FIX BUG: Check reduced motion preference
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      element.remove();
+      teamMemberElements.delete(agentId as PersonaId);
+      return;
+    }
     // Animate removal using design system constants
     void element
       .animate(
@@ -266,7 +323,7 @@ function announceToScreenReader(message: string): void {
   // Clear then set to trigger announcement
   ariaLiveRegion.textContent = '';
   // Small delay ensures the clear is processed before new content
-  setTimeout(() => {
+  trackedTimeout(() => {
     if (ariaLiveRegion) {
       ariaLiveRegion.textContent = message;
     }
@@ -319,7 +376,7 @@ function showBanterText(text: string): void {
 
     // Auto-hide after a delay (sync with handoff timing)
     // Use FIRST_MEETING timing (400ms) + generous buffer for reading banter
-    setTimeout(() => {
+    trackedTimeout(() => {
       hideBanterText();
     }, HANDOFF_TIMING.FIRST_MEETING + 2500);
   }
@@ -610,7 +667,7 @@ function attachMarketplaceAgentListeners(
 
     // Visual feedback - FIX BUG: Use DURATION constant instead of hardcoded value
     element.classList.add('team-member--clicked');
-    setTimeout(() => element.classList.remove('team-member--clicked'), DURATION.SLOW);
+    trackedTimeout(() => element.classList.remove('team-member--clicked'), DURATION.SLOW);
 
     // Show marketplace modal with agent details
     void marketplaceUI.open();
@@ -837,7 +894,7 @@ function revealRosterWhenReady(container: HTMLElement): void {
     container.classList.remove('roster-initializing');
 
     // Mark entrance complete after animation - FIX BUG: Use DURATION constant
-    setTimeout(() => {
+    trackedTimeout(() => {
       container.classList.add('entrance-complete');
     }, DURATION.CELEBRATION);
   } else {
@@ -851,7 +908,7 @@ function revealRosterWhenReady(container: HTMLElement): void {
             container.classList.remove('roster-initializing');
 
             // Mark entrance complete after animation - FIX BUG: Use DURATION constant
-            setTimeout(() => {
+            trackedTimeout(() => {
               container.classList.add('entrance-complete');
             }, DURATION.CELEBRATION);
             break;
@@ -863,7 +920,7 @@ function revealRosterWhenReady(container: HTMLElement): void {
     observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
     // Safety timeout - don't wait forever
-    setTimeout(() => {
+    trackedTimeout(() => {
       observer.disconnect();
       container.classList.remove('roster-initializing');
       container.classList.add('entrance-complete');
@@ -908,7 +965,7 @@ function addMarketplaceButton(): void {
     marketplaceUI.open();
   });
   cleanupFunctions.push(cleanup);
-  
+
   // iOS touch fix: Also listen for touchend to ensure taps are captured
   const touchCleanup = addListener(marketplaceBtn, 'touchend', (e) => {
     e.preventDefault();
@@ -990,7 +1047,7 @@ function onTeamMemberClick(personaId: PersonaId): void {
     const element = teamMemberElements.get(personaId);
     if (element) {
       addClass(element, 'click-blocked');
-      setTimeout(() => removeClass(element, 'click-blocked'), 200);
+      trackedTimeout(() => removeClass(element, 'click-blocked'), DURATION.NORMAL);
     }
     return;
   }
@@ -1013,7 +1070,7 @@ function onTeamMemberClick(personaId: PersonaId): void {
     const element = teamMemberElements.get(personaId);
     if (element) {
       addClass(element, 'pulse');
-      setTimeout(() => removeClass(element, 'pulse'), DURATION.SLOW);
+      trackedTimeout(() => removeClass(element, 'pulse'), DURATION.SLOW);
     }
     return;
   }
@@ -1045,7 +1102,7 @@ function showLockedMemberFeedback(
   // Visual feedback - shake animation - FIX BUG: Use DURATION constant
   if (element) {
     addClass(element, 'team-member--locked-feedback');
-    setTimeout(() => removeClass(element, 'team-member--locked-feedback'), DURATION.DRAMATIC);
+    trackedTimeout(() => removeClass(element, 'team-member--locked-feedback'), DURATION.DRAMATIC);
   }
 
   // Get the teaser message or fallback
@@ -1140,6 +1197,12 @@ function celebrateMemberUnlock(personaId: PersonaId): void {
   // Add celebration animation class
   addClass(element, 'team-member--just-unlocked');
 
+  // FIX BUG: Check reduced motion preference before animating
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    // Skip animation but still show the unlocked state
+    return;
+  }
+
   // Animate the unlock with a burst effect
   void element
     .animate(
@@ -1163,6 +1226,7 @@ function celebrateMemberUnlock(personaId: PersonaId): void {
   toast.innerHTML = `
     <span class="ferni-toast__message">${name} unlocked!</span>
   `;
+  // FIX BUG: Use CSS variable for z-index instead of hardcoded value
   toast.style.cssText = `
     position: fixed;
     bottom: 100px;
@@ -1174,7 +1238,7 @@ function celebrateMemberUnlock(personaId: PersonaId): void {
     border-radius: var(--radius-full, 9999px);
     box-shadow: var(--shadow-lg, 0 10px 30px rgba(0,0,0,0.3));
     font-size: var(--text-sm, 14px);
-    z-index: 1000;
+    z-index: var(--z-toast, 1700);
     opacity: 0;
     transition: opacity 0.3s ease, transform 0.3s ease;
     display: flex;
@@ -1189,14 +1253,15 @@ function celebrateMemberUnlock(personaId: PersonaId): void {
     toast.style.transform = 'translateX(-50%) translateY(0)';
   });
 
-  setTimeout(() => {
+  // FIX BUG: Use DURATION constants instead of hardcoded values
+  trackedTimeout(() => {
     toast.style.opacity = '0';
     toast.style.transform = 'translateX(-50%) translateY(20px)';
-    setTimeout(() => toast.remove(), 300);
+    trackedTimeout(() => toast.remove(), DURATION.SLOW);
 
     // FIX: Clear newlyUnlocked flag to prevent duplicate celebrations
     clearNewlyUnlocked();
-  }, 3000);
+  }, DURATION.AMBIENT_FAST);
 }
 
 /**
@@ -1255,7 +1320,7 @@ function showSwitchingFeedback(fromId: PersonaId, toId: PersonaId): void {
 
   // FIX BUG #21: Use configurable constant instead of hardcoded 800ms
   // Clear switching states after a moment (handoff will complete the transition)
-  setTimeout(() => {
+  trackedTimeout(() => {
     if (fromElement) removeClass(fromElement, 'switching-from');
     if (toElement) removeClass(toElement, 'switching-to');
   }, HANDOFF_TIMING.MAX_FEEDBACK_DELAY);
@@ -1369,10 +1434,10 @@ function createEnergyTransfer(
 
     createTrailParticle(x, y, color);
     particleCount++;
-  }, 40);
+  }, DURATION.MICRO - 10); // ~40ms particle spawn interval
 
-  // Remove orb after animation
-  setTimeout(() => orb.remove(), 600);
+  // Remove orb after animation - FIX BUG: Use DURATION constant
+  trackedTimeout(() => orb.remove(), DURATION.DRAMATIC);
 }
 
 /**
@@ -1407,7 +1472,7 @@ function createTrailParticle(x: number, y: number, color: string): void {
     }
   );
 
-  setTimeout(() => particle.remove(), ANIMATION_PRESET.TEAM_SELECT.duration);
+  trackedTimeout(() => particle.remove(), ANIMATION_PRESET.TEAM_SELECT.duration);
 }
 
 /**
@@ -1450,7 +1515,7 @@ function previewPersonaTheme(personaId: PersonaId): void {
 /**
  * Send a handoff request to the agent.
  * FIX BUG #46: Now provides user feedback on failures and resets transition state.
- * 
+ *
  * REFACTORED: Now uses handoffService.sendHandoffRequest() for consistency
  * with marketplace.ui.ts and other entry points. This ensures:
  * - Rate limiting (800ms debounce)
@@ -1473,7 +1538,7 @@ function sendHandoffRequest(targetPersonaId: PersonaId): void {
     if (element) {
       removeClass(element, 'switching-to');
       addClass(element, 'send-failed');
-      setTimeout(() => removeClass(element, 'send-failed'), DURATION.GLACIAL / 1.5);
+      trackedTimeout(() => removeClass(element, 'send-failed'), DURATION.GLACIAL / 1.5);
     }
 
     // Restore the current persona's highlighting
@@ -1503,7 +1568,7 @@ function sendHandoffRequest(targetPersonaId: PersonaId): void {
       if (element) {
         removeClass(element, 'switching-to');
         addClass(element, 'click-blocked');
-        setTimeout(() => removeClass(element, 'click-blocked'), DURATION.NORMAL);
+        trackedTimeout(() => removeClass(element, 'click-blocked'), DURATION.NORMAL);
       }
 
       // Restore current persona highlighting
@@ -1575,11 +1640,11 @@ export function setActiveTeamMember(personaId: PersonaId): void {
     playStepBack(previousActiveId);
 
     // Step forward the new persona with slight delay
-    setTimeout(() => {
+    trackedTimeout(() => {
       playStepForward(personaId);
       // Team cheer after the new persona steps forward
-      setTimeout(() => playTeamCheer(personaId), 200);
-    }, 150);
+      trackedTimeout(() => playTeamCheer(personaId), DURATION.NORMAL);
+    }, DURATION.FAST_RELEASE);
   }
 }
 
@@ -1823,7 +1888,7 @@ export function playTeamCheer(selectedId: PersonaId): void {
     if (id === selectedId) continue;
 
     // Small bounce cheer animation
-    setTimeout(() => {
+    trackedTimeout(() => {
       element.animate(
         [
           { transform: 'scale(1) translateY(0)', offset: 0 },
@@ -1846,6 +1911,9 @@ export function playTeamCheer(selectedId: PersonaId): void {
  * Clean up resources.
  */
 export function dispose(): void {
+  // FIX BUG: Clear all tracked timeouts to prevent memory leaks
+  clearAllTrackedTimeouts();
+
   for (const fn of cleanupFunctions) {
     fn();
   }

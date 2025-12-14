@@ -1,0 +1,12 @@
+{
+  "": {
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/master.swiftdeps"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/FerniVoiceApp.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/FerniVoiceApp.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/FerniVoiceApp.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/FerniVoiceApp~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/FerniVoiceApp.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/FerniVoiceApp.dia"
+  }
+}

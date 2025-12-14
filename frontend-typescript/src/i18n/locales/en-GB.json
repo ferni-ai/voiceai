@@ -23,7 +23,12 @@
     "download": "Download",
     "copy": "Copy",
     "copied": "Copied!",
-    "new": "NEW"
+    "new": "NEW",
+    "saving": "Saving...",
+    "saved": "Saved!",
+    "processing": "Processing...",
+    "adding": "Adding...",
+    "errorRetry": "Error - Try Again"
   },
   "menu": {
     "title": "What's Next?",
@@ -362,8 +367,8 @@
         "description": "Avatar with optional video"
       },
       "avatar": {
-        "label": "",
-        "description": ""
+        "label": "Avatar Only",
+        "description": "Just Ferni's avatar, no video"
       }
     },
     "quality": {
@@ -389,7 +394,7 @@
     "buttons": {
       "connect": "Connect",
       "disconnect": "Disconnect",
-      "tryAgain": ""
+      "tryAgain": "Try Again"
     },
     "features": {
       "stress": "Stress detection from HRV",
@@ -421,12 +426,12 @@
         "description": "Recovery and strain tracking"
       },
       "apple_health": {
-        "name": "",
-        "description": ""
+        "name": "Apple Health",
+        "description": "Sync with Apple Watch and iPhone health data"
       }
     },
     "errors": {
-      "loadFailed": ""
+      "loadFailed": "Unable to load wearable settings"
     }
   },
   "contactSettings": {
@@ -446,6 +451,96 @@
     "unmuteAudio": "Unmute audio",
     "endCall": "End call",
     "skipToContent": "Skip to main content",
-    "languageSelector": ""
+    "languageSelector": "Select language",
+    "saveConversations": "Save your conversations by creating an account",
+    "signInToAccount": "Sign in to your account",
+    "accountMenu": "Account menu",
+    "refreshData": "Refresh data",
+    "exportData": "Export your data",
+    "accountSettings": "Account settings",
+    "dismiss": "Dismiss",
+    "dismissNotification": "Dismiss notification",
+    "closeDashboard": "Close dashboard",
+    "closeSubscription": "Close subscription options",
+    "closeDetails": "Close details",
+    "closePublisher": "Close publisher portal",
+    "closeBilling": "Close billing dashboard",
+    "closeSettings": "Close settings",
+    "closeHistory": "Close history",
+    "closeAdmin": "Close admin panel",
+    "closeHuddle": "Close huddle",
+    "closeStats": "Close stats",
+    "refresh": "Refresh",
+    "backToItems": "Back to items",
+    "collapse": "Collapse",
+    "expandGarden": "Expand garden details",
+    "collapseGarden": "Collapse garden details",
+    "howToPlay": "How to play",
+    "toggleQuietHours": "Toggle quiet hours",
+    "yourNewPlan": "Your new plan",
+    "subscriptionPlans": "Subscription plans",
+    "options": "Options",
+    "featuresIncluded": "Features included",
+    "searchCoaches": "Search for coaches",
+    "filterBySpecialty": "Filter by speciality",
+    "availableCoaches": "Available coaches",
+    "portalSections": "Portal sections",
+    "submitNewItem": "Submit new item",
+    "openDailyPractice": "Open daily practice",
+    "openPredictions": "Open predictions",
+    "shareJourney": "Share your journey",
+    "forgetThis": "Forget this",
+    "cancelInstallation": "Cancel installation",
+    "sharedMusicalMemory": "Shared musical memory",
+    "viewOutreachSchedule": "View outreach schedule",
+    "ferniLogo": "Ferni logo"
+  },
+  "buttons": {
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "signUp": "Sign Up",
+    "savePreferences": "Save Preferences",
+    "savePreference": "Save Preference",
+    "choose": "Choose This",
+    "refresh": "Refresh",
+    "exportData": "Export Data"
+  },
+  "mobile": {
+    "pullToConnect": "Pull to connect",
+    "releaseToConnect": "Release to connect",
+    "pullToRefresh": "Pull to refresh",
+    "releaseToRefresh": "Release to refresh"
+  },
+  "placeholders": {
+    "customAmount": "Custom amount",
+    "searchConversations": "Search conversations...",
+    "enterValue": "Enter actual value",
+    "emailExample": "you@example.com",
+    "phoneExample": "+44 (20) 1234-5678",
+    "memberName": "Their name",
+    "householdName": "The Smith Family",
+    "displayName": "Your preferred name",
+    "marketplaceSearch": "Who are you looking for?",
+    "codeInput": "• • • • • •",
+    "colleagueEmail": "colleague@company.com",
+    "welcomeMessageExample": "e.g., Welcome to {orgName}! Ferni is here to support your growth and wellbeing.",
+    "companyValuesExample": "e.g., Integrity, Innovation, Customer Focus, Teamwork",
+    "toolIdExample": "my-awesome-tool",
+    "toolNameExample": "My Awesome Tool",
+    "versionExample": "1.0.0",
+    "toolDescription": "What does your tool/agent do?"
+  },
+  "household": {
+    "addToHousehold": "Add to Household",
+    "title": "Household",
+    "members": "Members",
+    "addMember": "Add Member",
+    "removeMember": "Remove Member"
+  },
+  "titles": {
+    "sharedSong": "A song we share",
+    "dailyPractice": "Daily Practice",
+    "predictions": "Predictions",
+    "runScenario": "Run scenario"
   }
 }

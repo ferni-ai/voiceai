@@ -16,6 +16,7 @@ import { valueCaptureUI } from '../ui/value-capture.ui.js';
 import { createLogger } from '../utils/logger.js';
 import { cosmeticsService } from './cosmetics.service.js';
 import { growthJourneyService } from './growth-journey.service.js';
+import { modalCoordinator } from './modal-coordinator.service.js';
 
 const log = createLogger('MonetizationIntegration');
 
@@ -138,7 +139,9 @@ function detectValueEvent(message: string): {
 function estimateValueCents(type: string, message: string): number {
   // Try to extract numbers from the message
   const numberMatch = message.match(/\$?([\d,]+)/);
-  const extractedValue = numberMatch?.[1] ? parseInt(numberMatch[1].replace(/,/g, ''), 10) * 100 : 0;
+  const extractedValue = numberMatch?.[1]
+    ? parseInt(numberMatch[1].replace(/,/g, ''), 10) * 100
+    : 0;
 
   // Default estimates by type
   const defaultEstimates: Record<string, number> = {
@@ -166,9 +169,16 @@ function estimateValueCents(type: string, message: string): number {
 // ============================================================================
 
 /**
- * Check message for value events and trigger celebration if appropriate
+ * Check message for value events and trigger celebration if appropriate.
+ * GATED: Only show for users with 3+ conversations - let new users just enjoy Ferni.
  */
 export function checkForValueEvent(userId: string, message: string): void {
+  // FIRST CONVERSATION IS ONBOARDING - no value capture for new users
+  // Wait until they've had a few conversations before showing monetization UI
+  if (!modalCoordinator.hasMinimumConversations(3)) {
+    return;
+  }
+
   // Cooldown check
   const now = Date.now();
   if (now - lastValueCheckTime < VALUE_CHECK_COOLDOWN_MS) {

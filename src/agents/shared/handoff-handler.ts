@@ -26,7 +26,7 @@ import { getCurrentAgent } from '../../tools/handoff/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserData } from './types.js';
 // Cross-persona banter for warm handoffs
-import { getHandoffBanter, getArrivingBanter } from '../../services/team-engagement.js';
+import { getArrivingBanter, getHandoffBanter } from '../../services/team-engagement.js';
 // 🎧 DJ Integration - Enhanced "Guest DJ" handoff experience
 import { getDJIntegration } from '../dj-integration.js';
 
@@ -258,7 +258,12 @@ async function determineDirection(from: HandoffPersona, to: HandoffPersona): Pro
   try {
     const direction = await AgentDirectory.getHandoffDirection(from.id, to.id);
     return direction;
-  } catch {
+  } catch (err) {
+    // FIX BUG: Log fallback usage for debugging
+    getLogger().debug(
+      { error: String(err), from: from.id, to: to.id },
+      'Using fallback direction logic'
+    );
     // Fallback to simple role-based logic
     if (from.isCoach && !to.isCoach) return 'coach-to-team';
     if (!from.isCoach && to.isCoach) return 'team-to-coach';
@@ -287,8 +292,12 @@ async function calculateTransitionDelay(
     if (entry) {
       transitionStyle = entry.transitionStyle;
     }
-  } catch {
-    // Use default style
+  } catch (err) {
+    // FIX BUG: Log fallback usage for debugging
+    getLogger().debug(
+      { error: String(err), persona: toPersona.id },
+      'Using default transition style'
+    );
   }
 
   // Use shared timing calculation
@@ -526,8 +535,9 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
               diag.state(`Music is playing during handoff - preserving playback`);
             }
           }
-        } catch {
-          // Music player not available - ignore
+        } catch (musicErr) {
+          // Music player not available - FIX BUG: Log for debugging
+          logger.debug({ error: String(musicErr) }, 'Music player not available');
         }
 
         // 🎧 DJ BOOTH: Notify handoff for clean audio transition
@@ -538,8 +548,9 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
             booth.onHandoff(persona.id);
             diag.state('🎧 DJ Booth notified of handoff');
           }
-        } catch {
-          // DJ Booth not available - that's fine
+        } catch (djErr) {
+          // DJ Booth not available - FIX BUG: Log for debugging
+          logger.debug({ error: String(djErr) }, 'DJ Booth not available during handoff');
         }
 
         await new Promise<void>((resolve) => {
@@ -621,8 +632,12 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
               diag.warn('Music stopped during handoff - attempting to resume');
               await musicPlayerRef.resume();
             }
-          } catch {
-            // Non-critical - music may have naturally ended
+          } catch (resumeErr) {
+            // Non-critical - FIX BUG: Log for debugging
+            logger.debug(
+              { error: String(resumeErr) },
+              'Music resume failed (may have naturally ended)'
+            );
           }
         }
 
@@ -1016,9 +1031,12 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         await ctx.room.localParticipant?.publishData(new TextEncoder().encode(crashMessage), {
           reliable: true,
         });
-      } catch {
-        // Can't even send failure message - connection likely lost
-        logger.error('Failed to send handoff_failed after handler crash');
+      } catch (sendErr) {
+        // Can't even send failure message - FIX BUG: Include both errors
+        logger.error(
+          { sendError: String(sendErr), originalError: String(topLevelErr) },
+          'Failed to send handoff_failed after handler crash'
+        );
       }
 
       // FIX: Emit completion event even on crash so executor doesn't timeout
@@ -1031,8 +1049,12 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           instructionsUpdated: false,
           error: String(topLevelErr),
         });
-      } catch {
-        // Can't import - just let the timeout handle it
+      } catch (importErr) {
+        // Can't import - FIX BUG: Log the import error
+        logger.debug(
+          { error: String(importErr) },
+          'Cannot import handoffEvents - timeout will handle'
+        );
       }
     }
   };
@@ -1120,8 +1142,9 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           void ctx.room.localParticipant?.publishData(new TextEncoder().encode(timeoutMessage), {
             reliable: true,
           });
-        } catch {
-          // Ignore send errors
+        } catch (sendErr) {
+          // FIX BUG: Log send errors for debugging
+          logger.debug({ error: String(sendErr) }, 'Failed to send timeout message');
         }
 
         // Process queue

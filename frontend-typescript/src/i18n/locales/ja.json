@@ -23,7 +23,12 @@
     "download": "ダウンロード",
     "copy": "コピー",
     "copied": "コピーしました！",
-    "new": "新規"
+    "new": "新規",
+    "saving": "保存中...",
+    "saved": "保存しました！",
+    "processing": "処理中...",
+    "adding": "追加中...",
+    "errorRetry": "エラー - 再試行"
   },
   "menu": {
     "title": "次は何をしますか？",
@@ -362,8 +367,8 @@
         "description": "オプショナルビデオ付きアバター"
       },
       "avatar": {
-        "label": "",
-        "description": ""
+        "label": "アバターのみ",
+        "description": "Ferniのアバターのみ、ビデオなし"
       }
     },
     "quality": {
@@ -389,7 +394,7 @@
     "buttons": {
       "connect": "接続",
       "disconnect": "切断",
-      "tryAgain": ""
+      "tryAgain": "再試行"
     },
     "features": {
       "stress": "HRVからのストレス検出",
@@ -421,12 +426,12 @@
         "description": "リカバリーとストレイントラッキング"
       },
       "apple_health": {
-        "name": "",
-        "description": ""
+        "name": "Apple Health",
+        "description": "Apple WatchとiPhoneのヘルスデータと同期"
       }
     },
     "errors": {
-      "loadFailed": ""
+      "loadFailed": "ウェアラブル設定を読み込めませんでした"
     }
   },
   "contactSettings": {
@@ -446,6 +451,96 @@
     "unmuteAudio": "音声のミュートを解除",
     "endCall": "通話を終了",
     "skipToContent": "メインコンテンツにスキップ",
-    "languageSelector": ""
+    "languageSelector": "言語を選択",
+    "saveConversations": "アカウントを作成して会話を保存",
+    "signInToAccount": "アカウントにサインイン",
+    "accountMenu": "アカウントメニュー",
+    "refreshData": "データを更新",
+    "exportData": "データをエクスポート",
+    "accountSettings": "アカウント設定",
+    "dismiss": "閉じる",
+    "dismissNotification": "通知を閉じる",
+    "closeDashboard": "ダッシュボードを閉じる",
+    "closeSubscription": "サブスクリプションオプションを閉じる",
+    "closeDetails": "詳細を閉じる",
+    "closePublisher": "パブリッシャーポータルを閉じる",
+    "closeBilling": "請求ダッシュボードを閉じる",
+    "closeSettings": "設定を閉じる",
+    "closeHistory": "履歴を閉じる",
+    "closeAdmin": "管理パネルを閉じる",
+    "closeHuddle": "ハドルを閉じる",
+    "closeStats": "統計を閉じる",
+    "refresh": "更新",
+    "backToItems": "アイテムに戻る",
+    "collapse": "折りたたむ",
+    "expandGarden": "ガーデン詳細を展開",
+    "collapseGarden": "ガーデン詳細を折りたたむ",
+    "howToPlay": "遊び方",
+    "toggleQuietHours": "静かな時間を切り替え",
+    "yourNewPlan": "新しいプラン",
+    "subscriptionPlans": "サブスクリプションプラン",
+    "options": "オプション",
+    "featuresIncluded": "含まれる機能",
+    "searchCoaches": "コーチを検索",
+    "filterBySpecialty": "専門分野でフィルター",
+    "availableCoaches": "利用可能なコーチ",
+    "portalSections": "ポータルセクション",
+    "submitNewItem": "新しいアイテムを送信",
+    "openDailyPractice": "デイリープラクティスを開く",
+    "openPredictions": "予測を開く",
+    "shareJourney": "あなたの旅を共有",
+    "forgetThis": "これを忘れる",
+    "cancelInstallation": "インストールをキャンセル",
+    "sharedMusicalMemory": "共有された音楽の思い出",
+    "viewOutreachSchedule": "アウトリーチスケジュールを見る",
+    "ferniLogo": "Ferniロゴ"
+  },
+  "buttons": {
+    "signIn": "サインイン",
+    "signOut": "サインアウト",
+    "signUp": "登録",
+    "savePreferences": "設定を保存",
+    "savePreference": "設定を保存",
+    "choose": "これを選択",
+    "refresh": "更新",
+    "exportData": "データをエクスポート"
+  },
+  "mobile": {
+    "pullToConnect": "引いて接続",
+    "releaseToConnect": "離して接続",
+    "pullToRefresh": "引いて更新",
+    "releaseToRefresh": "離して更新"
+  },
+  "placeholders": {
+    "customAmount": "カスタム金額",
+    "searchConversations": "会話を検索...",
+    "enterValue": "実際の値を入力",
+    "emailExample": "you@example.com",
+    "phoneExample": "+81 (3) 1234-5678",
+    "memberName": "名前",
+    "householdName": "田中家",
+    "displayName": "お好みの名前",
+    "marketplaceSearch": "誰を探していますか？",
+    "codeInput": "• • • • • •",
+    "colleagueEmail": "colleague@company.com",
+    "welcomeMessageExample": "例: {orgName}へようこそ！Ferniはあなたの成長と幸福をサポートします。",
+    "companyValuesExample": "例: 誠実さ、イノベーション、顧客重視、チームワーク",
+    "toolIdExample": "my-awesome-tool",
+    "toolNameExample": "私の素晴らしいツール",
+    "versionExample": "1.0.0",
+    "toolDescription": "あなたのツール/エージェントは何をしますか？"
+  },
+  "household": {
+    "addToHousehold": "世帯に追加",
+    "title": "世帯",
+    "members": "メンバー",
+    "addMember": "メンバーを追加",
+    "removeMember": "メンバーを削除"
+  },
+  "titles": {
+    "sharedSong": "私たちが共有する曲",
+    "dailyPractice": "デイリープラクティス",
+    "predictions": "予測",
+    "runScenario": "シナリオを実行"
   }
 }

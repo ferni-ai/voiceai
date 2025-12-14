@@ -20,11 +20,12 @@
  */
 
 import { DURATION, EASING, STAGGER } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
+import { modalCoordinator } from '../services/modal-coordinator.service.js';
 import { teamUnlockService } from '../services/team-unlock.service.js';
 import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
 import { toast } from './toast.ui.js';
-import { t } from '../i18n/index.js';
 
 const log = createLogger('SubscriptionUI');
 
@@ -308,7 +309,7 @@ function showUpgradeSuccessCelebration(tier: string): void {
           You chose to keep me in your life. That means so much.<br/>
           I'm here for you now — whenever you need me.
         </p>
-        <div class="celebration-tier" aria-label="Your new plan">
+        <div class="celebration-tier" aria-label="${t('accessibility.yourNewPlan')}">
           <span class="tier-badge">${tierName}</span>
         </div>
         <button class="celebration-button" data-action="start" autofocus>
@@ -496,6 +497,13 @@ export function setOnUpgrade(callback: (tier: string) => void): void {
 // ============================================================================
 
 export function showUpgradeModal(prompt?: string): void {
+  // Use modal coordinator for upgrade prompts (medium priority - can be queued)
+  modalCoordinator.request('subscription-upgrade', 'medium', () => {
+    showUpgradeModalInternal(prompt);
+  });
+}
+
+function showUpgradeModalInternal(prompt?: string): void {
   saveFocus();
 
   if (modal) {
@@ -522,6 +530,10 @@ export function hideModal(): void {
 
   modal.classList.remove('subscription-modal--visible');
 
+  // Release modal coordinator locks
+  modalCoordinator.release('subscription-upgrade');
+  modalCoordinator.release('subscription-limit');
+
   setTimeout(() => {
     modal?.remove();
     modal = null;
@@ -530,6 +542,14 @@ export function hideModal(): void {
 }
 
 export function showLimitReachedModal(upgradePrompt: string, resetDate?: string): void {
+  // CRITICAL: Limit reached must show even during conversation
+  // Uses requestCriticalModal to bypass most checks
+  modalCoordinator.requestCriticalModal('subscription-limit', () => {
+    showLimitReachedModalInternal(upgradePrompt, resetDate);
+  });
+}
+
+function showLimitReachedModalInternal(upgradePrompt: string, resetDate?: string): void {
   saveFocus();
 
   if (modal) {
@@ -570,7 +590,7 @@ function createModal(prompt?: string): HTMLElement {
   container.innerHTML = `
     <div class="subscription-backdrop" aria-hidden="true"></div>
     <div class="subscription-card">
-      <button class="subscription-close" aria-label="Close subscription options">
+      <button class="subscription-close" aria-label="${t('accessibility.closeSubscription')}">
         ${ICONS.close}
       </button>
       
@@ -584,7 +604,7 @@ function createModal(prompt?: string): HTMLElement {
         </p>
       </div>
       
-      <div class="subscription-tiers" role="radiogroup" aria-label="Subscription plans">
+      <div class="subscription-tiers" role="radiogroup" aria-label="${t('accessibility.subscriptionPlans')}">
         ${tiers.map((tier, index) => createTierCard(tier, index)).join('')}
       </div>
       
@@ -641,7 +661,7 @@ function createLimitModal(prompt: string, resetDate?: string): HTMLElement {
   container.innerHTML = `
     <div class="subscription-backdrop" aria-hidden="true"></div>
     <div class="subscription-card subscription-card--limit">
-      <button class="subscription-close" aria-label="Close">
+      <button class="subscription-close" aria-label="${t('common.close')}">
         ${ICONS.close}
       </button>
       
@@ -653,7 +673,7 @@ function createLimitModal(prompt: string, resetDate?: string): HTMLElement {
         ${resetDate ? `<p class="reset-date">Conversations reset on <strong>${formattedDate}</strong></p>` : ''}
       </div>
       
-      <div class="limit-actions" role="group" aria-label="Options">
+      <div class="limit-actions" role="group" aria-label="${t('accessibility.options')}">
         <button class="limit-button limit-button--primary" data-action="upgrade">
           ${ICONS.infinity}
           <span>Unlock Unlimited Time</span>
@@ -711,7 +731,7 @@ function createTierCard(tier: SubscriptionTier, index: number): string {
         ${!isFree ? '<span class="tier-period">/month</span>' : ''}
       </div>
       
-      <ul class="tier-features" aria-label="Features included">
+      <ul class="tier-features" aria-label="${t('accessibility.featuresIncluded')}">
         ${tier.features.map((f) => `<li>${ICONS.check} <span>${f}</span></li>`).join('')}
       </ul>
       

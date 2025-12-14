@@ -14,6 +14,7 @@
  * @module PredictiveInsightsUI
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -218,7 +219,7 @@ class PredictiveInsightsUI {
           ${
             insight.dismissable
               ? `
-            <button class="insight-card-dismiss" aria-label="Dismiss">
+            <button class="insight-card-dismiss" aria-label="${t('accessibility.dismiss')}">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"/>
                 <line x1="6" y1="6" x2="18" y2="18"/>

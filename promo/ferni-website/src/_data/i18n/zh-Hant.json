@@ -4,7 +4,6 @@
     "name": "繁體中文",
     "direction": "ltr"
   },
-
   "hero": {
     "eyebrow": "認識您的AI教練",
     "headline": "比人類",
@@ -17,7 +16,6 @@
       "talkNow": "現在和Ferni對話"
     }
   },
-
   "superpowers": {
     "memory": {
       "title": "完美記憶",
@@ -40,7 +38,6 @@
       "description": "我們注意到停頓。迴避。你看不到的模式。理解不僅僅是傾聽——是真正懂得。"
     }
   },
-
   "team": {
     "sectionTitle": "認識團隊",
     "sectionSubtitle": "六位傑出專家為您協同工作",
@@ -75,7 +72,6 @@
       "sampleQuote": "你說過'有一天'想去日本。讓我們把它變成真實的一天。"
     }
   },
-
   "pricing": {
     "sectionTitle": "簡單定價",
     "headline": "免費開始。",
@@ -125,7 +121,6 @@
       ]
     }
   },
-
   "faq": {
     "eyebrow": "問答",
     "headline": "常見",
@@ -158,17 +153,14 @@
       }
     ]
   },
-
   "testimonials": {
     "sectionTitle": "用戶評價"
   },
-
   "trust": {
     "title": "建立在信任之上。",
     "description": "您的對話永遠屬於您。我們使用企業級加密，從不出售您的資料。",
     "cta": "閱讀我們的隱私政策"
   },
-
   "footer": {
     "tagline": "真正理解你的人。",
     "copyright": "Ferni AI。保留所有權利。",
@@ -180,7 +172,6 @@
     "connect": "聯繫",
     "legal": "法律資訊"
   },
-
   "nav": {
     "features": "功能",
     "team": "團隊",
@@ -190,7 +181,6 @@
     "about": "關於我們",
     "contact": "聯繫我們"
   },
-
   "common": {
     "learnMore": "了解更多",
     "getStarted": "開始使用",
@@ -198,7 +188,6 @@
     "callPhone": "撥打電話",
     "scrollToExplore": "滾動探索"
   },
-
   "accessibility": {
     "nextStory": "下一個故事",
     "toggleMenu": "切換選單",
@@ -209,7 +198,6 @@
     "tiktok": "TikTok",
     "youtube": "YouTube"
   },
-
   "personas": {
     "peter": {
       "fullName": "彼得·約翰"
@@ -223,5 +211,16 @@
     "jordan": {
       "fullName": "喬丹·泰勒"
     }
+  },
+  "errorPage": {
+    "title": "迷失在思緒中？",
+    "subtitle": "讓我們幫你回到正軌。",
+    "goHome": "返回首頁",
+    "callFerni": "撥打Ferni",
+    "suggestionsLabel": "或者試試這些：",
+    "meetTeam": "認識團隊",
+    "viewPricing": "查看價格",
+    "readFaq": "閱讀常見問題",
+    "readBlog": "閱讀我們的部落格"
   }
 }

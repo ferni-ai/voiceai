@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" width="300" height="400">
+  <defs>
+    <!-- Head gradient -->
+    <linearGradient id="headGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#10b981"/>
+      <stop offset="30%" style="stop-color:#06b6d4"/>
+      <stop offset="60%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#f472b6"/>
+    </linearGradient>
+    
+    <!-- Body metallic -->
+    <linearGradient id="bodyMetal" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#e2e8f0"/>
+      <stop offset="50%" style="stop-color:#cbd5e1"/>
+      <stop offset="100%" style="stop-color:#94a3b8"/>
+    </linearGradient>
+    
+    <!-- Arm metallic -->
+    <linearGradient id="armMetal" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#94a3b8"/>
+      <stop offset="50%" style="stop-color:#cbd5e1"/>
+      <stop offset="100%" style="stop-color:#94a3b8"/>
+    </linearGradient>
+    
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#1e293b" flood-opacity="0.2"/>
+    </filter>
+    
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- === NECK === -->
+  <rect x="135" y="145" width="30" height="25" rx="4" fill="url(#armMetal)"/>
+  <rect x="130" y="165" width="40" height="8" rx="2" fill="#64748b"/>
+  
+  <!-- === BODY (compact box like WALL-E) === -->
+  <rect 
+    x="85" y="170" 
+    width="130" height="120" 
+    rx="12"
+    fill="url(#bodyMetal)"
+    filter="url(#shadow)"
+  />
+  
+  <!-- Body details - panel lines -->
+  <rect x="95" y="180" width="110" height="60" rx="6" fill="none" stroke="#94a3b8" stroke-width="2"/>
+  <line x1="150" y1="180" x2="150" y2="240" stroke="#94a3b8" stroke-width="2"/>
+  
+  <!-- Chest light/heart -->
+  <rect x="130" y="195" width="40" height="30" rx="6" fill="#1e293b"/>
+  <rect x="135" y="200" width="30" height="20" rx="4" fill="#06b6d4" opacity="0.8"/>
+  <rect x="140" y="205" width="20" height="10" rx="2" fill="#06b6d4" filter="url(#glow)"/>
+  
+  <!-- Lower body vent -->
+  <rect x="105" y="255" width="90" height="25" rx="4" fill="#64748b"/>
+  <line x1="120" y1="260" x2="120" y2="275" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
+  <line x1="135" y1="260" x2="135" y2="275" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
+  <line x1="150" y1="260" x2="150" y2="275" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
+  <line x1="165" y1="260" x2="165" y2="275" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
+  <line x1="180" y1="260" x2="180" y2="275" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- === ARMS === -->
+  <!-- Left arm -->
+  <rect x="45" y="190" width="40" height="14" rx="7" fill="url(#armMetal)"/>
+  <rect x="35" y="185" width="15" height="24" rx="4" fill="url(#armMetal)"/>
+  <!-- Claw/hand -->
+  <rect x="25" y="182" width="12" height="10" rx="2" fill="#64748b"/>
+  <rect x="25" y="195" width="12" height="10" rx="2" fill="#64748b"/>
+  
+  <!-- Right arm (waving!) -->
+  <g transform="rotate(-30 255 200)">
+    <rect x="215" y="190" width="40" height="14" rx="7" fill="url(#armMetal)"/>
+    <rect x="250" y="185" width="15" height="24" rx="4" fill="url(#armMetal)"/>
+    <!-- Claw/hand -->
+    <rect x="263" y="182" width="12" height="10" rx="2" fill="#64748b"/>
+    <rect x="263" y="195" width="12" height="10" rx="2" fill="#64748b"/>
+  </g>
+  
+  <!-- === TREADS === -->
+  <!-- Left tread -->
+  <rect x="75" y="290" width="50" height="50" rx="10" fill="#475569"/>
+  <ellipse cx="90" cy="315" rx="12" ry="12" fill="#334155"/>
+  <ellipse cx="110" cy="315" rx="12" ry="12" fill="#334155"/>
+  <ellipse cx="90" cy="315" rx="6" ry="6" fill="#1e293b"/>
+  <ellipse cx="110" cy="315" rx="6" ry="6" fill="#1e293b"/>
+  
+  <!-- Right tread -->
+  <rect x="175" y="290" width="50" height="50" rx="10" fill="#475569"/>
+  <ellipse cx="190" cy="315" rx="12" ry="12" fill="#334155"/>
+  <ellipse cx="210" cy="315" rx="12" ry="12" fill="#334155"/>
+  <ellipse cx="190" cy="315" rx="6" ry="6" fill="#1e293b"/>
+  <ellipse cx="210" cy="315" rx="6" ry="6" fill="#1e293b"/>
+  
+  <!-- Tread connector -->
+  <rect x="125" y="300" width="50" height="30" rx="4" fill="#64748b"/>
+  
+  <!-- === HEAD (the FE+AI ellipse!) === -->
+  <ellipse 
+    cx="150" cy="80" 
+    rx="110" ry="65" 
+    fill="url(#headGradient)"
+    filter="url(#shadow)"
+  />
+  
+  <!-- Head shine -->
+  <ellipse cx="150" cy="55" rx="85" ry="35" fill="rgba(255,255,255,0.1)"/>
+  
+  <!-- FE EYE (dark binocular) -->
+  <circle cx="105" cy="80" r="35" fill="rgba(0,0,0,0.3)"/>
+  <circle cx="105" cy="80" r="30" fill="#1e293b"/>
+  <circle cx="105" cy="80" r="22" fill="#0f172a"/>
+  <!-- Pupil + reflection -->
+  <circle cx="105" cy="82" r="12" fill="#06b6d4"/>
+  <circle cx="100" cy="76" r="5" fill="#FFFDFB"/>
+  
+  <!-- AI EYE (bright binocular) -->
+  <circle cx="195" cy="80" r="35" fill="rgba(255,255,255,0.95)"/>
+  <circle cx="195" cy="80" r="30" fill="#f8fafc"/>
+  <circle cx="195" cy="80" r="22" fill="#FFFDFB"/>
+  <!-- Pupil + reflection -->
+  <circle cx="195" cy="82" r="12" fill="#1e293b"/>
+  <circle cx="190" cy="76" r="5" fill="#FFFDFB"/>
+  
+  <!-- Eyebrow ridge / visor hint -->
+  <path d="M 55 50 Q 150 25, 245 50" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="4" stroke-linecap="round"/>
+</svg>

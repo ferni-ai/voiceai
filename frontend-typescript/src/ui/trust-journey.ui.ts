@@ -19,6 +19,7 @@
  * - Warm, human copy
  */
 
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING, STAGGER } from '../config/animation-constants.js';
 
@@ -781,13 +782,13 @@ function createJourneyPanel(): void {
           <p class="trust-journey-subtitle">How we've grown together</p>
         </div>
         <div class="trust-journey-actions">
-          <button class="trust-journey-action-btn" data-action="refresh" title="Refresh data">
+          <button class="trust-journey-action-btn" data-action="refresh" title="${t('accessibility.refreshData')}">
             ${ICONS.refresh}
           </button>
-          <button class="trust-journey-action-btn" data-action="export" title="Export your data">
+          <button class="trust-journey-action-btn" data-action="export" title="${t('accessibility.exportData')}">
             ${ICONS.download}
           </button>
-          <button class="trust-journey-action-btn" data-action="close" title="Close">
+          <button class="trust-journey-action-btn" data-action="close" title="${t('common.close')}">
             ${ICONS.close}
           </button>
         </div>

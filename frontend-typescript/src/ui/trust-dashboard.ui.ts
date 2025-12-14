@@ -13,6 +13,7 @@
  * @module TrustDashboardUI
  */
 
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet } from '../utils/api.js';
@@ -197,7 +198,7 @@ function createDashboardHTML(): string {
           <span class="eyebrow">YOUR JOURNEY</span>
           <h2>Trust & Growth</h2>
         </div>
-        <button class="close-btn" aria-label="Close">
+        <button class="close-btn" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
       </header>

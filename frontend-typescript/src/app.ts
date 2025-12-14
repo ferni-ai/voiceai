@@ -37,6 +37,12 @@ import {
   spotifyService,
 } from './services/index.js';
 import { detectAndSyncTimezone } from './services/timezone.service.js';
+import {
+  checkAndClaimDemoSession,
+  getClaimedConversation,
+  hasPendingClaim,
+} from './services/demo-claim.service.js';
+import { getAuthToken } from './services/firebase-auth.service.js';
 
 // Core UI Components
 import { coachUI, initCoachUI } from './ui/coach.ui.js';
@@ -238,6 +244,9 @@ import { initSubscriptionBadge, subscriptionBadgeUI } from './ui/subscription-ba
 import { createLogger } from './utils/logger.js';
 const log = createLogger('App');
 
+// Modal Coordinator - Prevents popup storms for first-time users
+import { initModalCoordinator, modalCoordinator } from './services/modal-coordinator.service.js';
+
 // 🎬 Character-quality Animation Orchestrator
 import {
   animatePersonaTransition,
@@ -264,6 +273,33 @@ import { initSoul } from './ui/soul.ui.js';
 // NOTE: Test file imported dynamically to avoid build errors
 if (import.meta.env.DEV) {
   void import('./ui/soul.test.js');
+}
+
+// 🧪 First-time user testing utilities (available as window.testFirstTimeUser in dev)
+// Usage: window.testFirstTimeUser.reset() - Reset to first-time user state
+//        window.testFirstTimeUser.simulate(3) - Simulate 3 conversations
+//        window.testFirstTimeUser.status() - Get current unlock status
+if (import.meta.env.DEV) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).testFirstTimeUser = {
+    reset: () => {
+      modalCoordinator.resetToFirstTimeUser();
+      console.log('✅ Reset to first-time user. Reload the page to test.');
+    },
+    simulate: (count: number) => {
+      modalCoordinator.simulateConversations(count);
+      console.log(`✅ Simulated ${count} conversations. Reload the page to see changes.`);
+    },
+    status: () => {
+      const status = modalCoordinator.getFirstTimeUserStatus();
+      console.log('📊 First-Time User Status:');
+      console.log(`   Conversations: ${status.conversationCount}`);
+      console.log(`   Is First-Time User: ${status.isFirstTimeUser}`);
+      console.log(`   ✅ Unlocked: ${status.unlockedFeatures.join(', ') || 'none'}`);
+      console.log(`   🔒 Locked: ${status.lockedFeatures.join(', ') || 'none'}`);
+      return status;
+    },
+  };
 }
 
 // 🛠️ Dev Panel - Lazy loaded for performance (17KB gzipped savings)
@@ -536,8 +572,11 @@ class VoiceAIApp {
       // Update gesture system
       gesturesUI.setCurrentPersona(persona.id);
 
-      // Show engagement triggers (with slight delay for visual flow)
-      setTimeout(() => engagementTriggerUI.show(), 500);
+      // Show engagement triggers ONLY for returning users
+      // First conversation should be pure - just Ferni, nothing else
+      if (modalCoordinator.hasMinimumConversations(1)) {
+        setTimeout(() => engagementTriggerUI.show(), 500);
+      }
 
       // Show success message
       messageUI.show(`Connected to ${persona.name}!`, 'success', 2000);
@@ -685,6 +724,10 @@ class VoiceAIApp {
         detail: { durationMinutes },
       })
     );
+
+    // 📊 Track conversation count for progressive feature unlocking
+    // This gates popups/celebrations until user has had 2+ conversations
+    modalCoordinator.incrementConversationCount();
 
     // 📝 End conversation tracking and persist
     await conversationTracker.endSession();
@@ -841,6 +884,10 @@ class VoiceAIApp {
    * IMPORTANT: Services should NOT block UI initialization, especially on iOS.
    */
   private initializeServices(): void {
+    // Initialize modal coordinator FIRST - gates all popups for first-time users
+    // Philosophy: "First conversation IS the onboarding"
+    initModalCoordinator();
+
     // Initialize audio service (non-blocking - loads sounds in background)
     try {
       audioService.initialize();
@@ -873,6 +920,31 @@ class VoiceAIApp {
       .catch((_err) => {
         // No error shown - iTunes is the default anyway
       });
+
+    // 🎯 "Better than human" - Check for demo session to claim
+    // If user came from landing page demo, claim their conversation
+    if (hasPendingClaim()) {
+      log.info('Pending demo claim detected - processing...');
+      void checkAndClaimDemoSession(getAuthToken)
+        .then((result) => {
+          if (result.success && !result.alreadyClaimed) {
+            // Show warm acknowledgment
+            const conversation = result.conversation;
+            if (conversation && conversation.highlights && conversation.highlights.length > 0) {
+              toast.success("Welcome back! I remember our conversation.");
+            } else {
+              toast.success("Welcome! So glad you're here.");
+            }
+            log.info('Demo session claimed successfully');
+          } else if (result.success && result.alreadyClaimed) {
+            log.debug('Demo session was already claimed');
+          }
+        })
+        .catch((err) => {
+          log.warn('Demo claim failed:', err);
+          // No error shown to user - not critical
+        });
+    }
   }
 
   /**
@@ -1616,39 +1688,41 @@ class VoiceAIApp {
 
   /**
    * Show personalized welcome message and track engagement.
+   * FIRST CONVERSATION IS ONBOARDING - keep it simple for new users.
    */
   private showWelcome(): void {
     // Record visit
     greetingUI.recordVisit();
 
-    // Get personalized greeting
-    const greeting = greetingUI.getGreeting();
+    // Get personalized greeting - but only show for returning users
+    // First-time users get a clean, simple experience
+    if (modalCoordinator.hasMinimumConversations(1)) {
+      const greeting = greetingUI.getGreeting();
+      messageUI.setHelper(greeting);
 
-    // Show greeting as helper text
-    messageUI.setHelper(greeting);
+      // Check for streak milestone - only for returning users
+      const streakMilestone = greetingUI.checkStreakMilestone();
+      if (streakMilestone) {
+        // Celebrate streak milestone - warm acknowledgement
+        setTimeout(() => {
+          const message = greetingUI.getMilestoneMessage('streak', streakMilestone);
+          messageUI.show(message, 'success', 4000);
+          celebrationsUI.warmthGlow({ intensity: 'warm' });
+          soundUI.play('success');
+        }, 2000);
+      }
 
-    // Check for streak milestone
-    const streakMilestone = greetingUI.checkStreakMilestone();
-    if (streakMilestone) {
-      // Celebrate streak milestone - warm acknowledgement
-      setTimeout(() => {
-        const message = greetingUI.getMilestoneMessage('streak', streakMilestone);
-        messageUI.show(message, 'success', 4000);
-        celebrationsUI.warmthGlow({ intensity: 'warm' });
-        soundUI.play('success');
-      }, 2000);
-    }
-
-    // Show streak badge if streak >= 3
-    const streak = greetingUI.getStreak();
-    if (streak >= 3) {
-      this.showStreakBadge(streak);
+      // Show streak badge if streak >= 3 - only for returning users
+      const streak = greetingUI.getStreak();
+      if (streak >= 3) {
+        this.showStreakBadge(streak);
+      }
     }
 
     // Ambient particles removed - keeping UI clean and human
     // Weather effects available via dev panel when contextually appropriate
 
-    // 🆕 Auto-start onboarding for first-time users (after a short delay)
+    // 🆕 Auto-start onboarding for returning users only (gated in onboarding.ui.ts)
     setTimeout(() => {
       startOnboardingIfNeeded();
     }, 1500);

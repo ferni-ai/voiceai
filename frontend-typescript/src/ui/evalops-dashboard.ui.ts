@@ -13,6 +13,7 @@
  * @module EvalOpsDashboardUI
  */
 
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 // Note: appState imported for future use with evalops state sync
@@ -228,10 +229,10 @@ function createDashboardHTML(): string {
           <h2>EvalOps Dashboard</h2>
         </div>
         <div class="header-actions">
-          <button class="refresh-btn" title="Refresh data">
+          <button class="refresh-btn" title="${t('accessibility.refreshData')}">
             ${ICONS.refresh}
           </button>
-          <button class="close-btn" aria-label="Close">
+          <button class="close-btn" aria-label="${t('common.close')}">
             ${ICONS.close}
           </button>
         </div>
@@ -479,7 +480,7 @@ function renderScenariosTab(): string {
                   <span class="scenario-status">${s.passed ? ICONS.check : ICONS.alert}</span>
                   <span class="scenario-name">${s.name}</span>
                   <span class="scenario-score">${s.score}%</span>
-                  <button class="scenario-run-btn" data-scenario="${s.scenarioId}" title="Run scenario">
+                  <button class="scenario-run-btn" data-scenario="${s.scenarioId}" title="${t('titles.runScenario')}">
                     ${ICONS.play}
                   </button>
                 </div>

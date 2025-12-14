@@ -18,6 +18,7 @@
  */
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { avatarLookAt, pauseAvatarEyeTracking } from './eye-tracking.ui.js';
 
@@ -477,7 +478,7 @@ function createPullIndicator(): void {
   indicator.className = 'pull-indicator';
   indicator.innerHTML = `
     <div class="pull-indicator__ring"></div>
-    <div class="pull-indicator__text">Pull to connect</div>
+    <div class="pull-indicator__text">${t('mobile.pullToConnect')}</div>
   `;
 
   const avatarContainer = document.querySelector('.avatar-container');
@@ -511,10 +512,10 @@ function updatePullFeedback(progress: number, delta: number): void {
 
     if (progress >= 1) {
       indicator.classList.add('ready');
-      indicator.querySelector('.pull-indicator__text')!.textContent = 'Release to connect';
+      indicator.querySelector('.pull-indicator__text')!.textContent = t('mobile.releaseToConnect');
     } else {
       indicator.classList.remove('ready');
-      indicator.querySelector('.pull-indicator__text')!.textContent = 'Pull to connect';
+      indicator.querySelector('.pull-indicator__text')!.textContent = t('mobile.pullToConnect');
     }
   }
 }

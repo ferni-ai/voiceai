@@ -12,6 +12,7 @@
  *   - Warm, human animation
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import type { MusicPlaybackState } from '../types/events.js';
 import { createLogger } from '../utils/logger.js';
@@ -923,7 +924,7 @@ class NowPlayingUI {
     this.container.setAttribute('aria-label', 'Now playing');
 
     this.container.innerHTML = `
-      <button class="now-playing__dismiss" aria-label="Dismiss" title="Dismiss">
+      <button class="now-playing__dismiss" aria-label="${t('accessibility.dismiss')}" title="${t('accessibility.dismiss')}">
         ${ICONS.close}
       </button>
       <div class="now-playing__icon">
@@ -933,7 +934,7 @@ class NowPlayingUI {
         <p class="now-playing__track">Loading...</p>
         <p class="now-playing__artist"></p>
       </div>
-      <div class="now-playing__our-song" title="A song we share" aria-label="Shared musical memory">
+      <div class="now-playing__our-song" title="${t('titles.sharedSong')}" aria-label="${t('accessibility.sharedMusicalMemory')}">
         ${ICONS.ourSong}
       </div>
       <div class="now-playing__waveform">

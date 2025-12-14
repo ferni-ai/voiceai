@@ -178,6 +178,18 @@
     "legal": "Legal"
   },
 
+  "errorPage": {
+    "title": "Lost in thought?",
+    "subtitle": "Let's get you back on track.",
+    "goHome": "Go Home",
+    "callFerni": "Call Ferni",
+    "suggestionsLabel": "Or try one of these:",
+    "meetTeam": "Meet the Team",
+    "viewPricing": "View Pricing",
+    "readFaq": "Read FAQ",
+    "readBlog": "Read Our Blog"
+  },
+
   "nav": {
     "features": "Features",
     "team": "Team",

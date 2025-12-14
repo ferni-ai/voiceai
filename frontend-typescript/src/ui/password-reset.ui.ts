@@ -6,6 +6,7 @@
  * @module PasswordResetUI
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { resetPassword } from '../services/firebase-auth.service.js';
 import { createLogger } from '../utils/logger.js';
@@ -61,7 +62,7 @@ export function showPasswordResetModal(prefillEmail?: string): void {
           <h2 id="reset-title">Reset Your Password</h2>
           <p class="tagline">We'll send you a link to create a new password.</p>
         </div>
-        <button class="close-btn" aria-label="Close">${LUCIDE_CLOSE_ICON}</button>
+        <button class="close-btn" aria-label="${t('common.close')}">${LUCIDE_CLOSE_ICON}</button>
       </header>
       
       <div class="password-reset-content">
@@ -75,7 +76,7 @@ export function showPasswordResetModal(prefillEmail?: string): void {
               required 
               autocomplete="email"
               value="${prefillEmail || ''}"
-              placeholder="your@email.com"
+              placeholder="${t('placeholders.emailExample')}"
             />
           </div>
           <button type="submit" class="submit-btn">Send Reset Link</button>

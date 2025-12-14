@@ -23,7 +23,12 @@
     "download": "تحميل",
     "copy": "نسخ",
     "copied": "تم النسخ!",
-    "new": "جديد"
+    "new": "جديد",
+    "saving": "جاري الحفظ...",
+    "saved": "تم الحفظ!",
+    "processing": "جاري المعالجة...",
+    "adding": "جاري الإضافة...",
+    "errorRetry": "خطأ - حاول مجدداً"
   },
   "menu": {
     "title": "ما التالي؟",
@@ -351,7 +356,7 @@
       "title": "وضع العرض",
       "avatarOnly": {
         "label": "الأفاتار فقط",
-        "description": "فقط أفاتار Ferni، بدون فيديو"
+        "description": "فقط أفاتار فيرني، بدون فيديو"
       },
       "video": {
         "label": "فيديو",
@@ -362,8 +367,8 @@
         "description": "أفاتار مع فيديو اختياري"
       },
       "avatar": {
-        "label": "",
-        "description": ""
+        "label": "الأفاتار فقط",
+        "description": "فقط أفاتار فيرني، بدون فيديو"
       }
     },
     "quality": {
@@ -389,7 +394,7 @@
     "buttons": {
       "connect": "اتصال",
       "disconnect": "قطع الاتصال",
-      "tryAgain": ""
+      "tryAgain": "حاول مجدداً"
     },
     "features": {
       "stress": "كشف التوتر من HRV",
@@ -421,12 +426,12 @@
         "description": "تتبع التعافي والإجهاد"
       },
       "apple_health": {
-        "name": "",
-        "description": ""
+        "name": "Apple Health",
+        "description": "المزامنة مع بيانات Apple Watch وiPhone الصحية"
       }
     },
     "errors": {
-      "loadFailed": ""
+      "loadFailed": "تعذر تحميل إعدادات الأجهزة القابلة للارتداء"
     }
   },
   "contactSettings": {
@@ -446,6 +451,96 @@
     "unmuteAudio": "إلغاء كتم الصوت",
     "endCall": "إنهاء المكالمة",
     "skipToContent": "تخطي إلى المحتوى الرئيسي",
-    "languageSelector": ""
+    "languageSelector": "اختر اللغة",
+    "saveConversations": "احفظ محادثاتك بإنشاء حساب",
+    "signInToAccount": "تسجيل الدخول إلى حسابك",
+    "accountMenu": "قائمة الحساب",
+    "refreshData": "تحديث البيانات",
+    "exportData": "تصدير بياناتك",
+    "accountSettings": "إعدادات الحساب",
+    "dismiss": "تجاهل",
+    "dismissNotification": "تجاهل الإشعار",
+    "closeDashboard": "إغلاق لوحة التحكم",
+    "closeSubscription": "إغلاق خيارات الاشتراك",
+    "closeDetails": "إغلاق التفاصيل",
+    "closePublisher": "إغلاق بوابة الناشر",
+    "closeBilling": "إغلاق لوحة الفوترة",
+    "closeSettings": "إغلاق الإعدادات",
+    "closeHistory": "إغلاق السجل",
+    "closeAdmin": "إغلاق لوحة الإدارة",
+    "closeHuddle": "إغلاق الاجتماع",
+    "closeStats": "إغلاق الإحصائيات",
+    "refresh": "تحديث",
+    "backToItems": "العودة إلى العناصر",
+    "collapse": "طي",
+    "expandGarden": "توسيع تفاصيل الحديقة",
+    "collapseGarden": "طي تفاصيل الحديقة",
+    "howToPlay": "كيفية اللعب",
+    "toggleQuietHours": "تبديل ساعات الهدوء",
+    "yourNewPlan": "خطتك الجديدة",
+    "subscriptionPlans": "خطط الاشتراك",
+    "options": "الخيارات",
+    "featuresIncluded": "الميزات المضمنة",
+    "searchCoaches": "البحث عن مدربين",
+    "filterBySpecialty": "التصفية حسب التخصص",
+    "availableCoaches": "المدربون المتاحون",
+    "portalSections": "أقسام البوابة",
+    "submitNewItem": "إرسال عنصر جديد",
+    "openDailyPractice": "فتح التمرين اليومي",
+    "openPredictions": "فتح التوقعات",
+    "shareJourney": "مشاركة رحلتك",
+    "forgetThis": "نسيان هذا",
+    "cancelInstallation": "إلغاء التثبيت",
+    "sharedMusicalMemory": "ذكرى موسيقية مشتركة",
+    "viewOutreachSchedule": "عرض جدول التواصل",
+    "ferniLogo": "شعار فيرني"
+  },
+  "buttons": {
+    "signIn": "تسجيل الدخول",
+    "signOut": "تسجيل الخروج",
+    "signUp": "إنشاء حساب",
+    "savePreferences": "حفظ التفضيلات",
+    "savePreference": "حفظ التفضيل",
+    "choose": "اختر هذا",
+    "refresh": "تحديث",
+    "exportData": "تصدير البيانات"
+  },
+  "mobile": {
+    "pullToConnect": "اسحب للاتصال",
+    "releaseToConnect": "أفلت للاتصال",
+    "pullToRefresh": "اسحب للتحديث",
+    "releaseToRefresh": "أفلت للتحديث"
+  },
+  "placeholders": {
+    "customAmount": "مبلغ مخصص",
+    "searchConversations": "البحث في المحادثات...",
+    "enterValue": "أدخل القيمة الفعلية",
+    "emailExample": "you@example.com",
+    "phoneExample": "+1 (555) 123-4567",
+    "memberName": "اسمهم",
+    "householdName": "عائلة سميث",
+    "displayName": "اسمك المفضل",
+    "marketplaceSearch": "من تبحث عنه؟",
+    "codeInput": "• • • • • •",
+    "colleagueEmail": "colleague@company.com",
+    "welcomeMessageExample": "مثال: مرحباً بكم في {orgName}! فيرني هنا لدعم نموك ورفاهيتك.",
+    "companyValuesExample": "مثال: النزاهة، الابتكار، التركيز على العملاء، العمل الجماعي",
+    "toolIdExample": "my-awesome-tool",
+    "toolNameExample": "أداتي الرائعة",
+    "versionExample": "1.0.0",
+    "toolDescription": "ماذا تفعل أداتك/وكيلك؟"
+  },
+  "household": {
+    "addToHousehold": "إضافة إلى الأسرة",
+    "title": "الأسرة",
+    "members": "الأعضاء",
+    "addMember": "إضافة عضو",
+    "removeMember": "إزالة عضو"
+  },
+  "titles": {
+    "sharedSong": "أغنية نتشاركها",
+    "dailyPractice": "التمرين اليومي",
+    "predictions": "التوقعات",
+    "runScenario": "تشغيل السيناريو"
   }
 }

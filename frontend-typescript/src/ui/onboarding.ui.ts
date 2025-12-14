@@ -13,6 +13,7 @@
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
+import { modalCoordinator } from '../services/modal-coordinator.service.js';
 
 // ============================================================================
 // TYPES
@@ -38,11 +39,16 @@ export interface OnboardingUICallbacks {
 
 // Step definitions with icons - titles and descriptions come from i18n
 const STEP_ICONS: Record<string, string> = {
-  welcome: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
-  voice: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>',
-  personas: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
-  rituals: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
-  ready: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>',
+  welcome:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',
+  voice:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>',
+  personas:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  rituals:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
+  ready:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>',
 };
 
 const STEP_HIGHLIGHTS: Record<string, string | undefined> = {
@@ -54,7 +60,7 @@ const STEP_HIGHLIGHTS: Record<string, string | undefined> = {
 const STEP_IDS = ['welcome', 'voice', 'personas', 'rituals', 'ready'];
 
 function getDefaultSteps(): OnboardingStep[] {
-  return STEP_IDS.map(id => ({
+  return STEP_IDS.map((id) => ({
     id,
     title: t(`onboarding.steps.${id}.title`),
     description: t(`onboarding.steps.${id}.description`),
@@ -139,6 +145,9 @@ class OnboardingUI {
     this.overlay.classList.remove('onboarding--visible');
     this.isVisible = false;
     this.clearHighlights();
+
+    // Release modal coordinator lock
+    modalCoordinator.release('onboarding');
   }
 
   /** Check if the overlay is currently visible */
@@ -150,9 +159,32 @@ class OnboardingUI {
     return localStorage.getItem('ferni:onboarding:complete') === 'true';
   }
 
+  /**
+   * Start onboarding only if:
+   * 1. Not already completed
+   * 2. User has had 2+ conversations (first conversation IS the onboarding)
+   * 3. Modal coordinator approves (not during conversation, not in cooldown)
+   */
   startIfNeeded(): void {
-    if (!this.hasCompleted()) {
-      this.start();
+    // Already completed? Skip
+    if (this.hasCompleted()) {
+      return;
+    }
+
+    // First conversation IS the onboarding - don't interrupt with modals
+    // Only show tour after user has experienced 2+ conversations
+    if (!modalCoordinator.hasMinimumConversations(2)) {
+      return;
+    }
+
+    // Request permission from modal coordinator
+    const canShow = modalCoordinator.request('onboarding', 'medium', () => this.start(), {
+      requireMinConversations: 2,
+    });
+
+    if (!canShow) {
+      // Modal coordinator will call us back when appropriate
+      return;
     }
   }
 
@@ -189,7 +221,7 @@ class OnboardingUI {
       </div>
     `;
 
-    this.overlay.querySelectorAll('button').forEach(btn => {
+    this.overlay.querySelectorAll('button').forEach((btn) => {
       btn.addEventListener('click', () => {
         const action = btn.getAttribute('data-action');
         if (action === 'next') this.next();
@@ -219,7 +251,9 @@ class OnboardingUI {
   }
 
   private clearHighlights(): void {
-    document.querySelectorAll('.onboarding-highlight').forEach(el => el.classList.remove('onboarding-highlight'));
+    document
+      .querySelectorAll('.onboarding-highlight')
+      .forEach((el) => el.classList.remove('onboarding-highlight'));
   }
 
   private markComplete(): void {
@@ -378,4 +412,3 @@ export function startOnboardingIfNeeded(): void {
 }
 
 export default OnboardingUI;
-

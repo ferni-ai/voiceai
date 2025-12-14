@@ -375,6 +375,150 @@ function getDemoStatus(ip) {
   };
 }
 
+// ============================================================================
+// DEMO SESSION STORAGE (Remember conversations for account migration)
+// ============================================================================
+// 
+// "Better than human" - We remember our first conversation even before
+// you formally introduce yourself. When a demo user creates an account,
+// Ferni warmly acknowledges: "I remember you! You mentioned X..."
+//
+
+const demoSessions = new Map();
+const DEMO_SESSION_TTL_HOURS = 48; // Keep demo sessions for 48 hours
+
+/**
+ * Create a new demo session that can be claimed later.
+ * Returns a claim token the user can use to migrate their conversation.
+ */
+function createDemoSession(roomName, demoId, metadata = {}) {
+  const claimToken = crypto.randomBytes(16).toString('hex');
+  
+  const session = {
+    roomName,
+    demoId,
+    claimToken,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + (DEMO_SESSION_TTL_HOURS * 60 * 60 * 1000),
+    metadata,
+    // Conversation data (populated by voice agent via webhook)
+    conversation: {
+      messages: [],
+      highlights: [], // Key moments from the conversation
+      topics: [],     // Topics discussed
+      userMood: null, // Detected emotional state
+      ferniNotes: '', // What Ferni wants to remember
+    },
+    // Claim status
+    claimed: false,
+    claimedBy: null,
+    claimedAt: null,
+  };
+  
+  demoSessions.set(roomName, session);
+  console.log(`📝 Demo session created: ${roomName} (claim: ${claimToken.substring(0, 8)}...)`);
+  
+  return { claimToken, roomName, expiresAt: session.expiresAt };
+}
+
+/**
+ * Get a demo session by room name.
+ */
+function getDemoSession(roomName) {
+  const session = demoSessions.get(roomName);
+  if (!session) return null;
+  
+  // Check if expired
+  if (Date.now() > session.expiresAt) {
+    demoSessions.delete(roomName);
+    return null;
+  }
+  
+  return session;
+}
+
+/**
+ * Get a demo session by claim token.
+ */
+function getDemoSessionByToken(claimToken) {
+  for (const [roomName, session] of demoSessions.entries()) {
+    if (session.claimToken === claimToken) {
+      // Check if expired
+      if (Date.now() > session.expiresAt) {
+        demoSessions.delete(roomName);
+        return null;
+      }
+      return session;
+    }
+  }
+  return null;
+}
+
+/**
+ * Update demo session with conversation data.
+ * Called by voice agent via webhook when conversation ends.
+ */
+function updateDemoSessionConversation(roomName, conversationData) {
+  const session = getDemoSession(roomName);
+  if (!session) {
+    console.log(`⚠️ Demo session not found for update: ${roomName}`);
+    return false;
+  }
+  
+  // Merge conversation data
+  session.conversation = {
+    ...session.conversation,
+    ...conversationData,
+  };
+  
+  console.log(`📝 Demo session updated: ${roomName} (${session.conversation.highlights?.length || 0} highlights)`);
+  return true;
+}
+
+/**
+ * Claim a demo session for a Firebase user.
+ * Returns the session data for migration.
+ */
+function claimDemoSession(claimToken, firebaseUid) {
+  const session = getDemoSessionByToken(claimToken);
+  
+  if (!session) {
+    return { success: false, error: 'Session not found or expired' };
+  }
+  
+  if (session.claimed) {
+    // If already claimed by same user, return success
+    if (session.claimedBy === firebaseUid) {
+      return { success: true, session, alreadyClaimed: true };
+    }
+    return { success: false, error: 'Session already claimed by another user' };
+  }
+  
+  // Mark as claimed
+  session.claimed = true;
+  session.claimedBy = firebaseUid;
+  session.claimedAt = Date.now();
+  
+  console.log(`✅ Demo session claimed: ${session.roomName} by ${firebaseUid.substring(0, 8)}...`);
+  
+  return { success: true, session };
+}
+
+// Cleanup expired demo sessions every hour
+setInterval(() => {
+  const now = Date.now();
+  let cleaned = 0;
+  for (const [roomName, session] of demoSessions.entries()) {
+    if (now > session.expiresAt) {
+      demoSessions.delete(roomName);
+      cleaned++;
+    }
+  }
+  if (cleaned > 0) {
+    console.log(`🧹 Cleaned ${cleaned} expired demo sessions`);
+  }
+}, 60 * 60 * 1000);
+
 // Get Spotify refresh token from file or .env
 function getSpotifyRefreshToken() {
   // Try file first (new system)
@@ -2798,6 +2942,139 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ============================================================================
+  // DEMO SESSION CLAIM & UPDATE ENDPOINTS
+  // "Better than human" - Remember conversations before formal introduction
+  // ============================================================================
+
+  // POST /demo-claim - Claim a demo session for a Firebase user
+  // Called when a demo user creates an account to migrate their conversation
+  if (pathname === '/demo-claim' && req.method === 'POST') {
+    // Add CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    let body = '';
+    req.on('data', (chunk) => (body += chunk));
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body);
+        const { claim_token, firebase_uid } = data;
+
+        if (!claim_token) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Missing claim_token' }));
+          return;
+        }
+
+        // Try to get Firebase UID from Authorization header if not in body
+        let firebaseUid = firebase_uid;
+        const authHeader = req.headers['authorization'];
+        if (!firebaseUid && authHeader && authHeader.startsWith('Bearer ')) {
+          try {
+            const { verifyFirebaseToken } = await import('./dist/services/firebase-auth.js');
+            const verified = await verifyFirebaseToken(authHeader.slice(7));
+            if (verified) {
+              firebaseUid = verified.uid;
+            }
+          } catch (authErr) {
+            console.log('Auth verification failed:', authErr.message);
+          }
+        }
+
+        if (!firebaseUid) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Authentication required to claim demo session' }));
+          return;
+        }
+
+        const result = claimDemoSession(claim_token, firebaseUid);
+
+        if (!result.success) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: result.error }));
+          return;
+        }
+
+        // Return the conversation data for migration
+        const session = result.session;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          already_claimed: result.alreadyClaimed || false,
+          conversation: {
+            highlights: session.conversation.highlights,
+            topics: session.conversation.topics,
+            user_mood: session.conversation.userMood,
+            ferni_notes: session.conversation.ferniNotes,
+            message_count: session.conversation.messages?.length || 0,
+          },
+          metadata: {
+            accent: session.metadata.accent,
+            created_at: session.createdAt,
+          },
+        }));
+      } catch (err) {
+        console.error('Demo claim error:', err);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Failed to claim demo session' }));
+      }
+    });
+    return;
+  }
+
+  // Handle OPTIONS preflight for demo-claim
+  if (pathname === '/demo-claim' && req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  // POST /demo-session-update - Update demo session with conversation data
+  // Called by voice agent when conversation ends or when user wants to save
+  if (pathname === '/demo-session-update' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (chunk) => (body += chunk));
+    req.on('end', async () => {
+      try {
+        const data = JSON.parse(body);
+        const { room_name, conversation } = data;
+
+        if (!room_name || !conversation) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Missing room_name or conversation data' }));
+          return;
+        }
+
+        const success = updateDemoSessionConversation(room_name, conversation);
+
+        if (!success) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Demo session not found' }));
+          return;
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+      } catch (err) {
+        console.error('Demo session update error:', err);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Failed to update demo session' }));
+      }
+    });
+    return;
+  }
+
   // Demo token endpoint - for landing page try-without-signup
   if (pathname === '/demo-token') {
     const ip =
@@ -2882,6 +3159,14 @@ const server = http.createServer(async (req, res) => {
 
       recordDemoSession(ip);
 
+      // 🎯 Create claimable demo session for "better than human" experience
+      // This allows the user to claim their conversation when they create an account
+      const demoSession = createDemoSession(roomName, demoId, {
+        accent: geoData.detectedAccent,
+        countryCode: geoData.countryCode,
+        ip: ip.substring(0, 10), // Partial IP for matching (privacy-conscious)
+      });
+
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({
@@ -2897,6 +3182,9 @@ const server = http.createServer(async (req, res) => {
           // 🌍 Include accent info in response
           accent: geoData.detectedAccent,
           countryCode: geoData.countryCode,
+          // 🎯 Claim token for "I remember you" experience
+          claim_token: demoSession.claimToken,
+          claim_expires_at: demoSession.expiresAt,
         })
       );
     } catch (error) {

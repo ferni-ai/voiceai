@@ -4,7 +4,6 @@
     "name": "日本語",
     "direction": "ltr"
   },
-
   "hero": {
     "eyebrow": "AIコーチに会う",
     "headline": "人間",
@@ -17,7 +16,6 @@
       "talkNow": "今すぐFerniと話す"
     }
   },
-
   "superpowers": {
     "memory": {
       "title": "完璧な記憶",
@@ -40,7 +38,6 @@
       "description": "間を感じます。話をそらすことを。見えないパターンを。理解とは聞くことだけではありません—本当にわかることです。"
     }
   },
-
   "team": {
     "sectionTitle": "チームに会う",
     "sectionSubtitle": "あなたのために協力する6人の優秀な頭脳",
@@ -75,7 +72,6 @@
       "sampleQuote": "いつか日本に行きたいと言っていましたね。その日を決めましょう。"
     }
   },
-
   "pricing": {
     "sectionTitle": "シンプルな料金",
     "headline": "無料で始める。",
@@ -125,7 +121,6 @@
       ]
     }
   },
-
   "faq": {
     "sectionTitle": "よくある質問",
     "eyebrow": "質問と回答",
@@ -158,17 +153,14 @@
       }
     ]
   },
-
   "testimonials": {
     "sectionTitle": "皆さんの声"
   },
-
   "trust": {
     "title": "信頼の上に構築。",
     "description": "あなたの会話はあなたのもの。常に。エンタープライズグレードの暗号化を使用し、データを販売することは決してありません。",
     "cta": "プライバシーポリシーを読む"
   },
-
   "footer": {
     "tagline": "本当に理解してくれる存在。",
     "copyright": "Ferni AI. 全著作権所有。",
@@ -180,7 +172,6 @@
     "connect": "つながる",
     "legal": "法的情報"
   },
-
   "nav": {
     "features": "機能",
     "team": "チーム",
@@ -190,7 +181,6 @@
     "about": "会社概要",
     "contact": "お問い合わせ"
   },
-
   "common": {
     "learnMore": "詳しく見る",
     "getStarted": "始める",
@@ -198,7 +188,6 @@
     "scrollToExplore": "スクロールして探索",
     "callPhone": "電話する"
   },
-
   "accessibility": {
     "nextStory": "次のストーリー",
     "toggleMenu": "メニュー切り替え",
@@ -209,11 +198,29 @@
     "tiktok": "TikTok",
     "youtube": "YouTube"
   },
-
   "personas": {
-    "peter": { "fullName": "ピーター・ジョン" },
-    "maya": { "fullName": "マヤ・サントス" },
-    "alex": { "fullName": "アレックス・チェン" },
-    "jordan": { "fullName": "ジョーダン・テイラー" }
+    "peter": {
+      "fullName": "ピーター・ジョン"
+    },
+    "maya": {
+      "fullName": "マヤ・サントス"
+    },
+    "alex": {
+      "fullName": "アレックス・チェン"
+    },
+    "jordan": {
+      "fullName": "ジョーダン・テイラー"
+    }
+  },
+  "errorPage": {
+    "title": "考え事に夢中？",
+    "subtitle": "軌道に戻りましょう。",
+    "goHome": "ホームへ",
+    "callFerni": "Ferniに電話",
+    "suggestionsLabel": "または、こちらをお試しください：",
+    "meetTeam": "チームを紹介",
+    "viewPricing": "料金を見る",
+    "readFaq": "FAQを読む",
+    "readBlog": "ブログを読む"
   }
 }

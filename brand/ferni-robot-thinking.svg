@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="400" height="500">
+  <defs>
+    <!-- Aurora gradient for head -->
+    <linearGradient id="auroraHead" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1a5a4c"/>
+      <stop offset="30%" style="stop-color:#2dd4bf"/>
+      <stop offset="60%" style="stop-color:#818cf8"/>
+      <stop offset="100%" style="stop-color:#c084fc"/>
+    </linearGradient>
+    
+    <linearGradient id="bodyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#faf5ff"/>
+      <stop offset="100%" style="stop-color:#f3e8ff"/>
+    </linearGradient>
+    
+    <linearGradient id="limbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2dd4bf"/>
+      <stop offset="100%" style="stop-color:#818cf8"/>
+    </linearGradient>
+    
+    <filter id="softShadow">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1e293b" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+  
+  <!-- === BODY === -->
+  <rect 
+    x="120" y="200" 
+    width="160" height="180" 
+    rx="40" ry="40"
+    fill="url(#bodyGradient)"
+    stroke="url(#limbGradient)"
+    stroke-width="3"
+    filter="url(#softShadow)"
+  />
+  
+  <!-- Heart -->
+  <circle cx="200" cy="280" r="25" fill="#2dd4bf" opacity="0.2"/>
+  <circle cx="200" cy="280" r="15" fill="#2dd4bf" opacity="0.4"/>
+  <circle cx="200" cy="280" r="8" fill="#2dd4bf"/>
+  
+  <!-- === ARMS === -->
+  <!-- Left arm (hand on chin - thinking pose) -->
+  <rect x="85" y="160" width="45" height="22" rx="11" fill="url(#limbGradient)" transform="rotate(45 107 171)"/>
+  <circle cx="75" cy="145" r="18" fill="url(#limbGradient)"/>
+  
+  <!-- Right arm (relaxed) -->
+  <rect x="280" y="260" width="45" height="22" rx="11" fill="url(#limbGradient)"/>
+  <circle cx="340" cy="271" r="18" fill="url(#limbGradient)"/>
+  
+  <!-- === LEGS === -->
+  <rect x="145" y="380" width="26" height="55" rx="13" fill="url(#limbGradient)"/>
+  <ellipse cx="158" cy="445" rx="22" ry="12" fill="url(#limbGradient)"/>
+  
+  <rect x="229" y="380" width="26" height="55" rx="13" fill="url(#limbGradient)"/>
+  <ellipse cx="242" cy="445" rx="22" ry="12" fill="url(#limbGradient)"/>
+  
+  <!-- === HEAD === -->
+  <ellipse 
+    cx="200" cy="110" 
+    rx="130" ry="75" 
+    fill="url(#auroraHead)"
+    filter="url(#softShadow)"
+  />
+  
+  <!-- Shine -->
+  <ellipse cx="200" cy="85" rx="100" ry="45" fill="rgba(255,255,255,0.08)"/>
+  
+  <!-- FE circle -->
+  <circle cx="150" cy="110" r="32" fill="rgba(0,0,0,0.2)"/>
+  <!-- Thinking eye (looking up) -->
+  <ellipse cx="150" cy="105" rx="12" ry="14" fill="#FFFDFB"/>
+  <circle cx="148" cy="100" r="6" fill="#1e293b"/>
+  <circle cx="146" cy="98" r="2" fill="#FFFDFB"/>
+  
+  <!-- AI circle -->
+  <circle cx="250" cy="110" r="32" fill="rgba(255,255,255,0.9)"/>
+  <!-- Thinking eye (looking up) -->
+  <ellipse cx="250" cy="105" rx="12" ry="14" fill="#FFFDFB"/>
+  <circle cx="248" cy="100" r="6" fill="#1e293b"/>
+  <circle cx="246" cy="98" r="2" fill="#FFFDFB"/>
+  
+  <!-- Thoughtful expression (slight smile) -->
+  <path 
+    d="M 180 145 Q 200 155, 220 145" 
+    fill="none" 
+    stroke="#FFFDFB" 
+    stroke-width="3" 
+    stroke-linecap="round"
+  />
+  
+  <!-- Thought bubbles -->
+  <circle cx="320" cy="60" r="8" fill="#c084fc" opacity="0.6"/>
+  <circle cx="340" cy="35" r="12" fill="#c084fc" opacity="0.5"/>
+  <circle cx="365" cy="5" r="18" fill="#c084fc" opacity="0.4"/>
+  
+  <!-- Antenna -->
+  <line x1="200" y1="35" x2="200" y2="10" stroke="url(#limbGradient)" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="200" cy="8" r="8" fill="#2dd4bf"/>
+  <circle cx="200" cy="8" r="4" fill="#FFFDFB"/>
+</svg>

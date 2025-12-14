@@ -16,6 +16,7 @@
  *   - Respects prefers-reduced-motion
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
@@ -254,7 +255,7 @@ function createDashboardContainer(): HTMLElement {
     <div class="billing-backdrop" aria-hidden="true"></div>
     <div class="billing-panel">
       <header class="billing-header">
-        <button class="billing-close" aria-label="Close billing dashboard">
+        <button class="billing-close" aria-label="${t('accessibility.closeBilling')}">
           ${ICONS.close}
         </button>
         <h1 class="billing-title">Usage & Billing</h1>

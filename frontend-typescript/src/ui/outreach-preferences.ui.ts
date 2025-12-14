@@ -15,6 +15,7 @@
  * @module OutreachPreferencesUI
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -581,7 +582,7 @@ class OutreachPreferencesUI {
             <span class="outreach-prefs-eyebrow">Stay in touch</span>
             <h2 class="outreach-prefs-title">Check-in Settings</h2>
           </div>
-          <button class="outreach-prefs-close" aria-label="Close">
+          <button class="outreach-prefs-close" aria-label="${t('common.close')}">
             ${ICONS.close}
           </button>
         </header>

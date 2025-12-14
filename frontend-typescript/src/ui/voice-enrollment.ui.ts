@@ -14,6 +14,7 @@
  * @module VoiceEnrollmentUI
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { toast } from './toast.ui.js';
@@ -593,7 +594,7 @@ function createModal(): HTMLElement {
       <div class="voice-enrollment-header">
         <p class="voice-enrollment-eyebrow">VOICE RECOGNITION</p>
         <h2 class="voice-enrollment-title" id="voice-enrollment-title">Let me learn your voice</h2>
-        <button class="voice-enrollment-close" aria-label="Close">${ICONS.close}</button>
+        <button class="voice-enrollment-close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </div>
       <div class="voice-enrollment-content" id="voice-enrollment-content">
         ${renderCheckingState()}

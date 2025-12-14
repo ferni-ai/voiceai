@@ -15,6 +15,7 @@
  * @module TrustAnalyticsUI
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 
@@ -573,10 +574,10 @@ class TrustAnalyticsUI {
             <h2 class="trust-analytics-title">Trust Systems Analytics</h2>
           </div>
           <div class="trust-analytics-header-actions">
-            <button class="trust-analytics-btn-icon" data-action="refresh" aria-label="Refresh">
+            <button class="trust-analytics-btn-icon" data-action="refresh" aria-label="${t('accessibility.refresh')}">
               ${ICONS.refresh}
             </button>
-            <button class="trust-analytics-btn-icon" data-action="close" aria-label="Close">
+            <button class="trust-analytics-btn-icon" data-action="close" aria-label="${t('common.close')}">
               ${ICONS.close}
             </button>
           </div>

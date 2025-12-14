@@ -16,6 +16,7 @@
  * logo.setExpression('zen');
  */
 
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 
@@ -403,7 +404,7 @@ export function getFerniLogoSVG(options: {
   const irisColor = simplified ? '' : `<circle cx="50" cy="50" r="12" fill="${LOGO_COLORS.iris}"/>`;
   const catchlight = simplified ? '' : `<circle cx="47" cy="47" r="2" fill="${LOGO_COLORS.white}" opacity="0.9"/>`;
   
-  return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" role="img" aria-label="Ferni logo" class="avatar-logo-svg">
+  return `<svg viewBox="0 0 100 100" width="${size}" height="${size}" role="img" aria-label="${t('accessibility.ferniLogo')}" class="avatar-logo-svg">
     <circle class="stone-outer" cx="50" cy="50" r="45" fill="${color}"/>
     <circle class="stone-eye-white" cx="50" cy="50" r="18" fill="${LOGO_COLORS.white}"/>
     ${irisColor}

@@ -311,8 +311,9 @@ export function createCameoHandlers(config: CameoHandlerConfig) {
           instructionsUpdated: false,
           error: String(err),
         });
-      } catch {
-        // Ignore import errors during failure path
+      } catch (importErr) {
+        // FIX BUG: Log import errors for debugging
+        logger.debug({ error: String(importErr) }, 'Cannot import cameoEvents during failure path');
       }
 
       return { success: false, error: String(err) };
@@ -410,6 +411,26 @@ export function createCameoHandlers(config: CameoHandlerConfig) {
 
       // Clear session state
       clearCameoSessionState(sessionId);
+
+      // FIX BUG: Validate identity was correctly restored after cameo
+      const voiceAgentRefAfter = getVoiceAgentRef?.();
+      if (voiceAgentRefAfter) {
+        const currentPersona = voiceAgentRefAfter.getPersona?.();
+        const expectedId = hostPersona?.id || hostPersonaId;
+        if (currentPersona?.id !== expectedId) {
+          logger.warn(
+            {
+              expected: expectedId,
+              actual: currentPersona?.id,
+              cameoId,
+            },
+            'Identity mismatch after cameo complete - LLM instructions may be inconsistent'
+          );
+          diag.entry(`⚠️ Identity mismatch after cameo: expected ${expectedId}, got ${currentPersona?.id}`);
+        } else {
+          logger.debug({ personaId: currentPersona?.id }, 'Identity validation passed after cameo');
+        }
+      }
 
       return { success: true };
     } catch (err) {

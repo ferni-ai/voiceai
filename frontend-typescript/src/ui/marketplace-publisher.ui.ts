@@ -22,6 +22,7 @@
  *   - Respects prefers-reduced-motion
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING, STAGGER } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { toast } from './toast.ui.js';
@@ -288,14 +289,14 @@ function createPortalContainer(): HTMLElement {
     <div class="publisher-backdrop" aria-hidden="true"></div>
     <div class="publisher-panel">
       <header class="publisher-header">
-        <button class="publisher-close" aria-label="Close publisher portal">
+        <button class="publisher-close" aria-label="${t('accessibility.closePublisher')}">
           ${ICONS.close}
         </button>
         <h1 class="publisher-title">Publisher Portal</h1>
         <p class="publisher-subtitle">Manage your tools and agents</p>
       </header>
 
-      <nav class="publisher-tabs" role="tablist" aria-label="Portal sections">
+      <nav class="publisher-tabs" role="tablist" aria-label="${t('accessibility.portalSections')}">
         <button
           role="tab"
           class="publisher-tab ${state.activeTab === 'items' ? 'publisher-tab--active' : ''}"
@@ -488,7 +489,7 @@ function renderAnalytics(content: Element): void {
 
   content.innerHTML = `
     <div class="analytics-header">
-      <button class="analytics-back" aria-label="Back to items">
+      <button class="analytics-back" aria-label="${t('accessibility.backToItems')}">
         ← Back
       </button>
       <h2 class="analytics-title">${item.name}</h2>
@@ -546,7 +547,7 @@ function renderAnalytics(content: Element): void {
 
 function renderSubmitForm(content: Element): void {
   content.innerHTML = `
-    <form class="submit-form" aria-label="Submit new item">
+    <form class="submit-form" aria-label="${t('accessibility.submitNewItem')}">
       <div class="form-section">
         <h3 class="form-section-title">Basic Information</h3>
 
@@ -571,7 +572,7 @@ function renderSubmitForm(content: Element): void {
             id="item-id"
             name="id"
             class="form-input"
-            placeholder="my-awesome-tool"
+            placeholder="${t('placeholders.toolIdExample')}"
             pattern="^[a-z0-9-]+$"
             required
           />
@@ -585,7 +586,7 @@ function renderSubmitForm(content: Element): void {
             id="item-name"
             name="name"
             class="form-input"
-            placeholder="My Awesome Tool"
+            placeholder="${t('placeholders.toolNameExample')}"
             required
           />
         </div>
@@ -597,7 +598,7 @@ function renderSubmitForm(content: Element): void {
             id="item-version"
             name="version"
             class="form-input"
-            placeholder="1.0.0"
+            placeholder="${t('placeholders.versionExample')}"
             pattern="^\\d+\\.\\d+\\.\\d+$"
             required
           />
@@ -609,7 +610,7 @@ function renderSubmitForm(content: Element): void {
             id="item-description"
             name="description"
             class="form-textarea"
-            placeholder="What does your tool/agent do?"
+            placeholder="${t('placeholders.toolDescription')}"
             rows="3"
             required
           ></textarea>

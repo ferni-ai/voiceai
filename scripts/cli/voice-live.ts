@@ -24,14 +24,6 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import * as readline from 'readline';
 import { spawn, ChildProcess, execSync } from 'child_process';
-import {
-  existsSync,
-  mkdirSync,
-  writeFileSync,
-  unlinkSync,
-  createWriteStream,
-  readFileSync,
-} from 'fs';
 
 // Detect if running as SEA binary (shim URL) vs normal execution
 const isSEA = import.meta.url.includes('ferni-sea-binary');
@@ -51,21 +43,109 @@ const CONFIG = {
 };
 
 // ============================================================================
-// SOUND EFFECTS
+// SOUND EFFECTS - Match frontend sound.ui.ts exactly
 // ============================================================================
 
-const SOUNDS_DIR = join(PROJECT_ROOT, 'design-system', 'assets', 'sounds');
+/**
+ * Sound configurations matching frontend's Web Audio API synthesis.
+ * Uses sox to generate matching tones with same frequencies, delays, and durations.
+ */
+interface SoundTone {
+  frequency: number;
+  delay: number;
+  duration: number;
+  volume: number;
+}
 
-function playSound(soundName: 'connect' | 'disconnect'): void {
-  const soundPath = join(SOUNDS_DIR, `${soundName}.mp3`);
-  if (!existsSync(soundPath)) return;
+interface SoundConfig {
+  tones: SoundTone[];
+  type: 'sine';
+}
 
-  // Use afplay on macOS, aplay on Linux (both are non-blocking with &)
-  const player = process.platform === 'darwin' ? 'afplay' : 'aplay';
-  spawn(player, [soundPath], {
-    stdio: 'ignore',
-    detached: true,
-  }).unref();
+// Sound configs matching frontend sound.ui.ts exactly
+const SOUND_CONFIGS: Record<string, SoundConfig> = {
+  // C major chord ascending - connect feel
+  connect: {
+    type: 'sine',
+    tones: [
+      { frequency: 523.25, delay: 0, duration: 0.15, volume: 0.12 },     // C5
+      { frequency: 659.25, delay: 0.08, duration: 0.15, volume: 0.12 },  // E5
+      { frequency: 783.99, delay: 0.16, duration: 0.15, volume: 0.12 },  // G5
+    ],
+  },
+  // Descending chord - disconnect feel
+  disconnect: {
+    type: 'sine',
+    tones: [
+      { frequency: 783.99, delay: 0, duration: 0.12, volume: 0.1 },      // G5
+      { frequency: 659.25, delay: 0.06, duration: 0.12, volume: 0.1 },   // E5
+      { frequency: 523.25, delay: 0.12, duration: 0.12, volume: 0.1 },   // C5
+    ],
+  },
+  // Warm goodbye ceremony - Am7 → G/B → Cmaj7 resolution (~2s)
+  goodbye: {
+    type: 'sine',
+    tones: [
+      { frequency: 220.0, delay: 0, duration: 0.8, volume: 0.08 },       // A3 - Am7 root
+      { frequency: 261.63, delay: 0.05, duration: 0.8, volume: 0.08 },   // C4 - Am7 color
+      { frequency: 329.63, delay: 0.1, duration: 0.8, volume: 0.08 },    // E4 - Am7 fifth
+      { frequency: 246.94, delay: 0.5, duration: 0.8, volume: 0.08 },    // B3 - G/B bass
+      { frequency: 293.66, delay: 0.55, duration: 0.8, volume: 0.08 },   // D4 - G chord
+      { frequency: 392.0, delay: 0.6, duration: 0.8, volume: 0.08 },     // G4 - G chord root
+      { frequency: 261.63, delay: 1.0, duration: 0.8, volume: 0.08 },    // C4 - Cmaj7 root
+      { frequency: 329.63, delay: 1.05, duration: 0.8, volume: 0.08 },   // E4 - Cmaj7
+      { frequency: 392.0, delay: 1.1, duration: 0.8, volume: 0.08 },     // G4 - Cmaj7
+      { frequency: 493.88, delay: 1.15, duration: 0.8, volume: 0.08 },   // B4 - Cmaj7 seventh
+    ],
+  },
+  // Phone receiver click - tactile finality
+  hangup: {
+    type: 'sine',
+    tones: [
+      { frequency: 180, delay: 0, duration: 0.06, volume: 0.12 },        // Low thud
+      { frequency: 420, delay: 0.015, duration: 0.06, volume: 0.12 },    // Mid click
+      { frequency: 280, delay: 0.04, duration: 0.06, volume: 0.12 },     // Low resonance
+    ],
+  },
+};
+
+/**
+ * Play a synthesized sound using sox, matching frontend pacing exactly.
+ */
+function playSound(soundName: 'connect' | 'disconnect' | 'goodbye' | 'hangup'): void {
+  const config = SOUND_CONFIGS[soundName];
+  if (!config) return;
+
+  // Generate each tone with sox
+  for (const tone of config.tones) {
+    setTimeout(() => {
+      // sox -n -d synth <duration> sine <freq> vol <volume>
+      spawn('sox', [
+        '-n',                           // No input file
+        '-d',                           // Output to default audio device
+        'synth', String(tone.duration), // Duration
+        'sine', String(tone.frequency), // Waveform and frequency
+        'vol', String(tone.volume),     // Volume
+        'fade', 'q', '0.01', String(tone.duration), '0.05', // Quick fade in, longer fade out
+      ], {
+        stdio: 'ignore',
+        detached: true,
+      }).unref();
+    }, tone.delay * 1000);
+  }
+}
+
+/**
+ * Perform the goodbye ceremony matching frontend exactly.
+ * Plays: goodbye (2s warm chord) → 400ms pause → hangup (click)
+ */
+async function playGoodbyeCeremony(): Promise<void> {
+  playSound('goodbye');
+  // Wait for goodbye sound (~2s) + 400ms pause
+  await new Promise((resolve) => setTimeout(resolve, 2400));
+  playSound('hangup');
+  // Small pause to let hangup sound play
+  await new Promise((resolve) => setTimeout(resolve, 150));
 }
 
 // ============================================================================
@@ -386,10 +466,12 @@ ${colors.dim}Type 'exit' to disconnect.${colors.reset}
 
   rl.on('line', async (line) => {
     if (line.trim().toLowerCase() === 'exit' || line.trim().toLowerCase() === 'quit') {
-      console.log(`\n${colors.dim}Disconnecting...${colors.reset}`);
+      console.log(`\n${colors.dim}Saying goodbye...${colors.reset}`);
       cleanupAudio();
       await room.disconnect();
       dispose();
+      // Play the warm goodbye ceremony (same as frontend app)
+      await playGoodbyeCeremony();
       console.log(`${colors.green}Goodbye!${colors.reset}\n`);
       process.exit(0);
     }
@@ -397,10 +479,12 @@ ${colors.dim}Type 'exit' to disconnect.${colors.reset}
 
   // Handle Ctrl+C
   process.on('SIGINT', async () => {
-    console.log(`\n${colors.dim}Disconnecting...${colors.reset}`);
+    console.log(`\n${colors.dim}Saying goodbye...${colors.reset}`);
     cleanupAudio();
     await room.disconnect();
     dispose();
+    // Play the warm goodbye ceremony (same as frontend app)
+    await playGoodbyeCeremony();
     console.log(`${colors.green}Goodbye!${colors.reset}\n`);
     process.exit(0);
   });

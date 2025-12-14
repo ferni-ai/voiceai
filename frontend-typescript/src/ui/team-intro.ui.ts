@@ -14,6 +14,7 @@
  * @see FERNI-SCREEN-GUIDELINES.md
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { teamUnlockService, TEAM_MEMBERS, type TeamMemberId } from '../services/team-unlock.service.js';
@@ -177,7 +178,7 @@ function createModal(): void {
         <p class="team-intro__subtitle">
           As we get to know each other, you'll unlock specialists who can help with specific areas of your life.
         </p>
-        <button class="team-intro__close" aria-label="Close">
+        <button class="team-intro__close" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
       </header>

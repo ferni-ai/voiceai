@@ -181,7 +181,7 @@ class MusicDashboardUI {
           <span class="music-dashboard__icon">${ICONS.music}</span>
           <h2 class="music-dashboard__title">${t('musicDashboard.title')}</h2>
         </div>
-        <button class="music-dashboard__close" aria-label="Close">${ICONS.close}</button>
+        <button class="music-dashboard__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
       <div class="music-dashboard__loading">
         <div class="music-dashboard__loading-spinner"></div>
@@ -203,7 +203,7 @@ class MusicDashboardUI {
           <span class="music-dashboard__icon">${ICONS.music}</span>
           <h2 class="music-dashboard__title">${t('musicDashboard.title')}</h2>
         </div>
-        <button class="music-dashboard__close" aria-label="Close">${ICONS.close}</button>
+        <button class="music-dashboard__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
       <div class="music-dashboard__error">
         <div class="music-dashboard__error-icon">${ICONS.music}</div>
@@ -247,7 +247,7 @@ class MusicDashboardUI {
           <span class="music-dashboard__icon">${ICONS.music}</span>
           <h2 class="music-dashboard__title">${t('musicDashboard.title')}</h2>
         </div>
-        <button class="music-dashboard__close" aria-label="Close">${ICONS.close}</button>
+        <button class="music-dashboard__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
 
       <div class="music-dashboard__scroll">
@@ -275,7 +275,7 @@ class MusicDashboardUI {
           <span class="music-dashboard__icon">${ICONS.music}</span>
           <h2 class="music-dashboard__title">${t('musicDashboard.title')}</h2>
         </div>
-        <button class="music-dashboard__close" aria-label="Close">${ICONS.close}</button>
+        <button class="music-dashboard__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
 
       <div class="music-dashboard__empty">

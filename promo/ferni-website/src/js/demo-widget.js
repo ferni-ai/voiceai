@@ -35,6 +35,17 @@
     // Proactive status (checked before connecting)
     demoStatus: null,
     cooldownInterval: null,
+    // "Better than human" - Remember our conversation
+    claimToken: null,
+    roomName: null,
+    sessionEnded: false, // True when session ended (vs user closed modal)
+  };
+
+  // LocalStorage keys for demo session persistence
+  const STORAGE_KEYS = {
+    CLAIM_TOKEN: 'ferni_demo_claim_token',
+    ROOM_NAME: 'ferni_demo_room_name',
+    SESSION_TIME: 'ferni_demo_session_time',
   };
 
   // ============================================================================
@@ -269,12 +280,28 @@
     .ferni-demo-avatar-orb.speaking {
       animation: ferni-speaking 0.4s ease-in-out infinite;
     }
-    
+
     @keyframes ferni-speaking {
       0%, 100% { transform: scale(1); }
       50% { transform: scale(1.02); }
     }
-    
+
+    .ferni-demo-avatar-orb.complete {
+      animation: ferni-complete 2s ease-in-out infinite;
+      background: linear-gradient(135deg, #6a8760 0%, #5a7751 50%, #4a6741 100%);
+    }
+
+    @keyframes ferni-complete {
+      0%, 100% { 
+        transform: scale(1); 
+        box-shadow: 0 8px 32px rgba(74, 103, 65, 0.5), 0 0 20px rgba(74, 103, 65, 0.3);
+      }
+      50% { 
+        transform: scale(1.03); 
+        box-shadow: 0 12px 40px rgba(74, 103, 65, 0.6), 0 0 30px rgba(74, 103, 65, 0.4);
+      }
+    }
+
     /* Eye in the orb */
     .ferni-demo-eye {
       width: 60%;
@@ -875,6 +902,7 @@
   async function startSession() {
     state.isConnecting = true;
     state.error = null;
+    state.sessionEnded = false;
     updateUI();
 
     try {
@@ -888,6 +916,21 @@
 
       CONFIG.livekitUrl = data.url;
       state.sessionTimeRemaining = data.session_duration_minutes * 60;
+
+      // 🎯 "Better than human" - Save claim token for later account migration
+      // This allows us to remember the conversation when user creates an account
+      if (data.claim_token) {
+        state.claimToken = data.claim_token;
+        state.roomName = data.room;
+        try {
+          localStorage.setItem(STORAGE_KEYS.CLAIM_TOKEN, data.claim_token);
+          localStorage.setItem(STORAGE_KEYS.ROOM_NAME, data.room);
+          localStorage.setItem(STORAGE_KEYS.SESSION_TIME, Date.now().toString());
+          console.log('📝 Demo session claim token saved');
+        } catch (e) {
+          console.warn('Could not save claim token to localStorage');
+        }
+      }
 
       // Load LiveKit SDK dynamically if not loaded
       if (!window.LivekitClient) {
@@ -991,14 +1034,78 @@
 
       if (state.sessionTimeRemaining <= 0) {
         disconnectSession();
-        state.error = 'Demo session ended. Create a free account for unlimited conversations!';
-        updateUI();
+        state.sessionEnded = true; // Mark as properly ended (not user-closed)
+        showContinueExperience(); // Show "Continue with Ferni" instead of error
       } else {
         updateTimerDisplay();
       }
     }, 1000);
 
     updateTimerDisplay();
+  }
+
+  /**
+   * Show the "Continue with Ferni" experience after demo ends.
+   * This is the magic moment - we're inviting them to continue the relationship.
+   */
+  function showContinueExperience() {
+    const infoEl = container.querySelector('.ferni-demo-info');
+    const errorEl = container.querySelector('.ferni-demo-error');
+    
+    // Hide error, show info with warm invitation
+    errorEl.style.display = 'none';
+    infoEl.style.display = 'flex';
+    
+    const infoIcon = infoEl.querySelector('.ferni-demo-info-icon');
+    const infoTitle = infoEl.querySelector('.ferni-demo-info-title');
+    const infoMessage = infoEl.querySelector('.ferni-demo-info-message');
+    
+    infoIcon.textContent = '💚';
+    infoTitle.textContent = "That was just the beginning";
+    infoMessage.innerHTML = `
+      I loved getting to know you. Want to continue our conversation?<br>
+      <span style="font-size: 13px; opacity: 0.8;">I'll remember everything we talked about.</span>
+    `;
+    
+    // Update action button to "Continue with Ferni"
+    actionBtn.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M5 12h14M12 5l7 7-7 7"/>
+      </svg>
+      Continue with Ferni
+    `;
+    actionBtn.disabled = false;
+    actionBtn.onclick = navigateToApp;
+    
+    // Update status text
+    statusEl.textContent = "Session complete";
+    
+    // Hide timer and waveform
+    timerEl.style.display = 'none';
+    waveformEl.classList.remove('active');
+    avatarOrb.classList.remove('listening', 'speaking');
+    avatarOrb.classList.add('complete');
+  }
+
+  /**
+   * Navigate to the app with claim token for seamless continuation.
+   */
+  function navigateToApp() {
+    let url = CONFIG.upgradeUrl;
+    
+    // Add claim token if available
+    const claimToken = state.claimToken || localStorage.getItem(STORAGE_KEYS.CLAIM_TOKEN);
+    if (claimToken) {
+      url += `?claim=${encodeURIComponent(claimToken)}`;
+      console.log('🎯 Navigating to app with claim token');
+    }
+    
+    // Track conversion
+    if (window.FerniExperiments) {
+      window.FerniExperiments.trackConversionForAll('demo_to_signup_clicked');
+    }
+    
+    window.location.href = url;
   }
 
   function updateTimerDisplay() {

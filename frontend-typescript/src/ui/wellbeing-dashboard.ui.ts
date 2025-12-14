@@ -9,6 +9,7 @@
 
 // Design system animation constants available via CSS variables:
 // --duration-normal, --duration-slow, --duration-entrance, --ease-spring, etc.
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('WellbeingDashboard');
@@ -1049,7 +1050,7 @@ function createModal(): void {
         <p class="wellbeing-modal__eyebrow">Your Journey</p>
         <h2 id="wellbeing-title" class="wellbeing-modal__title">State of Me</h2>
         <p class="wellbeing-modal__subtitle">How you've been feeling lately</p>
-        <button class="wellbeing-modal__close" aria-label="Close">${ICONS.close}</button>
+        <button class="wellbeing-modal__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
       <div class="wellbeing-modal__content" id="wellbeing-content">
         <div class="wellbeing-loading">

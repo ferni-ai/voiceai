@@ -11,6 +11,11 @@
     "retry": "Try again",
     "cancel": "Cancel",
     "save": "Save",
+    "saving": "Saving...",
+    "saved": "Saved!",
+    "processing": "Processing...",
+    "adding": "Adding...",
+    "errorRetry": "Error - Try Again",
     "close": "Close",
     "next": "Next",
     "back": "Back",
@@ -25,6 +30,59 @@
     "copy": "Copy",
     "copied": "Copied!",
     "new": "NEW"
+  },
+
+  "buttons": {
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "signUp": "Sign Up",
+    "savePreferences": "Save Preferences",
+    "savePreference": "Save Preference",
+    "choose": "Choose This",
+    "refresh": "Refresh",
+    "exportData": "Export Data"
+  },
+
+  "mobile": {
+    "pullToConnect": "Pull to connect",
+    "releaseToConnect": "Release to connect",
+    "pullToRefresh": "Pull to refresh",
+    "releaseToRefresh": "Release to refresh"
+  },
+
+  "placeholders": {
+    "customAmount": "Custom amount",
+    "searchConversations": "Search conversations...",
+    "enterValue": "Enter actual value",
+    "emailExample": "you@example.com",
+    "phoneExample": "+1 (555) 123-4567",
+    "memberName": "Their name",
+    "householdName": "The Smith Family",
+    "displayName": "Your preferred name",
+    "marketplaceSearch": "Who are you looking for?",
+    "codeInput": "• • • • • •",
+    "colleagueEmail": "colleague@company.com",
+    "welcomeMessageExample": "e.g., Welcome to {orgName}! Ferni is here to support your growth and wellbeing.",
+    "companyValuesExample": "e.g., Integrity, Innovation, Customer Focus, Teamwork",
+    "toolIdExample": "my-awesome-tool",
+    "toolNameExample": "My Awesome Tool",
+    "versionExample": "1.0.0",
+    "toolDescription": "What does your tool/agent do?"
+  },
+
+  "titles": {
+    "sharedSong": "A song we share",
+    "dailyPractice": "Daily Practice",
+    "predictions": "Predictions",
+    "runScenario": "Run scenario"
+  },
+
+  "household": {
+    "addToHousehold": "Add to Household",
+    "title": "Household",
+    "members": "Members",
+    "addMember": "Add Member",
+    "removeMember": "Remove Member"
   },
 
   "menu": {
@@ -464,6 +522,48 @@
     "muteAudio": "Mute audio",
     "unmuteAudio": "Unmute audio",
     "endCall": "End call",
-    "skipToContent": "Skip to main content"
+    "skipToContent": "Skip to main content",
+    "saveConversations": "Save your conversations by creating an account",
+    "signInToAccount": "Sign in to your account",
+    "accountMenu": "Account menu",
+    "accountSettings": "Account settings",
+    "refreshData": "Refresh data",
+    "exportData": "Export your data",
+    "dismiss": "Dismiss",
+    "dismissNotification": "Dismiss notification",
+    "closeDashboard": "Close dashboard",
+    "closeSubscription": "Close subscription options",
+    "closeDetails": "Close details",
+    "closePublisher": "Close publisher portal",
+    "closeBilling": "Close billing dashboard",
+    "closeSettings": "Close settings",
+    "closeHistory": "Close history",
+    "closeAdmin": "Close admin panel",
+    "closeHuddle": "Close huddle",
+    "closeStats": "Close stats",
+    "refresh": "Refresh",
+    "backToItems": "Back to items",
+    "collapse": "Collapse",
+    "expandGarden": "Expand garden details",
+    "collapseGarden": "Collapse garden details",
+    "howToPlay": "How to play",
+    "toggleQuietHours": "Toggle quiet hours",
+    "yourNewPlan": "Your new plan",
+    "subscriptionPlans": "Subscription plans",
+    "options": "Options",
+    "featuresIncluded": "Features included",
+    "searchCoaches": "Search for coaches",
+    "filterBySpecialty": "Filter by specialty",
+    "availableCoaches": "Available coaches",
+    "portalSections": "Portal sections",
+    "submitNewItem": "Submit new item",
+    "openDailyPractice": "Open daily practice",
+    "openPredictions": "Open predictions",
+    "shareJourney": "Share your journey",
+    "forgetThis": "Forget this",
+    "cancelInstallation": "Cancel installation",
+    "sharedMusicalMemory": "Shared musical memory",
+    "viewOutreachSchedule": "View outreach schedule",
+    "ferniLogo": "Ferni logo"
   }
 }

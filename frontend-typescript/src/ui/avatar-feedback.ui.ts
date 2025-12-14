@@ -56,9 +56,48 @@ let currentPersonaId: string = 'ferni';
 let personaIdleAnimation: Animation | null = null;
 let personaIdleTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
+// FIX BUG: Track all setTimeout IDs for cleanup to prevent memory leaks
+const activeTimeouts: Set<ReturnType<typeof setTimeout>> = new Set();
+
+/**
+ * Tracked setTimeout that automatically removes itself when done.
+ */
+function trackedTimeout(callback: () => void, delay: number): ReturnType<typeof setTimeout> {
+  const id = setTimeout(() => {
+    activeTimeouts.delete(id);
+    callback();
+  }, delay);
+  activeTimeouts.add(id);
+  return id;
+}
+
+/**
+ * Clear all tracked timeouts.
+ */
+function clearAllTrackedTimeouts(): void {
+  for (const id of activeTimeouts) {
+    clearTimeout(id);
+  }
+  activeTimeouts.clear();
+}
+
 // 🎬 FIX: Track if entrance animation is complete before starting idle behaviors
 let entranceComplete = false;
 let pendingIdleStart = false;
+
+// FIX BUG: Cache reduced motion preference (doesn't change during session)
+let reducedMotionPreference: boolean | null = null;
+
+/**
+ * Check if user prefers reduced motion.
+ * Caches the result since it doesn't change during session.
+ */
+function prefersReducedMotion(): boolean {
+  if (reducedMotionPreference === null) {
+    reducedMotionPreference = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+  return reducedMotionPreference;
+}
 
 // ============================================================================
 // INITIALIZATION
@@ -233,7 +272,7 @@ export function hideStatusWhisper(): void {
   }
 
   // Clear last message after fade out
-  setTimeout(() => {
+  trackedTimeout(() => {
     lastWhisperMessage = null;
   }, 350);
 }
@@ -267,7 +306,7 @@ export function setEntranceComplete(): void {
   if (pendingIdleStart) {
     pendingIdleStart = false;
     // Add a small delay for smoother transition from entrance to idle
-    setTimeout(() => {
+    trackedTimeout(() => {
       startPersonaIdleBehaviors();
     }, 200);
   }
@@ -473,7 +512,7 @@ function startFeedbackAnimation(): boolean {
   registerAnimation(ANIMATION_TARGET_FEEDBACK);
 
   // Auto-unregister after typical feedback duration
-  setTimeout(() => {
+  trackedTimeout(() => {
     unregisterAnimation(ANIMATION_TARGET_FEEDBACK);
   }, DURATION.DRAMATIC);
 
@@ -488,6 +527,12 @@ function startFeedbackAnimation(): boolean {
  */
 export function feedbackSuccess(message?: string): void {
   if (!avatar || !avatarRing) return;
+
+  // FIX BUG: Respect reduced motion preference
+  if (prefersReducedMotion()) {
+    if (message) showStatusWhisper(message, { type: 'success' });
+    return;
+  }
 
   // 🎬 FIX: Ensure clean animation start
   startFeedbackAnimation();
@@ -527,6 +572,12 @@ export function feedbackSuccess(message?: string): void {
  */
 export function feedbackError(message?: string): void {
   if (!avatarContainer || !avatarRing) return;
+
+  // FIX BUG: Respect reduced motion preference
+  if (prefersReducedMotion()) {
+    if (message) showStatusWhisper(message, { type: 'error' });
+    return;
+  }
 
   // 🎬 FIX: Ensure clean animation start
   startFeedbackAnimation();
@@ -572,6 +623,12 @@ export function feedbackError(message?: string): void {
 export function feedbackWarning(message?: string): void {
   if (!avatarContainer || !avatarRing) return;
 
+  // FIX BUG: Respect reduced motion preference
+  if (prefersReducedMotion()) {
+    if (message) showStatusWhisper(message, { type: 'warning' });
+    return;
+  }
+
   // 🎬 FIX: Ensure clean animation start
   startFeedbackAnimation();
 
@@ -610,6 +667,12 @@ export function feedbackWarning(message?: string): void {
  */
 export function feedbackInfo(message?: string): void {
   if (!avatarContainer) return;
+
+  // FIX BUG: Respect reduced motion preference
+  if (prefersReducedMotion()) {
+    if (message) showStatusWhisper(message, { type: 'info' });
+    return;
+  }
 
   // 🎬 FIX: Ensure clean animation start
   startFeedbackAnimation();
@@ -781,6 +844,9 @@ export function feedbackStopThinking(): void {
  */
 export function feedbackMusicPresence(): void {
   if (!avatarContainer || !avatar) return;
+
+  // FIX BUG: Respect reduced motion preference
+  if (prefersReducedMotion()) return;
 
   // Don't double-start
   if (isDancing) return;
@@ -1004,7 +1070,7 @@ export function playPixarReaction(type: PixarReactionType): void {
   log.debug(`🎬 Pixar reaction: ${type}`);
 
   // Remove class after animation completes
-  setTimeout(() => {
+  trackedTimeout(() => {
     avatarContainer?.classList.remove(`react-${type}`);
   }, durations[type] + 50);
 }
@@ -1044,7 +1110,7 @@ export function triggerReaction(reaction: ReactionType): void {
   log.debug(`🎭 Avatar reaction: ${reaction}`);
 
   // Remove class after animation completes (longest is 0.8s)
-  setTimeout(() => {
+  trackedTimeout(() => {
     coach.classList.remove(`reaction-${reaction}`);
   }, 850);
 }
@@ -1065,6 +1131,9 @@ export function triggerRandomReaction(): void {
 // ============================================================================
 
 export function dispose(): void {
+  // FIX BUG: Clear all tracked timeouts first
+  clearAllTrackedTimeouts();
+
   // Stop all animations
   stopPersonaIdleBehaviors();
   feedbackStopDancing();

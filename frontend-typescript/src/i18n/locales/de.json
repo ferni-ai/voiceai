@@ -23,7 +23,12 @@
     "download": "Herunterladen",
     "copy": "Kopieren",
     "copied": "Kopiert!",
-    "new": "NEU"
+    "new": "NEU",
+    "saving": "Speichern...",
+    "saved": "Gespeichert!",
+    "processing": "Verarbeitung...",
+    "adding": "Hinzufügen...",
+    "errorRetry": "Fehler - Erneut versuchen"
   },
   "menu": {
     "title": "Was kommt als Nächstes?",
@@ -362,8 +367,8 @@
         "description": "Avatar mit optionalem Video"
       },
       "avatar": {
-        "label": "",
-        "description": ""
+        "label": "Nur Avatar",
+        "description": "Nur Fernis Avatar, kein Video"
       }
     },
     "quality": {
@@ -389,7 +394,7 @@
     "buttons": {
       "connect": "Verbinden",
       "disconnect": "Trennen",
-      "tryAgain": ""
+      "tryAgain": "Erneut versuchen"
     },
     "features": {
       "stress": "Stresserkennung durch HRV",
@@ -421,12 +426,12 @@
         "description": "Erholung und Belastungsverfolgung"
       },
       "apple_health": {
-        "name": "",
-        "description": ""
+        "name": "Apple Health",
+        "description": "Mit Apple Watch und iPhone Gesundheitsdaten synchronisieren"
       }
     },
     "errors": {
-      "loadFailed": ""
+      "loadFailed": "Wearable-Einstellungen konnten nicht geladen werden"
     }
   },
   "contactSettings": {
@@ -446,6 +451,96 @@
     "unmuteAudio": "Audio aktivieren",
     "endCall": "Anruf beenden",
     "skipToContent": "Zum Hauptinhalt springen",
-    "languageSelector": ""
+    "languageSelector": "Sprache auswählen",
+    "saveConversations": "Speichere deine Unterhaltungen, indem du ein Konto erstellst",
+    "signInToAccount": "Bei deinem Konto anmelden",
+    "accountMenu": "Kontomenü",
+    "refreshData": "Daten aktualisieren",
+    "exportData": "Deine Daten exportieren",
+    "accountSettings": "Kontoeinstellungen",
+    "dismiss": "Schließen",
+    "dismissNotification": "Benachrichtigung schließen",
+    "closeDashboard": "Dashboard schließen",
+    "closeSubscription": "Abo-Optionen schließen",
+    "closeDetails": "Details schließen",
+    "closePublisher": "Publisher-Portal schließen",
+    "closeBilling": "Rechnungs-Dashboard schließen",
+    "closeSettings": "Einstellungen schließen",
+    "closeHistory": "Verlauf schließen",
+    "closeAdmin": "Admin-Panel schließen",
+    "closeHuddle": "Huddle schließen",
+    "closeStats": "Statistiken schließen",
+    "refresh": "Aktualisieren",
+    "backToItems": "Zurück zu den Elementen",
+    "collapse": "Einklappen",
+    "expandGarden": "Gartendetails erweitern",
+    "collapseGarden": "Gartendetails einklappen",
+    "howToPlay": "Spielanleitung",
+    "toggleQuietHours": "Ruhezeiten umschalten",
+    "yourNewPlan": "Dein neuer Plan",
+    "subscriptionPlans": "Abo-Pläne",
+    "options": "Optionen",
+    "featuresIncluded": "Enthaltene Funktionen",
+    "searchCoaches": "Nach Coaches suchen",
+    "filterBySpecialty": "Nach Spezialgebiet filtern",
+    "availableCoaches": "Verfügbare Coaches",
+    "portalSections": "Portal-Bereiche",
+    "submitNewItem": "Neues Element einreichen",
+    "openDailyPractice": "Tägliche Übung öffnen",
+    "openPredictions": "Vorhersagen öffnen",
+    "shareJourney": "Deine Reise teilen",
+    "forgetThis": "Dies vergessen",
+    "cancelInstallation": "Installation abbrechen",
+    "sharedMusicalMemory": "Geteilte musikalische Erinnerung",
+    "viewOutreachSchedule": "Kontaktplan anzeigen",
+    "ferniLogo": "Ferni-Logo"
+  },
+  "buttons": {
+    "signIn": "Anmelden",
+    "signOut": "Abmelden",
+    "signUp": "Registrieren",
+    "savePreferences": "Einstellungen speichern",
+    "savePreference": "Einstellung speichern",
+    "choose": "Diese wählen",
+    "refresh": "Aktualisieren",
+    "exportData": "Daten exportieren"
+  },
+  "mobile": {
+    "pullToConnect": "Ziehen zum Verbinden",
+    "releaseToConnect": "Loslassen zum Verbinden",
+    "pullToRefresh": "Ziehen zum Aktualisieren",
+    "releaseToRefresh": "Loslassen zum Aktualisieren"
+  },
+  "placeholders": {
+    "customAmount": "Benutzerdefinierter Betrag",
+    "searchConversations": "Unterhaltungen durchsuchen...",
+    "enterValue": "Tatsächlichen Wert eingeben",
+    "emailExample": "du@beispiel.de",
+    "phoneExample": "+49 (123) 456-7890",
+    "memberName": "Ihr Name",
+    "householdName": "Familie Müller",
+    "displayName": "Dein bevorzugter Name",
+    "marketplaceSearch": "Wen suchst du?",
+    "codeInput": "• • • • • •",
+    "colleagueEmail": "kollege@firma.com",
+    "welcomeMessageExample": "z.B., Willkommen bei {orgName}! Ferni ist hier, um dein Wachstum und Wohlbefinden zu unterstützen.",
+    "companyValuesExample": "z.B., Integrität, Innovation, Kundenorientierung, Teamarbeit",
+    "toolIdExample": "mein-tolles-tool",
+    "toolNameExample": "Mein Tolles Tool",
+    "versionExample": "1.0.0",
+    "toolDescription": "Was macht dein Tool/Agent?"
+  },
+  "household": {
+    "addToHousehold": "Zum Haushalt hinzufügen",
+    "title": "Haushalt",
+    "members": "Mitglieder",
+    "addMember": "Mitglied hinzufügen",
+    "removeMember": "Mitglied entfernen"
+  },
+  "titles": {
+    "sharedSong": "Ein Lied, das wir teilen",
+    "dailyPractice": "Tägliche Übung",
+    "predictions": "Vorhersagen",
+    "runScenario": "Szenario ausführen"
   }
 }

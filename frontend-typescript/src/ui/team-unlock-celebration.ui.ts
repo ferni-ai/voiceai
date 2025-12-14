@@ -12,6 +12,7 @@
  *   - No emoji, Lucide SVG icons only
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING, STAGGER } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import {
@@ -144,7 +145,7 @@ function createCelebrationModal(member: TeamMemberConfig): HTMLElement {
   container.innerHTML = `
     <div class="unlock-backdrop"></div>
     <div class="unlock-card">
-      <button class="unlock-close" aria-label="Close">
+      <button class="unlock-close" aria-label="${t('common.close')}">
         ${ICONS.close}
       </button>
       

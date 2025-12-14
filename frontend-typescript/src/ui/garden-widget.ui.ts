@@ -7,6 +7,7 @@
  * "Ferni doesn't have a paywall. It has a community."
  */
 
+import { t } from '../i18n/index.js';
 import type {
   GardenStatus,
   UserGarden,
@@ -140,7 +141,7 @@ function renderCompactWidget(): string {
     <div class="garden-widget garden-widget--compact" data-health="${garden.health}">
       <div class="garden-widget__header">
         <span class="garden-widget__title">Ferni's Garden</span>
-        <button class="garden-widget__expand-btn" aria-label="Expand garden details">
+        <button class="garden-widget__expand-btn" aria-label="${t('accessibility.expandGarden')}">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
             <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none"/>
           </svg>
@@ -180,7 +181,7 @@ function renderExpandedWidget(): string {
     <div class="garden-widget garden-widget--expanded" data-health="${garden.health}">
       <div class="garden-widget__header">
         <span class="garden-widget__title">Ferni's Garden</span>
-        <button class="garden-widget__collapse-btn" aria-label="Collapse garden details">
+        <button class="garden-widget__collapse-btn" aria-label="${t('accessibility.collapseGarden')}">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
             <path d="M4 10l4-4 4 4" stroke="currentColor" stroke-width="1.5" fill="none"/>
           </svg>

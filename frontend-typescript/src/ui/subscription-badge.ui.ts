@@ -12,6 +12,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { modalCoordinator } from '../services/modal-coordinator.service.js';
 import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
 import {
@@ -159,6 +160,20 @@ function createBadge(): void {
 
 async function refreshStatus(): Promise<void> {
   try {
+    // FIRST CONVERSATION IS ONBOARDING - hide subscription badge for new users
+    // Don't want to add ANY extra UI elements for first-time users
+    if (!modalCoordinator.hasMinimumConversations(1)) {
+      if (badgeElement) {
+        badgeElement.style.display = 'none';
+      }
+      return;
+    }
+
+    // Show badge for returning users
+    if (badgeElement) {
+      badgeElement.style.display = '';
+    }
+
     // First check trial status (for new users)
     await refreshTrialStatus();
 

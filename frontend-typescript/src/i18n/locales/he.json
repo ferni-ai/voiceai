@@ -23,7 +23,12 @@
     "download": "הורד",
     "copy": "העתק",
     "copied": "הועתק!",
-    "new": "חדש"
+    "new": "חדש",
+    "saving": "שומר...",
+    "saved": "נשמר!",
+    "processing": "מעבד...",
+    "adding": "מוסיף...",
+    "errorRetry": "שגיאה - נסה שוב"
   },
   "menu": {
     "title": "מה הבא?",
@@ -362,8 +367,8 @@
         "description": "אווטאר עם וידאו אופציונלי"
       },
       "avatar": {
-        "label": "",
-        "description": ""
+        "label": "אווטאר בלבד",
+        "description": "רק האווטאר של פרני, ללא וידאו"
       }
     },
     "quality": {
@@ -389,7 +394,7 @@
     "buttons": {
       "connect": "חבר",
       "disconnect": "התנתק",
-      "tryAgain": ""
+      "tryAgain": "נסה שוב"
     },
     "features": {
       "stress": "זיהוי לחץ מ-HRV",
@@ -421,12 +426,12 @@
         "description": "מעקב התאוששות ומאמץ"
       },
       "apple_health": {
-        "name": "",
-        "description": ""
+        "name": "Apple Health",
+        "description": "סנכרון עם נתוני בריאות מ-Apple Watch ו-iPhone"
       }
     },
     "errors": {
-      "loadFailed": ""
+      "loadFailed": "לא ניתן לטעון את הגדרות המכשירים הלבישים"
     }
   },
   "contactSettings": {
@@ -446,6 +451,96 @@
     "unmuteAudio": "בטל השתקה",
     "endCall": "סיים שיחה",
     "skipToContent": "דלג לתוכן הראשי",
-    "languageSelector": ""
+    "languageSelector": "בחר שפה",
+    "saveConversations": "שמור את השיחות שלך על ידי יצירת חשבון",
+    "signInToAccount": "התחבר לחשבון שלך",
+    "accountMenu": "תפריט חשבון",
+    "refreshData": "רענן נתונים",
+    "exportData": "ייצא את הנתונים שלך",
+    "accountSettings": "הגדרות חשבון",
+    "dismiss": "סגור",
+    "dismissNotification": "סגור התראה",
+    "closeDashboard": "סגור לוח בקרה",
+    "closeSubscription": "סגור אפשרויות מנוי",
+    "closeDetails": "סגור פרטים",
+    "closePublisher": "סגור פורטל מפרסם",
+    "closeBilling": "סגור לוח חיוב",
+    "closeSettings": "סגור הגדרות",
+    "closeHistory": "סגור היסטוריה",
+    "closeAdmin": "סגור פאנל ניהול",
+    "closeHuddle": "סגור פגישה",
+    "closeStats": "סגור סטטיסטיקות",
+    "refresh": "רענן",
+    "backToItems": "חזרה לפריטים",
+    "collapse": "כווץ",
+    "expandGarden": "הרחב פרטי גן",
+    "collapseGarden": "כווץ פרטי גן",
+    "howToPlay": "איך לשחק",
+    "toggleQuietHours": "החלף שעות שקט",
+    "yourNewPlan": "התוכנית החדשה שלך",
+    "subscriptionPlans": "תוכניות מנוי",
+    "options": "אפשרויות",
+    "featuresIncluded": "תכונות כלולות",
+    "searchCoaches": "חפש מאמנים",
+    "filterBySpecialty": "סנן לפי התמחות",
+    "availableCoaches": "מאמנים זמינים",
+    "portalSections": "חלקי הפורטל",
+    "submitNewItem": "שלח פריט חדש",
+    "openDailyPractice": "פתח תרגול יומי",
+    "openPredictions": "פתח תחזיות",
+    "shareJourney": "שתף את המסע שלך",
+    "forgetThis": "שכח את זה",
+    "cancelInstallation": "בטל התקנה",
+    "sharedMusicalMemory": "זיכרון מוזיקלי משותף",
+    "viewOutreachSchedule": "צפה בלוח זמני קשר",
+    "ferniLogo": "לוגו פרני"
+  },
+  "buttons": {
+    "signIn": "התחבר",
+    "signOut": "התנתק",
+    "signUp": "הרשמה",
+    "savePreferences": "שמור העדפות",
+    "savePreference": "שמור העדפה",
+    "choose": "בחר זה",
+    "refresh": "רענן",
+    "exportData": "ייצא נתונים"
+  },
+  "mobile": {
+    "pullToConnect": "משוך להתחבר",
+    "releaseToConnect": "שחרר להתחבר",
+    "pullToRefresh": "משוך לרענון",
+    "releaseToRefresh": "שחרר לרענון"
+  },
+  "placeholders": {
+    "customAmount": "סכום מותאם",
+    "searchConversations": "חפש שיחות...",
+    "enterValue": "הזן ערך בפועל",
+    "emailExample": "you@example.com",
+    "phoneExample": "+972 (3) 123-4567",
+    "memberName": "השם שלהם",
+    "householdName": "משפחת כהן",
+    "displayName": "השם המועדף עליך",
+    "marketplaceSearch": "את מי אתה מחפש?",
+    "codeInput": "• • • • • •",
+    "colleagueEmail": "colleague@company.com",
+    "welcomeMessageExample": "לדוגמה, ברוכים הבאים ל-{orgName}! פרני כאן לתמוך בצמיחה וברווחה שלך.",
+    "companyValuesExample": "לדוגמה, יושרה, חדשנות, מיקוד בלקוח, עבודת צוות",
+    "toolIdExample": "my-awesome-tool",
+    "toolNameExample": "הכלי המדהים שלי",
+    "versionExample": "1.0.0",
+    "toolDescription": "מה עושה הכלי/הסוכן שלך?"
+  },
+  "household": {
+    "addToHousehold": "הוסף למשק הבית",
+    "title": "משק בית",
+    "members": "חברים",
+    "addMember": "הוסף חבר",
+    "removeMember": "הסר חבר"
+  },
+  "titles": {
+    "sharedSong": "שיר שאנחנו חולקים",
+    "dailyPractice": "תרגול יומי",
+    "predictions": "תחזיות",
+    "runScenario": "הפעל תרחיש"
   }
 }

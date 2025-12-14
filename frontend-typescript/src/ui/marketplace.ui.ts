@@ -17,6 +17,7 @@
  *   openMarketplace();
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { getPersona, isKnownPersonaId } from '../config/personas.js';
 import { marketplaceService, type MarketplaceAgent } from '../services/marketplace.service.js';
@@ -152,7 +153,7 @@ function ensureModalExists(): HTMLElement {
           <h2 id="marketplace-title" class="marketplace-title">
             Expand your team.
           </h2>
-          <button class="marketplace-close" data-action="close" aria-label="Close">
+          <button class="marketplace-close" data-action="close" aria-label="${t('common.close')}">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -179,11 +180,11 @@ function ensureModalExists(): HTMLElement {
             <input 
               type="search" 
               class="marketplace-search-input" 
-              placeholder="Who are you looking for?" 
-              aria-label="Search for coaches"
+              placeholder="${t('placeholders.marketplaceSearch')}" 
+              aria-label="${t('accessibility.searchCoaches')}"
             >
           </div>
-          <select class="marketplace-category-select" aria-label="Filter by specialty">
+          <select class="marketplace-category-select" aria-label="${t('accessibility.filterBySpecialty')}">
             <option value="">All specialties</option>
             <option value="mentorship">Mentorship</option>
             <option value="finance">Finance</option>
@@ -201,7 +202,7 @@ function ensureModalExists(): HTMLElement {
           <div class="marketplace-spinner"></div>
           <span>Finding coaches...</span>
         </div>
-        <div class="marketplace-grid" role="list" aria-label="Available coaches"></div>
+        <div class="marketplace-grid" role="list" aria-label="${t('accessibility.availableCoaches')}"></div>
         <div class="marketplace-empty">
           <div class="empty-illustration">
             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity="0.4">
@@ -1317,7 +1318,7 @@ function renderDetailPanel(
   detailPanel.innerHTML = `
     <div class="detail-backdrop"></div>
     <div class="detail-panel">
-      <button class="detail-close" aria-label="Close details">
+      <button class="detail-close" aria-label="${t('accessibility.closeDetails')}">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>

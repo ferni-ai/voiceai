@@ -23,7 +23,12 @@
     "download": "下载",
     "copy": "复制",
     "copied": "已复制！",
-    "new": "新"
+    "new": "新",
+    "saving": "保存中...",
+    "saved": "已保存！",
+    "processing": "处理中...",
+    "adding": "添加中...",
+    "errorRetry": "错误 - 重试"
   },
   "menu": {
     "title": "下一步做什么？",
@@ -351,7 +356,7 @@
       "title": "显示模式",
       "avatarOnly": {
         "label": "仅头像",
-        "description": "只有Ferni的头像，无视频"
+        "description": "仅显示Ferni头像，无视频"
       },
       "video": {
         "label": "视频",
@@ -362,8 +367,8 @@
         "description": "带可选视频的头像"
       },
       "avatar": {
-        "label": "",
-        "description": ""
+        "label": "仅头像",
+        "description": "仅显示Ferni头像，无视频"
       }
     },
     "quality": {
@@ -389,7 +394,7 @@
     "buttons": {
       "connect": "连接",
       "disconnect": "断开连接",
-      "tryAgain": ""
+      "tryAgain": "重试"
     },
     "features": {
       "stress": "通过HRV检测压力",
@@ -421,12 +426,12 @@
         "description": "恢复和负荷追踪"
       },
       "apple_health": {
-        "name": "",
-        "description": ""
+        "name": "Apple 健康",
+        "description": "与Apple Watch和iPhone健康数据同步"
       }
     },
     "errors": {
-      "loadFailed": ""
+      "loadFailed": "无法加载可穿戴设备设置"
     }
   },
   "contactSettings": {
@@ -446,6 +451,96 @@
     "unmuteAudio": "取消静音",
     "endCall": "结束通话",
     "skipToContent": "跳到主要内容",
-    "languageSelector": ""
+    "languageSelector": "选择语言",
+    "saveConversations": "创建账户保存您的对话",
+    "signInToAccount": "登录您的账户",
+    "accountMenu": "账户菜单",
+    "refreshData": "刷新数据",
+    "exportData": "导出您的数据",
+    "accountSettings": "账户设置",
+    "dismiss": "关闭",
+    "dismissNotification": "关闭通知",
+    "closeDashboard": "关闭仪表板",
+    "closeSubscription": "关闭订阅选项",
+    "closeDetails": "关闭详情",
+    "closePublisher": "关闭发布者门户",
+    "closeBilling": "关闭账单仪表板",
+    "closeSettings": "关闭设置",
+    "closeHistory": "关闭历史",
+    "closeAdmin": "关闭管理面板",
+    "closeHuddle": "关闭会议",
+    "closeStats": "关闭统计",
+    "refresh": "刷新",
+    "backToItems": "返回项目",
+    "collapse": "收起",
+    "expandGarden": "展开花园详情",
+    "collapseGarden": "收起花园详情",
+    "howToPlay": "如何游玩",
+    "toggleQuietHours": "切换安静时段",
+    "yourNewPlan": "您的新计划",
+    "subscriptionPlans": "订阅计划",
+    "options": "选项",
+    "featuresIncluded": "包含的功能",
+    "searchCoaches": "搜索教练",
+    "filterBySpecialty": "按专业筛选",
+    "availableCoaches": "可用教练",
+    "portalSections": "门户部分",
+    "submitNewItem": "提交新项目",
+    "openDailyPractice": "打开每日练习",
+    "openPredictions": "打开预测",
+    "shareJourney": "分享您的旅程",
+    "forgetThis": "忘记这个",
+    "cancelInstallation": "取消安装",
+    "sharedMusicalMemory": "共享的音乐记忆",
+    "viewOutreachSchedule": "查看联系日程",
+    "ferniLogo": "Ferni标志"
+  },
+  "buttons": {
+    "signIn": "登录",
+    "signOut": "退出登录",
+    "signUp": "注册",
+    "savePreferences": "保存偏好设置",
+    "savePreference": "保存偏好",
+    "choose": "选择此项",
+    "refresh": "刷新",
+    "exportData": "导出数据"
+  },
+  "mobile": {
+    "pullToConnect": "下拉连接",
+    "releaseToConnect": "释放连接",
+    "pullToRefresh": "下拉刷新",
+    "releaseToRefresh": "释放刷新"
+  },
+  "placeholders": {
+    "customAmount": "自定义金额",
+    "searchConversations": "搜索对话...",
+    "enterValue": "输入实际值",
+    "emailExample": "you@example.com",
+    "phoneExample": "+86 (10) 1234-5678",
+    "memberName": "他们的名字",
+    "householdName": "张家",
+    "displayName": "您的昵称",
+    "marketplaceSearch": "您在找谁？",
+    "codeInput": "• • • • • •",
+    "colleagueEmail": "colleague@company.com",
+    "welcomeMessageExample": "例如，欢迎来到{orgName}！Ferni在这里支持您的成长和幸福。",
+    "companyValuesExample": "例如，诚信、创新、客户至上、团队合作",
+    "toolIdExample": "my-awesome-tool",
+    "toolNameExample": "我的优秀工具",
+    "versionExample": "1.0.0",
+    "toolDescription": "您的工具/代理做什么？"
+  },
+  "household": {
+    "addToHousehold": "添加到家庭",
+    "title": "家庭",
+    "members": "成员",
+    "addMember": "添加成员",
+    "removeMember": "移除成员"
+  },
+  "titles": {
+    "sharedSong": "我们共享的歌曲",
+    "dailyPractice": "每日练习",
+    "predictions": "预测",
+    "runScenario": "运行场景"
   }
 }

@@ -1,29 +1,43 @@
 /**
  * Handoff Service
- * 
+ *
  * Manages agent handoffs between personas with delightful transitions.
  * Handles voice switching, UI updates, entrance animations, and sound effects.
- * 
+ *
  * New delightful handoff flow:
  * 1. handoff_acknowledged → Request received
  * 2. handoff_started → Begin visual transition, show loading state
  * 3. handoff_complete → Agent ready, end loading state
  * 4. handoff_failed/cancelled → Error recovery or user abort
- * 
+ *
  * REFACTOR TODO #96: Consider extracting state management into a HandoffStateManager
  * that encapsulates: isTransitioning, targetPersona, lastSeq, handoffPhase, metPersonas,
  * and provides methods for state transitions with validation.
  */
 
-import type { PersonaId } from '../types/persona.js';
-import type { HandoffEvent, NormalizedHandoff, DataMessage } from '../types/events.js';
-import { isHandoffMessage, isHandoffStarted, isHandoffComplete, isHandoffFailed, isHandoffAcknowledged, isHandoffCancelled, isSoftOpenComplete, isStateReset } from '../types/events.js';
-import { normalizeAgentId, getPersona, getTransitionConfig } from '../config/personas.js';
+import {
+  HANDOFF_TIMING,
+  getPostSoundPause,
+  type TransitionStyle,
+} from '../config/handoff-timing.js';
 import { SOUND_EFFECTS } from '../config/index.js';
-import { HANDOFF_TIMING, getPostSoundPause, type TransitionStyle } from '../config/handoff-timing.js';
+import { getPersona, getTransitionConfig, normalizeAgentId } from '../config/personas.js';
 import { appState, setActivePersona } from '../state/app.state.js';
-import { audioService, type SoundEffect } from './audio.service.js';
+import type { DataMessage, HandoffEvent, NormalizedHandoff } from '../types/events.js';
+import {
+  isHandoffAcknowledged,
+  isHandoffCancelled,
+  isHandoffComplete,
+  isHandoffFailed,
+  isHandoffMessage,
+  isHandoffStarted,
+  isSoftOpenComplete,
+  isStateReset,
+} from '../types/events.js';
+import type { PersonaId } from '../types/persona.js';
+import { getHandoffTimeoutMs } from '../utils/environment.js';
 import { createLogger } from '../utils/logger.js';
+import { audioService, type SoundEffect } from './audio.service.js';
 
 const log = createLogger('Handoff');
 
@@ -49,11 +63,19 @@ export interface HandoffBanter {
 /**
  * Handoff phase callbacks for UI state management.
  */
-export type HandoffStartCallback = (toPersona: PersonaId, fromPersona: PersonaId, banter?: HandoffBanter) => void;
+export type HandoffStartCallback = (
+  toPersona: PersonaId,
+  fromPersona: PersonaId,
+  banter?: HandoffBanter
+) => void;
 export type HandoffCompleteCallback = (toPersona: PersonaId) => void;
 export type HandoffFailedCallback = (error: string, targetPersona: PersonaId) => void;
 /** FIX BUG #17: Callback for when backend acknowledges receiving handoff request */
-export type HandoffAcknowledgedCallback = (target: PersonaId, success: boolean, error?: string) => void;
+export type HandoffAcknowledgedCallback = (
+  target: PersonaId,
+  success: boolean,
+  error?: string
+) => void;
 /** FIX BUG #35: Callback for when handoff is rate limited */
 export type HandoffRateLimitedCallback = (remainingMs: number) => void;
 /** FIX BUG #32: Callback for when handoff is cancelled */
@@ -102,10 +124,10 @@ class HandoffService {
    * Imported from shared config to stay in sync with backend HANDOFF_DELAYS.
    */
   private readonly DEBOUNCE_MS = HANDOFF_TIMING.DEBOUNCE_MS;
-  
+
   /** Track which personas we've met this session */
   private metPersonas: Set<PersonaId> = new Set(['ferni']);
-  
+
   /** Track if we're currently in a handoff transition */
   private _isTransitioning = false;
   private _targetPersona: PersonaId | null = null;
@@ -113,10 +135,10 @@ class HandoffService {
   /** FIX BUG #31: Track sequence numbers for ordering and out-of-order detection */
   private lastSeq: number = -1;
   private currentHandoffId: string | null = null;
-  
+
   /** FIX BUG #16: Track handoff phase to detect out-of-order events */
   private _handoffPhase: 'idle' | 'started' | 'complete' | 'failed' = 'idle';
-  
+
   /** FIX BUG #38: Track whether sound has played for current handoff to handle recovery */
   private _soundPlayedForCurrentHandoff = false;
 
@@ -134,7 +156,10 @@ class HandoffService {
    * If backend doesn't respond within timeout, reset transition state
    */
   private _handoffTimeoutId: ReturnType<typeof setTimeout> | null = null;
-  private readonly HANDOFF_TIMEOUT_MS = 15000; // 15 seconds max for handoff
+  // FIX BUG: Make handoff timeout configurable per environment
+  private get HANDOFF_TIMEOUT_MS(): number {
+    return getHandoffTimeoutMs();
+  }
 
   /**
    * WARM HANDOFF: Pending soft_open_complete callback
@@ -148,7 +173,7 @@ class HandoffService {
   get isTransitioning(): boolean {
     return this._isTransitioning;
   }
-  
+
   /**
    * Get the persona we're transitioning to (if any).
    */
@@ -163,7 +188,7 @@ class HandoffService {
     this.callbacks.add(callback);
     return () => this.callbacks.delete(callback);
   }
-  
+
   /**
    * Register a callback for when handoff begins (for loading state).
    */
@@ -171,7 +196,7 @@ class HandoffService {
     this.startCallbacks.add(callback);
     return () => this.startCallbacks.delete(callback);
   }
-  
+
   /**
    * Register a callback for when handoff completes (agent ready).
    */
@@ -179,7 +204,7 @@ class HandoffService {
     this.completeCallbacks.add(callback);
     return () => this.completeCallbacks.delete(callback);
   }
-  
+
   /**
    * Register a callback for when handoff fails (for error recovery).
    */
@@ -226,7 +251,7 @@ class HandoffService {
   /**
    * Process an incoming data message, checking if it's a handoff.
    * Returns a promise that resolves to true if handoff was processed, false otherwise.
-   * 
+   *
    * Handles three message types:
    * - handoff_started: Begin transition, show loading state
    * - handoff_complete: Agent ready, end loading state
@@ -244,7 +269,9 @@ class HandoffService {
     }
 
     if (!isHandoffMessage(message)) {
-      log.debug('Message NOT recognized as handoff:', { type: (message as Record<string, unknown>).type });
+      log.debug('Message NOT recognized as handoff:', {
+        type: (message as Record<string, unknown>).type,
+      });
       return false;
     }
 
@@ -255,7 +282,7 @@ class HandoffService {
     // These are backend responses that MUST be processed to properly reset state
     const messageType = (message as HandoffEvent).type;
     const shouldDebounce = messageType === 'handoff_started' || messageType === 'handoff';
-    
+
     if (shouldDebounce) {
       const now = Date.now();
       if (now - this.lastHandoffTime < this.DEBOUNCE_MS) {
@@ -279,10 +306,10 @@ class HandoffService {
     const agentId = event.newAgent || eventWithTarget.target || '';
     const toPersona = normalizeAgentId(agentId);
     const eventWithPrevious = event as HandoffEvent & { previousAgent?: string };
-    const fromPersona = eventWithPrevious.previousAgent 
+    const fromPersona = eventWithPrevious.previousAgent
       ? normalizeAgentId(eventWithPrevious.previousAgent)
       : appState.get('activePersona').id;
-    
+
     log.debug('Processing event:', { type: event.type, agentId, toPersona, fromPersona });
 
     // FIX BUG #31: Detect out-of-order events using sequence numbers
@@ -293,7 +320,7 @@ class HandoffService {
     if (event.seq !== undefined) {
       this.lastSeq = event.seq;
     }
-    
+
     // Track handoff correlation ID
     if (event.handoffId) {
       this.currentHandoffId = event.handoffId;
@@ -302,13 +329,17 @@ class HandoffService {
     // Handle based on message type
     // FIX BUG #17: Handle acknowledgment first
     if (isHandoffAcknowledged(message)) {
-      const ackEvent = event as HandoffEvent & { target?: string; success?: boolean; error?: string };
+      const ackEvent = event as HandoffEvent & {
+        target?: string;
+        success?: boolean;
+        error?: string;
+      };
       const target = normalizeAgentId(ackEvent.target || ackEvent.newAgent);
       const success = ackEvent.success ?? true;
       const error = ackEvent.error;
-      
+
       log.info('Handoff acknowledged:', { target, success });
-      
+
       // Notify acknowledged callbacks
       for (const callback of this.acknowledgedCallbacks) {
         try {
@@ -319,7 +350,7 @@ class HandoffService {
       }
       return true;
     }
-    
+
     if (isHandoffStarted(message)) {
       // Handoff is starting - show loading state
       this._isTransitioning = true;
@@ -355,7 +386,6 @@ class HandoffService {
       const handoff = this.normalizeHandoff(event);
       await this.handleHandoff(handoff);
       return true;
-
     } else if (isSoftOpenComplete(message)) {
       // WARM HANDOFF: Departing persona finished speaking their warm sendoff.
       // This is the signal to begin the visual transition (avatar swap, roster move).
@@ -365,7 +395,7 @@ class HandoffService {
         log.warn('Received soft_open_complete before handoff_started - queueing until started:', {
           phase: this._handoffPhase,
           toPersona,
-          fromPersona
+          fromPersona,
         });
         // Queue the callback to fire when handoff_started arrives
         // Use a one-time listener on start callbacks
@@ -395,27 +425,34 @@ class HandoffService {
         }
       }
       return true;
-
     } else if (isHandoffComplete(message)) {
       // FIX BUG #16: Check if we got complete before started (out of order)
       if (this._handoffPhase !== 'started') {
-        log.warn('Received handoff_complete in unexpected phase - possible out-of-order delivery:', { phase: this._handoffPhase });
+        log.warn(
+          'Received handoff_complete in unexpected phase - possible out-of-order delivery:',
+          { phase: this._handoffPhase }
+        );
         // Still process it, but log the anomaly
       }
-      
+
       // FIX BUG: Clear timeout since handoff completed successfully
       this.clearHandoffTimeout();
-      
+
       // Handoff completed - agent is ready
-      log.debug('Completing handoff: setting isTransitioning=false', { was: this._isTransitioning });
+      log.debug('Completing handoff: setting isTransitioning=false', {
+        was: this._isTransitioning,
+      });
       this._isTransitioning = false;
       this._targetPersona = null;
       this._handoffPhase = 'complete';
       // FIX BUG #38: Reset sound flag on successful completion
       this._soundPlayedForCurrentHandoff = false;
-      
-      log.debug('State after complete:', { isTransitioning: this._isTransitioning, targetPersona: this._targetPersona });
-      
+
+      log.debug('State after complete:', {
+        isTransitioning: this._isTransitioning,
+        targetPersona: this._targetPersona,
+      });
+
       // Notify complete callbacks
       for (const callback of this.completeCallbacks) {
         try {
@@ -425,15 +462,14 @@ class HandoffService {
         }
       }
       return true;
-      
     } else if (isHandoffFailed(message)) {
       // FIX BUG: Clear timeout on failure
       this.clearHandoffTimeout();
-      
+
       // Handoff failed - recover gracefully
       const errorMsg = (event as HandoffEvent & { error?: string }).error ?? 'Unknown error';
       log.error('Handoff failed:', errorMsg);
-      
+
       // FIX BUG #38: If we already played a handoff sound, play recovery sound
       // so the user knows the transition failed (auditory feedback)
       if (this._soundPlayedForCurrentHandoff) {
@@ -447,11 +483,11 @@ class HandoffService {
         }
         this._soundPlayedForCurrentHandoff = false;
       }
-      
+
       this._isTransitioning = false;
       this._targetPersona = null;
       this._handoffPhase = 'failed';
-      
+
       // Notify failure callbacks
       for (const callback of this.failedCallbacks) {
         try {
@@ -461,11 +497,10 @@ class HandoffService {
         }
       }
       return true;
-      
     } else if (isHandoffCancelled(message)) {
       // FIX BUG: Clear timeout on cancel
       this.clearHandoffTimeout();
-      
+
       // FIX BUG #32: Handoff was cancelled - reset state gracefully
       const reason = (event as HandoffEvent & { reason?: string }).reason ?? 'Cancelled by user';
       log.info('Handoff cancelled:', reason);
@@ -474,7 +509,7 @@ class HandoffService {
       this._handoffPhase = 'idle';
       // FIX BUG #38: Reset sound flag on cancel
       this._soundPlayedForCurrentHandoff = false;
-      
+
       // Notify cancellation callbacks
       for (const callback of this.cancelledCallbacks) {
         try {
@@ -484,7 +519,6 @@ class HandoffService {
         }
       }
       return true;
-      
     } else {
       // Legacy single handoff message - process normally
       const handoff = this.normalizeHandoff(event);
@@ -499,19 +533,22 @@ class HandoffService {
    */
   private checkRateLimit(): number {
     const now = Date.now();
-    
+
     // Reset window if expired
     if (now - this._windowStart > this.RATE_LIMIT_WINDOW_MS) {
       this._requestsInWindow = 0;
       this._windowStart = now;
     }
-    
+
     if (this._requestsInWindow >= this.MAX_REQUESTS_PER_WINDOW) {
       const remainingMs = this.RATE_LIMIT_WINDOW_MS - (now - this._windowStart);
-      log.warn('Handoff rate limited:', { requestsInWindow: this._requestsInWindow, waitMs: remainingMs });
+      log.warn('Handoff rate limited:', {
+        requestsInWindow: this._requestsInWindow,
+        waitMs: remainingMs,
+      });
       return remainingMs;
     }
-    
+
     return 0;
   }
 
@@ -536,23 +573,27 @@ class HandoffService {
   private startHandoffTimeout(targetPersona: PersonaId): void {
     // Clear any existing timeout
     this.clearHandoffTimeout();
-    
+
     // Store the current persona before transition for recovery
     const previousPersona = appState.get('activePersona').id;
-    
+
     this._handoffTimeoutId = setTimeout(() => {
-      log.warn('Handoff timeout - restoring UI:', { targetPersona, timeoutMs: this.HANDOFF_TIMEOUT_MS, previousPersona });
-      
+      log.warn('Handoff timeout - restoring UI:', {
+        targetPersona,
+        timeoutMs: this.HANDOFF_TIMEOUT_MS,
+        previousPersona,
+      });
+
       // Reset transition state
       this._isTransitioning = false;
       this._targetPersona = null;
       this._handoffPhase = 'idle';
       this._soundPlayedForCurrentHandoff = false;
-      
+
       // FIX BUG: Restore the UI to the previous active persona
       // This ensures the button moves back to the correct position
       setActivePersona(previousPersona);
-      
+
       // Notify failed callbacks with timeout error
       for (const callback of this.failedCallbacks) {
         try {
@@ -592,10 +633,10 @@ class HandoffService {
       }
       return;
     }
-    
+
     this.recordRequest();
     const fromPersona = appState.get('activePersona');
-    
+
     const handoff: NormalizedHandoff = {
       fromPersona: fromPersona.id,
       toPersona: toPersonaId,
@@ -615,17 +656,17 @@ class HandoffService {
       log.debug('No handoff in progress to cancel');
       return false;
     }
-    
+
     const cancelledTarget = this._targetPersona;
-    
+
     // Reset transition state
     this._isTransitioning = false;
     this._targetPersona = null;
     this._handoffPhase = 'idle';
     this._soundPlayedForCurrentHandoff = false;
-    
+
     log.info('Handoff cancelled by user:', { target: cancelledTarget });
-    
+
     // Notify cancelled callbacks
     for (const callback of this.cancelledCallbacks) {
       try {
@@ -634,7 +675,7 @@ class HandoffService {
         log.error('Handoff cancelled callback error:', err);
       }
     }
-    
+
     // Optionally notify backend (if it supports cancellation)
     void import('./connection.service.js').then(({ connectionService }) => {
       const room = connectionService.getRoom();
@@ -645,26 +686,25 @@ class HandoffService {
           reason: 'User cancelled',
           timestamp: Date.now(),
         });
-        room.localParticipant.publishData(
-          new TextEncoder().encode(message),
-          { reliable: true }
-        ).catch((err) => log.warn('Failed to notify backend of cancellation:', err));
+        room.localParticipant
+          .publishData(new TextEncoder().encode(message), { reliable: true })
+          .catch((err) => log.warn('Failed to notify backend of cancellation:', err));
       }
     });
-    
+
     return true;
   }
 
   /**
    * Send a handoff request to the backend via data channel.
    * This is the canonical way to initiate a handoff from any UI component.
-   * 
+   *
    * Features:
    * - Rate limiting (800ms debounce)
    * - Persona ID validation
    * - Retry logic (up to 2 retries)
    * - Proper error handling with callbacks
-   * 
+   *
    * @param targetPersonaId - The persona to hand off to
    * @param options - Optional configuration
    * @returns Promise that resolves when request is sent (not when handoff completes)
@@ -712,7 +752,7 @@ class HandoffService {
 
     // Validate persona ID
     const persona = getPersona(targetPersonaId);
-    if (!persona || persona.id === 'ferni' && targetPersonaId !== 'ferni') {
+    if (!persona || (persona.id === 'ferni' && targetPersonaId !== 'ferni')) {
       const error = new Error(`Invalid persona ID: ${targetPersonaId}`);
       log.error('Invalid handoff target:', { targetPersonaId });
       onFailure?.(error);
@@ -721,9 +761,9 @@ class HandoffService {
 
     // Check if already transitioning
     if (this._isTransitioning) {
-      log.warn('Handoff already in progress, ignoring request:', { 
-        current: this._targetPersona, 
-        requested: targetPersonaId 
+      log.warn('Handoff already in progress, ignoring request:', {
+        current: this._targetPersona,
+        requested: targetPersonaId,
       });
       return false;
     }
@@ -759,26 +799,29 @@ class HandoffService {
         });
 
         log.info('Handoff request sent successfully:', { target: targetPersonaId });
-        
+
         // Start timeout for handoff completion
         this.startHandoffTimeout(targetPersonaId);
-        
+
         return true;
       } catch (err) {
         if (attempt < MAX_RETRIES) {
-          log.warn('Handoff request failed, retrying:', { attempt: attempt + 1, error: String(err) });
-          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+          log.warn('Handoff request failed, retrying:', {
+            attempt: attempt + 1,
+            error: String(err),
+          });
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
           return attemptSend(attempt + 1);
         }
 
         // All retries failed
         const error = err instanceof Error ? err : new Error(String(err));
         log.error('Handoff request failed after all retries:', { error: error.message });
-        
+
         // Reset state
         this._isTransitioning = false;
         this._targetPersona = null;
-        
+
         // Notify failure
         onFailure?.(error);
         for (const callback of this.failedCallbacks) {
@@ -788,7 +831,7 @@ class HandoffService {
             log.error('Failed callback error:', cbErr);
           }
         }
-        
+
         return false;
       }
     };
@@ -877,18 +920,18 @@ class HandoffService {
   private normalizeHandoff(event: HandoffEvent): NormalizedHandoff {
     // Use previousAgent from event if available, otherwise get from current state
     const eventWithPrevious = event as HandoffEvent & { previousAgent?: string };
-    const fromPersona = eventWithPrevious.previousAgent 
+    const fromPersona = eventWithPrevious.previousAgent
       ? normalizeAgentId(eventWithPrevious.previousAgent)
       : appState.get('activePersona').id;
     const toPersona = normalizeAgentId(event.newAgent);
-    
-    log.debug('Normalizing handoff:', { 
-      rawNewAgent: event.newAgent, 
+
+    log.debug('Normalizing handoff:', {
+      rawNewAgent: event.newAgent,
       normalizedTo: toPersona,
       rawPreviousAgent: eventWithPrevious.previousAgent,
       normalizedFrom: fromPersona,
     });
-    
+
     return {
       fromPersona,
       toPersona,
@@ -902,10 +945,7 @@ class HandoffService {
    * REFACTORED: Now fully role-based, no hardcoded persona IDs.
    * Direction determines sound effects and animation style.
    */
-  private determineDirection(
-    from: PersonaId,
-    to: PersonaId
-  ): NormalizedHandoff['direction'] {
+  private determineDirection(from: PersonaId, to: PersonaId): NormalizedHandoff['direction'] {
     const fromPersona = getPersona(from);
     const toPersona = getPersona(to);
 
@@ -947,31 +987,30 @@ class HandoffService {
 
   /**
    * Handle a normalized handoff event.
-   * 
+   *
    * Orchestrates a smooth, human-like transition:
    * 1. Log and validate the handoff
    * 2. Track persona meeting history
    * 3. Play transition sound → wait for completion → pause
    * 4. Update UI state
    * 5. Notify callbacks for additional UI updates
-   * 
+   *
    * The timing creates: Sound → Pause → UI Update → Voice
    * This feels natural, like a person taking a breath before speaking.
    */
   private async handleHandoff(handoff: NormalizedHandoff): Promise<void> {
     const toPersona = getPersona(handoff.toPersona);
     const isFirstMeeting = !this.metPersonas.has(handoff.toPersona);
-    
 
     // Track that we've met this persona
     this.metPersonas.add(handoff.toPersona);
 
     // Calculate post-sound pause for human-like timing
     const pauseAfterSound = this.calculatePauseAfterSound(handoff.direction, isFirstMeeting);
-    
+
     // FIX BUG #38: Mark that we're about to play a sound for this handoff
     this._soundPlayedForCurrentHandoff = true;
-    
+
     // Play sound and WAIT for it to finish, then pause
     await this.playHandoffSoundWithTiming(handoff, isFirstMeeting, pauseAfterSound);
 
@@ -1001,7 +1040,10 @@ class HandoffService {
    *
    * REFACTORED: Now uses shared timing function from handoff-timing.ts.
    */
-  private calculatePauseAfterSound(direction: NormalizedHandoff['direction'], isFirstMeeting: boolean): number {
+  private calculatePauseAfterSound(
+    direction: NormalizedHandoff['direction'],
+    isFirstMeeting: boolean
+  ): number {
     // Determine transition style from direction
     const style: TransitionStyle = direction === 'jack-to-peter' ? 'dramatic' : 'standard';
 
@@ -1014,13 +1056,13 @@ class HandoffService {
    * Returns a promise that resolves after sound + pause.
    */
   private async playHandoffSoundWithTiming(
-    handoff: NormalizedHandoff, 
+    handoff: NormalizedHandoff,
     isFirstMeeting: boolean,
     pauseAfterMs: number
   ): Promise<void> {
     const toPersona = getPersona(handoff.toPersona);
     let soundToPlay: SoundEffect;
-    
+
     // FIX BUG #23 & #98: Use constants instead of string literals
     // Use persona-specific sound if available
     if (toPersona.handoffSound) {
@@ -1047,7 +1089,7 @@ class HandoffService {
           soundToPlay = SOUND_EFFECTS.CONNECT as SoundEffect;
       }
     }
-    
+
     // Play sound, wait for it to finish, then add the pause
     await audioService.playHandoffSound(soundToPlay, pauseAfterMs);
   }

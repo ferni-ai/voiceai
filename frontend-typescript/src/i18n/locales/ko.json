@@ -23,7 +23,12 @@
     "download": "다운로드",
     "copy": "복사",
     "copied": "복사됨!",
-    "new": "새로운"
+    "new": "새로운",
+    "saving": "저장 중...",
+    "saved": "저장됨!",
+    "processing": "처리 중...",
+    "adding": "추가 중...",
+    "errorRetry": "오류 - 다시 시도"
   },
   "menu": {
     "title": "다음은 무엇인가요?",
@@ -351,7 +356,7 @@
       "title": "디스플레이 모드",
       "avatarOnly": {
         "label": "아바타만",
-        "description": "Ferni의 아바타만, 비디오 없음"
+        "description": "Ferni 아바타만, 비디오 없음"
       },
       "video": {
         "label": "비디오",
@@ -362,8 +367,8 @@
         "description": "선택적 비디오가 있는 아바타"
       },
       "avatar": {
-        "label": "",
-        "description": ""
+        "label": "아바타만",
+        "description": "Ferni 아바타만, 비디오 없음"
       }
     },
     "quality": {
@@ -389,7 +394,7 @@
     "buttons": {
       "connect": "연결",
       "disconnect": "연결 해제",
-      "tryAgain": ""
+      "tryAgain": "다시 시도"
     },
     "features": {
       "stress": "HRV를 통한 스트레스 감지",
@@ -421,12 +426,12 @@
         "description": "회복 및 부담 추적"
       },
       "apple_health": {
-        "name": "",
-        "description": ""
+        "name": "Apple Health",
+        "description": "Apple Watch 및 iPhone 건강 데이터와 동기화"
       }
     },
     "errors": {
-      "loadFailed": ""
+      "loadFailed": "웨어러블 설정을 불러올 수 없습니다"
     }
   },
   "contactSettings": {
@@ -446,6 +451,96 @@
     "unmuteAudio": "오디오 음소거 해제",
     "endCall": "통화 종료",
     "skipToContent": "본문으로 건너뛰기",
-    "languageSelector": ""
+    "languageSelector": "언어 선택",
+    "saveConversations": "계정을 만들어 대화를 저장하세요",
+    "signInToAccount": "계정에 로그인",
+    "accountMenu": "계정 메뉴",
+    "refreshData": "데이터 새로고침",
+    "exportData": "데이터 내보내기",
+    "accountSettings": "계정 설정",
+    "dismiss": "닫기",
+    "dismissNotification": "알림 닫기",
+    "closeDashboard": "대시보드 닫기",
+    "closeSubscription": "구독 옵션 닫기",
+    "closeDetails": "세부정보 닫기",
+    "closePublisher": "퍼블리셔 포털 닫기",
+    "closeBilling": "청구 대시보드 닫기",
+    "closeSettings": "설정 닫기",
+    "closeHistory": "기록 닫기",
+    "closeAdmin": "관리자 패널 닫기",
+    "closeHuddle": "허들 닫기",
+    "closeStats": "통계 닫기",
+    "refresh": "새로고침",
+    "backToItems": "항목으로 돌아가기",
+    "collapse": "접기",
+    "expandGarden": "정원 세부정보 펼치기",
+    "collapseGarden": "정원 세부정보 접기",
+    "howToPlay": "플레이 방법",
+    "toggleQuietHours": "조용한 시간 전환",
+    "yourNewPlan": "새 요금제",
+    "subscriptionPlans": "구독 요금제",
+    "options": "옵션",
+    "featuresIncluded": "포함된 기능",
+    "searchCoaches": "코치 검색",
+    "filterBySpecialty": "전문 분야로 필터",
+    "availableCoaches": "이용 가능한 코치",
+    "portalSections": "포털 섹션",
+    "submitNewItem": "새 항목 제출",
+    "openDailyPractice": "일일 연습 열기",
+    "openPredictions": "예측 열기",
+    "shareJourney": "여정 공유",
+    "forgetThis": "이것을 잊기",
+    "cancelInstallation": "설치 취소",
+    "sharedMusicalMemory": "공유된 음악 기억",
+    "viewOutreachSchedule": "연락 일정 보기",
+    "ferniLogo": "Ferni 로고"
+  },
+  "buttons": {
+    "signIn": "로그인",
+    "signOut": "로그아웃",
+    "signUp": "가입",
+    "savePreferences": "환경설정 저장",
+    "savePreference": "환경설정 저장",
+    "choose": "선택",
+    "refresh": "새로고침",
+    "exportData": "데이터 내보내기"
+  },
+  "mobile": {
+    "pullToConnect": "당겨서 연결",
+    "releaseToConnect": "놓아서 연결",
+    "pullToRefresh": "당겨서 새로고침",
+    "releaseToRefresh": "놓아서 새로고침"
+  },
+  "placeholders": {
+    "customAmount": "사용자 지정 금액",
+    "searchConversations": "대화 검색...",
+    "enterValue": "실제 값 입력",
+    "emailExample": "you@example.com",
+    "phoneExample": "+82 (2) 1234-5678",
+    "memberName": "이름",
+    "householdName": "김씨 가족",
+    "displayName": "선호하는 이름",
+    "marketplaceSearch": "누구를 찾고 계신가요?",
+    "codeInput": "• • • • • •",
+    "colleagueEmail": "colleague@company.com",
+    "welcomeMessageExample": "예: {orgName}에 오신 것을 환영합니다! Ferni가 당신의 성장과 웰빙을 지원합니다.",
+    "companyValuesExample": "예: 성실, 혁신, 고객 중심, 팀워크",
+    "toolIdExample": "my-awesome-tool",
+    "toolNameExample": "나의 멋진 도구",
+    "versionExample": "1.0.0",
+    "toolDescription": "당신의 도구/에이전트는 무엇을 하나요?"
+  },
+  "household": {
+    "addToHousehold": "가구에 추가",
+    "title": "가구",
+    "members": "구성원",
+    "addMember": "구성원 추가",
+    "removeMember": "구성원 제거"
+  },
+  "titles": {
+    "sharedSong": "우리가 함께하는 노래",
+    "dailyPractice": "일일 연습",
+    "predictions": "예측",
+    "runScenario": "시나리오 실행"
   }
 }

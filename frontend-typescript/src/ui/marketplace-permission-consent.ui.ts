@@ -17,6 +17,7 @@
  *   - Respects prefers-reduced-motion
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
@@ -432,7 +433,7 @@ function createModal(item: MarketplaceItem): HTMLElement {
   el.innerHTML = `
     <div class="consent-backdrop" aria-hidden="true"></div>
     <div class="consent-panel">
-      <button class="consent-close" aria-label="Cancel installation">
+      <button class="consent-close" aria-label="${t('accessibility.cancelInstallation')}">
         ${ICONS.close}
       </button>
 

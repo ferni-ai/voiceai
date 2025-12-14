@@ -1,12 +1,12 @@
 /**
  * Environment Detection Utility
- * 
+ *
  * Centralized utility for detecting runtime environment (development vs production).
  * Use this throughout the frontend for consistent environment-aware behavior.
- * 
+ *
  * Usage:
  *   import { isDevelopment, isProduction, getEnvironment } from '../utils/environment.js';
- *   
+ *
  *   if (isDevelopment()) {
  *     // Dev-only behavior
  *   }
@@ -40,7 +40,7 @@ interface ViteImportMeta {
 
 /**
  * Detect the current runtime environment.
- * 
+ *
  * Detection order:
  * 1. Vite's import.meta.env.MODE (if available)
  * 2. Hostname-based detection (localhost = dev)
@@ -55,22 +55,26 @@ export function getEnvironment(): Environment {
     if (mode === 'staging') return 'staging';
     return 'production';
   }
-  
+
   // Fall back to hostname detection
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    
+
     // Development hostnames
     if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.')) {
       return 'development';
     }
-    
+
     // Staging hostnames (customize as needed)
-    if (hostname.includes('staging') || hostname.includes('preview') || hostname.includes('-dev.')) {
+    if (
+      hostname.includes('staging') ||
+      hostname.includes('preview') ||
+      hostname.includes('-dev.')
+    ) {
       return 'staging';
     }
   }
-  
+
   // Default to production (fail-safe for user-facing code)
   return 'production';
 }
@@ -128,7 +132,7 @@ export function isNonProduction(): boolean {
 
 /**
  * Check if demo/mock data should be used.
- * 
+ *
  * Returns true in development, or when explicitly enabled via localStorage.
  * In production, NEVER returns true unless explicitly overridden.
  */
@@ -141,7 +145,7 @@ export function shouldUseDemoData(): boolean {
   } catch {
     // localStorage not available
   }
-  
+
   // Default: demo data only in development
   return isDevelopment();
 }
@@ -158,9 +162,48 @@ export function shouldShowDebugFeatures(): boolean {
   } catch {
     // localStorage not available
   }
-  
+
   // Default: debug features in development and staging
   return isNonProduction();
+}
+
+// ============================================================================
+// TIMING CONFIGURATION
+// ============================================================================
+
+/**
+ * Get handoff timeout based on environment.
+ * Development: 8 seconds (faster iteration)
+ * Staging: 12 seconds (slightly longer for testing)
+ * Production: 15 seconds (account for real network conditions)
+ */
+export function getHandoffTimeoutMs(): number {
+  const env = getCachedEnvironment();
+  switch (env) {
+    case 'development':
+      return 8_000;
+    case 'staging':
+      return 12_000;
+    case 'production':
+    default:
+      return 15_000;
+  }
+}
+
+/**
+ * Get cameo timeout based on environment.
+ */
+export function getCameoTimeoutMs(): number {
+  const env = getCachedEnvironment();
+  switch (env) {
+    case 'development':
+      return 20_000;
+    case 'staging':
+      return 25_000;
+    case 'production':
+    default:
+      return 30_000;
+  }
 }
 
 // ============================================================================
@@ -220,4 +263,3 @@ export default {
   enableDemoDataOverride,
   disableDemoDataOverride,
 };
-

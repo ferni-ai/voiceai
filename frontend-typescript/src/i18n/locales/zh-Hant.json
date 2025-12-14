@@ -23,7 +23,12 @@
     "download": "下載",
     "copy": "複製",
     "copied": "已複製！",
-    "new": "新"
+    "new": "新",
+    "saving": "儲存中...",
+    "saved": "已儲存！",
+    "processing": "處理中...",
+    "adding": "新增中...",
+    "errorRetry": "錯誤 - 重試"
   },
   "menu": {
     "title": "下一步做什麼？",
@@ -351,7 +356,7 @@
       "title": "顯示模式",
       "avatarOnly": {
         "label": "僅頭像",
-        "description": "只有Ferni的頭像，無視訊"
+        "description": "僅顯示Ferni頭像，無視訊"
       },
       "video": {
         "label": "視訊",
@@ -362,8 +367,8 @@
         "description": "帶可選視訊的頭像"
       },
       "avatar": {
-        "label": "",
-        "description": ""
+        "label": "僅頭像",
+        "description": "僅顯示Ferni頭像，無視訊"
       }
     },
     "quality": {
@@ -389,7 +394,7 @@
     "buttons": {
       "connect": "連結",
       "disconnect": "中斷連結",
-      "tryAgain": ""
+      "tryAgain": "重試"
     },
     "features": {
       "stress": "透過HRV檢測壓力",
@@ -421,12 +426,12 @@
         "description": "恢復和負荷追蹤"
       },
       "apple_health": {
-        "name": "",
-        "description": ""
+        "name": "Apple 健康",
+        "description": "與Apple Watch和iPhone健康資料同步"
       }
     },
     "errors": {
-      "loadFailed": ""
+      "loadFailed": "無法載入穿戴式裝置設定"
     }
   },
   "contactSettings": {
@@ -446,6 +451,96 @@
     "unmuteAudio": "取消靜音",
     "endCall": "結束通話",
     "skipToContent": "跳到主要內容",
-    "languageSelector": ""
+    "languageSelector": "選擇語言",
+    "saveConversations": "建立帳號以儲存您的對話",
+    "signInToAccount": "登入您的帳號",
+    "accountMenu": "帳號選單",
+    "refreshData": "重新整理資料",
+    "exportData": "匯出您的資料",
+    "accountSettings": "帳號設定",
+    "dismiss": "關閉",
+    "dismissNotification": "關閉通知",
+    "closeDashboard": "關閉儀表板",
+    "closeSubscription": "關閉訂閱選項",
+    "closeDetails": "關閉詳情",
+    "closePublisher": "關閉發布者入口",
+    "closeBilling": "關閉帳單儀表板",
+    "closeSettings": "關閉設定",
+    "closeHistory": "關閉歷史",
+    "closeAdmin": "關閉管理面板",
+    "closeHuddle": "關閉會議",
+    "closeStats": "關閉統計",
+    "refresh": "重新整理",
+    "backToItems": "返回項目",
+    "collapse": "收合",
+    "expandGarden": "展開花園詳情",
+    "collapseGarden": "收合花園詳情",
+    "howToPlay": "如何遊玩",
+    "toggleQuietHours": "切換安靜時段",
+    "yourNewPlan": "您的新方案",
+    "subscriptionPlans": "訂閱方案",
+    "options": "選項",
+    "featuresIncluded": "包含的功能",
+    "searchCoaches": "搜尋教練",
+    "filterBySpecialty": "按專業篩選",
+    "availableCoaches": "可用教練",
+    "portalSections": "入口部分",
+    "submitNewItem": "提交新項目",
+    "openDailyPractice": "開啟每日練習",
+    "openPredictions": "開啟預測",
+    "shareJourney": "分享您的旅程",
+    "forgetThis": "忘記這個",
+    "cancelInstallation": "取消安裝",
+    "sharedMusicalMemory": "共享的音樂記憶",
+    "viewOutreachSchedule": "查看聯繫日程",
+    "ferniLogo": "Ferni標誌"
+  },
+  "buttons": {
+    "signIn": "登入",
+    "signOut": "登出",
+    "signUp": "註冊",
+    "savePreferences": "儲存偏好設定",
+    "savePreference": "儲存偏好",
+    "choose": "選擇此項",
+    "refresh": "重新整理",
+    "exportData": "匯出資料"
+  },
+  "mobile": {
+    "pullToConnect": "下拉連接",
+    "releaseToConnect": "放開連接",
+    "pullToRefresh": "下拉重新整理",
+    "releaseToRefresh": "放開重新整理"
+  },
+  "placeholders": {
+    "customAmount": "自訂金額",
+    "searchConversations": "搜尋對話...",
+    "enterValue": "輸入實際值",
+    "emailExample": "you@example.com",
+    "phoneExample": "+886 (2) 1234-5678",
+    "memberName": "他們的名字",
+    "householdName": "王家",
+    "displayName": "您的暱稱",
+    "marketplaceSearch": "您在找誰？",
+    "codeInput": "• • • • • •",
+    "colleagueEmail": "colleague@company.com",
+    "welcomeMessageExample": "例如，歡迎來到{orgName}！Ferni在這裡支持您的成長和幸福。",
+    "companyValuesExample": "例如，誠信、創新、客戶至上、團隊合作",
+    "toolIdExample": "my-awesome-tool",
+    "toolNameExample": "我的優秀工具",
+    "versionExample": "1.0.0",
+    "toolDescription": "您的工具/代理做什麼？"
+  },
+  "household": {
+    "addToHousehold": "新增至家庭",
+    "title": "家庭",
+    "members": "成員",
+    "addMember": "新增成員",
+    "removeMember": "移除成員"
+  },
+  "titles": {
+    "sharedSong": "我們共享的歌曲",
+    "dailyPractice": "每日練習",
+    "predictions": "預測",
+    "runScenario": "執行場景"
   }
 }

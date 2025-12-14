@@ -384,7 +384,10 @@ class CameoService {
       }
     }
 
-    log.info('🎬 Cameo callbacks fired', { personaId, duration: Date.now() - this.state.startTime! });
+    log.info('🎬 Cameo callbacks fired', {
+      personaId,
+      duration: Date.now() - this.state.startTime!,
+    });
   }
 
   /**
@@ -542,9 +545,15 @@ class CameoService {
   /**
    * Force cleanup of orphaned cameo state
    * Called by timeout or when page visibility changes
+   *
+   * NOTE: This does not notify the backend to switch voice back.
+   * The backend has its own max duration timeout that will handle voice recovery.
+   * If backend gets out of sync, the next handoff/cameo will reset state.
    */
   private forceCleanup(): void {
-    log.info('🎬 Forcing cameo cleanup');
+    log.warn(
+      '🎬 Forcing cameo cleanup (frontend timeout - backend voice may still be cameo persona)'
+    );
 
     // Reset state
     this.state.isActive = false;
@@ -605,8 +614,9 @@ class CameoService {
         await audioService.playSound(sound);
         log.debug('Played cameo arrival sound', { sound });
         return;
-      } catch {
-        // Try next sound
+      } catch (soundErr) {
+        // FIX BUG: Log failed attempt for debugging
+        log.debug('Cameo arrival sound failed, trying next:', { sound, error: String(soundErr) });
       }
     }
     log.warn('No cameo arrival sound available');
@@ -643,8 +653,9 @@ class CameoService {
         await audioService.playSound(sound);
         log.debug('Played cameo return sound', { sound });
         return;
-      } catch {
-        // Try next sound
+      } catch (soundErr) {
+        // FIX BUG: Log failed attempt for debugging
+        log.debug('Cameo return sound failed, trying next:', { sound, error: String(soundErr) });
       }
     }
     log.warn('No cameo return sound available');

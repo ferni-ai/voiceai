@@ -11,6 +11,7 @@
  * @module @ferni/household-manager
  */
 
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet, apiPost, apiDelete } from '../utils/api.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
@@ -896,7 +897,7 @@ function createModal(): void {
         <p class="household-modal__eyebrow">Your People</p>
         <h2 id="household-title" class="household-modal__title">Your Household</h2>
         <p class="household-modal__subtitle">Everyone who talks to me here</p>
-        <button class="household-modal__close" aria-label="Close">${ICONS.close}</button>
+        <button class="household-modal__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
       <div class="household-modal__content" id="household-content">
         <div class="household-loading">
@@ -1008,7 +1009,7 @@ function renderMainView(content: HTMLElement): void {
             type="text" 
             class="household-add-form__input" 
             id="member-name" 
-            placeholder="Their name"
+            placeholder="${t('placeholders.memberName')}"
             autocomplete="off"
           />
           <select class="household-add-form__select" id="member-role">
@@ -1088,7 +1089,7 @@ function renderCreateForm(content: HTMLElement): void {
           type="text" 
           class="household-create-form__input" 
           id="household-name" 
-          placeholder="The Smith Family"
+          placeholder="${t('placeholders.householdName')}"
           autocomplete="off"
           autofocus
         />
@@ -1270,7 +1271,7 @@ async function handleAddMember(): Promise<void> {
   const addBtn = document.querySelector('[data-action="add-member"]') as HTMLButtonElement;
   if (addBtn) {
     addBtn.disabled = true;
-    addBtn.textContent = 'Adding...';
+    addBtn.textContent = t('common.adding');
   }
 
   // Generate a unique user ID for the new member
@@ -1299,7 +1300,7 @@ async function handleAddMember(): Promise<void> {
   // Re-enable button
   if (addBtn) {
     addBtn.disabled = false;
-    addBtn.textContent = 'Add to Household';
+    addBtn.textContent = t('household.addToHousehold');
   }
 }
 

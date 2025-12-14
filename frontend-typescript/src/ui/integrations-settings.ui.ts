@@ -15,6 +15,7 @@
  *   - Visual indicators of capabilities unlocked
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet } from '../utils/api.js';
 
@@ -206,7 +207,7 @@ class IntegrationsSettingsUI {
               <p class="integrations-settings__subtitle">Give Ferni superhuman awareness</p>
             </div>
           </div>
-          <button class="integrations-settings__close" aria-label="Close">${ICONS.close}</button>
+          <button class="integrations-settings__close" aria-label="${t('common.close')}">${ICONS.close}</button>
         </header>
 
         <div class="integrations-settings__capabilities-bar">

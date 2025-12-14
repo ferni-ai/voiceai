@@ -1,20 +1,20 @@
 /**
  * Feature Discovery Hints
- * 
+ *
  * Contextual hints that help users discover newly unlocked features.
  * Instead of making users stumble upon features, we gently guide them.
- * 
+ *
  * DESIGN PHILOSOPHY:
  * - Non-intrusive - hints appear near relevant UI elements
  * - Dismissible and remembers what's been seen
  * - Appears at the right time (after feature unlocks)
  * - Warm, inviting language ("Want to try?", not "Click here")
- * 
+ *
  * HINT TYPES:
  * - Tooltip hints: Appear near a specific element
  * - Spotlight hints: Highlight an element with a pulsing ring
  * - Card hints: Small floating cards with more context
- * 
+ *
  * BRAND COMPLIANCE:
  * - Ferni's sage green for accent
  * - Warm, human copy
@@ -22,9 +22,14 @@
  * - Lucide icons
  */
 
-import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
-import { relationshipStageService, type RelationshipStage } from '../services/relationship-stage.service.js';
+import { modalCoordinator } from '../services/modal-coordinator.service.js';
+import {
+  relationshipStageService,
+  type RelationshipStage,
+} from '../services/relationship-stage.service.js';
+import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('FeatureHints');
 
@@ -82,46 +87,47 @@ export const FEATURE_HINTS: FeatureHint[] = [
     showOnce: true,
     priority: 10,
   },
-  
+
   // Custom rituals hint - unlocks at getting-started
   {
     id: 'custom-rituals-intro',
     type: 'card',
     targetSelector: '[data-feature="rituals"], .ritual-builder-trigger',
     title: 'Create your own rituals',
-    message: "You can now create custom daily practices. What small habit would help you most?",
+    message: 'You can now create custom daily practices. What small habit would help you most?',
     ctaText: 'Create a ritual',
     minStage: 'getting-started',
     showOnce: true,
     showAfterDelay: 2000,
     priority: 8,
   },
-  
+
   // Memory timeline hint - unlocks at building-trust
   {
     id: 'memory-timeline-intro',
     type: 'tooltip',
     targetSelector: '[data-feature="journey"], .journey-trigger, .relationship-progress',
     title: 'See our journey',
-    message: 'Tap here to see the meaningful moments we\'ve shared.',
+    message: "Tap here to see the meaningful moments we've shared.",
     minStage: 'building-trust',
     showOnce: true,
     priority: 7,
   },
-  
+
   // Trust journey hint - unlocks at established
   {
     id: 'trust-journey-intro',
     type: 'spotlight',
     targetSelector: '[data-feature="trust-journey"]',
     title: 'Your Trust Journey',
-    message: "See how our relationship has grown - your growth moments, boundaries I've respected, and wins we've celebrated.",
+    message:
+      "See how our relationship has grown - your growth moments, boundaries I've respected, and wins we've celebrated.",
     ctaText: 'Explore',
     minStage: 'established',
     showOnce: true,
     priority: 9,
   },
-  
+
   // Settings hint for new users
   {
     id: 'settings-intro',
@@ -134,7 +140,7 @@ export const FEATURE_HINTS: FeatureHint[] = [
     showAfterDelay: 5000,
     priority: 3,
   },
-  
+
   // Spotify integration hint
   {
     id: 'spotify-intro',
@@ -170,32 +176,32 @@ let checkInterval: ReturnType<typeof setInterval> | null = null;
  */
 export function initFeatureHints(): void {
   if (isInitialized) return;
-  
+
   cleanupOrphanedElements();
   injectStyles();
   createContainer();
   loadDismissedHints();
-  
+
   // Start checking for hint opportunities
   checkInterval = setInterval(checkForHintOpportunities, 2000);
-  
+
   // Also check on stage changes
   relationshipStageService.onStageChange(() => {
     setTimeout(checkForHintOpportunities, 1000);
   });
-  
+
   // Initial check
   setTimeout(checkForHintOpportunities, 1000);
-  
+
   isInitialized = true;
   log.debug('Feature hints system initialized');
 }
 
 function cleanupOrphanedElements(): void {
-  document.querySelectorAll('.feature-hints-container').forEach(el => el.remove());
-  document.querySelectorAll('.feature-hint').forEach(el => el.remove());
-  document.querySelectorAll('.feature-spotlight').forEach(el => el.remove());
-  document.querySelectorAll('#feature-hints-styles').forEach(el => el.remove());
+  document.querySelectorAll('.feature-hints-container').forEach((el) => el.remove());
+  document.querySelectorAll('.feature-hint').forEach((el) => el.remove());
+  document.querySelectorAll('.feature-spotlight').forEach((el) => el.remove());
+  document.querySelectorAll('#feature-hints-styles').forEach((el) => el.remove());
 }
 
 function createContainer(): void {
@@ -213,7 +219,7 @@ function createContainer(): void {
  * Register a custom hint.
  */
 export function registerHint(hint: FeatureHint): void {
-  const exists = registeredHints.some(h => h.id === hint.id);
+  const exists = registeredHints.some((h) => h.id === hint.id);
   if (!exists) {
     registeredHints.push(hint);
     log.debug('Hint registered', { id: hint.id });
@@ -224,12 +230,12 @@ export function registerHint(hint: FeatureHint): void {
  * Show a specific hint by ID.
  */
 export function showHint(hintId: string): void {
-  const hint = registeredHints.find(h => h.id === hintId);
+  const hint = registeredHints.find((h) => h.id === hintId);
   if (!hint) {
     log.warn('Hint not found', { hintId });
     return;
   }
-  
+
   displayHint(hint);
 }
 
@@ -239,17 +245,22 @@ export function showHint(hintId: string): void {
 export function dismissHint(hintId: string): void {
   const active = activeHints.get(hintId);
   if (!active) return;
-  
+
+  // Release modal coordinator lock
+  modalCoordinator.release(`hint-${hintId}`);
+
   animateOut(active.element).then(() => {
     active.element.remove();
-    
+
     // Remove spotlight if any
-    document.querySelectorAll(`.feature-spotlight[data-hint-id="${hintId}"]`).forEach(el => el.remove());
-    
+    document
+      .querySelectorAll(`.feature-spotlight[data-hint-id="${hintId}"]`)
+      .forEach((el) => el.remove());
+
     activeHints.delete(hintId);
-    
+
     // Mark as dismissed if showOnce
-    const hint = registeredHints.find(h => h.id === hintId);
+    const hint = registeredHints.find((h) => h.id === hintId);
     if (hint?.showOnce) {
       dismissedHints.add(hintId);
       saveDismissedHints();
@@ -278,31 +289,41 @@ export function resetDismissedHints(): void {
 // ============================================================================
 
 function checkForHintOpportunities(): void {
+  // FIRST CONVERSATION IS ONBOARDING - no hints until 2+ conversations
+  if (!modalCoordinator.hasMinimumConversations(2)) {
+    return;
+  }
+
+  // Don't show hints during active conversation
+  if (modalCoordinator.isConversationActive()) {
+    return;
+  }
+
   const currentStage = relationshipStageService.getStage();
-  
+
   // Find hints that should be shown
   for (const hint of registeredHints) {
     // Skip if already showing or dismissed
     if (activeHints.has(hint.id) || dismissedHints.has(hint.id)) {
       continue;
     }
-    
+
     // Check stage requirement
     if (hint.minStage && !isStageAtOrBeyond(currentStage, hint.minStage)) {
       continue;
     }
-    
+
     // Check if target element exists and is visible
     const target = document.querySelector(hint.targetSelector);
     if (!target || !isElementVisible(target)) {
       continue;
     }
-    
+
     // Limit concurrent hints
     if (activeHints.size >= 1) {
       continue;
     }
-    
+
     // Show after delay if specified
     if (hint.showAfterDelay) {
       setTimeout(() => {
@@ -313,7 +334,7 @@ function checkForHintOpportunities(): void {
     } else {
       displayHint(hint);
     }
-    
+
     // Only show one hint per check cycle
     break;
   }
@@ -326,9 +347,21 @@ function checkForHintOpportunities(): void {
 function displayHint(hint: FeatureHint): void {
   const target = document.querySelector(hint.targetSelector);
   if (!target) return;
-  
+
+  // Request permission from modal coordinator (includes hint cooldown)
+  const canShow = modalCoordinator.requestHint(`hint-${hint.id}`, () =>
+    showHintElement(hint, target)
+  );
+
+  if (!canShow) {
+    log.debug('Hint blocked by modal coordinator', { id: hint.id });
+    return;
+  }
+}
+
+function showHintElement(hint: FeatureHint, target: Element): void {
   let element: HTMLElement;
-  
+
   switch (hint.type) {
     case 'spotlight':
       element = createSpotlightHint(hint, target);
@@ -342,17 +375,17 @@ function displayHint(hint: FeatureHint): void {
       element = createTooltipHint(hint, target);
       break;
   }
-  
+
   document.body.appendChild(element);
-  
+
   activeHints.set(hint.id, { hint, element, targetElement: target });
-  
+
   // Position the hint
   positionHint(element, target, hint.type);
-  
+
   // Animate in
   animateIn(element);
-  
+
   // Auto-dismiss after 15 seconds for non-spotlight hints
   if (hint.type !== 'spotlight') {
     setTimeout(() => {
@@ -361,7 +394,7 @@ function displayHint(hint: FeatureHint): void {
       }
     }, 15000);
   }
-  
+
   log.info('Hint displayed', { id: hint.id, type: hint.type });
 }
 
@@ -370,21 +403,21 @@ function createTooltipHint(hint: FeatureHint, _target: Element): HTMLElement {
   element.className = 'feature-hint feature-hint--tooltip';
   element.setAttribute('role', 'tooltip');
   element.setAttribute('data-hint-id', hint.id);
-  
+
   element.innerHTML = `
     <div class="hint-arrow"></div>
     <div class="hint-content">
-      <button class="hint-close" aria-label="Dismiss">
+      <button class="hint-close" aria-label="${t('accessibility.dismiss')}">
         ${ICONS.close}
       </button>
       <p class="hint-title">${hint.title}</p>
       <p class="hint-message">${hint.message}</p>
     </div>
   `;
-  
+
   const closeBtn = element.querySelector('.hint-close');
   closeBtn?.addEventListener('click', () => dismissHint(hint.id));
-  
+
   return element;
 }
 
@@ -393,10 +426,10 @@ function createCardHint(hint: FeatureHint, _target: Element): HTMLElement {
   element.className = 'feature-hint feature-hint--card';
   element.setAttribute('role', 'dialog');
   element.setAttribute('data-hint-id', hint.id);
-  
+
   element.innerHTML = `
     <div class="hint-content">
-      <button class="hint-close" aria-label="Dismiss">
+      <button class="hint-close" aria-label="${t('accessibility.dismiss')}">
         ${ICONS.close}
       </button>
       <div class="hint-icon">
@@ -404,18 +437,22 @@ function createCardHint(hint: FeatureHint, _target: Element): HTMLElement {
       </div>
       <p class="hint-title">${hint.title}</p>
       <p class="hint-message">${hint.message}</p>
-      ${hint.ctaText ? `
+      ${
+        hint.ctaText
+          ? `
         <button class="hint-cta">
           <span>${hint.ctaText}</span>
           ${ICONS.arrowRight}
         </button>
-      ` : ''}
+      `
+          : ''
+      }
     </div>
   `;
-  
+
   const closeBtn = element.querySelector('.hint-close');
   closeBtn?.addEventListener('click', () => dismissHint(hint.id));
-  
+
   const ctaBtn = element.querySelector('.hint-cta');
   if (ctaBtn && hint.ctaAction) {
     ctaBtn.addEventListener('click', () => {
@@ -432,7 +469,7 @@ function createCardHint(hint: FeatureHint, _target: Element): HTMLElement {
       }
     });
   }
-  
+
   return element;
 }
 
@@ -441,10 +478,10 @@ function createSpotlightHint(hint: FeatureHint, _target: Element): HTMLElement {
   element.className = 'feature-hint feature-hint--spotlight-card';
   element.setAttribute('role', 'dialog');
   element.setAttribute('data-hint-id', hint.id);
-  
+
   element.innerHTML = `
     <div class="hint-content">
-      <button class="hint-close" aria-label="Dismiss">
+      <button class="hint-close" aria-label="${t('accessibility.dismiss')}">
         ${ICONS.close}
       </button>
       <div class="hint-icon">
@@ -452,22 +489,26 @@ function createSpotlightHint(hint: FeatureHint, _target: Element): HTMLElement {
       </div>
       <p class="hint-title">${hint.title}</p>
       <p class="hint-message">${hint.message}</p>
-      ${hint.ctaText ? `
+      ${
+        hint.ctaText
+          ? `
         <button class="hint-cta">
           <span>${hint.ctaText}</span>
           ${ICONS.arrowRight}
         </button>
-      ` : ''}
+      `
+          : ''
+      }
       <button class="hint-dismiss-text">Maybe later</button>
     </div>
   `;
-  
+
   const closeBtn = element.querySelector('.hint-close');
   closeBtn?.addEventListener('click', () => dismissHint(hint.id));
-  
+
   const dismissBtn = element.querySelector('.hint-dismiss-text');
   dismissBtn?.addEventListener('click', () => dismissHint(hint.id));
-  
+
   const ctaBtn = element.querySelector('.hint-cta');
   if (ctaBtn && hint.ctaAction) {
     ctaBtn.addEventListener('click', () => {
@@ -483,17 +524,17 @@ function createSpotlightHint(hint: FeatureHint, _target: Element): HTMLElement {
       }
     });
   }
-  
+
   return element;
 }
 
 function addSpotlight(hintId: string, target: Element): void {
   const rect = target.getBoundingClientRect();
-  
+
   const spotlight = document.createElement('div');
   spotlight.className = 'feature-spotlight';
   spotlight.setAttribute('data-hint-id', hintId);
-  
+
   Object.assign(spotlight.style, {
     position: 'fixed',
     top: `${rect.top - 8}px`,
@@ -504,7 +545,7 @@ function addSpotlight(hintId: string, target: Element): void {
     pointerEvents: 'none',
     zIndex: 'var(--z-dropdown, 7000)',
   });
-  
+
   document.body.appendChild(spotlight);
 }
 
@@ -516,13 +557,13 @@ function positionHint(element: HTMLElement, target: Element, type: HintType): vo
   const targetRect = target.getBoundingClientRect();
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  
+
   // For card/spotlight types, position below or to the side
   if (type === 'card' || type === 'spotlight') {
     // Prefer positioning to the right of the target
     const rightSpace = viewportWidth - targetRect.right;
     const bottomSpace = viewportHeight - targetRect.bottom;
-    
+
     if (rightSpace > 300) {
       element.style.left = `${targetRect.right + 16}px`;
       element.style.top = `${targetRect.top}px`;
@@ -539,7 +580,7 @@ function positionHint(element: HTMLElement, target: Element, type: HintType): vo
     // Tooltip: position above or below
     const topSpace = targetRect.top;
     const bottomSpace = viewportHeight - targetRect.bottom;
-    
+
     if (bottomSpace > 100) {
       element.style.left = `${targetRect.left + targetRect.width / 2}px`;
       element.style.top = `${targetRect.bottom + 12}px`;
@@ -563,32 +604,38 @@ function animateIn(element: HTMLElement): void {
     element.style.opacity = '1';
     return;
   }
-  
-  element.animate([
-    { opacity: 0, transform: element.style.transform + ' scale(0.9)' },
-    { opacity: 1, transform: element.style.transform + ' scale(1)' },
-  ], {
-    duration: DURATION.DELIBERATE,
-    easing: EASING.SPRING,
-    fill: 'forwards',
-  });
+
+  element.animate(
+    [
+      { opacity: 0, transform: element.style.transform + ' scale(0.9)' },
+      { opacity: 1, transform: element.style.transform + ' scale(1)' },
+    ],
+    {
+      duration: DURATION.DELIBERATE,
+      easing: EASING.SPRING,
+      fill: 'forwards',
+    }
+  );
 }
 
 async function animateOut(element: HTMLElement): Promise<void> {
   if (prefersReducedMotion()) {
     return;
   }
-  
-  return new Promise(resolve => {
-    const animation = element.animate([
-      { opacity: 1, transform: element.style.transform + ' scale(1)' },
-      { opacity: 0, transform: element.style.transform + ' scale(0.95)' },
-    ], {
-      duration: DURATION.NORMAL,
-      easing: EASING.STANDARD,
-      fill: 'forwards',
-    });
-    
+
+  return new Promise((resolve) => {
+    const animation = element.animate(
+      [
+        { opacity: 1, transform: element.style.transform + ' scale(1)' },
+        { opacity: 0, transform: element.style.transform + ' scale(0.95)' },
+      ],
+      {
+        duration: DURATION.NORMAL,
+        easing: EASING.STANDARD,
+        fill: 'forwards',
+      }
+    );
+
     animation.onfinish = () => resolve();
   });
 }
@@ -651,7 +698,7 @@ function saveDismissedHints(): void {
 
 function injectStyles(): void {
   if (document.getElementById('feature-hints-styles')) return;
-  
+
   styleElement = document.createElement('style');
   styleElement.id = 'feature-hints-styles';
   styleElement.textContent = `
@@ -916,7 +963,7 @@ function injectStyles(): void {
       }
     }
   `;
-  
+
   document.head.appendChild(styleElement);
 }
 
@@ -929,7 +976,7 @@ export function destroyFeatureHints(): void {
     clearInterval(checkInterval);
     checkInterval = null;
   }
-  
+
   dismissAllHints();
   container?.remove();
   styleElement?.remove();
@@ -953,4 +1000,3 @@ export const featureHints = {
 };
 
 export default featureHints;
-

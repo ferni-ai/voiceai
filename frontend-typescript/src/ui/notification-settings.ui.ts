@@ -5,6 +5,7 @@
  * Brand-aligned settings panel with toggle controls.
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { outreachService, type OutreachPreferences } from '../services/outreach.service.js';
 import {
@@ -84,7 +85,7 @@ class NotificationSettingsUI {
       <div class="notif-settings__card">
         <header class="notif-settings__header">
           <h2>Notification Settings</h2>
-          <button class="notif-settings__close" aria-label="Close">
+          <button class="notif-settings__close" aria-label="${t('common.close')}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>

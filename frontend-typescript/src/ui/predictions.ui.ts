@@ -13,6 +13,7 @@
  */
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
 import {
   ICONS,
   injectSharedStyles,
@@ -226,7 +227,7 @@ export class PredictionsUI {
       <div class="prediction-resolution-modal__card">
         <header class="prediction-resolution-modal__header">
           <h3>Record Actual Result</h3>
-          <button class="engagement-close-btn" aria-label="Close">
+          <button class="engagement-close-btn" aria-label="${t('common.close')}">
             ${ICONS.close}
           </button>
         </header>
@@ -239,7 +240,7 @@ export class PredictionsUI {
               type="number" 
               id="actual-result" 
               class="prediction-resolution-modal__input"
-              placeholder="Enter actual value"
+              placeholder="${t('placeholders.enterValue')}"
               min="0"
               max="100"
             />
@@ -280,14 +281,14 @@ export class PredictionsUI {
       }
 
       if (this.onResolutionSubmit) {
-        submitBtn.textContent = 'Saving...';
+        submitBtn.textContent = t('common.saving');
         (submitBtn as HTMLButtonElement).disabled = true;
         
         try {
           await this.onResolutionSubmit(predictionId, actualValue);
           closeModal();
         } catch (err) {
-          submitBtn.textContent = 'Error - Try Again';
+          submitBtn.textContent = t('common.errorRetry');
           (submitBtn as HTMLButtonElement).disabled = false;
         }
       } else {

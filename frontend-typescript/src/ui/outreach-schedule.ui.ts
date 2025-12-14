@@ -8,6 +8,7 @@
  * - See recent outreach history
  */
 
+import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { DURATION } from '../config/animation-constants.js';
 
@@ -546,7 +547,7 @@ function createModal(): void {
               Scheduled Outreach
             </h2>
           </div>
-          <button class="outreach-schedule-close" aria-label="Close">
+          <button class="outreach-schedule-close" aria-label="${t('common.close')}">
             ${ICONS.close}
           </button>
         </div>
@@ -828,7 +829,7 @@ async function showPreview(outreachId: string): Promise<void> {
             <h3 class="outreach-preview-title">${item.persona || getPersonaName(item.personaId)}</h3>
             <span class="outreach-preview-channel">${(item.channel || 'sms').toUpperCase()} • ${item.type.replace(/_/g, ' ')}</span>
           </div>
-          <button class="outreach-preview-close" aria-label="Close">${ICONS.close}</button>
+          <button class="outreach-preview-close" aria-label="${t('common.close')}">${ICONS.close}</button>
         </header>
         <div class="outreach-preview-content">
           ${item.preview?.subject ? `<p class="outreach-preview-subject">${item.preview.subject}</p>` : ''}

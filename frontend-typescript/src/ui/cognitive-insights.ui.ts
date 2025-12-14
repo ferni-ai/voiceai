@@ -17,6 +17,7 @@
  *   - Ability to edit/delete memories
  */
 
+import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import {
   escapeHtml,
@@ -373,7 +374,7 @@ class CognitiveInsightsUI {
             </span>
           </div>
         </div>
-        <button class="cognitive-insights__memory-delete" data-id="${escapeHtml(memory.id)}" aria-label="Forget this">
+        <button class="cognitive-insights__memory-delete" data-id="${escapeHtml(memory.id)}" aria-label="${t('accessibility.forgetThis')}">
           ${ICONS.close}
         </button>
       </li>

@@ -16,6 +16,7 @@
  * - APPEAL: Curious, engaged expression
  */
 
+import { t } from '../i18n/index.js';
 import { normalizeAgentId } from '../config/personas.js';
 import type { PersonaId } from '../types/persona.js';
 import { createLogger } from '../utils/logger.js';
@@ -92,7 +93,7 @@ const DEFAULT_THINKING_MESSAGES = [
   'Hmm...',
   'Let me think...',
   'One moment...',
-  'Processing...',
+  t('common.processing'),
 ];
 
 let messageIndex = 0;

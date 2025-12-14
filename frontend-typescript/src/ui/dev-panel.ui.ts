@@ -18,6 +18,7 @@
  *   - Agent handoff tester
  */
 
+import { t } from '../i18n/index.js';
 import type { VoiceEmotion } from '@design-system/tokens';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import {
@@ -324,7 +325,7 @@ function createPanel(): HTMLElement {
         ${ICONS.code}
         <span>Ferni Dev Tools</span>
       </div>
-      <button class="dev-panel__close" aria-label="Close">${ICONS.close}</button>
+      <button class="dev-panel__close" aria-label="${t('common.close')}">${ICONS.close}</button>
     </div>
     
     <div class="dev-panel__content">
