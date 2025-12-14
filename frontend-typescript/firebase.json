@@ -27,6 +27,13 @@
           }
         },
         {
+          "source": "/demo-status",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/spotify/**",
           "run": {
             "serviceId": "john-bogle-ui",
@@ -147,6 +154,13 @@
         },
         {
           "source": "/demo-token",
+          "run": {
+            "serviceId": "john-bogle-ui",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/demo-status",
           "run": {
             "serviceId": "john-bogle-ui",
             "region": "us-central1"
