@@ -67,6 +67,7 @@ export interface EmotionModulation {
  * Process an LLM response for voice output
  *
  * This function applies all post-LLM processing in the correct order:
+ * 0. STAGE DIRECTION SANITIZATION (CRITICAL - prevents *grinning*, *laughing* being spoken)
  * 1. Ambient awareness prepending
  * 2. Unified humanization
  * 3. SSML tagging
@@ -78,6 +79,7 @@ export interface EmotionModulation {
  * 9. Dynamic speed control
  * 10. Voice humanization
  * 11. Track response for dynamics
+ * 12. FINAL SANITIZATION (safety net)
  */
 export async function processResponse(ctx: ResponseProcessorContext): Promise<ResponseProcessorResult> {
   const startTime = Date.now();
@@ -85,6 +87,19 @@ export async function processResponse(ctx: ResponseProcessorContext): Promise<Re
 
   let processedText = ctx.rawText;
   const { persona, userData, services, sessionId } = ctx;
+
+  // ============================================================
+  // 0. STAGE DIRECTION SANITIZATION (CRITICAL)
+  // Remove *grinning*, *laughing*, [smiles], etc. BEFORE any processing
+  // These must NEVER be spoken aloud - this is the safety net
+  // ============================================================
+  try {
+    const { sanitizeSsml } = await import('../../ssml/core.js');
+    processedText = sanitizeSsml(processedText);
+    appliedFeatures.push('stage_direction_sanitized');
+  } catch (sanitizeErr) {
+    diag.warn('Stage direction sanitization failed (critical!)', { error: String(sanitizeErr) });
+  }
 
   // ============================================================
   // 1. AMBIENT AWARENESS: Prepend offer to pause for noisy environments
@@ -213,6 +228,22 @@ export async function processResponse(ctx: ResponseProcessorContext): Promise<Re
   if (detectAgentFarewell(ctx.rawText)) {
     diag.info('🌅 Agent farewell detected - signaling auto-disconnect');
     void signalConversationEnd(sessionId);
+  }
+
+  // ============================================================
+  // 13. FINAL SANITIZATION (safety net)
+  // Catch any stage directions that slipped through humanization
+  // ============================================================
+  try {
+    const { sanitizeSsml } = await import('../../ssml/core.js');
+    const finalText = sanitizeSsml(processedText);
+    if (finalText !== processedText) {
+      diag.debug('Final sanitization caught escaped stage directions');
+      processedText = finalText;
+      appliedFeatures.push('final_sanitization');
+    }
+  } catch {
+    // Non-critical at this point, text was already sanitized at step 0
   }
 
   return {
