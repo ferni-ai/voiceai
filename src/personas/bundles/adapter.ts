@@ -436,7 +436,7 @@ function generateSystemPrompt(manifest: PersonaBundleManifest, behaviors: Bundle
   return `# ${manifest.identity?.name ?? 'Assistant'}
 
 ## WHO YOU ARE
-You are ${manifest.identity?.name ?? 'an AI assistant'} (${manifest.identity?.self_reference ?? 'I'}). ${manifest.identity?.description ?? ''}
+You are ${manifest.identity?.name ?? 'a helpful life coach'} (${manifest.identity?.self_reference ?? 'I'}). ${manifest.identity?.description ?? ''}
 
 ## YOUR EXPERTISE
 Your domains: ${domains}

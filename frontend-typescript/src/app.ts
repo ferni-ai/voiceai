@@ -2021,7 +2021,9 @@ class VoiceAIApp {
 
         // Avatar reaction
         presenceUI.bounce();
-        soundUI.play('success');
+
+        // 🎵 Play dramatic entrance sound when Ferni joins
+        soundUI.play('enter');
 
         // 🎬 Expression: Excited greeting expression
         ferniExpressions.heldPose('happy', 400);

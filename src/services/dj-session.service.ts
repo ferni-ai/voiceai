@@ -94,7 +94,7 @@ const SESSION_INTROS = {
   firstTime: {
     phrases: [
       '<break time="200ms"/>Hey there! <break time="150ms"/>I\'m Ferni. <break time="200ms"/>It\'s really nice to meet you.',
-      '<break time="200ms"/>Hi! <break time="150ms"/>Welcome. <break time="200ms"/>I\'m Ferni, <break time="100ms"/>your AI life coach.',
+      '<break time="200ms"/>Hi! <break time="150ms"/>Welcome. <break time="200ms"/>I\'m Ferni. <break time="100ms"/>So glad you\'re here.',
       '<break time="200ms"/>Hello! <break time="150ms"/>So glad you\'re here. <break time="200ms"/>I\'m Ferni.',
     ],
     followUp: ['What brings you here today?', "What's on your mind?", "What's going on?"],

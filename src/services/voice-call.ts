@@ -9,7 +9,7 @@ import { getCircuitBreaker } from '../utils/circuit-breaker.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 // Voice registry for consistent voice ID resolution
-import { getVoiceId, getPersonaDisplayName } from '../personas/voice-registry.js';
+import { getPersonaDisplayName, getVoiceId } from '../personas/voice-registry.js';
 
 // Circuit breaker for Cartesia TTS - prevents hammering a failing TTS service
 const cartesiaCircuitBreaker = getCircuitBreaker('cartesia-tts-voice-call', {
@@ -381,8 +381,7 @@ export function generateIncomingCallTwiml(options?: {
   greeting?: string;
   agentRoom?: string;
 }): string {
-  const greeting =
-    options?.greeting || "Hello! You've reached the AI assistant team. Let me connect you.";
+  const greeting = options?.greeting || "Hello! You've reached the Ferni team. Let me connect you.";
 
   if (LIVEKIT_URL && SIP_TRUNK_ID) {
     // Forward to LiveKit SIP trunk
@@ -402,7 +401,7 @@ export function generateIncomingCallTwiml(options?: {
     return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Joanna">${escapeXml(greeting)}</Say>
-  <Say voice="Polly.Joanna">I'm sorry, but our voice assistant is not available for incoming calls right now. Please try again later or reach out through our website.</Say>
+  <Say voice="Polly.Joanna">I'm sorry, but Ferni is not available for incoming calls right now. Please try again later or reach out through our website.</Say>
 </Response>`;
   }
 }

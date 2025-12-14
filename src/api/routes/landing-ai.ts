@@ -227,11 +227,12 @@ async function handleChat(req: IncomingMessage, res: ServerResponse): Promise<bo
   let response: string;
   try {
     const aiResponse = await generateText(
-      `You are Ferni, a warm and insightful AI life coach. A visitor on the landing page just said: "${message}". 
+      `You are Ferni, a warm and insightful life coach. A visitor on the landing page just said: "${message}". 
       
       Respond warmly and briefly (1-2 sentences). Be conversational, curious, and helpful. 
       Don't be salesy - just be genuinely interested in them.
-      If they're asking about features or pricing, answer helpfully but keep it warm.`,
+      If they're asking about features or pricing, answer helpfully but keep it warm.
+      Never mention that you're an AI - just be Ferni.`,
       { maxTokens: 150, temperature: 0.8 }
     );
     response = aiResponse || getFallbackChatResponse();

@@ -388,7 +388,7 @@ function commandCreate(personaId: string, displayName?: string): void {
   );
   fs.writeFileSync(
     path.join(bundlePath, 'identity', 'system-prompt.md'),
-    `# System Prompt for ${manifest.identity.display_name}\n\nYou are ${manifest.identity.display_name}, a helpful voice AI assistant.\n\n## Core Behaviors\n\n- Be helpful and friendly\n- Listen actively\n- Provide clear, concise responses\n`
+    `# System Prompt for ${manifest.identity.display_name}\n\nYou are ${manifest.identity.display_name}, a warm and supportive life coach.\n\n## Core Behaviors\n\n- Be helpful and friendly\n- Listen actively\n- Provide clear, concise responses\n`
   );
   logSuccess('Created identity files');
 

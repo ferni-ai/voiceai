@@ -48,26 +48,26 @@ export type SessionSoundType =
 
 /**
  * Sound file paths - relative to public root
- * These should be placed in /public/sounds/ or /design-system/assets/sounds/
+ * These are located in frontend-typescript/public/sounds/
  */
 const SOUND_PATHS: Record<SessionSoundType, string> = {
-  'session-start': '/design-system/sounds/connect.mp3',
-  'session-end': '/design-system/sounds/disconnect.mp3',
-  'thinking-start': '/design-system/sounds/connect.mp3', // Reuse soft version
-  'thinking-end': '/design-system/sounds/connect.mp3',
-  success: '/design-system/sounds/dramatic-entrance.mp3',
-  correct: '/design-system/sounds/correct.mp3',
-  wrong: '/design-system/sounds/wrong.mp3',
-  hint: '/design-system/sounds/hint.mp3',
-  'game-start': '/design-system/sounds/game-start.mp3',
-  'game-end': '/design-system/sounds/game-end.mp3',
-  'high-score': '/design-system/sounds/high-score.mp3',
-  handoff: '/design-system/sounds/connect.mp3',
-  notification: '/design-system/sounds/connect.mp3',
-  'milestone-fanfare': '/design-system/sounds/dramatic-entrance.mp3', // Reuse for now
-  'milestone-sparkle': '/design-system/sounds/connect.mp3',
-  'milestone-applause': '/design-system/sounds/high-score.mp3',
-  'streak-fire': '/design-system/sounds/correct.mp3',
+  'session-start': '/sounds/connect.mp3',
+  'session-end': '/sounds/disconnect.mp3',
+  'thinking-start': '/sounds/connect.mp3', // Reuse soft version
+  'thinking-end': '/sounds/connect.mp3',
+  success: '/sounds/dramatic-entrance.mp3',
+  correct: '/sounds/correct.mp3',
+  wrong: '/sounds/wrong.mp3',
+  hint: '/sounds/hint.mp3',
+  'game-start': '/sounds/game-start.mp3',
+  'game-end': '/sounds/game-end.mp3',
+  'high-score': '/sounds/high-score.mp3',
+  handoff: '/sounds/connect.mp3',
+  notification: '/sounds/connect.mp3',
+  'milestone-fanfare': '/sounds/dramatic-entrance.mp3', // Reuse for now
+  'milestone-sparkle': '/sounds/connect.mp3',
+  'milestone-applause': '/sounds/high-score.mp3',
+  'streak-fire': '/sounds/correct.mp3',
 };
 
 /**
@@ -246,6 +246,8 @@ class SessionSoundsService {
       // Set volume for sound effect
       player.setVolume(volume);
 
+      log.debug('🎵 Attempting to play session sound', { type, soundPath, volume });
+
       // Play the sound
       const success = await player.playFromUrl(soundPath, {
         name: `sound-${type}`,
@@ -255,16 +257,22 @@ class SessionSoundsService {
       });
 
       if (success) {
-        log.debug('🎵 Played session sound', { type });
+        log.info('🎵 Session sound playing', { type, soundPath });
 
-        // Wait for short sound to complete
+        // Wait for sound to complete - connect/disconnect are ~1.1 seconds
+        // Add extra buffer for processing delay and to ensure full playback
         await new Promise<void>((resolve) => {
-          setTimeout(resolve, 1000);
+          setTimeout(resolve, 1500);
         });
+
+        // Stop playback to free up the audio channel
         player.stop();
 
+        log.debug('🎵 Session sound completed', { type });
         return { played: true };
       }
+
+      log.warn('🎵 Session sound playFromUrl returned false', { type, soundPath });
 
       // Couldn't play - try fallback sound
       const fallbackType = SOUND_FALLBACKS[type];

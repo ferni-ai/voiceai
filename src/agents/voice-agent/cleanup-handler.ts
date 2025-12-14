@@ -469,6 +469,20 @@ async function cleanupCognitiveSession(
 async function cleanupDJIntegration(services: SessionServices): Promise<void> {
   try {
     const dj = getDJIntegration();
+
+    // 🎧 Play exit sound as backup (may have already played during goodbye)
+    // This ensures the sound plays even if the session ends abruptly
+    try {
+      const wrapResult = await dj.wrapShow();
+      if (wrapResult.playedSound) {
+        diag.session('🎧 Session wrap sound played (cleanup)', { playedSound: true });
+      }
+    } catch (wrapErr) {
+      diag.debug('Session wrap sound skipped (may have already played)', {
+        error: String(wrapErr),
+      });
+    }
+
     const djSummary = dj.getSessionSummary();
     if (djSummary.musicArtists.length > 0 && services.userProfile) {
       // Update music memory for next session's "Remember when we listened to..."

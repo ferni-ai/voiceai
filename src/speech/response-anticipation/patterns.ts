@@ -83,9 +83,7 @@ export const CACHED_PATTERNS: CachedPattern[] = [
     pattern:
       /^(who\s*are\s*you|what\s*are\s*you|tell\s*me\s*about\s*yourself|what\s*do\s*you\s*do)\b/i,
     intent: 'question_about_self',
-    templates: [
-      "I'm Ferni, your AI life coach. I'm here to help you think through things, set goals, and grow.",
-    ],
+    templates: ["I'm Ferni. I'm here to help you think through things, set goals, and grow."],
     variables: [],
     contextHint: 'User asking about the agent. Give brief intro then redirect to them.',
   },
@@ -179,4 +177,3 @@ export function predictIntent(partialTranscript: string): {
 
   return { intent: 'unknown', confidence: 0 };
 }
-

@@ -41,13 +41,13 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { promisify } from 'util';
+import { isDebugEnabled } from '../config/feature-flags.js';
 import { createLogger, getLogger } from '../utils/safe-logger.js';
 // AgentSession is the session object from voice pipeline - using any for compatibility
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AgentSession = any;
 
 const log = createLogger({ module: 'MusicPlayer' });
-import { isDebugEnabled } from '../config/feature-flags.js';
 
 // Use centralized feature flag system for debug toggle
 const DEBUG_MUSIC = isDebugEnabled('music');
@@ -1049,7 +1049,7 @@ export class CallMusicPlayer {
     try {
       let buffer: ArrayBuffer;
 
-      // Handle local file paths (e.g., /design-system/sounds/connect.mp3)
+      // Handle local file paths (e.g., /sounds/connect.mp3)
       if (url.startsWith('/') && !url.startsWith('//')) {
         // Resolve relative to frontend's public directory
         const projectRoot = path.resolve(__dirname, '../../..');

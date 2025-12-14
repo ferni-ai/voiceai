@@ -280,9 +280,20 @@ function detectAgentFarewell(text: string): boolean {
 
 /**
  * Signal the frontend to auto-disconnect.
+ * Also plays the session-end sound (disconnect.mp3) for the "wrap the show" moment.
  */
 async function signalConversationEnd(sessionId: string | undefined): Promise<void> {
   if (!sessionId) return;
+
+  try {
+    // 🎧 Play the exit sound - "Wrap the show"
+    const { getDJIntegration } = await import('../dj-integration.js');
+    const dj = getDJIntegration();
+    const wrapResult = await dj.wrapShow();
+    diag.info('🎧 Session wrap sound', { playedSound: wrapResult.playedSound });
+  } catch (wrapErr) {
+    diag.debug('Failed to play session-end sound', { error: String(wrapErr) });
+  }
 
   try {
     const { sendFrontendSignal } = await import('../../services/frontend-signal.js');

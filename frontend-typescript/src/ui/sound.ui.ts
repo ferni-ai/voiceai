@@ -14,7 +14,7 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 const log = createLogger('SoundUI');
 
 // FIX BUG: Track all setTimeout calls for proper cleanup
-const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
+const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
 // TYPES
@@ -25,6 +25,7 @@ type SoundName =
   | 'disconnect'
   | 'goodbye' // Warm, resolving goodbye (different from abrupt disconnect)
   | 'hangup' // Satisfying phone receiver click at moment of disconnect
+  | 'enter' // Ferni enters/joins - dramatic entrance
   | 'click'
   | 'hover'
   | 'switch'
@@ -43,6 +44,21 @@ interface SoundConfig {
   frequencies?: number[]; // For multi-tone sounds
   delays?: number[]; // Delays between frequencies
 }
+
+// ============================================================================
+// MP3 SOUND PATHS - Real audio files for key moments
+// ============================================================================
+
+const MP3_SOUNDS: Partial<Record<SoundName, string>> = {
+  connect: '/sounds/connect.mp3',
+  disconnect: '/sounds/disconnect.mp3',
+  goodbye: '/sounds/disconnect.mp3', // Use disconnect sound for goodbye too
+  enter: '/sounds/dramatic-entrance.mp3', // Ferni enters the room
+  // hangup uses synth-only for that satisfying click feel
+};
+
+// Pre-loaded audio elements for instant playback
+const preloadedAudio: Map<SoundName, HTMLAudioElement> = new Map();
 
 // ============================================================================
 // STATE
@@ -74,6 +90,7 @@ const SAME_SOUND_COOLDOWN: Partial<Record<SoundName, number>> = {
   disconnect: 1000,
   goodbye: 3000, // Goodbye is a ceremony - don't repeat
   hangup: 1000, // Hangup click shouldn't repeat
+  enter: 2000, // Ferni enters - don't repeat quickly
   switch: 300, // Switch can be slightly more frequent
 };
 
@@ -164,6 +181,17 @@ const SOUNDS: Record<SoundName, SoundConfig> = {
     attack: 0.002, // Very quick attack (click)
     decay: 0.05, // Quick decay (not reverby)
   },
+  // 🎭 ENTER - Ferni joins the room (dramatic entrance)
+  // Ascending chord with presence - "I'm here for you"
+  enter: {
+    frequencies: [261.63, 329.63, 392.0, 523.25], // C4, E4, G4, C5 (C major octave)
+    delays: [0, 0.1, 0.2, 0.35],
+    duration: 0.25,
+    type: 'sine',
+    volume: 0.1,
+    attack: 0.03,
+    decay: 0.2,
+  },
   click: {
     frequency: 1200,
     duration: 0.04,
@@ -234,6 +262,9 @@ const SOUNDS: Record<SoundName, SoundConfig> = {
 // ============================================================================
 
 export function initSoundUI(): void {
+  // Preload MP3 sounds for instant playback
+  preloadMP3Sounds();
+
   // Create audio context on first user interaction
   const initOnInteraction = () => {
     if (isInitialized) return;
@@ -264,12 +295,51 @@ export function initSoundUI(): void {
   setupHoverSounds();
 }
 
+/**
+ * Preload MP3 sounds for instant playback.
+ * Called early so sounds are ready when needed.
+ */
+function preloadMP3Sounds(): void {
+  for (const [name, path] of Object.entries(MP3_SOUNDS)) {
+    try {
+      const audio = new Audio(path);
+      audio.preload = 'auto';
+      audio.volume = 0.4; // Moderate volume for MP3s
+      preloadedAudio.set(name as SoundName, audio);
+      log.debug(`Preloaded sound: ${name}`);
+    } catch (e) {
+      log.debug(`Failed to preload ${name}:`, e);
+    }
+  }
+}
+
+/**
+ * Play an MP3 sound file.
+ * Returns true if playback started successfully.
+ */
+async function playMP3(name: SoundName): Promise<boolean> {
+  const audio = preloadedAudio.get(name);
+  if (!audio) return false;
+
+  try {
+    // Clone the audio element for overlapping plays
+    const clone = audio.cloneNode() as HTMLAudioElement;
+    clone.volume = isMuted ? 0 : 0.4;
+    await clone.play();
+    log.debug(`🔊 Playing MP3: ${name}`);
+    return true;
+  } catch (e) {
+    log.debug(`MP3 play failed for ${name}:`, e);
+    return false;
+  }
+}
+
 // ============================================================================
 // SOUND PLAYBACK
 // ============================================================================
 
 export function play(name: SoundName): void {
-  if (isMuted || !isInitialized || !audioContext || !masterGain) return;
+  if (isMuted) return;
 
   // MOBILE FIX: Debounce sounds to prevent "casino effect"
   if (!canPlaySound(name)) {
@@ -277,11 +347,32 @@ export function play(name: SoundName): void {
     return;
   }
 
-  const config = SOUNDS[name];
-  if (!config) return;
-
   // Record this play for debouncing
   recordSoundPlay(name);
+
+  // Try MP3 first for key sounds (connect, disconnect, goodbye)
+  if (MP3_SOUNDS[name]) {
+    void playMP3(name).then((success) => {
+      if (!success) {
+        // Fall back to synth sound
+        playSynth(name);
+      }
+    });
+    return;
+  }
+
+  // For other sounds, use synth
+  playSynth(name);
+}
+
+/**
+ * Play a synthesized sound (Web Audio API oscillator).
+ */
+function playSynth(name: SoundName): void {
+  if (!isInitialized || !audioContext || !masterGain) return;
+
+  const config = SOUNDS[name];
+  if (!config) return;
 
   // Resume context if suspended
   if (audioContext.state === 'suspended') {
@@ -404,6 +495,9 @@ export function playGoodbye(): void {
 export function playHangup(): void {
   play('hangup');
 }
+export function playEnter(): void {
+  play('enter');
+}
 export function playClick(): void {
   play('click');
 }
@@ -444,6 +538,7 @@ export const soundUI = {
   playDisconnect,
   playGoodbye,
   playHangup,
+  playEnter,
   playClick,
   playSwitch,
   playSuccess,
