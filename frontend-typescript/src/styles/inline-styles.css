@@ -5924,6 +5924,79 @@ body {
   }
 }
 
+/* ========================================================================
+       ADDABLE TEAM MEMBERS - Unlocked but not yet in roster
+       Shows as "ghost" card with dashed border and + icon for quick addition.
+       ======================================================================== */
+
+.team-member--addable {
+  opacity: 0.6;
+  cursor: pointer;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.team-member--addable:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+}
+
+.team-avatar-ring--addable {
+  border-style: dashed !important;
+  border-color: var(--color-border, rgba(255, 255, 255, 0.25)) !important;
+  background: transparent !important;
+}
+
+.team-avatar--addable {
+  filter: saturate(0.7);
+  opacity: 0.8;
+}
+
+.team-member--addable:hover .team-avatar--addable {
+  filter: saturate(1);
+  opacity: 1;
+}
+
+.team-member--addable:hover .team-avatar-ring--addable {
+  border-color: var(--persona-primary, #4a6741) !important;
+  border-style: solid !important;
+}
+
+/* Add badge - positioned at bottom-right of avatar */
+.team-add-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 18px;
+  height: 18px;
+  background: var(--persona-primary, #4a6741);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 2;
+  color: white;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+
+.team-member--addable:hover .team-add-badge {
+  transform: scale(1.15);
+  background: var(--color-success, #4a6741);
+}
+
+/* Zen theme addable states */
+[data-theme='zen'] .team-avatar-ring--addable {
+  border-color: rgba(44, 37, 32, 0.2) !important;
+}
+
+[data-theme='zen'] .team-member--addable:hover .team-avatar-ring--addable {
+  border-color: var(--persona-primary, #4a6741) !important;
+}
+
 /* Zen theme locked states */
 [data-theme='zen'] .team-member--locked {
   background: rgba(255, 255, 255, 0.4);

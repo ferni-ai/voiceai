@@ -26,6 +26,7 @@ import {
   getTeamMember,
   isFullTeamUnlocked,
   isTeamMemberUnlocked,
+  TEAM_MEMBERS,
   teamUnlockService,
   type TeamMemberId as UnlockTeamMemberId,
 } from '../services/team-unlock.service.js';
@@ -98,6 +99,52 @@ let magneticAnimationFrame: number | null = null;
 // ============================================================================
 
 /**
+ * FIX BUG: Sync unlocked members with roster.
+ *
+ * This reconciles the unlock state with the roster preferences.
+ * If a member was unlocked while the app wasn't running (or the
+ * unlock event was missed), they would be unlocked but not visible
+ * in the roster. This function ensures all unlocked members are
+ * in the roster.
+ *
+ * Returns true if any members were synced (roster needs rebuild).
+ */
+function syncUnlockedMembersWithRoster(): boolean {
+  const unlockState = teamUnlockService.getState();
+  if (!unlockState) {
+    log.debug('Unlock state not ready, will sync on first state change');
+    return false;
+  }
+
+  let syncedCount = 0;
+
+  for (const member of TEAM_MEMBERS) {
+    // Skip Ferni - always visible
+    if (member.id === 'ferni') continue;
+
+    const memberId = member.id as TeamMemberId;
+    const isUnlocked = unlockState.unlockedMembers.has(member.id);
+    const isInRoster = rosterPreferences.isMemberVisible(memberId);
+
+    // If unlocked but not in roster, add them
+    if (isUnlocked && !isInRoster) {
+      log.info('Syncing unlocked member to roster:', member.displayName);
+      rosterPreferences.addMember(memberId);
+      syncedCount++;
+    }
+  }
+
+  if (syncedCount > 0) {
+    log.info(`Synced ${syncedCount} unlocked member(s) to roster`);
+  }
+
+  return syncedCount > 0;
+}
+
+// Track if we've done the initial roster sync (to avoid duplicate syncs)
+let hasPerformedInitialSync = false;
+
+/**
  * Initialize the team UI component.
  * Must be called after DOM is ready.
  */
@@ -108,8 +155,27 @@ export function initTeamUI(): void {
     // FIX BUG #57: Create ARIA live region for handoff announcements
     createAriaLiveRegion();
 
+    // FIX BUG: Try to sync unlocked members with roster on init
+    // This may not work yet if team unlock service hasn't initialized,
+    // so we also sync on the first state change below.
+    hasPerformedInitialSync = syncUnlockedMembersWithRoster();
+
     // TEAM UNLOCK: Subscribe to unlock state changes to update UI
+    // Also performs initial sync if it wasn't done above (due to init order)
     const unlockCleanup = teamUnlockService.onStateChange((state) => {
+      // FIX BUG: Sync on first state change if we couldn't sync during init
+      // This handles the case where initTeamUI runs before initTeamUnlockService
+      if (!hasPerformedInitialSync) {
+        hasPerformedInitialSync = true;
+        const didSync = syncUnlockedMembersWithRoster();
+        if (didSync) {
+          // Roster preferences changed, rebuild roster
+          void loadDynamicAgents().catch((err) => {
+            log.warn('Failed to refresh roster after initial sync:', err);
+          });
+          return; // Skip updateTeamMemberLockStates - loadDynamicAgents will handle it
+        }
+      }
       updateTeamMemberLockStates(state);
     });
     cleanupFunctions.push(unlockCleanup);
@@ -552,6 +618,147 @@ function buildTeamRoster(): void {
 }
 
 /**
+ * Render unlocked members that are NOT in the roster as "addable" ghost cards.
+ * These appear with a dashed border and + icon, allowing quick addition to the roster.
+ *
+ * This gives visibility to unlocked members the user hasn't added yet,
+ * without cluttering the roster with everyone by default.
+ */
+function renderAddableUnlockedMembers(agents: ApiAgent[]): void {
+  if (!rosterContainer) return;
+
+  const unlockState = teamUnlockService.getState();
+  if (!unlockState) return;
+
+  // Find unlocked members that are NOT in the visible roster
+  const visibleMemberIds = rosterPreferences.getVisibleMembers();
+  const addableMembers = TEAM_MEMBERS.filter((member) => {
+    // Skip Ferni - always visible
+    if (member.id === 'ferni') return false;
+    // Must be unlocked
+    if (!unlockState.unlockedMembers.has(member.id)) return false;
+    // Must NOT be in visible roster already
+    return !visibleMemberIds.includes(member.id as TeamMemberId);
+  });
+
+  if (addableMembers.length === 0) {
+    log.debug('No addable unlocked members');
+    return;
+  }
+
+  log.debug(
+    'Rendering addable unlocked members:',
+    addableMembers.map((m) => m.displayName)
+  );
+
+  // Find corresponding API agent data for colors
+  const agentMap = new Map(agents.map((a) => [a.id, a]));
+
+  for (const member of addableMembers) {
+    const agent = agentMap.get(member.id);
+    const element = createAddableTeamMemberElement(member, agent);
+    rosterContainer.appendChild(element);
+
+    // Attach add listener
+    attachAddableMemberListener(element, member);
+  }
+}
+
+/**
+ * Create a "ghost" team member element for unlocked but not-in-roster members.
+ * Shows with dashed border and + icon to indicate it can be added.
+ */
+function createAddableTeamMemberElement(
+  member: (typeof TEAM_MEMBERS)[number],
+  agent?: ApiAgent
+): HTMLElement {
+  const element = document.createElement('div');
+  element.className = 'team-member team-member--addable';
+  element.setAttribute('data-persona-id', member.id);
+  element.setAttribute('role', 'button');
+  element.setAttribute('tabindex', '0');
+  element.setAttribute('aria-label', `Add ${member.displayName} to your team`);
+
+  // Get colors from API agent or fall back to design system
+  const colors = agent?.colors || getPersonaColorConfig(member.id);
+  const gradient =
+    colors?.gradient ||
+    `linear-gradient(135deg, ${colors?.secondary || 'var(--persona-secondary, #3d5a35)'}, ${colors?.primary || 'var(--persona-primary, #4a6741)'})`;
+
+  // Display name (first name only)
+  const displayName = member.displayName;
+
+  // Get initials for avatar
+  const initials = member.displayName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
+  element.innerHTML = `
+    <div class="team-avatar-container">
+      <div class="team-avatar-ring team-avatar-ring--addable"></div>
+      <div class="team-avatar team-avatar--addable" data-persona="${member.id}" style="--persona-gradient: ${gradient};">
+        ${initials}
+      </div>
+      <div class="team-add-badge" aria-hidden="true">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+      </div>
+    </div>
+    <span class="team-name">${displayName}</span>
+  `;
+
+  return element;
+}
+
+/**
+ * Attach click listener to addable member element.
+ * Clicking adds the member to the roster.
+ */
+function attachAddableMemberListener(
+  element: HTMLElement,
+  member: (typeof TEAM_MEMBERS)[number]
+): void {
+  const memberId = member.id as TeamMemberId;
+
+  const handleAdd = () => {
+    log.info('Adding member to roster from home screen:', member.displayName);
+    rosterPreferences.addMember(memberId);
+
+    // Play success sound
+    void import('./sound.ui.js').then(({ soundUI }) => {
+      soundUI.play('success');
+    });
+
+    toast.show({
+      message: `${member.displayName} added to your team`,
+      duration: 2500,
+    });
+
+    // Roster will rebuild automatically via the onChange listener
+  };
+
+  const clickCleanup = addListener(element, 'click', (e) => {
+    e.stopPropagation();
+    handleAdd();
+  });
+  cleanupFunctions.push(clickCleanup);
+
+  // Keyboard support
+  const keyCleanup = addListener(element, 'keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleAdd();
+    }
+  });
+  cleanupFunctions.push(keyCleanup);
+}
+
+/**
  * Load agents from API and render dynamically
  */
 async function loadDynamicAgents(): Promise<void> {
@@ -625,6 +832,9 @@ async function loadDynamicAgents(): Promise<void> {
       teamMemberElements.set(agent.id as PersonaId, element);
       attachEventListenersToElement(element, agent.id as PersonaId, agent.name);
     }
+
+    // ➕ Render unlocked-but-not-in-roster members as addable
+    renderAddableUnlockedMembers(agents);
 
     // 🏪 Load and render installed marketplace agents
     await loadInstalledMarketplaceAgents();

@@ -631,21 +631,26 @@ function renderEmployeeCard(
       : '';
 
   // Roster action button for unlocked members (not Ferni - Ferni is always in roster)
+  // Uses prominent +/- icons for clear add/remove affordance
   const rosterActionHtml =
     !isLocked && personaId !== 'ferni'
       ? isInRoster
         ? `<button class="employee-roster-action employee-roster-action--remove" data-roster-action="remove" data-persona-id="${personaId}" aria-label="Remove ${name} from roster">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="roster-icon roster-icon--check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
-          <span>In Roster</span>
+          <svg class="roster-icon roster-icon--minus" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span class="roster-label">In Team</span>
+          <span class="roster-label roster-label--hover">Remove</span>
         </button>`
-        : `<button class="employee-roster-action employee-roster-action--add" data-roster-action="add" data-persona-id="${personaId}" aria-label="Add ${name} to roster">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        : `<button class="employee-roster-action employee-roster-action--add" data-roster-action="add" data-persona-id="${personaId}" aria-label="Add ${name} to team">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
-          <span>Add to Roster</span>
+          <span>Add</span>
         </button>`
       : '';
 
@@ -1195,12 +1200,12 @@ async function handleRosterAction(action: 'add' | 'remove', personaId: string): 
   if (action === 'add') {
     rosterPreferences.addMember(personaId as RosterTeamMemberId);
     soundUI.play('success');
-    toast.success(`${name} added to your roster`);
+    toast.success(`${name} added to your team`);
     log.info('Added team member to roster from marketplace:', personaId);
   } else {
     rosterPreferences.removeMember(personaId as RosterTeamMemberId);
     soundUI.play('click');
-    toast.info(`${name} removed from roster`);
+    toast.info(`${name} removed from team`);
     log.info('Removed team member from roster from marketplace:', personaId);
   }
 
@@ -2864,49 +2869,69 @@ function getMarketplaceStyles(): string {
     .employee-roster-action {
       display: flex;
       align-items: center;
-      gap: 4px;
-      margin-top: 4px;
-      padding: 4px 8px;
+      justify-content: center;
+      gap: 5px;
+      margin-top: 6px;
+      padding: 6px 10px;
       border: none;
       border-radius: var(--radius-full, 9999px);
       font-family: 'Inter', var(--font-body, sans-serif);
-      font-size: 0.6rem;
-      font-weight: 500;
+      font-size: 0.7rem;
+      font-weight: 600;
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+      min-width: 70px;
     }
 
     .employee-roster-action svg {
       flex-shrink: 0;
     }
 
-    /* "In Roster" state - subtle, shows current status */
+    /* Icon toggle system for remove button */
+    .roster-icon--minus,
+    .roster-label--hover {
+      display: none;
+    }
+
+    .employee-roster-action--remove:hover .roster-icon--check {
+      display: none;
+    }
+
+    .employee-roster-action--remove:hover .roster-icon--minus {
+      display: block;
+    }
+
+    .employee-roster-action--remove:hover .roster-label {
+      display: none;
+    }
+
+    .employee-roster-action--remove:hover .roster-label--hover {
+      display: inline;
+    }
+
+    /* "In Team" state - shows current status with checkmark */
     .employee-roster-action--remove {
       background: var(--persona-primary, #4a6741);
       color: white;
-      opacity: 0.9;
     }
 
     .employee-roster-action--remove:hover {
       background: var(--color-error, #c75450);
-      opacity: 1;
     }
 
-    .employee-roster-action--remove:hover span::after {
-      content: ' ✕';
-    }
-
-    /* "Add to Roster" state - action button */
+    /* "Add" state - prominent action button with + icon */
     .employee-roster-action--add {
-      background: var(--color-bg-elevated, rgba(255, 255, 255, 0.08));
-      color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
-      border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+      background: transparent;
+      color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
+      border: 1.5px dashed var(--color-border, rgba(255, 255, 255, 0.25));
     }
 
     .employee-roster-action--add:hover {
       background: var(--persona-primary, #4a6741);
       color: white;
-      border-color: transparent;
+      border-style: solid;
+      border-color: var(--persona-primary, #4a6741);
+      transform: scale(1.05);
     }
 
     /* Hide roster action for cards being clicked/tapped */
@@ -2916,15 +2941,14 @@ function getMarketplaceStyles(): string {
 
     /* Zen theme roster action styles */
     [data-theme="zen"] .employee-roster-action--add {
-      background: rgba(44, 37, 32, 0.04);
       color: rgba(44, 37, 32, 0.7);
-      border-color: rgba(44, 37, 32, 0.12);
+      border-color: rgba(44, 37, 32, 0.25);
     }
 
     [data-theme="zen"] .employee-roster-action--add:hover {
       background: var(--persona-primary, #4a6741);
       color: white;
-      border-color: transparent;
+      border-color: var(--persona-primary, #4a6741);
     }
 
     [data-theme="zen"] .employee-roster-action--remove:hover {
