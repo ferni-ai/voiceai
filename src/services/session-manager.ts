@@ -50,7 +50,10 @@ import { onSessionEndUnified, onSessionStartUnified } from './trust-systems/unif
 
 // Memory imports
 import {
+  // Advanced memory retrieval for session priming
+  buildMemoryIndex,
   clearCurrentSessionMomentsGetter,
+  getConversationPrimingMemories,
   getHistoryTracker,
   // Session priming for cross-session continuity
   getSessionPrimer,
@@ -61,14 +64,13 @@ import {
   setCurrentSessionMomentsGetter,
   summarizeConversation,
   type ConversationTurn,
-  // Advanced memory retrieval for session priming
-  buildMemoryIndex,
-  getConversationPrimingMemories,
 } from '../memory/index.js';
 
 // Intelligence imports
 import {
   analyzeMessage,
+  // Superhuman Memory - "Better than Human" proactive intelligence
+  buildSuperhumanContext,
   getCommunicationMirroring,
   getConversationPatternAnalyzer,
   getCrossSessionThreader,
@@ -85,6 +87,8 @@ import {
   getStoryPreference,
   getTopicTracker,
   getVoicePaceAdapter,
+  markSuperhumanInsightDelivered as markSuperhumanInsightDeliveredFn,
+  recordVoicePattern,
   removeCommunicationMirroring,
   removeConversationPatternAnalyzer,
   removeCrossSessionThreader,
@@ -98,6 +102,7 @@ import {
   resetIntelligence,
   resetLearningEngine,
   UserLearningEngine,
+  type SuperhumanContext,
 } from '../intelligence/index.js';
 
 // Context imports
@@ -547,6 +552,42 @@ export async function createSessionServices(
     }
   }
 
+  // ============================================================================
+  // SUPERHUMAN MEMORY CONTEXT - "Better than Human" proactive intelligence
+  // Surfaces important dates, comfort patterns, growth celebrations, etc.
+  // ============================================================================
+
+  let superhumanContext: SuperhumanContext | undefined;
+  if (userProfile && isReturningUser) {
+    try {
+      superhumanContext = buildSuperhumanContext(userProfile, {
+        sessionCount: userProfile.totalConversations || 0,
+        recentTopics: userProfile.preferredTopics || [],
+      });
+
+      if (superhumanContext.insights.length > 0) {
+        getLogger().info(
+          {
+            insights: superhumanContext.insights.length,
+            highPriority: superhumanContext.insights.filter((i) => i.priority === 'high').length,
+            hasDateReminder: superhumanContext.insights.some((i) => i.type === 'date_reminder'),
+            hasGrowthCelebration: superhumanContext.insights.some(
+              (i) => i.type === 'growth_celebration'
+            ),
+            comfortGuidance: superhumanContext.comfortGuidance.stressLevel !== 'none',
+            topicAbsences: superhumanContext.topicAbsences.length,
+          },
+          '🧠 SUPERHUMAN: Generated "Better than Human" memory context'
+        );
+      }
+    } catch (superhumanError) {
+      getLogger().debug(
+        { error: String(superhumanError) },
+        'Failed to generate superhuman memory context (non-blocking)'
+      );
+    }
+  }
+
   // Wire task manager to capture insights for learning
   taskManager.setInsightCallback((type, key, value, confidence) => {
     learningEngine.captureExternalInsight({
@@ -690,6 +731,9 @@ export async function createSessionServices(
     // Session Priming (cross-session continuity)
     sessionPriming,
 
+    // Superhuman Memory Context - "Better than Human"
+    superhumanContext,
+
     // ========================================================================
     // ANALYSIS METHODS
     // ========================================================================
@@ -758,6 +802,16 @@ export async function createSessionServices(
         emotionalState: analysis.emotion.primary,
       });
 
+      // 🧠 SUPERHUMAN: Refresh context when stress/emotion changes significantly
+      // This ensures comfort patterns are applied dynamically
+      if (analysis.emotion.distressLevel > 0.3 || analysis.emotion.intensity > 0.6) {
+        services.refreshSuperhumanContext({
+          detectedEmotion: analysis.emotion.primary,
+          detectedStressLevel: analysis.emotion.distressLevel,
+          currentTopic: analysis.topics.detected[0],
+        });
+      }
+
       return analysis;
     },
 
@@ -772,6 +826,39 @@ export async function createSessionServices(
         historyTracker.addUserTurn(content, { durationMs });
         if (durationMs) {
           getSessionWPMTracker(sessionId).addSample(content, durationMs);
+
+          // 🧠 SUPERHUMAN: Record voice pattern for "Better than Human" intelligence
+          // This enables detection of energy level changes over time
+          if (validatedUserId) {
+            const wpmTracker = getSessionWPMTracker(sessionId);
+            const avgWPM = wpmTracker.getAverageWPM();
+            const currentWPM = content.split(/\s+/).length / (durationMs / 60000) || avgWPM;
+
+            // Determine pace relative to user's baseline
+            const paceRatio = avgWPM > 0 ? currentWPM / avgWPM : 1;
+            const pace =
+              paceRatio < 0.85
+                ? 'slower_than_usual'
+                : paceRatio > 1.15
+                  ? 'faster_than_usual'
+                  : 'normal';
+
+            // Simple energy heuristic based on pace and message length
+            const energy =
+              pace === 'slower_than_usual' && content.length < 50
+                ? 'lower_than_usual'
+                : pace === 'faster_than_usual' && content.length > 100
+                  ? 'higher_than_usual'
+                  : 'normal';
+
+            recordVoicePattern(validatedUserId, sessionId, {
+              patterns: {
+                pace,
+                energy,
+                pauseFrequency: 'normal', // Would need pause detection for this
+              },
+            });
+          }
         }
       } else {
         historyTracker.addAssistantTurn(content);
@@ -848,6 +935,12 @@ export async function createSessionServices(
         if (personalizedGuidance.trim()) {
           sections.push(personalizedGuidance);
         }
+      }
+
+      // 🧠 SUPERHUMAN MEMORY - "Better than Human" proactive intelligence
+      // Surfaces important dates, comfort patterns, growth celebrations
+      if (services.superhumanContext?.promptInjection) {
+        sections.push(services.superhumanContext.promptInjection);
       }
 
       return sections.join('\n\n');
@@ -994,9 +1087,19 @@ export async function createSessionServices(
       topic: string;
       conversationPhase: string;
       emotion?: { primary: string; intensity: number };
+      storyId?: string;
+      questionAsked?: string;
     }): Promise<void> => {
       /* eslint-enable @typescript-eslint/no-misused-promises */
-      const { agentResponse, userResponse, topic, conversationPhase, emotion } = params;
+      const {
+        agentResponse,
+        userResponse,
+        topic,
+        conversationPhase,
+        emotion,
+        storyId,
+        questionAsked,
+      } = params;
 
       // Record the full quality signal
       const signal = responseQualityTracker.recordSignal(
@@ -1020,10 +1123,54 @@ export async function createSessionServices(
             hadHumor: responseAnalysis.hadHumor,
             topic,
             engagementScore: signal.engagementScore,
+            storyId, // Track which story was effective
+            questionAsked, // Track which question led to engagement
           },
           confidence: 0.8,
           source: 'inferred',
         });
+
+        // If a specific story was told and got high engagement, record it
+        if (storyId && personaId) {
+          try {
+            const { getCommunityInsights } = await import('../intelligence/community-insights.js');
+            const communityInsights = getCommunityInsights();
+            if (communityInsights) {
+              communityInsights.recordStoryUsage(
+                storyId,
+                personaId,
+                {
+                  topic,
+                  relationshipStage: conversationPhase,
+                  userEmotion: emotion?.primary || 'neutral',
+                },
+                'connected', // High engagement = connected reaction
+                signal.engagementScore
+              );
+            }
+          } catch {
+            // Community insights not available
+          }
+        }
+
+        // If a question led to high engagement, record it as a breakthrough question
+        if (questionAsked && personaId) {
+          try {
+            const { getCommunityInsights } = await import('../intelligence/community-insights.js');
+            const communityInsights = getCommunityInsights();
+            if (communityInsights) {
+              communityInsights.recordBreakthroughQuestion(
+                questionAsked,
+                personaId,
+                topic,
+                conversationPhase, // context string
+                signal.engagementScore // engagementLift
+              );
+            }
+          } catch {
+            // Community insights not available
+          }
+        }
       } else if (signal.engagementScore <= 0.3) {
         const responseAnalysis = responseQualityTracker.analyzeResponse(agentResponse);
         learningEngine.captureExternalInsight({
@@ -1036,10 +1183,35 @@ export async function createSessionServices(
             hadHumor: responseAnalysis.hadHumor,
             topic,
             engagementScore: signal.engagementScore,
+            storyId, // Track which story didn't resonate
+            questionAsked, // Track which question didn't work
           },
           confidence: 0.7,
           source: 'inferred',
         });
+
+        // If a story didn't resonate, record negative outcome
+        if (storyId && personaId) {
+          try {
+            const { getCommunityInsights } = await import('../intelligence/community-insights.js');
+            const communityInsights = getCommunityInsights();
+            if (communityInsights) {
+              communityInsights.recordStoryUsage(
+                storyId,
+                personaId,
+                {
+                  topic,
+                  relationshipStage: conversationPhase,
+                  userEmotion: emotion?.primary || 'neutral',
+                },
+                'indifferent', // Low engagement = indifferent reaction
+                signal.engagementScore
+              );
+            }
+          } catch {
+            // Community insights not available
+          }
+        }
       }
 
       // Feed into community insights if available
@@ -1129,6 +1301,65 @@ export async function createSessionServices(
      */
     getThreadContextForPrompt: () => {
       return crossSessionThreader.getThreadContext();
+    },
+
+    // ========================================================================
+    // SUPERHUMAN MEMORY METHODS - "Better than Human" proactive intelligence
+    // ========================================================================
+
+    /**
+     * Get superhuman memory context with proactive insights
+     */
+    getSuperhumanContext: () => {
+      return services.superhumanContext;
+    },
+
+    /**
+     * Refresh superhuman context with current conversation state
+     * Call this when emotion/stress level changes mid-conversation
+     */
+    refreshSuperhumanContext: (options?: {
+      detectedEmotion?: string;
+      detectedStressLevel?: number;
+      currentTopic?: string;
+    }) => {
+      if (!services.userProfile) return;
+
+      try {
+        const history = historyTracker.getSessionHistory();
+        const recentTopics = history.metadata.topicsDiscussed || [];
+
+        services.superhumanContext = buildSuperhumanContext(services.userProfile, {
+          detectedEmotion: options?.detectedEmotion,
+          detectedStressLevel: options?.detectedStressLevel,
+          currentTopic: options?.currentTopic,
+          recentTopics,
+          sessionCount: services.userProfile.totalConversations || 0,
+          conversationContext: recentTopics.slice(-3).join(', '),
+        });
+
+        getLogger().debug(
+          { insights: services.superhumanContext?.insights.length || 0 },
+          '🧠 Refreshed superhuman context'
+        );
+      } catch (error) {
+        getLogger().debug({ error: String(error) }, 'Failed to refresh superhuman context');
+      }
+    },
+
+    /**
+     * Mark a superhuman insight as delivered
+     */
+    markSuperhumanInsightDelivered: (insightId: string) => {
+      markSuperhumanInsightDeliveredFn(insightId);
+      getLogger().debug({ insightId }, '✓ Superhuman insight marked as delivered');
+    },
+
+    /**
+     * Get superhuman memory prompt injection (formatted for LLM)
+     */
+    getSuperhumanPromptInjection: () => {
+      return services.superhumanContext?.promptInjection || '';
     },
 
     /**

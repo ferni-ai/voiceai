@@ -23,6 +23,8 @@ import type {
   ProactiveInsightEngine,
   ResponseQualityTracker,
   StoryPreferenceEngine,
+  // Superhuman Memory
+  SuperhumanContext,
   UserLearningEngine,
   VoicePaceAdapter,
 } from '../intelligence/index.js';
@@ -82,6 +84,9 @@ export interface SessionServices {
     naturalGreetingHints: string[];
   };
 
+  // Superhuman Memory Context - "Better than Human" proactive intelligence
+  superhumanContext?: SuperhumanContext;
+
   // Methods
   analyze: (message: string) => ConversationAnalysis;
   addTurn: (role: 'user' | 'assistant', content: string, durationMs?: number) => void;
@@ -106,6 +111,10 @@ export interface SessionServices {
     topic: string;
     conversationPhase: string;
     emotion?: { primary: string; intensity: number };
+    /** Story ID if a story was told in the previous response */
+    storyId?: string;
+    /** Question pattern if a breakthrough question was asked */
+    questionAsked?: string;
   }) => void;
   captureInsight: (type: string, key: string, value: unknown, confidence: number) => void;
   getProactiveInsights: () => Promise<InsightGenerationResult & { suggestedInsightId?: string }>;
@@ -119,6 +128,20 @@ export interface SessionServices {
   saveProfile: () => Promise<void>;
   updateHumanizingState: (update: HumanizingStateUpdate) => void;
   endSession: () => Promise<void>;
+
+  // Superhuman Memory Methods
+  /** Get superhuman memory context with proactive insights */
+  getSuperhumanContext: () => SuperhumanContext | undefined;
+  /** Refresh superhuman context with current conversation state */
+  refreshSuperhumanContext: (options?: {
+    detectedEmotion?: string;
+    detectedStressLevel?: number;
+    currentTopic?: string;
+  }) => void;
+  /** Mark a superhuman insight as delivered */
+  markSuperhumanInsightDelivered: (insightId: string) => void;
+  /** Get superhuman memory prompt injection (formatted for LLM) */
+  getSuperhumanPromptInjection: () => string;
 }
 
 // ============================================================================

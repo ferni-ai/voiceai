@@ -1581,16 +1581,15 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // PARALLEL PROCESSING: Run independent async operations concurrently
   // This saves ~30-50ms by not waiting for each operation sequentially
   // ============================================================================
-  
+
   // Start independent async operations in parallel
   const easterEggPromise = checkEasterEggs(ctx, turnCtx);
-  
+
   // Fire-and-forget humanization processing (doesn't block turn)
   void (async () => {
     try {
-      const { processUserMessage } = await import(
-        '../../conversation/humanization/voice-agent-integration.js'
-      );
+      const { processUserMessage } =
+        await import('../../conversation/humanization/voice-agent-integration.js');
       processUserMessage(services.sessionId, userText, {
         voiceEmotion: userData?.voiceEmotion
           ? {
@@ -1690,7 +1689,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // PARALLEL CONTEXT BUILDING: Run context + humanization concurrently
   // These are the two heaviest async operations - running in parallel saves ~50ms
   // ============================================================================
-  
+
   const [injections, advancedHumanizationResult] = await Promise.all([
     // 9. Build all context injections
     buildContextInjections(
@@ -1703,7 +1702,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       bundleRuntimeContext,
       conversationDynamics
     ),
-    
+
     // 9a. ADVANCED HUMANIZATION: Process through all 10 deep capabilities
     // This is the core "Better Than Human" humanization layer
     processAdvancedHumanization(ctx, analysisResult, emotionalState),
@@ -1759,8 +1758,25 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     });
   }
 
-  // 11. Track response quality
+  // 11. Track response quality with story/question metadata
   if (userData.lastAgentResponse) {
+    // Check if a story was told in the previous response
+    const turnCount = userData.turnCount || 1;
+    const wasStoryTold = userData.lastStoryTurn === turnCount - 1;
+    const lastStoryId = wasStoryTold && userData.storiesShared?.length
+      ? userData.storiesShared[userData.storiesShared.length - 1]
+      : undefined;
+
+    // Extract any question asked in the previous response
+    // Match sentences ending with ? that are meaningful questions
+    const questionMatch = userData.lastAgentResponse.match(
+      /(?:^|[.!]\s*)([A-Z][^?]*\?)/g
+    );
+    // Use the last question as most questions come at the end
+    const questionAsked = questionMatch?.length
+      ? questionMatch[questionMatch.length - 1].trim()
+      : undefined;
+
     services.recordResponseSignal({
       agentResponse: userData.lastAgentResponse,
       userResponse: userText,
@@ -1770,6 +1786,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
         primary: analysis.emotion.primary,
         intensity: analysis.emotion.intensity || 0.5,
       },
+      storyId: lastStoryId,
+      questionAsked,
     });
   }
 

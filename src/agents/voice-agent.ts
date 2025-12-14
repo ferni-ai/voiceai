@@ -1165,6 +1165,19 @@ class VoiceAgent extends voice.Agent<UserData> {
                         },
                         '🫁 Applied breathing sync to TTS'
                       );
+
+                      // 🫁 FERNI EQ: Send breath sync quality to frontend for avatar sync
+                      // This enables the avatar to visually sync breathing with the user
+                      agent
+                        .sendDataMessage('breath_sync', {
+                          syncQuality: breathAdjustments.syncQuality,
+                          pacing: breathAdjustments.overallPacing,
+                          hasBreathMarkers: breathAdjustments.breathMarkers.length > 0,
+                          adjustedBreaks: breathAdjustments.adjustedBreaks.length,
+                        })
+                        .catch(() => {
+                          // Non-critical - breath sync feedback is enhancement
+                        });
                     } else {
                       // Track skipped
                       humanizationAnalytics.recordSkipped(

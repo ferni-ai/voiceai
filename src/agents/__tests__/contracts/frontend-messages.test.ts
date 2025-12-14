@@ -77,6 +77,17 @@ export const EmotionEventSchema = z.object({
 });
 
 /**
+ * Schema for breath sync messages (Ferni EQ - Avatar breathing synchronization)
+ */
+export const BreathSyncSchema = z.object({
+  type: z.literal('breath_sync'),
+  syncQuality: z.number().min(0).max(1),
+  pacing: z.number().min(0.5).max(2),
+  hasBreathMarkers: z.boolean(),
+  adjustedBreaks: z.number().int().min(0),
+});
+
+/**
  * Schema for session state update messages
  */
 export const SessionStateUpdateSchema = z.object({
@@ -352,6 +363,51 @@ describe('Frontend Message Contracts', () => {
       };
 
       const result = EmotionEventSchema.safeParse(event);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ==========================================================================
+  // BREATH SYNC (FERNI EQ - Avatar Breathing)
+  // ==========================================================================
+
+  describe('Breath Sync (Ferni EQ)', () => {
+    it('should validate breath sync message', () => {
+      const message = {
+        type: 'breath_sync' as const,
+        syncQuality: 0.85,
+        pacing: 1.2,
+        hasBreathMarkers: true,
+        adjustedBreaks: 3,
+      };
+
+      const result = BreathSyncSchema.safeParse(message);
+      expect(result.success).toBe(true);
+    });
+
+    it('should validate breath sync with minimum values', () => {
+      const message = {
+        type: 'breath_sync' as const,
+        syncQuality: 0,
+        pacing: 0.5,
+        hasBreathMarkers: false,
+        adjustedBreaks: 0,
+      };
+
+      const result = BreathSyncSchema.safeParse(message);
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject invalid sync quality', () => {
+      const message = {
+        type: 'breath_sync' as const,
+        syncQuality: 1.5, // Out of range
+        pacing: 1.0,
+        hasBreathMarkers: true,
+        adjustedBreaks: 1,
+      };
+
+      const result = BreathSyncSchema.safeParse(message);
       expect(result.success).toBe(false);
     });
   });
