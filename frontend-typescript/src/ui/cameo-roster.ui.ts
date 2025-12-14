@@ -270,13 +270,22 @@ function createCameoElement(
   element.setAttribute('data-persona-id', personaId);
   element.setAttribute('data-cameo', 'true');
 
+  // FIX BUG: Add ARIA attributes for accessibility
+  // Cameo elements are status indicators (team member has popped in)
+  element.setAttribute('role', 'status');
+  element.setAttribute('aria-live', 'polite');
+  element.setAttribute('aria-atomic', 'true');
+
   // Get first name for display
   const firstName = name.split(' ')[0] || name;
 
+  // Set aria-label for screen readers
+  element.setAttribute('aria-label', `${firstName} has joined the conversation`);
+
   element.innerHTML = `
     <div class="team-avatar-container">
-      <div class="team-avatar-ring cameo-ring"></div>
-      <div class="team-avatar" style="--persona-gradient: ${gradient};">
+      <div class="team-avatar-ring cameo-ring" aria-hidden="true"></div>
+      <div class="team-avatar" style="--persona-gradient: ${gradient};" aria-hidden="true">
         ${initials}
       </div>
     </div>

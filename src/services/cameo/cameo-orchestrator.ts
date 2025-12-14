@@ -472,8 +472,22 @@ export async function endCameo(sessionId: string, cameoId?: string): Promise<Cam
 
   cameoEvents.emit('cameo_ending', endingEvent);
 
+  // FIX BUG: Send cameo_ending data message to frontend
+  // This allows the frontend to play return sound and prepare exit animation
+  // BEFORE the voice switches back
+  const endingDataMessage: CameoDataMessage = {
+    type: 'cameo_ending',
+    personaId,
+    personaName: getPersonaDisplayName(personaId),
+    personaColor: getPersonaColor(personaId),
+    cameoId: actualCameoId,
+    duration,
+  };
+
+  cameoEvents.emit('cameo_data_message', endingDataMessage);
+
   // ========================================
-  // Wait for return delay (sound)
+  // Wait for return delay (sound + animation)
   // ========================================
 
   await sleep(CAMEO_TIMING.RETURN_DELAY);

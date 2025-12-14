@@ -290,6 +290,17 @@ class CameoService {
   private async handleCameoStarting(message: CameoDataMessage): Promise<void> {
     const { personaId, personaName, isFirstCameo } = message;
 
+    // FIX BUG: Mutex check - don't start cameo during active handoff
+    // This prevents voice state corruption from overlapping transitions
+    const { handoffService } = await import('./handoff.service.js');
+    if (handoffService.isTransitioning) {
+      log.warn('🎬 Cameo blocked - handoff in progress', {
+        personaId,
+        handoffTarget: handoffService.targetPersona,
+      });
+      return;
+    }
+
     log.info('🎬 Cameo starting (early signal)', { personaId, personaName, isFirstCameo });
 
     // Play arrival sound early for better UX (with debounce to prevent double-play)

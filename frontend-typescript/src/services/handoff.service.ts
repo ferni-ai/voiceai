@@ -696,6 +696,19 @@ class HandoffService {
       this.recordRequest();
     }
 
+    // FIX BUG: Mutex check - don't start handoff during active cameo
+    // This prevents voice state corruption from overlapping transitions
+    const { cameoService } = await import('./cameo.service.js');
+    if (cameoService.isInCameo()) {
+      log.warn('Handoff blocked - cameo in progress', {
+        target: targetPersonaId,
+        cameoPersona: cameoService.getCurrentCameoPersona(),
+      });
+      const error = new Error('Cannot handoff during active cameo');
+      onFailure?.(error);
+      return false;
+    }
+
     // Validate persona ID
     const persona = getPersona(targetPersonaId);
     if (!persona || persona.id === 'ferni' && targetPersonaId !== 'ferni') {

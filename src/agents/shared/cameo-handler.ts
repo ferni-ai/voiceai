@@ -200,22 +200,42 @@ export function createCameoHandlers(config: CameoHandlerConfig) {
         logger.warn('No voiceAgentRef available for cameo LLM instruction update');
       }
 
-      // Switch voice to cameo persona
+      // Switch voice to cameo persona with retry logic
       // FIX ISSUE #1: Pass sessionId to use session-scoped voice manager
-      try {
-        const voiceManager = await getVoiceManagerCached(sessionId);
-        voiceManager.switchVoice(personaId);
+      // FIX BUG: Add retry logic matching handoff-handler.ts for reliability
+      const MAX_VOICE_SWITCH_RETRIES = 2;
+      let voiceSwitchSuccess = false;
 
-        // Also switch session TTS if it supports voice switching
-        const resolvedVoiceId = voiceId || getVoiceId(personaId);
-        if (tts.switchVoice && resolvedVoiceId) {
-          tts.switchVoice(getPersonaDisplayName(personaId), resolvedVoiceId);
+      for (let attempt = 0; attempt <= MAX_VOICE_SWITCH_RETRIES && !voiceSwitchSuccess; attempt++) {
+        try {
+          const voiceManager = await getVoiceManagerCached(sessionId);
+          voiceManager.switchVoice(personaId);
+
+          // Also switch session TTS if it supports voice switching
+          const resolvedVoiceId = voiceId || getVoiceId(personaId);
+          if (tts.switchVoice && resolvedVoiceId) {
+            tts.switchVoice(getPersonaDisplayName(personaId), resolvedVoiceId);
+          }
+
+          voiceSwitchSuccess = true;
+          diag.entry(
+            `🎤 Voice switched to ${personaId} for cameo${attempt > 0 ? ` (retry ${attempt})` : ''}`
+          );
+        } catch (voiceErr) {
+          if (attempt < MAX_VOICE_SWITCH_RETRIES) {
+            logger.warn(
+              { error: String(voiceErr), attempt: attempt + 1 },
+              'Cameo voice switch failed, retrying in 100ms...'
+            );
+            await sleep(100);
+          } else {
+            logger.error(
+              { error: String(voiceErr), attempts: MAX_VOICE_SWITCH_RETRIES + 1 },
+              'Cameo voice switch failed after all retries'
+            );
+            return { success: false, error: `Voice switch failed: ${voiceErr}` };
+          }
         }
-
-        diag.entry(`🎤 Voice switched to ${personaId} for cameo`);
-      } catch (voiceErr) {
-        logger.error({ error: String(voiceErr) }, 'Failed to switch voice for cameo');
-        return { success: false, error: `Voice switch failed: ${voiceErr}` };
       }
 
       // Send cameo_started data message to frontend

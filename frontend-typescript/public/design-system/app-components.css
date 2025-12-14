@@ -369,6 +369,22 @@
     0 0 0 1px rgba(255, 255, 255, 0.1) inset;
 }
 
+/* FIX BUG: Focus-visible styles for keyboard navigation accessibility */
+.app-team-member:focus-visible {
+  outline: none;
+  border-color: var(--persona-primary, var(--color-accent-primary));
+  box-shadow: 
+    0 0 0 3px var(--persona-glow, rgba(74, 103, 65, 0.4)),
+    0 4px 16px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  transform: translateY(-2px) scale(1.02);
+}
+
+/* Remove default focus outline in favor of custom styles */
+.app-team-member:focus {
+  outline: none;
+}
+
 .app-team-member.active {
   background: var(--color-bg-elevated, rgba(255, 255, 255, 0.15));
   border-color: var(--persona-primary, var(--color-accent-primary));
