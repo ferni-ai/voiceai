@@ -40,6 +40,7 @@ import { handleRelationshipRoutes } from './routes/relationship.js';
 import { handleRitualsRoutes } from './routes/rituals.js';
 import { handleSkyCheckRoutes } from './routes/sky-check.js';
 import { handleTeamRoutes } from './routes/team.js';
+import { handleGrowthRoutes } from './routes/growth.js';
 
 // Route prefixes handled by this module (for early bailout)
 const ENGAGEMENT_ROUTE_PREFIXES = [
@@ -53,6 +54,7 @@ const ENGAGEMENT_ROUTE_PREFIXES = [
   '/api/relationship',
   '/api/games',
   '/api/sky-check',
+  '/api/growth',
 ];
 
 /**
@@ -160,6 +162,11 @@ export async function handleEngagementRoutes(
 
   // Sky Check (Daily check-in / emotional weather)
   if (await handleSkyCheckRoutes(req, res, pathname, parsedUrl)) {
+    return true;
+  }
+
+  // Growth Visibility (User progress insights)
+  if (await handleGrowthRoutes(req, res, pathname, parsedUrl)) {
     return true;
   }
 

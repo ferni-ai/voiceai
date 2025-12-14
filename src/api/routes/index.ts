@@ -67,3 +67,6 @@ export {
   handleGetBuilderWarnings,
   handleGetSessionBuilderMetrics,
 } from './builder-metrics.js';
+
+// Growth visibility routes (user progress insights)
+export { handleGrowthRoutes } from './growth.js';
