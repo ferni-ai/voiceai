@@ -9,10 +9,225 @@ struct FerniVoiceApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        // Empty scene - we only use the menubar
         Settings {
             EmptyView()
         }
+    }
+}
+
+// MARK: - Floating Voice Window
+
+struct VoiceWindowView: View {
+    @ObservedObject var voiceManager: VoiceSessionManager
+    @State private var glowPhase: Double = 0
+    @State private var pulseScale: CGFloat = 1.0
+
+    // Persona colors matching design system
+    let personaColors: [String: Color] = [
+        "ferni": Color(red: 0.29, green: 0.40, blue: 0.25),  // #4a6741
+        "maya": Color(red: 0.58, green: 0.44, blue: 0.86),   // #9470db
+        "alex": Color(red: 0.20, green: 0.60, blue: 0.86),   // #3399db
+        "jordan": Color(red: 0.93, green: 0.79, blue: 0.28), // #edc946
+        "peter": Color(red: 0.36, green: 0.54, blue: 0.66),  // #5c8aa8
+        "nayan": Color(red: 0.80, green: 0.52, blue: 0.25),  // #cc8540
+    ]
+
+    var accentColor: Color {
+        personaColors[voiceManager.currentPersona] ?? .green
+    }
+
+    var body: some View {
+        ZStack {
+            // Background
+            RoundedRectangle(cornerRadius: 20)
+                .fill(.black.opacity(0.85))
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+
+            // Animated glow border
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(
+                    AngularGradient(
+                        gradient: Gradient(colors: [
+                            accentColor.opacity(0.8),
+                            accentColor.opacity(0.2),
+                            accentColor.opacity(0.6),
+                            accentColor.opacity(0.1),
+                            accentColor.opacity(0.8),
+                        ]),
+                        center: .center,
+                        startAngle: .degrees(glowPhase),
+                        endAngle: .degrees(glowPhase + 360)
+                    ),
+                    lineWidth: voiceManager.state == .connected ? 3 : 2
+                )
+                .blur(radius: voiceManager.state == .connected ? 4 : 2)
+
+            // Sharp border on top
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(accentColor.opacity(0.6), lineWidth: 1)
+
+            // Content
+            VStack(spacing: 16) {
+                // Status area
+                HStack {
+                    // Pulsing indicator
+                    Circle()
+                        .fill(accentColor)
+                        .frame(width: 8, height: 8)
+                        .scaleEffect(pulseScale)
+                        .shadow(color: accentColor, radius: 4)
+
+                    Text(statusText)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white.opacity(0.9))
+
+                    Spacer()
+
+                    // Persona badge
+                    Text(voiceManager.currentPersona.uppercased())
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(accentColor)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(accentColor.opacity(0.2))
+                        .clipShape(Capsule())
+                }
+
+                // Waveform visualization
+                HStack(spacing: 3) {
+                    ForEach(0..<12, id: \.self) { i in
+                        WaveformBar(
+                            index: i,
+                            isActive: voiceManager.state == .connected,
+                            color: accentColor
+                        )
+                    }
+                }
+                .frame(height: 40)
+
+                // End button
+                Button(action: {
+                    voiceManager.stop()
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "phone.down.fill")
+                            .font(.system(size: 12))
+                        Text("End")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(Color.red.opacity(0.8))
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .shadow(color: .red.opacity(0.3), radius: 8)
+            }
+            .padding(20)
+        }
+        .frame(width: 280, height: 160)
+        .onAppear {
+            startAnimations()
+        }
+    }
+
+    var statusText: String {
+        switch voiceManager.state {
+        case .connecting:
+            return "Connecting..."
+        case .connected:
+            return "Listening..."
+        case .disconnected:
+            return "Disconnected"
+        case .error(let msg):
+            return "Error: \(msg)"
+        }
+    }
+
+    func startAnimations() {
+        // Rotating glow
+        withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
+            glowPhase = 360
+        }
+
+        // Pulsing indicator
+        withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
+            pulseScale = 1.3
+        }
+    }
+}
+
+// MARK: - Waveform Bar
+
+struct WaveformBar: View {
+    let index: Int
+    let isActive: Bool
+    let color: Color
+
+    @State private var height: CGFloat = 0.2
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 2)
+            .fill(color.opacity(isActive ? 0.8 : 0.3))
+            .frame(width: 4, height: isActive ? height * 40 : 8)
+            .animation(
+                isActive ?
+                    .easeInOut(duration: Double.random(in: 0.3...0.6))
+                    .repeatForever(autoreverses: true)
+                    .delay(Double(index) * 0.05)
+                : .default,
+                value: height
+            )
+            .onAppear {
+                if isActive {
+                    height = CGFloat.random(in: 0.3...1.0)
+                }
+            }
+            .onChange(of: isActive) { newValue in
+                if newValue {
+                    // Randomize heights when active
+                    Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { _ in
+                        height = CGFloat.random(in: 0.2...1.0)
+                    }
+                }
+            }
+    }
+}
+
+// MARK: - Voice Window Controller
+
+class VoiceWindowController: NSWindowController {
+    convenience init(voiceManager: VoiceSessionManager) {
+        let hostingController = NSHostingController(
+            rootView: VoiceWindowView(voiceManager: voiceManager)
+        )
+
+        let window = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 280, height: 160),
+            styleMask: [.nonactivatingPanel, .fullSizeContentView, .borderless],
+            backing: .buffered,
+            defer: false
+        )
+
+        window.contentViewController = hostingController
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.hasShadow = true
+        window.level = .floating
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.isMovableByWindowBackground = true
+
+        // Position near top-right of screen
+        if let screen = NSScreen.main {
+            let screenRect = screen.visibleFrame
+            let windowX = screenRect.maxX - 300
+            let windowY = screenRect.maxY - 180
+            window.setFrameOrigin(NSPoint(x: windowX, y: windowY))
+        }
+
+        self.init(window: window)
     }
 }
 
@@ -21,17 +236,12 @@ struct FerniVoiceApp: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var voiceManager = VoiceSessionManager()
+    private var voiceWindowController: VoiceWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Hide dock icon - menubar only
         NSApp.setActivationPolicy(.accessory)
-
         setupMenuBar()
-
-        // Request microphone permission early
         requestMicrophonePermission()
-
-        // Check if ferni CLI is available
         checkFerniInstallation()
     }
 
@@ -68,7 +278,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         updateMenu()
 
-        // Listen for state changes
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(voiceStateChanged),
@@ -81,6 +290,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.async { [weak self] in
             self?.updateMenu()
             self?.updateIcon()
+            self?.updateVoiceWindow()
+        }
+    }
+
+    private func updateVoiceWindow() {
+        switch voiceManager.state {
+        case .connecting, .connected:
+            if voiceWindowController == nil {
+                voiceWindowController = VoiceWindowController(voiceManager: voiceManager)
+            }
+            voiceWindowController?.showWindow(nil)
+
+        case .disconnected, .error:
+            voiceWindowController?.close()
+            voiceWindowController = nil
         }
     }
 
@@ -106,14 +330,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func updateMenu() {
         let menu = NSMenu()
 
-        // Status header
         let statusItem = NSMenuItem(title: statusText(), action: nil, keyEquivalent: "")
         statusItem.isEnabled = false
         menu.addItem(statusItem)
 
         menu.addItem(NSMenuItem.separator())
 
-        // Main action
         switch voiceManager.state {
         case .disconnected, .error:
             let startItem = NSMenuItem(
@@ -163,7 +385,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(NSMenuItem.separator())
 
-        // Setup help
         let setupItem = NSMenuItem(
             title: "Setup Help...",
             action: #selector(showSetupHelp),
@@ -174,7 +395,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(NSMenuItem.separator())
 
-        // Quit
         let quitItem = NSMenuItem(
             title: "Quit Ferni Voice",
             action: #selector(quitApp),
@@ -240,7 +460,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         alert.addButton(withTitle: "Open Terminal")
 
         if alert.runModal() == .alertSecondButtonReturn {
-            // Open Terminal with helpful commands
             let script = """
             tell application "Terminal"
                 activate
@@ -302,26 +521,22 @@ class VoiceSessionManager: ObservableObject {
 
         process = Process()
 
-        // Use the ferni binary if available, otherwise fall back to npx tsx
         let ferniBinary = "/opt/homebrew/bin/ferni"
         if FileManager.default.fileExists(atPath: ferniBinary) {
             process?.executableURL = URL(fileURLWithPath: ferniBinary)
             process?.arguments = ["voice", "--persona", currentPersona]
         } else {
-            // Fallback to running TypeScript directly
             let projectRoot = findProjectRoot()
             process?.executableURL = URL(fileURLWithPath: "/usr/bin/env")
             process?.arguments = ["npx", "tsx", "scripts/cli/voice-live.ts", "--persona", currentPersona]
             process?.currentDirectoryURL = URL(fileURLWithPath: projectRoot)
         }
 
-        // Set up environment
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:" + (env["PATH"] ?? "")
-        env["FERNI_SOUNDS"] = "mp3"  // Use rich MP3 sounds in the app
+        env["FERNI_SOUNDS"] = "mp3"
         process?.environment = env
 
-        // Capture output
         outputPipe = Pipe()
         process?.standardOutput = outputPipe
         process?.standardError = outputPipe
@@ -349,10 +564,8 @@ class VoiceSessionManager: ObservableObject {
     }
 
     func stop() {
-        // Send interrupt signal (like Ctrl+C)
         process?.interrupt()
 
-        // Give it a moment to clean up, then terminate if needed
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
             if self?.process?.isRunning == true {
                 self?.process?.terminate()
@@ -364,7 +577,6 @@ class VoiceSessionManager: ObservableObject {
     }
 
     private func handleOutput(_ output: String) {
-        // Parse output to determine state
         if output.contains("Audio playback active") || output.contains("Microphone active") {
             DispatchQueue.main.async { [weak self] in
                 self?.state = .connected
@@ -377,20 +589,16 @@ class VoiceSessionManager: ObservableObject {
             }
         }
 
-        // Log for debugging
         print("[Voice] \(output)")
     }
 
     private func findProjectRoot() -> String {
-        // Try to find project root relative to the app bundle or current directory
         let fileManager = FileManager.default
 
-        // Check if we're in the built app bundle
         if let bundlePath = Bundle.main.bundlePath.components(separatedBy: "/macos-app/").first {
             return bundlePath
         }
 
-        // Check common locations
         let possiblePaths = [
             NSHomeDirectory() + "/Documents/voiceai",
             "/Users/sethford/Documents/voiceai",

@@ -4,7 +4,7 @@
  * Interactive quiz to match users with the right Ferni persona
  */
 
-(function() {
+(function () {
   'use strict';
 
   // Persona data with scoring dimensions
@@ -16,7 +16,7 @@
       role: 'Life Coach',
       color: '#4a6741',
       match: 'You need someone who listens deeply and asks the questions that unlock insight.',
-      traits: ['emotional-support', 'clarity', 'presence']
+      traits: ['emotional-support', 'clarity', 'presence'],
     },
     nayan: {
       id: 'nayan',
@@ -24,8 +24,9 @@
       initials: 'NP',
       role: 'Sage & Mentor',
       color: '#9a7b5a',
-      match: 'You value long-term wisdom and perspective that comes from seeing the bigger picture.',
-      traits: ['wisdom', 'perspective', 'patience']
+      match:
+        'You value long-term wisdom and perspective that comes from seeing the bigger picture.',
+      traits: ['wisdom', 'perspective', 'patience'],
     },
     peter: {
       id: 'peter',
@@ -33,8 +34,8 @@
       initials: 'PL',
       role: 'Research & Discovery',
       color: '#3a6b73',
-      match: 'You want data-driven insights that reveal patterns you can\'t see yourself.',
-      traits: ['analytical', 'patterns', 'data']
+      match: "You want data-driven insights that reveal patterns you can't see yourself.",
+      traits: ['analytical', 'patterns', 'data'],
     },
     alex: {
       id: 'alex',
@@ -43,7 +44,7 @@
       role: 'Communication',
       color: '#5a6b8a',
       match: 'You need help navigating difficult conversations with confidence.',
-      traits: ['communication', 'negotiation', 'confidence']
+      traits: ['communication', 'negotiation', 'confidence'],
     },
     maya: {
       id: 'maya',
@@ -52,7 +53,7 @@
       role: 'Habits & Routines',
       color: '#a67a6a',
       match: 'You want to build lasting habits through small, sustainable changes.',
-      traits: ['habits', 'consistency', 'systems']
+      traits: ['habits', 'consistency', 'systems'],
     },
     jordan: {
       id: 'jordan',
@@ -61,8 +62,8 @@
       role: 'Planning & Events',
       color: '#c4856a',
       match: 'You need help turning dreams into actionable plans and memorable experiences.',
-      traits: ['planning', 'creativity', 'execution']
-    }
+      traits: ['planning', 'creativity', 'execution'],
+    },
   };
 
   // Quiz questions
@@ -70,11 +71,11 @@
     {
       question: "When you're facing a challenge, what do you need most?",
       answers: [
-        { text: "Someone to really listen and understand", personas: ['ferni', 'nayan'] },
-        { text: "Clear data and patterns to make sense of it", personas: ['peter'] },
-        { text: "Help with what to say or do next", personas: ['alex', 'jordan'] },
-        { text: "Small, practical steps I can start today", personas: ['maya'] }
-      ]
+        { text: 'Someone to really listen and understand', personas: ['ferni', 'nayan'] },
+        { text: 'Clear data and patterns to make sense of it', personas: ['peter'] },
+        { text: 'Help with what to say or do next', personas: ['alex', 'jordan'] },
+        { text: 'Small, practical steps I can start today', personas: ['maya'] },
+      ],
     },
     {
       question: "What's keeping you up at 2am?",
@@ -82,31 +83,31 @@
         { text: "Big life decisions I can't figure out", personas: ['ferni', 'nayan'] },
         { text: "Worrying if I'm spending time on the right things", personas: ['peter', 'maya'] },
         { text: "A conversation I'm dreading having", personas: ['alex'] },
-        { text: "Dreams I haven't turned into reality", personas: ['jordan', 'nayan'] }
-      ]
+        { text: "Dreams I haven't turned into reality", personas: ['jordan', 'nayan'] },
+      ],
     },
     {
-      question: "What would feel like a win right now?",
+      question: 'What would feel like a win right now?',
       answers: [
-        { text: "Feeling heard and understood", personas: ['ferni'] },
-        { text: "Gaining clarity on my next 10 years", personas: ['nayan'] },
-        { text: "Understanding where my time and energy really goes", personas: ['peter'] },
-        { text: "Nailing that difficult conversation", personas: ['alex'] },
-        { text: "Finally sticking to a routine", personas: ['maya'] },
-        { text: "Making that trip or event actually happen", personas: ['jordan'] }
-      ]
+        { text: 'Feeling heard and understood', personas: ['ferni'] },
+        { text: 'Gaining clarity on my next 10 years', personas: ['nayan'] },
+        { text: 'Understanding where my time and energy really goes', personas: ['peter'] },
+        { text: 'Nailing that difficult conversation', personas: ['alex'] },
+        { text: 'Finally sticking to a routine', personas: ['maya'] },
+        { text: 'Making that trip or event actually happen', personas: ['jordan'] },
+      ],
     },
     {
-      question: "How do you prefer to solve problems?",
+      question: 'How do you prefer to solve problems?',
       answers: [
-        { text: "Talk through my feelings first", personas: ['ferni'] },
-        { text: "Zoom out and see the bigger picture", personas: ['nayan'] },
-        { text: "Look at the numbers and patterns", personas: ['peter'] },
-        { text: "Practice and prepare", personas: ['alex'] },
-        { text: "Break it into tiny daily actions", personas: ['maya'] },
-        { text: "Plan it out step by step", personas: ['jordan'] }
-      ]
-    }
+        { text: 'Talk through my feelings first', personas: ['ferni'] },
+        { text: 'Zoom out and see the bigger picture', personas: ['nayan'] },
+        { text: 'Look at the numbers and patterns', personas: ['peter'] },
+        { text: 'Practice and prepare', personas: ['alex'] },
+        { text: 'Break it into tiny daily actions', personas: ['maya'] },
+        { text: 'Plan it out step by step', personas: ['jordan'] },
+      ],
+    },
   ];
 
   let currentQuestion = 0;
@@ -118,7 +119,7 @@
 
     // Reset scores
     scores = {};
-    Object.keys(PERSONAS).forEach(p => scores[p] = 0);
+    Object.keys(PERSONAS).forEach((p) => (scores[p] = 0));
     currentQuestion = 0;
 
     renderQuestion(quizContainer);
@@ -128,7 +129,7 @@
 
   function renderQuestion(container) {
     const question = QUESTIONS[currentQuestion];
-    const progress = ((currentQuestion) / QUESTIONS.length) * 100;
+    const progress = (currentQuestion / QUESTIONS.length) * 100;
 
     container.innerHTML = `
       <div class="quiz__progress">
@@ -138,17 +139,21 @@
         <p class="quiz__step">Question ${currentQuestion + 1} of ${QUESTIONS.length}</p>
         <h3 class="quiz__question">${question.question}</h3>
         <div class="quiz__answers">
-          ${question.answers.map((answer, idx) => `
+          ${question.answers
+            .map(
+              (answer, idx) => `
             <button class="quiz__answer" data-answer="${idx}" data-personas="${answer.personas.join(',')}">
               ${answer.text}
             </button>
-          `).join('')}
+          `
+            )
+            .join('')}
         </div>
       </div>
     `;
 
     // Add click handlers
-    container.querySelectorAll('.quiz__answer').forEach(btn => {
+    container.querySelectorAll('.quiz__answer').forEach((btn) => {
       btn.addEventListener('click', () => handleAnswer(container, btn));
     });
 
@@ -169,7 +174,7 @@
 
     // Score the personas
     const personas = btn.dataset.personas.split(',');
-    personas.forEach(p => {
+    personas.forEach((p) => {
       scores[p] = (scores[p] || 0) + 1;
     });
 
@@ -186,8 +191,7 @@
 
   function showResult(container) {
     // Find winning persona
-    const winner = Object.entries(scores)
-      .sort(([,a], [,b]) => b - a)[0][0];
+    const winner = Object.entries(scores).sort(([, a], [, b]) => b - a)[0][0];
 
     const persona = PERSONAS[winner];
 
@@ -248,5 +252,4 @@
   } else {
     initQuiz();
   }
-
 })();

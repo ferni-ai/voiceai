@@ -145,8 +145,13 @@
 }
 
 @keyframes quizAvatarPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
 }
 
 .quiz__result-label {
