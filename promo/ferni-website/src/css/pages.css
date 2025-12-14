@@ -78,7 +78,7 @@ section {
   font-size: 18px;
   line-height: 1.8;
   color: var(--color-text-secondary);
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .about-content p:last-child {
@@ -120,7 +120,7 @@ section {
   display: block;
   color: var(--color-text);
   font-size: 18px;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 .about-location {
@@ -215,7 +215,7 @@ section {
   font-size: 20px;
   font-weight: 600;
   color: var(--color-text);
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 .about-team__role {
@@ -288,7 +288,7 @@ section {
 .blog-card--featured {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
-  margin-bottom: 40px;
+  margin-bottom: var(--space-10);
 }
 
 .blog-card__image {
@@ -508,7 +508,7 @@ section {
   font-size: clamp(24px, 4vw, 36px);
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .compare-detail p {
@@ -567,7 +567,7 @@ section {
   display: flex;
   gap: var(--space-4);
   justify-content: center;
-  margin-top: 32px;
+  margin-top: var(--space-8);
 }
 
 .enterprise-benefits {
@@ -825,7 +825,7 @@ section {
   font-size: 20px;
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 .persona-card__role {
@@ -905,7 +905,7 @@ section {
   font-size: 18px;
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 .marketplace-coming__feature p {
@@ -925,7 +925,7 @@ section {
   font-size: 20px;
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .marketplace-waitlist__form {
@@ -1025,7 +1025,7 @@ section {
 }
 
 .press-boilerplate {
-  margin-top: 32px;
+  margin-top: var(--space-8);
   padding: 32px;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
@@ -1054,7 +1054,7 @@ section {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: var(--space-8);
-  margin-top: 32px;
+  margin-top: var(--space-8);
 }
 
 .press-fact {
@@ -1091,7 +1091,7 @@ section {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--space-6);
-  margin-bottom: 48px;
+  margin-bottom: var(--space-12);
 }
 
 .press-logo-card {
@@ -1124,7 +1124,7 @@ section {
   font-size: 16px;
   font-weight: 600;
   color: var(--color-text);
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 .press-logo-card__info p {
@@ -1140,7 +1140,7 @@ section {
   font-size: 16px;
   font-weight: 700;
   color: var(--color-text);
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .press-colors__grid {
@@ -1189,7 +1189,7 @@ section {
   font-size: 24px;
   font-weight: 600;
   color: var(--color-accent);
-  margin-top: 16px;
+  margin-top: var(--space-4);
 }
 
 .press-email:hover {
@@ -1412,7 +1412,7 @@ section {
   font-size: 18px;
   font-weight: 600;
   color: var(--color-accent);
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .team-member-profile__bio {
@@ -1432,7 +1432,7 @@ section {
 }
 
 .team-member-section {
-  margin-bottom: 48px;
+  margin-bottom: var(--space-12);
 }
 
 .team-member-section:last-child {
@@ -1539,7 +1539,7 @@ section {
   font-weight: 600;
   color: var(--color-text-muted);
   text-decoration: none;
-  margin-bottom: 48px;
+  margin-bottom: var(--space-12);
   transition: color var(--transition-fast);
 }
 
@@ -1607,7 +1607,7 @@ section {
 }
 
 .team-member__bio {
-  margin-bottom: 48px;
+  margin-bottom: var(--space-12);
 }
 
 .team-member__bio p {
@@ -1619,7 +1619,7 @@ section {
 .team-member__personality,
 .team-member__specialties,
 .team-member__approach {
-  margin-bottom: 48px;
+  margin-bottom: var(--space-12);
 }
 
 .team-member__personality h2,
@@ -1725,7 +1725,7 @@ section {
   font-weight: 700;
   color: var(--color-text);
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: var(--space-10);
 }
 
 .team-member__others-grid {
@@ -2003,7 +2003,7 @@ section {
   line-height: 1.6;
   color: var(--color-text-secondary);
   max-width: 600px;
-  margin-bottom: 32px;
+  margin-bottom: var(--space-8);
 }
 
 .hero-ctas {
@@ -2035,7 +2035,7 @@ section {
 }
 
 .mt-8 {
-  margin-top: 32px;
+  margin-top: var(--space-8);
 }
 
 .alt-bg {
