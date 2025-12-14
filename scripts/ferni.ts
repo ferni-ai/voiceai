@@ -495,6 +495,71 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: ['start', 'check'],
     examples: ['ferni onboard', 'ferni onboard check'],
   },
+  // Advanced Automation
+  'release-auto': {
+    name: 'Release Auto',
+    description: 'Smart release management with AI',
+    icon: '📦',
+    handler: handleReleaseAuto,
+    subcommands: ['auto', 'notes', 'announce'],
+    examples: ['ferni release-auto auto', 'ferni release-auto notes', 'ferni release-auto announce'],
+  },
+  'deps-ai': {
+    name: 'Deps AI',
+    description: 'AI-powered dependency updates',
+    icon: '📦',
+    handler: handleDepsAI,
+    subcommands: ['update', 'migrate'],
+    examples: ['ferni deps-ai update', 'ferni deps-ai migrate react 17 18'],
+  },
+  incident: {
+    name: 'Incident',
+    description: 'Production incident response',
+    icon: '🚨',
+    handler: handleIncidentCmd,
+    subcommands: ['start', 'diagnose', 'postmortem', 'list'],
+    examples: ['ferni incident start', 'ferni incident diagnose', 'ferni incident postmortem INC-xxx'],
+  },
+  refactor: {
+    name: 'Refactor',
+    description: 'AI-powered code refactoring',
+    icon: '🔄',
+    handler: handleRefactorCmd,
+    subcommands: ['suggest', 'extract', 'modernize'],
+    examples: ['ferni refactor suggest', 'ferni refactor modernize src/file.ts'],
+  },
+  translate: {
+    name: 'Translate',
+    description: 'AI-powered internationalization',
+    icon: '🌍',
+    handler: handleTranslateCmd,
+    subcommands: ['scan', 'generate', 'review'],
+    examples: ['ferni translate scan', 'ferni translate generate es'],
+  },
+  flags: {
+    name: 'Flags',
+    description: 'Feature flag intelligence',
+    icon: '🚩',
+    handler: handleFlagsCmd,
+    subcommands: ['list', 'suggest', 'cleanup', 'impact'],
+    examples: ['ferni flags list', 'ferni flags cleanup', 'ferni flags suggest my-feature "desc"'],
+  },
+  'costs-ai': {
+    name: 'Costs AI',
+    description: 'AI-powered cost optimization',
+    icon: '💰',
+    handler: handleCostsAICmd,
+    subcommands: ['optimize', 'forecast', 'alert'],
+    examples: ['ferni costs-ai optimize', 'ferni costs-ai forecast'],
+  },
+  api: {
+    name: 'API',
+    description: 'API contract testing & docs',
+    icon: '📡',
+    handler: handleAPICmd,
+    subcommands: ['list', 'mock', 'diff', 'docs'],
+    examples: ['ferni api list', 'ferni api mock', 'ferni api diff'],
+  },
 };
 
 // ============================================================================
@@ -3940,6 +4005,46 @@ async function handleOnboard(args: string[]): Promise<void> {
   await onboardHandler(args);
 }
 
+async function handleReleaseAuto(args: string[]): Promise<void> {
+  const { handleReleaseAuto: handler } = await import('./cli/release-auto.js');
+  await handler(args);
+}
+
+async function handleDepsAI(args: string[]): Promise<void> {
+  const { handleDepsAI: handler } = await import('./cli/deps-ai.js');
+  await handler(args);
+}
+
+async function handleIncidentCmd(args: string[]): Promise<void> {
+  const { handleIncident: handler } = await import('./cli/incident.js');
+  await handler(args);
+}
+
+async function handleRefactorCmd(args: string[]): Promise<void> {
+  const { handleRefactor: handler } = await import('./cli/refactor.js');
+  await handler(args);
+}
+
+async function handleTranslateCmd(args: string[]): Promise<void> {
+  const { handleTranslate: handler } = await import('./cli/translate.js');
+  await handler(args);
+}
+
+async function handleFlagsCmd(args: string[]): Promise<void> {
+  const { handleFlags: handler } = await import('./cli/flags.js');
+  await handler(args);
+}
+
+async function handleCostsAICmd(args: string[]): Promise<void> {
+  const { handleCostsAI: handler } = await import('./cli/costs-ai.js');
+  await handler(args);
+}
+
+async function handleAPICmd(args: string[]): Promise<void> {
+  const { handleAPIContracts: handler } = await import('./cli/api-contracts.js');
+  await handler(args);
+}
+
 // ============================================================================
 // INTERACTIVE MODE
 // ============================================================================
@@ -3976,6 +4081,7 @@ ${colors.bold}What would you like to do?${colors.reset}
   const selfHealCommands = ['self-heal', 'circuits', 'restart', 'diagnose', 'anomalies'];
   const agentCommands = ['agents', 'personas', 'tools', 'voices', 'validate', 'generate', 'rollout', 'audit', 'tokens', 'design'];
   const aiCommands = ['ai', 'review', 'copy', 'test-gen', 'docs', 'perf', 'security', 'onboard'];
+  const advancedCommands = ['release-auto', 'deps-ai', 'incident', 'refactor', 'translate', 'flags', 'costs-ai', 'api'];
 
   console.log(`  ${colors.bold}${colors.blue}Development${colors.reset}`);
   let index = 1;
@@ -4022,6 +4128,16 @@ ${colors.bold}What would you like to do?${colors.reset}
 
   console.log(`\n  ${colors.bold}${colors.yellow}AI Automation${colors.reset}`);
   for (const key of aiCommands) {
+    const cmd = COMMANDS[key];
+    if (cmd) {
+      console.log(`    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`);
+      indexMap[index] = key;
+      index++;
+    }
+  }
+
+  console.log(`\n  ${colors.bold}${colors.magenta}Advanced Automation${colors.reset}`);
+  for (const key of advancedCommands) {
     const cmd = COMMANDS[key];
     if (cmd) {
       console.log(`    ${colors.green}${index.toString().padStart(2)}${colors.reset}) ${cmd.icon} ${colors.bold}${cmd.name}${colors.reset} - ${cmd.description}`);
@@ -4120,6 +4236,7 @@ ${colors.bold}Commands:${colors.reset}
     'Self-Healing': ['self-heal', 'circuits', 'restart', 'diagnose', 'anomalies'],
     'Agents & Quality': ['agents', 'personas', 'tools', 'voices', 'validate', 'generate', 'rollout', 'audit', 'tokens', 'design'],
     'AI Automation': ['ai', 'review', 'copy', 'test-gen', 'docs', 'perf', 'security', 'onboard'],
+    'Advanced Automation': ['release-auto', 'deps-ai', 'incident', 'refactor', 'translate', 'flags', 'costs-ai', 'api'],
   };
 
   for (const [category, keys] of Object.entries(categories)) {

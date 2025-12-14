@@ -223,6 +223,14 @@
     "ferni:health": "npx tsx scripts/ferni.ts health",
     "token-server": "node token-server.js",
     "dev:full": "npm run token-server & npm run dev",
+    "ci:review": "npx tsx scripts/ferni.ts review full",
+    "ci:api-diff": "npx tsx scripts/ferni.ts api diff",
+    "ci:bundle": "npx tsx scripts/ferni.ts perf budget",
+    "ci:security": "npx tsx scripts/ferni.ts security scan",
+    "ci:deps": "npx tsx scripts/ferni.ts deps-ai update",
+    "ci:release-notes": "npx tsx scripts/ferni.ts release-auto notes",
+    "ci:cost-forecast": "npx tsx scripts/ferni.ts costs-ai forecast",
+    "ci:all": "npm run ci:review && npm run ci:api-diff && npm run ci:bundle && npm run ci:security",
     "prepare": "husky || true"
   },
   "keywords": [
