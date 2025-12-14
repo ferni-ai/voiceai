@@ -1,6 +1,9 @@
 /* Import design tokens - SINGLE SOURCE OF TRUTH */
 @import './_tokens.css';
 
+/* Accessibility utilities - WCAG 2.1 AA compliance */
+@import './utils/accessibility.css';
+
 /* Ferni EQ - Superhuman Emotional Intelligence Animations */
 @import './ferni-eq.css';
 

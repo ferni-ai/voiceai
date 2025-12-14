@@ -27,16 +27,17 @@
   const CONFIG = {
     apiBase: '/api/landing/ai',
     // Feature flags - these get updated by loadFeatureFlags()
-    enableChat: false,
-    enablePersonalizedHero: false,
-    enablePersonaPreviews: false,
-    enableSmartFAQ: false,
-    enableSocialProof: false,
-    enableHoverPreviews: false,
-    enableSentimentCopy: false,
-    enableMicroExpressions: false,
-    enableVoiceSamples: false,
-    enableMemoryDemo: false,
+    // Client-side only features (no API needed) default to true
+    enableChat: false, // Requires backend API
+    enablePersonalizedHero: false, // Requires backend API
+    enablePersonaPreviews: false, // Requires backend API
+    enableSmartFAQ: false, // Requires backend API
+    enableSocialProof: false, // Requires backend API
+    enableHoverPreviews: false, // Requires backend API
+    enableSentimentCopy: false, // Requires backend API
+    enableMicroExpressions: true, // Client-side only - ENABLED
+    enableVoiceSamples: true, // Audio samples from /audio/samples/
+    enableMemoryDemo: true, // Client-side only - ENABLED
     debugMode: false,
   };
 
@@ -186,7 +187,7 @@
             </button>
           </div>
           
-          <div class="ferni-chat-panel__messages">
+          <div class="ferni-chat-panel__messages" role="log" aria-live="polite" aria-label="Chat messages">
             <div class="ferni-chat-message ferni-chat-message--ai">
               <p>Hey! 👋 I'm Ferni. Want to see what it's like to talk to someone who actually listens? Try me—no signup needed.</p>
             </div>
@@ -378,7 +379,8 @@
         referrer: document.referrer || undefined,
         isReturning: parseInt(localStorage.getItem('ferni_visit_count') || '0', 10) > 1,
         visitCount: parseInt(localStorage.getItem('ferni_visit_count') || '1', 10),
-        device: window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop',
+        device:
+          window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop',
         sentiment: window.FerniSentience?.sentiment?.() || 0.5,
         topSectionsViewed: this.getTopSections(),
       };
@@ -532,7 +534,8 @@
           </div>
         `;
       } else {
-        responseArea.innerHTML = '<p class="team-card__preview-error">Could not get response. Try again?</p>';
+        responseArea.innerHTML =
+          '<p class="team-card__preview-error">Could not get response. Try again?</p>';
       }
     },
   };
@@ -1025,7 +1028,8 @@
           });
         });
       } else {
-        responseEl.innerHTML = '<p class="smart-faq__error">Could not get an answer. Try rephrasing?</p>';
+        responseEl.innerHTML =
+          '<p class="smart-faq__error">Could not get an answer. Try rephrasing?</p>';
       }
     },
   };
@@ -1144,54 +1148,55 @@
     styles.textContent = `
       /* ═══════════════════════════════════════════════════════════════════════════
          LIVE CHAT WIDGET
+         Uses CSS variables from design-tokens.css for brand compliance
          ═══════════════════════════════════════════════════════════════════════════ */
       
       #ferni-live-chat {
         position: fixed;
-        bottom: 24px;
-        right: 24px;
+        bottom: var(--space-6, 24px);
+        right: var(--space-6, 24px);
         z-index: 9998;
-        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+        font-family: var(--font-display, 'Plus Jakarta Sans', -apple-system, sans-serif);
       }
       
       .ferni-chat-trigger {
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 12px 20px;
-        background: linear-gradient(135deg, #5a7751 0%, #4a6741 100%);
-        color: white;
+        gap: var(--space-2, 10px);
+        padding: var(--space-3, 12px) var(--space-5, 20px);
+        background: linear-gradient(135deg, var(--color-ferni, #5a7751) 0%, var(--color-ferni-secondary, #4a6741) 100%);
+        color: var(--color-text-inverse, white);
         border: none;
-        border-radius: 100px;
+        border-radius: var(--radius-full, 100px);
         cursor: pointer;
         font-weight: 600;
-        font-size: 14px;
-        box-shadow: 0 8px 32px rgba(74, 103, 65, 0.4);
-        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        font-size: var(--text-sm, 14px);
+        box-shadow: 0 8px 32px var(--color-ferni-glow, rgba(74, 103, 65, 0.4));
+        transition: all var(--duration-slow, 0.3s) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
       }
       
       .ferni-chat-trigger:hover {
         transform: translateY(-2px);
-        box-shadow: 0 12px 40px rgba(74, 103, 65, 0.5);
+        box-shadow: 0 12px 40px var(--color-ferni-glow, rgba(74, 103, 65, 0.5));
       }
       
       .ferni-chat-trigger__avatar {
         width: 28px;
         height: 28px;
         background: rgba(255,255,255,0.2);
-        border-radius: 50%;
+        border-radius: var(--radius-full, 50%);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 10px;
+        font-size: var(--text-2xs, 10px);
         font-weight: 700;
       }
       
       .ferni-chat-trigger__badge {
-        padding: 2px 8px;
+        padding: var(--space-0_5, 2px) var(--space-2, 8px);
         background: rgba(255,255,255,0.2);
-        border-radius: 10px;
-        font-size: 10px;
+        border-radius: var(--radius-lg, 10px);
+        font-size: var(--text-2xs, 10px);
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
@@ -1208,15 +1213,15 @@
         right: 0;
         width: 380px;
         max-height: 600px;
-        background: #faf8f5;
-        border-radius: 24px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        background: var(--color-bg-primary, #faf8f5);
+        border-radius: var(--radius-2xl, 24px);
+        box-shadow: var(--shadow-2xl, 0 20px 60px rgba(0, 0, 0, 0.2));
         display: flex;
         flex-direction: column;
         opacity: 0;
         visibility: hidden;
         transform: translateY(20px) scale(0.95);
-        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        transition: all var(--duration-slow, 0.3s) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
       }
       
       .ferni-chat-panel.is-open {
@@ -1228,57 +1233,57 @@
       .ferni-chat-panel__header {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 16px 20px;
-        border-bottom: 1px solid rgba(44, 37, 32, 0.08);
+        gap: var(--space-3, 12px);
+        padding: var(--space-4, 16px) var(--space-5, 20px);
+        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       }
       
       .ferni-chat-panel__persona {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: var(--space-2, 10px);
         flex: 1;
       }
       
       .ferni-chat-panel__avatar {
         width: 40px;
         height: 40px;
-        background: linear-gradient(135deg, #5a7751, #4a6741);
-        border-radius: 50%;
+        background: linear-gradient(135deg, var(--color-ferni, #5a7751), var(--color-ferni-secondary, #4a6741));
+        border-radius: var(--radius-full, 50%);
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
-        font-size: 12px;
+        color: var(--color-text-inverse, white);
+        font-size: var(--text-xs, 12px);
         font-weight: 700;
       }
       
       .ferni-chat-panel__name {
         font-weight: 600;
-        color: #2c2520;
+        color: var(--color-text-primary, #2c2520);
         display: block;
       }
       
       .ferni-chat-panel__status {
-        font-size: 12px;
-        color: #4a6741;
+        font-size: var(--text-xs, 12px);
+        color: var(--color-ferni, #4a6741);
       }
       
       .ferni-chat-panel__remaining {
-        font-size: 11px;
-        color: #70605a;
-        background: rgba(44, 37, 32, 0.05);
-        padding: 4px 10px;
-        border-radius: 12px;
+        font-size: var(--text-2xs, 11px);
+        color: var(--color-text-muted, #70605a);
+        background: var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+        padding: var(--space-1, 4px) var(--space-2, 10px);
+        border-radius: var(--radius-lg, 12px);
       }
       
       .ferni-chat-panel__count {
         font-weight: 600;
-        color: #4a6741;
+        color: var(--color-ferni, #4a6741);
       }
       
       .ferni-chat-panel__count.is-low {
-        color: #c4856a;
+        color: var(--color-jordan, #c4856a);
       }
       
       .ferni-chat-panel__close {
@@ -1287,16 +1292,16 @@
         background: none;
         border: none;
         cursor: pointer;
-        color: #70605a;
+        color: var(--color-text-muted, #70605a);
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 50%;
-        transition: background 0.2s;
+        border-radius: var(--radius-full, 50%);
+        transition: background var(--duration-fast, 0.2s);
       }
       
       .ferni-chat-panel__close:hover {
-        background: rgba(44, 37, 32, 0.08);
+        background: var(--color-border-subtle, rgba(44, 37, 32, 0.08));
       }
       
       .ferni-chat-panel__close svg {
@@ -1308,12 +1313,13 @@
       .ferni-chat-panel__messages {
         flex: 1;
         overflow-y: auto;
-        padding: 20px;
+        padding: var(--space-5, 20px);
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: var(--space-3, 12px);
         min-height: 300px;
         max-height: 400px;
+        /* Accessibility: ARIA live region for screen readers */
       }
       
       .ferni-chat-message {
@@ -1345,31 +1351,31 @@
       }
       
       .ferni-chat-message--user p {
-        background: linear-gradient(135deg, #5a7751, #4a6741);
-        color: white;
-        border-bottom-right-radius: 4px;
+        background: linear-gradient(135deg, var(--color-ferni, #5a7751), var(--color-ferni-secondary, #4a6741));
+        color: var(--color-text-inverse, white);
+        border-bottom-right-radius: var(--radius-xs, 4px);
       }
       
       .ferni-chat-message--ai p {
-        background: white;
-        color: #2c2520;
-        border-bottom-left-radius: 4px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        background: var(--color-bg-elevated, white);
+        color: var(--color-text-primary, #2c2520);
+        border-bottom-left-radius: var(--radius-xs, 4px);
+        box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.05));
       }
       
       /* Typing indicator */
       .ferni-chat-typing {
         display: flex;
-        gap: 4px;
-        padding: 16px;
+        gap: var(--space-1, 4px);
+        padding: var(--space-4, 16px);
         align-self: flex-start;
       }
       
       .ferni-chat-typing__dot {
         width: 8px;
         height: 8px;
-        background: #4a6741;
-        border-radius: 50%;
+        background: var(--color-ferni, #4a6741);
+        border-radius: var(--radius-full, 50%);
         animation: typingDot 1.4s ease-in-out infinite;
       }
       
@@ -1401,21 +1407,22 @@
       
       .ferni-chat-panel__input:focus {
         outline: none;
-        border-color: #4a6741;
+        border-color: var(--color-ferni, #4a6741);
+        box-shadow: 0 0 0 3px var(--color-accent-glow, rgba(61, 90, 69, 0.15));
       }
       
       .ferni-chat-panel__send {
         width: 44px;
         height: 44px;
-        background: linear-gradient(135deg, #5a7751, #4a6741);
+        background: linear-gradient(135deg, var(--color-ferni, #5a7751), var(--color-ferni-secondary, #4a6741));
         border: none;
-        border-radius: 50%;
+        border-radius: var(--radius-full, 50%);
         cursor: pointer;
-        color: white;
+        color: var(--color-text-inverse, white);
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: transform 0.2s;
+        transition: transform var(--duration-fast, 0.2s);
       }
       
       .ferni-chat-panel__send:hover {
@@ -1436,8 +1443,8 @@
       }
       
       .ferni-chat-panel__upgrade {
-        font-size: 12px;
-        color: #4a6741;
+        font-size: var(--text-xs, 12px);
+        color: var(--color-ferni, #4a6741);
         text-decoration: none;
         font-weight: 500;
       }
@@ -1455,8 +1462,8 @@
       }
       
       .ferni-chat-upgrade-prompt p {
-        margin: 0 0 12px;
-        color: #2c2520;
+        margin: 0 0 var(--space-3, 12px);
+        color: var(--color-text-primary, #2c2520);
         font-weight: 500;
       }
       
@@ -1516,7 +1523,7 @@
         padding: 0;
         border: none;
         font-style: italic;
-        color: #2c2520;
+        color: var(--color-text-primary, #2c2520);
       }
       
       .team-card__preview-quote p {
@@ -1540,8 +1547,8 @@
       }
       
       .team-card__preview-loading {
-        color: #70605a;
-        font-size: 13px;
+        color: var(--color-text-muted, #70605a);
+        font-size: var(--text-sm, 13px);
       }
       
       /* ═══════════════════════════════════════════════════════════════════════════
@@ -1553,17 +1560,17 @@
         z-index: 10000;
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 10px 16px;
-        background: #2c2520;
-        color: #faf8f5;
-        border-radius: 20px;
-        font-size: 13px;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        gap: var(--space-2, 10px);
+        padding: var(--space-2, 10px) var(--space-4, 16px);
+        background: var(--color-text-primary, #2c2520);
+        color: var(--color-bg-primary, #faf8f5);
+        border-radius: var(--radius-xl, 20px);
+        font-size: var(--text-sm, 13px);
+        box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.2));
         opacity: 0;
         visibility: hidden;
         transform: translateY(5px);
-        transition: all 0.2s ease;
+        transition: all var(--duration-fast, 0.2s) ease;
         pointer-events: none;
         max-width: 300px;
       }
@@ -1577,12 +1584,12 @@
       .ferni-hover-preview__avatar {
         width: 24px;
         height: 24px;
-        background: linear-gradient(135deg, #5a7751, #4a6741);
-        border-radius: 50%;
+        background: linear-gradient(135deg, var(--color-ferni, #5a7751), var(--color-ferni-secondary, #4a6741));
+        border-radius: var(--radius-full, 50%);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 8px;
+        font-size: var(--text-2xs, 8px);
         font-weight: 700;
         flex-shrink: 0;
       }
@@ -1610,21 +1617,21 @@
       .social-proof-dynamic__avatar {
         width: 48px;
         height: 48px;
-        background: linear-gradient(135deg, #5a7751, #4a6741);
-        border-radius: 50%;
+        background: linear-gradient(135deg, var(--color-ferni, #5a7751), var(--color-ferni-secondary, #4a6741));
+        border-radius: var(--radius-full, 50%);
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
-        font-size: 14px;
+        color: var(--color-text-inverse, white);
+        font-size: var(--text-sm, 14px);
         font-weight: 700;
         flex-shrink: 0;
       }
       
       .social-proof-dynamic__text {
         margin: 0;
-        font-size: 15px;
-        color: #2c2520;
+        font-size: var(--text-base, 15px);
+        color: var(--color-text-primary, #2c2520);
         line-height: 1.6;
         font-style: italic;
         transition: opacity 0.3s, transform 0.3s;
@@ -1651,21 +1658,21 @@
       .smart-faq__avatar {
         width: 40px;
         height: 40px;
-        background: linear-gradient(135deg, #5a7751, #4a6741);
-        border-radius: 50%;
+        background: linear-gradient(135deg, var(--color-ferni, #5a7751), var(--color-ferni-secondary, #4a6741));
+        border-radius: var(--radius-full, 50%);
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
-        font-size: 12px;
+        color: var(--color-text-inverse, white);
+        font-size: var(--text-xs, 12px);
         font-weight: 700;
       }
       
       .smart-faq__title {
         margin: 0;
-        font-size: 18px;
+        font-size: var(--text-lg, 18px);
         font-weight: 600;
-        color: #2c2520;
+        color: var(--color-text-primary, #2c2520);
       }
       
       .smart-faq__input-area {
@@ -1684,7 +1691,8 @@
       
       .smart-faq__input:focus {
         outline: none;
-        border-color: #4a6741;
+        border-color: var(--color-ferni, #4a6741);
+        box-shadow: 0 0 0 3px var(--color-accent-glow, rgba(61, 90, 69, 0.15));
       }
       
       .smart-faq__response {
@@ -1696,9 +1704,9 @@
       }
       
       .smart-faq__answer {
-        font-size: 15px;
+        font-size: var(--text-base, 15px);
         line-height: 1.7;
-        color: #2c2520;
+        color: var(--color-text-primary, #2c2520);
       }
       
       .smart-faq__answer p {
@@ -1706,12 +1714,12 @@
       }
       
       .smart-faq__disclaimer {
-        font-size: 13px;
-        color: #70605a;
+        font-size: var(--text-sm, 13px);
+        color: var(--color-text-muted, #70605a);
       }
       
       .smart-faq__disclaimer a {
-        color: #4a6741;
+        color: var(--color-ferni, #4a6741);
       }
       
       .smart-faq__related {
@@ -1721,11 +1729,11 @@
       }
       
       .smart-faq__related p {
-        margin: 0 0 8px;
-        font-size: 12px;
+        margin: 0 0 var(--space-2, 8px);
+        font-size: var(--text-xs, 12px);
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        color: #70605a;
+        color: var(--color-text-muted, #70605a);
       }
       
       .smart-faq__related ul {
@@ -1738,22 +1746,22 @@
       }
       
       .smart-faq__related-btn {
-        padding: 6px 14px;
-        background: rgba(74, 103, 65, 0.1);
+        padding: var(--space-1_5, 6px) var(--space-3_5, 14px);
+        background: var(--color-accent-subtle, rgba(74, 103, 65, 0.1));
         border: none;
-        border-radius: 16px;
-        font-size: 13px;
-        color: #4a6741;
+        border-radius: var(--radius-lg, 16px);
+        font-size: var(--text-sm, 13px);
+        color: var(--color-ferni, #4a6741);
         cursor: pointer;
-        transition: background 0.2s;
+        transition: background var(--duration-fast, 0.2s);
       }
       
       .smart-faq__related-btn:hover {
-        background: rgba(74, 103, 65, 0.2);
+        background: var(--color-accent-glow, rgba(74, 103, 65, 0.2));
       }
       
       .smart-faq__loading {
-        color: #70605a;
+        color: var(--color-text-muted, #70605a);
         font-style: italic;
       }
       
@@ -1770,15 +1778,15 @@
       }
       
       .memory-demo__try-it h4 {
-        margin: 0 0 8px;
-        font-size: 18px;
-        color: #2c2520;
+        margin: 0 0 var(--space-2, 8px);
+        font-size: var(--text-lg, 18px);
+        color: var(--color-text-primary, #2c2520);
       }
       
       .memory-demo__try-it > p {
-        margin: 0 0 16px;
-        color: #70605a;
-        font-size: 14px;
+        margin: 0 0 var(--space-4, 16px);
+        color: var(--color-text-muted, #70605a);
+        font-size: var(--text-sm, 14px);
       }
       
       .memory-demo__input-area {
@@ -1797,7 +1805,8 @@
       
       .memory-demo__input:focus {
         outline: none;
-        border-color: #4a6741;
+        border-color: var(--color-ferni, #4a6741);
+        box-shadow: 0 0 0 3px var(--color-accent-glow, rgba(61, 90, 69, 0.15));
       }
       
       .memory-demo__result {
@@ -1819,48 +1828,48 @@
       }
       
       .memory-demo__date {
-        font-size: 11px;
+        font-size: var(--text-2xs, 11px);
         text-transform: uppercase;
         letter-spacing: 1px;
-        color: #70605a;
-        margin-bottom: 12px;
+        color: var(--color-text-muted, #70605a);
+        margin-bottom: var(--space-3, 12px);
       }
       
       .memory-demo__card p {
         margin: 0;
         font-style: italic;
-        color: #2c2520;
+        color: var(--color-text-primary, #2c2520);
       }
       
       .memory-demo__emotion {
         display: inline-block;
-        margin-top: 10px;
-        padding: 4px 10px;
-        background: rgba(166, 122, 106, 0.15);
-        border-radius: 10px;
-        font-size: 11px;
-        color: #a67a6a;
+        margin-top: var(--space-2, 10px);
+        padding: var(--space-1, 4px) var(--space-2, 10px);
+        background: var(--color-maya-glow, rgba(166, 122, 106, 0.15));
+        border-radius: var(--radius-lg, 10px);
+        font-size: var(--text-2xs, 11px);
+        color: var(--color-maya, #a67a6a);
       }
       
       .memory-demo__card--ferni .memory-demo__speaker {
         display: flex;
         align-items: center;
-        gap: 8px;
-        margin-bottom: 12px;
+        gap: var(--space-2, 8px);
+        margin-bottom: var(--space-3, 12px);
         font-weight: 600;
-        color: #4a6741;
+        color: var(--color-ferni, #4a6741);
       }
       
       .memory-demo__card--ferni .memory-demo__avatar {
         width: 28px;
         height: 28px;
-        background: linear-gradient(135deg, #5a7751, #4a6741);
-        border-radius: 50%;
+        background: linear-gradient(135deg, var(--color-ferni, #5a7751), var(--color-ferni-secondary, #4a6741));
+        border-radius: var(--radius-full, 50%);
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
-        font-size: 9px;
+        color: var(--color-text-inverse, white);
+        font-size: var(--text-2xs, 9px);
         font-weight: 700;
       }
       
@@ -1871,10 +1880,10 @@
       }
       
       .memory-demo__insights li {
-        padding: 6px 0;
-        font-size: 13px;
-        color: #2c2520;
-        border-bottom: 1px solid rgba(44, 37, 32, 0.05);
+        padding: var(--space-1_5, 6px) 0;
+        font-size: var(--text-sm, 13px);
+        color: var(--color-text-primary, #2c2520);
+        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
       }
       
       .memory-demo__insights li:last-child {
@@ -1884,19 +1893,19 @@
       .memory-demo__connection {
         grid-column: 1 / -1;
         text-align: center;
-        padding: 16px;
+        padding: var(--space-4, 16px);
       }
       
       .memory-demo__line {
         display: block;
-        margin: 0 auto 10px;
+        margin: 0 auto var(--space-2, 10px);
         width: 200px;
-        color: #4a6741;
+        color: var(--color-ferni, #4a6741);
       }
       
       .memory-demo__connection span {
-        font-size: 12px;
-        color: #70605a;
+        font-size: var(--text-xs, 12px);
+        color: var(--color-text-muted, #70605a);
         text-transform: uppercase;
         letter-spacing: 1px;
       }
@@ -1905,24 +1914,25 @@
          MICRO EXPRESSIONS
          ═══════════════════════════════════════════════════════════════════════════ */
       
+      /* Micro-expression colors - using brand-adjacent greens */
       .ferni-expression--curious {
-        --mood-color: #5a8060;
+        --mood-color: var(--color-ferni, #5a8060);
       }
       
       .ferni-expression--interested {
-        --mood-color: #6a9070;
+        --mood-color: var(--color-ferni, #6a9070);
       }
       
       .ferni-expression--helpful {
-        --mood-color: #5a7751;
+        --mood-color: var(--color-ferni, #5a7751);
       }
       
       .ferni-expression--concerned {
-        --mood-color: #5a7050;
+        --mood-color: var(--color-ferni-secondary, #5a7050);
       }
       
       .ferni-expression--warm {
-        --mood-color: #7aa080;
+        --mood-color: var(--color-ferni, #7aa080);
       }
       
       /* ═══════════════════════════════════════════════════════════════════════════
@@ -2018,15 +2028,15 @@
     if (state.initialized) return;
 
     state.visitorId = getVisitorId();
-    
+
     // Load feature flags FIRST (before any module init)
     await loadFeatureFlags();
-    
+
     injectStyles();
 
     // Initialize modules based on feature flags
     const enabledFeatures = [];
-    
+
     if (CONFIG.enableChat) {
       LiveChat.init();
       enabledFeatures.push('Live Text Chat');
@@ -2072,7 +2082,7 @@
     if (enabledFeatures.length > 0) {
       console.log('%c🤖 AI-Powered Landing initialized', 'color: #4a6741; font-weight: bold;');
       console.log('%c  Enabled features:', 'color: #70605a; font-size: 11px;');
-      enabledFeatures.forEach(f => {
+      enabledFeatures.forEach((f) => {
         console.log(`%c    ✓ ${f}`, 'color: #70605a; font-size: 10px;');
       });
     } else {
@@ -2107,4 +2117,3 @@
     setTimeout(init, 100);
   }
 })();
-

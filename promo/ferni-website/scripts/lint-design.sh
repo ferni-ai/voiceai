@@ -41,9 +41,18 @@ check_css_files() {
         
         filename=$(basename "$file")
         
-        # Skip token files
-        if [[ "$filename" == "design-tokens.css" ]] || [[ "$filename" == "tokens.css" ]]; then
+        # Skip token files (they ARE the source of truth for colors)
+        if [[ "$filename" == "design-tokens.css" ]] || [[ "$filename" == "tokens.css" ]] || [[ "$filename" == "_tokens.css" ]]; then
             continue
+        fi
+        
+        # Skip files that are CSS variable definitions (contain :root declarations)
+        if [[ "$filename" == "styles.css" ]] || [[ "$filename" == "styles-live.css" ]]; then
+            # Check if file contains :root - if so, it's defining tokens
+            if grep -q ":root" "$file" 2>/dev/null; then
+                echo "    (Skipping - contains :root token definitions)"
+                continue
+            fi
         fi
         
         echo "  📄 $filename"

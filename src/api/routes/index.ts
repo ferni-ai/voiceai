@@ -70,3 +70,15 @@ export {
 
 // Growth visibility routes (user progress insights)
 export { handleGrowthRoutes } from './growth.js';
+
+// Video sessions routes (multi-modal)
+export { handleVideoSessionRoutes } from './video-sessions.js';
+
+// Wearable integration routes (health data)
+export { handleWearableRoutes } from './wearable.js';
+
+// Group coaching routes (multi-participant sessions)
+export { handleGroupCoachingRoutes } from './group-coaching.js';
+
+// Landing page AI routes (AI-powered landing features)
+export { handleLandingAIRoutes } from './landing-ai.js';
