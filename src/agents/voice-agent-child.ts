@@ -135,7 +135,7 @@ export interface PreloadedDeps {
   cacheReader: typeof import('./shared/cache-reader.js') | null;
   e2eDiagnostics: typeof import('./shared/e2e-diagnostics.js') | null;
   warmGreeting: typeof import('./shared/warm-greeting.js') | null;
-  lightweightTTS: typeof import('./shared/lightweight-tts.js') | null;
+  ttsCore: typeof import('../speech/tts/cartesia-core.js') | null;
   lightweightResilience: typeof import('./shared/lightweight-resilience.js') | null;
   // Pre-loaded heavy resources (not modules)
   vadModel: unknown | null;
@@ -152,7 +152,7 @@ export const _preloadedDeps: PreloadedDeps = {
   cacheReader: null,
   e2eDiagnostics: null,
   warmGreeting: null,
-  lightweightTTS: null,
+  ttsCore: null,
   lightweightResilience: null,
   vadModel: null,
   personaBundlesReady: false,
@@ -384,7 +384,7 @@ export default defineAgent({
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        // OPTIMIZATION: TTS prewarm will happen after Phase 2 imports lightweight-tts
+        // OPTIMIZATION: TTS prewarm will happen after Phase 2 imports tts-core
         // We don't import it here to avoid duplicate imports.
         // ══════════════════════════════════════════════════════════════════════
 
@@ -395,7 +395,7 @@ export default defineAgent({
         //
         // We use:
         // - cache-reader.js: Zero dependencies, just reads JSON files
-        // - lightweight-tts.js: Only imports @livekit/agents-plugin-cartesia
+        // - speech/tts/cartesia-core.js: Only imports @livekit/agents-plugin-cartesia
         // - lightweight-resilience.js: Zero dependencies, retry + error humanization
         // - warm-greeting.js: Self-contained greeting strings
         // - e2e-diagnostics.js: Self-contained logging
@@ -424,8 +424,8 @@ export default defineAgent({
             logTiming('warm-greeting', Date.now() - phase2Start);
             return m;
           }),
-          import('./shared/lightweight-tts.js').then((m) => {
-            logTiming('lightweight-tts', Date.now() - phase2Start);
+          import('../speech/tts/cartesia-core.js').then((m) => {
+            logTiming('tts-core', Date.now() - phase2Start);
             return m;
           }),
           import('./shared/lightweight-resilience.js').then((m) => {
@@ -441,7 +441,7 @@ export default defineAgent({
           cacheReaderResult,
           e2eResult,
           warmGreetingResult,
-          lightweightTTSResult,
+          ttsCoreResult,
           lightweightResilienceResult,
         ] = phase2Results;
 
@@ -465,9 +465,9 @@ export default defineAgent({
           warmGreetingResult.status === 'fulfilled'
             ? (warmGreetingResult.value as typeof _preloadedDeps.warmGreeting)
             : null;
-        _preloadedDeps.lightweightTTS =
-          lightweightTTSResult.status === 'fulfilled'
-            ? (lightweightTTSResult.value as typeof _preloadedDeps.lightweightTTS)
+        _preloadedDeps.ttsCore =
+          ttsCoreResult.status === 'fulfilled'
+            ? (ttsCoreResult.value as typeof _preloadedDeps.ttsCore)
             : null;
         _preloadedDeps.lightweightResilience =
           lightweightResilienceResult.status === 'fulfilled'
@@ -479,13 +479,13 @@ export default defineAgent({
         // ══════════════════════════════════════════════════════════════════════
         // OPTIMIZATION: Pre-warm TTS connection (fire-and-forget)
         // ══════════════════════════════════════════════════════════════════════
-        // Now that we have lightweightTTS loaded, pre-warm a TTS instance.
+        // Now that we have ttsCore loaded, pre-warm a TTS instance.
         // This runs in parallel with Phase 3 (VAD wait + cache check).
         let ttsPrewarmPromise: Promise<void> | null = null;
-        if (_preloadedDeps.lightweightTTS) {
+        if (_preloadedDeps.ttsCore) {
           log('PREWARM', '🎤 Pre-warming TTS connection...');
-          ttsPrewarmPromise = _preloadedDeps.lightweightTTS
-            .prewarmTTSConnection()
+          ttsPrewarmPromise = _preloadedDeps.ttsCore
+            .prewarmTTS()
             .then(() => log('PREWARM', '✅ TTS pre-warmed'))
             .catch(() => {
               /* Best effort */

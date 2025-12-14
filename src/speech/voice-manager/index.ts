@@ -52,7 +52,22 @@ export { getVoiceManager as default } from './manager.js';
 export { DynamicTTS, createDynamicTTS } from './dynamic-tts.js';
 
 // ============================================================================
-// PERSONA-AWARE TTS
+// PERSONA-AWARE TTS (from unified tts module)
 // ============================================================================
 
-export { PersonaAwareTTS, createPersonaAwareTTS } from './persona-aware-tts.js';
+export { PersonaAwareTTS, createPersonaAwareTTS } from '../tts/persona-aware.js';
+
+// ============================================================================
+// TTS CORE (lightweight factory for child processes)
+// ============================================================================
+
+export {
+  createCartesiaTTS,
+  createTTSFromConfig,
+  prewarmTTS,
+  isTTSPrewarmed,
+  waitForTTSPrewarm,
+  getVoiceIdForPersona,
+  CARTESIA_MODEL,
+  DEFAULT_VOICE_IDS,
+} from '../tts/cartesia-core.js';

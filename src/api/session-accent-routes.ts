@@ -18,7 +18,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 
 import { isValidAccent, type EnglishAccent } from '../config/voice-accents.js';
 import { getLocalizedVoiceId } from '../services/cartesia-voice-localization.js';
-import type { PersonaAwareTTS } from '../speech/voice-manager/persona-aware-tts.js';
+import type { PersonaAwareTTS } from '../speech/tts/persona-aware.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { requireAuth } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';

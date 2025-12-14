@@ -431,14 +431,15 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     // Create TTS with localized voice
     let tts;
-    if (preloaded?.lightweightTTS) {
-      // Lightweight TTS doesn't support isLocalizedVoice flag
-      tts = preloaded.lightweightTTS.createLightweightTTS(sessionPersona.name, {
+    if (preloaded?.ttsCore) {
+      // Use lightweight TTS core for fast startup in child processes
+      tts = preloaded.ttsCore.createTTSFromConfig(sessionPersona.name, {
         ...voiceConfig,
         voiceId: effectiveVoiceId,
         accent: userAccent || 'american',
       });
     } else {
+      // Fallback to full PersonaAwareTTS (with voice switching support)
       const voiceManager = await import('../speech/voice-manager.js');
       tts = voiceManager.createPersonaAwareTTS(sessionPersona.name, {
         ...voiceConfig,
