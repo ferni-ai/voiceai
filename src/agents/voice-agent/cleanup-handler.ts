@@ -588,7 +588,7 @@ function cleanupOptimization(
   try {
     patternAnalyzer?.endSession(sessionId);
     autoOptimizer?.endSession(sessionId);
-    if (feedbackCollector) if (feedbackCollector) void feedbackCollector.flush();
+    if (feedbackCollector) void feedbackCollector.flush();
     diag.session('Optimization data flushed');
   } catch (e) {
     log().debug({ error: String(e) }, 'Optimization flush failed (non-fatal)');

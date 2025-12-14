@@ -398,24 +398,62 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       vad = await silero!.VAD.load();
     }
 
-    // Create TTS
+    // =========================================================================
+    // VOICE LOCALIZATION (International Accent Support)
+    // =========================================================================
     const voiceConfig = sessionPersona.voice || {
       voiceId: 'a0e99841-438c-4a64-b679-ae501e7d6091',
       provider: 'cartesia',
     };
 
+    let effectiveVoiceId = voiceConfig.voiceId;
+    let isLocalizedVoice = false;
+
+    // 🌍 For non-American accents, get a localized voice
+    if (userAccent && userAccent !== 'american') {
+      try {
+        const { getLocalizedVoiceId } = await import('../services/cartesia-voice-localization.js');
+        const localizationResult = await getLocalizedVoiceId(sessionPersona.id, userAccent);
+        effectiveVoiceId = localizationResult.voiceId;
+        isLocalizedVoice = localizationResult.isLocalized;
+        process.stderr.write(
+          `[voice-agent-entry] 🌍 Voice localized: ${userAccent} (cached: ${localizationResult.cached})\n`
+        );
+      } catch (locErr) {
+        process.stderr.write(
+          `[voice-agent-entry] Voice localization failed (non-fatal): ${locErr}\n`
+        );
+      }
+    }
+
+    // Create TTS with localized voice
     let tts;
     if (preloaded?.lightweightTTS) {
+      // Lightweight TTS doesn't support isLocalizedVoice flag
       tts = preloaded.lightweightTTS.createLightweightTTS(sessionPersona.name, {
         ...voiceConfig,
+        voiceId: effectiveVoiceId,
         accent: userAccent || 'american',
       });
     } else {
       const voiceManager = await import('../speech/voice-manager.js');
       tts = voiceManager.createPersonaAwareTTS(sessionPersona.name, {
         ...voiceConfig,
+        voiceId: effectiveVoiceId,
         accent: userAccent || 'american',
+        isLocalizedVoice,
       });
+
+      // Initialize voice manager and register TTS for mid-session accent changes
+      const sessionVoiceManager = voiceManager.getSessionVoiceManager(sessionId);
+      sessionVoiceManager.initialize();
+
+      try {
+        const { registerSessionTTS } = await import('../api/session-accent-routes.js');
+        registerSessionTTS(sessionId, tts, sessionPersona.id, userAccent || 'american');
+      } catch {
+        // Non-critical - accent changes just won't work mid-session
+      }
     }
 
     // Create Agent with tools
@@ -483,6 +521,69 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     const conversationManager = getConversationManager();
     conversationManager.setPersonaId(sessionPersona.id);
 
+    // Wire conversation manager to capture insights for learning
+    conversationManager.setInsightCallback((type, key, value, confidence) => {
+      services.captureInsight(type, key, value, confidence);
+    });
+
+    // =========================================================================
+    // VOICE HUMANIZATION INTEGRATION
+    // Makes agent feel more human through prosody, micro-interruptions, etc.
+    // =========================================================================
+    let voiceHumanization: { cleanup: () => void } | null = null;
+    try {
+      const { getEmotionalArcTracker } = await import('../conversation/index.js');
+      const { quickSetupVoiceHumanization } =
+        await import('./integrations/voice-humanization-integration.js');
+      const emotionalArcTracker = getEmotionalArcTracker();
+
+      voiceHumanization = quickSetupVoiceHumanization(
+        sessionId,
+        sessionPersona.id,
+        emotionalArcTracker,
+        {
+          onInterrupt: () => {
+            // When micro-interruption detected, interrupt the agent
+            process.stderr.write(`[voice-agent-entry] 🛑 Micro-interruption detected\n`);
+            try {
+              session.interrupt();
+            } catch {
+              // Ignore interrupt errors
+            }
+          },
+          onLaughter: (laughType: string) => {
+            process.stderr.write(`[voice-agent-entry] 😄 User laughter detected: ${laughType}\n`);
+          },
+        }
+      );
+      process.stderr.write(`[voice-agent-entry] 🎤 Voice humanization initialized\n`);
+    } catch (humanizationErr) {
+      process.stderr.write(
+        `[voice-agent-entry] Voice humanization init (non-fatal): ${humanizationErr}\n`
+      );
+    }
+
+    // =========================================================================
+    // EXTENSIBILITY SESSION HOOK - Marketplace agent custom behavior
+    // =========================================================================
+    let extensibilitySessionPrompt: string | null = null;
+    try {
+      const { onSessionStart } = await import('../personas/bundles/extensibility-integration.js');
+      extensibilitySessionPrompt = await onSessionStart({
+        personaId: sessionPersona.id,
+        userId,
+        sessionId,
+      });
+      if (extensibilitySessionPrompt) {
+        process.stderr.write(`[voice-agent-entry] 🔌 Extensibility hook executed\n`);
+        // Store in userData for use in context injection
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (userData as any).extensibilitySessionPrompt = extensibilitySessionPrompt;
+      }
+    } catch {
+      // Non-critical - extensibility is optional
+    }
+
     // Wait for participant before starting session
     process.stderr.write(`[voice-agent-entry] 👤 Waiting for participant...\n`);
     const participant = await Promise.race([
@@ -511,10 +612,36 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       `[voice-agent-entry] 🎵 Music handler initialized: ${musicResult.initialized}\n`
     );
 
-    // Start the session
-    await session.start({ agent, room: ctx.room });
+    // =========================================================================
+    // PHONE CALL DETECTION & NOISE CANCELLATION
+    // =========================================================================
+    const jobMetadata = ctx.job?.metadata || '';
+    const isWebConnection = jobMetadata.includes('"source":"web"');
+    const isPhoneCall =
+      !isWebConnection &&
+      (participant?.identity?.includes('phone') ||
+        participant?.identity?.includes('sip') ||
+        jobMetadata.includes('"source":"phone"'));
+
+    // Start the session with phone-specific noise cancellation
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let inputOptions: any = undefined;
+    if (isPhoneCall) {
+      try {
+        const { TelephonyBackgroundVoiceCancellation } =
+          await import('@livekit/noise-cancellation-node');
+        inputOptions = { noiseCancellation: TelephonyBackgroundVoiceCancellation() };
+        process.stderr.write(`[voice-agent-entry] 📞 Phone call - noise cancellation enabled\n`);
+      } catch {
+        process.stderr.write(`[voice-agent-entry] Noise cancellation not available (non-fatal)\n`);
+      }
+    }
+
+    await session.start({ agent, room: ctx.room, inputOptions });
     e2e.sessionStarted(jobId, personaId);
-    process.stderr.write(`[voice-agent-entry] Session started!\n`);
+    process.stderr.write(
+      `[voice-agent-entry] Session started! (isPhone: ${isPhoneCall}, isWeb: ${isWebConnection})\n`
+    );
 
     // TOOL TRACKING HANDLER
     setupToolTrackingHandler({
@@ -612,6 +739,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     process.stderr.write(`[voice-agent-entry] 📡 Data channel handler set up\n`);
 
     // FRONTEND PUBLISHER
+    let frontendPublisherReady = false;
     try {
       const { initializeFrontendPublisher, getFrontendPublisher } =
         await import('./realtime/index.js');
@@ -624,12 +752,206 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
           await publisher.sendData(type, data ?? {});
         }
       });
+      frontendPublisherReady = true;
       process.stderr.write(`[voice-agent-entry] 📤 Frontend publisher initialized\n`);
+
+      // =========================================================================
+      // HUMANIZATION SIGNAL EMITTER - Bridge backend humanization to frontend EQ
+      // Enables avatar to respond BEFORE words arrive
+      // =========================================================================
+      try {
+        const { initHumanizationSignalEmitter } =
+          await import('../services/humanization/humanization-signal-emitter.js');
+        initHumanizationSignalEmitter(async (type, payload) => {
+          const publisher = getFrontendPublisher();
+          if (publisher.isConnected()) {
+            await publisher.sendData(type, payload);
+          }
+        });
+        process.stderr.write(`[voice-agent-entry] 🌉 Humanization signal emitter initialized\n`);
+      } catch {
+        // Non-critical
+      }
+
+      // =========================================================================
+      // TRUST SIGNAL EMITTER - Shows "Ferni noticed..." cards for growth, wins
+      // =========================================================================
+      try {
+        const { setSignalEmitter } =
+          await import('../services/trust-systems/trust-signal-emitter.js');
+        setSignalEmitter((signal) => {
+          const publisher = getFrontendPublisher();
+          if (publisher.isConnected()) {
+            void publisher.sendData('trust_signal', {
+              signalType: signal.type,
+              title: signal.title,
+              message: signal.message,
+              personaId: signal.personaId || sessionPersona.id,
+              timing: signal.timing,
+              metadata: signal.metadata,
+            });
+          }
+        });
+        process.stderr.write(`[voice-agent-entry] 💚 Trust signal emitter initialized\n`);
+      } catch {
+        // Non-critical
+      }
     } catch (pubErr) {
       process.stderr.write(
         `[voice-agent-entry] Frontend publisher failed (non-fatal): ${pubErr}\n`
       );
     }
+
+    // =========================================================================
+    // ASYNC EVENTS - Trigger background processing
+    // =========================================================================
+    try {
+      const { emitConversationStart } = await import('../services/async-events/index.js');
+      emitConversationStart({
+        sessionId,
+        userId: userId || 'anonymous',
+        personaId: sessionPersona.id,
+        isReturning: isReturningUser,
+      });
+      process.stderr.write(`[voice-agent-entry] 📤 conversation:start emitted\n`);
+    } catch {
+      // Non-critical
+    }
+
+    // =========================================================================
+    // PROSODY BRIDGE - Voice analysis connection
+    // =========================================================================
+    try {
+      const { initProsodyBridge } = await import('../conversation/humanization/index.js');
+      initProsodyBridge(sessionId, userId || 'anonymous');
+      process.stderr.write(`[voice-agent-entry] 🌉 Prosody bridge initialized\n`);
+    } catch {
+      // Non-critical
+    }
+
+    // =========================================================================
+    // BUNDLE RUNTIME - Rich persona content (stories, rituals, etc.)
+    // =========================================================================
+    let bundleRuntime: import('../personas/bundles/index.js').BundleRuntimeEngine | undefined;
+    try {
+      const { createBundleRuntime } = await import('../personas/bundles/index.js');
+      const { loadBundleById } = await import('../personas/bundles/loader.js');
+      const bundle = await loadBundleById(sessionPersona.id);
+      if (bundle) {
+        bundleRuntime = await createBundleRuntime(bundle);
+
+        // Sync relationship state from user profile
+        if (userData.bundleRuntimeState) {
+          bundleRuntime.updateState({
+            relationshipTurns: userData.bundleRuntimeState.relationshipTurns,
+            sessionCount: services.userProfile?.totalConversations || 0,
+            userName: userData.name,
+          });
+        }
+        process.stderr.write(
+          `[voice-agent-entry] 📦 Bundle runtime initialized (stage: ${bundleRuntime.getRelationshipStageName()})\n`
+        );
+      }
+    } catch (bundleErr) {
+      process.stderr.write(`[voice-agent-entry] Bundle runtime (non-fatal): ${bundleErr}\n`);
+    }
+
+    // =========================================================================
+    // UNIFIED CONVERSATION HUMANIZATION - Voice print, memory, breathing sync
+    // =========================================================================
+    try {
+      const { initConversationSession } =
+        await import('./integrations/conversation-session-integration.js');
+      const conversationSession = initConversationSession({
+        sessionId,
+        userId: userId || 'anonymous',
+        personaId: sessionPersona.id,
+        sessionCount: services.userProfile?.totalConversations,
+        relationshipStage: services.userProfile?.relationshipStage as
+          | 'stranger'
+          | 'acquaintance'
+          | 'friend'
+          | 'trusted_advisor'
+          | undefined,
+      });
+
+      if (conversationSession) {
+        process.stderr.write(`[voice-agent-entry] 🎭 Unified conversation session initialized\n`);
+      }
+
+      // Load persisted humanization data
+      const { initializeFromPersistence } =
+        await import('../conversation/humanization/persistence.js');
+      await initializeFromPersistence(userId || 'anonymous', sessionId);
+    } catch (humanizationErr) {
+      process.stderr.write(
+        `[voice-agent-entry] Humanization init (non-fatal): ${humanizationErr}\n`
+      );
+    }
+
+    // =========================================================================
+    // VOICE HUMANIZATION INIT - Feature flags, metrics, response anticipation
+    // =========================================================================
+    try {
+      const { setupVoiceHumanizationInit } =
+        await import('./voice-agent/voice-humanization-init-handler.js');
+      setupVoiceHumanizationInit({
+        sessionId,
+        sessionPersona,
+        userId,
+        userProfile: services.userProfile,
+      });
+      process.stderr.write(`[voice-agent-entry] 🎤 Voice humanization init complete\n`);
+    } catch {
+      // Non-critical
+    }
+
+    // =========================================================================
+    // PARALLEL NON-CRITICAL SERVICES
+    // =========================================================================
+    await Promise.allSettled([
+      // Engagement data sender
+      (async () => {
+        try {
+          const { getEngagementDataSender } = await import('../services/engagement-data-sender.js');
+          const engagementDataSender = getEngagementDataSender();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          engagementDataSender.setRoom(ctx.room as any);
+          if (userId) {
+            await engagementDataSender.sendEngagementData(userId);
+          }
+        } catch {
+          // Non-critical
+        }
+      })(),
+      // Cognitive session start
+      (async () => {
+        try {
+          const { onCognitiveSessionStart } =
+            await import('../services/cognitive-session-hooks.js');
+          await onCognitiveSessionStart({
+            userId: userId || 'anonymous',
+            personaId: sessionPersona.id,
+            userProfile: services.userProfile,
+            sessionId,
+          });
+        } catch {
+          // Non-critical
+        }
+      })(),
+      // Game engine initialization
+      (async () => {
+        try {
+          const { getSessionGameEngine } = await import('../services/games/index.js');
+          const engine = getSessionGameEngine(sessionId, sessionPersona.id);
+          if (userId) {
+            await engine.initializeForUser(userId);
+          }
+        } catch {
+          // Non-critical
+        }
+      })(),
+    ]);
 
     // =========================================================================
     // STEP 7: GREETING
@@ -647,7 +969,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         userId,
         userName,
         isReturningUser,
-        bundleRuntime: undefined,
+        bundleRuntime, // Now using actual bundle runtime
         utilitiesProactiveOpener: undefined,
         session,
         tagGreeting: (text) => text, // Simple passthrough - full SSML tagging not needed for lightweight
@@ -700,7 +1022,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       userId,
       services,
       sessionPersona,
-      voiceHumanization: null,
+      voiceHumanization, // Now using actual voice humanization
       utilitiesCleanup: undefined,
       patternAnalyzer,
       autoOptimizer,

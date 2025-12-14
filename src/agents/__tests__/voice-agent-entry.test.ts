@@ -312,6 +312,41 @@ describe('Voice Agent Entry - Integration Checklist', () => {
       // Diagnostics
       { name: 'E2E Diagnostics', pattern: 'e2e.sessionStarted' },
       { name: 'Resilience', pattern: 'withResilience' },
+
+      // Voice Localization
+      { name: 'Voice Localization', pattern: 'getLocalizedVoiceId' },
+      { name: 'TTS Registration', pattern: 'registerSessionTTS' },
+      { name: 'Voice Manager', pattern: 'getSessionVoiceManager' },
+
+      // Phone Call Support
+      { name: 'Phone Call Detection', pattern: 'isPhoneCall' },
+      { name: 'Noise Cancellation', pattern: 'TelephonyBackgroundVoiceCancellation' },
+
+      // Humanization Signals
+      { name: 'Humanization Signal Emitter', pattern: 'initHumanizationSignalEmitter' },
+      { name: 'Trust Signal Emitter', pattern: 'setSignalEmitter' },
+
+      // Background Services
+      { name: 'Async Events', pattern: 'emitConversationStart' },
+      { name: 'Conversation Session', pattern: 'initConversationSession' },
+      { name: 'Humanization Persistence', pattern: 'initializeFromPersistence' },
+      { name: 'Voice Humanization Init', pattern: 'setupVoiceHumanizationInit' },
+      { name: 'Engagement Data', pattern: 'getEngagementDataSender' },
+      { name: 'Cognitive Session', pattern: 'onCognitiveSessionStart' },
+      { name: 'Game Engine', pattern: 'getSessionGameEngine' },
+
+      // NEW: Advanced Humanization
+      { name: 'Voice Humanization Integration', pattern: 'quickSetupVoiceHumanization' },
+      { name: 'Emotional Arc Tracker', pattern: 'getEmotionalArcTracker' },
+      { name: 'Insight Callback', pattern: 'setInsightCallback' },
+
+      // NEW: Prosody & Bundle
+      { name: 'Prosody Bridge', pattern: 'initProsodyBridge' },
+      { name: 'Bundle Runtime', pattern: 'createBundleRuntime' },
+      { name: 'Bundle Loader', pattern: 'loadBundleById' },
+
+      // NEW: Extensibility
+      { name: 'Extensibility Hook', pattern: 'extensibilitySessionPrompt' },
     ];
 
     const results: { name: string; integrated: boolean }[] = [];
