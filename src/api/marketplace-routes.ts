@@ -20,13 +20,10 @@ import {
   listTools,
   listAgents,
   getExecutionHistory,
-  installTool,
-  installAgent,
-  uninstallTool,
-  uninstallAgent,
+  installItem,
+  uninstallItem,
   getInstallation,
-  getUserInstallations,
-  grantPermission,
+  listInstallations,
   hasPermission,
 } from '../marketplace/index.js';
 import {
@@ -516,7 +513,6 @@ async function handleBrowseRoutes(
         publisher: t.publisher,
         trustLevel: t.verification.trustLevel,
         verified: t.verification.verified,
-        categories: t.interface?.categories || [],
       }));
 
       sendJson(res, 200, { tools, totalCount: tools.length });
@@ -621,14 +617,13 @@ async function handleInstallRoutes(
         return true;
       }
 
-      const installation = installTool(userId, body.toolId);
-
-      // Grant requested permissions
-      if (body.grantedPermissions) {
-        for (const scope of body.grantedPermissions) {
-          grantPermission(userId, body.toolId, scope);
-        }
-      }
+      // Use installItem with correct signature
+      const installation = await installItem({
+        itemType: 'tool',
+        itemId: body.toolId,
+        userId,
+        permissions: body.grantedPermissions || [],
+      });
 
       log.info({ userId, toolId: body.toolId, installationId: installation.id }, 'Tool installed');
       sendJson(res, 200, {
@@ -656,7 +651,7 @@ async function handleInstallRoutes(
     }
 
     try {
-      const body = await parseBody<{ agentId: string }>(req);
+      const body = await parseBody<{ agentId: string; grantedPermissions?: PermissionScope[] }>(req);
 
       const agent = getAgent(body.agentId);
       if (!agent) {
@@ -664,7 +659,13 @@ async function handleInstallRoutes(
         return true;
       }
 
-      const installation = installAgent(userId, body.agentId);
+      // Use installItem with correct signature
+      const installation = await installItem({
+        itemType: 'agent',
+        itemId: body.agentId,
+        userId,
+        permissions: body.grantedPermissions || [],
+      });
 
       log.info({ userId, agentId: body.agentId, installationId: installation.id }, 'Agent installed');
       sendJson(res, 200, {
@@ -694,12 +695,14 @@ async function handleInstallRoutes(
     const toolId = pathname.split('/')[5];
 
     try {
-      const success = uninstallTool(userId, toolId);
-      if (!success) {
+      // Find installation by user + item
+      const installation = getInstallation(userId, toolId);
+      if (!installation) {
         sendJson(res, 404, { error: 'Installation not found' });
         return true;
       }
 
+      await uninstallItem(installation.id);
       log.info({ userId, toolId }, 'Tool uninstalled');
       sendJson(res, 200, { success: true });
       return true;
@@ -721,12 +724,14 @@ async function handleInstallRoutes(
     const agentId = pathname.split('/')[5];
 
     try {
-      const success = uninstallAgent(userId, agentId);
-      if (!success) {
+      // Find installation by user + item
+      const installation = getInstallation(userId, agentId);
+      if (!installation) {
         sendJson(res, 404, { error: 'Installation not found' });
         return true;
       }
 
+      await uninstallItem(installation.id);
       log.info({ userId, agentId }, 'Agent uninstalled');
       sendJson(res, 200, { success: true });
       return true;
@@ -746,14 +751,14 @@ async function handleInstallRoutes(
     }
 
     try {
-      const installations = getUserInstallations(userId);
+      const installations = listInstallations(userId);
 
       const result = installations.map((inst) => ({
         id: inst.id,
         itemId: inst.itemId,
         itemType: inst.itemType,
         installedAt: inst.installedAt,
-        enabled: inst.enabled,
+        status: inst.status,
       }));
 
       sendJson(res, 200, { installations: result, totalCount: result.length });
@@ -811,7 +816,7 @@ async function handleUsageRoutes(
     const tier = getSubscriptionTier(req);
 
     try {
-      const installations = getUserInstallations(userId);
+      const installations = listInstallations(userId);
       const summaries = installations.map((inst) =>
         getUsageSummary(userId, inst.itemId, tier)
       );

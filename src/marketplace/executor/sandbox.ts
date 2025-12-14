@@ -22,6 +22,7 @@ import {
   hasPermission,
   recordExecution,
 } from '../registry.js';
+import { recordUsage, checkQuota } from '../billing/index.js';
 import type {
   MarketplaceId,
   PermissionScope,
@@ -42,6 +43,8 @@ export interface ExecutionContext {
   sessionId: string;
   agentId?: string;
   tenantId?: string;
+  /** Subscription tier for quota enforcement */
+  subscriptionTier?: string;
 }
 
 export interface ExecutionOptions {
@@ -308,6 +311,33 @@ export async function executeMarketplaceTool(
   // Track which permissions we're using
   permissionsUsed.push(...manifest.permissions.required.map((p) => p.scope));
 
+  // Check quota before execution (skip for platform tools)
+  if (manifest.verification.trustLevel !== 'platform' && !options.skipPermissionCheck) {
+    const quotaCheck = checkQuota(
+      context.userId,
+      toolId,
+      context.subscriptionTier || 'free'
+    );
+
+    if (!quotaCheck.allowed) {
+      log.warn({ toolId, userId: context.userId, reason: quotaCheck.reason }, 'Quota exceeded');
+      return {
+        success: false,
+        error: {
+          code: 'QUOTA_EXCEEDED',
+          message: quotaCheck.reason || 'Monthly quota exceeded',
+          userMessage: quotaCheck.upgradeRequired
+            ? 'You\'ve reached your monthly limit. Upgrade for more.'
+            : 'You\'ve reached your limit for this tool.',
+          retryable: false,
+        },
+        executionId: '',
+        durationMs: Date.now() - startTime,
+        permissionsUsed,
+      };
+    }
+  }
+
   log.info(
     {
       toolId,
@@ -364,6 +394,22 @@ export async function executeMarketplaceTool(
       resources: {},
       permissionsUsed,
     });
+
+    // Record usage for billing (skip for platform tools)
+    if (manifest.verification.trustLevel !== 'platform') {
+      recordUsage({
+        userId: context.userId,
+        tenantId: context.tenantId,
+        itemId: toolId,
+        itemType: 'tool',
+        timestamp: new Date().toISOString(),
+        metrics: {
+          executions: 1,
+          executionTimeMs: durationMs,
+          dataTransferBytes: 0, // Could be computed from response size
+        },
+      });
+    }
 
     log.info(
       { toolId, executionId: execution.id, durationMs },

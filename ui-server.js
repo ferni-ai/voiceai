@@ -155,6 +155,9 @@ import { handleLandingOptimizationRoutes } from './dist/api/landing-optimization
 import { handleCameoAnalyticsRoutes } from './dist/api/cameo-analytics-routes.js';
 import { handleGardenRoutes } from './dist/api/garden-routes.js';
 
+// Marketplace routes (publisher portal, browse, install, billing)
+import { handleMarketplaceRoutes } from './dist/api/marketplace-routes.js';
+
 const PORT = process.env.PORT || 3003;
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
@@ -752,6 +755,18 @@ const server = http.createServer(async (req, res) => {
     if (handled) return;
   } catch (err) {
     console.error('❌ Engagement route error:', err);
+  }
+
+  // ============================================================================
+  // MARKETPLACE API ROUTES (publisher portal, browse, install, billing)
+  // ============================================================================
+  try {
+    if (pathname.startsWith('/api/marketplace/')) {
+      const handled = await handleMarketplaceRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+  } catch (err) {
+    console.error('❌ Marketplace route error:', err);
   }
 
   // ============================================================================
