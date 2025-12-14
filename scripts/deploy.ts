@@ -426,6 +426,7 @@ async function deployAgent(options: DeployOptions): Promise<boolean> {
         --image gcr.io/${CONFIG.projectId}/ferni-voice-agent:latest \\
         --region ${CONFIG.region} \\
         --platform managed \\
+        --execution-environment gen2 \\
         --allow-unauthenticated \\
         --memory 4Gi \\
         --cpu 4 \\
