@@ -1,39 +1,63 @@
 # Clean Agent Architecture (LiveKit 1.0)
 
-This directory contains the **new, clean agent implementation** following LiveKit Agents 1.0 patterns.
+This directory contains the **clean agent implementation** following LiveKit Agents 1.0 patterns.
+
+## Architecture Overview
+
+Each agent class:
+1. **Builds its own tools** from direct domain imports (memory, habits, communication, etc.)
+2. **Defines handoffs inline** as tools returning `llm.handoff()`
+3. **Has personality-only system prompts** - no tool instructions
+
+```
+Agent Class
+├── buildMemoryTools()      → 7 shared memory tools from domains/memory
+├── buildDomainTools()      → persona-specific tools from domain modules
+└── buildHandoffTools()     → inline llm.tool() → llm.handoff()
+```
+
+## Agent Capabilities
+
+| Agent | Memory | Domain Tools | Handoffs |
+|-------|--------|--------------|----------|
+| **FerniAgent** | 7 tools | 12 music tools | 5 (all team) |
+| **MayaAgent** | 7 tools | 10 habit/coaching | 2 (Ferni, Alex) |
+| **AlexAgent** | 7 tools | 12 communication | 2 (Ferni, Maya) |
+| **PeterAgent** | 7 tools | 14 research/insights | 5 (all team) |
+| **JordanAgent** | 7 tools | 17 goals/events | 5 (all team) |
+| **NayanAgent** | 7 tools | 7 wisdom tools | 5 (all team) |
 
 ## Key Principles
 
-### 1. Tools Defined Inline
-No more tool registry, domains, or builders. Tools are defined directly in the Agent constructor:
+### 1. Direct Domain Imports
+Tools come from domain modules, not a registry:
 
 ```typescript
-class FerniAgent extends voice.Agent {
-  constructor() {
-    super({
-      instructions: systemPrompt,
-      tools: {
-        playMusic: llm.tool({
-          description: 'Play music for the user',
-          parameters: z.object({ query: z.string() }),
-          execute: async ({ query }) => playMusicImpl(query),
-        }),
-      },
-    });
-  }
+import { createResearchTools } from '../../tools/research-tools.js';
+import { createMarketDataTools } from '../../tools/market-data.js';
+
+function buildResearchTools(): ToolSet {
+  const research = createResearchTools();
+  return {
+    analyzeStock: research.analyzeStock,
+    findStockCategory: research.findStockCategory,
+    // ...
+  };
 }
 ```
 
 ### 2. Handoffs Are Just Tools
-No special handoff routing. Handoffs are tools that return `llm.handoff()`:
+Handoffs are tools that return `llm.handoff()`:
 
 ```typescript
 handoffToMaya: llm.tool({
   description: 'Transfer to Maya for habits and budgeting',
+  parameters: z.object({}),
   execute: async (_, { ctx }) => {
+    const { MayaAgent } = await import('./maya-agent.js');
     return llm.handoff({
       agent: new MayaAgent(ctx.session.chatCtx),
-      returns: 'Connecting you with Maya',
+      returns: 'Connecting you with Maya!',
     });
   },
 }),
@@ -42,7 +66,7 @@ handoffToMaya: llm.tool({
 ### 3. LLM Decides Tool Usage
 No tool routing logic. The LLM reads tool descriptions and decides which to call:
 - Good descriptions = reliable tool usage
-- No trigger phrases in system prompts needed
+- No trigger phrases in system prompts
 - No routing tables to maintain
 
 ### 4. System Prompts Are Personality Only
@@ -50,12 +74,11 @@ The system prompt should contain:
 - ✅ Character identity and backstory
 - ✅ Voice/speech patterns
 - ✅ Personality traits
-- ✅ Team philosophy (who they work with)
+- ✅ Team philosophy
 
 NOT:
 - ❌ Tool documentation
 - ❌ Trigger phrases
-- ❌ Tool calling instructions
 - ❌ "USE createHabit" type instructions
 
 ## File Structure
@@ -63,33 +86,13 @@ NOT:
 ```
 src/agents/personas/
 ├── index.ts          # Exports all agents
-├── ferni-agent.ts    # Main orchestrator
-├── maya-agent.ts     # Habits coach
-├── alex-agent.ts     # Communication coach
-├── peter-agent.ts    # The Quant
-├── jordan-agent.ts   # Lifetime planner
-├── nayan-agent.ts    # Wisdom guide
+├── ferni-agent.ts    # Main orchestrator (memory + music + all handoffs)
+├── maya-agent.ts     # Habits coach (memory + habits + handoffs)
+├── alex-agent.ts     # Communication (memory + communication + handoffs)
+├── peter-agent.ts    # Research (memory + research/market + handoffs)
+├── jordan-agent.ts   # Life planning (memory + goals/events + handoffs)
+├── nayan-agent.ts    # Wisdom guide (memory + wisdom + handoffs)
 └── README.md         # This file
-```
-
-## Migration from Old Architecture
-
-### Before (Complex)
-```
-src/tools/
-├── registry/          # Tool registry
-├── domains/           # 40+ domain folders
-├── builder.ts         # Tool builder
-├── handoff/           # Handoff factory
-└── routing/           # Tool routing
-```
-
-### After (Simple)
-```
-src/agents/personas/
-├── ferni-agent.ts     # Tools inline
-├── maya-agent.ts      # Tools inline
-└── ...
 ```
 
 ## Usage
@@ -97,12 +100,42 @@ src/agents/personas/
 ```typescript
 import { FerniAgent } from './agents/personas';
 
-// Create agent
-const agent = new FerniAgent(systemPrompt);
+// Create agent - tools built internally
+const agent = new FerniAgent(systemPrompt, {
+  chatCtx: existingContext,  // For handoffs
+  skipGreeting: false,
+});
 
 // Start session
 const session = new voice.AgentSession({ vad, stt, tts, llm });
 await session.start({ room: ctx.room, agent });
+```
+
+## Agent Lifecycle
+
+```typescript
+export class FerniAgent extends voice.Agent<SessionData> {
+  constructor(systemPrompt, options) {
+    // Build tools from domains
+    const memoryTools = buildMemoryTools();
+    const entertainmentTools = buildEntertainmentTools();
+    const handoffTools = buildHandoffTools();
+
+    super({
+      instructions: systemPrompt,
+      tools: { ...memoryTools, ...entertainmentTools, ...handoffTools },
+    });
+  }
+
+  async onEnter() {
+    // Generate greeting
+    this.session.generateReply({ instructions: 'Greet warmly...' });
+  }
+
+  async onExit() {
+    // Cleanup or log transition
+  }
+}
 ```
 
 ## References
