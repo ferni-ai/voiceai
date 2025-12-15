@@ -27,7 +27,7 @@
  * await wireContextIntegrations(cm, { userId, enableTrust: true });
  *
  * // For session state:
- * import { SessionStateManager } from '../agents/session/index.js';
+ * // Use SessionStateManager from agents/session module
  * ```
  *
  * NOTE: Other `SessionContext` types exist in:

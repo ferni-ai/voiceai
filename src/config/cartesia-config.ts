@@ -4,7 +4,7 @@
  * This module provides voice configuration for Cartesia TTS.
  * All voice IDs and model config come from config/voice-ids.ts (single source of truth).
  *
- * For TTS creation, use `import { ... } from '../speech/tts/index.js'` directly.
+ * For TTS creation, use the speech/tts module directly.
  *
  * @module @ferni/config/cartesia
  */

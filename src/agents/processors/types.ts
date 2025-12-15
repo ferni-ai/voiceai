@@ -5,7 +5,9 @@
  */
 
 import type { llm } from '@livekit/agents';
-import type { HumanizingResult } from '../../intelligence/context-builders/humanizing.js';
+// Import base type from shared types to avoid circular dependency
+// (intelligence/context-builders → ... → agents/processors → intelligence/context-builders)
+import type { HumanizingResultBase } from '../../types/humanizing-types.js';
 import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { ConversationAnalysis, SessionServices } from '../../services/index.js';
@@ -83,7 +85,7 @@ export interface ContextBuildResult {
   /** All context injections to add */
   injections: ContextInjection[];
   /** Humanizing result if applicable */
-  humanizingResult?: HumanizingResult;
+  humanizingResult?: HumanizingResultBase;
   /** Time taken to build context in ms */
   elapsedMs: number;
 }
