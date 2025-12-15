@@ -37,10 +37,13 @@ import {
   type EmotionalMemoryEngine as BondingEngine,
 } from '../conversation/superhuman/emotional-memory.js';
 
-// Import RelationshipStage from superhuman types (matches bonding service return type)
-import type { RelationshipStage } from '../conversation/superhuman/types.js';
-// Import EmotionalBond from shared types
-import type { EmotionalBond } from '../types/relationship-stages.js';
+// Import shared types to avoid architecture violation (memory → conversation)
+import {
+  fromLegacyStage,
+  type EmotionalBond,
+  type LegacyRelationshipStage,
+  type RelationshipStage,
+} from '../types/relationship-stages.js';
 
 // Re-export aliases for clarity
 export type UserEmotionalContext = EmotionalContext;
@@ -267,7 +270,7 @@ export class UnifiedEmotionalMemory {
         admiration: bondMetrics.admiration,
         concern: bondMetrics.concern,
         sessionCount: this.bonding.getBond().sessionCount,
-        stage: bondMetrics.stage,
+        stage: fromLegacyStage(bondMetrics.stage as LegacyRelationshipStage),
       },
       insights: {
         suggestedApproach,
@@ -315,7 +318,7 @@ export class UnifiedEmotionalMemory {
    * Get relationship stage
    */
   getRelationshipStage(): RelationshipStage {
-    return this.bonding.getRelationshipStage();
+    return fromLegacyStage(this.bonding.getRelationshipStage() as LegacyRelationshipStage);
   }
 
   /**

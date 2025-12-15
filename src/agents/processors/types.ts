@@ -242,20 +242,45 @@ export interface TurnProcessorResult {
 // CACHED MODULE TYPES - For dynamic imports
 // ============================================================================
 
+// NOTE: Using explicit function signatures instead of `typeof import(...)`
+// to avoid circular dependency with intelligence/context-builders.
+// The circular chain was:
+// intelligence/context-builders → ... → agents/processors/types → intelligence/context-builders
+
+/** Function signature for buildConversationContext */
+type BuildConversationContextFn = (input: unknown) => Promise<ContextInjection[]>;
+
+/** Function signature for formatContextForPrompt */
+type FormatContextForPromptFn = (
+  injections: ContextInjection[],
+  options?: {
+    maxLength?: number;
+    includeHints?: boolean;
+    highEmotionMode?: boolean;
+  }
+) => string;
+
+/** Function signature for shouldUseHighEmotionMode */
+type ShouldUseHighEmotionModeFn = (analysis: unknown) => boolean;
+
+/** Function signature for checkForEasterEgg */
+type CheckForEasterEggFn = (
+  message: string,
+  personaId: string,
+  context?: Record<string, unknown>
+) => { type: string; response: string } | null;
+
+/** Function signature for getTaskManager */
+type GetTaskManagerFn = (options?: Record<string, unknown>) => unknown;
+
 /**
  * Cached module references for performance
  */
 export interface CachedModules {
-  buildConversationContext:
-    | typeof import('../../intelligence/context-builders/index.js').buildConversationContext
-    | null;
-  formatContextForPrompt:
-    | typeof import('../../intelligence/context-builders/index.js').formatContextForPrompt
-    | null;
+  buildConversationContext: BuildConversationContextFn | null;
+  formatContextForPrompt: FormatContextForPromptFn | null;
   // BETTER-THAN-HUMAN: High emotion mode detection for context prioritization
-  shouldUseHighEmotionMode:
-    | typeof import('../../intelligence/context-builders/index.js').shouldUseHighEmotionMode
-    | null;
-  checkForEasterEgg: typeof import('../../personas/easter-eggs.js').checkForEasterEgg | null;
-  getTaskManager: typeof import('../../tasks/task-manager.js').getTaskManager | null;
+  shouldUseHighEmotionMode: ShouldUseHighEmotionModeFn | null;
+  checkForEasterEgg: CheckForEasterEggFn | null;
+  getTaskManager: GetTaskManagerFn | null;
 }
