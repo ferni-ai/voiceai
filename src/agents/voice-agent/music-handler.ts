@@ -18,16 +18,14 @@
 import type { voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import {
-  initializeDJBooth,
   getMusicHumanization,
+  initializeDJBooth,
   type DJBooth,
   type MusicState,
   type MusicTrack,
 } from '../../audio/index.js';
 // 🐛 FIX: Static import for DJ phrases - dynamic imports add latency causing silence!
 import {
-  getAmbientMusicEndedPhrase,
-  getDJOutroPhrase,
   getDJTrackChangePhrase,
   getMidSongMomentPhrase,
   getMusicStoppedPhrase,
@@ -121,8 +119,12 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
 
   try {
     diag.session('🎵 [DIAG] Importing audio modules...');
-    const { initializeMusicPlayer, getMusicPlayer, getAmbientMusicEndedPhrase } =
-      await import('../../audio/index.js');
+    const {
+      initializeMusicPlayer,
+      getMusicPlayer,
+      getAmbientMusicEndedPhrase,
+      initializeSoundEffectsPlayer,
+    } = await import('../../audio/index.js');
 
     diag.session('🎵 [DIAG] Audio modules imported, calling initializeMusicPlayer...');
 
@@ -130,6 +132,11 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     await initializeMusicPlayer(room, session);
 
     diag.session('🎵 [DIAG] initializeMusicPlayer completed successfully');
+
+    // 🔊 Initialize dedicated sound effects player (separate from music)
+    // This ensures sounds never trigger "music ended" callbacks
+    await initializeSoundEffectsPlayer(room, session);
+    diag.session('🔊 [DIAG] Sound effects player initialized');
 
     // Set up callback for when ambient music ends - agent comes back in
     const player = getMusicPlayer();
@@ -196,14 +203,77 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
 
     // Set up track ended callback
     player.setOnTrackEndedCallback((track, wasAmbient) => {
-      if (wasAmbient) {
-        const comeBackPhrase = getAmbientMusicEndedPhrase(sessionPersona.id);
-        diag.state('Ambient music ended, agent coming back', { track: track.name });
+      // 🐛 FIX: Skip system sounds (session sounds like connect.mp3)
+      // These have track names like "sound-session-start", "sound-handoff"
+      // We don't want Ferni to comment when these short stingers end
+      if (track.name.startsWith('sound-')) {
+        diag.state('🔔 System sound ended (ignoring)', { track: track.name });
+        return;
+      }
 
-        try {
-          session.say(comeBackPhrase, { allowInterruptions: true });
-        } catch (e) {
-          diag.warn('Failed to say music-ended phrase', { error: String(e) });
+      // 🐛 FIX: Skip music-ended phrases during handoffs
+      // When switching personas, we stop music but don't want to announce it
+      if (djBooth?.isHandoffInProgress()) {
+        diag.state('🔄 Music ended during handoff (suppressing phrase)', { track: track.name });
+        return;
+      }
+
+      if (wasAmbient) {
+        // 🐛 FIX: Only announce ambient music ending 20% of the time
+        // Ambient music is meant to be subtle - constant announcements are jarring
+        // The user may not have even noticed music was playing
+        if (Math.random() < 0.2) {
+          const comeBackPhrase = getAmbientMusicEndedPhrase(sessionPersona.id);
+          diag.state('Ambient music ended, agent coming back', { track: track.name });
+
+          try {
+            session.say(comeBackPhrase, { allowInterruptions: true });
+          } catch (e) {
+            diag.warn('Failed to say music-ended phrase', { error: String(e) });
+          }
+        } else {
+          diag.state('🎵 Ambient music ended - staying quiet (letting silence breathe)', {
+            track: track.name,
+          });
+        }
+      } else {
+        // 🎵 HUMANIZED MUSIC ENDING - User-requested music just ended
+        // Wait for natural silence, then gently check in (not always)
+        // This is the "let it breathe" moment after music fades
+
+        // 70% chance to speak - sometimes silence is golden
+        if (Math.random() < 0.7) {
+          // Natural pause after music ends (600-1000ms feels human)
+          const pauseMs = 600 + Math.floor(Math.random() * 400);
+
+          setTimeout(() => {
+            try {
+              // Gentle, non-DJ phrases - just checking in naturally
+              const gentlePhrases = [
+                '<break time="300ms"/>That was nice.',
+                '<break time="300ms"/>Mm.',
+                '<break time="400ms"/>How are you feeling?',
+                '<break time="300ms"/>Good song.',
+                '<break time="400ms"/>Where were we?',
+                '<break time="300ms"/>Ready to continue?',
+              ];
+              const phrase = gentlePhrases[Math.floor(Math.random() * gentlePhrases.length)];
+
+              diag.state('🎵 Music ended - gentle check-in', {
+                track: track.name,
+                phrase,
+                pauseMs,
+              });
+
+              session.say(phrase, { allowInterruptions: true });
+            } catch (e) {
+              diag.warn('Failed to say music-ended phrase', { error: String(e) });
+            }
+          }, pauseMs);
+        } else {
+          diag.state('🎵 Music ended - staying quiet (letting silence breathe)', {
+            track: track.name,
+          });
         }
       }
     });
@@ -211,6 +281,14 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
     // Set up mid-song moment callback
     // 🐛 FIX: Use static import for immediate response
     player.setOnMidSongMomentCallback((track, momentType) => {
+      // 🐛 FIX: Skip system sounds (session sounds like connect.mp3)
+      // These have track names like "sound-session-start", "sound-handoff"
+      // We don't want Ferni to do mid-song moments for short stingers
+      if (track.name.startsWith('sound-')) {
+        diag.state('🔔 System sound mid-song moment (ignoring)', { track: track.name });
+        return;
+      }
+
       try {
         const phrase = getMidSongMomentPhrase(momentType, track.name, sessionPersona.id);
 
@@ -287,6 +365,16 @@ function setupMusicStateCallback(
   let lastReadTheRoomTime: number | null = null;
 
   player.setOnMusicStateChangeCallback((state, track, isAmbient) => {
+    // 🐛 FIX: Skip system sounds (session sounds like connect.mp3)
+    // These have track names like "sound-session-start", "sound-handoff"
+    // We don't want Ferni to comment when these short stingers play/end
+    if (track?.name.startsWith('sound-')) {
+      diag.state('🔔 System sound state change (ignoring)', { state, track: track.name });
+      // Still update lastMusicState to avoid false "unexpected stop" detection
+      lastMusicState = state;
+      return;
+    }
+
     diag.state('Music state changed', {
       state,
       previousState: lastMusicState,
@@ -294,20 +382,22 @@ function setupMusicStateCallback(
       isAmbient,
     });
 
-    // 🐛 FIX: SPEAK IMMEDIATELY for time-sensitive states - don't await anything first!
-    // The DJ outro and crossfade transitions need to happen RIGHT NOW during the fade
+    // 🎵 HUMANIZED MUSIC TRANSITIONS
+    // The old approach spoke "DJ-style" over the fade - felt forced and unnatural.
+    // New approach: Let music breathe, wait for natural ending, then gently check in.
+
     if (state === 'fading' && !isAmbient && track) {
-      // 🎧 DJ OUTRO - speak IMMEDIATELY over the fading music!
-      const djOutro = getDJOutroPhrase(track.name, track.artist, sessionPersona.id);
-      diag.state('🎧 DJ outro - speaking NOW over fading music', {
+      // 🎵 During fade: Stay quiet and let the music breathe
+      // No DJ outro here - it felt forced. Just log for debugging.
+      diag.state('🎵 Music fading - letting it breathe (no DJ outro)', {
         track: track.name,
-        phrase: djOutro.slice(0, 50),
       });
-      session.say(djOutro, { allowInterruptions: true });
+      // The track ended callback will handle the gentle check-in after silence
     }
 
     if (state === 'changing' && !isAmbient) {
-      // 🎧 CROSSFADE TRANSITION - speak immediately during track change
+      // 🎧 CROSSFADE TRANSITION - this one still makes sense to speak
+      // But make it more subtle than before
       const transitionPhrase = getDJTrackChangePhrase(
         track ? { name: track.name, artist: track.artist } : undefined,
         undefined,
@@ -335,13 +425,19 @@ function setupMusicStateCallback(
       const isUnexpectedStop =
         (state === 'stopped' || state === 'paused') && !isAmbient && lastMusicState === 'playing';
 
-      if (isUnexpectedStop) {
+      // 🐛 FIX: Don't announce music stop during handoffs
+      if (isUnexpectedStop && !djBooth?.isHandoffInProgress()) {
         const stoppedPhrase = getMusicStoppedPhrase(sessionPersona.id, state === 'paused');
         diag.state('🎧 Music unexpectedly stopped', {
           track: lastTrackName,
           newState: state,
         });
         session.say(stoppedPhrase, { allowInterruptions: true });
+      } else if (isUnexpectedStop && djBooth?.isHandoffInProgress()) {
+        diag.state('🔄 Music stopped during handoff (suppressing phrase)', {
+          track: lastTrackName,
+          newState: state,
+        });
       }
 
       // Update tracking state
@@ -440,8 +536,9 @@ async function handleAppreciationInterval(
       ? (now - lastAppreciationTime) / 1000
       : timeSinceStart;
 
-    // Only appreciate if enough time has passed (30% chance every 15+ seconds)
-    if (timeSinceLastAppreciation > 15 && Math.random() < 0.3) {
+    // HUMANIZATION FIX: Reduced from 15s/30% to 45s/10%
+    // Music should be enjoyed in silence - comments should be rare and meaningful
+    if (timeSinceLastAppreciation > 45 && Math.random() < 0.1) {
       const comment =
         Math.random() < 0.7
           ? getMusicAppreciationComment(sessionPersona.id, track)
@@ -477,8 +574,9 @@ async function handleReadTheRoomInterval(
       ? (now - lastReadTheRoomTime) / 1000
       : timeSinceStart;
 
-    // Only check every 60+ seconds
-    if (timeSinceLastCheck > 60) {
+    // HUMANIZATION FIX: Increased from 60s to 120s
+    // Let users enjoy music without constant check-ins
+    if (timeSinceLastCheck > 120) {
       const action = getReadTheRoomAction(
         {
           musicHasBeenPlayingFor: timeSinceStart,

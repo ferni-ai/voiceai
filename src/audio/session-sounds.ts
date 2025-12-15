@@ -12,10 +12,14 @@
  * - Short (under 2 seconds)
  * - Warm and human (not robotic beeps)
  * - Consistent with Ferni's earthy aesthetic
+ *
+ * 🔊 NOTE: Uses dedicated SoundEffectsPlayer (NOT MusicPlayer!)
+ * This ensures sound effects don't trigger "music ended" announcements
+ * or any other DJ/music callbacks.
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import { getMusicPlayer } from './music-player.js';
+import { getSoundEffectsPlayer } from './sound-effects-player.js';
 
 const log = getLogger();
 
@@ -210,6 +214,9 @@ class SessionSoundsService {
   /**
    * Play a session sound effect
    * Returns the verbal fallback if audio couldn't play
+   *
+   * 🔊 Uses dedicated SoundEffectsPlayer - NOT the music player!
+   * This prevents "music ended" announcements and DJ callbacks.
    */
   async playSound(type: SessionSoundType): Promise<{
     played: boolean;
@@ -219,11 +226,11 @@ class SessionSoundsService {
       return { played: false };
     }
 
-    const player = getMusicPlayer();
+    const player = getSoundEffectsPlayer();
 
-    // If music player not available, use verbal fallback
+    // If sound effects player not available, use verbal fallback
     if (!player.isInitialized()) {
-      log.debug('🎵 Player not initialized, using verbal fallback', { type });
+      log.debug('🔊 Sound effects player not initialized, using verbal fallback', { type });
       return {
         played: false,
         verbalFallback: this.getVerbalSound(type),
@@ -231,53 +238,25 @@ class SessionSoundsService {
     }
 
     try {
-      // Don't interrupt currently playing music
-      if (player.isPlaying()) {
-        log.debug('🎵 Music playing, using verbal fallback', { type });
-        return {
-          played: false,
-          verbalFallback: this.getVerbalSound(type),
-        };
-      }
-
       const soundPath = SOUND_PATHS[type];
       const volume = SOUND_VOLUMES[type];
 
-      // Set volume for sound effect
-      player.setVolume(volume);
+      log.debug('🔊 Playing session sound', { type, soundPath, volume });
 
-      log.debug('🎵 Attempting to play session sound', { type, soundPath, volume });
-
-      // Play the sound
-      const success = await player.playFromUrl(soundPath, {
-        name: `sound-${type}`,
-        artist: 'system',
-        previewUrl: soundPath,
-        duration: 2000, // Sound effects are short
-      });
+      // Play through dedicated sound effects player (no callbacks!)
+      const success = await player.playSound(soundPath, volume);
 
       if (success) {
-        log.info('🎵 Session sound playing', { type, soundPath });
-
-        // Wait for sound to complete - connect/disconnect are ~1.1 seconds
-        // Add extra buffer for processing delay and to ensure full playback
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, 1500);
-        });
-
-        // Stop playback to free up the audio channel
-        player.stop();
-
-        log.debug('🎵 Session sound completed', { type });
+        log.debug('🔊 Session sound completed', { type });
         return { played: true };
       }
 
-      log.warn('🎵 Session sound playFromUrl returned false', { type, soundPath });
+      log.warn('🔊 Session sound failed to play', { type, soundPath });
 
       // Couldn't play - try fallback sound
       const fallbackType = SOUND_FALLBACKS[type];
       if (fallbackType && fallbackType !== type) {
-        log.debug('🎵 Trying fallback sound', { from: type, to: fallbackType });
+        log.debug('🔊 Trying fallback sound', { from: type, to: fallbackType });
         return this.playSound(fallbackType);
       }
 
@@ -287,7 +266,7 @@ class SessionSoundsService {
         verbalFallback: this.getVerbalSound(type),
       };
     } catch (error) {
-      log.warn('🎵 Error playing session sound', { type, error: String(error) });
+      log.warn('🔊 Error playing session sound', { type, error: String(error) });
       return {
         played: false,
         verbalFallback: this.getVerbalSound(type),

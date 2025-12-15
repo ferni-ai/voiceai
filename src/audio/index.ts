@@ -52,6 +52,14 @@ export {
   type SessionSoundType,
 } from './session-sounds.js';
 
+// Sound Effects Player - Dedicated player for short sounds (separate from music)
+// This ensures sound effects NEVER trigger "music ended" callbacks
+export {
+  getSoundEffectsPlayer,
+  initializeSoundEffectsPlayer,
+  resetSoundEffectsPlayer,
+} from './sound-effects-player.js';
+
 // DJ Booth - Full audio orchestration (ducking, timing, talk-over)
 export {
   DJBooth,

@@ -318,41 +318,62 @@ export function stopAmbientMusic(): void {
 
 /**
  * Get a phrase for when ambient music ends
- * The agent should acknowledge the music stopping naturally
+ * The agent should acknowledge gently - these should feel natural, not robotic
+ *
+ * NOTE: These are only spoken ~20% of the time (see music-handler.ts)
+ * Most of the time we stay quiet after ambient music ends
  */
 export function getAmbientMusicEndedPhrase(personaId?: string): string {
-  // Persona-specific phrases
+  // Persona-specific phrases - kept SHORT and natural
+  // Avoid saying "music ended" explicitly - it sounds robotic
   const personaPhrases: Record<string, string[]> = {
     'peter-john': [
-      '<break time="300ms"/>Music\'s done. <break time="200ms"/>Where were we?',
-      '<break time="300ms"/>Alright, <break time="200ms"/>quiet time over. <break time="150ms"/>What are you thinking?',
+      '<break time="400ms"/>Mm. <break time="300ms"/>Where were we?',
+      '<break time="400ms"/>Alright. <break time="300ms"/>What were you thinking?',
     ],
     'nayan-patel': [
-      '<break time="400ms"/>The music\'s faded. <break time="300ms"/>Shall we continue?',
-      '<break time="400ms"/>Ah, <break time="200ms"/>quiet again. <break time="300ms"/>What\'s on your mind?',
+      '<break time="500ms"/>Ah. <break time="400ms"/>Shall we continue?',
+      '<break time="500ms"/>Mm. <break time="400ms"/>What\'s on your mind?',
     ],
     'jack-b': [
-      '<break time="300ms"/>Music\'s done! <break time="200ms"/>You ready to keep going?',
-      '<break time="300ms"/>That was nice. <break time="200ms"/>How you feeling?',
+      '<break time="400ms"/>So. <break time="300ms"/>How you feeling?',
+      '<break time="400ms"/>Nice. <break time="300ms"/>Ready to keep going?',
     ],
     maya: [
-      '<break time="300ms"/>Music break\'s over. <break time="250ms"/>Ready to continue?',
-      '<break time="300ms"/>That was a good thinking moment. <break time="200ms"/>What came up for you?',
+      '<break time="400ms"/>Mm. <break time="350ms"/>What came up for you?',
+      '<break time="400ms"/>How are you feeling?',
+    ],
+    'maya-santos': [
+      '<break time="400ms"/>Mm. <break time="350ms"/>What came up for you?',
+      '<break time="400ms"/>How are you feeling?',
     ],
     jordan: [
-      '<emotion value="happy"/><break time="200ms"/>Music\'s done! <break time="150ms"/>Did that help?',
-      '<break time="200ms"/>Okay! <break time="150ms"/>Thinking time over! <break time="200ms"/>What did you come up with?',
+      '<break time="300ms"/>So! <break time="250ms"/>How was that?',
+      '<break time="300ms"/>Alright! <break time="250ms"/>What\'s on your mind?',
+    ],
+    'jordan-taylor': [
+      '<break time="300ms"/>So! <break time="250ms"/>How was that?',
+      '<break time="300ms"/>Alright! <break time="250ms"/>What\'s on your mind?',
     ],
     alex: [
-      '<break time="200ms"/>Music ended. <break time="150ms"/>Ready to continue?',
-      '<break time="200ms"/>Back to it. <break time="150ms"/>What\'s next?',
+      '<break time="350ms"/>Okay. <break time="250ms"/>What\'s next?',
+      '<break time="350ms"/>So. <break time="250ms"/>Where were we?',
+    ],
+    'alex-chen': [
+      '<break time="350ms"/>Okay. <break time="250ms"/>What\'s next?',
+      '<break time="350ms"/>So. <break time="250ms"/>Where were we?',
+    ],
+    ferni: [
+      '<break time="400ms"/>Mm. <break time="350ms"/>I\'m here.',
+      '<break time="400ms"/>How are you feeling?',
+      '<break time="400ms"/>So. <break time="300ms"/>What\'s on your mind?',
     ],
   };
 
-  // Default phrases
+  // Default phrases - short and natural, no "music ended"
   const defaultPhrases = [
-    '<break time="300ms"/>The music\'s stopped. <break time="200ms"/>Ready to continue?',
-    '<break time="300ms"/>Quiet again. <break time="200ms"/>What\'s on your mind?',
+    '<break time="400ms"/>Mm. <break time="350ms"/>I\'m here.',
+    '<break time="400ms"/>So. <break time="300ms"/>What\'s on your mind?',
   ];
 
   const phrases =
@@ -899,52 +920,53 @@ export function getMusicStoppedPhrase(personaId?: string, wasPaused = false): st
   }
 
   // Music stopped unexpectedly (crash, network, etc.) - acknowledge casually
+  // Avoid saying "music ended" or "music stopped" explicitly - sounds robotic
   const stoppedPhrases: Record<string, string[]> = {
     'peter-john': [
-      '<break time="200ms"/>Hm, <break time="100ms"/>looks like the music stopped. <break time="150ms"/>Anyway, where were we?',
-      '<break time="200ms"/>Music cut out. <break time="150ms"/>No worries. <break time="100ms"/>What were you saying?',
+      '<break time="300ms"/>Hm. <break time="200ms"/>Anyway, where were we?',
+      '<break time="300ms"/>Alright. <break time="200ms"/>What were you saying?',
     ],
     'nayan-patel': [
-      '<break time="300ms"/>Ah, <break time="150ms"/>the music seems to have stopped. <break time="200ms"/>Perhaps it\'s a sign to continue our conversation.',
-      '<break time="300ms"/>Music ended. <break time="200ms"/>Sometimes silence is its own music.',
+      '<break time="400ms"/>Ah. <break time="300ms"/>Shall we continue?',
+      '<break time="400ms"/>Mm. <break time="300ms"/>Sometimes silence is its own music.',
     ],
     'jack-b': [
-      '<break time="150ms"/>Oh! <break time="100ms"/>Music stopped. <break time="150ms"/>All good though. <break time="100ms"/>What\'s up?',
-      '<break time="150ms"/>Hm, music cut out. <break time="100ms"/>No biggie. <break time="100ms"/>How you doing?',
+      '<break time="250ms"/>So. <break time="200ms"/>What\'s up?',
+      '<break time="250ms"/>Anyway. <break time="200ms"/>How you doing?',
     ],
     maya: [
-      '<break time="150ms"/>Oh, music stopped. <break time="100ms"/>That\'s okay. <break time="150ms"/>I\'m here.',
-      '<break time="150ms"/>Looks like the music ended. <break time="100ms"/>How are you feeling?',
+      '<break time="300ms"/>I\'m here. <break time="200ms"/>What\'s on your mind?',
+      '<break time="300ms"/>How are you feeling?',
     ],
     'maya-santos': [
-      '<break time="150ms"/>Oh, music stopped. <break time="100ms"/>That\'s okay. <break time="150ms"/>I\'m here.',
-      '<break time="150ms"/>Looks like the music ended. <break time="100ms"/>How are you feeling?',
+      '<break time="300ms"/>I\'m here. <break time="200ms"/>What\'s on your mind?',
+      '<break time="300ms"/>How are you feeling?',
     ],
     jordan: [
-      '<emotion value="curious"/><break time="100ms"/>Oh! <break time="100ms"/>Music stopped. <break time="150ms"/>No worries! <break time="100ms"/>What\'s next?',
-      '<break time="100ms"/>Hm, music cut out. <break time="100ms"/>That\'s okay! <break time="100ms"/>I\'m still here.',
+      '<break time="200ms"/>So! <break time="150ms"/>What\'s next?',
+      '<break time="200ms"/>Alright! <break time="150ms"/>I\'m still here.',
     ],
     'jordan-taylor': [
-      '<emotion value="curious"/><break time="100ms"/>Oh! <break time="100ms"/>Music stopped. <break time="150ms"/>No worries! <break time="100ms"/>What\'s next?',
-      '<break time="100ms"/>Hm, music cut out. <break time="100ms"/>That\'s okay! <break time="100ms"/>I\'m still here.',
+      '<break time="200ms"/>So! <break time="150ms"/>What\'s next?',
+      '<break time="200ms"/>Alright! <break time="150ms"/>I\'m still here.',
     ],
     alex: [
-      '<break time="150ms"/>Music stopped. <break time="100ms"/>All good. <break time="100ms"/>Ready to continue?',
-      '<break time="150ms"/>Looks like the music ended. <break time="100ms"/>Where were we?',
+      '<break time="250ms"/>Okay. <break time="200ms"/>Ready to continue?',
+      '<break time="250ms"/>So. <break time="200ms"/>Where were we?',
     ],
     'alex-chen': [
-      '<break time="150ms"/>Music stopped. <break time="100ms"/>All good. <break time="100ms"/>Ready to continue?',
-      '<break time="150ms"/>Looks like the music ended. <break time="100ms"/>Where were we?',
+      '<break time="250ms"/>Okay. <break time="200ms"/>Ready to continue?',
+      '<break time="250ms"/>So. <break time="200ms"/>Where were we?',
     ],
     ferni: [
-      '<break time="200ms"/>Oh, the music stopped. <break time="150ms"/>That\'s alright. <break time="100ms"/>I\'m here with you.',
-      '<break time="200ms"/>Music ended. <break time="150ms"/>How are you feeling?',
+      '<break time="300ms"/>I\'m here with you. <break time="200ms"/>What\'s on your mind?',
+      '<break time="300ms"/>How are you feeling?',
     ],
   };
 
   const defaultStopped = [
-    '<break time="200ms"/>Music stopped. <break time="150ms"/>That\'s okay. <break time="100ms"/>What\'s on your mind?',
-    '<break time="200ms"/>Looks like the music ended. <break time="150ms"/>How are you doing?',
+    '<break time="300ms"/>I\'m here. <break time="250ms"/>What\'s on your mind?',
+    '<break time="300ms"/>How are you doing?',
   ];
 
   const phrases =
