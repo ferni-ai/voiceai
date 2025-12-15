@@ -129,6 +129,8 @@ export {
 // ============================================================================
 
 export {
+  CARTESIA_MODEL,
+  DEFAULT_VOICE_IDS,
   getVoiceIdForPersona,
   getVoiceIdFromManifest,
   isValidVoiceId,

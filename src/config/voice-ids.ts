@@ -18,6 +18,16 @@ import { createLogger } from '../utils/safe-logger.js';
 const log = createLogger({ module: 'VoiceIds' });
 
 // =============================================================================
+// CARTESIA MODEL
+// =============================================================================
+
+/**
+ * Cartesia model from environment variable.
+ * sonic-3 is the latest with best quality.
+ */
+export const CARTESIA_MODEL = process.env.CARTESIA_MODEL || 'sonic-3';
+
+// =============================================================================
 // CANONICAL VOICE IDS
 // =============================================================================
 
@@ -47,6 +57,11 @@ export const VOICE_IDS = {
   // Generic advisor fallback
   GENERIC: '79a125e8-cd45-4c13-8a67-188112f4dd22',
 } as const;
+
+/**
+ * Alias for backwards compatibility with cartesia-core.ts
+ */
+export const DEFAULT_VOICE_IDS = VOICE_IDS;
 
 // =============================================================================
 // PERSONA TO VOICE MAPPING

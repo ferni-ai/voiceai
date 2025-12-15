@@ -21,6 +21,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { getPersona, isKnownPersonaId } from '../config/personas.js';
 import { t } from '../i18n/index.js';
 import { marketplaceService, type MarketplaceAgent } from '../services/marketplace.service.js';
+import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import {
   rosterPreferences,
   type TeamMemberId as RosterTeamMemberId,
@@ -1491,13 +1492,13 @@ function renderDetailPanel(
     document.head.appendChild(styleSheet);
   }
 
-  // Add event listeners
-  detailPanel.querySelector('.detail-backdrop')?.addEventListener('click', closeDetailPanel);
-  detailPanel.querySelector('.detail-close')?.addEventListener('click', closeDetailPanel);
+  // Add event listeners (iOS-compatible)
+  addTapListener(detailPanel.querySelector('.detail-backdrop'), closeDetailPanel);
+  addTapListener(detailPanel.querySelector('.detail-close'), closeDetailPanel);
 
   const actionBtn = detailPanel.querySelector('.detail-action') as HTMLElement;
-  actionBtn?.addEventListener('click', () => {
-    const agentId = actionBtn.dataset.agentId;
+  addTapListener(actionBtn, () => {
+    const agentId = actionBtn?.dataset.agentId;
     if (agentId) {
       closeDetailPanel();
       void handleAgentAction(agentId, actionBtn.classList.contains('uninstall'));
@@ -1520,6 +1521,9 @@ function closeDetailPanel(): void {
 
   detailPanel.classList.remove('open');
   soundUI.play('switch');
+
+  // Clean up iOS tap listeners before removing
+  cleanupTapListeners(detailPanel);
 
   trackedTimeout(() => {
     detailPanel?.remove();

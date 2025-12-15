@@ -17,53 +17,13 @@
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import type { PrewarmState, TTSOptions, VoiceConfig } from './types.js';
 
-// ============================================================================
-// ENVIRONMENT CONFIGURATION
-// ============================================================================
+// Import voice configuration from config layer (single source of truth)
+// NOTE: config/voice-ids.ts has minimal dependencies, safe to import here
+import { CARTESIA_MODEL, DEFAULT_VOICE_IDS } from '../../config/voice-ids.js';
 
-/**
- * Cartesia model from environment variable.
- * sonic-3 is the latest with best quality.
- */
-export const CARTESIA_MODEL = process.env.CARTESIA_MODEL || 'sonic-3';
-
-/**
- * Default voice IDs from environment variables.
- * These MUST match the values in .env and config/cartesia-config.ts
- */
-export const DEFAULT_VOICE_IDS = {
-  FERNI:
-    process.env.FERNI_VOICE_ID ||
-    process.env.JACK_B_VOICE_ID ||
-    'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
-
-  PETER_JOHN:
-    process.env.PETER_JOHN_VOICE_ID ||
-    process.env.JACK_BOGLE_VOICE_ID ||
-    '3f04e815-3260-4f50-8fd9-af9c657be4c2',
-
-  ALEX_CHEN:
-    process.env.ALEX_CHEN_VOICE_ID ||
-    process.env.COMM_SPECIALIST_VOICE_ID ||
-    '81c164d9-7baa-419d-9f9a-6b18100a01ee',
-
-  MAYA_SANTOS:
-    process.env.MAYA_SANTOS_VOICE_ID ||
-    process.env.SPEND_SAVE_VOICE_ID ||
-    'eef47c0d-cb49-4160-a4a0-6b97ed4c81e6',
-
-  JORDAN_TAYLOR:
-    process.env.JORDAN_TAYLOR_VOICE_ID ||
-    process.env.EVENT_PLANNER_VOICE_ID ||
-    'b2d14370-c56b-4bdd-a6a3-71abe1b6e345',
-
-  NAYAN_PATEL:
-    process.env.NAYAN_PATEL_VOICE_ID ||
-    process.env.NAYAN_VOICE_ID ||
-    '52f0a563-2a2a-4c4a-ab4f-000eaaed32b3',
-
-  GENERIC: process.env.GENERIC_ADVISOR_VOICE_ID || '79a125e8-cd45-4c13-8a67-188112f4dd22',
-} as const;
+// Re-export for backwards compatibility
+export { CARTESIA_MODEL, DEFAULT_VOICE_IDS };
+// getVoiceIdForPersona is defined locally below with enhanced mapping
 
 // ============================================================================
 // LIGHTWEIGHT LOGGING (stderr only - no logger import)

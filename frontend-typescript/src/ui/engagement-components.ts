@@ -446,6 +446,15 @@ export const SHARED_STYLES = `
       max-height: calc(100vh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0) - 32px);
       max-height: calc(100dvh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0) - 32px);
       border-radius: var(--radius-xl, 1.25rem);
+      /* iOS smooth scrolling */
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+    
+    .ferni-modal__content {
+      /* Enable momentum scrolling */
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
     }
 
     .ferni-menu__panel {
@@ -458,6 +467,19 @@ export const SHARED_STYLES = `
     }
   }
   
+  /* iOS Safari specific fixes */
+  @supports (-webkit-touch-callout: none) {
+    @media (max-width: 480px) {
+      .ferni-modal__card {
+        max-height: -webkit-fill-available;
+      }
+      
+      .ferni-modal__content {
+        -webkit-overflow-scrolling: touch;
+      }
+    }
+  }
+  
   /* Landscape mode - narrower modals */
   @media (orientation: landscape) and (max-height: 500px) {
     .ferni-modal__card {
@@ -467,6 +489,9 @@ export const SHARED_STYLES = `
     
     .ferni-menu__panel {
       max-width: 50vw;
+      /* Landscape safe areas for horizontal notch devices */
+      padding-left: env(safe-area-inset-left, 0);
+      padding-right: env(safe-area-inset-right, 0);
     }
   }
 

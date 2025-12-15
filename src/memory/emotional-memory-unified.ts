@@ -37,7 +37,10 @@ import {
   type EmotionalMemoryEngine as BondingEngine,
 } from '../conversation/superhuman/emotional-memory.js';
 
-import type { EmotionalBond, RelationshipStage } from '../conversation/superhuman/types.js';
+// Import RelationshipStage from superhuman types (matches bonding service return type)
+import type { RelationshipStage } from '../conversation/superhuman/types.js';
+// Import EmotionalBond from shared types
+import type { EmotionalBond } from '../types/relationship-stages.js';
 
 // Re-export aliases for clarity
 export type UserEmotionalContext = EmotionalContext;
@@ -414,7 +417,7 @@ export type {
   EmotionalPattern,
 } from '../intelligence/emotional-memory.js';
 
-export type { EmotionalBond, RelationshipStage } from '../conversation/superhuman/types.js';
+export type { EmotionalBond, RelationshipStage } from '../types/relationship-stages.js';
 
 export default {
   getUnifiedEmotionalMemory,

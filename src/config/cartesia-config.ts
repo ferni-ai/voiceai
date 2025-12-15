@@ -1,8 +1,8 @@
 /**
  * Cartesia TTS Configuration
  *
- * This module re-exports configuration from the unified TTS module
- * and adds additional utilities for non-TTS contexts.
+ * This module provides voice configuration for Cartesia TTS.
+ * All voice IDs and model config come from config/voice-ids.ts (single source of truth).
  *
  * For TTS creation, use `import { ... } from '../speech/tts/index.js'` directly.
  *
@@ -14,27 +14,18 @@ import { createLogger } from '../utils/safe-logger.js';
 const log = createLogger({ module: 'CartesiaConfig' });
 
 // ============================================================================
-// RE-EXPORTS FROM TTS CORE
+// RE-EXPORTS FROM CONFIG (single source of truth)
 // ============================================================================
 
 export {
   CARTESIA_MODEL,
   DEFAULT_VOICE_IDS,
   getVoiceIdForPersona,
-} from '../speech/tts/cartesia-core.js';
+  VOICE_IDS,
+} from './voice-ids.js';
 
 // Import for local use
-import { CARTESIA_MODEL, DEFAULT_VOICE_IDS } from '../speech/tts/cartesia-core.js';
-
-// ============================================================================
-// VOICE_IDS ALIAS (backwards compatibility)
-// ============================================================================
-
-/**
- * Voice IDs loaded from environment variables with fallbacks.
- * @deprecated Use DEFAULT_VOICE_IDS from '../speech/tts/cartesia-core.js'
- */
-export const VOICE_IDS = DEFAULT_VOICE_IDS;
+import { CARTESIA_MODEL, DEFAULT_VOICE_IDS } from './voice-ids.js';
 
 // ============================================================================
 // ADDITIONAL UTILITIES

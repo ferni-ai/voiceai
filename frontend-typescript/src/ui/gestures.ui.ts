@@ -94,11 +94,50 @@ export function initGesturesUI(cbs: GestureCallbacks): void {
 // TOUCH HANDLERS
 // ============================================================================
 
+/**
+ * Check if touch target is inside a scrollable modal/menu content area
+ * If so, we should let the browser handle scrolling natively
+ */
+function isInsideScrollableContent(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+  
+  // Check if we're inside a modal content area that should scroll natively
+  const scrollableSelectors = [
+    '.ferni-modal__content',
+    '.subscription-card',
+    '.marketplace-content',
+    '.marketplace-detail-content',
+    '.settings-menu__nav',
+    '.unlock-card',
+    '.celebration-card',
+    '[data-scrollable="true"]',
+  ];
+  
+  for (const selector of scrollableSelectors) {
+    const scrollable = target.closest(selector);
+    if (scrollable) {
+      // Check if the element actually has scrollable content
+      const el = scrollable as HTMLElement;
+      if (el.scrollHeight > el.clientHeight) {
+        return true;
+      }
+    }
+  }
+  
+  return false;
+}
+
 function handleTouchStart(e: TouchEvent): void {
   if (e.touches.length !== 1) return;
   
   const touch = e.touches[0];
   if (!touch) return;
+  
+  // Don't track gestures inside scrollable modal content
+  if (isInsideScrollableContent(e.target)) {
+    touchState.isTracking = false;
+    return;
+  }
   
   touchState = {
     startX: touch.clientX,

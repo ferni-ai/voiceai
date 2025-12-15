@@ -24,6 +24,7 @@ import { t } from '../i18n/index.js';
 import { modalCoordinator } from '../services/modal-coordinator.service.js';
 import { teamUnlockService } from '../services/team-unlock.service.js';
 import { appState } from '../state/app.state.js';
+import { addTapListener, addTapListeners, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './toast.ui.js';
@@ -359,12 +360,9 @@ function showUpgradeSuccessCelebration(tier: string): void {
     startBtn?.focus();
   });
 
-  // Event handlers
-  const backdrop = container.querySelector('.subscription-backdrop');
-  backdrop?.addEventListener('click', () => closeCelebration(container));
-
-  const startBtn = container.querySelector('[data-action="start"]');
-  startBtn?.addEventListener('click', () => closeCelebration(container));
+  // Event handlers (iOS-compatible)
+  addTapListener(container.querySelector('.subscription-backdrop'), () => closeCelebration(container));
+  addTapListener(container.querySelector('[data-action="start"]'), () => closeCelebration(container));
 
   // Reload subscription status
   void loadStatus();
@@ -538,6 +536,9 @@ export function hideModal(): void {
   modalCoordinator.release('subscription-upgrade');
   modalCoordinator.release('subscription-limit');
 
+  // Clean up iOS tap listeners before removing
+  cleanupTapListeners(modal);
+
   trackedTimeout(() => {
     modal?.remove();
     modal = null;
@@ -618,23 +619,20 @@ function createModal(prompt?: string): HTMLElement {
     </div>
   `;
 
-  // Event listeners
-  const backdrop = container.querySelector('.subscription-backdrop');
-  backdrop?.addEventListener('click', hideModal);
-
-  const closeBtn = container.querySelector('.subscription-close');
-  closeBtn?.addEventListener('click', hideModal);
+  // Event listeners (iOS-compatible)
+  addTapListener(container.querySelector('.subscription-backdrop'), hideModal);
+  addTapListener(container.querySelector('.subscription-close'), hideModal);
 
   // Tier buttons with proper event handling
-  container.querySelectorAll('.tier-button').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      const tier = (e.currentTarget as HTMLElement).dataset.tier;
-      if (tier && tier !== 'free') {
-        void handleUpgrade(tier);
-      }
-    });
+  addTapListeners(container, '.tier-button', (e, btn) => {
+    const tier = btn.dataset.tier;
+    if (tier && tier !== 'free') {
+      void handleUpgrade(tier);
+    }
+  });
 
-    // Keyboard support
+  // Keyboard support for tier buttons
+  container.querySelectorAll('.tier-button').forEach((btn) => {
     btn.addEventListener('keydown', (e: Event) => {
       const keyEvent = e as KeyboardEvent;
       if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
@@ -693,20 +691,14 @@ function createLimitModal(prompt: string, resetDate?: string): HTMLElement {
     </div>
   `;
 
-  const backdrop = container.querySelector('.subscription-backdrop');
-  backdrop?.addEventListener('click', hideModal);
-
-  const closeBtn = container.querySelector('.subscription-close');
-  closeBtn?.addEventListener('click', hideModal);
-
-  const upgradeBtn = container.querySelector('[data-action="upgrade"]');
-  upgradeBtn?.addEventListener('click', () => {
+  // Event listeners (iOS-compatible)
+  addTapListener(container.querySelector('.subscription-backdrop'), hideModal);
+  addTapListener(container.querySelector('.subscription-close'), hideModal);
+  addTapListener(container.querySelector('[data-action="upgrade"]'), () => {
     hideModal();
     showUpgradeModal();
   });
-
-  const waitBtn = container.querySelector('[data-action="close"]');
-  waitBtn?.addEventListener('click', hideModal);
+  addTapListener(container.querySelector('[data-action="close"]'), hideModal);
 
   return container;
 }
@@ -1589,10 +1581,22 @@ function injectStyles(): void {
     
     /* Responsive */
     @media (max-width: 768px) {
+      .subscription-modal {
+        /* Safe area padding for notched devices */
+        padding: max(var(--space-4, 16px), env(safe-area-inset-top, 0))
+                 max(var(--space-4, 16px), env(safe-area-inset-right, 0))
+                 max(var(--space-4, 16px), env(safe-area-inset-bottom, 0))
+                 max(var(--space-4, 16px), env(safe-area-inset-left, 0));
+      }
+      
       .subscription-card {
         padding: var(--space-5, 20px);
-        margin: var(--space-4, 16px);
-        max-height: 85vh;
+        /* Account for safe areas in max height */
+        max-height: calc(100vh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0) - 32px);
+        max-height: calc(100dvh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0) - 32px);
+        /* iOS smooth scrolling */
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
       }
       
       .subscription-tiers {
@@ -1609,6 +1613,15 @@ function injectStyles(): void {
       
       .celebration-card {
         padding: var(--space-6, 24px);
+      }
+    }
+    
+    /* iOS Safari specific fixes */
+    @supports (-webkit-touch-callout: none) {
+      @media (max-width: 768px) {
+        .subscription-card {
+          max-height: -webkit-fill-available;
+        }
       }
     }
     

@@ -15,6 +15,7 @@
 import { DURATION, EASING, STAGGER } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { teamUnlockService, type TeamMemberConfig } from '../services/team-unlock.service.js';
+import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { playTeamUnlock } from './sound.ui.js';
@@ -132,6 +133,9 @@ export function hideCelebration(): void {
 
   celebrationModal.classList.remove('team-unlock-celebration--visible');
 
+  // Clean up iOS tap listeners before removing
+  cleanupTapListeners(celebrationModal);
+
   trackedTimeout(() => {
     celebrationModal?.remove();
     celebrationModal = null;
@@ -207,15 +211,10 @@ function createCelebrationModal(member: TeamMemberConfig): HTMLElement {
     </div>
   `;
 
-  // Event listeners
-  const backdrop = container.querySelector('.unlock-backdrop');
-  backdrop?.addEventListener('click', hideCelebration);
-
-  const closeBtn = container.querySelector('.unlock-close');
-  closeBtn?.addEventListener('click', hideCelebration);
-
-  const meetBtn = container.querySelector('[data-action="meet"]');
-  meetBtn?.addEventListener('click', () => {
+  // Event listeners (iOS-compatible)
+  addTapListener(container.querySelector('.unlock-backdrop'), hideCelebration);
+  addTapListener(container.querySelector('.unlock-close'), hideCelebration);
+  addTapListener(container.querySelector('[data-action="meet"]'), () => {
     hideCelebration();
     // Trigger handoff to this persona
     window.dispatchEvent(
@@ -224,9 +223,7 @@ function createCelebrationModal(member: TeamMemberConfig): HTMLElement {
       })
     );
   });
-
-  const laterBtn = container.querySelector('[data-action="later"]');
-  laterBtn?.addEventListener('click', hideCelebration);
+  addTapListener(container.querySelector('[data-action="later"]'), hideCelebration);
 
   return container;
 }
@@ -624,8 +621,22 @@ function injectStyles(): void {
     
     /* Mobile */
     @media (max-width: 480px) {
+      .team-unlock-celebration {
+        /* Safe area padding for notched devices */
+        padding: max(var(--space-4, 16px), env(safe-area-inset-top, 0))
+                 max(var(--space-4, 16px), env(safe-area-inset-right, 0))
+                 max(var(--space-4, 16px), env(safe-area-inset-bottom, 0))
+                 max(var(--space-4, 16px), env(safe-area-inset-left, 0));
+      }
+      
       .unlock-card {
         padding: var(--space-6, 24px);
+        /* Account for safe areas in max height */
+        max-height: calc(100vh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0) - 32px);
+        max-height: calc(100dvh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0) - 32px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
       }
       
       .unlock-avatar-container {
@@ -639,6 +650,15 @@ function injectStyles(): void {
       
       .unlock-title {
         font-size: 1.5rem;
+      }
+    }
+    
+    /* iOS Safari specific fixes */
+    @supports (-webkit-touch-callout: none) {
+      @media (max-width: 480px) {
+        .unlock-card {
+          max-height: -webkit-fill-available;
+        }
       }
     }
   `;

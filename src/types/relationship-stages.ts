@@ -378,3 +378,68 @@ export function getPreviousStage(stage: RelationshipStage): RelationshipStage | 
   const index = stages.indexOf(stage);
   return index > 0 ? stages[index - 1] : null;
 }
+
+// ============================================================================
+// EMOTIONAL BOND TYPES (shared between memory and conversation layers)
+// ============================================================================
+
+/**
+ * Emotional bond tracking - how the persona feels about this specific user.
+ * This grows and deepens over time, creating genuine connection.
+ */
+export interface EmotionalBond {
+  /** Overall warmth/fondness (0-1) - grows with positive interactions */
+  warmth: number;
+
+  /** Trust level (0-1) - grows with honesty and consistency */
+  trust: number;
+
+  /** Protectiveness (0-1) - rises when user shares struggles */
+  protectiveness: number;
+
+  /** Admiration (0-1) - grows when user shows growth or courage */
+  admiration: number;
+
+  /** Concern level (0-1) - rises during difficult periods */
+  concern: number;
+
+  /** How many sessions together */
+  sessionCount: number;
+
+  /** When we first met */
+  firstInteraction: Date;
+
+  /** Memorable emotional moments we've shared */
+  memorableEmotions: EmotionalSnapshot[];
+
+  /** Peak moments in our relationship */
+  relationshipPeaks: RelationshipPeak[];
+}
+
+export interface EmotionalSnapshot {
+  /** When this happened */
+  date: Date;
+
+  /** What emotion we felt */
+  emotion: 'moved' | 'proud' | 'worried' | 'delighted' | 'protective' | 'grateful' | 'inspired';
+
+  /** What triggered it */
+  trigger: string;
+
+  /** Context (topic being discussed) */
+  topic?: string;
+
+  /** How intense (0-1) */
+  intensity: number;
+}
+
+export interface RelationshipPeak {
+  /** When */
+  date: Date;
+
+  /** Type of peak moment */
+  type: 'breakthrough' | 'vulnerability_shared' | 'milestone' | 'laughter' | 'deep_connection';
+
+  /** Brief description */
+  description: string;
+}
