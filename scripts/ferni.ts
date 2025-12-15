@@ -5909,111 +5909,6 @@ async function handleRunbook(args: string[]): Promise<void> {
   console.log(`\n  Available: list, run, create, edit, history`);
 }
 
-async function handleBackup(args: string[]): Promise<void> {
-  const subcommand = args[0] || 'status';
-
-  log.header('💾 Backup & Restore');
-
-  if (subcommand === 'status') {
-    console.log(`${colors.bold}Backup Status:${colors.reset}\n`);
-
-    console.log(`  ${colors.cyan}Firestore:${colors.reset}`);
-    console.log(`    Last backup:  ${colors.green}Today 3:00 AM${colors.reset}`);
-    console.log(`    Schedule:     Daily at 3:00 AM PST`);
-    console.log(`    Retention:    30 days`);
-    console.log();
-
-    console.log(`  ${colors.cyan}Secrets:${colors.reset}`);
-    console.log(`    Last backup:  ${colors.green}Today 3:00 AM${colors.reset}`);
-    console.log(`    Location:     gs://${GCP_PROJECT}-backups/secrets/`);
-    console.log();
-
-    console.log(`  ${colors.cyan}Configs:${colors.reset}`);
-    console.log(`    Last backup:  ${colors.green}Today 3:00 AM${colors.reset}`);
-    console.log(`    Location:     gs://${GCP_PROJECT}-backups/configs/`);
-    return;
-  }
-
-  if (subcommand === 'create') {
-    const target = args[1] || 'all';
-    console.log(`${colors.bold}Creating backup (${target}):${colors.reset}\n`);
-
-    const targets = target === 'all' ? ['Firestore', 'Secrets', 'Configs'] : [target];
-
-    for (const t of targets) {
-      const spinner = new Spinner(`Backing up ${t}...`);
-      spinner.start();
-      await new Promise((r) => setTimeout(r, 1000));
-      spinner.stop(true);
-    }
-
-    const backupId = `backup-${Date.now()}`;
-    console.log();
-    log.success(`Backup created: ${backupId}`);
-    console.log(`  ${colors.dim}Location: gs://${GCP_PROJECT}-backups/${backupId}/${colors.reset}`);
-    return;
-  }
-
-  if (subcommand === 'restore') {
-    const backupId = args[1];
-
-    if (!backupId) {
-      log.error('Backup ID required');
-      console.log(`\n  Usage: ferni backup restore <backup-id>`);
-      console.log(`  Run ${colors.cyan}ferni backup list${colors.reset} to see available backups`);
-      return;
-    }
-
-    console.log(`${colors.bold}Restore from ${backupId}:${colors.reset}\n`);
-    log.warn('This will overwrite current data!');
-    console.log();
-
-    const answer = await prompt(`${colors.red}Type 'RESTORE' to confirm:${colors.reset} `);
-    if (answer !== 'RESTORE') {
-      console.log('\nAborted.');
-      return;
-    }
-
-    const spinner = new Spinner('Restoring...');
-    spinner.start();
-    await new Promise((r) => setTimeout(r, 2000));
-    spinner.stop(true);
-
-    log.success('Restore complete');
-    return;
-  }
-
-  if (subcommand === 'list') {
-    console.log(`${colors.bold}Available Backups:${colors.reset}\n`);
-
-    console.log(
-      `  ${colors.dim}ID${colors.reset}                    ${colors.dim}Date${colors.reset}           ${colors.dim}Size${colors.reset}     ${colors.dim}Type${colors.reset}`
-    );
-    console.log(`  backup-1702598400000    Dec 14, 3:00 AM    2.3 GB   Full`);
-    console.log(`  backup-1702512000000    Dec 13, 3:00 AM    2.2 GB   Full`);
-    console.log(`  backup-1702425600000    Dec 12, 3:00 AM    2.1 GB   Full`);
-    return;
-  }
-
-  if (subcommand === 'schedule') {
-    console.log(`${colors.bold}Backup Schedule:${colors.reset}\n`);
-
-    console.log(`  ${colors.cyan}Current Schedule:${colors.reset}`);
-    console.log(`    Frequency:  Daily`);
-    console.log(`    Time:       3:00 AM PST`);
-    console.log(`    Retention:  30 days`);
-    console.log();
-    console.log(`  ${colors.dim}Modify in Cloud Scheduler:${colors.reset}`);
-    console.log(
-      `  ${colors.cyan}https://console.cloud.google.com/cloudscheduler?project=${GCP_PROJECT}${colors.reset}`
-    );
-    return;
-  }
-
-  log.error(`Unknown backup subcommand: ${subcommand}`);
-  console.log(`\n  Available: create, restore, list, schedule, status`);
-}
-
 async function handleChaos(args: string[]): Promise<void> {
   const subcommand = args[0] || 'status';
 
@@ -6360,18 +6255,21 @@ async function handleBackup(args: string[]): Promise<void> {
     console.log(`${colors.bold}Available Backups:${colors.reset}\n`);
 
     try {
-      const output = execSync(
-        `gsutil ls gs://ferni-firestore-backups/firestore-exports/`,
-        { encoding: 'utf-8', timeout: 30000 }
-      );
+      const output = execSync(`gsutil ls gs://ferni-firestore-backups/firestore-exports/`, {
+        encoding: 'utf-8',
+        timeout: 30000,
+      });
       const backups = output.trim().split('\n').filter(Boolean);
-      
+
       if (backups.length === 0) {
         console.log('  No backups found');
       } else {
-        backups.slice(-10).reverse().forEach((path, i) => {
-          console.log(`  ${i + 1}. ${path}`);
-        });
+        backups
+          .slice(-10)
+          .reverse()
+          .forEach((path, i) => {
+            console.log(`  ${i + 1}. ${path}`);
+          });
         console.log(`\n  Total: ${backups.length} backups`);
       }
     } catch {
@@ -6416,10 +6314,10 @@ async function handleBackup(args: string[]): Promise<void> {
 
   if (subcommand === 'cleanup') {
     console.log(`${colors.bold}Cleaning up old backups...${colors.reset}\n`);
-    
+
     const retentionDays = 30;
     log.info(`Removing backups older than ${retentionDays} days`);
-    
+
     // In production, this would delete old backups
     log.success('Cleanup complete');
     return;
@@ -6436,17 +6334,17 @@ async function handleCanary(args: string[]): Promise<void> {
 
   if (subcommand === 'status') {
     console.log(`${colors.bold}Canary Status:${colors.reset}\n`);
-    
+
     // Check if canary is active by looking at running containers
     try {
       const containers = execSync(
         `gcloud compute ssh voiceai-agent-gce --zone us-central1-a --command "docker ps --format '{{.Names}}'" 2>/dev/null`,
         { encoding: 'utf-8', timeout: 30000 }
       );
-      
+
       const hasBlue = containers.includes('voiceai-agent-blue');
       const hasGreen = containers.includes('voiceai-agent-green');
-      
+
       if (hasBlue && hasGreen) {
         console.log(`  ${colors.green}Canary Active${colors.reset}`);
         console.log(`  • Blue (stable): Running on port 8080`);
@@ -6468,7 +6366,7 @@ async function handleCanary(args: string[]): Promise<void> {
 
   if (subcommand === 'start') {
     console.log(`${colors.bold}Starting Canary Deployment...${colors.reset}\n`);
-    
+
     log.info('Canary deployment requires traffic splitting.');
     log.info('Consider using: ferni deploy gce');
     log.info('For true canary, nginx or a load balancer is needed.');
@@ -6477,7 +6375,7 @@ async function handleCanary(args: string[]): Promise<void> {
 
   if (subcommand === 'promote') {
     console.log(`${colors.bold}Promoting Canary to Production...${colors.reset}\n`);
-    
+
     // This would promote GREEN to BLUE
     log.info('Would promote GREEN container to production');
     log.info('Run: ferni deploy gce to deploy new version');
@@ -6486,7 +6384,7 @@ async function handleCanary(args: string[]): Promise<void> {
 
   if (subcommand === 'abort') {
     console.log(`${colors.bold}Aborting Canary...${colors.reset}\n`);
-    
+
     log.warn('Would roll back to stable version');
     log.info('Run: ferni deploy gce --rollback');
     return;

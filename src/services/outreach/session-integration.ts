@@ -5,6 +5,7 @@
  * and detect opportunities based on conversation content.
  */
 
+import { isOutreachTriggerCreationEnabled } from '../../config/feature-flags.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { onSessionEnd as recordPredictiveSignals } from '../predictive-insights/data-collector.js';
 import {
@@ -270,6 +271,12 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
   const { userId, personaId, turns, summary, durationMinutes, satisfaction } = data;
 
   if (!userId || userId === 'anonymous') {
+    return { commitmentsFound: 0, triggersCreated: 0, contextUpdated: false };
+  }
+
+  // Check if outreach trigger creation is enabled via feature flag
+  if (!isOutreachTriggerCreationEnabled()) {
+    log.debug({ userId }, 'Outreach trigger creation disabled via feature flag');
     return { commitmentsFound: 0, triggersCreated: 0, contextUpdated: false };
   }
 

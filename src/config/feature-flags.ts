@@ -189,6 +189,24 @@ export interface FeatureFlags {
     /** Track tool usage analytics */
     analytics: boolean;
   };
+
+  /**
+   * Outreach system - proactive user engagement (SMS, email, push, calls)
+   * Currently disabled due to architecture issues - being extracted to separate workers
+   * See: docs/architecture/OUTREACH-WORKER-ARCHITECTURE.md
+   */
+  outreach: {
+    /** Master switch for outreach system */
+    enabled: boolean;
+    /** Create triggers from session analysis */
+    triggerCreation: boolean;
+    /** Initialize outreach engine on startup */
+    systemInitialization: boolean;
+    /** Process and evaluate triggers */
+    triggerProcessing: boolean;
+    /** Actually deliver outreach messages */
+    delivery: boolean;
+  };
 }
 
 // ============================================================================
@@ -267,6 +285,13 @@ const DEFAULT_FLAGS: FeatureFlags = {
     legalAdmin: true,
     analytics: true,
   },
+  outreach: {
+    enabled: false, // Disabled - being extracted to separate worker architecture
+    triggerCreation: false,
+    systemInitialization: false,
+    triggerProcessing: false,
+    delivery: false,
+  },
 };
 
 // ============================================================================
@@ -340,6 +365,13 @@ const ENV_MAPPINGS: Record<string, string> = {
   LIFE_COACH_COMMUNITY: 'lifeCoachDomains.community',
   LIFE_COACH_LEGAL_ADMIN: 'lifeCoachDomains.legalAdmin',
   LIFE_COACH_ANALYTICS: 'lifeCoachDomains.analytics',
+
+  // Outreach
+  OUTREACH_ENABLED: 'outreach.enabled',
+  OUTREACH_TRIGGER_CREATION: 'outreach.triggerCreation',
+  OUTREACH_SYSTEM_INIT: 'outreach.systemInitialization',
+  OUTREACH_TRIGGER_PROCESSING: 'outreach.triggerProcessing',
+  OUTREACH_DELIVERY: 'outreach.delivery',
 };
 
 // ============================================================================
@@ -713,4 +745,51 @@ export function emergencyDisablePersonalJourney(reason: string): void {
   cachedFlags = flags;
 
   getLogger().warn({ reason }, '🚨 Personal Journey Awareness emergency disabled');
+}
+
+// ============================================================================
+// OUTREACH HELPERS
+// ============================================================================
+
+export type OutreachFeature =
+  | 'triggerCreation'
+  | 'systemInitialization'
+  | 'triggerProcessing'
+  | 'delivery';
+
+/**
+ * Check if outreach system is enabled
+ * Currently disabled - being extracted to separate worker architecture
+ * See: docs/architecture/OUTREACH-WORKER-ARCHITECTURE.md
+ */
+export function isOutreachEnabled(): boolean {
+  const flags = getFeatureFlags();
+  return flags.outreach.enabled;
+}
+
+/**
+ * Check if a specific outreach feature is enabled
+ */
+export function isOutreachFeatureEnabled(feature: OutreachFeature): boolean {
+  const flags = getFeatureFlags();
+  if (!flags.outreach.enabled) return false;
+  return flags.outreach[feature] === true;
+}
+
+/**
+ * Check if outreach trigger creation is enabled
+ * Used by session-integration.ts before creating triggers
+ */
+export function isOutreachTriggerCreationEnabled(): boolean {
+  const flags = getFeatureFlags();
+  return flags.outreach.enabled && flags.outreach.triggerCreation;
+}
+
+/**
+ * Check if outreach system should initialize on startup
+ * Used by global-services.ts before initializing outreach engine
+ */
+export function isOutreachSystemInitEnabled(): boolean {
+  const flags = getFeatureFlags();
+  return flags.outreach.enabled && flags.outreach.systemInitialization;
 }
