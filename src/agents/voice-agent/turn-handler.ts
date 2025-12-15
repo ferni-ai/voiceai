@@ -15,25 +15,21 @@
  */
 
 import { log, type llm } from '@livekit/agents';
-import type { PersonaConfig } from '../../personas/types.js';
-import type { SessionServices } from '../../services/index.js';
-import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
-import { diag } from '../../services/diagnostic-logger.js';
-import {
-  handleSlashCommand,
-  recordTrustSystemsData,
-  sendCelebrationEvents,
-} from './index.js';
-import { PROCESSING_TIMEOUTS } from '../shared/constants.js';
-import { getThinkingFiller } from '../../speech/persona-phrases.js';
 import { getGracefulErrorResponse } from '../../intelligence/conversation-quality.js';
-import { dispatchEmotionEvents } from '../realtime/emotion-event-dispatcher.js';
 import {
-  recordResponseForLearning,
   analyzeUserEngagement,
+  recordResponseForLearning,
   type ConversationSignalContext,
 } from '../../intelligence/index.js';
+import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
+import type { PersonaConfig } from '../../personas/types.js';
+import { diag } from '../../services/diagnostic-logger.js';
+import type { SessionServices } from '../../services/index.js';
+import { getThinkingFiller } from '../../speech/persona-phrases.js';
+import { dispatchEmotionEvents } from '../realtime/emotion-event-dispatcher.js';
 import type { SessionStateManager } from '../session/session-state.js';
+import { PROCESSING_TIMEOUTS } from '../shared/constants.js';
+import { handleSlashCommand, recordTrustSystemsData, sendCelebrationEvents } from './index.js';
 
 // ============================================================================
 // TYPES
@@ -123,9 +119,8 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
 
   try {
     // Import the turn processor (cached after first load)
-    const { processTurn, injectTurnContext, getCelebrationEvents } = await import(
-      '../processors/index.js'
-    );
+    const { processTurn, injectTurnContext, getCelebrationEvents } =
+      await import('../processors/index.js');
 
     // Build turn context
     const turnContext = {
@@ -207,7 +202,9 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
 
       // Update relationship stage from humanizing result
       if (result.context.humanizingResult?.relationship?.stage) {
-        sessionStateManager.setRelationshipStage(result.context.humanizingResult.relationship.stage);
+        sessionStateManager.setRelationshipStage(
+          result.context.humanizingResult.relationship.stage
+        );
       }
 
       // Update mood from humanizing result
@@ -235,9 +232,8 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     // EXTENSIBILITY: before_response hook
     // ================================================================
     try {
-      const { onBeforeResponse } = await import(
-        '../../personas/bundles/extensibility-integration.js'
-      );
+      const { onBeforeResponse } =
+        await import('../../personas/bundles/extensibility-integration.js');
       const beforeResponsePrompt = await onBeforeResponse({
         personaId: persona.id,
         userId: services.userId,
@@ -269,9 +265,8 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     // HUMAN-FIRST 2FA: Phone ask opportunity
     // ================================================================
     try {
-      const { getResponseModification } = await import(
-        '../../services/trust-and-identity/voice-agent-integration.js'
-      );
+      const { getResponseModification } =
+        await import('../../services/trust-and-identity/voice-agent-integration.js');
       const phoneAskMod = getResponseModification(services.sessionId);
 
       if (phoneAskMod.injectPhoneAsk && phoneAskMod.script) {
@@ -355,8 +350,8 @@ IMPORTANT:
     if (userId && services.sessionId) {
       try {
         // Extract topic from injections if available
-        const topicInjection = result.context.injections.find(i =>
-          i.category === 'topics' || i.content.includes('topic')
+        const topicInjection = result.context.injections.find(
+          (i) => i.category === 'topics' || i.content.includes('topic')
         );
         const topic = topicInjection?.content.split(' ')[0] || 'general';
 
@@ -394,19 +389,19 @@ IMPORTANT:
         void recordResponseForLearning(
           learningContext,
           result.context.injections
-            .map(i => i.content)
+            .map((i) => i.content)
             .join(' ')
             .slice(0, 500), // Summarize context injections
           engagement,
           {
-            hadPersonalShare: result.context.injections.some(i =>
-              i.content.includes('personal') || i.content.includes('story')
+            hadPersonalShare: result.context.injections.some(
+              (i) => i.content.includes('personal') || i.content.includes('story')
             ),
-            hadQuirk: result.context.injections.some(i =>
-              i.content.includes('quirk') || i.content.includes('playful')
+            hadQuirk: result.context.injections.some(
+              (i) => i.content.includes('quirk') || i.content.includes('playful')
             ),
-            hadTeamReference: result.context.injections.some(i =>
-              i.content.includes('team') || i.content.includes('handoff')
+            hadTeamReference: result.context.injections.some(
+              (i) => i.content.includes('team') || i.content.includes('handoff')
             ),
           }
         );
@@ -416,7 +411,10 @@ IMPORTANT:
           'Collective learning signal recorded'
         );
       } catch (learningError) {
-        logger.debug({ error: String(learningError) }, 'Collective learning recording (non-critical)');
+        logger.debug(
+          { error: String(learningError) },
+          'Collective learning recording (non-critical)'
+        );
       }
     }
 

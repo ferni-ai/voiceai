@@ -390,6 +390,7 @@ Cmd/Ctrl+Shift+R  # Reset to free tier
 
 ## Read First
 - **Architecture**: `docs/architecture/CLEAN-ARCHITECTURE.md`
+- **Memory Management**: `docs/architecture/MEMORY-MANAGEMENT.md` (stateless Node, caching, cleanup)
 - **Tool/Persona patterns**: `docs/architecture/AGENT-AGNOSTIC-ARCHITECTURE.md`
 - **Agent Extensibility**: `docs/architecture/AGENT-EXTENSIBILITY.md` (commands, hooks, MCP, widgets)
 - **Monetization & Team Unlocks**: `docs/architecture/MONETIZATION-SYSTEM.md`

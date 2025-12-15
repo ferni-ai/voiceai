@@ -86,6 +86,12 @@ export interface HookExecutionResult {
  * Load hooks configuration from hooks.json
  */
 export async function loadHooks(bundlePath: string): Promise<BundleAgentHooks | null> {
+  // Defensive check - bundlePath might be undefined in some edge cases
+  if (!bundlePath) {
+    log.debug('loadHooks called with undefined bundlePath');
+    return null;
+  }
+
   try {
     const hooksPath = join(bundlePath, 'hooks.json');
     const hooksStat = await stat(hooksPath).catch(() => null);
@@ -135,15 +141,12 @@ export async function loadHooks(bundlePath: string): Promise<BundleAgentHooks | 
 /**
  * Execute a prompt-type hook
  */
-function executePromptHook(
-  hook: BundleHook,
-  context: HookExecutionContext
-): HookExecutionResult {
+function executePromptHook(hook: BundleHook, context: HookExecutionContext): HookExecutionResult {
   if (!hook.prompt) {
     return { success: false, error: 'No prompt configured' };
   }
 
-  let prompt = hook.prompt;
+  let { prompt } = hook;
 
   // Substitute {{var}} placeholders from context.data
   if (context.data) {
@@ -286,9 +289,7 @@ async function executeShellHook(
 /**
  * Execute a hook
  */
-export async function executeHook(
-  context: HookExecutionContext
-): Promise<HookExecutionResult> {
+export async function executeHook(context: HookExecutionContext): Promise<HookExecutionResult> {
   const { hook } = context;
 
   // Check if hook is enabled
@@ -358,6 +359,11 @@ export async function getHooks(
   bundlePath: string,
   forceReload = false
 ): Promise<BundleAgentHooks | null> {
+  // Defensive check
+  if (!bundlePath) {
+    return null;
+  }
+
   if (!forceReload && hooksCache.has(bundlePath)) {
     return hooksCache.get(bundlePath) ?? null;
   }

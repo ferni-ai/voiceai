@@ -87,9 +87,10 @@ export async function startup(): Promise<AppConfig> {
   if (isLazyInit) {
     // Lazy mode: Create stores but don't connect to Firestore yet
     // Connection happens on first actual use (saves ~500ms in cold start)
+    // NOTE: Redis is ENABLED even in lazy mode - it's independent of Firestore
     memorySystem = await initializeMemorySystem({
       storeType: config.storage.type,
-      enableRedis: false, // Skip Redis in lazy mode - connect on demand
+      enableRedis: config.cache.enabled, // Redis can work independently of Firestore lazy init
       indexPersona: false, // Always skip in lazy mode
       skipFirestoreInit: true, // Skip Firestore init
       rehydrateConversations: false, // Skip rehydration - store not ready yet
@@ -114,6 +115,22 @@ export async function startup(): Promise<AppConfig> {
   const svcStart = Date.now();
   await initializeServices(true);
   logger.info(`✓ Services ready (${Date.now() - svcStart}ms)`);
+
+  // Initialize Session Data Manager (prevents memory leaks)
+  // This tracks all user data caches and cleans them up on session end
+  logger.info('Initializing Session Data Manager...');
+  try {
+    const { initializeSessionDataManager } = await import('./services/session-data-manager.js');
+    initializeSessionDataManager({
+      maxSessionAge: 4 * 60 * 60 * 1000, // 4 hours (safety net for orphaned sessions)
+      evictionCheckInterval: 5 * 60 * 1000, // Check every 5 minutes
+      memoryThresholdMB: 512, // Trigger cleanup if heap exceeds 512MB
+      verbose: config.environment === 'development',
+    });
+    logger.info('✓ Session Data Manager ready (auto-eviction enabled)');
+  } catch (sdmErr) {
+    logger.warn(`Session Data Manager failed to initialize: ${sdmErr}`);
+  }
 
   // Initialize persona bundles
   logger.info('Loading persona bundles...');
@@ -357,6 +374,16 @@ export async function shutdown(): Promise<void> {
       logger.info('✓ Persistence services shut down');
     } catch (error) {
       logger.warn(`Persistence shutdown failed (non-fatal): ${error}`);
+    }
+
+    // Shutdown Session Data Manager (clears all user caches)
+    logger.info('Shutting down Session Data Manager...');
+    try {
+      const { shutdownSessionDataManager } = await import('./services/session-data-manager.js');
+      await shutdownSessionDataManager();
+      logger.info('✓ Session Data Manager shut down');
+    } catch (error) {
+      logger.warn(`Session Data Manager shutdown failed (non-fatal): ${error}`);
     }
 
     // Cleanup team handlers and tool services

@@ -32,7 +32,7 @@
 // TYPES
 // ============================================================================
 
-export type { VoiceConfig, PersonaVoiceConfig, TTSOptions, PrewarmState } from './types.js';
+export type { PersonaVoiceConfig, PrewarmState, TTSOptions, VoiceConfig } from './types.js';
 
 // ============================================================================
 // CORE (Lightweight - Zero Heavy Imports)
@@ -42,20 +42,17 @@ export {
   // Configuration
   CARTESIA_MODEL,
   DEFAULT_VOICE_IDS,
-
+  clearPrewarmedTTS,
   // Factory
   createCartesiaTTS,
   createTTSFromConfig,
-
-  // Prewarming
-  prewarmTTS,
-  isTTSPrewarmed,
-  waitForTTSPrewarm,
   getPrewarmedVoiceId,
-  clearPrewarmedTTS,
-
   // Voice lookup
   getVoiceIdForPersona,
+  isTTSPrewarmed,
+  // Prewarming
+  prewarmTTS,
+  waitForTTSPrewarm,
 } from './cartesia-core.js';
 
 // ============================================================================
@@ -63,16 +60,15 @@ export {
 // ============================================================================
 
 export {
+  DEFAULT_ACCENT,
   // Class
   PersonaAwareTTS,
-
+  SUPPORTED_ACCENTS,
   // Factory
   createPersonaAwareTTS,
 
   // Accent types
   type EnglishAccent,
-  DEFAULT_ACCENT,
-  SUPPORTED_ACCENTS,
 } from './persona-aware.js';
 
 // ============================================================================
@@ -80,5 +76,7 @@ export {
 // ============================================================================
 
 // These are deprecated - use the new names above
-export { prewarmTTS as prewarmTTSConnection } from './cartesia-core.js';
-export { createTTSFromConfig as createLightweightTTS } from './cartesia-core.js';
+export {
+  createTTSFromConfig as createLightweightTTS,
+  prewarmTTS as prewarmTTSConnection,
+} from './cartesia-core.js';

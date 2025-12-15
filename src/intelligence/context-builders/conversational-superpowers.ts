@@ -149,6 +149,20 @@ function getSessionData(sessionId: string): SuperpowersSessionData {
   return data;
 }
 
+/**
+ * Clear session data for a specific session (prevents memory leaks).
+ */
+export function clearSuperpowersSession(sessionId: string): void {
+  sessionData.delete(sessionId);
+}
+
+/**
+ * Clear all session data (for shutdown).
+ */
+export function clearAllSuperpowersSessions(): void {
+  sessionData.clear();
+}
+
 // ============================================================================
 // CONTEXT BUILDER
 // ============================================================================

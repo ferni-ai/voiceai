@@ -82,11 +82,35 @@
       "shareFerni": "Compartir Ferni",
       "supportFerni": "Apoyar a Ferni",
       "takeTour": "Hacer el Tour",
-      "language": "Idioma"
+      "language": "Idioma",
+      "whatsGrowing": "Lo Que Viene"
     },
     "pinItem": "Fijar arriba",
     "unpinItem": "Desfijar",
     "comingSoon": "Próximamente"
+  },
+  "roadmap": {
+    "eyebrow": "LO QUE VIENE",
+    "title": "El Camino Por Delante",
+    "intro": "Toda gran relación tiene temporadas. Estas son semillas que plantamos juntos.",
+    "sections": {
+      "connect": "Nuevas Formas de Conectar",
+      "personalize": "Hazlo Tuyo",
+      "platform": "La Plataforma"
+    },
+    "expectedArrival": "Llegada esperada",
+    "betterThanHuman": "Mejor que humano",
+    "alreadyGrowing": "Ya creciendo",
+    "wantThis": "Quiero esto",
+    "voted": "¡Estás emocionado!",
+    "peopleExcited": "{count} personas están emocionadas por esto",
+    "footerText": "Tu voz da forma a lo que construimos. Gracias por crecer con nosotros.",
+    "stages": {
+      "seed": "Plantado",
+      "sprout": "Creciendo",
+      "bud": "Floreciendo",
+      "bloom": "Pronto"
+    }
   },
   "session": {
     "connecting": "Conectando...",

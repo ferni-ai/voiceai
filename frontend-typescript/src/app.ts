@@ -207,6 +207,7 @@ import { initServiceHealthUI } from './ui/service-health.ui.js';
 // Monetization UIs - Support Ferni
 import { ferniFundUI } from './ui/ferni-fund.ui.js';
 import { journeyUI } from './ui/journey.ui.js';
+import { supportFerniUI } from './ui/support-ferni.ui.js';
 // Garden Widget - Seed Fund community contribution display
 // Garden widget removed - using simple menu option instead
 import { manageSubscriptionUI } from './ui/manage-subscription.ui.js';
@@ -265,6 +266,10 @@ import { initMagneticHover } from './ui/magnetic-hover.ui.js';
 
 // 🌟 Soul System - The living presence that makes people fall in love
 import { initSoul } from './ui/soul.ui.js';
+// 🎬 Narrative Director - Cinematic story beats for connection moments
+import { playBeat, updateNarrativeContext } from './narrative/narrative-director.js';
+// 🎭 Ritual Engine - Multi-sensory brand moments
+import { getRitualEngine, wireRitualEngineToApp } from './services/ritual-engine.service.js';
 // 🧪 Soul test utilities (available as window.testSoul in dev)
 // NOTE: Test file imported dynamically to avoid build errors
 if (import.meta.env.DEV) {
@@ -1146,6 +1151,14 @@ class VoiceAIApp {
       });
     });
 
+    // 🎭 Ritual Engine - Multi-sensory brand moments (audio + glow + haptic)
+    this.safeInit('RitualEngine', () => {
+      // Wire ritual engine to app lifecycle events (ferni:connected, ferni:handoff, etc.)
+      wireRitualEngineToApp();
+      // Initialize the ritual engine (will wait for user interaction for audio context)
+      void getRitualEngine().initialize();
+    });
+
     // 🌟 Living Favicon - Ferni's presence in the browser tab
     // DISABLED: Animated favicon causing performance issues
     // this.safeInit('FaviconManager', () => initFaviconManager());
@@ -1404,17 +1417,12 @@ class VoiceAIApp {
         onContactSettingsClick: () => void openContactSettings(),
         onCalendarSettingsClick: () => void openCalendarSettings(),
         onVoiceEnrollmentClick: () => void showVoiceEnrollmentModal(),
-        onSubscriptionClick: () => showUpgradeModal(),
+        onSubscriptionClick: () => void supportFerniUI.open(),
         onBillingPortalClick: () => void this.openBillingPortal(),
         onHouseholdClick: () => void showHouseholdManager(),
         onConversationMemoryClick: () => void showConversationMemory(),
         onWellbeingClick: () => void showWellbeingDashboard(),
-        onSupportFerniClick: () => {
-          const userId = appState.get('deviceId');
-          if (userId) {
-            void ferniFundUI.open(userId);
-          }
-        },
+        onSupportFerniClick: () => void supportFerniUI.open(),
         onPersonalizeClick: () => personalizeUI.open(),
         onYourJourneyClick: () => journeyUI.open(),
         onShareFerniClick: () => referralUI.open(),
@@ -2027,6 +2035,34 @@ class VoiceAIApp {
 
         // 🎬 Expression: Excited greeting expression
         ferniExpressions.heldPose('happy', 400);
+
+        // 🎭 NARRATIVE MAGIC: Trigger the full connection sequence!
+        // This orchestrates: glow pulse, haptics, celebration visual, ritual audio
+        const isFirstConnection = !localStorage.getItem('voiceai_has_connected');
+        if (isFirstConnection) {
+          localStorage.setItem('voiceai_has_connected', 'true');
+        }
+
+        // Update narrative context with current persona
+        updateNarrativeContext({
+          personaId: persona.id as
+            | 'ferni'
+            | 'jack'
+            | 'peter'
+            | 'alex'
+            | 'maya'
+            | 'jordan'
+            | 'nayan',
+          totalConversations: isFirstConnection ? 0 : 1,
+        });
+
+        // Play the appropriate story beat
+        // first_launch: Full welcome with ritual, haptics, glow
+        // connected: Standard connection celebration
+        void playBeat(isFirstConnection ? 'first_launch' : 'connected');
+
+        // 🎭 Dispatch ferni:connected for Ritual Engine and other listeners
+        document.dispatchEvent(new CustomEvent('ferni:connected'));
       },
 
       onAgentDisconnected: () => {
@@ -2035,6 +2071,9 @@ class VoiceAIApp {
 
         // 🎬 Expression: Warm farewell expression (soft, lingering)
         ferniExpressions.setExpression('empathetic', 400, 2000);
+
+        // 🎭 Dispatch ferni:disconnected for Ritual Engine
+        document.dispatchEvent(new CustomEvent('ferni:disconnected'));
       },
 
       onDataMessage: (message) => {

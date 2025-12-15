@@ -13,23 +13,23 @@
 import { log, voice } from '@livekit/agents';
 import { checkForAccentChange } from '../../api/session-accent-routes.js';
 import { getDJBooth } from '../../audio/index.js';
-import { getActiveListeningEngine } from '../../conversation/active-listening.js';
 import { getSessionFlags } from '../../config/voice-humanization-flags.js';
-import { getLiveBackchannelingService } from '../../speech/live-backchanneling/index.js';
+import { getActiveListeningEngine } from '../../conversation/active-listening.js';
+import {
+  analyzeSilence,
+  recordSilence,
+  type SilenceAnalysis,
+} from '../../intelligence/silence-intelligence.js';
 import {
   getMeaningfulSilenceResponse,
   playAmbientMusicDuringSilence,
   stopAmbientMusic,
   type SilenceContext,
 } from '../../personas/meaningful-silence.js';
-import {
-  analyzeSilence,
-  recordSilence,
-  type SilenceAnalysis,
-} from '../../intelligence/silence-intelligence.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import { getLiveBackchannelingService } from '../../speech/live-backchanneling/index.js';
 import { getThinkingFiller } from '../../speech/response-naturalness.js';
 import {
   trackBackchannelEvent,
@@ -287,6 +287,10 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
     if (event.oldState === 'speaking' && event.newState !== 'speaking') {
       conversationManager.handleAgentFinishedSpeaking(0);
+
+      // ECHO PREVENTION: Track when agent finished speaking
+      // Used by transcript handler to prevent echo from triggering cached responses
+      userData.lastAgentSpeechEndTime = Date.now();
 
       // DJ BOOTH: Notify agent stopped speaking
       const booth = getDJBooth();

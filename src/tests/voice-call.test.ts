@@ -172,9 +172,9 @@ describe('Voice Call Service', () => {
       expect(twiml).toContain('</Response>');
     });
 
-    it('should include AI assistant team greeting', () => {
+    it('should include Ferni team greeting', () => {
       const twiml = generateIncomingCallTwiml();
-      expect(twiml).toContain('AI assistant team');
+      expect(twiml).toContain('Ferni team');
     });
 
     it('should use custom greeting when provided', () => {

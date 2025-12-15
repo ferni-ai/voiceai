@@ -54,7 +54,35 @@ export async function gracefulShutdown(signal: string): Promise<void> {
   diag.info(`Received ${signal}, initiating graceful shutdown...`);
 
   try {
-    // Import and call shutdown services to flush all productivity data
+    // 1. Clear all registered intervals first (prevents new work)
+    try {
+      const { clearAllIntervals } = await import('../../utils/interval-manager.js');
+      const cleared = clearAllIntervals();
+      if (cleared > 0) {
+        diag.info(`Cleared ${cleared} registered intervals`);
+      }
+    } catch {
+      // Interval manager not initialized
+    }
+
+    // 2. Shutdown memory monitor
+    try {
+      const { stopMemoryMonitoring } = await import('../../services/memory-monitor.js');
+      stopMemoryMonitoring();
+    } catch {
+      // Memory monitor not initialized
+    }
+
+    // 3. Shutdown session data manager
+    try {
+      const { shutdownSessionDataManager } = await import('../../services/session-data-manager.js');
+      await shutdownSessionDataManager();
+      diag.info('Session data manager shutdown complete');
+    } catch {
+      // Session data manager not initialized
+    }
+
+    // 4. Shutdown services to flush all productivity data
     const { shutdownServices } = await import('../../services/index.js');
     await shutdownServices();
     diag.info('Services shutdown complete');

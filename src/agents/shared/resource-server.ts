@@ -19,9 +19,9 @@
  * - TTS WebSocket connections (must be per-process)
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
 import * as fs from 'fs';
 import * as path from 'path';
+import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'ResourceServer' });
 
@@ -143,7 +143,14 @@ class ResourceRegistry {
       const { createPersonaAwareTTS } = await import('../../speech/voice-manager.js');
 
       // Pre-create TTS clients for common personas
-      const commonPersonas = ['ferni', 'alex-chen', 'peter-john', 'maya-santos', 'jordan-taylor', 'nayan-patel'];
+      const commonPersonas = [
+        'ferni',
+        'alex-chen',
+        'peter-john',
+        'maya-santos',
+        'jordan-taylor',
+        'nayan-patel',
+      ];
 
       for (const personaId of commonPersonas) {
         try {
@@ -182,7 +189,14 @@ class ResourceRegistry {
       await initializeFromBundles();
 
       // Cache all persona configs
-      const personaIds = ['ferni', 'alex-chen', 'peter-john', 'maya-santos', 'jordan-taylor', 'nayan-patel'];
+      const personaIds = [
+        'ferni',
+        'alex-chen',
+        'peter-john',
+        'maya-santos',
+        'jordan-taylor',
+        'nayan-patel',
+      ];
       for (const id of personaIds) {
         try {
           const config = await getPersonaAsync(id);
@@ -217,20 +231,33 @@ class ResourceRegistry {
       }
 
       // Build serializable cache data (include personality for session init)
-      const cacheData: Record<string, {
-        name: string;
-        systemPrompt: string;
-        voice: { voiceId: string; provider: string };
-        personality?: { warmth?: number; humorLevel?: number; directness?: number; energy?: number };
-        speechCharacteristics?: { baseSpeedMultiplier?: number; pauseMultiplier?: number };
-      }> = {};
+      const cacheData: Record<
+        string,
+        {
+          name: string;
+          systemPrompt: string;
+          voice: { voiceId: string; provider: string };
+          personality?: {
+            warmth?: number;
+            humorLevel?: number;
+            directness?: number;
+            energy?: number;
+          };
+          speechCharacteristics?: { baseSpeedMultiplier?: number; pauseMultiplier?: number };
+        }
+      > = {};
 
       for (const [id, config] of this.personas.configs.entries()) {
         const persona = config as {
           name?: string;
           systemPrompt?: string;
           voice?: { voiceId: string; provider: string };
-          personality?: { warmth?: number; humorLevel?: number; directness?: number; energy?: number };
+          personality?: {
+            warmth?: number;
+            humorLevel?: number;
+            directness?: number;
+            energy?: number;
+          };
           speechCharacteristics?: { baseSpeedMultiplier?: number; pauseMultiplier?: number };
         };
         cacheData[id] = {
@@ -475,7 +502,10 @@ function handlePersonaRequest(reg: ResourceRegistry, request: ResourceRequest): 
 // ============================================================================
 
 let requestId = 0;
-const pendingRequests = new Map<string, { resolve: (r: ResourceResponse) => void; reject: (e: Error) => void }>();
+const pendingRequests = new Map<
+  string,
+  { resolve: (r: ResourceResponse) => void; reject: (e: Error) => void }
+>();
 let ipcInitialized = false;
 
 /**
@@ -543,11 +573,14 @@ export async function requestResource(
  * Read persona configs from shared cache file
  * Returns null if cache doesn't exist (main process hasn't warmed up yet)
  */
-function readPersonaCache(): Record<string, {
-  name: string;
-  systemPrompt: string;
-  voice: { voiceId: string; provider: string };
-}> | null {
+function readPersonaCache(): Record<
+  string,
+  {
+    name: string;
+    systemPrompt: string;
+    voice: { voiceId: string; provider: string };
+  }
+> | null {
   try {
     if (fs.existsSync(PERSONA_CACHE_FILE)) {
       const data = fs.readFileSync(PERSONA_CACHE_FILE, 'utf-8');
@@ -657,4 +690,3 @@ export async function warmupResources(): Promise<void> {
   const reg = getResourceRegistry();
   await reg.warmup();
 }
-

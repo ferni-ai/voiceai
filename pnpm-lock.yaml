@@ -17,6 +17,9 @@ importers:
       '@google/genai':
         specifier: ^1.30.0
         version: 1.30.0(@modelcontextprotocol/sdk@1.24.3(zod@4.1.13))
+      '@google/generative-ai':
+        specifier: 0.24.1
+        version: 0.24.1
       '@livekit/agents':
         specifier: ^1.0.27
         version: 1.0.27(@livekit/rtc-node@0.13.22)(zod@4.1.13)
@@ -1295,6 +1298,10 @@ packages:
     peerDependenciesMeta:
       '@modelcontextprotocol/sdk':
         optional: true
+
+  '@google/generative-ai@0.24.1':
+    resolution: {integrity: sha512-MqO+MLfM6kjxcKoy0p1wRzG3b4ZZXtPI+z2IE26UogS2Cm/XHO+7gGRBh6gcJsOiIVoH93UwKvW4HdgiOZCy9Q==}
+    engines: {node: '>=18.0.0'}
 
   '@grpc/grpc-js@1.14.1':
     resolution: {integrity: sha512-sPxgEWtPUR3EnRJCEtbGZG2iX8LQDUls2wUS3o27jg07KqJFMq6YDeWvMo1wfpmy3rqRdS0rivpLwhqQtEyCuQ==}
@@ -7095,6 +7102,8 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
+
+  '@google/generative-ai@0.24.1': {}
 
   '@grpc/grpc-js@1.14.1':
     dependencies:

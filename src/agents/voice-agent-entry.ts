@@ -370,6 +370,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       skipGreeting: true, // Greeting handled by generateAndSpeakGreeting below
     });
 
+    // Agent owns instructions and tools - don't duplicate instructions on RealtimeModel
     session = new voice.AgentSession({
       vad,
       llm: new google.beta.realtime.RealtimeModel({
@@ -377,7 +378,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         modalities: [genai.Modality.TEXT],
         temperature: 0.8,
         language: 'en-US',
-        instructions: systemPrompt,
       }),
       tts,
       userData,

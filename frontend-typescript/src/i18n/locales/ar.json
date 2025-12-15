@@ -82,11 +82,35 @@
       "shareFerni": "مشاركة Ferni",
       "supportFerni": "دعم Ferni",
       "takeTour": "ابدأ الجولة",
-      "language": "اللغة"
+      "language": "اللغة",
+      "whatsGrowing": "ما ينمو"
     },
     "pinItem": "تثبيت في الأعلى",
     "unpinItem": "إلغاء التثبيت",
     "comingSoon": "قريباً"
+  },
+  "roadmap": {
+    "eyebrow": "ما ينمو",
+    "title": "الرحلة القادمة",
+    "intro": "كل علاقة عظيمة لها فصول. هذه بذور نزرعها معاً.",
+    "sections": {
+      "connect": "طرق جديدة للتواصل",
+      "personalize": "اجعلها خاصة بك",
+      "platform": "المنصة"
+    },
+    "expectedArrival": "الوصول المتوقع",
+    "betterThanHuman": "أفضل من الإنسان",
+    "alreadyGrowing": "ينمو بالفعل",
+    "wantThis": "أريد هذا",
+    "voted": "أنت متحمس!",
+    "peopleExcited": "{count} شخص متحمسون لهذا",
+    "footerText": "صوتك يشكل ما نبنيه. شكراً لنموك معنا.",
+    "stages": {
+      "seed": "مزروع",
+      "sprout": "ينمو",
+      "bud": "برعم",
+      "bloom": "قريباً"
+    }
   },
   "session": {
     "connecting": "جارٍ الاتصال...",

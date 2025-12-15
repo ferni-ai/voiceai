@@ -19,7 +19,11 @@ export type { CognitiveSsmlOptions, PersonalityTagOptions } from './types.js';
 // CORE ADAPTATION
 // ============================================================================
 
-export { tagTextWithSsmlAdaptive } from './adaptation.js';
+export {
+  tagTextWithSsmlAdaptive,
+  tagTextWithSsmlSuperhuman,
+  type ExtendedSpeechContext,
+} from './adaptation.js';
 
 // ============================================================================
 // EMOTION ADAPTATION
@@ -160,6 +164,41 @@ export {
   type SpeedControlContext,
   type SpeedControlResult,
 } from './dynamic-speed-control.js';
+
+// ============================================================================
+// SUPERHUMAN VOICE - "Better Than Human" Enhancements
+// ============================================================================
+
+export {
+  applySuperhmanVoice,
+  calculateProsodicMirroring,
+  detectHeavyContentType,
+  getActiveSuperhmanVoiceSessionCount,
+  getAnticipatoryComfortSound,
+  getEmotionalTransitionBridge,
+  getLastEmotion,
+  getMemoryInformedBaseline,
+  getSilencePresencePhrase,
+  getSuperhmanVoiceSession,
+  getVulnerabilityVoiceAdjustments,
+  resetAllSuperhmanVoiceSessions,
+  resetSuperhmanVoiceSession,
+  updateSuperhmanVoiceSession,
+  type SuperhumanVoiceContext,
+  type SuperhumanVoiceResult,
+} from './superhuman-voice.js';
+
+// ============================================================================
+// ACTIVE PRESENCE - Quality Over Quantity Presence
+// ============================================================================
+
+export {
+  addActivePresence,
+  resetActivePresenceSession,
+  resetAllActivePresenceSessions,
+  type ActivePresenceContext,
+  type ActivePresenceResult,
+} from './active-presence.js';
 
 // ============================================================================
 // DEFAULT EXPORT

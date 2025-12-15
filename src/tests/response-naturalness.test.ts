@@ -104,8 +104,22 @@ describe('Acknowledgment Prefixes', () => {
       expect(shouldAddPrefix(0, false, false)).toBe(false);
     });
 
-    it('should always prefix follow-ups', () => {
-      expect(shouldAddPrefix(3, true, false)).toBe(true);
+    it('should prefix follow-ups with probability', () => {
+      // HUMANIZATION FIX: Follow-ups now get prefix only 50% of the time
+      // Run multiple times to verify probability-based behavior
+      let trueCount = 0;
+      const iterations = 50;
+
+      for (let i = 0; i < iterations; i++) {
+        if (shouldAddPrefix(3, true, false)) {
+          trueCount++;
+        }
+      }
+
+      // With 50% probability, expect roughly half to be true
+      // Using a wide range to account for randomness
+      expect(trueCount).toBeGreaterThan(10); // At least some should be true
+      expect(trueCount).toBeLessThan(40); // But not all should be true
     });
   });
 });

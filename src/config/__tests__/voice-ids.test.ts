@@ -14,12 +14,44 @@ import {
 } from '../voice-ids.js';
 
 describe('Voice IDs', () => {
+  // Store original env vars to restore after each test
+  const originalEnv: Record<string, string | undefined> = {};
+  const voiceEnvVars = [
+    'FERNI_VOICE_ID',
+    'JACK_B_VOICE_ID',
+    'PETER_JOHN_VOICE_ID',
+    'JACK_BOGLE_VOICE_ID',
+    'ALEX_CHEN_VOICE_ID',
+    'COMM_SPECIALIST_VOICE_ID',
+    'MAYA_SANTOS_VOICE_ID',
+    'SPEND_SAVE_VOICE_ID',
+    'JORDAN_TAYLOR_VOICE_ID',
+    'EVENT_PLANNER_VOICE_ID',
+    'NAYAN_PATEL_VOICE_ID',
+    'NAYAN_VOICE_ID',
+    'PETER_LYNCH_VOICE_ID',
+    'GENERIC_ADVISOR_VOICE_ID',
+  ];
+
   beforeEach(() => {
+    // Save and clear all voice env vars for true isolation
+    for (const key of voiceEnvVars) {
+      originalEnv[key] = process.env[key];
+      delete process.env[key];
+    }
     vi.unstubAllEnvs();
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
+    // Restore original env vars
+    for (const key of voiceEnvVars) {
+      if (originalEnv[key] !== undefined) {
+        process.env[key] = originalEnv[key];
+      } else {
+        delete process.env[key];
+      }
+    }
   });
 
   describe('VOICE_IDS constants', () => {

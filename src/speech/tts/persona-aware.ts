@@ -20,7 +20,7 @@
 import { tts } from '@livekit/agents';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import { CARTESIA_MODEL, createCartesiaTTS, DEFAULT_VOICE_IDS } from './cartesia-core.js';
-import type { PersonaVoiceConfig, VoiceConfig } from './types.js';
+import type { PersonaVoiceConfig } from './types.js';
 
 // ============================================================================
 // ACCENT TYPES
@@ -98,7 +98,10 @@ export class PersonaAwareTTS extends tts.TTS {
   // Legacy property for backwards compatibility (no longer auto-subscribes to events)
   private voiceSwitchHandler: ((data: { newAgent: string; voiceId: string }) => void) | null = null;
 
-  constructor(personaName: string, voiceConfig: PersonaVoiceConfig & { isLocalizedVoice?: boolean }) {
+  constructor(
+    personaName: string,
+    voiceConfig: PersonaVoiceConfig & { isLocalizedVoice?: boolean }
+  ) {
     // Call parent with sample rate and channels
     super(44100, 1, { streaming: true });
 
@@ -152,7 +155,11 @@ export class PersonaAwareTTS extends tts.TTS {
 
     // If we're in the middle of a stream, queue the switch
     if (this.activeStreamCount > 0) {
-      log('info', { persona: newPersonaName, activeStreams: this.activeStreamCount }, '⏸️ Voice switch queued');
+      log(
+        'info',
+        { persona: newPersonaName, activeStreams: this.activeStreamCount },
+        '⏸️ Voice switch queued'
+      );
       this.pendingSwitch = {
         personaName: newPersonaName,
         voiceId: newVoiceId,
@@ -178,7 +185,11 @@ export class PersonaAwareTTS extends tts.TTS {
       return;
     }
 
-    log('info', { from: this.accent, to: newAccent, persona: this.personaName }, '🌍 Accent switch requested (simple)');
+    log(
+      'info',
+      { from: this.accent, to: newAccent, persona: this.personaName },
+      '🌍 Accent switch requested (simple)'
+    );
     this.switchVoice(this.personaName, this.voiceId, newAccent);
   }
 
@@ -195,7 +206,11 @@ export class PersonaAwareTTS extends tts.TTS {
       return true;
     }
 
-    log('info', { from: this.accent, to: newAccent, persona: personaId }, '🌍 Localized accent switch requested');
+    log(
+      'info',
+      { from: this.accent, to: newAccent, persona: personaId },
+      '🌍 Localized accent switch requested'
+    );
 
     try {
       // Dynamic import to avoid circular dependencies
@@ -204,7 +219,11 @@ export class PersonaAwareTTS extends tts.TTS {
 
       this.switchVoice(this.personaName, result.voiceId, newAccent);
 
-      log('info', { voiceId: result.voiceId, isLocalized: result.isLocalized }, '✅ Switched to localized accent');
+      log(
+        'info',
+        { voiceId: result.voiceId, isLocalized: result.isLocalized },
+        '✅ Switched to localized accent'
+      );
       return true;
     } catch (error) {
       log('error', { error: String(error), accent: newAccent }, '❌ Failed to switch accent');
@@ -238,7 +257,11 @@ export class PersonaAwareTTS extends tts.TTS {
     // Create new TTS using core factory
     this.personaTTS = createCartesiaTTS(newVoiceId);
 
-    log('info', { from: oldPersona, to: newPersonaName, oldVoiceId, newVoiceId }, '🔄 Voice switched');
+    log(
+      'info',
+      { from: oldPersona, to: newPersonaName, oldVoiceId, newVoiceId },
+      '🔄 Voice switched'
+    );
 
     this.isSwitching = false;
 
@@ -341,5 +364,5 @@ export function createPersonaAwareTTS(
 // RE-EXPORTS
 // ============================================================================
 
-export type { PersonaVoiceConfig, VoiceConfig } from './types.js';
 export { CARTESIA_MODEL, DEFAULT_VOICE_IDS, getVoiceIdForPersona } from './cartesia-core.js';
+export type { PersonaVoiceConfig, VoiceConfig } from './types.js';

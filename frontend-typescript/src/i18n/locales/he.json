@@ -82,11 +82,35 @@
       "shareFerni": "שתף את Ferni",
       "supportFerni": "תמוך ב-Ferni",
       "takeTour": "התחל סיור",
-      "language": "שפה"
+      "language": "שפה",
+      "whatsGrowing": "מה צומח"
     },
     "pinItem": "הצמד למעלה",
     "unpinItem": "בטל הצמדה",
     "comingSoon": "בקרוב"
+  },
+  "roadmap": {
+    "eyebrow": "מה צומח",
+    "title": "המסע שלפנינו",
+    "intro": "לכל מערכת יחסים נהדרת יש עונות. אלה זרעים שאנחנו שותלים יחד.",
+    "sections": {
+      "connect": "דרכים חדשות להתחבר",
+      "personalize": "התאם לעצמך",
+      "platform": "הפלטפורמה"
+    },
+    "expectedArrival": "הגעה צפויה",
+    "betterThanHuman": "טוב יותר מאנושי",
+    "alreadyGrowing": "כבר צומח",
+    "wantThis": "אני רוצה את זה",
+    "voted": "אתה נרגש!",
+    "peopleExcited": "{count} אנשים נרגשים מזה",
+    "footerText": "הקול שלך מעצב את מה שאנחנו בונים. תודה שאתה צומח איתנו.",
+    "stages": {
+      "seed": "נשתל",
+      "sprout": "צומח",
+      "bud": "ניצן",
+      "bloom": "פורח בקרוב"
+    }
   },
   "session": {
     "connecting": "מתחבר...",

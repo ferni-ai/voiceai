@@ -500,6 +500,31 @@ class VoiceSessionManager: ObservableObject {
 
     private var process: Process?
     private var outputPipe: Pipe?
+    private var audioPlayer: AVAudioPlayer?
+
+    // Sound file paths
+    private func soundPath(_ name: String) -> String? {
+        let paths = [
+            NSHomeDirectory() + "/Documents/voiceai/design-system/assets/sounds/\(name).mp3",
+            "/Users/sethford/Documents/voiceai/design-system/assets/sounds/\(name).mp3"
+        ]
+        return paths.first { FileManager.default.fileExists(atPath: $0) }
+    }
+
+    private func playSound(_ name: String) {
+        guard let path = soundPath(name) else {
+            print("[Sound] \(name).mp3 not found")
+            return
+        }
+
+        let url = URL(fileURLWithPath: path)
+        do {
+            audioPlayer = try AVAudioPlayer(contentsOf: url)
+            audioPlayer?.play()
+        } catch {
+            print("[Sound] Error playing \(name): \(error)")
+        }
+    }
 
     func start() {
         guard state == .disconnected || state != .connecting else { return }
@@ -553,6 +578,11 @@ class VoiceSessionManager: ObservableObject {
     }
 
     func stop() {
+        // Only play disconnect sound if we were actually connected
+        if state == .connected {
+            playSound("disconnect")
+        }
+
         process?.interrupt()
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
@@ -566,12 +596,14 @@ class VoiceSessionManager: ObservableObject {
     }
 
     private func handleOutput(_ output: String) {
-        // Detect connection success
-        if output.contains("Audio playback active") ||
+        // Detect connection success - check for "Ready!" which means mic is active and we're connected
+        if output.contains("Ready!") ||
            output.contains("Microphone active") ||
            output.contains("Connected to room") {
             DispatchQueue.main.async { [weak self] in
-                self?.state = .connected
+                guard let self = self, self.state != .connected else { return }
+                self.state = .connected
+                self.playSound("connect")  // Play connect sound
                 NotificationCenter.default.post(name: .voiceStateChanged, object: nil)
             }
         }

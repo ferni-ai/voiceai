@@ -273,6 +273,116 @@ export {
 } from './emotional-memory-unified.js';
 
 // ============================================================================
+// NEW: ENHANCED HUMAN-CENTRIC MEMORY SYSTEMS
+// ============================================================================
+
+// Clean Architecture Interfaces
+export type {
+  // Core types (renamed to avoid conflicts with existing exports)
+  MemoryItem as IMemoryItem,
+  RetrievedMemory as IRetrievedMemory,
+  RetrievalContext as IRetrievalContext,
+  ExplainedMemory as IExplainedMemory,
+  ConnectionType as IConnectionType,
+  VectorDocument as IVectorDocument,
+  VectorSearchOptions as IVectorSearchOptions,
+  VectorSearchResult as IVectorSearchResult,
+  DecayResult as IDecayResult,
+  // Associative Memory
+  AssociativeTrigger,
+  TriggeredMemory,
+  IAssociativeMemory,
+  // Communication Preferences
+  PreferenceDimension,
+  InteractionPreference,
+  ApproachGuidance,
+  ICommunicationPreferences,
+  // Behavioral Patterns
+  PatternType,
+  BehavioralPattern,
+  IBehavioralPatternDetector,
+  // Emotional Threading
+  EmotionalThread,
+  SessionEmotionalContext,
+  IEmotionalThreading,
+  // Signal Extraction
+  ExtractedSignals,
+  IHumanSignalExtractor,
+  // Natural References
+  ReferenceStyle,
+  GeneratedReference,
+  INaturalReferenceGenerator,
+  // Orchestrator
+  OrchestratedMemory,
+  RecallContext,
+  IMemoryOrchestrator,
+  // Container
+  MemoryContainer,
+  MemoryContainerConfig,
+} from './interfaces/index.js';
+
+// Associative Memory (human-like memory triggers)
+export {
+  AssociativeMemory,
+  getAssociativeMemory,
+  saveAssociativeMemory,
+  clearAssociativeMemory,
+} from './associative-memory.js';
+
+// Communication Preferences (how users like to be approached)
+export {
+  CommunicationPreferences,
+  getCommunicationPreferences,
+  resetCommunicationPreferences,
+} from './communication-preferences.js';
+
+// LLM Signal Extraction (smarter than regex)
+export {
+  LLMSignalExtractor,
+  getLLMSignalExtractor,
+  resetLLMSignalExtractor,
+  configureLLMSignalExtractor,
+} from './llm-signal-extractor.js';
+
+// Natural Reference Generator (human-sounding memory callbacks)
+export {
+  NaturalReferenceGenerator,
+  getNaturalReferenceGenerator,
+  resetNaturalReferenceGenerator,
+  generateNaturalReference,
+} from './natural-reference-generator.js';
+
+// Emotional Threading (cross-session emotional continuity)
+export {
+  EmotionalThreading,
+  getEmotionalThreading,
+  resetEmotionalThreading,
+} from './emotional-threading.js';
+
+// Behavioral Pattern Detector (meta-patterns across conversations)
+export {
+  BehavioralPatternDetector,
+  getBehavioralPatternDetector,
+  loadPatternsFromPersistence,
+  savePatternsToPeristence,
+  resetBehavioralPatternDetector,
+} from './behavioral-pattern-detector.js';
+
+// Firestore Memory Persistence
+export {
+  FirestoreMemoryPersistence,
+  getFirestoreMemoryPersistence,
+  resetFirestoreMemoryPersistence,
+} from './firestore-memory-persistence.js';
+
+// Memory Orchestrator (unified entry point)
+export {
+  MemoryOrchestrator,
+  getMemoryOrchestrator,
+  resetMemoryOrchestrator,
+} from './orchestrator.js';
+
+// ============================================================================
 // STORE TYPE DETECTION
 // ============================================================================
 

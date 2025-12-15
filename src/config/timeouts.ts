@@ -47,30 +47,30 @@ export const LIVEKIT_SDK_TIMEOUTS = {
 
 export const APP_TIMEOUTS = {
   // ---------------------------------------------------------------------------
-  // Main Process (voice-worker.ts)
+  // Worker Process (worker.ts)
   // ---------------------------------------------------------------------------
 
-  /** How long to wait for resource warmup before starting CLI */
+  /** How long to wait for resource warmup before starting */
   WARMUP_TIMEOUT: 30_000, // 30 seconds
 
   /** Circuit breaker recovery timeout */
   CIRCUIT_BREAKER_RECOVERY: 30_000, // 30 seconds
 
   // ---------------------------------------------------------------------------
-  // Child Process (voice-agent-child.ts)
+  // Session Pipeline (orchestrator/)
   // ---------------------------------------------------------------------------
 
   /** Safety timeout for prewarm monitoring (just logging, doesn't reject) */
   PREWARM_SAFETY_TIMEOUT: 120_000, // 2 minutes
 
-  /** How long entry() waits for prewarm to complete */
+  /** How long session setup waits for resources */
   PREWARM_WAIT_TIMEOUT: 30_000, // 30 seconds
 
   /** Individual module import timeout (for slow network/disk) */
   MODULE_IMPORT_TIMEOUT: 30_000, // 30 seconds
 
   // ---------------------------------------------------------------------------
-  // Session (voice-agent-entry.ts)
+  // Session Handlers (voice-agent/)
   // ---------------------------------------------------------------------------
 
   /** Room connection timeout */

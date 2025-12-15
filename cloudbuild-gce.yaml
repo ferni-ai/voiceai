@@ -1,0 +1,32 @@
+# Cloud Build Configuration for GCE Voice Agent Deployment
+#
+# This builds the voice agent for GCE with custom tag support.
+# Used by: scripts/deploy-gce.ts
+#
+# Substitutions:
+#   _IMAGE_TAG: Timestamp-based tag for the build
+
+substitutions:
+  _IMAGE_TAG: 'latest'
+
+steps:
+  # Build with Kaniko for efficient caching
+  - name: 'gcr.io/kaniko-project/executor:latest'
+    args:
+      - '--dockerfile=docker/Dockerfile.agent'
+      - '--destination=gcr.io/$PROJECT_ID/voiceai-agent:${_IMAGE_TAG}'
+      - '--destination=gcr.io/$PROJECT_ID/voiceai-agent:latest'
+      - '--cache=true'
+      - '--cache-ttl=168h'
+      - '--snapshot-mode=redo'
+      - '--use-new-run'
+      - '--push-retry=3'
+    id: 'build-agent'
+
+options:
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '1200s'  # 20 minutes
+
+

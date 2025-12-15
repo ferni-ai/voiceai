@@ -45,8 +45,18 @@ vi.mock('../../marketplace/reviews/index.js', () => ({
   })),
 }));
 
+// Mock review-queue module (used by queue endpoint)
+vi.mock('../review-queue.js', () => ({
+  getReviewQueue: vi.fn(() => Promise.resolve([])),
+  assignReviewer: vi.fn(() => Promise.resolve()),
+  getReviewHistory: vi.fn(() => Promise.resolve([])),
+  getSubmission: vi.fn(() => Promise.resolve(null)),
+  submitReview: vi.fn(() => Promise.resolve()),
+}));
+
 import { getAgent, getTool, listAgents, listTools } from '../../marketplace/index.js';
 import { moderateReview } from '../../marketplace/reviews/index.js';
+import { getReviewQueue } from '../review-queue.js';
 import { handleMarketplaceAdminRoutes } from '../routes/marketplace-admin.js';
 
 // Helper to create mock request

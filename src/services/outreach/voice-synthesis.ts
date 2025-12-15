@@ -7,8 +7,8 @@
  * Each persona has their own voice and speaking style.
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
 import { Storage } from '@google-cloud/storage';
+import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'outreach-voice-synthesis' });
 

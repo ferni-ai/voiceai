@@ -245,7 +245,7 @@ async function generateVoiceDemoResponse(
   }
 
   // DEFAULT - Open-ended exploration
-  const truncatedTranscript = transcript.length > 60 ? transcript.slice(0, 60) + '...' : transcript;
+  const truncatedTranscript = transcript.length > 60 ? `${transcript.slice(0, 60)}...` : transcript;
   return {
     response: `I'm listening. "${truncatedTranscript}"—that sounds important. Can you tell me more about what's behind that?`,
     insights: [

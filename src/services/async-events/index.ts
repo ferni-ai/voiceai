@@ -242,8 +242,8 @@ class AsyncEventBus {
           })
         );
         
-        // Don't await - fire and forget
-        Promise.all(promises).catch(() => {});
+        // Don't await - fire and forget (individual errors already logged above)
+        void Promise.all(promises);
       }
       
       // Publish to Pub/Sub if enabled

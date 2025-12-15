@@ -13,8 +13,8 @@
  */
 
 import crypto from 'node:crypto';
+import { getCircuitBreaker } from '../utils/circuit-breaker.js';
 import { getLogger } from '../utils/safe-logger.js';
-import { getCircuitBreaker, CircuitOpenError } from '../utils/circuit-breaker.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -336,7 +336,8 @@ export async function refreshAccessToken(refreshToken: string): Promise<GoogleTo
 
   if (!response.ok) {
     const error = await response.text();
-    getLogger().error({ status: response.status, error }, 'Failed to refresh access token');
+    // Use warn level instead of error - expired tokens are expected
+    getLogger().warn({ status: response.status, error }, 'Failed to refresh access token');
 
     // Check for permanent failures that shouldn't be retried
     const isPermanentError =

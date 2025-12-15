@@ -1,0 +1,30 @@
+{
+  "timestamp": "2025-12-14T19:39:38.340Z",
+  "metrics": {
+    "anyUsages": 0,
+    "consoleViolations": 0,
+    "todoFixmeCount": 0,
+    "skippedTests": 0,
+    "typeErrors": 0,
+    "lintErrors": -1
+  },
+  "targets": {
+    "anyUsages": 100,
+    "consoleViolations": 0,
+    "todoFixmeCount": 50,
+    "skippedTests": 10
+  },
+  "status": "passing",
+  "details": {
+    "anyTopFiles": [],
+    "consoleTopFiles": [],
+    "todoBreakdown": {
+      "TODO": 0,
+      "FIXME": 0,
+      "HACK": 0,
+      "XXX": 0,
+      "BUG": 0
+    },
+    "skippedTestFiles": []
+  }
+}

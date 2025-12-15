@@ -9,9 +9,9 @@
  * All data is user-scoped and persists across sessions.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
 import { getDefaultStore, type MemoryStore } from '../memory/index.js';
 import type { UserProfile } from '../types/user-profile.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
 // TYPES - Productivity Data

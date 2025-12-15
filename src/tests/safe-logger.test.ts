@@ -30,13 +30,18 @@ describe('Safe Logger', () => {
         info: vi.fn(),
         warn: vi.fn(),
         error: vi.fn(),
-        child: vi.fn(),
+        child: vi.fn(() => mockLogger), // child returns itself for simplicity
       };
       vi.mocked(log).mockReturnValue(mockLogger as unknown as ReturnType<typeof log>);
 
       const logger = safeLog();
 
-      expect(logger).toBe(mockLogger);
+      // Note: safeLog now wraps the logger with error serialization,
+      // so we can't check object identity. Instead verify it works.
+      logger.info('test message');
+
+      // The underlying mockLogger.info should have been called
+      expect(mockLogger.info).toHaveBeenCalled();
     });
 
     it('should return fallback logger when LiveKit throws', () => {

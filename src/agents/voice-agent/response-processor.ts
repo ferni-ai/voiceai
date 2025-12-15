@@ -438,7 +438,9 @@ async function applySsmlTagging(
   }
 
   // Record turn and track humor/story
+  if (services && typeof services.addTurn === 'function') {
   services.addTurn('assistant', rawText);
+  }
 
   if (userData) {
     userData.lastAgentResponse = rawText;
@@ -520,7 +522,9 @@ async function recordResponse(
         turnNumber: userData.turnCount || 1,
         emotionalIntensity: userData.lastEmotionAnalysis?.intensity,
         isNewUser: userData.turnCount === 1,
-      }).catch(() => {});
+      }).catch((err) => {
+        diag.debug('EvalOps evaluation failed (non-critical)', { error: String(err) });
+      });
     }
   } catch {
     // Non-critical

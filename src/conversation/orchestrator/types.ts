@@ -194,7 +194,7 @@ export interface HumanizationPhaseResult {
  */
 export interface AppliedFeature {
   name: string;
-  source: 'speech' | 'vocal' | 'advanced' | 'deep' | 'session' | 'superhuman';
+  source: 'speech' | 'vocal' | 'advanced' | 'deep' | 'session' | 'superhuman' | 'effects';
   details?: Record<string, unknown>;
 }
 
@@ -296,6 +296,8 @@ export interface OrchestratorConfig {
     betterThanHuman: boolean;
     contentDeliveryPacing: boolean;
     silencePresence: boolean;
+    /** NEW: Composable effects system (clean architecture replacement for deep humanization) */
+    composableEffects: boolean;
   };
 
   // Limits
@@ -323,6 +325,7 @@ export const DEFAULT_ORCHESTRATOR_CONFIG: OrchestratorConfig = {
     betterThanHuman: true,
     contentDeliveryPacing: true,
     silencePresence: true,
+    composableEffects: true, // NEW: Enabled by default - clean architecture effects system
   },
 
   maxHumanizationsPerResponse: 3,

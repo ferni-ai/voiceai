@@ -82,11 +82,35 @@
       "shareFerni": "Share Ferni",
       "supportFerni": "Support Ferni",
       "takeTour": "Take the Tour",
-      "language": "Language"
+      "language": "Language",
+      "whatsGrowing": "What's Growing"
     },
     "pinItem": "Pin to top",
     "unpinItem": "Unpin",
     "comingSoon": "Coming Soon"
+  },
+  "roadmap": {
+    "eyebrow": "WHAT'S GROWING",
+    "title": "The Journey Ahead",
+    "intro": "Every great relationship has seasons. These are seeds we're planting together.",
+    "sections": {
+      "connect": "New Ways to Connect",
+      "personalize": "Make It Yours",
+      "platform": "The Platform"
+    },
+    "expectedArrival": "Expected arrival",
+    "betterThanHuman": "Better than human",
+    "alreadyGrowing": "Already growing",
+    "wantThis": "I want this",
+    "voted": "You're excited!",
+    "peopleExcited": "{count} people are excited about this",
+    "footerText": "Your voice shapes what we build. Thank you for growing with us.",
+    "stages": {
+      "seed": "Planted",
+      "sprout": "Growing",
+      "bud": "Budding",
+      "bloom": "Blooming Soon"
+    }
   },
   "session": {
     "connecting": "Connecting...",

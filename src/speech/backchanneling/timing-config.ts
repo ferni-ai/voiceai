@@ -13,42 +13,50 @@ import type { BackchannelMode, BackchannelTiming, BreathPauseConfig } from './ty
 // ============================================================================
 
 /**
- * Standard mode - Original implementation (5-8 second triggers)
- * More conservative, waits for clear pauses
+ * Standard mode - Conservative, waits for clear pauses
+ *
+ * HUMANIZATION FIX (Dec 2025): Reduced probabilities and increased cooldowns
+ * to prevent robotic over-backchanneling. Real humans backchannel about
+ * once per 10-15 seconds, not after every pause.
  */
 export const STANDARD_TIMING: BackchannelTiming = {
-  minSpeechDuration: 5000, // 5 seconds of speaking
-  pauseTriggerDuration: 1000, // 1 second pause
-  cooldownPeriod: 5000, // 5 seconds between backchannels
-  maxPerTurn: 2,
-  baseProbability: 1.0, // Always backchannel when conditions met
-  emotionalProbability: 1.0,
+  minSpeechDuration: 6000, // 6 seconds of speaking (increased from 5s)
+  pauseTriggerDuration: 1200, // 1.2 second pause (increased from 1s)
+  cooldownPeriod: 10000, // 10 seconds between backchannels (increased from 5s)
+  maxPerTurn: 1, // Max 1 per turn (reduced from 2)
+  baseProbability: 0.35, // 35% chance when conditions met (reduced from 100%)
+  emotionalProbability: 0.5, // 50% for emotional moments (reduced from 100%)
 };
 
 /**
- * Enhanced mode - Research-backed (3-5 second triggers)
- * More responsive, context-aware
+ * Enhanced mode - Research-backed, context-aware
+ *
+ * HUMANIZATION FIX (Dec 2025): More conservative settings to feel natural.
+ * Even "enhanced" listening shouldn't feel like constant verbal feedback.
  */
 export const ENHANCED_TIMING: BackchannelTiming = {
-  minSpeechDuration: 3000, // 3 seconds of speaking
-  pauseTriggerDuration: 800, // 800ms pause triggers
-  cooldownPeriod: 4000, // 4 seconds between backchannels
-  maxPerTurn: 3,
-  baseProbability: 1.0,
-  emotionalProbability: 1.0,
+  minSpeechDuration: 4500, // 4.5 seconds of speaking (increased from 3s)
+  pauseTriggerDuration: 1000, // 1 second pause (increased from 800ms)
+  cooldownPeriod: 8000, // 8 seconds between backchannels (increased from 4s)
+  maxPerTurn: 2, // Max 2 per turn (reduced from 3)
+  baseProbability: 0.45, // 45% chance when conditions met (reduced from 100%)
+  emotionalProbability: 0.6, // 60% for emotional moments (reduced from 100%)
 };
 
 /**
  * Live mode - Real-time during speech (breath-pause detection)
  * Soft overlays during natural breath pauses
+ *
+ * HUMANIZATION FIX (Dec 2025): Live mode was already more conservative,
+ * but increased cooldown and reduced probability slightly for naturalness.
  */
 export const LIVE_TIMING: BackchannelTiming = {
-  minSpeechDuration: 4000, // 4 seconds into turn
-  pauseTriggerDuration: 100, // Breath pauses are short (100-400ms)
-  cooldownPeriod: 8000, // 8 seconds between backchannels
-  maxPerTurn: 2,
-  baseProbability: 0.25, // Only 25% chance when conditions met
-  emotionalProbability: 0.4, // 40% for emotional moments
+  minSpeechDuration: 5000, // 5 seconds into turn (increased from 4s)
+  pauseTriggerDuration: 150, // Breath pauses (slightly increased from 100ms)
+  cooldownPeriod: 12000, // 12 seconds between backchannels (increased from 8s)
+  maxPerTurn: 1, // Max 1 per turn (reduced from 2)
+  baseProbability: 0.2, // 20% chance when conditions met (reduced from 25%)
+  emotionalProbability: 0.35, // 35% for emotional moments (reduced from 40%)
 };
 
 // ============================================================================

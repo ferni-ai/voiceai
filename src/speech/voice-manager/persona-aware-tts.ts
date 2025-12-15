@@ -10,11 +10,11 @@
 
 // Re-export everything from the new unified module
 export {
+  DEFAULT_ACCENT,
   PersonaAwareTTS,
+  SUPPORTED_ACCENTS,
   createPersonaAwareTTS,
   type EnglishAccent,
-  DEFAULT_ACCENT,
-  SUPPORTED_ACCENTS,
 } from '../tts/persona-aware.js';
 
 // Re-export types that might be expected from this path

@@ -15,6 +15,11 @@
  * 8. Update persona & LLM instructions
  * 9. Reload bundle runtime
  * 10. Validate handoff consistency
+ *
+ * ARCHITECTURE:
+ * - Types and interfaces: ./handoff/types.ts
+ * - Cached module accessors: ./handoff/cached-modules.ts
+ * - Session state management: ./handoff/session-state.ts
  */
 
 import type { JobContext, voice } from '@livekit/agents';
@@ -22,227 +27,60 @@ import { getTransitionDelay } from '../../config/handoff-timing.js';
 import { AgentDirectory } from '../../personas/agent-directory.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/types.js';
-// FIX BUG #1-4: Use session-scoped handoff state instead of global state
-// The global getCurrentAgent() was causing cross-session contamination
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserData } from './types.js';
-// Cross-persona banter for warm handoffs
 import { getArrivingBanter, getHandoffBanter } from '../../services/team-engagement.js';
-// 🎧 DJ Integration - Enhanced "Guest DJ" handoff experience
 import { getDJIntegration } from '../dj-integration.js';
 
 // ============================================================================
-// FIX BUG #50 & #51: Cached imports to reduce handoff latency
-// These are lazily loaded once and then reused for subsequent handoffs
+// RE-EXPORTS FROM HANDOFF SUBMODULES (for backward compatibility)
 // ============================================================================
 
-interface CachedModules {
-  getSessionVoiceManager:
-    | typeof import('../../speech/voice-manager.js').getSessionVoiceManager
-    | null;
-  getMusicPlayer: typeof import('../../audio/index.js').getMusicPlayer | null;
-  getPersonaAsync: typeof import('../../personas/index.js').getPersonaAsync | null;
-  loadBundleById: typeof import('../../personas/bundles/index.js').loadBundleById | null;
-  createBundleRuntime:
-    | typeof import('../../personas/bundles/runtime.js').createBundleRuntime
-    | null;
-}
+// Types
+export type {
+  HandoffPersona,
+  LegacyHandoffData,
+  NewHandoffData,
+  HandoffEventPayload,
+  VoiceAgentRef,
+  HandoffHandlerConfig,
+  PartialBundleState,
+} from './handoff/types.js';
 
-const cachedModules: CachedModules = {
-  getSessionVoiceManager: null,
-  getMusicPlayer: null,
-  getPersonaAsync: null,
-  loadBundleById: null,
-  createBundleRuntime: null,
-};
+export {
+  toHandoffPersona,
+  isNewHandoffData,
+  isLegacyHandoffData,
+  isPartialBundleState,
+} from './handoff/types.js';
 
-/**
- * Get VoiceManager with caching (session-scoped)
- */
-async function getVoiceManagerCached(sessionId: string) {
-  if (!cachedModules.getSessionVoiceManager) {
-    const mod = await import('../../speech/voice-manager.js');
-    cachedModules.getSessionVoiceManager = mod.getSessionVoiceManager;
-  }
-  return cachedModules.getSessionVoiceManager(sessionId);
-}
+// Session state
+export { clearHandoffSessionState } from './handoff/session-state.js';
 
-/**
- * Get MusicPlayer with caching - returns null if music is disabled
- */
-async function getMusicPlayerCached() {
-  // Check if music is enabled first
-  const { isMusicEnabled } = await import('../../config/environment.js');
-  if (!isMusicEnabled()) {
-    return null;
-  }
+// Cached modules (internal use)
+import {
+  getVoiceManagerCached,
+  getMusicPlayerCached,
+  getPersonaAsyncCached,
+  getBundleFunctionsCached,
+} from './handoff/cached-modules.js';
 
-  if (!cachedModules.getMusicPlayer) {
-    const mod = await import('../../audio/index.js');
-    cachedModules.getMusicPlayer = mod.getMusicPlayer;
-  }
-  return cachedModules.getMusicPlayer();
-}
+import {
+  type HandoffPersona,
+  type HandoffEventPayload,
+  type HandoffHandlerConfig,
+  type NewHandoffData,
+  type LegacyHandoffData,
+  toHandoffPersona,
+  isNewHandoffData,
+  isLegacyHandoffData,
+  isPartialBundleState,
+} from './handoff/types.js';
 
-/**
- * Get getPersonaAsync with caching
- */
-async function getPersonaAsyncCached(personaId: string) {
-  if (!cachedModules.getPersonaAsync) {
-    const mod = await import('../../personas/index.js');
-    cachedModules.getPersonaAsync = mod.getPersonaAsync;
-  }
-  return cachedModules.getPersonaAsync(personaId);
-}
-
-/**
- * Get bundle loading functions with caching
- */
-async function getBundleFunctionsCached() {
-  if (!cachedModules.loadBundleById) {
-    const bundleMod = await import('../../personas/bundles/index.js');
-    cachedModules.loadBundleById = bundleMod.loadBundleById;
-  }
-  if (!cachedModules.createBundleRuntime) {
-    const runtimeMod = await import('../../personas/bundles/runtime.js');
-    cachedModules.createBundleRuntime = runtimeMod.createBundleRuntime;
-  }
-  return {
-    loadBundleById: cachedModules.loadBundleById,
-    createBundleRuntime: cachedModules.createBundleRuntime,
-  };
-}
-
-// ============================================================================
-// TYPE GUARDS
-// ============================================================================
-
-/**
- * Type guard for BundleRuntimeState partial structure
- * Used when extracting state from previous runtime during handoffs
- */
-interface PartialBundleState {
-  relationshipTurns?: number;
-  storiesToldThisSession?: string[];
-  currentMode?: string;
-}
-
-/**
- * Type guard to safely extract bundle state properties
- */
-function isPartialBundleState(value: unknown): value is PartialBundleState {
-  if (!value || typeof value !== 'object') return false;
-  const obj = value as Record<string, unknown>;
-  // Check that if properties exist, they're the right type
-  if ('relationshipTurns' in obj && typeof obj.relationshipTurns !== 'number') return false;
-  if ('storiesToldThisSession' in obj && !Array.isArray(obj.storiesToldThisSession)) return false;
-  if ('currentMode' in obj && typeof obj.currentMode !== 'string') return false;
-  return true;
-}
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-/**
- * Persona type for handoff events
- */
-export interface HandoffPersona {
-  id: string;
-  name: string;
-  voiceId: string;
-  role: 'coach' | 'team';
-  isCoach: boolean;
-  handoffTool: string;
-  aliases: readonly string[];
-}
-
-/**
- * Convert PersonaConfig to HandoffPersona format
- * Adapts the new persona system to the handoff handler's expected format
- */
-function toHandoffPersona(
-  persona: import('../../personas/types.js').PersonaConfig
-): HandoffPersona {
-  const isCoach = persona.id === 'ferni';
-  return {
-    id: persona.id,
-    name: persona.name,
-    voiceId: persona.voice.voiceId,
-    role: isCoach ? 'coach' : 'team',
-    isCoach,
-    handoffTool: `handoffTo${persona.name.split(' ')[0]}`,
-    aliases: [persona.id],
-  };
-}
-
-/**
- * Legacy handoff data format (old format with newAgent + voiceId)
- * FIX BUG #81: Added discriminant field 'format' for type narrowing
- */
-export interface LegacyHandoffData {
-  readonly format?: 'legacy';
-  newAgent: string;
-  voiceId: string;
-  greeting?: string;
-  playSound?: string;
-  previousAgent?: string;
-}
-
-/**
- * New handoff data format (clean format with persona object)
- * FIX BUG #81: Added discriminant field 'format' for type narrowing
- */
-export interface NewHandoffData {
-  readonly format: 'new';
-  persona: HandoffPersona;
-  greeting?: string;
-  playSound?: string;
-  previousAgentId?: string;
-  /** FIX BUG #25: Explicit flag instead of parsing greeting string */
-  isUserInitiated?: boolean;
-}
-
-export type HandoffEventPayload = NewHandoffData | LegacyHandoffData;
-
-/**
- * Type guard to check if handoff data is in new format
- * FIX BUG #81: Provides type-safe way to narrow HandoffEventPayload
- */
-export function isNewHandoffData(data: HandoffEventPayload): data is NewHandoffData {
-  return data.format === 'new' || 'persona' in data;
-}
-
-/**
- * Type guard to check if handoff data is in legacy format
- * FIX BUG #81: Provides type-safe way to narrow HandoffEventPayload
- */
-export function isLegacyHandoffData(data: HandoffEventPayload): data is LegacyHandoffData {
-  return !('persona' in data) && 'newAgent' in data;
-}
-
-/**
- * Voice agent reference interface (minimal subset needed for handoffs)
- */
-export interface VoiceAgentRef {
-  setPersona: (persona: unknown) => void;
-  getPersona: () => { id: string } | undefined;
-  setBundleRuntime: (runtime: unknown) => void;
-  getBundleRuntime: () => { getState: () => { personaId?: string } } | undefined;
-  instructions?: string;
-}
-
-/**
- * Handoff handler configuration
- */
-export interface HandoffHandlerConfig {
-  ctx: JobContext;
-  session: voice.AgentSession<UserData>;
-  tts: { switchVoice?: (name: string, id: string) => void };
-  services: SessionServices;
-  userData: UserData;
-  getVoiceAgentRef: () => VoiceAgentRef | null;
-}
+import {
+  HANDOFF_TIMEOUT_MS,
+  getHandoffSessionState,
+} from './handoff/session-state.js';
 
 // ============================================================================
 // DIRECTION CALCULATION
@@ -306,58 +144,9 @@ async function calculateTransitionDelay(
 }
 
 // ============================================================================
-// HANDOFF STATE MANAGEMENT - FIX GAP 5 & 6
-// ============================================================================
-
-/**
- * Per-session handoff state for queue and timeout management
- */
-interface HandoffSessionState {
-  /** Whether a handoff is currently in progress */
-  isHandoffInProgress: boolean;
-  /** Queue of pending handoff requests */
-  pendingHandoffs: HandoffEventPayload[];
-  /** Current handoff timeout timer */
-  timeoutTimer: NodeJS.Timeout | null;
-  /** Timestamp when current handoff started */
-  handoffStartTime: number | null;
-}
-
-const handoffSessionStates = new Map<string, HandoffSessionState>();
-
-/** Handoff timeout in milliseconds - FIX GAP 6 */
-const HANDOFF_TIMEOUT_MS = 10000; // 10 seconds
-
-function getHandoffSessionState(sessionId: string): HandoffSessionState {
-  let state = handoffSessionStates.get(sessionId);
-  if (!state) {
-    state = {
-      isHandoffInProgress: false,
-      pendingHandoffs: [],
-      timeoutTimer: null,
-      handoffStartTime: null,
-    };
-    handoffSessionStates.set(sessionId, state);
-  }
-  return state;
-}
-
-/**
- * Clear handoff session state - call on session disconnect
- * FIX GAP 7: Cleanup timer on session disconnect
- */
-export function clearHandoffSessionState(sessionId: string): void {
-  const state = handoffSessionStates.get(sessionId);
-  if (state?.timeoutTimer) {
-    clearTimeout(state.timeoutTimer);
-  }
-  handoffSessionStates.delete(sessionId);
-  getLogger().debug({ sessionId }, 'Handoff session state cleared');
-}
-
-// ============================================================================
 // HANDOFF HANDLER
 // ============================================================================
+// Note: Session state management is now in ./handoff/session-state.ts
 
 /**
  * Create a handoff event handler for voice switch events
@@ -619,27 +408,28 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           }
         }
 
-        // FIX BUG #6: Global state sync removed - the handoff tool calls setCurrentAgent() 
+        // FIX BUG #6: Global state sync removed - the handoff tool calls setCurrentAgent()
         // on the GLOBAL state before emitting voiceSwitch.
-        // 
+        //
         // FIX BUG #1-4: But we MUST sync the SESSION-SCOPED state here!
         // The global state in state.ts causes cross-session contamination.
         // The session-scoped state in services.handoffState is isolated per-session.
         // Update it here after voice switch succeeds to ensure session isolation.
-        services.handoffState.currentAgent = persona.id as import('../../services/agent-bus.js').AgentId;
-        
+        services.handoffState.currentAgent =
+          persona.id as import('../../services/agent-bus.js').AgentId;
+
         // Also mark this persona as met in this session
         if (!services.handoffState.metPersonas.has(persona.id)) {
           services.handoffState.metPersonas.add(persona.id);
         }
-        
+
         // Increment meeting count for relationship tracking
         const currentCount = services.handoffState.perPersonaMeetingCount.get(persona.id) || 0;
         services.handoffState.perPersonaMeetingCount.set(persona.id, currentCount + 1);
-        
+
         logger.debug(
-          { 
-            personaId: persona.id, 
+          {
+            personaId: persona.id,
             sessionId,
             meetingCount: currentCount + 1,
           },

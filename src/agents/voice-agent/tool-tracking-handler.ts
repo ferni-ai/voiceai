@@ -15,8 +15,8 @@
 
 import { log, voice } from '@livekit/agents';
 import type { PersonaConfig } from '../../personas/types.js';
-import type { SessionServices } from '../../services/index.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import type { SessionServices } from '../../services/index.js';
 import { autoOptimizer } from '../../tools/auto-optimizer.js';
 import { deprecationService } from '../../tools/deprecation.js';
 import { patternAnalyzer } from '../../tools/pattern-analyzer.js';
@@ -85,12 +85,15 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
     void (async () => {
       const toolStartTime = Date.now();
 
+      // 🔍 DEBUG: Log FULL event to see exact Gemini response
+      process.stderr.write(`\n${'='.repeat(60)}\n`);
+      process.stderr.write(`🔧 [GEMINI TOOL CALL] FunctionToolsExecuted event:\n`);
+      process.stderr.write(`${JSON.stringify(event, null, 2)}\n`);
+      process.stderr.write(`${'='.repeat(60)}\n\n`);
+
       // Debug logging (can be disabled in production)
       if (debugEnabled) {
-        logger.debug(
-          { event: 'FunctionToolsExecuted' },
-          '🔧 [TOOLS] FunctionToolsExecuted event'
-        );
+        logger.debug({ event: 'FunctionToolsExecuted' }, '🔧 [TOOLS] FunctionToolsExecuted event');
       }
       logger.info({ event }, '🔧 FUNCTION TOOLS EXECUTED');
 
@@ -108,9 +111,11 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
         for (const tool of toolCalls) {
           const toolName = tool.name || toolInfo.name || toolInfo.toolName || 'unknown';
           const resultSummary =
-            typeof tool.result === 'string'
-              ? tool.result.slice(0, 200)
-              : JSON.stringify(tool.result).slice(0, 200);
+            tool.result === undefined
+              ? '(no result)'
+              : typeof tool.result === 'string'
+                ? tool.result.slice(0, 200)
+                : JSON.stringify(tool.result).slice(0, 200);
 
           // Record in conversation state
           convState.recordToolCall(toolName, resultSummary);
@@ -187,12 +192,7 @@ async function recordToolAnalytics(params: RecordToolAnalyticsParams): Promise<v
     deprecationService.recordUsage(toolName, !hasError, latencyMs);
 
     // Record for pattern analysis (co-occurrence, sequences, journeys)
-    patternAnalyzer.recordToolCall(
-      services.sessionId || sessionId,
-      toolName,
-      !hasError,
-      latencyMs
-    );
+    patternAnalyzer.recordToolCall(services.sessionId || sessionId, toolName, !hasError, latencyMs);
 
     // Record for auto-optimizer (feeds recommendation engine)
     autoOptimizer.recordToolExecution(

@@ -56,6 +56,8 @@ import { resetConversationalMemory as _resetConversationalMemory } from './conve
 import { resetConversationalRepairEngine as _resetConversationalRepair } from './conversational-repair.js';
 import { resetCuriosityEngine as _resetCuriosity } from './curiosity-engine.js';
 import { resetDeepHumanizationEngine as _resetDeepHumanization } from './deep-humanization.js';
+// NEW: Import from split deep-humanization module
+import { resetDeepHumanization as _resetDeepHumanizationNew } from './deep-humanization/index.js';
 import { resetEmotionalAftercareEngine as _resetEmotionalAftercare } from './emotional-aftercare.js';
 import { resetEmotionalArcTracker as _resetEmotionalArc } from './emotional-arc.js';
 import { resetEnergyRegulationEngine as _resetEnergyRegulation } from './energy-regulation.js';
@@ -240,7 +242,60 @@ export {
   type HumanizingConfig,
 } from './humanizing-config.js';
 
-// Deep Humanization - Advanced personality features
+// ============================================================================
+// NEW: CENTRALIZED HUMANIZATION TUNING
+// ============================================================================
+
+// Single source of truth for all humanization probabilities and cooldowns
+export {
+  DEFAULT_TUNING,
+  getEffectiveProbability,
+  getPersonaTuning,
+  getTuningValue,
+  shouldFireFeature,
+  TUNING_PRESETS,
+  type HumanizationTuning,
+} from './humanization-tuning.js';
+
+// ============================================================================
+// NEW: COMPOSABLE EFFECTS SYSTEM
+// ============================================================================
+
+// Clean architecture replacement for procedural humanization
+export {
+  // Core components
+  getEffectCoordinator,
+  getEffectTracker,
+  resetEffectCoordinator,
+  resetEffectTracker,
+  resetAllEffectCoordinators,
+  resetAllEffectTrackers,
+  // Effect factories
+  createBreathSoundEffect,
+  createFirstTurnNoticingEffect,
+  createExcitementInterruptionEffect,
+  createSpeechFillerEffect,
+  // Registration helpers
+  registerDefaultEffects,
+  createCoordinatorWithEffects,
+  buildEffectContext,
+  // Types
+  type AppliedEffect,
+  type EffectApplicationResult,
+  type EffectConfig,
+  type EffectContext,
+  type EffectCoordinator,
+  type EffectResult,
+  type EffectTracker,
+  type HumanizationCapability,
+  type HumanizationEffect,
+  type SkippedEffect as EffectSkipped,
+  type DetectedSignals as EffectDetectedSignals,
+  type SessionData as EffectSessionData,
+  type EffectPlacement,
+} from './effects/index.js';
+
+// Deep Humanization - Advanced personality features (legacy module)
 export {
   classifyTopicWeight,
   DeepHumanizationEngine,
@@ -255,6 +310,18 @@ export {
   type HumanizationType,
   type SessionMemory,
 } from './deep-humanization.js';
+
+// NEW: Split Deep Humanization Module (clean architecture)
+// Uses types from legacy module above for backward compatibility
+export {
+  applyDeepHumanization,
+  getMoodTracker,
+  resetDeepHumanization,
+  resetMoodTracker,
+  resetAllDeepHumanization,
+} from './deep-humanization/index.js';
+
+// Note: Humanization tuning already exported above
 
 // Silence as Presence - Intentional meaningful silences
 export {
@@ -657,6 +724,8 @@ export function resetAllConversationState(
   _resetConversationRhythm();
   if (personaId) {
     _resetDeepHumanization(personaId);
+    // NEW: Also reset the split module
+    _resetDeepHumanizationNew(personaId);
   }
   // Superhuman capabilities (session-scoped)
   if (sessionId) {

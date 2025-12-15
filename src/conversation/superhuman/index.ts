@@ -213,3 +213,67 @@ export {
   type MetaMoment,
   type MetaMomentType,
 } from './meta-moments.js';
+
+// ===========================================================================
+// CONSOLIDATED SESSION CLEANUP (Memory Leak Prevention)
+// ===========================================================================
+
+import { clearBetterThanHuman } from './orchestrator.js';
+import { clearAnticipatoryPresence } from './anticipatory-presence.js';
+import { clearEmotionalMemory } from './emotional-memory.js';
+import { clearEvolvingJokes } from './evolving-jokes.js';
+import { clearLinguisticMirroring } from './linguistic-mirroring.js';
+import { clearMetaRelationship, clearSomaticPresence } from './meta-relationship.js';
+import { clearDelightEngines } from './spontaneous-delight.js';
+import { clearSuperhumanObservations } from './superhuman-observations.js';
+import { clearTeamCoherence } from './team-coherence.js';
+import { clearTemporalEmotional } from './temporal-emotional.js';
+import { clearVulnerabilityStates, resetSessionVulnerability } from './vulnerability-matching.js';
+import { clearReflectionStates } from './empathetic-reflections.js';
+import { clearSharedLanguage } from './shared-language.js';
+import { clearRitualStates } from './conversational-rituals.js';
+import { clearMetaMomentStates } from './meta-moments.js';
+
+/**
+ * Clear all superhuman engine state for a specific user session.
+ * Call this when a session ends to prevent memory leaks.
+ *
+ * Note: Some engines (vulnerability, reflection, shared language, rituals,
+ * meta-moments) use userId-keyed Maps internally but expose global clear
+ * functions. Those are handled separately in clearAllSuperhumanSessionState().
+ *
+ * @param userId - The user's ID
+ * @param sessionId - The session ID (some engines key by userId:sessionId)
+ */
+export function clearAllSuperhumanEngines(userId: string, sessionId?: string): void {
+  // User+session scoped engines (keyed by userId:sessionId)
+  if (sessionId) {
+    clearBetterThanHuman(userId, sessionId);
+  }
+
+  // User-scoped engines (keyed by userId only)
+  clearAnticipatoryPresence(userId);
+  clearEmotionalMemory(userId);
+  clearEvolvingJokes(userId);
+  clearLinguisticMirroring(userId);
+  clearMetaRelationship(userId);
+  clearSomaticPresence(userId);
+  clearDelightEngines(userId);
+  clearSuperhumanObservations(userId);
+  clearTeamCoherence(userId);
+  clearTemporalEmotional(userId);
+  resetSessionVulnerability(userId);
+}
+
+/**
+ * Clear ALL superhuman session state (for shutdown only).
+ * WARNING: This clears state for ALL users!
+ */
+export function clearAllSuperhumanSessionState(): void {
+  // Clear all global session states
+  clearVulnerabilityStates();
+  clearReflectionStates();
+  clearSharedLanguage();
+  clearRitualStates();
+  clearMetaMomentStates();
+}

@@ -86,14 +86,14 @@ describe('Subscription E2E Integration', () => {
       expect(response.status).toBe(200);
       const body = response.body as {
         enabled: boolean;
-        tiers: Array<{ id: string; name: string; priceInCents: number }>;
+        tiers: Array<{ id: string; name: string; priceInSmallestUnit: number }>;
       };
 
       expect(body.tiers).toHaveLength(3);
       expect(body.tiers.map((t) => t.id)).toEqual(['free', 'friend', 'partner']);
-      expect(body.tiers.find((t) => t.id === 'free')?.priceInCents).toBe(0);
-      expect(body.tiers.find((t) => t.id === 'friend')?.priceInCents).toBe(999);
-      expect(body.tiers.find((t) => t.id === 'partner')?.priceInCents).toBe(1999);
+      expect(body.tiers.find((t) => t.id === 'free')?.priceInSmallestUnit).toBe(0);
+      expect(body.tiers.find((t) => t.id === 'friend')?.priceInSmallestUnit).toBe(999);
+      expect(body.tiers.find((t) => t.id === 'partner')?.priceInSmallestUnit).toBe(1999);
     });
 
     it('should indicate Stripe is not enabled when not configured', async () => {

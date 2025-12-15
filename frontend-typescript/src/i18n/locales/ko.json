@@ -82,11 +82,35 @@
       "shareFerni": "Ferni 공유",
       "supportFerni": "Ferni 후원",
       "takeTour": "투어 시작",
-      "language": "언어"
+      "language": "언어",
+      "whatsGrowing": "성장 중"
     },
     "pinItem": "상단에 고정",
     "unpinItem": "고정 해제",
     "comingSoon": "곧 출시"
+  },
+  "roadmap": {
+    "eyebrow": "성장 중",
+    "title": "앞으로의 여정",
+    "intro": "모든 위대한 관계에는 계절이 있습니다. 이것은 우리가 함께 심는 씨앗입니다.",
+    "sections": {
+      "connect": "새로운 연결 방법",
+      "personalize": "나만의 것으로",
+      "platform": "플랫폼"
+    },
+    "expectedArrival": "예상 출시",
+    "betterThanHuman": "인간 이상",
+    "alreadyGrowing": "이미 성장 중",
+    "wantThis": "이것을 원해요",
+    "voted": "기대하고 계시네요!",
+    "peopleExcited": "{count}명이 이것을 기대하고 있습니다",
+    "footerText": "여러분의 목소리가 우리가 만드는 것을 형성합니다. 함께 성장해 주셔서 감사합니다.",
+    "stages": {
+      "seed": "심음",
+      "sprout": "성장 중",
+      "bud": "꽃봉오리",
+      "bloom": "곧 피어남"
+    }
   },
   "session": {
     "connecting": "연결 중...",

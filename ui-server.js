@@ -76,6 +76,9 @@ import { handleVoiceAuthRoutes } from './dist/api/voice-auth-handler.js';
 // User preferences routes (timezone, quiet hours, contact info)
 import { handleUserRoutes } from './dist/api/user-routes.js';
 
+// Waitlist routes (marketplace/developer signups, feature votes)
+import { handleWaitlistRoutes } from './dist/api/waitlist-routes.js';
+
 // Habit persistence routes (CRUD, completions, streaks)
 import { handleHabitRoutes } from './dist/api/habit-routes.js';
 
@@ -1176,6 +1179,12 @@ const server = http.createServer(async (req, res) => {
     // User preferences routes (timezone, quiet hours, contact info)
     if (pathname.startsWith('/api/user')) {
       const handled = await handleUserRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Waitlist routes (marketplace/developer signups, feature votes)
+    if (pathname.startsWith('/api/waitlist')) {
+      const handled = await handleWaitlistRoutes(req, res);
       if (handled) return;
     }
 

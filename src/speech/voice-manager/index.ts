@@ -62,12 +62,12 @@ export { PersonaAwareTTS, createPersonaAwareTTS } from '../tts/persona-aware.js'
 // ============================================================================
 
 export {
-  createCartesiaTTS,
-  createTTSFromConfig,
-  prewarmTTS,
-  isTTSPrewarmed,
-  waitForTTSPrewarm,
-  getVoiceIdForPersona,
   CARTESIA_MODEL,
   DEFAULT_VOICE_IDS,
+  createCartesiaTTS,
+  createTTSFromConfig,
+  getVoiceIdForPersona,
+  isTTSPrewarmed,
+  prewarmTTS,
+  waitForTTSPrewarm,
 } from '../tts/cartesia-core.js';

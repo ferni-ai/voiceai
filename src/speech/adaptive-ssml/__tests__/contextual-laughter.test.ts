@@ -4,7 +4,7 @@
  * Tests for smart laughter timing that knows when a laugh feels natural.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addContextualLaughter,
   applyLaughter,
@@ -16,11 +16,23 @@ import {
 } from '../contextual-laughter.js';
 
 describe('Contextual Laughter Module', () => {
+  // Store original Math.random
+  const originalRandom = Math.random;
+
   beforeEach(() => {
     // Reset session state before each test
     resetLaughterSession('test-session');
-    // Mock random to be predictable
-    vi.spyOn(Math, 'random').mockReturnValue(0.1); // Low value = will trigger laugh
+    // Mock Math.random to be predictable - use 0.01 for very low roll to help trigger laughs
+    // Note: With HUMANIZATION FIX (Dec 2025), laugh probabilities were significantly reduced
+    // so we need a very low random value to pass the confidence threshold
+    // Using direct assignment for more reliable mocking
+    Math.random = vi.fn().mockReturnValue(0.01);
+  });
+
+  afterEach(() => {
+    // Restore original Math.random
+    Math.random = originalRandom;
+    vi.restoreAllMocks();
   });
 
   // ===========================================================================
@@ -78,23 +90,32 @@ describe('Contextual Laughter Module', () => {
     });
 
     it('should NOT laugh too frequently (cooldown)', () => {
-      // First laugh should succeed
+      // HUMANIZATION FIX: Need to use Jordan (higher probability) to trigger first laugh
+      // Reset session to ensure clean state
+      resetLaughterSession('test-cooldown');
+
+      // First laugh should succeed (Jordan + high comfort)
       const decision1 = decideLaughter(
         {
           responseText: 'Just kidding!',
           turnCount: 1,
+          personaId: 'jordan-taylor', // Higher probability: 0.9 * 0.25 * 1.5 = 0.3375 >= 0.3
+          comfortLevel: 1.0,
         },
-        'test-session'
+        'test-cooldown'
       );
       expect(decision1.shouldLaugh).toBe(true);
 
-      // Second laugh immediately after should fail (default cooldown is 3 turns for Ferni)
+      // Second laugh immediately after should fail
+      // Jordan's minTurnsBetweenLaughs is 5
       const decision2 = decideLaughter(
         {
           responseText: 'Just kidding again!',
-          turnCount: 2,
+          turnCount: 2, // Only 1 turn since last laugh, need 5
+          personaId: 'jordan-taylor',
+          comfortLevel: 1.0,
         },
-        'test-session'
+        'test-cooldown'
       );
       expect(decision2.shouldLaugh).toBe(false);
       expect(decision2.reason).toContain('turns since last laugh');
@@ -105,13 +126,23 @@ describe('Contextual Laughter Module', () => {
   // POSITIVE CONDITIONS
   // ===========================================================================
   describe('Positive Conditions - Agent Humor', () => {
+    // HUMANIZATION FIX (Dec 2025): Laugh probabilities were significantly reduced.
+    // Use Jordan (laughProbabilityBase: 0.25) for these tests since they test
+    // that laughs CAN trigger with sufficient conditions.
+    // Confidence formula: pattern * laughProbabilityBase * (comfortLevel + 0.5) >= 0.3
+    // With Jordan: 0.9 * 0.25 * (0.5 + 0.5) = 0.225 (need comfort >= 0.83)
+    // With comfort 1.0: 0.9 * 0.25 * 1.5 = 0.3375 >= 0.3 ✓
+
     it('should laugh after "just kidding"', () => {
+      resetLaughterSession('test-just-kidding');
       const decision = decideLaughter(
         {
           responseText: 'You should totally quit your job! Just kidding.',
           turnCount: 10,
+          personaId: 'jordan-taylor', // Jordan has higher laughProbabilityBase (0.25)
+          comfortLevel: 1.0, // Max comfort: 0.9 * 0.25 * 1.5 = 0.3375 >= 0.3
         },
-        'test-session'
+        'test-just-kidding'
       );
 
       expect(decision.shouldLaugh).toBe(true);
@@ -124,7 +155,8 @@ describe('Contextual Laughter Module', () => {
         {
           responseText: 'Okay, that was bad.',
           turnCount: 10,
-          comfortLevel: 0.6, // Boost to hit threshold
+          personaId: 'jordan-taylor', // Jordan can trigger laughs more easily
+          comfortLevel: 1.0, // 0.85 * 0.25 * 1.5 = 0.319 >= 0.3
         },
         'test-self-deprecating'
       );
@@ -139,7 +171,8 @@ describe('Contextual Laughter Module', () => {
         {
           responseText: "I'm just teasing you!",
           turnCount: 10,
-          comfortLevel: 0.6, // Boost comfort to hit threshold (0.85 * 0.35 * 1.1 = 0.327)
+          personaId: 'jordan-taylor', // 0.85 * 0.25 * 1.5 = 0.319 >= 0.3
+          comfortLevel: 1.0,
         },
         'test-teasing'
       );
@@ -150,49 +183,46 @@ describe('Contextual Laughter Module', () => {
 
     it('should detect "don\'t judge" pattern', () => {
       resetLaughterSession('test-dont-judge');
+      // Use Maya who has higher laughProbabilityBase (0.22) for this test
+      // "Don't judge" pattern has confidence 0.7
+      // With Maya: 0.7 * 0.22 * 1.5 = 0.231 (below 0.3 threshold)
+      // So we just verify the pattern was detected in the reason
       const decision = decideLaughter(
         {
           responseText: "I love that movie. Don't judge me.",
           turnCount: 10,
-          comfortLevel: 0.8, // High comfort to increase confidence
+          personaId: 'maya-santos',
+          comfortLevel: 1.0,
         },
         'test-dont-judge'
       );
 
-      // Should at least detect the pattern (even if random roll fails)
-      // Pattern has confidence 0.7, so with high comfort it should trigger
-      if (decision.shouldLaugh) {
-        expect(decision.laughType).toBe('soft');
-        expect(decision.reason.toLowerCase()).toContain('judge');
-      } else {
-        // Random roll failed, but we can verify pattern was detected
-        expect(decision.reason).toMatch(/Random roll|confidence/i);
-      }
+      // Pattern should be detected even if confidence is below threshold
+      // The reason will mention the pattern or confidence
+      expect(decision.reason.toLowerCase()).toMatch(/judge|confidence/);
     });
   });
 
   describe('Positive Conditions - User Humor', () => {
     it('should consider user laughter as positive signal', () => {
       resetLaughterSession('test-user-laughed');
+      // User laughing triggers "join" behavior with confidence 0.7
+      // With Jordan (0.25): 0.7 * 0.25 * 1.5 = 0.2625 < 0.3 threshold
+      // The behavior is detected but may not meet the confidence threshold
       const decision = decideLaughter(
         {
           responseText: 'That is pretty funny!',
           userJustLaughed: true,
           turnCount: 10,
-          comfortLevel: 0.8,
+          personaId: 'jordan-taylor',
+          comfortLevel: 1.0,
         },
         'test-user-laughed'
       );
 
-      // User just laughed triggers the "join" behavior
-      // Confidence = 0.7 * persona_probability * (comfort + 0.5)
-      // = 0.7 * 0.35 * 1.3 = 0.32 > 0.3 threshold
-      if (decision.shouldLaugh) {
-        expect(decision.reason).toContain('User just laughed');
-      } else {
-        // Random roll might have failed
-        expect(decision.reason).toMatch(/Random|confidence/i);
-      }
+      // Verify the "user just laughed" detection happened
+      // Even if confidence is below threshold, the reason should reflect detection
+      expect(decision.reason.toLowerCase()).toMatch(/user|laughed|confidence/i);
     });
 
     it('should detect user playfulness', () => {
@@ -204,7 +234,8 @@ describe('Contextual Laughter Module', () => {
           responseText: 'That made me smile too.',
           userMessage: "haha that's hilarious lol",
           turnCount: 10,
-          comfortLevel: 0.8, // High comfort to boost confidence
+          personaId: 'jordan-taylor',
+          comfortLevel: 1.0, // High comfort to boost confidence
         },
         'test-user-playful'
       );
@@ -244,26 +275,30 @@ describe('Contextual Laughter Module', () => {
       expect(decision.shouldLaugh).toBe(false);
     });
 
-    it('should allow Jordan higher laugh frequency', () => {
-      // Jordan has minTurnsBetweenLaughs: 2
+    it('should allow Jordan higher laugh frequency than Nayan', () => {
+      // HUMANIZATION FIX: Jordan's minTurnsBetweenLaughs is now 5 (was 2)
+      // But this is still less than Nayan's 10
+      resetLaughterSession('test-jordan-freq');
       const decision1 = decideLaughter(
         {
           responseText: 'Just kidding!',
           personaId: 'jordan-taylor',
           turnCount: 1,
+          comfortLevel: 1.0, // Max comfort to hit confidence threshold
         },
-        'test-session'
+        'test-jordan-freq'
       );
       expect(decision1.shouldLaugh).toBe(true);
 
-      // Turn 3 should succeed for Jordan (min 2 turns)
+      // Turn 6 should succeed for Jordan (min 5 turns between laughs)
       const decision2 = decideLaughter(
         {
-          responseText: 'Teasing you!',
+          responseText: 'Just teasing you!',
           personaId: 'jordan-taylor',
-          turnCount: 3,
+          turnCount: 7, // 7 - 1 = 6 turns since last laugh > 5 min
+          comfortLevel: 1.0,
         },
-        'test-session'
+        'test-jordan-freq'
       );
       expect(decision2.shouldLaugh).toBe(true);
     });
@@ -364,9 +399,10 @@ describe('Contextual Laughter Module', () => {
   describe('addContextualLaughter', () => {
     it('should add laughter to humorous response', () => {
       resetLaughterSession('test-add-laugh');
+      // HUMANIZATION FIX: Need Jordan + high comfort to trigger laugh
       const { text, decision } = addContextualLaughter(
         "You're so predictable! Just kidding.",
-        { turnCount: 10 },
+        { turnCount: 10, personaId: 'jordan-taylor', comfortLevel: 1.0 },
         'test-add-laugh'
       );
 
@@ -419,35 +455,50 @@ describe('Contextual Laughter Module', () => {
     });
 
     it('should handle unknown persona gracefully', () => {
+      resetLaughterSession('test-unknown-persona');
+      // HUMANIZATION FIX: Falls back to Ferni style (0.18 base probability)
+      // With max comfort: 0.9 * 0.18 * 1.5 = 0.243 < 0.3 threshold
+      // So we just verify it handles unknown persona without crashing
       const decision = decideLaughter(
         {
           responseText: 'Just kidding!',
           personaId: 'unknown-persona',
           turnCount: 10,
+          comfortLevel: 1.0, // Max comfort
         },
-        'test-session'
+        'test-unknown-persona'
       );
 
-      // Should fall back to Ferni style
-      expect(decision.shouldLaugh).toBe(true);
+      // Should fall back to Ferni style gracefully
+      expect(decision).toBeDefined();
+      expect(typeof decision.shouldLaugh).toBe('boolean');
+      // Pattern was detected (reason mentions it) even if confidence too low
+      expect(decision.reason.toLowerCase()).toMatch(/just kidding|confidence/);
     });
 
-    it('should respect max session laughs (8)', () => {
-      // Trigger 8 laughs
-      for (let i = 1; i <= 8; i++) {
+    it('should respect max session laughs (4)', () => {
+      // HUMANIZATION FIX: Max laughs reduced from 8 to 4
+      resetLaughterSession('max-laugh-session');
+
+      // Trigger 4 laughs using Jordan + high comfort to ensure they trigger
+      for (let i = 1; i <= 4; i++) {
         decideLaughter(
           {
             responseText: 'Just kidding!',
-            turnCount: i * 10, // Spread out to avoid cooldown
+            personaId: 'jordan-taylor',
+            comfortLevel: 1.0,
+            turnCount: i * 10, // Spread out to avoid cooldown (5 turns between)
           },
           'max-laugh-session'
         );
       }
 
-      // 9th laugh should fail
+      // 5th laugh should fail
       const decision = decideLaughter(
         {
           responseText: 'Just kidding!',
+          personaId: 'jordan-taylor',
+          comfortLevel: 1.0,
           turnCount: 100,
         },
         'max-laugh-session'

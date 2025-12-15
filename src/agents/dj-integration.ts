@@ -24,15 +24,15 @@
  *   const outro = await djIntegration.wrapShow();
  */
 
-import { getLogger } from '../utils/safe-logger.js';
+import type { MusicTrack } from '../audio/music-player.js';
+import { getVerbalSound } from '../audio/session-sounds.js';
 import {
   getDJOrchestrator,
   type SessionContext as DJContext,
   type SessionIntro,
   type SessionOutro,
 } from '../services/dj-orchestrator.js';
-import { playSessionSound, getVerbalSound } from '../audio/session-sounds.js';
-import type { MusicTrack } from '../audio/music-player.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger();
 
@@ -101,16 +101,11 @@ class DJIntegration {
       isWeekend,
     };
 
-    // Play session start sound effect
-    let playedSessionSound = false;
-    try {
-      const sessionSoundResult = await playSessionSound('session-start');
-      playedSessionSound = sessionSoundResult.played;
-    } catch (err) {
-      log.debug('Session sound not available', { error: String(err) });
-    }
+    // 🐛 FIX: Don't play session sound here - orchestrator.openTheShow() already handles it!
+    // Previously we were playing connect.mp3 TWICE (here + in orchestrator)
+    // The orchestrator plays it based on intro.playStinger flag
 
-    // Get intro from orchestrator
+    // Get intro from orchestrator (this will play the session sound if needed)
     const result = await this.orchestrator.openTheShow(djContext);
 
     // Determine if this should replace or precede the normal greeting
@@ -121,7 +116,7 @@ class DJIntegration {
     return {
       intro: {
         phrase: result.phrase,
-        playStinger: result.playedSound || playedSessionSound,
+        playStinger: result.playedSound,
         delayMs: result.delayBeforeSpeakingMs,
         introType: context.isFirstSession
           ? 'first-time'
@@ -132,7 +127,7 @@ class DJIntegration {
       },
       phrase: result.phrase,
       shouldReplaceGreeting,
-      playedSound: result.playedSound || playedSessionSound,
+      playedSound: result.playedSound,
     };
   }
 
@@ -149,14 +144,8 @@ class DJIntegration {
   }> {
     log.info('🎧 Wrapping the show');
 
-    // Play session end sound effect
-    let playedSessionSound = false;
-    try {
-      const sessionSoundResult = await playSessionSound('session-end');
-      playedSessionSound = sessionSoundResult.played;
-    } catch (err) {
-      log.debug('Session end sound not available', { error: String(err) });
-    }
+    // 🐛 FIX: Don't play session sound here - orchestrator.wrapTheShow() already handles it!
+    // Previously we were playing disconnect.mp3 TWICE (here + in orchestrator)
 
     const result = await this.orchestrator.wrapTheShow({
       personaId: additionalContext?.personaId || this.currentPersonaId,
@@ -167,11 +156,11 @@ class DJIntegration {
     return {
       outro: {
         phrase: result.phrase,
-        playStinger: result.playedSound || playedSessionSound,
+        playStinger: result.playedSound,
         outroType: 'warm',
       },
       phrase: result.phrase,
-      playedSound: result.playedSound || playedSessionSound,
+      playedSound: result.playedSound,
     };
   }
 

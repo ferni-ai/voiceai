@@ -81,6 +81,8 @@ export interface UnifiedFeatureState {
     betterThanHuman: boolean;
     contentDeliveryPacing: boolean;
     silencePresence: boolean;
+    /** NEW: Composable effects system */
+    composableEffects: boolean;
   };
 }
 
@@ -187,6 +189,9 @@ class OrchestratorConfigAdapter {
 
       // Silence presence: for heavy emotional moments
       silencePresence: this.orchestratorOverrides.silencePresence ?? humanizing.global.enabled,
+
+      // NEW: Composable effects system (opt-in replacement for deep humanization)
+      composableEffects: this.orchestratorOverrides.composableEffects ?? false,
     };
   }
 
@@ -339,6 +344,7 @@ class OrchestratorConfigAdapter {
           betterThanHuman: false,
           contentDeliveryPacing: false,
           silencePresence: false,
+          composableEffects: false,
         };
         break;
 
@@ -352,6 +358,7 @@ class OrchestratorConfigAdapter {
           betterThanHuman: true,
           contentDeliveryPacing: false, // Skip for speed
           silencePresence: false, // Skip for speed
+          composableEffects: false, // Not yet
         };
         break;
 
@@ -365,6 +372,7 @@ class OrchestratorConfigAdapter {
           betterThanHuman: true,
           contentDeliveryPacing: true,
           silencePresence: true,
+          composableEffects: false,
         };
         break;
 
@@ -378,6 +386,7 @@ class OrchestratorConfigAdapter {
           betterThanHuman: true,
           contentDeliveryPacing: true,
           silencePresence: true, // Important for emotional moments
+          composableEffects: false,
         };
         break;
 

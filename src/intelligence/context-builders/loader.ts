@@ -57,6 +57,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
 
   // VOICE - Voice emotion analysis
   [BuilderCategory.VOICE]: [
+    'voice-mismatch-critical', // THE superhuman signal - runs first
     'voice-emotion',
     'advanced-voice-emotion',
     'voice-emotion-intelligence',
@@ -64,15 +65,18 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
   ],
 
   // MEMORY - Cross-session persistence
+  // NOTE: unified-memory-orchestrator consolidates memory, advanced-memory, proactive-memory,
+  // and human-memory into a single coordinated system. Legacy builders disabled to avoid redundancy.
   [BuilderCategory.MEMORY]: [
-    'memory',
-    'advanced-memory',
-    'proactive-memory',
-    'persona-memory',
-    'human-memory', // Human-centric: dates, comfort patterns, growth, jokes
-    'conversation-recap',
-    'cross-session-reflection',
-    'cross-session-threading',
+    'unified-memory-orchestrator', // PRIMARY: Coordinates all memory subsystems
+    // 'memory',               // DISABLED: Consolidated into orchestrator
+    // 'advanced-memory',      // DISABLED: Consolidated into orchestrator
+    // 'proactive-memory',     // DISABLED: Consolidated into orchestrator
+    'persona-memory', // KEPT: Persona-specific memory has unique value
+    // 'human-memory',         // DISABLED: Consolidated into orchestrator
+    'conversation-recap', // KEPT: Session recap is unique
+    'cross-session-reflection', // KEPT: Reflection prompts are unique
+    'cross-session-threading', // KEPT: Threading context is unique
   ],
 
   // PERSONA - Character and identity
@@ -84,6 +88,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'persona-mood',
     'human-personality', // Semantic matching, timing intelligence, callbacks
     'ferni-personality', // Ferni-specific: dynamic expressions, pushbacks, passions
+    'better-than-human-direct', // Direct surfacing of Better Than Human curated phrases
     'conversational-superpowers', // Quote memory, milestones, micro-wins, jokes, names
     'conversation-forward', // Better Than Human: keep conversations moving, follow-ups
     'alive-awareness',
@@ -165,7 +170,11 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
   ],
 
   // HUMANIZING - Make responses natural
+  // unified-humanizing consolidates: humanizing, deep-humanization, conversation-humanizing,
+  // natural-uncertainty, response-length, energy-mirroring, energy-awareness
+  // Legacy builders kept for backwards compatibility but unified-humanizing is preferred
   [BuilderCategory.HUMANIZING]: [
+    'unified-humanizing', // Single consolidated humanization orchestrator
     'humanizing',
     'deep-humanization',
     'conversation-humanizing',

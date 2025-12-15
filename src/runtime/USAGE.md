@@ -84,9 +84,9 @@ pnpm dev
 const runtime = await getRuntime({
   mode: 'hybrid',
   localOverrides: {
-    personas: true,  // Personas run locally
-    memory: true,    // Memory runs locally
-    tools: false,    // Tools are remote (Docker)
+    personas: true, // Personas run locally
+    memory: true, // Memory runs locally
+    tools: false, // Tools are remote (Docker)
   },
   services: {
     toolService: 'http://localhost:50051',
@@ -110,7 +110,7 @@ docker-compose -f docker-compose.services.yml up
 ## Integration in Voice Agent
 
 ```typescript
-// src/agents/voice-agent-session.ts
+// Example: Using runtime in a voice agent session
 
 import { getRuntime, type IRuntime } from '../runtime';
 
@@ -125,17 +125,13 @@ export class VoiceAgentSession {
   }
 
   async handleToolCall(toolId: string, params: unknown) {
-    const result = await this.runtime.tools.execute(
-      toolId,
-      params as Record<string, unknown>,
-      {
-        userId: this.userId,
-        sessionId: this.sessionId,
-        agentId: this.agentId,
-        agentDisplayName: this.agentDisplayName,
-        subscriptionTier: this.subscriptionTier,
-      }
-    );
+    const result = await this.runtime.tools.execute(toolId, params as Record<string, unknown>, {
+      userId: this.userId,
+      sessionId: this.sessionId,
+      agentId: this.agentId,
+      agentDisplayName: this.agentDisplayName,
+      subscriptionTier: this.subscriptionTier,
+    });
 
     if (result.status !== 'success') {
       // Use the user-friendly error message
@@ -180,12 +176,12 @@ console.log(health);
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `SERVICE_MODE` | `local`, `remote`, or `hybrid` | Auto-detected |
-| `TOOL_SERVICE_URL` | Tool service endpoint | `http://localhost:50051` |
-| `PERSONA_SERVICE_URL` | Persona service endpoint | `http://localhost:50052` |
-| `MEMORY_SERVICE_URL` | Memory service endpoint | `http://localhost:50053` |
+| Variable              | Description                    | Default                  |
+| --------------------- | ------------------------------ | ------------------------ |
+| `SERVICE_MODE`        | `local`, `remote`, or `hybrid` | Auto-detected            |
+| `TOOL_SERVICE_URL`    | Tool service endpoint          | `http://localhost:50051` |
+| `PERSONA_SERVICE_URL` | Persona service endpoint       | `http://localhost:50052` |
+| `MEMORY_SERVICE_URL`  | Memory service endpoint        | `http://localhost:50053` |
 
 ## Auto-Detection Logic
 
@@ -213,6 +209,7 @@ const result = await runtime.tools.execute('habitCoaching.createHabit', params, 
 ```
 
 Benefits:
+
 - Same code works locally and in production
 - Tools can be scaled independently
 - No code changes needed when deploying to cloud

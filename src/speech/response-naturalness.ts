@@ -24,12 +24,12 @@
 // Re-export persona phrase data and helpers
 export {
   ACKNOWLEDGMENT_PREFIXES,
-  PERSONA_CATCHPHRASES,
-  THINKING_FILLERS,
   getAcknowledgmentPrefix,
   getCatchphraseWithSsml,
   getThinkingFiller,
   normalizePersonaId,
+  PERSONA_CATCHPHRASES,
+  THINKING_FILLERS,
 } from './persona-phrases.js';
 
 // Import for internal use
@@ -37,6 +37,9 @@ import {
   getAcknowledgmentPrefix as _getAcknowledgmentPrefix,
   getCatchphraseWithSsml as _getCatchphraseWithSsml,
 } from './persona-phrases.js';
+
+// HUMANIZATION FIX: Import feedback coordinator to prevent over-feedback
+import { canAddFeedback, recordFeedback } from './feedback-coordinator.js';
 
 // ============================================================================
 // ACKNOWLEDGMENT MOOD DETERMINATION
@@ -79,6 +82,11 @@ export function determineAcknowledgmentMood(
 
 /**
  * Should we add a prefix? (Not every response needs one)
+ *
+ * HUMANIZATION FIX (Dec 2025): Reduced from 70% to 30% base rate.
+ * Real humans don't say "mm-hmm" before most responses - it feels
+ * performative and robotic when overdone. The absence of acknowledgment
+ * is also a form of natural communication.
  */
 export function shouldAddPrefix(
   turnCount: number,
@@ -90,13 +98,13 @@ export function shouldAddPrefix(
     return false;
   }
 
-  // Always prefix follow-up responses
+  // Follow-up responses get prefix 50% of the time (reduced from 100%)
   if (isFollowUp) {
-    return true;
+    return Math.random() < 0.5;
   }
 
-  // Add prefix ~70% of the time for natural variation
-  return Math.random() < 0.7;
+  // Add prefix ~30% of the time for natural variation (reduced from 70%)
+  return Math.random() < 0.3;
 }
 
 // ============================================================================
@@ -253,6 +261,8 @@ export interface ResponseEnhancementOptions {
   isFollowUp?: boolean;
   isGreeting?: boolean;
   isPositiveMoment?: boolean;
+  /** Session ID for feedback coordination (optional for backward compatibility) */
+  sessionId?: string;
 }
 
 export interface ResponseEnhancement {
@@ -263,6 +273,9 @@ export interface ResponseEnhancement {
 
 /**
  * Get all response enhancements for a response
+ *
+ * HUMANIZATION FIX (Dec 2025): Now coordinates with global feedback budget
+ * to prevent stacking (backchannel + prefix + catchphrase in same turn).
  */
 export function getResponseEnhancements(options: ResponseEnhancementOptions): ResponseEnhancement {
   const {
@@ -274,13 +287,17 @@ export function getResponseEnhancements(options: ResponseEnhancementOptions): Re
     isFollowUp = false,
     isGreeting = false,
     isPositiveMoment = false,
+    sessionId,
   } = options;
 
   let prefix: string | null = null;
   let suffix: string | null = null;
 
-  // Add acknowledgment prefix
-  if (shouldAddPrefix(turnCount, isFollowUp, isGreeting)) {
+  // Add acknowledgment prefix (if allowed by feedback coordinator)
+  const shouldPrefix = shouldAddPrefix(turnCount, isFollowUp, isGreeting);
+  const canPrefix = sessionId ? canAddFeedback(sessionId, 'prefix', turnCount) : true;
+
+  if (shouldPrefix && canPrefix) {
     const mood = determineAcknowledgmentMood(
       userEmotion,
       topicWeight,
@@ -288,11 +305,24 @@ export function getResponseEnhancements(options: ResponseEnhancementOptions): Re
       isPositiveMoment
     );
     prefix = _getAcknowledgmentPrefix(personaId, mood);
+
+    // Record in coordinator
+    if (sessionId) {
+      recordFeedback(sessionId, 'prefix');
+    }
   }
 
-  // Maybe add catchphrase at end
-  if (shouldInjectCatchphrase(personaId, turnCount, isPositiveMoment)) {
+  // Maybe add catchphrase at end (if allowed by feedback coordinator)
+  const shouldCatchphrase = shouldInjectCatchphrase(personaId, turnCount, isPositiveMoment);
+  const canAppreciate = sessionId ? canAddFeedback(sessionId, 'appreciation', turnCount) : true;
+
+  if (shouldCatchphrase && canAppreciate) {
     suffix = _getCatchphraseWithSsml(personaId);
+
+    // Record in coordinator (catchphrases are a form of appreciation)
+    if (sessionId) {
+      recordFeedback(sessionId, 'appreciation');
+    }
   }
 
   return {

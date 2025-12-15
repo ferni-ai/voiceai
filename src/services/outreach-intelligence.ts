@@ -149,6 +149,23 @@ export async function initializeOutreachPersistence(): Promise<void> {
     maxPendingChanges: 30,
   });
 
+  // Register with SessionDataManager
+  try {
+    const { getSessionDataManager } = await import('./session-data-manager.js');
+    getSessionDataManager().registerService({
+      name: 'OutreachIntelligence',
+      clearUserData: clearUserOutreachData,
+      clearAllData: clearAllOutreachData,
+      getStats: () => {
+        const stats = getOutreachMemoryStats();
+        return { users: stats.totalUsers, entries: stats.commitments + stats.opportunities + stats.sentLogs };
+      },
+    });
+  } catch {
+    // SessionDataManager may not be initialized yet
+    getLogger().debug('SessionDataManager not available for OutreachIntelligence registration');
+  }
+
   isInitialized = true;
   getLogger().info('Outreach intelligence persistence initialized');
 }

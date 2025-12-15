@@ -410,6 +410,51 @@ export async function flushTopicPersistence(): Promise<void> {
   await flushToPersistence();
 }
 
+/**
+ * Get cache statistics for monitoring.
+ */
+export function getTopicTrackingStats(): { users: number; entries: number } {
+  const users = new Set<string>();
+  let entries = 0;
+  for (const [key, topics] of topicHistory) {
+    const userId = key.split(':')[0];
+    users.add(userId);
+    entries += topics.length;
+  }
+  return { users: users.size, entries };
+}
+
+/**
+ * Clear ALL cached data (for shutdown).
+ */
+export function clearAllTopicHistory(): void {
+  topicHistory.clear();
+  dirtyUsers.clear();
+  if (persistenceTimer) {
+    clearTimeout(persistenceTimer);
+    persistenceTimer = null;
+  }
+  logger.info('🧹 TopicTracking all caches cleared');
+}
+
+/**
+ * Register with SessionDataManager (call during initialization).
+ */
+export async function registerTopicTrackingWithSessionManager(): Promise<void> {
+  try {
+    const { getSessionDataManager } = await import('./session-data-manager.js');
+    getSessionDataManager().registerService({
+      name: 'TopicTracking',
+      clearUserData: (userId: string) => clearTopicHistory(userId),
+      clearAllData: clearAllTopicHistory,
+      getStats: getTopicTrackingStats,
+    });
+  } catch {
+    // SessionDataManager may not be initialized yet
+    logger.debug('SessionDataManager not available for TopicTracking registration');
+  }
+}
+
 // Export as service object
 export const TopicTrackingService = {
   track: trackTopic,
@@ -424,6 +469,9 @@ export const TopicTrackingService = {
   getForSaving: getTopicsForSaving,
   clear: clearTopicHistory,
   flush: flushTopicPersistence,
+  getStats: getTopicTrackingStats,
+  clearAll: clearAllTopicHistory,
+  registerWithSessionManager: registerTopicTrackingWithSessionManager,
 };
 
 export default TopicTrackingService;

@@ -93,7 +93,7 @@
     "description": "Subtle forward-looking language without toxic positivity",
     "possibility_anchors": [
       "<break time=\"300ms\"/>Even in all this, <break time=\"250ms\"/>what feels possible?",
-      "<break time=\"350ms\"/>What's one thing you're looking forward to— <break time=\"300ms\"/>even a small thing?",
+      "<break time=\"350ms\"/>What would feel like a win today? <break time=\"300ms\"/>Even something small.",
       "<break time=\"300ms\"/>Somewhere in there... <break time=\"250ms\"/>is there anything that feels like hope?"
     ],
     "future_callbacks": [
@@ -251,14 +251,3 @@
     "paradoxical_min_resistance_count": 2
   }
 }
-
-
-
-
-
-
-
-
-
-
-

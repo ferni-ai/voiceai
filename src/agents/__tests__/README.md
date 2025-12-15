@@ -1,4 +1,4 @@
-# Voice Agent E2E Testing Infrastructure
+# Voice Agent Testing Infrastructure
 
 Comprehensive testing infrastructure for the Ferni voice agent system.
 
@@ -6,6 +6,9 @@ Comprehensive testing infrastructure for the Ferni voice agent system.
 
 ```
 src/agents/__tests__/
+├── core/                     # Core module tests
+│   ├── result.test.ts        # Result type tests
+│   └── pipeline.test.ts      # Pipeline pattern tests
 ├── mocks/                    # Mock infrastructure
 │   ├── index.ts              # Unified exports
 │   ├── livekit-mock.ts       # LiveKit SDK mocks
@@ -35,6 +38,17 @@ src/agents/__tests__/
     └── turn-processor.test.ts
 ```
 
+## 🏗️ Architecture
+
+The voice agent uses a **clean architecture** with the following layers:
+
+- **`core/`** - Core abstractions (Result type, Pipeline, Errors)
+- **`adapters/`** - External service adapters (LiveKit, Cartesia TTS)
+- **`orchestrator/`** - Session orchestration and pipeline steps
+- **`worker.ts`** - Unified GCE-optimized worker entry point
+
+See `docs/architecture/GCE-CLEAN-ARCHITECTURE.md` for details.
+
 ## 🚀 Quick Start
 
 ### Run All Agent Tests
@@ -53,8 +67,8 @@ pnpm vitest src/agents/__tests__/
 ### Run Specific Test Suites
 
 ```bash
-# Unit tests
-pnpm vitest run src/agents/__tests__/*.test.ts
+# Core module tests
+pnpm vitest run src/agents/__tests__/core/
 
 # Integration tests
 pnpm vitest run src/agents/__tests__/integration/
@@ -77,7 +91,25 @@ pnpm vitest run src/agents/__tests__/scenarios/
 
 ## 🧪 Test Categories
 
-### 1. Mock Infrastructure
+### 1. Core Module Tests
+
+The `core/` directory tests fundamental abstractions:
+
+```typescript
+import { ok, err, isOk, isErr, map, andThen } from '../core/result.js';
+import { Pipeline, createStep } from '../core/pipeline.js';
+
+// Result type for explicit error handling
+const result = ok(42);
+expect(isOk(result)).toBe(true);
+
+// Pipeline for composable operations
+const pipeline = new Pipeline('test').add(
+  createStep('step1', async (ctx) => ok({ ...ctx, value: 1 }))
+);
+```
+
+### 2. Mock Infrastructure
 
 The `mocks/` directory provides comprehensive mocks for all external dependencies:
 
@@ -97,7 +129,7 @@ const llm = createMockLLMClient();
 llm.queueResponse('I understand. Let me help.');
 ```
 
-### 2. Test Fixtures
+### 3. Test Fixtures
 
 The `fixtures/` directory provides consistent test data:
 
@@ -114,14 +146,14 @@ const emotion = emotionalStates.happy;
 const conversation = conversations.supportSeeking;
 ```
 
-### 3. Integration Tests
+### 4. Integration Tests
 
 Test complete flows with mocked dependencies:
 
 - **Session Lifecycle**: Connection, initialization, cleanup
 - **Turn Processing**: Message analysis, context injection, response
 
-### 4. Contract Tests
+### 5. Contract Tests
 
 Validate frontend/backend message formats:
 
@@ -136,7 +168,7 @@ import {
 const isValid = validateMoodMessage(message);
 ```
 
-### 5. Chaos Tests
+### 6. Chaos Tests
 
 Test graceful degradation:
 
@@ -145,7 +177,7 @@ Test graceful degradation:
 - Network interruptions
 - Service unavailability
 
-### 6. Performance Tests
+### 7. Performance Tests
 
 Track performance budgets:
 
@@ -156,7 +188,7 @@ const { durationMs } = await measureTime(() => processTurn(ctx));
 expect(durationMs).toBeLessThan(PERFORMANCE_BUDGETS.TOTAL_TURN_PROCESSING_MAX_MS);
 ```
 
-### 7. Snapshot Tests
+### 8. Snapshot Tests
 
 Catch unintended changes to injection formats:
 
@@ -165,7 +197,7 @@ const injections = buildHumanizingInjections(context);
 expect(injections).toMatchSnapshot();
 ```
 
-### 8. Multi-Turn Scenarios
+### 9. Multi-Turn Scenarios
 
 Test complete conversation flows:
 
@@ -180,8 +212,8 @@ Test complete conversation flows:
 
 | Metric                | Budget  |
 | --------------------- | ------- |
-| Core imports          | < 3s    |
-| Total prewarm         | < 15s   |
+| Worker startup        | < 5s    |
+| Pipeline step         | < 100ms |
 | Turn analysis         | < 100ms |
 | Context building      | < 50ms  |
 | Total turn processing | < 200ms |
@@ -284,6 +316,6 @@ pnpm vitest run -u
 
 ## 📚 Related Documentation
 
-- [LOADING-ARCHITECTURE.md](../LOADING-ARCHITECTURE.md) - Agent loading flow
-- [REFACTORING-GUIDE.md](../REFACTORING-GUIDE.md) - Refactoring guidelines
-- [voice-agent-child.ts](../voice-agent-child.ts) - Main agent entry point
+- [GCE-CLEAN-ARCHITECTURE.md](../../docs/architecture/GCE-CLEAN-ARCHITECTURE.md) - Architecture overview
+- [voice-agent-entry.ts](../voice-agent-entry.ts) - Session entry handlers
+- [worker.ts](../worker.ts) - Unified worker entry point

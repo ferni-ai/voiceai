@@ -114,6 +114,20 @@ function getSession(sessionId: string): DeepUnderstandingSession {
   return session;
 }
 
+/**
+ * Clear session data for a specific session (prevents memory leaks).
+ */
+export function clearDeepUnderstandingSession(sessionId: string): void {
+  sessions.delete(sessionId);
+}
+
+/**
+ * Clear all session data (for shutdown).
+ */
+export function clearAllDeepUnderstandingSessions(): void {
+  sessions.clear();
+}
+
 // ============================================================================
 // MAIN CONTEXT BUILDER
 // ============================================================================

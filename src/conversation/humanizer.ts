@@ -42,6 +42,16 @@ import { getActiveListeningEngine, type BackchannelContext } from './active-list
 // 🧠 SUPERHUMAN INTELLIGENCE - "Better Than Human" capabilities
 import { applyDeliveryPacing, shouldApplyDeliveryPacing } from './content-delivery-pacing.js';
 import { getConversationalMemory } from './conversational-memory.js';
+// NEW: Import from split deep-humanization module
+import {
+  applyDeepHumanization,
+  getMoodTracker,
+  type HumanizationContext as DeepContext,
+  type SessionMemory,
+} from './deep-humanization/index.js';
+// LEGACY: Import engine from old module for backward compatibility
+import { getDeepHumanizationEngine } from './deep-humanization.js';
+// Detection utilities
 import {
   classifyTopicWeight,
   detectAdviceGiving,
@@ -49,10 +59,7 @@ import {
   detectDisengagement,
   detectEvidence,
   detectHighEngagement,
-  getDeepHumanizationEngine,
-  type HumanizationContext as DeepContext,
-  type SessionMemory,
-} from './deep-humanization.js';
+} from './utils/detection.js';
 // 🌟 BETTER THAN HUMAN - Advanced superhuman capabilities
 import { getEmotionalArcTracker, type EmotionalResponse } from './emotional-arc.js';
 import {
@@ -139,7 +146,7 @@ export class ConversationHumanizer {
   private questions = getQuestionPatternEngine();
   private emotional = getEmotionalArcTracker();
   private dynamics = getResponseDynamicsEngine();
-  private deepHumanization = getDeepHumanizationEngine('ferni'); // Will be set by personaId
+  private deepHumanization: ReturnType<typeof getDeepHumanizationEngine> | undefined;
   private silencePresence = getSilencePresenceEngine();
 
   // Track if last response included a memory callback
@@ -162,6 +169,7 @@ export class ConversationHumanizer {
     this.sessionId = sessionId || `humanizer-${personaId}-${Date.now()}`;
     this.userId = userId;
     this.sessionCount = sessionCount || 0;
+    // Initialize deep humanization engine for backward compatibility
     this.deepHumanization = getDeepHumanizationEngine(personaId);
     this.sessionStartTime = Date.now();
     getLogger().debug(
@@ -577,9 +585,9 @@ export class ConversationHumanizer {
     // Get pacing
     const pacing = this.dynamics.getPacingAnalysis();
 
-    // 0. Update deep humanization mood tracking
+    // 0. Update deep humanization mood tracking (NEW: use getMoodTracker)
     const topicWeight = classifyTopicWeight(context.userMessage, context.userEmotion);
-    this.deepHumanization.updateMood({
+    getMoodTracker(this.personaId).update({
       userEmotion: context.userEmotion,
       topicWeight,
       userEngagement: context.userMessage.length > 100 ? 'high' : 'medium',
@@ -796,18 +804,18 @@ export class ConversationHumanizer {
       void humanizationSignalEmitter.highEngagement(0.8);
     }
 
-    // Get deep humanization injections
-    const injections = await this.deepHumanization.getHumanizationInjections(deepContext, signals);
-
-    // Apply injections to the text
+    // NEW: Use applyDeepHumanization from split module
     let enhancedText = baseResult.text;
     let enhancedSsml = baseResult.ssml;
     const additionalFeatures: string[] = [];
 
-    if (injections.length > 0) {
-      enhancedText = this.deepHumanization.applyInjections(enhancedText, injections);
-      enhancedSsml = this.deepHumanization.applyInjections(enhancedSsml, injections);
-      additionalFeatures.push(...injections.map((i) => `deep_${i.type}`));
+    const deepResult = await applyDeepHumanization(enhancedText, deepContext);
+    if (deepResult.appliedEffects.length > 0) {
+      enhancedText = deepResult.text;
+      // Apply same effects to SSML
+      const ssmlResult = await applyDeepHumanization(enhancedSsml, deepContext);
+      enhancedSsml = ssmlResult.text;
+      additionalFeatures.push(...deepResult.appliedEffects.map((e) => `deep_${e}`));
     }
 
     // 🤫 SILENCE AS PRESENCE
@@ -1070,10 +1078,10 @@ export class ConversationHumanizer {
   }
 
   /**
-   * Get the current conversation mood from deep humanization
+   * Get the current conversation mood from deep humanization (NEW: use getMoodTracker)
    */
   getMood() {
-    return this.deepHumanization.getMood();
+    return getMoodTracker(this.personaId).getMood();
   }
 
   /**

@@ -1233,7 +1233,7 @@ const MEMORABLE_PATTERNS = [
 
   // Specific details
   { pattern: /(\d+)\s+years?\s+(?:old|ago|married|together)/i, category: 'time_detail' },
-  { pattern: /\b(?:first|only|last)\s+(?:time|child|job|house|car)/i, category: 'milestone' },
+  { pattern: /\b(?:first|only|last)\s+(?:time|child|job|house|home|car)/i, category: 'milestone' },
 ];
 
 /**
@@ -1297,7 +1297,7 @@ export function extractMemorableMoments(message: string): string[] {
         }
         case 'milestone':
           if (messageLower.includes('first')) {
-            const firstMatch = message.match(/first\s+(\w+(?:\s+\w+)?)/i);
+            const firstMatch = message.match(/first\s+(\w+)/i);
             if (firstMatch) {
               moments.push(`your first ${firstMatch[1].toLowerCase()}`);
             }

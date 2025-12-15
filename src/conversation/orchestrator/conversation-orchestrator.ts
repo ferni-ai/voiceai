@@ -35,7 +35,14 @@ import {
 } from '../utils/detection.js';
 
 // Phase 2: Intelligence systems
-import { getDeepHumanizationEngine } from '../deep-humanization.js';
+// NEW: Import from split deep-humanization module
+import {
+  applyDeepHumanization as applyDeepHumanizationNew,
+  getMoodTracker,
+  resetDeepHumanization,
+  type HumanizationContext as DeepHumanizationContext,
+} from '../deep-humanization/index.js';
+// NOTE: Old deep-humanization.js is deprecated. Use deep-humanization/index.js
 import { getEmotionalArcTracker } from '../emotional-arc.js';
 import {
   getSessionIntelligence,
@@ -84,6 +91,15 @@ import { recordOrchestration } from './debug.js';
 
 // Profiling (for performance analysis)
 import { profileOrchestration } from './profiling.js';
+
+// NEW: Composable Effects System
+import {
+  buildEffectContext,
+  getEffectCoordinator,
+  registerDefaultEffects,
+  resetEffectCoordinator,
+  type EffectContext,
+} from '../effects/index.js';
 
 const log = createLogger({ module: 'ConversationOrchestrator' });
 
@@ -457,14 +473,15 @@ export class ConversationOrchestrator {
       };
     }
 
-    const engine = getDeepHumanizationEngine(input.personaId);
-    engine.updateMood({
+    // NEW: Use the new mood tracker from split module
+    const moodTracker = getMoodTracker(input.personaId);
+    moodTracker.update({
       userEmotion: input.userEmotion,
       topicWeight: analysis.context.topicWeight,
       userEngagement: analysis.context.engagement === 'high' ? 'high' : 'medium',
       turnCount: input.turnNumber,
     });
-    return engine.getMood();
+    return moodTracker.getMood();
   }
 
   private async getEmotionalGuidance(): Promise<IntelligencePhaseResult['emotionalGuidance']> {
@@ -638,12 +655,22 @@ export class ConversationOrchestrator {
       }
     }
 
-    // 6. Deep Humanization Injections
+    // 6. Deep Humanization Injections (LEGACY - being replaced by effects system)
     if (this.config.features.deepHumanization) {
       const deepResult = await this.applyDeepHumanization(text, ssml, input, analysis);
       text = deepResult.text;
       ssml = deepResult.ssml;
       appliedFeatures.push(...deepResult.features);
+    }
+
+    // 6b. NEW: Composable Effects System (opt-in via config.features.composableEffects)
+    // This is the new architecture that will eventually replace deep humanization
+    if (this.config.features.composableEffects) {
+      const effectsResult = await this.applyComposableEffects(text, ssml, input, analysis, intelligence);
+      text = effectsResult.text;
+      ssml = effectsResult.ssml;
+      appliedFeatures.push(...effectsResult.features);
+      skippedFeatures.push(...effectsResult.skipped);
     }
 
     // 7. Advanced Humanization (disfluencies, self-correction)
@@ -762,6 +789,97 @@ export class ConversationOrchestrator {
     return { text, ssml, applied: false };
   }
 
+  /**
+   * Apply composable effects system (NEW)
+   * This is the clean architecture replacement for deep humanization
+   */
+  private async applyComposableEffects(
+    text: string,
+    ssml: string,
+    input: OrchestratorInput,
+    analysis: AnalysisPhaseResult,
+    intelligence: IntelligencePhaseResult
+  ): Promise<{ text: string; ssml: string; features: AppliedFeature[]; skipped: SkippedFeature[] }> {
+    const features: AppliedFeature[] = [];
+    const skipped: SkippedFeature[] = [];
+
+    try {
+      // Get or create coordinator for this session
+      const coordinator = getEffectCoordinator(input.sessionId, input.personaId);
+
+      // Register effects if not already registered (first call for this session)
+      if (coordinator.getEffects().length === 0) {
+        registerDefaultEffects(coordinator, input.personaId);
+      }
+
+      // Build effect context
+      const effectContext: EffectContext = buildEffectContext(
+        {
+          personaId: input.personaId,
+          sessionId: input.sessionId,
+          userId: input.userId,
+          turnNumber: input.turnNumber,
+          sessionMinutes: input.sessionMinutes,
+          userMessage: input.userMessage,
+          rawResponse: input.rawResponse,
+          userEmotion: input.userEmotion,
+          topic: input.topic,
+          wasPersonalSharing: input.wasPersonalSharing,
+          isSeriousContext: analysis.context.needsSupport,
+          relationshipStage: input.relationshipStage,
+          sessionData: input.sessionData,
+        },
+        intelligence.mood,
+        {
+          hasEvidence: analysis.signals.hasEvidence,
+          isBreakthrough: analysis.signals.isBreakthrough,
+          hasHesitation: analysis.signals.hasHesitation,
+          isDisengaged: analysis.signals.isDisengaged,
+          isHighlyEngaged: analysis.signals.isHighlyEngaged,
+          isEmotional: analysis.signals.isEmotional,
+          isHeavy: analysis.signals.isHeavy,
+        }
+      );
+
+      // Get applicable effects
+      const applicable = coordinator.getApplicableEffects(effectContext);
+
+      // Apply effects (coordinator enforces maxEffectsPerResponse)
+      const result = await coordinator.applyEffects(text, ssml, applicable, effectContext);
+
+      // Convert to AppliedFeature format
+      features.push(
+        ...result.applied.map((a) => ({
+          name: `effect_${a.effectId}`,
+          source: 'effects' as const,
+          details: { capability: a.capability, placement: a.placement },
+        }))
+      );
+
+      // Convert skipped
+      skipped.push(
+        ...result.skipped.map((s) => ({
+          name: s.effectId,
+          reason: s.reason,
+        }))
+      );
+
+      log.debug(
+        {
+          turn: input.turnNumber,
+          applied: result.applied.map((a) => a.effectId),
+          skipped: result.skipped.length,
+        },
+        '🎭 Composable effects applied'
+      );
+
+      return { text: result.text, ssml: result.ssml, features, skipped };
+    } catch (error) {
+      log.debug({ error: String(error) }, 'Composable effects failed (non-fatal)');
+      return { text, ssml, features, skipped };
+    }
+  }
+
   private async applyDeepHumanization(
     text: string,
     ssml: string,
@@ -771,8 +889,8 @@ export class ConversationOrchestrator {
     const features: AppliedFeature[] = [];
 
     try {
-      const engine = getDeepHumanizationEngine(input.personaId);
-      const context = {
+      // NEW: Use the new split deep-humanization module
+      const context: DeepHumanizationContext = {
         personaId: input.personaId,
         turnCount: input.turnNumber,
         sessionMinutes: input.sessionMinutes,
@@ -783,24 +901,19 @@ export class ConversationOrchestrator {
         sessionData: input.sessionData,
       };
 
-      const signals = {
-        userPresentedEvidence: analysis.signals.hasEvidence,
-        isBreakthroughMoment: analysis.signals.isBreakthrough,
-        isGivingAdvice: detectAdviceGiving(text),
-        isDisengaged: analysis.signals.isDisengaged,
-        isHighlyEngaged: analysis.signals.isHighlyEngaged,
-      };
+      // Apply humanization using new module
+      const result = await applyDeepHumanizationNew(text, context);
 
-      const injections = await engine.getHumanizationInjections(context, signals);
+      if (result.appliedEffects.length > 0) {
+        text = result.text;
+        // Apply same effects to SSML
+        ssml = (await applyDeepHumanizationNew(ssml, context)).text;
 
-      if (injections.length > 0) {
-        text = engine.applyInjections(text, injections);
-        ssml = engine.applyInjections(ssml, injections);
         features.push(
-          ...injections.map((i) => ({
-            name: `deep_${i.type}`,
+          ...result.appliedEffects.map((effectType) => ({
+            name: `deep_${effectType}`,
             source: 'deep' as const,
-            details: { placement: i.placement },
+            details: { module: 'deep-humanization-v2' },
           }))
         );
       }

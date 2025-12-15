@@ -82,11 +82,35 @@
       "shareFerni": "分享Ferni",
       "supportFerni": "支持Ferni",
       "takeTour": "開始導覽",
-      "language": "語言"
+      "language": "語言",
+      "whatsGrowing": "成長中"
     },
     "pinItem": "固定到頂部",
     "unpinItem": "取消固定",
     "comingSoon": "即將推出"
+  },
+  "roadmap": {
+    "eyebrow": "成長中",
+    "title": "前方的旅程",
+    "intro": "每段美好的關係都有四季。這些是我們一起播下的種子。",
+    "sections": {
+      "connect": "連接的新方式",
+      "personalize": "打造專屬",
+      "platform": "平台"
+    },
+    "expectedArrival": "預計上線",
+    "betterThanHuman": "超越人類",
+    "alreadyGrowing": "已在成長",
+    "wantThis": "我想要這個",
+    "voted": "您很期待！",
+    "peopleExcited": "{count}人對此感到期待",
+    "footerText": "您的聲音塑造我們構建的內容。感謝與我們一起成長。",
+    "stages": {
+      "seed": "播種",
+      "sprout": "成長中",
+      "bud": "含苞",
+      "bloom": "即將綻放"
+    }
   },
   "session": {
     "connecting": "連線中...",

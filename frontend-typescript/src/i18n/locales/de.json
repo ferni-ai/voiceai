@@ -82,11 +82,35 @@
       "shareFerni": "Ferni teilen",
       "supportFerni": "Ferni unterstützen",
       "takeTour": "Tour machen",
-      "language": "Sprache"
+      "language": "Sprache",
+      "whatsGrowing": "Was Wächst"
     },
     "pinItem": "Nach oben anheften",
     "unpinItem": "Lösen",
     "comingSoon": "Demnächst"
+  },
+  "roadmap": {
+    "eyebrow": "WAS WÄCHST",
+    "title": "Der Weg Voraus",
+    "intro": "Jede große Beziehung hat Jahreszeiten. Das sind Samen, die wir gemeinsam pflanzen.",
+    "sections": {
+      "connect": "Neue Wege zu Verbinden",
+      "personalize": "Gestalte es selbst",
+      "platform": "Die Plattform"
+    },
+    "expectedArrival": "Erwartete Ankunft",
+    "betterThanHuman": "Besser als menschlich",
+    "alreadyGrowing": "Bereits am Wachsen",
+    "wantThis": "Ich will das",
+    "voted": "Sie sind begeistert!",
+    "peopleExcited": "{count} Menschen sind begeistert davon",
+    "footerText": "Ihre Stimme formt was wir bauen. Danke fürs Mitwachsen.",
+    "stages": {
+      "seed": "Gepflanzt",
+      "sprout": "Wachsend",
+      "bud": "Knospend",
+      "bloom": "Bald Blühend"
+    }
   },
   "session": {
     "connecting": "Verbinden...",

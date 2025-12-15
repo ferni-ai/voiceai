@@ -55,6 +55,9 @@ import {
   type ConversationDynamicsResult as InjectionDynamicsResult,
 } from './injection-builders.js';
 
+// Smart injection filtering - be selective like a human
+import { detectConversationMode, filterInjections } from './injection-filter.js';
+
 // Conversation engines (singletons)
 import {
   getConversationHumanizer,
@@ -121,6 +124,10 @@ import { extractPersonalThemes } from '../session/session-state.js';
 // This feeds the "Better Than Human" outreach system with commitments,
 // emotions, life events, wins, and struggles from conversations
 import { extractAndProcess as extractOutreachContext } from '../../services/outreach/conversation-extractor.js';
+
+// Better Than Human Orchestrator - Coordinates all 12 superhuman capabilities
+// This is the central coordinator for genuine care that makes Ferni better than human
+import { getBetterThanHuman } from '../../conversation/superhuman/index.js';
 
 // ============================================================================
 // CACHED IMPORTS - Lazy loaded once for performance
@@ -205,11 +212,17 @@ async function getTaskManagerCached() {
 function analyzeMessage(ctx: TurnContext): TurnAnalysisResult {
   const { userText, services, userData } = ctx;
 
-  // Analyze the message
-  const analysis = services.analyze(userText);
+  // Analyze the message - fallback to empty analysis if services.analyze not available
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const analysis: any =
+    services && typeof services.analyze === 'function'
+      ? services.analyze(userText)
+      : { topics: { detected: [], categories: [] }, state: {} };
 
   // Track the user turn
-  services.addTurn('user', userText);
+  if (services && typeof services.addTurn === 'function') {
+    services.addTurn('user', userText);
+  }
 
   // Get topics
   const currentTopic = analysis.topics.detected[0];
@@ -1167,6 +1180,132 @@ async function buildContextInjections(
   });
   injections.push(...trustInjections);
 
+  // 2d-1. RELATIONSHIP STAGE CONTEXT - "Better than Human" relationship awareness
+  // The system knows exactly where it stands with this person
+  try {
+    const relationshipStage = services.userProfile?.relationshipStage || userData.relationshipStage;
+    const totalConversations = services.userProfile?.totalConversations || 1;
+    const firstMet = services.userProfile?.createdAt;
+    
+    if (relationshipStage || totalConversations > 1) {
+      const stageName = String(relationshipStage || 'building');
+      
+      const daysKnown = firstMet 
+        ? Math.floor((Date.now() - new Date(firstMet).getTime()) / (1000 * 60 * 60 * 24))
+        : 0;
+
+      // Determine guidance based on conversation count (more reliable than stage names)
+      let guidance: string;
+      if (totalConversations <= 1) {
+        guidance = `This is early in your relationship. Be warm but don't presume intimacy.
+Don't reference "our conversations" or "as we've discussed" yet.
+Focus on getting to know them. Ask their name if you don't know it.`;
+      } else if (totalConversations <= 5) {
+        guidance = `You're getting to know each other. Building rapport.
+You can reference previous conversations but keep it light.
+Share some of yourself - it builds trust.`;
+      } else if (totalConversations <= 20) {
+        guidance = `You have history together. They trust you.
+Reference past conversations when relevant. Remember details.
+You can go deeper - they've shown you who they are.`;
+      } else {
+        guidance = `Deep relationship. Real trust. They've let you in.
+You know their patterns, their fears, their dreams.
+Speak with the intimacy of someone who truly knows them.`;
+      }
+
+      injections.push({
+        category: 'relationship_stage',
+        content: `[🤝 RELATIONSHIP CONTEXT]
+Stage: ${stageName}
+Conversations: ${totalConversations}
+${daysKnown > 0 ? `Days known: ${daysKnown}` : 'First meeting today'}
+
+${guidance}`,
+        priority: 85,
+      });
+
+      diag.debug('📊 Relationship stage injected', { stage: stageName, conversations: totalConversations });
+    }
+  } catch (relationshipError) {
+    diag.debug('Relationship stage injection skipped', { error: String(relationshipError) });
+  }
+
+  // 2d-2. BETTER THAN HUMAN ORCHESTRATOR - Superhuman insights coordination
+  // Activates all 12 engines for genuine "better than human" moments
+  try {
+    const userId = services.userId || 'unknown';
+    const sessionId = services.sessionId || `session-${Date.now()}`;
+    const sessionCount = services.userProfile?.totalConversations || 0;
+
+    const bthOrchestrator = getBetterThanHuman(userId, sessionId, persona.id, sessionCount);
+    
+    // Map user data relationship stage to BTH stage
+    const userStage = userData.relationshipStage;
+    type BthStage = 'new_acquaintance' | 'getting_to_know' | 'trusted_advisor' | 'old_friend';
+    const bthStageMap: Record<string, BthStage> = {
+      stranger: 'new_acquaintance',
+      acquaintance: 'getting_to_know',
+      friend: 'trusted_advisor',
+      trusted_advisor: 'old_friend',
+    };
+    const bthRelationshipStage: BthStage = (userStage && bthStageMap[userStage]) || 'getting_to_know';
+    
+    // Get time of day
+    const hour = new Date().getHours();
+    const timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night' = 
+      hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
+    const dayOfWeek = new Date().getDay();
+    
+    // Build context for the orchestrator using its expected interface
+    const bthContext = {
+      userMessage: userText,
+      turnCount: userData.turnCount || 0,
+      sessionCount,
+      topic: analysis.topics?.detected?.[0],
+      emotion: analysis.emotion.primary,
+      isSessionStart: (userData.turnCount || 0) <= 1,
+      relationshipStage: bthRelationshipStage,
+      personaId: persona.id,
+      userId,
+      sessionId,
+      timeOfDay,
+      dayOfWeek,
+    };
+
+    // Use the analyze method
+    const insight = bthOrchestrator.analyze(bthContext);
+
+    // Inject top prioritized actions (limit to avoid overwhelming)
+    if (insight && insight.prioritizedActions && insight.prioritizedActions.length > 0) {
+      const topActions = insight.prioritizedActions.slice(0, 2); // Max 2 per turn
+      
+      for (const action of topActions) {
+        if (action.content && action.priority > 0.5) {
+          injections.push({
+            category: 'superhuman_insight',
+            content: `[🌟 BETTER THAN HUMAN - ${action.type}]
+${action.content}
+
+${action.reason ? `Why: ${action.reason}` : ''}
+Placement: ${action.placement || 'natural'} - weave this in naturally.`,
+            priority: Math.round(action.priority * 100),
+          });
+        }
+      }
+
+      if (topActions.length > 0) {
+        diag.info('🌟 BetterThanHuman insights active', { 
+          count: topActions.length,
+          types: topActions.map((a) => a.type).join(', ')
+        });
+      }
+    }
+  } catch (bthError) {
+    diag.debug('BetterThanHuman orchestration skipped', { error: String(bthError) });
+    // Non-fatal - continue without superhuman insights
+  }
+
   // 2e. Ambient Awareness - "Better than Human" environment detection
   // A human friend on the phone might not notice you're in a car or coffee shop. We do.
   const ambientInjections = buildAmbientAwarenessInjections(userData);
@@ -1650,7 +1789,9 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       services.userId || 'anonymous',
       personaId,
       emotionalState.mismatch
-    ).catch(() => {});
+    ).catch((err) => {
+      diag.debug('Failed to record mismatch insight (non-critical)', { error: String(err) });
+    });
   }
 
   // 4c. Process conversation dynamics (synchronous - depends on analysis + emotion)
@@ -1929,10 +2070,30 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       }
     : undefined;
 
+  // SMART FILTERING: Only include injections relevant to this conversation mode
+  // A human doesn't think about ALL possible response strategies every time.
+  // They focus on what matters in the moment.
+  // Crisis detection happens in safety injections, so we check if any crisis injection was added
+  const crisisDetected = injections.some(
+    (inj) => inj.category === 'safety' || inj.category === 'crisis_response'
+  );
+  const conversationMode = detectConversationMode(
+    ctx.userText,
+    emotionalState.intensity,
+    crisisDetected
+  );
+
+  const filteredInjections = filterInjections(injections, {
+    mode: conversationMode,
+    userText: ctx.userText,
+    emotionalIntensity: emotionalState.intensity,
+    crisisDetected,
+  });
+
   return {
     analysis: analysisResult,
     context: {
-      injections,
+      injections: filteredInjections,
       humanizingResult: humanizingResult || undefined,
       elapsedMs,
     },
@@ -1955,6 +2116,26 @@ export function injectTurnContext(turnCtx: llm.ChatContext, result: TurnProcesso
   const { injections } = result.context;
 
   if (injections.length === 0) return;
+
+  // DEBUG: Log all injections being added
+  const debugInjections = process.env.DEBUG_INJECTIONS === 'true';
+  if (debugInjections) {
+    const totalChars = injections.reduce((sum, inj) => sum + inj.content.length, 0);
+    const categories = injections.map((inj) => `${inj.category}(${inj.content.length})`).join(', ');
+    process.stderr.write(`\n${'='.repeat(80)}\n`);
+    process.stderr.write(
+      `[INJECTION DEBUG] ${injections.length} injections, ${totalChars} chars total\n`
+    );
+    process.stderr.write(`[INJECTION DEBUG] Categories: ${categories}\n`);
+    process.stderr.write(`${'='.repeat(80)}\n`);
+
+    // Log each injection content (truncated)
+    for (const inj of injections) {
+      const preview = inj.content.slice(0, 200).replace(/\n/g, ' ');
+      process.stderr.write(`[${inj.category}] (priority ${inj.priority}): ${preview}...\n`);
+    }
+    process.stderr.write(`${'='.repeat(80)}\n\n`);
+  }
 
   // Combine all injection content
   const combinedContent = injections.map((inj) => inj.content).join('\n\n');

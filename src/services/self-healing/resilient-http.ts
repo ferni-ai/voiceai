@@ -43,7 +43,9 @@ async function initAnomalyDetection(): Promise<void> {
 }
 
 // Trigger initialization (non-blocking)
-initAnomalyDetection().catch(() => {});
+initAnomalyDetection().catch((err) => {
+  log.debug({ error: String(err) }, 'Resilient HTTP anomaly detection init failed (non-critical)');
+});
 
 // Track success/failure for anomaly detection
 const requestStats = new Map<string, { successes: number; failures: number; lastReport: number }>();

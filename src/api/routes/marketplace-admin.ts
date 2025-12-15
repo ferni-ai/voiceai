@@ -4,10 +4,13 @@
  * Admin endpoints for reviewing and moderating marketplace submissions.
  *
  * Routes:
- * - GET /api/admin/marketplace/queue - Get items pending review
+ * - GET /api/admin/marketplace/queue - Get items pending review (NEW - uses review-queue system)
+ * - POST /api/admin/marketplace/review/:id/assign - Assign reviewer (NEW)
+ * - POST /api/admin/marketplace/review/:id/decide - Submit review decision (NEW)
+ * - GET /api/admin/marketplace/review/:itemId/history - Get review history (NEW)
  * - GET /api/admin/marketplace/item/:id - Get item details
- * - POST /api/admin/marketplace/item/:id/approve - Approve an item
- * - POST /api/admin/marketplace/item/:id/reject - Reject an item
+ * - POST /api/admin/marketplace/item/:id/approve - Approve an item (LEGACY)
+ * - POST /api/admin/marketplace/item/:id/reject - Reject an item (LEGACY)
  * - POST /api/admin/marketplace/item/:id/suspend - Suspend an item
  * - GET /api/admin/marketplace/reviews/pending - Get reviews pending moderation
  * - POST /api/admin/marketplace/reviews/:id/moderate - Moderate a review
@@ -28,6 +31,13 @@ import {
   getReviewStats,
   moderateReview,
 } from '../../marketplace/reviews/index.js';
+import {
+  assignReviewer,
+  getReviewHistory,
+  getReviewQueue,
+  getSubmission,
+  submitReview,
+} from '../review-queue.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'marketplace-admin' });
@@ -150,40 +160,114 @@ export async function handleMarketplaceAdminRoutes(
     return true;
   }
 
-  // GET /api/admin/marketplace/queue - Get items pending review
+  // GET /api/admin/marketplace/queue - Get items pending review (NEW - uses review-queue)
   if (pathname === '/api/admin/marketplace/queue' && method === 'GET') {
     try {
-      // Get all unverified tools and agents
-      const tools = listTools({ trustLevel: 'community' })
-        .filter((t) => !t.verification.verified)
-        .map((t) => toQueueItem(t, 'tool'));
+      // Use the new review queue system
+      const url = new URL(req.url || '', `http://${req.headers.host}`);
+      const status = url.searchParams.get('status') as 'pending_review' | 'in_review' | null;
+      const assignedTo = url.searchParams.get('assignedTo') || undefined;
 
-      const agents = listAgents({ trustLevel: 'community' })
-        .filter((a) => !a.verification.verified)
-        .map((a) => toQueueItem(a, 'agent'));
-
-      const unverifiedTools = listTools({ trustLevel: 'unverified' }).map((t) =>
-        toQueueItem(t, 'tool')
-      );
-
-      const unverifiedAgents = listAgents({ trustLevel: 'unverified' }).map((a) =>
-        toQueueItem(a, 'agent')
-      );
-
-      const queue = [...tools, ...agents, ...unverifiedTools, ...unverifiedAgents].sort(
-        (a, b) => new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime()
-      );
+      const submissions = await getReviewQueue({
+        status: status || ['pending_review', 'in_review'],
+        assignedTo,
+        sortBy: 'submittedAt',
+        sortOrder: 'asc',
+      });
 
       sendJson(res, 200, {
-        queue,
-        totalCount: queue.length,
+        queue: submissions,
+        totalCount: submissions.length,
         breakdown: {
-          tools: tools.length + unverifiedTools.length,
-          agents: agents.length + unverifiedAgents.length,
-          community: tools.length + agents.length,
-          unverified: unverifiedTools.length + unverifiedAgents.length,
+          pending: submissions.filter((s) => s.status === 'pending_review').length,
+          inReview: submissions.filter((s) => s.status === 'in_review').length,
+          tools: submissions.filter((s) => s.itemType === 'tool').length,
+          agents: submissions.filter((s) => s.itemType === 'agent').length,
         },
       });
+      return true;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      sendJson(res, 500, { error: err.message });
+      return true;
+    }
+  }
+
+  // POST /api/admin/marketplace/review/:id/assign - Assign reviewer (NEW)
+  if (pathname.match(/^\/api\/admin\/marketplace\/review\/[^/]+\/assign$/) && method === 'POST') {
+    const itemId = pathname.split('/')[5];
+
+    try {
+      const body = await parseBody<{ reviewerId: string; reviewerName?: string }>(req);
+
+      if (!body.reviewerId) {
+        sendJson(res, 400, { error: 'reviewerId is required' });
+        return true;
+      }
+
+      const submission = await assignReviewer(
+        itemId,
+        body.reviewerId,
+        body.reviewerName || admin.adminName
+      );
+
+      log.info({ itemId, reviewerId: body.reviewerId, adminId: admin.adminId }, 'Reviewer assigned');
+
+      sendJson(res, 200, { submission });
+      return true;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      sendJson(res, err.message.includes('not found') ? 404 : 400, { error: err.message });
+      return true;
+    }
+  }
+
+  // POST /api/admin/marketplace/review/:id/decide - Submit review decision (NEW)
+  if (pathname.match(/^\/api\/admin\/marketplace\/review\/[^/]+\/decide$/) && method === 'POST') {
+    const itemId = pathname.split('/')[5];
+
+    try {
+      const body = await parseBody<{
+        decision: 'approved' | 'rejected' | 'changes_requested';
+        feedback: string;
+      }>(req);
+
+      if (!body.decision || !body.feedback) {
+        sendJson(res, 400, { error: 'decision and feedback are required' });
+        return true;
+      }
+
+      if (!['approved', 'rejected', 'changes_requested'].includes(body.decision)) {
+        sendJson(res, 400, { error: 'Invalid decision' });
+        return true;
+      }
+
+      const submission = await submitReview(
+        itemId,
+        admin.adminId,
+        body.decision,
+        body.feedback
+      );
+
+      log.info({ itemId, decision: body.decision, adminId: admin.adminId }, 'Review submitted');
+
+      sendJson(res, 200, { submission });
+      return true;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      sendJson(res, err.message.includes('not found') ? 404 : 400, { error: err.message });
+      return true;
+    }
+  }
+
+  // GET /api/admin/marketplace/review/:itemId/history - Get review history (NEW)
+  if (pathname.match(/^\/api\/admin\/marketplace\/review\/[^/]+\/history$/) && method === 'GET') {
+    const itemId = pathname.split('/')[5];
+
+    try {
+      const history = await getReviewHistory(itemId);
+
+      sendJson(res, 200, { history, totalVersions: history.length });
       return true;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));

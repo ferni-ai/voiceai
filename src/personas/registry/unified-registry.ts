@@ -28,9 +28,78 @@
  *   3. Done! Agent is automatically discovered.
  */
 
+import { readFileSync, existsSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { getLogger } from '../../utils/safe-logger.js';
 
 import { discoverAndLoadBundles, loadBundleById, clearBundleCache } from '../bundles/index.js';
+
+// ============================================================================
+// AGENT CONFIG - Enable/Disable personas from config file
+// ============================================================================
+
+interface AgentConfigFile {
+  disabledAgents?: string[];
+  enabledAgents?: string[]; // Optional: if set, only these are enabled
+}
+
+let agentConfig: AgentConfigFile | null = null;
+
+/**
+ * Load agent configuration from data/agent-config.json
+ * Supports both disabled list (blacklist) and enabled list (whitelist)
+ */
+function loadAgentConfig(): AgentConfigFile {
+  if (agentConfig) return agentConfig;
+
+  try {
+    // Get the project root (navigate up from src/personas/registry)
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    const configPath = join(__dirname, '../../../data/agent-config.json');
+
+    if (existsSync(configPath)) {
+      const content = readFileSync(configPath, 'utf-8');
+      agentConfig = JSON.parse(content) as AgentConfigFile;
+      getLogger().debug({ config: agentConfig }, 'Loaded agent config');
+    } else {
+      getLogger().debug('No agent-config.json found, all agents enabled');
+      agentConfig = { disabledAgents: [] };
+    }
+  } catch (error) {
+    getLogger().warn({ error }, 'Failed to load agent-config.json, defaulting to all enabled');
+    agentConfig = { disabledAgents: [] };
+  }
+
+  return agentConfig;
+}
+
+/**
+ * Check if an agent is enabled based on config
+ */
+function isAgentEnabled(agentId: string): boolean {
+  const config = loadAgentConfig();
+
+  // If enabledAgents is specified, only those are enabled (whitelist mode)
+  if (config.enabledAgents && config.enabledAgents.length > 0) {
+    return config.enabledAgents.includes(agentId);
+  }
+
+  // Otherwise, check if agent is in disabled list (blacklist mode)
+  if (config.disabledAgents && config.disabledAgents.length > 0) {
+    return !config.disabledAgents.includes(agentId);
+  }
+
+  return true;
+}
+
+/**
+ * Clear agent config cache (call when config changes)
+ */
+export function clearAgentConfig(): void {
+  agentConfig = null;
+}
 import type { LoadedPersonaBundle, PersonaBundleManifest } from '../bundles/types.js';
 import type { PersonaConfig } from '../types.js';
 import { bundleToPersonaConfig } from '../bundles/adapter.js';
@@ -193,7 +262,7 @@ function bundleToAgent(bundle: LoadedPersonaBundle): Agent {
 
     aliases: [...new Set(aliases.map((a) => a.toLowerCase()))],
 
-    enabled: true, // TODO: Support enable/disable from config file
+    enabled: isAgentEnabled(id),
 
     ui: {
       initials: getInitials(identity.name),

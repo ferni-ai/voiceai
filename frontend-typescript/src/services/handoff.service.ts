@@ -677,20 +677,22 @@ class HandoffService {
     }
 
     // Optionally notify backend (if it supports cancellation)
-    void import('./connection.service.js').then(({ connectionService }) => {
-      const room = connectionService.getRoom();
-      if (room?.localParticipant && this.currentHandoffId) {
-        const message = JSON.stringify({
-          type: 'handoff_cancel',
-          handoffId: this.currentHandoffId,
-          reason: 'User cancelled',
-          timestamp: Date.now(),
-        });
-        room.localParticipant
-          .publishData(new TextEncoder().encode(message), { reliable: true })
-          .catch((err) => log.warn('Failed to notify backend of cancellation:', err));
-      }
-    });
+    void import('./connection.service.js')
+      .then(({ connectionService }) => {
+        const room = connectionService.getRoom();
+        if (room?.localParticipant && this.currentHandoffId) {
+          const message = JSON.stringify({
+            type: 'handoff_cancel',
+            handoffId: this.currentHandoffId,
+            reason: 'User cancelled',
+            timestamp: Date.now(),
+          });
+          room.localParticipant
+            .publishData(new TextEncoder().encode(message), { reliable: true })
+            .catch((err) => log.warn('Failed to notify backend of cancellation:', err));
+        }
+      })
+      .catch((err) => log.warn('Failed to import connection service for cancellation:', err));
 
     return true;
   }

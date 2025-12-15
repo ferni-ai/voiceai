@@ -82,11 +82,35 @@
       "shareFerni": "Partager Ferni",
       "supportFerni": "Soutenir Ferni",
       "takeTour": "Faire le Tour",
-      "language": "Langue"
+      "language": "Langue",
+      "whatsGrowing": "Ce Qui Pousse"
     },
     "pinItem": "Épingler en haut",
     "unpinItem": "Détacher",
     "comingSoon": "Bientôt"
+  },
+  "roadmap": {
+    "eyebrow": "CE QUI POUSSE",
+    "title": "Le Chemin à Venir",
+    "intro": "Toute grande relation a ses saisons. Ce sont des graines que nous plantons ensemble.",
+    "sections": {
+      "connect": "Nouvelles Façons de Connecter",
+      "personalize": "Personnalisez",
+      "platform": "La Plateforme"
+    },
+    "expectedArrival": "Arrivée prévue",
+    "betterThanHuman": "Mieux qu'humain",
+    "alreadyGrowing": "Déjà en croissance",
+    "wantThis": "Je veux ça",
+    "voted": "Vous êtes enthousiaste !",
+    "peopleExcited": "{count} personnes sont enthousiastes",
+    "footerText": "Votre voix façonne ce que nous construisons. Merci de grandir avec nous.",
+    "stages": {
+      "seed": "Planté",
+      "sprout": "En croissance",
+      "bud": "En bourgeon",
+      "bloom": "Bientôt"
+    }
   },
   "session": {
     "connecting": "Connexion...",

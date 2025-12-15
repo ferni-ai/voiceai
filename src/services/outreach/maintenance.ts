@@ -233,9 +233,19 @@ export async function syncAllCalendars(): Promise<{
       userIds = engine.getAllUserIds();
     }
 
-    log.info({ userCount: userIds.length }, '📅 Starting calendar sync for outreach');
+    // Filter out test users to avoid spamming logs with expired token errors
+    const realUserIds = userIds.filter(
+      (id) => !id.startsWith('cal-test-') && !id.startsWith('test-')
+    );
+    const skipped = userIds.length - realUserIds.length;
 
-    for (const userId of userIds) {
+    if (skipped > 0) {
+      log.debug({ skipped }, '📅 Skipped test users for calendar sync');
+    }
+
+    log.info({ userCount: realUserIds.length }, '📅 Starting calendar sync for outreach');
+
+    for (const userId of realUserIds) {
       try {
         // Check if user has calendar connected
         const connected = await isCalendarConfigured(userId);
@@ -257,8 +267,15 @@ export async function syncAllCalendars(): Promise<{
         );
       } catch (error) {
         failed++;
-        log.warn({ error, userId }, 'Failed to sync calendar for user');
+        // Only log first few failures to avoid log spam
+        if (failed <= 3) {
+          log.warn({ error, userId }, 'Failed to sync calendar for user');
+        }
       }
+    }
+
+    if (failed > 3) {
+      log.warn({ totalFailed: failed }, '📅 Additional calendar sync failures suppressed');
     }
 
     stats.lastCalendarSync = new Date();

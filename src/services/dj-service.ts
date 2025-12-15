@@ -12,8 +12,8 @@
  * This is the brain behind the DJ experience.
  */
 
-import { getLogger } from '../utils/safe-logger.js';
 import { getMusicPlayer, type MusicTrack, type SessionMusicEntry } from '../audio/index.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger();
 
@@ -59,58 +59,60 @@ export interface DJPersonaStyle {
   djName?: string;
 }
 
+// HUMANIZATION FIX: Reduced interjection frequencies by ~60%
+// Music should be enjoyed, not constantly commented on
 export const DJ_PERSONA_STYLES: Record<string, DJPersonaStyle> = {
   ferni: {
     style: 'warm',
-    interjectionFrequency: 0.3,
+    interjectionFrequency: 0.12, // Reduced from 0.3
     preferredMoods: ['relaxing', 'thoughtful', 'uplifting'],
     djName: undefined, // Just Ferni
   },
   'jack-b': {
     style: 'chill',
-    interjectionFrequency: 0.35,
+    interjectionFrequency: 0.12, // Reduced from 0.35
     preferredMoods: ['chill', 'acoustic', 'classic rock', 'indie'],
   },
   jordan: {
     style: 'hype',
-    interjectionFrequency: 0.5,
+    interjectionFrequency: 0.2, // Reduced from 0.5
     preferredMoods: ['upbeat', 'party', 'energetic', 'dance'],
     djName: 'DJ Jordan',
   },
   'jordan-taylor': {
     style: 'hype',
-    interjectionFrequency: 0.5,
+    interjectionFrequency: 0.2, // Reduced from 0.5
     preferredMoods: ['upbeat', 'party', 'energetic', 'dance'],
     djName: 'DJ Jordan',
   },
   maya: {
     style: 'mindful',
-    interjectionFrequency: 0.2,
+    interjectionFrequency: 0.08, // Reduced from 0.2
     preferredMoods: ['calm', 'meditation', 'ambient', 'nature sounds'],
   },
   'maya-santos': {
     style: 'mindful',
-    interjectionFrequency: 0.2,
+    interjectionFrequency: 0.08, // Reduced from 0.2
     preferredMoods: ['calm', 'meditation', 'ambient', 'nature sounds'],
   },
   alex: {
     style: 'sophisticated',
-    interjectionFrequency: 0.25,
+    interjectionFrequency: 0.1, // Reduced from 0.25
     preferredMoods: ['focus', 'classical', 'jazz', 'lo-fi'],
   },
   'alex-chen': {
     style: 'sophisticated',
-    interjectionFrequency: 0.25,
+    interjectionFrequency: 0.1, // Reduced from 0.25
     preferredMoods: ['focus', 'classical', 'jazz', 'lo-fi'],
   },
   'peter-john': {
     style: 'sophisticated',
-    interjectionFrequency: 0.3,
+    interjectionFrequency: 0.12, // Reduced from 0.3
     preferredMoods: ['jazz', 'classical', 'oldies', 'easy listening'],
   },
   'nayan-patel': {
     style: 'mindful',
-    interjectionFrequency: 0.15,
+    interjectionFrequency: 0.06, // Reduced from 0.15
     preferredMoods: ['meditation', 'world music', 'ambient', 'spiritual'],
   },
 };
@@ -612,7 +614,8 @@ export function getReadTheRoomAction(
   }
 
   // User is quiet during music for a while - check if they're enjoying it
-  if (context.userIsSilentDuringMusic && (context.musicHasBeenPlayingFor || 0) > 60) {
+  // HUMANIZATION FIX: Increased from 60s to 120s - silence during music is NORMAL
+  if (context.userIsSilentDuringMusic && (context.musicHasBeenPlayingFor || 0) > 120) {
     const checkIns: Record<string, string[]> = {
       hype: ['<break time="150ms"/>You vibing? Or should I switch it up?'],
       chill: ['<break time="200ms"/>Just enjoying the music? Cool.'],
@@ -632,7 +635,8 @@ export function getReadTheRoomAction(
   }
 
   // Low engagement after music has been playing - offer to stop
-  if (context.userEngagementLevel === 'low' && (context.musicHasBeenPlayingFor || 0) > 90) {
+  // HUMANIZATION FIX: Increased from 90s to 180s - let them enjoy the music
+  if (context.userEngagementLevel === 'low' && (context.musicHasBeenPlayingFor || 0) > 180) {
     const offers: Record<string, string[]> = {
       hype: ['<break time="150ms"/>Want me to turn this off? No judgment.'],
       chill: ['<break time="200ms"/>Should I kill the music?'],

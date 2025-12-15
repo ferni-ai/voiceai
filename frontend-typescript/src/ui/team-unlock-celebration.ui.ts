@@ -12,14 +12,12 @@
  *   - No emoji, Lucide SVG icons only
  */
 
-import { t } from '../i18n/index.js';
 import { DURATION, EASING, STAGGER } from '../config/animation-constants.js';
+import { t } from '../i18n/index.js';
+import { teamUnlockService, type TeamMemberConfig } from '../services/team-unlock.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import {
-  teamUnlockService,
-  type TeamMemberConfig,
-} from '../services/team-unlock.service.js';
+import { playTeamUnlock } from './sound.ui.js';
 
 const log = createLogger('TeamUnlockCelebration');
 
@@ -31,10 +29,14 @@ const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 // ============================================================================
 
 const ICONS = {
-  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
-  sparkles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
-  users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
-  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+  close:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  sparkles:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
+  users:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  heart:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
   star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
 };
 
@@ -43,7 +45,7 @@ const ICONS = {
 // ============================================================================
 
 const PERSONA_COLORS: Record<string, { bg: string; text: string }> = {
-  'ferni': { bg: 'var(--persona-ferni-primary, #4a6741)', text: 'white' },
+  ferni: { bg: 'var(--persona-ferni-primary, #4a6741)', text: 'white' },
   'maya-santos': { bg: 'var(--persona-maya-primary, #a67a6a)', text: 'white' },
   'peter-john': { bg: 'var(--persona-peter-primary, #3a6b73)', text: 'white' },
   'alex-chen': { bg: 'var(--persona-alex-primary, #5a6b8a)', text: 'white' },
@@ -52,7 +54,12 @@ const PERSONA_COLORS: Record<string, { bg: string; text: string }> = {
 };
 
 function getInitials(name: string): string {
-  return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 }
 
 // ============================================================================
@@ -73,23 +80,23 @@ let isInitialized = false;
  */
 export function initTeamUnlockCelebration(): void {
   if (isInitialized) return;
-  
+
   cleanupOrphanedElements();
   injectStyles();
-  
+
   // Subscribe to unlock events
   teamUnlockService.onUnlock((member) => {
     log.info({ memberId: member.id }, 'Showing unlock celebration');
     showCelebration(member);
   });
-  
+
   isInitialized = true;
   log.debug('Team unlock celebration initialized');
 }
 
 function cleanupOrphanedElements(): void {
-  document.querySelectorAll('.team-unlock-celebration').forEach(el => el.remove());
-  document.querySelectorAll('#team-unlock-celebration-styles').forEach(el => el.remove());
+  document.querySelectorAll('.team-unlock-celebration').forEach((el) => el.remove());
+  document.querySelectorAll('#team-unlock-celebration-styles').forEach((el) => el.remove());
 }
 
 // ============================================================================
@@ -103,16 +110,16 @@ export function showCelebration(member: TeamMemberConfig): void {
   if (celebrationModal) {
     celebrationModal.remove();
   }
-  
+
   celebrationModal = createCelebrationModal(member);
   document.body.appendChild(celebrationModal);
-  
+
   // Animate in
   requestAnimationFrame(() => {
     celebrationModal?.classList.add('team-unlock-celebration--visible');
     animateCelebrationIn();
   });
-  
+
   // Play subtle sound if available
   playUnlockSound();
 }
@@ -122,9 +129,9 @@ export function showCelebration(member: TeamMemberConfig): void {
  */
 export function hideCelebration(): void {
   if (!celebrationModal) return;
-  
+
   celebrationModal.classList.remove('team-unlock-celebration--visible');
-  
+
   trackedTimeout(() => {
     celebrationModal?.remove();
     celebrationModal = null;
@@ -141,11 +148,11 @@ function createCelebrationModal(member: TeamMemberConfig): HTMLElement {
   container.setAttribute('role', 'dialog');
   container.setAttribute('aria-modal', 'true');
   container.setAttribute('aria-labelledby', 'unlock-title');
-  
+
   const colors = PERSONA_COLORS[member.id] ?? { bg: 'var(--persona-primary)', text: 'white' };
   const initials = getInitials(member.displayName);
   const isPremium = member.premium;
-  
+
   container.innerHTML = `
     <div class="unlock-backdrop"></div>
     <div class="unlock-card">
@@ -199,26 +206,28 @@ function createCelebrationModal(member: TeamMemberConfig): HTMLElement {
       </p>
     </div>
   `;
-  
+
   // Event listeners
   const backdrop = container.querySelector('.unlock-backdrop');
   backdrop?.addEventListener('click', hideCelebration);
-  
+
   const closeBtn = container.querySelector('.unlock-close');
   closeBtn?.addEventListener('click', hideCelebration);
-  
+
   const meetBtn = container.querySelector('[data-action="meet"]');
   meetBtn?.addEventListener('click', () => {
     hideCelebration();
     // Trigger handoff to this persona
-    window.dispatchEvent(new CustomEvent('ferni:switch-persona', { 
-      detail: { personaId: member.id } 
-    }));
+    window.dispatchEvent(
+      new CustomEvent('ferni:switch-persona', {
+        detail: { personaId: member.id },
+      })
+    );
   });
-  
+
   const laterBtn = container.querySelector('[data-action="later"]');
   laterBtn?.addEventListener('click', hideCelebration);
-  
+
   return container;
 }
 
@@ -228,78 +237,87 @@ function createCelebrationModal(member: TeamMemberConfig): HTMLElement {
 
 function animateCelebrationIn(): void {
   if (!celebrationModal) return;
-  
+
   const card = celebrationModal.querySelector('.unlock-card');
   const avatar = celebrationModal.querySelector('.unlock-avatar-container');
   const content = celebrationModal.querySelector('.unlock-content');
   const actions = celebrationModal.querySelector('.unlock-actions');
   const sparkles = celebrationModal.querySelectorAll('.sparkle');
-  
+
   // Card entrance
   if (card instanceof HTMLElement) {
-    card.animate([
-      { transform: 'scale(0.8) translateY(40px)', opacity: '0' },
-      { transform: 'scale(1) translateY(0)', opacity: '1' },
-    ], {
-      duration: DURATION.DRAMATIC,
-      easing: EASING.SPRING,
-      fill: 'forwards',
-    });
+    card.animate(
+      [
+        { transform: 'scale(0.8) translateY(40px)', opacity: '0' },
+        { transform: 'scale(1) translateY(0)', opacity: '1' },
+      ],
+      {
+        duration: DURATION.DRAMATIC,
+        easing: EASING.SPRING,
+        fill: 'forwards',
+      }
+    );
   }
-  
+
   // Avatar with bounce
   if (avatar instanceof HTMLElement) {
-    avatar.animate([
-      { transform: 'scale(0)', opacity: '0' },
-      { transform: 'scale(1.1)', opacity: '1' },
-      { transform: 'scale(1)', opacity: '1' },
-    ], {
-      duration: DURATION.CELEBRATION,
-      easing: EASING.SPRING,
-      delay: DURATION.NORMAL,
-      fill: 'forwards',
-    });
+    avatar.animate(
+      [
+        { transform: 'scale(0)', opacity: '0' },
+        { transform: 'scale(1.1)', opacity: '1' },
+        { transform: 'scale(1)', opacity: '1' },
+      ],
+      {
+        duration: DURATION.CELEBRATION,
+        easing: EASING.SPRING,
+        delay: DURATION.NORMAL,
+        fill: 'forwards',
+      }
+    );
   }
-  
+
   // Content fade up
   if (content instanceof HTMLElement) {
-    content.animate([
-      { transform: 'translateY(20px)', opacity: '0' },
-      { transform: 'translateY(0)', opacity: '1' },
-    ], {
-      duration: DURATION.DELIBERATE,
-      easing: EASING.EXPO_OUT,
-      delay: DURATION.SLOW,
-      fill: 'forwards',
-    });
+    content.animate(
+      [
+        { transform: 'translateY(20px)', opacity: '0' },
+        { transform: 'translateY(0)', opacity: '1' },
+      ],
+      {
+        duration: DURATION.DELIBERATE,
+        easing: EASING.EXPO_OUT,
+        delay: DURATION.SLOW,
+        fill: 'forwards',
+      }
+    );
   }
-  
+
   // Actions fade in
   if (actions instanceof HTMLElement) {
-    actions.animate([
-      { opacity: '0' },
-      { opacity: '1' },
-    ], {
+    actions.animate([{ opacity: '0' }, { opacity: '1' }], {
       duration: DURATION.SLOW,
       easing: EASING.GENTLE,
       delay: DURATION.DELIBERATE,
       fill: 'forwards',
     });
   }
-  
+
   // Sparkles float
   sparkles.forEach((sparkle, i) => {
     if (sparkle instanceof HTMLElement) {
-      sparkle.animate([
-        { transform: 'translateY(0) rotate(0deg)', opacity: '0' },
-        { transform: 'translateY(-20px) rotate(180deg)', opacity: '0.6' },
-        { transform: 'translateY(-40px) rotate(360deg)', opacity: '0' },
-      ], {
-        duration: DURATION.GLACIAL,
-        easing: EASING.GENTLE,
-        delay: DURATION.NORMAL + (i * STAGGER.RELAXED),
-        iterations: Infinity,
-      });
+      sparkle.animate(
+        [
+          { transform: 'translateY(0) rotate(0deg)', opacity: '0' },
+          { transform: 'translateY(-20px) rotate(180deg)', opacity: '0.6' },
+          { transform: 'translateY(-40px) rotate(360deg)', opacity: '0' },
+        ],
+        {
+          duration: DURATION.GLACIAL,
+          easing: EASING.GENTLE,
+          delay: DURATION.NORMAL + i * STAGGER.RELAXED,
+          iterations: Infinity,
+        }
+      );
     }
   });
 }
@@ -309,34 +327,8 @@ function animateCelebrationIn(): void {
 // ============================================================================
 
 function playUnlockSound(): void {
-  try {
-    // Create a subtle, warm unlock sound using Web Audio API
-    const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-    
-    // Create oscillators for a warm chord
-    const notes = [261.63, 329.63, 392.00]; // C4, E4, G4 - C major chord
-    
-    notes.forEach((freq, i) => {
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.type = 'sine';
-      oscillator.frequency.value = freq;
-      
-      // Gentle attack and release
-      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-      gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.1 + (i * 0.05));
-      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.8 + (i * 0.1));
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.start(audioContext.currentTime + (i * 0.05));
-      oscillator.stop(audioContext.currentTime + 1);
-    });
-  } catch {
-    // Audio not available, silent fail
-  }
+  // Use centralized sound system - warm G major add9 arpeggio
+  playTeamUnlock();
 }
 
 // ============================================================================
@@ -345,7 +337,7 @@ function playUnlockSound(): void {
 
 function injectStyles(): void {
   if (document.getElementById('team-unlock-celebration-styles')) return;
-  
+
   styleElement = document.createElement('style');
   styleElement.id = 'team-unlock-celebration-styles';
   styleElement.textContent = `
@@ -650,7 +642,7 @@ function injectStyles(): void {
       }
     }
   `;
-  
+
   document.head.appendChild(styleElement);
 }
 
@@ -663,4 +655,3 @@ export const teamUnlockCelebration = {
   show: showCelebration,
   hide: hideCelebration,
 };
-

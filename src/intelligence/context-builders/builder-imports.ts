@@ -23,6 +23,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'somatic-context': () => import('./somatic-context.js'),
 
   // VOICE
+  'voice-mismatch-critical': () => import('./voice-mismatch-critical.js'), // THE superhuman signal
   'voice-emotion': () => import('./voice-emotion.js'),
   'advanced-voice-emotion': () => import('./advanced-voice-emotion.js'),
   'voice-emotion-intelligence': () => import('./voice-emotion-intelligence.js'),
@@ -37,6 +38,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'conversation-recap': () => import('./conversation-recap.js'),
   'cross-session-reflection': () => import('./cross-session-reflection.js'),
   'cross-session-threading': () => import('./cross-session-threading.js'),
+  'unified-memory-orchestrator': () => import('./unified-memory-orchestrator.js'), // Coordinates all memory systems
 
   // PERSONA
   'persona-identity': () => import('./persona-identity.js'),
@@ -46,6 +48,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'persona-mood': () => import('./persona-mood.js'),
   'human-personality': () => import('./human-personality.js'),
   'ferni-personality': () => import('./ferni-personality.js'), // Ferni-specific: dynamic expressions, pushbacks, passions
+  'better-than-human-direct': () => import('./better-than-human-direct.js'), // Direct surfacing of BTH phrases
   'conversational-superpowers': () => import('./conversational-superpowers.js'),
   'conversation-forward': () => import('./conversation-forward.js'), // Better Than Human: keep conversations moving
   'alive-awareness': () => import('./alive-awareness.js'),
@@ -114,6 +117,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'personal-journey': () => import('./personal-journey.js'),
 
   // HUMANIZING
+  'unified-humanizing': () => import('./unified-humanizing.js'), // Consolidated humanization orchestrator
   humanizing: () => import('./humanizing.js'),
   'deep-humanization': () => import('./deep-humanization.js'),
   'conversation-humanizing': () => import('./conversation-humanizing.js'),

@@ -12,6 +12,7 @@ import {
   type PersonalityExpression,
   type ThemeCategory,
 } from '../../services/session-variety-tracker.js';
+import type { PersonaConfig } from '../types.js';
 import type {
   BundleConflictHandling,
   BundleContextualNuances,
@@ -566,11 +567,10 @@ export class BundleRuntimeEngine {
       userPacing: arc.conversationTemperature > 0.7 ? ('rushed' as const) : ('normal' as const),
     };
 
-    // Note: We don't have persona config here, so we use the engine's gating only
-    const result = storyEngine.evaluateStoryTiming(
-      { stories: [] } as any, // Minimal persona - just checking timing
-      timingContext
-    );
+    // Note: We don't have full persona config here, so we use the engine's gating only
+    // Cast to PersonaConfig since evaluateStoryTiming only accesses the stories property
+    const minimalPersonaConfig = { stories: [] } as unknown as PersonaConfig;
+    const result = storyEngine.evaluateStoryTiming(minimalPersonaConfig, timingContext);
 
     if (!result.shouldTell && result.reason) {
       return {

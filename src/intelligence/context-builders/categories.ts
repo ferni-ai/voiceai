@@ -131,6 +131,7 @@ export const BUILDER_CATEGORIES: Record<string, BuilderCategory> = {
   'conversation-recap': BuilderCategory.MEMORY,
   'cross-session-reflection': BuilderCategory.MEMORY,
   'cross-session-threading': BuilderCategory.MEMORY,
+  'unified-memory-orchestrator': BuilderCategory.MEMORY,
 
   // PERSONA
   'persona-identity': BuilderCategory.PERSONA,

@@ -10,8 +10,72 @@
  * - Voice emotion orchestration
  * - Distress level handling
  *
+ * NEW: Unified Intelligence System (src/intelligence/unified/)
+ * - Single entry point for all analysis: analyzeUnified()
+ * - Voice/text mismatch as first-class signal
+ * - Consolidated humanization
+ * - Naturalness feedback loop
+ *
  * @module intelligence
  */
+
+// ============================================================================
+// UNIFIED INTELLIGENCE SYSTEM (PREFERRED)
+// ============================================================================
+
+export {
+  // Main analyzer
+  UnifiedAnalyzer,
+  analyzeUnified,
+  type UnifiedAnalysisInput,
+  type UnifiedAnalysisResult,
+  type EmotionSignal,
+  type IntentSignal,
+  type ContextSignal,
+  type MismatchSignal,
+  type ResponseGuidance,
+} from './unified/unified-analyzer.js';
+
+export {
+  // THE superhuman signal
+  VoiceTextMismatchDetector,
+  detectMismatch as detectVoiceTextMismatch,
+  type MismatchResult,
+  type MismatchType,
+  type MismatchGuidance,
+} from './unified/mismatch-detector.js';
+
+export {
+  // Consolidated humanization
+  HumanizationOrchestrator,
+  humanize,
+  type HumanizationInput,
+  type HumanizationResult,
+  type ActiveListeningCue,
+  type EmotionalMirror,
+  type SpontaneousElement,
+} from './unified/humanization-orchestrator.js';
+
+export {
+  // Naturalness feedback
+  NaturalnessFeedbackLoop,
+  recordResponse,
+  recordReaction,
+  getEffectivenessReport,
+  getRecommendations,
+  type ResponseContext as FeedbackResponseContext,
+  type UserReaction as FeedbackUserReaction,
+  type NaturalnessSignal,
+  type BuilderEffectiveness,
+} from './unified/feedback-loop.js';
+
+export {
+  // Debug tools
+  generateNaturalnessReport,
+  logAnalysisSummary,
+  checkNaturalnessIssues,
+  type NaturalnessReport,
+} from './unified/naturalness-debug.js';
 
 // ============================================================================
 // NEW INFRASTRUCTURE (added in refactor)
@@ -190,7 +254,7 @@ export {
   type LearnedResponsePreferences,
   type ResponseSignal,
   type ResponseType,
-  type UserReaction,
+  type UserReaction as QualityTrackerUserReaction,
   type UserResponseQuality,
 } from './response-quality-tracker.js';
 
@@ -371,7 +435,7 @@ export {
   type AnalysisResult,
   type BehavioralSignals,
   type CombinedEmotionAnalysis,
-  type ResponseContext,
+  type ResponseContext as PipelineResponseContext,
 } from './analysis-pipeline.js';
 
 // ============================================================================
@@ -383,8 +447,8 @@ export {
   analyzeSync,
   type CombinedEmotion,
   type DeepUnderstandingInsights,
-  type UnifiedAnalysisInput,
-  type UnifiedAnalysisResult,
+  type UnifiedAnalysisInput as LegacyUnifiedAnalysisInput,
+  type UnifiedAnalysisResult as LegacyUnifiedAnalysisResult,
   type BehavioralSignals as UnifiedBehavioralSignals,
   type ResponseGuidance as UnifiedResponseGuidance,
 } from './unified-analyzer.js';

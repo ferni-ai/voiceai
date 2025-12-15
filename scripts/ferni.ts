@@ -386,11 +386,7 @@ const COMMANDS: Record<string, CliCommand> = {
     icon: '🎙️',
     handler: handleVoice,
     subcommands: [],
-    examples: [
-      'ferni voice',
-      'ferni voice --persona maya',
-      'ferni voice --debug',
-    ],
+    examples: ['ferni voice', 'ferni voice --persona maya', 'ferni voice --debug'],
   },
   code: {
     name: 'Code',
@@ -777,6 +773,44 @@ const COMMANDS: Record<string, CliCommand> = {
     handler: handleReplay,
     subcommands: ['list', 'play', 'export', 'search'],
     examples: ['ferni replay list --last=1h', 'ferni replay play session-123'],
+  },
+  // ============================================================================
+  // CEO COMMANDS - Ferni as your Personal CEO
+  // ============================================================================
+  goals: {
+    name: 'Goals',
+    description: 'Track and manage your goals (CEO feature)',
+    icon: '🎯',
+    handler: handleCEOGoals,
+    subcommands: ['list', 'add', 'complete', 'progress'],
+    examples: ['ferni goals', 'ferni goals add "Morning routine"', 'ferni goals progress'],
+  },
+  context: {
+    name: 'Context',
+    description: 'What Ferni knows about you (CEO feature)',
+    icon: '🧠',
+    handler: handleCEOContext,
+    subcommands: ['show', 'summary', 'delete'],
+    examples: ['ferni context', 'ferni context --summary'],
+  },
+  remember: {
+    name: 'Remember',
+    description: 'Add a note for Ferni to remember (CEO feature)',
+    icon: '📝',
+    handler: handleCEORemember,
+    subcommands: [],
+    examples: [
+      'ferni remember "Big presentation on Friday"',
+      'ferni remember --important "Job interview Monday"',
+    ],
+  },
+  roster: {
+    name: 'Roster',
+    description: 'Deep dive on the leadership team (CEO feature)',
+    icon: '👥',
+    handler: handleCEORoster,
+    subcommands: ['show', 'maya', 'alex', 'jordan', 'peter', 'nayan', 'ferni'],
+    examples: ['ferni roster', 'ferni roster maya', 'ferni roster alex'],
   },
 };
 
@@ -3008,6 +3042,30 @@ async function handleVoice(args: string[]): Promise<void> {
 }
 
 // ============================================================================
+// CEO COMMANDS - Ferni as your Personal CEO
+// ============================================================================
+
+async function handleCEOGoals(args: string[]): Promise<void> {
+  const { handleGoals } = await import('./cli/ceo.js');
+  await handleGoals(args);
+}
+
+async function handleCEOContext(args: string[]): Promise<void> {
+  const { handleContext } = await import('./cli/ceo.js');
+  await handleContext(args);
+}
+
+async function handleCEORemember(args: string[]): Promise<void> {
+  const { handleRemember } = await import('./cli/ceo.js');
+  await handleRemember(args);
+}
+
+async function handleCEORoster(args: string[]): Promise<void> {
+  const { handleTeam } = await import('./cli/ceo.js');
+  await handleTeam(args);
+}
+
+// ============================================================================
 // VOICE + CLAUDE CODE COMMAND
 // ============================================================================
 
@@ -3018,7 +3076,9 @@ interface ServiceStatus {
 
 async function checkTokenServer(): Promise<ServiceStatus> {
   try {
-    const response = await fetch('http://localhost:3001/health', { signal: AbortSignal.timeout(2000) });
+    const response = await fetch('http://localhost:3001/health', {
+      signal: AbortSignal.timeout(2000),
+    });
     return { running: response.ok };
   } catch {
     return { running: false };
@@ -3027,7 +3087,9 @@ async function checkTokenServer(): Promise<ServiceStatus> {
 
 async function checkAgent(): Promise<ServiceStatus> {
   try {
-    const response = await fetch('http://localhost:8081/health', { signal: AbortSignal.timeout(2000) });
+    const response = await fetch('http://localhost:8081/health', {
+      signal: AbortSignal.timeout(2000),
+    });
     return { running: response.ok };
   } catch {
     return { running: false };
@@ -3057,7 +3119,8 @@ async function startTokenServer(): Promise<void> {
 
 async function startAgent(): Promise<void> {
   log.info('Starting voice agent...');
-  const agent = spawn('npx', ['tsx', 'src/agents/voice-worker-single-process.ts'], {
+  // Use the new unified worker (GCE-optimized, orchestrator pattern)
+  const agent = spawn('npx', ['tsx', 'src/agents/worker.ts'], {
     cwd: PROJECT_ROOT,
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -5078,7 +5141,7 @@ async function handleRollback(args: string[]): Promise<void> {
     // GCE status
     console.log(`  ${colors.cyan}GCE (Voice Agent):${colors.reset}`);
     const gceStatus = execCommand(
-      `gcloud compute ssh sethford@voiceai-agent --zone=us-central1-a --command="docker ps --format '{{.Names}} {{.Image}} {{.Status}}' | grep voiceai" 2>/dev/null || echo "Not accessible"`
+      `gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a --command="docker ps --format '{{.Names}} {{.Image}} {{.Status}}' | grep voiceai" 2>/dev/null || echo "Not accessible"`
     );
     console.log(`    ${gceStatus || 'No containers running'}\n`);
 
@@ -5108,7 +5171,7 @@ async function handleRollback(args: string[]): Promise<void> {
     spinner.start();
 
     const images = execCommand(
-      `gcloud compute ssh sethford@voiceai-agent --zone=us-central1-a --command="docker images gcr.io/johnb-2025/voiceai-agent --format '{{.Tag}}' | head -3" 2>/dev/null`
+      `gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a --command="docker images gcr.io/johnb-2025/voiceai-agent --format '{{.Tag}}' | head -3" 2>/dev/null`
     );
 
     if (!images) {
@@ -5216,7 +5279,9 @@ async function handleMetrics(args: string[]): Promise<void> {
     }
 
     console.log(`\n  ${colors.dim}View full dashboard:${colors.reset}`);
-    console.log(`  ${colors.cyan}https://console.cloud.google.com/monitoring/dashboards?project=${GCP_PROJECT}${colors.reset}`);
+    console.log(
+      `  ${colors.cyan}https://console.cloud.google.com/monitoring/dashboards?project=${GCP_PROJECT}${colors.reset}`
+    );
     return;
   }
 
@@ -5230,7 +5295,9 @@ async function handleMetrics(args: string[]): Promise<void> {
 
       console.log(`  ${colors.cyan}${name}:${colors.reset}`);
       if (errors && errors.includes('ERROR')) {
-        console.log(`    ${colors.red}${errors.split('\n').length - 1} errors in last ${timeRange}${colors.reset}\n`);
+        console.log(
+          `    ${colors.red}${errors.split('\n').length - 1} errors in last ${timeRange}${colors.reset}\n`
+        );
       } else {
         console.log(`    ${colors.green}No errors in last ${timeRange}${colors.reset}\n`);
       }
@@ -5279,9 +5346,15 @@ async function handleSessions(args: string[]): Promise<void> {
     await new Promise((r) => setTimeout(r, 500));
     spinner.stop(true);
 
-    console.log(`  ${colors.green}●${colors.reset} Active voice calls: ${colors.bold}3${colors.reset}`);
-    console.log(`  ${colors.green}●${colors.reset} Connected users:    ${colors.bold}12${colors.reset}`);
-    console.log(`  ${colors.yellow}●${colors.reset} Idle sessions:      ${colors.bold}8${colors.reset}`);
+    console.log(
+      `  ${colors.green}●${colors.reset} Active voice calls: ${colors.bold}3${colors.reset}`
+    );
+    console.log(
+      `  ${colors.green}●${colors.reset} Connected users:    ${colors.bold}12${colors.reset}`
+    );
+    console.log(
+      `  ${colors.yellow}●${colors.reset} Idle sessions:      ${colors.bold}8${colors.reset}`
+    );
     console.log(`\n  ${colors.dim}Last updated: ${new Date().toLocaleTimeString()}${colors.reset}`);
     return;
   }
@@ -5345,7 +5418,8 @@ async function handleSessions(args: string[]): Promise<void> {
 
 async function handleSLA(args: string[]): Promise<void> {
   const subcommand = args[0] || 'status';
-  const month = args.find((a) => a.startsWith('--month='))?.split('=')[1] || new Date().getMonth() + 1;
+  const month =
+    args.find((a) => a.startsWith('--month='))?.split('=')[1] || new Date().getMonth() + 1;
 
   log.header('🎯 SLA Tracking');
 
@@ -5436,7 +5510,9 @@ async function handleSLA(args: string[]): Promise<void> {
     console.log();
 
     console.log(`  ${colors.dim}Configure alerts in Cloud Monitoring:${colors.reset}`);
-    console.log(`  ${colors.cyan}https://console.cloud.google.com/monitoring/alerting?project=${GCP_PROJECT}${colors.reset}`);
+    console.log(
+      `  ${colors.cyan}https://console.cloud.google.com/monitoring/alerting?project=${GCP_PROJECT}${colors.reset}`
+    );
     return;
   }
 
@@ -5579,7 +5655,9 @@ async function handleAlerts(args: string[]): Promise<void> {
     console.log(`${colors.bold}Silencing alerts for ${duration}:${colors.reset}\n`);
 
     console.log(`  ${colors.yellow}⚠${colors.reset} All alerting paused for ${duration}`);
-    console.log(`  ${colors.dim}Alerts will resume at ${new Date(Date.now() + parseDuration(duration)).toLocaleTimeString()}${colors.reset}`);
+    console.log(
+      `  ${colors.dim}Alerts will resume at ${new Date(Date.now() + parseDuration(duration)).toLocaleTimeString()}${colors.reset}`
+    );
     console.log();
     log.warn('In production, this would create a silence in PagerDuty/Opsgenie');
     return;
@@ -5604,14 +5682,18 @@ async function handleAlerts(args: string[]): Promise<void> {
     console.log(`    4) Custom metric`);
     console.log();
     console.log(`  ${colors.dim}Configure in Cloud Monitoring:${colors.reset}`);
-    console.log(`  ${colors.cyan}https://console.cloud.google.com/monitoring/alerting/policies/create?project=${GCP_PROJECT}${colors.reset}`);
+    console.log(
+      `  ${colors.cyan}https://console.cloud.google.com/monitoring/alerting/policies/create?project=${GCP_PROJECT}${colors.reset}`
+    );
     return;
   }
 
   if (subcommand === 'history') {
     console.log(`${colors.bold}Alert History (7 days):${colors.reset}\n`);
 
-    console.log(`  ${colors.dim}Date${colors.reset}        ${colors.dim}Alert${colors.reset}                    ${colors.dim}Duration${colors.reset}`);
+    console.log(
+      `  ${colors.dim}Date${colors.reset}        ${colors.dim}Alert${colors.reset}                    ${colors.dim}Duration${colors.reset}`
+    );
     console.log(`  Dec 10     High Latency (agent)      3m 24s`);
     console.log(`  Dec 8      Error Rate Spike          1m 12s`);
     console.log(`  Dec 5      Memory Warning            5m 00s`);
@@ -5638,8 +5720,12 @@ async function handleOnCall(args: string[]): Promise<void> {
   if (subcommand === 'who') {
     console.log(`${colors.bold}Current On-Call:${colors.reset}\n`);
 
-    console.log(`  ${colors.green}●${colors.reset} Primary:   ${colors.bold}Seth Ford${colors.reset} (@sethford)`);
-    console.log(`  ${colors.yellow}●${colors.reset} Secondary: ${colors.bold}John B${colors.reset} (@johnb)`);
+    console.log(
+      `  ${colors.green}●${colors.reset} Primary:   ${colors.bold}Seth Ford${colors.reset} (@sethford)`
+    );
+    console.log(
+      `  ${colors.yellow}●${colors.reset} Secondary: ${colors.bold}John B${colors.reset} (@johnb)`
+    );
     console.log();
     console.log(`  ${colors.dim}Shift ends: Tomorrow 9:00 AM PST${colors.reset}`);
     return;
@@ -5652,7 +5738,11 @@ async function handleOnCall(args: string[]): Promise<void> {
     for (let i = 0; i < 7; i++) {
       const date = new Date(today);
       date.setDate(date.getDate() + i);
-      const day = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      const day = date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      });
       const oncall = i % 2 === 0 ? 'Seth Ford' : 'John B';
       const marker = i === 0 ? ` ${colors.green}← today${colors.reset}` : '';
       console.log(`    ${day.padEnd(12)} ${oncall}${marker}`);
@@ -5686,7 +5776,9 @@ async function handleOnCall(args: string[]): Promise<void> {
   if (subcommand === 'history') {
     console.log(`${colors.bold}On-Call History:${colors.reset}\n`);
 
-    console.log(`  ${colors.dim}Week${colors.reset}      ${colors.dim}Primary${colors.reset}        ${colors.dim}Incidents${colors.reset}`);
+    console.log(
+      `  ${colors.dim}Week${colors.reset}      ${colors.dim}Primary${colors.reset}        ${colors.dim}Incidents${colors.reset}`
+    );
     console.log(`  Dec 9-15  Seth Ford      2`);
     console.log(`  Dec 2-8   John B         1`);
     console.log(`  Nov 25-1  Seth Ford      0`);
@@ -5766,7 +5858,9 @@ async function handleRunbook(args: string[]): Promise<void> {
   if (subcommand === 'history') {
     console.log(`${colors.bold}Runbook Execution History:${colors.reset}\n`);
 
-    console.log(`  ${colors.dim}Date${colors.reset}        ${colors.dim}Runbook${colors.reset}              ${colors.dim}Result${colors.reset}     ${colors.dim}Duration${colors.reset}`);
+    console.log(
+      `  ${colors.dim}Date${colors.reset}        ${colors.dim}Runbook${colors.reset}              ${colors.dim}Result${colors.reset}     ${colors.dim}Duration${colors.reset}`
+    );
     console.log(`  Dec 12     high-latency          ${colors.green}Success${colors.reset}    45s`);
     console.log(`  Dec 10     livekit-reconnect     ${colors.green}Success${colors.reset}    23s`);
     console.log(`  Dec 8      cache-clear           ${colors.green}Success${colors.reset}    12s`);
@@ -5854,7 +5948,9 @@ async function handleBackup(args: string[]): Promise<void> {
   if (subcommand === 'list') {
     console.log(`${colors.bold}Available Backups:${colors.reset}\n`);
 
-    console.log(`  ${colors.dim}ID${colors.reset}                    ${colors.dim}Date${colors.reset}           ${colors.dim}Size${colors.reset}     ${colors.dim}Type${colors.reset}`);
+    console.log(
+      `  ${colors.dim}ID${colors.reset}                    ${colors.dim}Date${colors.reset}           ${colors.dim}Size${colors.reset}     ${colors.dim}Type${colors.reset}`
+    );
     console.log(`  backup-1702598400000    Dec 14, 3:00 AM    2.3 GB   Full`);
     console.log(`  backup-1702512000000    Dec 13, 3:00 AM    2.2 GB   Full`);
     console.log(`  backup-1702425600000    Dec 12, 3:00 AM    2.1 GB   Full`);
@@ -5870,7 +5966,9 @@ async function handleBackup(args: string[]): Promise<void> {
     console.log(`    Retention:  30 days`);
     console.log();
     console.log(`  ${colors.dim}Modify in Cloud Scheduler:${colors.reset}`);
-    console.log(`  ${colors.cyan}https://console.cloud.google.com/cloudscheduler?project=${GCP_PROJECT}${colors.reset}`);
+    console.log(
+      `  ${colors.cyan}https://console.cloud.google.com/cloudscheduler?project=${GCP_PROJECT}${colors.reset}`
+    );
     return;
   }
 
@@ -5929,14 +6027,18 @@ async function handleChaos(args: string[]): Promise<void> {
 
   if (subcommand === 'cpu' || subcommand === 'memory') {
     console.log(`${colors.bold}${subcommand.toUpperCase()} Stress Test:${colors.reset}\n`);
-    console.log(`  ${colors.dim}This would stress ${subcommand} on target instances${colors.reset}`);
+    console.log(
+      `  ${colors.dim}This would stress ${subcommand} on target instances${colors.reset}`
+    );
     console.log(`  ${colors.dim}Use in staging environment only${colors.reset}`);
     return;
   }
 
   if (subcommand === 'network') {
     console.log(`${colors.bold}Network Partition Simulation:${colors.reset}\n`);
-    console.log(`  ${colors.dim}This would simulate network failures between services${colors.reset}`);
+    console.log(
+      `  ${colors.dim}This would simulate network failures between services${colors.reset}`
+    );
     console.log(`  ${colors.dim}Use in staging environment only${colors.reset}`);
     return;
   }
@@ -5975,7 +6077,9 @@ async function handleExperiments(args: string[]): Promise<void> {
       const statusColor = exp.status === 'running' ? colors.green : colors.dim;
       console.log(`  ${colors.cyan}${exp.id}${colors.reset}`);
       console.log(`    ${exp.name}`);
-      console.log(`    Status: ${statusColor}${exp.status}${colors.reset} • Traffic: ${exp.traffic}`);
+      console.log(
+        `    Status: ${statusColor}${exp.status}${colors.reset} • Traffic: ${exp.traffic}`
+      );
       console.log();
     }
     return;
@@ -6215,7 +6319,9 @@ async function handleNotify(args: string[]): Promise<void> {
 
     for (const ch of channels) {
       const icon = ch.status ? colors.green + '●' : colors.red + '●';
-      console.log(`  ${icon}${colors.reset} ${ch.name}: ${ch.status ? 'Connected' : 'Not configured'}`);
+      console.log(
+        `  ${icon}${colors.reset} ${ch.name}: ${ch.status ? 'Connected' : 'Not configured'}`
+      );
     }
     return;
   }
@@ -6279,13 +6385,23 @@ async function handleInit(args: string[]): Promise<void> {
       { name: 'pnpm', pass: true, value: 'v8.12.0' },
       { name: 'gcloud CLI', pass: true, value: 'v456.0.0' },
       { name: 'Docker', pass: true, value: 'v24.0.7' },
-      { name: '.env file', pass: existsSync(join(PROJECT_ROOT, '.env')), value: existsSync(join(PROJECT_ROOT, '.env')) ? 'Found' : 'Missing' },
-      { name: 'node_modules', pass: existsSync(join(PROJECT_ROOT, 'node_modules')), value: existsSync(join(PROJECT_ROOT, 'node_modules')) ? 'Installed' : 'Missing' },
+      {
+        name: '.env file',
+        pass: existsSync(join(PROJECT_ROOT, '.env')),
+        value: existsSync(join(PROJECT_ROOT, '.env')) ? 'Found' : 'Missing',
+      },
+      {
+        name: 'node_modules',
+        pass: existsSync(join(PROJECT_ROOT, 'node_modules')),
+        value: existsSync(join(PROJECT_ROOT, 'node_modules')) ? 'Installed' : 'Missing',
+      },
     ];
 
     for (const check of checks) {
       const icon = check.pass ? `${colors.green}✓` : `${colors.red}✗`;
-      console.log(`  ${icon}${colors.reset} ${check.name.padEnd(15)} ${colors.dim}${check.value}${colors.reset}`);
+      console.log(
+        `  ${icon}${colors.reset} ${check.name.padEnd(15)} ${colors.dim}${check.value}${colors.reset}`
+      );
     }
 
     const allPass = checks.every((c) => c.pass);
@@ -6310,7 +6426,12 @@ async function handleInit(args: string[]): Promise<void> {
       return;
     }
 
-    const steps = ['Removing node_modules', 'Clearing caches', 'Reinstalling dependencies', 'Rebuilding'];
+    const steps = [
+      'Removing node_modules',
+      'Clearing caches',
+      'Reinstalling dependencies',
+      'Rebuilding',
+    ];
     for (const step of steps) {
       const spinner = new Spinner(step);
       spinner.start();
@@ -6344,7 +6465,9 @@ async function handleContext(args: string[]): Promise<void> {
 
     for (const [name, ctx] of Object.entries(contexts)) {
       const marker = name === currentContext ? ` ${colors.green}← current${colors.reset}` : '';
-      console.log(`  ${ctx.color}●${colors.reset} ${name.padEnd(10)} ${colors.dim}${ctx.project}${colors.reset}${marker}`);
+      console.log(
+        `  ${ctx.color}●${colors.reset} ${name.padEnd(10)} ${colors.dim}${ctx.project}${colors.reset}${marker}`
+      );
       console.log(`    ${colors.dim}${ctx.url}${colors.reset}`);
     }
     return;
@@ -6391,7 +6514,9 @@ async function handleTunnel(args: string[]): Promise<void> {
     console.log(`${colors.bold}Opening tunnel to GCE:${colors.reset}\n`);
 
     console.log(`  ${colors.cyan}Command:${colors.reset}`);
-    console.log(`    gcloud compute ssh sethford@voiceai-agent --zone=us-central1-a -- -L 8080:localhost:8080`);
+    console.log(
+      `    gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a -- -L 8080:localhost:8080`
+    );
     console.log();
     console.log(`  ${colors.dim}This will open an SSH tunnel to the GCE instance${colors.reset}`);
     console.log(`  ${colors.dim}Access at: http://localhost:8080${colors.reset}`);
@@ -6443,9 +6568,15 @@ async function handleReplay(args: string[]): Promise<void> {
     const timeRange = args.find((a) => a.startsWith('--last='))?.split('=')[1] || '1h';
     console.log(`${colors.bold}Recent Sessions (${timeRange}):${colors.reset}\n`);
 
-    console.log(`  ${colors.dim}ID${colors.reset}                ${colors.dim}User${colors.reset}          ${colors.dim}Duration${colors.reset}   ${colors.dim}Status${colors.reset}`);
-    console.log(`  session-abc123      user_xyz...   4m 32s     ${colors.green}Complete${colors.reset}`);
-    console.log(`  session-def456      user_abc...   2m 15s     ${colors.green}Complete${colors.reset}`);
+    console.log(
+      `  ${colors.dim}ID${colors.reset}                ${colors.dim}User${colors.reset}          ${colors.dim}Duration${colors.reset}   ${colors.dim}Status${colors.reset}`
+    );
+    console.log(
+      `  session-abc123      user_xyz...   4m 32s     ${colors.green}Complete${colors.reset}`
+    );
+    console.log(
+      `  session-def456      user_abc...   2m 15s     ${colors.green}Complete${colors.reset}`
+    );
     console.log(`  session-ghi789      user_def...   0m 45s     ${colors.red}Error${colors.reset}`);
     console.log();
     console.log(`  ${colors.dim}Total: 23 sessions in last ${timeRange}${colors.reset}`);
@@ -6540,7 +6671,9 @@ ${colors.cyan}╚═════════════════════
     try {
       await startTokenServer();
     } catch (err) {
-      console.log(`  ${colors.yellow}${icons.warning}${colors.reset} Token server: ${colors.dim}not started${colors.reset}`);
+      console.log(
+        `  ${colors.yellow}${icons.warning}${colors.reset} Token server: ${colors.dim}not started${colors.reset}`
+      );
     }
   }
 
@@ -6551,7 +6684,9 @@ ${colors.cyan}╚═════════════════════
     try {
       await startAgent();
     } catch (err) {
-      console.log(`  ${colors.yellow}${icons.warning}${colors.reset} Voice agent: ${colors.dim}not started${colors.reset}`);
+      console.log(
+        `  ${colors.yellow}${icons.warning}${colors.reset} Voice agent: ${colors.dim}not started${colors.reset}`
+      );
     }
   }
 
@@ -6886,6 +7021,7 @@ ${colors.bold}Commands:${colors.reset}
       'costs-ai',
       'api',
     ],
+    'CEO Features': ['goals', 'roster', 'remember'],
   };
 
   for (const [category, keys] of Object.entries(categories)) {

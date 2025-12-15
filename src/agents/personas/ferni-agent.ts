@@ -14,8 +14,11 @@
 import { llm, voice } from '@livekit/agents';
 import { z } from 'zod';
 
+import { createLogger } from '../../utils/safe-logger.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import type { ToolContext } from '../../tools/registry/types.js';
+
+const log = createLogger({ module: 'FerniAgent' });
 
 // ============================================================================
 // TYPES
@@ -229,8 +232,15 @@ export class FerniAgent extends voice.Agent<FerniSessionData> {
 
     this.skipGreeting = options.skipGreeting ?? false;
 
-    process.stderr.write(
-      `[FerniAgent] Initialized with ${Object.keys(allTools).length} tools (memory: ${Object.keys(memoryTools).length}, entertainment: ${Object.keys(entertainmentTools).length}, handoffs: ${Object.keys(handoffTools).length})\n`
+    log.info(
+      {
+        totalTools: Object.keys(allTools).length,
+        memoryTools: Object.keys(memoryTools).length,
+        entertainmentTools: Object.keys(entertainmentTools).length,
+        handoffTools: Object.keys(handoffTools).length,
+        skipGreeting: this.skipGreeting,
+      },
+      'Agent initialized with tools'
     );
   }
 
@@ -266,8 +276,7 @@ export class FerniAgent extends voice.Agent<FerniSessionData> {
    * Good for farewell messages or state cleanup.
    */
   async onExit(): Promise<void> {
-    // Optional: Log transition or save state
-    process.stderr.write(`[FerniAgent] Transitioning to another agent\n`);
+    log.debug('Transitioning to another agent (handoff)');
   }
 }
 

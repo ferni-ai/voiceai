@@ -492,27 +492,29 @@ export class ConversationProfiler {
   logSummary(): void {
     const report = this.generateReport();
 
-    console.log('\n📊 CONVERSATION PROFILING SUMMARY');
-    console.log('='.repeat(50));
-    console.log(`Session: ${this.sessionId}`);
-    console.log(`Total Turns: ${report.summary.totalTurns}`);
-    console.log(`Avg Duration: ${report.summary.avgTotalDuration.toFixed(1)}ms`);
-    console.log(`P50: ${report.summary.p50Duration.toFixed(1)}ms`);
-    console.log(`P95: ${report.summary.p95Duration.toFixed(1)}ms`);
-    console.log(`P99: ${report.summary.p99Duration.toFixed(1)}ms`);
-    console.log(`Slow Turns: ${report.summary.slowTurns}`);
-
-    console.log('\nPhase Breakdown:');
+    // Build phase breakdown object for structured logging
+    const phaseBreakdown: Record<string, { avgMs: number; percentOfTotal: number }> = {};
     for (const [name, stats] of Object.entries(report.summary.phaseBreakdown)) {
-      console.log(`  ${name}: ${stats.avgDuration.toFixed(1)}ms avg (${stats.percentOfTotal.toFixed(1)}%)`);
+      phaseBreakdown[name] = {
+        avgMs: Number(stats.avgDuration.toFixed(1)),
+        percentOfTotal: Number(stats.percentOfTotal.toFixed(1)),
+      };
     }
 
-    console.log('\nRecommendations:');
-    for (const rec of report.recommendations) {
-      console.log(`  ${rec}`);
-    }
-
-    console.log('='.repeat(50) + '\n');
+    log.info(
+      {
+        sessionId: this.sessionId,
+        totalTurns: report.summary.totalTurns,
+        avgDurationMs: Number(report.summary.avgTotalDuration.toFixed(1)),
+        p50Ms: Number(report.summary.p50Duration.toFixed(1)),
+        p95Ms: Number(report.summary.p95Duration.toFixed(1)),
+        p99Ms: Number(report.summary.p99Duration.toFixed(1)),
+        slowTurns: report.summary.slowTurns,
+        phaseBreakdown,
+        recommendations: report.recommendations,
+      },
+      'Conversation profiling summary'
+    );
   }
 }
 

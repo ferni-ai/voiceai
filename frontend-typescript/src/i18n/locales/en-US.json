@@ -128,8 +128,7 @@
       "toggleTheme": "Light / Dark",
       "linkSpotify": "Link Spotify",
       "spotifyConnected": "Spotify Connected",
-      "yourPlan": "Your Plan",
-      "manageBilling": "Payment Settings",
+      "supportFerniExpanded": "Support Ferni",
       "voiceId": "Your Voice",
       "householdMembers": "Your People",
       "contactInfo": "Contact Info",
@@ -137,7 +136,8 @@
       "shareFerni": "Share Ferni",
       "supportFerni": "Support Ferni",
       "takeTour": "Take the Tour",
-      "language": "Language"
+      "language": "Language",
+      "whatsGrowing": "What's Growing"
     },
     "pinItem": "Pin to top",
     "unpinItem": "Unpin",
@@ -565,5 +565,43 @@
     "sharedMusicalMemory": "Shared musical memory",
     "viewOutreachSchedule": "View outreach schedule",
     "ferniLogo": "Ferni logo"
+  },
+
+  "support": {
+    "eyebrow": "GROWING TOGETHER",
+    "title": "Support Ferni",
+    "subtitle": "Choose how our friendship grows. Every way you show up matters.",
+    "growTogether": "Ways to Deepen Our Connection",
+    "plantASeed": "Plant a Seed",
+    "plantDesc": "A small gift that helps Ferni grow. No pressure—our friendship doesn't depend on it.",
+    "plantButton": "Plant This Seed",
+    "thankYouSupporter": "You're amazing",
+    "yourSupport": "Your support keeps Ferni here for everyone",
+    "manageBilling": "Update payment method",
+    "footer": "However you choose to support us, thank you for being here."
+  },
+
+  "roadmap": {
+    "eyebrow": "WHAT'S GROWING",
+    "title": "The Journey Ahead",
+    "intro": "Every great relationship has seasons. These are seeds we're planting together.",
+    "sections": {
+      "connect": "New Ways to Connect",
+      "personalize": "Make It Yours",
+      "platform": "The Platform"
+    },
+    "expectedArrival": "Expected arrival",
+    "betterThanHuman": "Better than human",
+    "alreadyGrowing": "Already growing",
+    "wantThis": "I want this",
+    "voted": "You're excited!",
+    "peopleExcited": "{count} people are excited about this",
+    "footerText": "Your voice shapes what we build. Thank you for growing with us.",
+    "stages": {
+      "seed": "Planted",
+      "sprout": "Growing",
+      "bud": "Budding",
+      "bloom": "Blooming Soon"
+    }
   }
 }

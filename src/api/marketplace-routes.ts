@@ -224,6 +224,9 @@ async function handlePublisherRoutes(
   pathname: string,
   method: string
 ): Promise<boolean> {
+  // Import review queue functions dynamically to avoid circular dependencies
+  const { submitForReview, getReviewHistory } = await import('./review-queue.js');
+
   // POST /api/marketplace/publisher/submit - Submit a new tool/agent
   if (pathname === '/api/marketplace/publisher/submit' && method === 'POST') {
     const publisher = getPublisher(req);
@@ -270,15 +273,22 @@ async function handlePublisherRoutes(
         registerAgent(body.manifest as AgentManifest);
       }
 
+      // Submit for review using the new review queue system
+      const submission = await submitForReview(publisher.publisherId, body.manifest.id, body.type);
+
       log.info(
         { itemId: body.manifest.id, type: body.type, publisherId: publisher.publisherId },
-        'Submission accepted'
+        'Submission accepted and queued for review'
       );
       sendJson(res, 200, {
         success: true,
         itemId: body.manifest.id,
-        status: 'pending_review',
-        reviewNotes: 'Your submission is being reviewed. This typically takes 2-5 business days.',
+        submissionId: submission.id,
+        status: submission.status,
+        automatedChecks: submission.automatedChecks,
+        reviewNotes: submission.automatedChecks.passedValidation
+          ? 'Your submission passed automated checks and is being reviewed. This typically takes 2-5 business days.'
+          : 'Your submission has validation issues. Please review the automated checks and resubmit.',
       });
       return true;
     } catch (error) {
@@ -518,6 +528,51 @@ async function handlePublisherRoutes(
         success: true,
         message:
           'Item scheduled for removal. Existing installations will continue to work for 30 days.',
+      });
+      return true;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      sendJson(res, 500, { error: err.message });
+      return true;
+    }
+  }
+
+  // GET /api/marketplace/review/status/:id - Check review status (NEW)
+  if (pathname.match(/^\/api\/marketplace\/review\/status\/[^/]+$/) && method === 'GET') {
+    const publisher = getPublisher(req);
+    if (!publisher) {
+      sendJson(res, 401, { error: 'Publisher authentication required' });
+      return true;
+    }
+
+    const itemId = pathname.split('/')[5];
+
+    try {
+      const history = await getReviewHistory(itemId);
+
+      if (history.length === 0) {
+        sendJson(res, 404, { error: 'No review submissions found for this item' });
+        return true;
+      }
+
+      // Verify publisher owns this item
+      if (history[0].publisherId !== publisher.publisherId) {
+        sendJson(res, 403, { error: 'Not authorized to view this review' });
+        return true;
+      }
+
+      const currentSubmission = history[0]; // Most recent version
+
+      sendJson(res, 200, {
+        currentStatus: currentSubmission.status,
+        currentVersion: currentSubmission.version,
+        submittedAt: currentSubmission.submittedAt,
+        reviewedAt: currentSubmission.reviewedAt,
+        decision: currentSubmission.decision,
+        feedback: currentSubmission.reviewerFeedback,
+        automatedChecks: currentSubmission.automatedChecks,
+        totalVersions: history.length,
+        previousVersions: currentSubmission.previousVersions,
       });
       return true;
     } catch (error) {
@@ -1098,8 +1153,11 @@ export async function handleMarketplaceRoutes(
 
   const method = req.method || 'GET';
 
-  // Publisher routes
-  if (pathname.startsWith('/api/marketplace/publisher')) {
+  // Publisher routes (includes /api/marketplace/review/status/:id)
+  if (
+    pathname.startsWith('/api/marketplace/publisher') ||
+    pathname.startsWith('/api/marketplace/review/status')
+  ) {
     return handlePublisherRoutes(req, res, pathname, method);
   }
 
@@ -1147,6 +1205,7 @@ export function isMarketplaceRoute(pathname: string): boolean {
   return (
     pathname.startsWith('/api/marketplace/') &&
     (pathname.startsWith('/api/marketplace/publisher') ||
+      pathname.startsWith('/api/marketplace/review') || // NEW: review queue routes
       pathname.startsWith('/api/marketplace/browse') ||
       pathname.startsWith('/api/marketplace/install') ||
       pathname.startsWith('/api/marketplace/usage') ||

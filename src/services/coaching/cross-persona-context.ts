@@ -91,6 +91,63 @@ function getOrCreateContext(userId: string): UserTeamContext {
 }
 
 // ============================================================================
+// SESSION DATA MANAGER INTEGRATION
+// ============================================================================
+
+/**
+ * Clear ALL cached data for a specific user.
+ * Called by SessionDataManager when a session ends.
+ * This is CRITICAL for preventing memory leaks.
+ */
+export function clearUserContext(userId: string): void {
+  const hadData = userContexts.has(userId);
+  userContexts.delete(userId);
+
+  if (hadData) {
+    log.debug({ userId }, '🧹 CrossPersonaContext user cache cleared');
+  }
+}
+
+/**
+ * Clear ALL cached data (for shutdown).
+ */
+export function clearAllContexts(): void {
+  userContexts.clear();
+  log.info('🧹 CrossPersonaContext all caches cleared');
+}
+
+/**
+ * Get cache statistics for monitoring.
+ */
+export function getContextStats(): { users: number; entries: number } {
+  let totalEntries = 0;
+  for (const ctx of userContexts.values()) {
+    totalEntries += ctx.sharedContexts.length;
+    totalEntries += ctx.crossPersonaItems.length;
+    totalEntries += ctx.personaInteractions.size;
+  }
+  return { users: userContexts.size, entries: totalEntries };
+}
+
+/**
+ * Register with SessionDataManager (call during initialization).
+ */
+export async function registerWithSessionDataManager(): Promise<void> {
+  try {
+    const { getSessionDataManager } = await import('../session-data-manager.js');
+    getSessionDataManager().registerService({
+      name: 'CrossPersonaContext',
+      clearUserData: clearUserContext,
+      clearAllData: clearAllContexts,
+      getStats: getContextStats,
+    });
+  } catch {
+    // SessionDataManager may not be initialized yet
+    log.debug('SessionDataManager not available for CrossPersonaContext registration');
+  }
+}
+
+// ============================================================================
 // CONTEXT SHARING
 // ============================================================================
 

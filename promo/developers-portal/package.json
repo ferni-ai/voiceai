@@ -1,0 +1,15 @@
+{
+  "name": "ferni-developers-portal",
+  "version": "1.0.0",
+  "description": "Ferni Developer Documentation Portal",
+  "scripts": {
+    "dev": "eleventy --serve --port=8081",
+    "build": "eleventy",
+    "build:prod": "eleventy && node scripts/minify.js",
+    "clean": "rm -rf _site"
+  },
+  "devDependencies": {
+    "@11ty/eleventy": "^2.0.1",
+    "@11ty/eleventy-plugin-syntaxhighlight": "^5.0.0"
+  }
+}

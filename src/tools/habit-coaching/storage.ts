@@ -276,6 +276,7 @@ export function runtimeHabitToStored(habit: EnhancedHabit): EnhancedHabitData {
  */
 export function clearUserCache(userId: string): void {
   userCoachDataCache.delete(userId);
+  getLogger().debug({ userId }, '🧹 HabitCoaching user cache cleared');
 }
 
 /**
@@ -283,6 +284,7 @@ export function clearUserCache(userId: string): void {
  */
 export function clearAllCache(): void {
   userCoachDataCache.clear();
+  getLogger().info('🧹 HabitCoaching all caches cleared');
 }
 
 /**
@@ -290,4 +292,29 @@ export function clearAllCache(): void {
  */
 export function updateCachedData(userId: string, data: UserHabitCoachData): void {
   userCoachDataCache.set(userId, data);
+}
+
+/**
+ * Get cache statistics for monitoring.
+ */
+export function getHabitCoachingStats(): { users: number; entries: number } {
+  return { users: userCoachDataCache.size, entries: userCoachDataCache.size };
+}
+
+/**
+ * Register with SessionDataManager (call during initialization).
+ */
+export async function registerHabitCoachingWithSessionManager(): Promise<void> {
+  try {
+    const { getSessionDataManager } = await import('../../services/session-data-manager.js');
+    getSessionDataManager().registerService({
+      name: 'HabitCoaching',
+      clearUserData: clearUserCache,
+      clearAllData: clearAllCache,
+      getStats: getHabitCoachingStats,
+    });
+  } catch {
+    // SessionDataManager may not be initialized yet
+    getLogger().debug('SessionDataManager not available for HabitCoaching registration');
+  }
 }

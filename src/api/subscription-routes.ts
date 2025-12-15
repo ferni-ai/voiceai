@@ -171,7 +171,7 @@ async function createCheckout(ctx: RequestContext): Promise<ResponseContext> {
 
   try {
     // Get currency from locale or explicit currency
-    let currency = body.currency;
+    let { currency } = body;
     if (!currency && body.locale) {
       const { getCurrencyForLocale } = await import('../i18n/pricing.js');
       currency = getCurrencyForLocale(body.locale as 'en-US');

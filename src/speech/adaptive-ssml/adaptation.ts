@@ -2,7 +2,8 @@
  * Core Adaptive SSML Functions
  *
  * Base adaptive tagging and SSML adjustment functions.
- * Now integrates Alive Voice features for more human-like speech.
+ * Now integrates Alive Voice and Superhuman Voice features
+ * for truly "Better Than Human" speech.
  */
 
 import { tagTextWithSsmlPersonaAware } from '../../ssml/index.js';
@@ -10,6 +11,43 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { SpeechContext } from '../speech-context.js';
 import { sanitizeSsml, tagTextWithSsml } from '../ssml-tagger/index.js';
 import { makeVoiceAlive, type AliveVoiceContext } from './alive-voice.js';
+import {
+  applySuperhmanVoice,
+  getLastEmotion,
+  updateSuperhmanVoiceSession,
+  type SuperhumanVoiceContext,
+} from './superhuman-voice.js';
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+/**
+ * Extended speech context with superhuman voice parameters.
+ * Includes vulnerability, presence mode, and memory-informed context.
+ */
+export interface ExtendedSpeechContext extends SpeechContext {
+  /** Session ID for tracking */
+  sessionId?: string;
+
+  /** Vulnerability depth from vulnerability-matching system */
+  vulnerabilityDepth?: 'surface' | 'thoughtful' | 'personal' | 'vulnerable' | 'raw';
+
+  /** Presence level from presence-mode system */
+  presenceLevel?: 'normal' | 'gentle' | 'holding' | 'silent';
+
+  /** Known user context from memory (grief, stress, etc.) */
+  knownUserContext?: 'grieving' | 'stressed' | 'celebrating' | 'struggling' | 'growing' | null;
+
+  /** Relationship depth in turns */
+  relationshipTurns?: number;
+
+  /** Is the response to heavy content? */
+  isHeavyContent?: boolean;
+
+  /** Current detected emotion for the response */
+  currentEmotion?: string;
+}
 
 // ============================================================================
 // ADAPTIVE TAGGING
@@ -83,6 +121,77 @@ export function tagTextWithSsmlAdaptive(
   }
 
   return aliveResult.text;
+}
+
+/**
+ * Tag text with SSML including superhuman voice enhancements.
+ *
+ * This is the "Better Than Human" version that includes:
+ * - Prosodic mirroring (match user's pace)
+ * - Vulnerability voice softening
+ * - Silence presence phrases
+ * - Anticipatory comfort sounds
+ * - Memory-informed baseline
+ * - Emotional transition bridges
+ *
+ * @param text - The text to tag
+ * @param context - Extended speech context with superhuman parameters
+ * @param personaId - Persona ID
+ */
+export function tagTextWithSsmlSuperhuman(
+  text: string,
+  context: ExtendedSpeechContext,
+  personaId?: string
+): string {
+  if (!text || text.trim().length === 0) {
+    return text;
+  }
+
+  const sessionId = context.sessionId || 'default';
+
+  // First apply standard adaptive tagging
+  const result = tagTextWithSsmlAdaptive(text, context, personaId);
+
+  // =========================================================================
+  // SUPERHUMAN VOICE ENHANCEMENTS
+  // Apply prosodic mirroring, vulnerability softening, presence phrases,
+  // anticipatory comfort sounds, memory-informed baseline, and
+  // emotional transition bridges for truly superhuman presence.
+  // =========================================================================
+  const superhumanContext: SuperhumanVoiceContext = {
+    sessionId,
+    personaId,
+    userWPM: context.userWPM,
+    userEnergy: context.userEnergy,
+    vulnerabilityDepth: context.vulnerabilityDepth,
+    presenceLevel: context.presenceLevel,
+    knownUserContext: context.knownUserContext,
+    relationshipTurns: context.relationshipTurns,
+    isHeavyContent: context.isHeavyContent || context.topicWeight === 'heavy',
+    topicWeight: context.topicWeight,
+    turnCount: context.turnCount,
+    previousEmotion: getLastEmotion(sessionId) || undefined,
+    currentEmotion: context.currentEmotion,
+  };
+
+  const superhumanResult = applySuperhmanVoice(result, superhumanContext);
+
+  if (superhumanResult.appliedEnhancements.length > 0) {
+    getLogger().debug(
+      {
+        enhancements: superhumanResult.appliedEnhancements,
+        speed: superhumanResult.speedMultiplier.toFixed(2),
+        volume: superhumanResult.volumeMultiplier.toFixed(2),
+        personaId,
+      },
+      '✨ Applied superhuman voice enhancements'
+    );
+
+    // Update session tracking
+    updateSuperhmanVoiceSession(sessionId, superhumanResult, context.currentEmotion);
+  }
+
+  return superhumanResult.text;
 }
 
 // ============================================================================

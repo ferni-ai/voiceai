@@ -21,12 +21,7 @@ import {
   type MomentType,
 } from '../services/trust-systems/our-songs.js';
 import { getLogger } from '../utils/safe-logger.js';
-import {
-  getDJOutroPhrase,
-  getDJTrackChangePhrase,
-  getMidSongMomentPhrase,
-  getMusicStoppedPhrase,
-} from './ambient-music.js';
+import { getMidSongMomentPhrase, getMusicStoppedPhrase } from './ambient-music.js';
 import {
   getDJEnhancements,
   initializeDJEnhancements,
@@ -146,11 +141,23 @@ export class DJBooth {
   private recentUserText = '';
   private lastOurSongCallback = 0;
 
+  // 🐛 FIX: Track when handoff is in progress to suppress music-ended phrases
+  private isHandoffActive = false;
+
   // 🎵 Music Humanization - makes interactions feel natural and fun
   private humanization: MusicHumanizationController;
   private conversationStartTime: number = Date.now();
   private recentTopics: string[] = [];
   private lastSpontaneousCheck = 0;
+
+  // 🐛 FIX: Store callback references so we can remove them on deactivate
+  // This prevents callback accumulation when DJ booth is re-initialized
+  private stateChangeCallback:
+    | ((state: MusicState, track: MusicTrack | null, isAmbient: boolean) => void)
+    | null = null;
+  private midSongCallback:
+    | ((track: MusicTrack, momentType: 'buildup' | 'drop' | 'highlight') => void)
+    | null = null;
 
   constructor(config: DJBoothConfig, existingMusicPreferences?: Partial<MusicPreferences>) {
     this.config = config;
@@ -212,6 +219,9 @@ export class DJBooth {
     this.state.isActive = false;
     this.clearAllTimers();
     this.stopVolumeFade();
+
+    // 🐛 FIX: Remove our callbacks from music player to prevent accumulation
+    this.cleanupMusicCallbacks();
 
     // Cleanup DJ Enhancements
     if (this.djEnhancements) {
@@ -446,6 +456,14 @@ export class DJBooth {
     return this.djEnhancements?.thinkingMusic.isThinkingMusicPlaying() ?? false;
   }
 
+  /**
+   * 🐛 FIX: Check if a handoff is currently in progress
+   * Used to suppress music-ended phrases during agent transitions
+   */
+  isHandoffInProgress(): boolean {
+    return this.isHandoffActive;
+  }
+
   // ==========================================================================
   // EMOTION-REACTIVE MUSIC (Phase 5)
   // ==========================================================================
@@ -656,6 +674,9 @@ export class DJBooth {
   onHandoff(toPersonaId: string): void {
     log.info('🎧 DJ Booth handling handoff', { to: toPersonaId });
 
+    // 🐛 FIX: Set handoff flag to suppress music-ended phrases during transition
+    this.isHandoffActive = true;
+
     // Track handoff in session flow
     this.djEnhancements?.sessionFlow.trackHandoff(this.config.personaId, toPersonaId);
 
@@ -673,6 +694,12 @@ export class DJBooth {
 
     // Update persona for subsequent DJ phrases
     this.config.personaId = toPersonaId;
+
+    // 🐛 FIX: Clear handoff flag after transition settles (1.5s covers fade + stop + buffer)
+    setTimeout(() => {
+      this.isHandoffActive = false;
+      log.debug('🎧 Handoff transition complete, music-ended phrases re-enabled');
+    }, 1500);
   }
 
   // ==========================================================================
@@ -685,15 +712,43 @@ export class DJBooth {
   private setupMusicCallbacks(): void {
     const player = getMusicPlayer();
 
-    player.setOnMusicStateChangeCallback((state, track, isAmbient) => {
+    // 🐛 FIX: Store callbacks so we can remove them later
+    this.stateChangeCallback = (state, track, isAmbient) => {
       this.handleMusicStateChange(state, track, isAmbient);
-    });
-
-    player.setOnMidSongMomentCallback((track, momentType) => {
-      // Convert music player moment types to our internal types
+    };
+    this.midSongCallback = (track, momentType) => {
       const djMomentType = momentType === 'highlight' ? 'drop' : 'buildup';
       this.handleMidSongMoment(track, djMomentType);
-    });
+    };
+
+    player.setOnMusicStateChangeCallback(this.stateChangeCallback);
+    player.setOnMidSongMomentCallback(this.midSongCallback);
+  }
+
+  /**
+   * 🐛 FIX: Remove our callbacks from music player to prevent accumulation
+   */
+  private cleanupMusicCallbacks(): void {
+    if (!this.stateChangeCallback && !this.midSongCallback) return;
+
+    try {
+      const player = getMusicPlayer();
+
+      // Remove our specific callbacks from EventEmitter
+      if (this.stateChangeCallback) {
+        player.off('stateChange', this.stateChangeCallback);
+        this.stateChangeCallback = null;
+      }
+      if (this.midSongCallback) {
+        player.off('midSongMoment', this.midSongCallback);
+        this.midSongCallback = null;
+      }
+
+      log.debug('🎧 DJ Booth callbacks cleaned up from music player');
+    } catch (e) {
+      // Music player might not be available
+      log.debug('🎧 Could not cleanup music callbacks (player may be disposed)');
+    }
   }
 
   /**
@@ -712,6 +767,17 @@ export class DJBooth {
     track: MusicTrack | null,
     isAmbient: boolean
   ): void {
+    // 🐛 FIX: Skip system sounds (session sounds like connect.mp3)
+    // These have track names like "sound-session-start", "sound-handoff"
+    // We don't want DJ Booth to process these short stingers as music
+    if (track?.name.startsWith('sound-')) {
+      log.debug('🔔 System sound state change (ignoring in DJ Booth)', {
+        state,
+        track: track.name,
+      });
+      return;
+    }
+
     const prevState = this.state.musicState;
     this.state.musicState = state;
     this.state.currentTrack = track;
@@ -949,8 +1015,8 @@ export class DJBooth {
         break;
 
       case 'appreciation':
-        // Only if enough time has passed since last one
-        if (Date.now() - this.lastAppreciationTime > 15000) {
+        // HUMANIZATION FIX: Increased from 15s to 45s - music should be enjoyed, not constantly commented on
+        if (Date.now() - this.lastAppreciationTime > 45000) {
           phrase = getMusicAppreciationComment(this.config.personaId, track);
           if (phrase) {
             this.lastAppreciationTime = Date.now();
@@ -959,7 +1025,8 @@ export class DJBooth {
         break;
 
       case 'check-in':
-        if (Date.now() - this.lastCheckInTime > 50000) {
+        // HUMANIZATION FIX: Increased from 50s to 120s - don't constantly ask "still enjoying this?"
+        if (Date.now() - this.lastCheckInTime > 120000) {
           const timePlaying = this.state.musicStartTime
             ? (Date.now() - this.state.musicStartTime) / 1000
             : 0;

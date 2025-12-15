@@ -15,7 +15,7 @@
  */
 
 import * as cartesia from '@livekit/agents-plugin-cartesia';
-import type { VoiceConfig, TTSOptions, PrewarmState } from './types.js';
+import type { PrewarmState, TTSOptions, VoiceConfig } from './types.js';
 
 // ============================================================================
 // ENVIRONMENT CONFIGURATION
@@ -104,10 +104,7 @@ let _prewarmPromise: Promise<void> | null = null;
  * const stream = tts.stream();
  * ```
  */
-export function createCartesiaTTS(
-  voiceId: string,
-  options?: Partial<TTSOptions>
-): cartesia.TTS {
+export function createCartesiaTTS(voiceId: string, options?: Partial<TTSOptions>): cartesia.TTS {
   const model = options?.model || CARTESIA_MODEL;
   const encoding = options?.encoding || 'pcm_s16le';
   const sampleRate = options?.sampleRate || 24000;
@@ -135,10 +132,7 @@ export function createCartesiaTTS(
  * @param config - Voice configuration
  * @returns Cartesia TTS instance
  */
-export function createTTSFromConfig(
-  personaName: string,
-  config: VoiceConfig
-): cartesia.TTS {
+export function createTTSFromConfig(personaName: string, config: VoiceConfig): cartesia.TTS {
   const voiceId = config.voiceId || DEFAULT_VOICE_IDS.FERNI;
   const model = config.model || CARTESIA_MODEL;
 
@@ -302,4 +296,4 @@ export function getVoiceIdForPersona(personaId: string): string {
 // RE-EXPORTS
 // ============================================================================
 
-export type { VoiceConfig, TTSOptions, PrewarmState } from './types.js';
+export type { PrewarmState, TTSOptions, VoiceConfig } from './types.js';

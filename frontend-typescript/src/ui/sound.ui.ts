@@ -26,6 +26,7 @@ type SoundName =
   | 'goodbye' // Warm, resolving goodbye (different from abrupt disconnect)
   | 'hangup' // Satisfying phone receiver click at moment of disconnect
   | 'enter' // Ferni enters/joins - dramatic entrance
+  | 'teamUnlock' // New teammate unlocked - celebratory!
   | 'click'
   | 'hover'
   | 'switch'
@@ -53,7 +54,7 @@ const MP3_SOUNDS: Partial<Record<SoundName, string>> = {
   connect: '/sounds/connect.mp3',
   disconnect: '/sounds/disconnect.mp3',
   goodbye: '/sounds/disconnect.mp3', // Use disconnect sound for goodbye too
-  enter: '/sounds/dramatic-entrance.mp3', // Ferni enters the room
+  // enter: Uses synthesized C major chord (C4→E4→G4→C5) - the "magic" sound!
   // hangup uses synth-only for that satisfying click feel
 };
 
@@ -86,6 +87,7 @@ const GLOBAL_SOUND_COOLDOWN = 100;
 const SAME_SOUND_COOLDOWN: Partial<Record<SoundName, number>> = {
   success: 2000, // Success shouldn't repeat quickly
   celebrate: 2000, // Same for celebrate
+  teamUnlock: 3000, // Team unlock is a ceremony - don't repeat
   connect: 1000, // Connection sounds need gap
   disconnect: 1000,
   goodbye: 3000, // Goodbye is a ceremony - don't repeat
@@ -191,6 +193,18 @@ const SOUNDS: Record<SoundName, SoundConfig> = {
     volume: 0.1,
     attack: 0.03,
     decay: 0.2,
+  },
+  // 🎉 TEAM UNLOCK - New teammate joins your roster!
+  // Warm, celebratory ascending arpeggio - like a friend arriving
+  // G major add9 voicing: G3→B3→D4→A4 (warmer, more "welcome" feeling)
+  teamUnlock: {
+    frequencies: [196.0, 246.94, 293.66, 440.0], // G3, B3, D4, A4
+    delays: [0, 0.08, 0.16, 0.28],
+    duration: 0.3,
+    type: 'sine',
+    volume: 0.12,
+    attack: 0.04,
+    decay: 0.25,
   },
   click: {
     frequency: 1200,
@@ -510,6 +524,9 @@ export function playSuccess(): void {
 export function playCelebrate(): void {
   play('celebrate');
 }
+export function playTeamUnlock(): void {
+  play('teamUnlock');
+}
 
 // ============================================================================
 // CLEANUP
@@ -539,6 +556,7 @@ export const soundUI = {
   playGoodbye,
   playHangup,
   playEnter,
+  playTeamUnlock,
   playClick,
   playSwitch,
   playSuccess,

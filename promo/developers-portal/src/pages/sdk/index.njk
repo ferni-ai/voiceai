@@ -1,0 +1,657 @@
+---
+layout: layouts/base.njk
+title: SDK Documentation
+description: Build voice AI agents with the Ferni SDK
+---
+
+<section class="hero" style="padding-bottom: var(--space-12);">
+  <div class="container">
+    <div class="hero-eyebrow">SDK Documentation</div>
+    <h1>Build Voice AI Agents<br><span class="accent">That Feel Human</span></h1>
+    <p class="hero-subtitle">
+      The Ferni SDK provides everything you need to create voice AI agents with personality,
+      emotion intelligence, and natural conversation flow.
+    </p>
+  </div>
+</section>
+
+<section class="section" style="padding-top: var(--space-8);">
+  <div class="container container-narrow">
+
+    <!-- Installation -->
+    <div style="margin-bottom: var(--space-12);">
+      <h2 style="margin-bottom: var(--space-4);">Installation</h2>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Install the Ferni SDK via npm or pnpm:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">bash</span>
+        </div>
+        <div class="code-content">
+          <pre><code># Using npm
+npm install @ferni/agents
+
+# Using pnpm (recommended - 4x faster)
+pnpm add @ferni/agents</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Start -->
+    <div style="margin-bottom: var(--space-12);">
+      <h2 style="margin-bottom: var(--space-4);">Quick Start</h2>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Create your first voice AI agent in minutes:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">typescript</span>
+        </div>
+        <div class="code-content">
+          <pre><code class="language-typescript">import { createVoiceAgent } from '@ferni/agents';
+
+const agent = await createVoiceAgent({
+  personaId: 'my-coach',
+  voice: {
+    provider: 'cartesia',
+    voiceId: 'a0e99841-438c-4a64-b679-ae501e7d6091',
+  },
+  personality: {
+    warmth: 0.85,
+    humorLevel: 0.6,
+    formality: 0.3,
+  },
+});
+
+// Start listening
+await agent.start();
+console.log('Agent is ready to talk!');</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Persona Bundle Structure -->
+    <div style="margin-bottom: var(--space-12);">
+      <h2 style="margin-bottom: var(--space-4);">Persona Bundle Structure</h2>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Personas are the heart of Ferni agents. Each persona bundle contains identity, behaviors, and knowledge:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">directory structure</span>
+        </div>
+        <div class="code-content">
+          <pre><code>bundles/my-coach/
+├── persona.manifest.json      # Configuration & metadata
+├── identity/
+│   ├── system-prompt.md       # Core personality prompt
+│   ├── biography.md           # Background story
+│   └── directors-notes.md     # Behavioral guidelines
+├── content/
+│   ├── behaviors/
+│   │   ├── greetings.json     # Opening lines & greetings
+│   │   ├── emotional-intelligence.json
+│   │   ├── backchannels.json  # Active listening ("mm-hmm")
+│   │   └── cognitive.json     # Reasoning style
+│   ├── voice/
+│   │   └── expressions.json   # Voice expression patterns
+│   ├── stories/
+│   │   └── anecdotes.json     # Personal stories to share
+│   └── knowledge/
+│       └── expertise.json     # Domain knowledge
+└── index.ts                   # Entry point</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manifest Schema -->
+    <div style="margin-bottom: var(--space-12);">
+      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
+        <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">1</div>
+        <h2 style="margin: 0;">persona.manifest.json Schema</h2>
+      </div>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        The manifest defines your agent's core configuration:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">persona.manifest.json</span>
+        </div>
+        <div class="code-content">
+          <pre><code class="language-json">{
+  "identity": {
+    "id": "my-coach",
+    "name": "Luna",
+    "display_name": "Luna the Life Coach",
+    "description": "Your thoughtful companion for growth",
+    "self_reference": "Luna"
+  },
+
+  "voice": {
+    "provider": "cartesia",
+    "voice_id": "a0e99841-438c-4a64-b679-ae501e7d6091",
+    "default_rate": "medium"
+  },
+
+  "personality": {
+    "warmth": 0.85,
+    "humor_level": 0.6,
+    "formality": 0.3,
+    "energy": 0.8,
+    "traits": ["empathetic", "encouraging", "insightful"]
+  },
+
+  "cognitive": {
+    "reasoning_style": "empathetic",
+    "uncertainty_response": "synthesize",
+    "attention_focus": ["emotions", "relationships", "growth"],
+    "adaptiveness": 0.85
+  },
+
+  "role": {
+    "id": "life-coach",
+    "domains": ["life-coaching", "goal-setting", "personal-growth"],
+    "can_handoff": true
+  }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Voice Configuration -->
+    <div style="margin-bottom: var(--space-12);">
+      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
+        <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">2</div>
+        <h2 style="margin: 0;">Voice Configuration</h2>
+      </div>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Configure voice synthesis with Cartesia:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">typescript</span>
+        </div>
+        <div class="code-content">
+          <pre><code class="language-typescript">// In persona.manifest.json
+{
+  "voice": {
+    "provider": "cartesia",
+    "voice_id": "a0e99841-438c-4a64-b679-ae501e7d6091",
+    "default_rate": "medium"  // slow, medium, fast
+  },
+
+  "speech_characteristics": {
+    "base_speed_multiplier": 0.85,  // 0.5-2.0
+    "pause_multiplier": 1.0,         // Adjust pauses
+    "thinking_sound_frequency": 0.45, // "um", "uh" frequency
+    "emphasis_style": "moderate"      // subtle, moderate, dramatic
+  },
+
+  "emotional": {
+    "voice_expression": {
+      "mirroring_level": 0.6,        // Mirror user's emotion
+      "default_tone": "warm",
+      "contextual_tones": {
+        "distressed_user": "compassionate",
+        "celebrating_user": "warm",
+        "confused_user": "patient",
+        "angry_user": "calm"
+      }
+    }
+  }
+}</code></pre>
+        </div>
+      </div>
+      <p style="color: var(--text-secondary); margin-top: var(--space-4);">
+        Browse available voices at <a href="https://cartesia.ai/voices" target="_blank">cartesia.ai/voices</a>
+      </p>
+    </div>
+
+    <!-- Personality Traits -->
+    <div style="margin-bottom: var(--space-12);">
+      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
+        <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">3</div>
+        <h2 style="margin: 0;">Personality Traits</h2>
+      </div>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Define your agent's personality with numeric scales and traits:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">json</span>
+        </div>
+        <div class="code-content">
+          <pre><code class="language-json">{
+  "personality": {
+    "warmth": 0.9,          // 0.0 (cold) - 1.0 (very warm)
+    "humor_level": 0.8,     // 0.0 (serious) - 1.0 (playful)
+    "formality": 0.3,       // 0.0 (casual) - 1.0 (formal)
+    "directness": 0.7,      // 0.0 (indirect) - 1.0 (blunt)
+    "energy": 0.85,         // 0.0 (calm) - 1.0 (energetic)
+
+    "humor_style": [
+      "dry_wit",
+      "self_deprecating",
+      "observational"
+    ],
+
+    "traits": [
+      "empathetic",
+      "curious",
+      "patient",
+      "encouraging",
+      "insightful"
+    ]
+  }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Handoff System -->
+    <div style="margin-bottom: var(--space-12);">
+      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
+        <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">4</div>
+        <h2 style="margin: 0;">Agent Handoff System</h2>
+      </div>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Enable seamless handoffs between specialized agents:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">json</span>
+        </div>
+        <div class="code-content">
+          <pre><code class="language-json">{
+  "role": {
+    "id": "life-coach",
+    "domains": ["life-coaching", "personal-growth"],
+    "can_handoff": true,
+    "handoff_targets": ["@team"]  // Can handoff to any team member
+  },
+
+  "handoff": {
+    "transition": {
+      "style": "warm",         // warm | standard | dramatic | subtle
+      "emoji": "🎯",           // Empty string = auto-derive
+      "sound": "connect",      // Transition sound effect
+      "delay_multiplier": 1.0
+    },
+
+    "entrance_phrases": [
+      "Hey! I'm here now. What can we explore together?",
+      "Back with you! What's next?"
+    ],
+
+    "triggers": [
+      "talk to coach",
+      "life coaching",
+      "need guidance"
+    ]
+  },
+
+  "team": {
+    "membership": "ferni-team",
+    "coordinator": true,         // This agent coordinates handoffs
+    "handoff_triggers": [
+      "hey coach",
+      "talk to luna"
+    ]
+  }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tool Integration -->
+    <div style="margin-bottom: var(--space-12);">
+      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
+        <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">5</div>
+        <h2 style="margin: 0;">Tool Integration</h2>
+      </div>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Give your agent access to tools organized by domain:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">json</span>
+        </div>
+        <div class="code-content">
+          <pre><code class="language-json">{
+  "tools": {
+    "domains": [
+      "memory",           // Remember user preferences
+      "information",      // Web search, news, weather
+      "entertainment",    // Music, games
+      "awareness",        // Mindfulness, presence
+      "relationships",    // Connection, vulnerability
+      "simple-utilities"  // Time, date, timers
+    ],
+
+    "required": [
+      "rememberAboutMe",
+      "whatDoYouKnowAboutMe"
+    ],
+
+    "optional": [
+      "searchWeb",
+      "getWeather",
+      "playMusic"
+    ],
+
+    "forbidden": [
+      "medicalDiagnosis",  // Out of scope
+      "legalAdvice"
+    ]
+  }
+}</code></pre>
+        </div>
+      </div>
+      <p style="color: var(--text-secondary); margin-top: var(--space-4);">
+        See <a href="/api/tools">Tool Domains Reference</a> for all available tools.
+      </p>
+    </div>
+
+    <!-- Emotional Intelligence -->
+    <div style="margin-bottom: var(--space-12);">
+      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
+        <div style="width: 40px; height: 40px; background: var(--accent-primary); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">6</div>
+        <h2 style="margin: 0;">Emotional Intelligence</h2>
+      </div>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Enable "Better than Human" emotional intelligence features:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">json</span>
+        </div>
+        <div class="code-content">
+          <pre><code class="language-json">{
+  "emotional": {
+    "emotion_detection": {
+      "enabled": true,
+      "sensitivity": "high",      // low, medium, high
+      "response_delay_ms": 400
+    },
+
+    "voice_expression": {
+      "mirroring_level": 0.6,     // Mirror user's emotion (0-1)
+      "default_tone": "warm",
+      "contextual_tones": {
+        "distressed_user": "compassionate",
+        "celebrating_user": "warm",
+        "confused_user": "patient"
+      }
+    },
+
+    "empathy": {
+      "acknowledgment_frequency": "always",
+      "validation_style": "warm",
+      "comfort_phrases": [
+        "I hear you. That sounds really hard.",
+        "It's okay to feel this way."
+      ]
+    }
+  },
+
+  "humanization": {
+    "preset": "therapeutic",      // casual | professional | therapeutic
+
+    "overrides": {
+      "disfluency": {
+        "enabled": true,
+        "frequency": 0.12         // "um", "uh" frequency
+      },
+
+      "active_listening": {
+        "enabled": true,
+        "backchannel_probability": 0.4  // "mm-hmm", "I see"
+      },
+
+      "conversational_memory": {
+        "enabled": true,
+        "callback_probability": 0.3     // Reference past topics
+      }
+    }
+  }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLI Commands -->
+    <div style="margin-bottom: var(--space-12);">
+      <h2 style="margin-bottom: var(--space-4);">CLI Commands</h2>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Manage your agents with the built-in CLI:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">bash</span>
+        </div>
+        <div class="code-content">
+          <pre><code># Create a new agent from template
+npm run agents create my-coach --template coach
+
+# Available templates:
+# - coach      (Life coaching, personal growth)
+# - analyst    (Research, data analysis)
+# - assistant  (Productivity, organization)
+# - creative   (Writing, brainstorming)
+
+# List all registered agents
+npm run agents list
+
+# Validate agent configuration
+npm run agents validate my-coach
+
+# Build agent bundle for deployment
+npm run persona:build my-coach</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Testing Your Agent -->
+    <div style="margin-bottom: var(--space-12);">
+      <div style="display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-4);">
+        <div style="width: 40px; height: 40px; background: var(--success); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--bg-code);">7</div>
+        <h2 style="margin: 0;">Testing Your Agent</h2>
+      </div>
+      <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+        Run your agent locally for testing:
+      </p>
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span class="code-dot code-dot-red"></span>
+            <span class="code-dot code-dot-yellow"></span>
+            <span class="code-dot code-dot-green"></span>
+          </div>
+          <span class="code-lang">bash</span>
+        </div>
+        <div class="code-content">
+          <pre><code># Start development server with your agent
+PERSONA_ID=my-coach npm run dev
+
+# Output:
+# 🎙️  Voice agent running on http://localhost:8080
+# 📡 WebSocket server ready
+# 🤖 Loaded persona: my-coach (Luna)
+# ✨ Ready to chat!
+
+# Test specific features
+npm run test -- --grep "my-coach"
+
+# Validate voice configuration
+npm run validate:voices
+
+# Check humanization settings
+npm run validate:humanization</code></pre>
+        </div>
+      </div>
+      <p style="color: var(--text-secondary); margin-top: var(--space-4);">
+        Open <code>http://localhost:8080</code> in your browser and start talking to your agent!
+      </p>
+    </div>
+
+    <!-- Core Concepts -->
+    <div style="margin-bottom: var(--space-12);">
+      <h2 style="margin-bottom: var(--space-4);">Core Concepts</h2>
+
+      <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-6); margin-bottom: var(--space-4);">
+        <h3 style="margin-bottom: var(--space-2);">Cognitive Profiles</h3>
+        <p style="color: var(--text-secondary); margin-bottom: var(--space-3);">
+          Define how your agent reasons and processes information:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 2;">
+          <li><strong>narrative</strong> - Story-driven reasoning (good for coaches)</li>
+          <li><strong>analytical</strong> - Data-driven pattern recognition (researchers)</li>
+          <li><strong>empathetic</strong> - Emotion-first approach (therapists)</li>
+          <li><strong>pragmatic</strong> - Action-oriented solutions (assistants)</li>
+          <li><strong>systematic</strong> - Process-oriented structure (organizers)</li>
+          <li><strong>intuitive</strong> - Wisdom-based contemplation (philosophers)</li>
+        </ul>
+      </div>
+
+      <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-6); margin-bottom: var(--space-4);">
+        <h3 style="margin-bottom: var(--space-2);">Humanization Presets</h3>
+        <p style="color: var(--text-secondary); margin-bottom: var(--space-3);">
+          Choose how natural your agent's speech patterns should be:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 2;">
+          <li><strong>casual</strong> - Friendly, conversational tone</li>
+          <li><strong>professional</strong> - Clear, business-appropriate</li>
+          <li><strong>therapeutic</strong> - Warm, patient, reflective</li>
+        </ul>
+      </div>
+
+      <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-6);">
+        <h3 style="margin-bottom: var(--space-2);">Context Builders</h3>
+        <p style="color: var(--text-secondary); margin-bottom: var(--space-3);">
+          Enrich conversations with intelligent context:
+        </p>
+        <ul style="color: var(--text-secondary); line-height: 2;">
+          <li><strong>Memory</strong> - Remember user preferences and history</li>
+          <li><strong>Emotion</strong> - Detect and respond to emotional state</li>
+          <li><strong>Time</strong> - Adapt to time of day and special dates</li>
+          <li><strong>Topics</strong> - Track conversation themes</li>
+          <li><strong>Superhuman Insights</strong> - Surface patterns users don't see</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Advanced Features -->
+    <div style="margin-bottom: var(--space-12);">
+      <h2 style="margin-bottom: var(--space-4);">Advanced Features</h2>
+
+      <div class="grid grid-2" style="gap: var(--space-4);">
+        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-6);">
+          <h4 style="margin-bottom: var(--space-2);">🎭 Persona Behaviors</h4>
+          <p style="color: var(--text-secondary); font-size: var(--text-sm);">
+            Define greetings, backchannels, self-doubt moments, and vulnerability patterns
+            in JSON files for fine-grained personality control.
+          </p>
+        </div>
+
+        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-6);">
+          <h4 style="margin-bottom: var(--space-2);">📖 Story System</h4>
+          <p style="color: var(--text-secondary); font-size: var(--text-sm);">
+            Add personal anecdotes and stories that your agent can naturally weave into
+            conversations when contextually appropriate.
+          </p>
+        </div>
+
+        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-6);">
+          <h4 style="margin-bottom: var(--space-2);">🧠 Domain Knowledge</h4>
+          <p style="color: var(--text-secondary); font-size: var(--text-sm);">
+            Provide specialized expertise files that give your agent deep knowledge in
+            specific domains without bloating the main system prompt.
+          </p>
+        </div>
+
+        <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-6);">
+          <h4 style="margin-bottom: var(--space-2);">⏰ Time-Based Moods</h4>
+          <p style="color: var(--text-secondary); font-size: var(--text-sm);">
+            Configure different energy levels and moods based on time of day or special
+            dates for more authentic interactions.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Next Steps -->
+    <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-2xl); padding: var(--space-8);">
+      <h2 style="margin-bottom: var(--space-4);">Next Steps</h2>
+      <div class="grid grid-2" style="gap: var(--space-4);">
+        <a href="/api/" class="card" style="padding: var(--space-4);">
+          <h4 style="margin-bottom: var(--space-2);">API Reference</h4>
+          <p style="font-size: var(--text-sm); margin: 0;">Explore all available endpoints and tools</p>
+        </a>
+        <a href="/examples/" class="card" style="padding: var(--space-4);">
+          <h4 style="margin-bottom: var(--space-2);">Example Agents</h4>
+          <p style="font-size: var(--text-sm); margin: 0;">See real-world persona implementations</p>
+        </a>
+        <a href="/guides/cognitive-profiles/" class="card" style="padding: var(--space-4);">
+          <h4 style="margin-bottom: var(--space-2);">Cognitive Profiles Guide</h4>
+          <p style="font-size: var(--text-sm); margin: 0;">Learn how agents think and reason</p>
+        </a>
+        <a href="https://marketplace.ferni.ai" class="card" style="padding: var(--space-4);">
+          <h4 style="margin-bottom: var(--space-2);">Publish to Marketplace</h4>
+          <p style="font-size: var(--text-sm); margin: 0;">Share your agent with the world</p>
+        </a>
+      </div>
+    </div>
+
+  </div>
+</section>

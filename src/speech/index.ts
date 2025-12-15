@@ -31,6 +31,20 @@ export {
 } from './session-cleanup.js';
 
 // ============================================================================
+// FEEDBACK COORDINATOR (Global budget to prevent over-feedback)
+// ============================================================================
+
+export {
+  advanceTurn,
+  canAddFeedback,
+  getFeedbackStats,
+  recordFeedback,
+  resetAllFeedbackCoordinators,
+  resetFeedbackCoordinator,
+  type FeedbackType,
+} from './feedback-coordinator.js';
+
+// ============================================================================
 // SESSION DEBUG & MONITORING (For diagnostics)
 // ============================================================================
 
@@ -573,7 +587,7 @@ export {
   type CartesiaEmotion,
   type EmotionContext,
   type FillerConfig,
-  type HumanizationOptions,
+  type HumanizationOptions as AdvancedHumanizationOptions,
   type RhythmVariation,
 } from './advanced-humanization.js';
 
@@ -666,79 +680,164 @@ export {
 // ============================================================================
 
 export {
-  // Anticipatory Prosody - react before user finishes speaking
-  anticipateResponse,
-  detectTrajectory,
-  detectTrajectoryType,
-  getActiveAnticipatorySessionCount,
-  getAnticipatorySession,
-  getImmediateMicroReaction,
-  getLastAnticipation,
-  resetAnticipatorySession,
-  shouldAnticipate,
-  updateAnticipation,
   // Micro-Reactions - quick vocal reactions (<150ms)
   COMPOUND_REACTIONS,
-  MICRO_REACTIONS,
-  detectContext,
-  detectContexts,
-  getActiveMicroReactionSessionCount,
-  getCompoundReaction,
-  getMicroReaction,
-  getMicroReactionSession,
-  getReactionsForContext,
-  getSessionMicroReaction,
-  recordReaction,
-  resetMicroReactionSession,
-  selectMicroReaction,
-  shouldUseReaction,
-  // Conversation Prosody - context-aware across turns
-  addContextualPause,
-  applyProsodyRecommendation,
-  calculateTrajectory,
-  getActiveConversationStateCount,
-  getConversationState,
-  getProsodyRecommendation,
-  getSessionProsodyRecommendation,
-  isHeavyTopic,
-  resetConversationState,
-  updateConversationState,
   // Rich Disfluencies - natural speech patterns
   DISFLUENCY_PATTERNS,
+  MICRO_REACTIONS,
+  // Conversation Prosody - context-aware across turns
+  addContextualPause,
   addExcitedInterruption,
   addRealizationMoment,
   addThinkingStart,
   addTrailingOff,
-  findInjectionPoints,
-  getActiveDisfluencySessionCount,
-  getDisfluenciesForEmotion,
-  getDisfluencySession,
-  getRandomSsmlPattern,
-  injectDisfluency,
-  resetDisfluencySession,
-  selectWeightedDisfluency,
-  smartInjectDisfluency,
+  // Anticipatory Prosody - react before user finishes speaking
+  anticipateResponse,
+  applyProsodyRecommendation,
+  calculateTrajectory,
+  detectContext,
+  detectContexts,
+  detectTrajectory,
+  detectTrajectoryType,
   // Pipeline Integration - optimized emotion→SSML path
   enhanceResponseWithSesame,
+  findInjectionPoints,
+  getActiveAnticipatorySessionCount,
+  getActiveConversationStateCount,
+  getActiveDisfluencySessionCount,
+  getActiveMicroReactionSessionCount,
   getActiveSesamePipelineSessionCount,
+  getAnticipatorySession,
+  getCompoundReaction,
+  getConversationState,
+  getDisfluenciesForEmotion,
+  getDisfluencySession,
+  getImmediateMicroReaction,
+  getLastAnticipation,
+  getMicroReaction,
+  getMicroReactionSession,
   getPreparedResponse,
+  getProsodyRecommendation,
+  getRandomSsmlPattern,
+  getReactionsForContext,
   getSesamePipelineMetrics,
+  getSessionMicroReaction,
+  getSessionProsodyRecommendation,
+  injectDisfluency,
+  isHeavyTopic,
   processPartialTranscript,
   quickEnhance,
+  recordReaction,
+  resetAnticipatorySession,
+  resetConversationState,
+  resetDisfluencySession,
+  resetMicroReactionSession,
   resetSesamePipeline,
+  selectMicroReaction,
+  selectWeightedDisfluency,
+  shouldAnticipate,
+  shouldUseReaction,
+  smartInjectDisfluency,
   startNewTurn,
+  updateAnticipation,
+  updateConversationState,
   // Types
   type AnticipatedResponse,
   type ConversationEmotionalState,
   type ConversationProsodyRecommendation,
   type DisfluencyInjection,
-  type DisfluencyPattern,
-  type DisfluencyType as SesameDisfluencyType, // Aliased to avoid conflict with fluency-analysis
-  type EmotionalTrajectory,
+  type DisfluencyPattern, // Aliased to avoid conflict with fluency-analysis
+  type EmotionalTrajectory as SesameEmotionalTrajectory,
   type MicroReaction,
   type MicroReactionContext,
   type MicroReactionType,
   type PartialTranscript,
   type PreparedResponse,
+  type DisfluencyType as SesameDisfluencyType,
   type SesameEnhancedResult,
 } from './sesame-inspired/index.js';
+
+// ============================================================================
+// SPEECH ORCHESTRATOR (Unified coordination layer - NEW!)
+// ============================================================================
+
+export {
+  SpeechOrchestrator,
+  getActiveOrchestratorCount,
+  getOrchestrator,
+  resetAllOrchestrators,
+  resetOrchestrator,
+  type AnticipatedResult,
+  type AnticipationContext,
+  type BackchannelRequest,
+  type BackchannelResponse,
+  type HumanizationOptions,
+  type HumanizedResponse,
+  type ListeningAnalysisOptions,
+  type ListeningAnalysisResult,
+  type SpeechOrchestratorContext,
+} from './orchestrator/index.js';
+
+// ============================================================================
+// SPEECH CONFIG (Centralized constants - NEW!)
+// ============================================================================
+
+export {
+  ANTICIPATION_CONFIG,
+  BACKCHANNELING_CONFIG,
+  BREATH_DETECTION_CONFIG,
+  EMOTION_DETECTION_CONFIG,
+  FEEDBACK_COORDINATION_CONFIG,
+  FFT_CONFIG,
+  HUMANIZATION_CONFIG,
+  LATENCY_TARGETS_MS,
+  TURN_PREDICTION_CONFIG,
+  adjustTimingForTopicWeight,
+  getBackchannelConfig,
+  type BackchannelMode as ConfigBackchannelMode,
+  type EmotionType as ConfigEmotionType,
+  type TopicWeight as ConfigTopicWeight,
+} from './config/index.js';
+
+// ============================================================================
+// PERSONA VOICE LOADER (Dynamic loading from bundles - NEW!)
+// ============================================================================
+
+export {
+  clearVoiceDataCache,
+  getBackchannelByCategorySync,
+  getBackchannelSync,
+  getCatchphraseSync,
+  getExpressionSync,
+  getLoadedPersonaCount,
+  getSilenceFillerSync,
+  hasVoiceDataLoaded,
+  loadPersonaVoiceData,
+  preloadCommonPersonaVoice,
+  type PersonaBackchannels,
+  type PersonaCatchphrases,
+  type PersonaExpressions,
+  type PersonaVoiceData,
+} from './persona-voice-loader.js';
+
+// ============================================================================
+// UNIFIED ANTICIPATION PIPELINE (NEW!)
+// ============================================================================
+
+export {
+  AnticipationPipeline,
+  EmotionPredictor,
+  IntentPredictor,
+  getActiveAnticipationPipelineCount,
+  getAnticipationPipeline,
+  resetAllAnticipationPipelines,
+  resetAnticipationPipeline,
+  DEFAULT_ANTICIPATION_OPTIONS,
+  type AnticipationContext as UnifiedAnticipationContext,
+  type AnticipationOptions,
+  type AnticipationResult,
+  type EmotionalPrediction,
+  type EmotionalTrajectory as AnticipationEmotionalTrajectory,
+  type IntentCategory,
+  type IntentPrediction,
+} from './anticipation/index.js';

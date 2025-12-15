@@ -82,6 +82,9 @@ import { resetEnhancedBackchannelingEngine } from './enhanced-backchanneling.js'
 // Catchphrase tracking
 import { resetSessionCatchphraseTracker } from './response-naturalness.js';
 
+// Feedback coordination (global budget to prevent over-feedback)
+import { resetFeedbackCoordinator } from './feedback-coordinator.js';
+
 // Unified backchanneling
 import { resetBackchanneling } from './backchanneling/index.js';
 
@@ -96,11 +99,23 @@ import { resetSelfAwarenessTracker } from '../conversation/self-awareness-loop.j
 // Sesame-inspired prosody (state-of-the-art expressiveness)
 import {
   resetAnticipatorySession,
-  resetMicroReactionSession,
   resetConversationState,
   resetDisfluencySession,
+  resetMicroReactionSession,
   resetSesamePipeline,
 } from './sesame-inspired/index.js';
+
+// Superhuman voice (Better Than Human enhancements)
+import { resetSuperhmanVoiceSession } from './adaptive-ssml/superhuman-voice.js';
+
+// Active presence (quality over quantity presence markers)
+import { resetActivePresenceSession } from './adaptive-ssml/active-presence.js';
+
+// Speech orchestrator (unified coordination layer)
+import { resetOrchestrator } from './orchestrator/index.js';
+
+// Unified anticipation pipeline
+import { resetAnticipationPipeline } from './anticipation/index.js';
 
 const log = getLogger().child({ module: 'SpeechSessionCleanup' });
 
@@ -241,6 +256,7 @@ export function cleanupSpeechSession(
   safeCleanup('enhancedBackchanneling', () => resetEnhancedBackchannelingEngine(sessionId));
   safeCleanup('liveBackchanneling', () => resetLiveBackchanneling(sessionId));
   safeCleanup('catchphraseTracker', () => resetSessionCatchphraseTracker(sessionId));
+  safeCleanup('feedbackCoordinator', () => resetFeedbackCoordinator(sessionId));
 
   // ============================================================================
   // CONVERSATION AWARENESS TRACKERS
@@ -259,6 +275,30 @@ export function cleanupSpeechSession(
   safeCleanup('conversationProsody', () => resetConversationState(sessionId));
   safeCleanup('richDisfluencies', () => resetDisfluencySession(sessionId));
   safeCleanup('sesamePipeline', () => resetSesamePipeline(sessionId));
+
+  // ============================================================================
+  // SUPERHUMAN VOICE (Better Than Human enhancements)
+  // ============================================================================
+
+  safeCleanup('superhumanVoice', () => resetSuperhmanVoiceSession(sessionId));
+
+  // ============================================================================
+  // ACTIVE PRESENCE (Quality over quantity presence markers)
+  // ============================================================================
+
+  safeCleanup('activePresence', () => resetActivePresenceSession(sessionId));
+
+  // ============================================================================
+  // SPEECH ORCHESTRATOR (Unified coordination layer)
+  // ============================================================================
+
+  safeCleanup('orchestrator', () => resetOrchestrator(sessionId));
+
+  // ============================================================================
+  // UNIFIED ANTICIPATION PIPELINE
+  // ============================================================================
+
+  safeCleanup('anticipationPipeline', () => resetAnticipationPipeline(sessionId));
 
   // Remove from active sessions
   activeSessions.delete(sessionId);
@@ -394,6 +434,16 @@ export async function emergencySpeechCleanup(): Promise<void> {
     safeClearAll('cartesiaContexts', async () => {
       const m = await import('./cartesia-context-patch.js');
       m.clearAllContexts();
+    }),
+
+    safeClearAll('orchestrators', async () => {
+      const m = await import('./orchestrator/index.js');
+      m.resetAllOrchestrators();
+    }),
+
+    safeClearAll('anticipationPipelines', async () => {
+      const m = await import('./anticipation/index.js');
+      m.resetAllAnticipationPipelines();
     }),
   ]);
 

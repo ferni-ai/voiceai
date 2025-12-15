@@ -9,7 +9,10 @@
 import { llm, voice } from '@livekit/agents';
 import { z } from 'zod';
 
+import { createLogger } from '../../utils/safe-logger.js';
 import type { ToolContext } from '../../tools/registry/types.js';
+
+const log = createLogger({ module: 'PeterAgent' });
 
 // Memory tools - shared across all agents
 import {

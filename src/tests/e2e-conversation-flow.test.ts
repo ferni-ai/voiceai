@@ -1,15 +1,15 @@
 /**
  * End-to-End Conversation Flow Tests
- * 
+ *
  * Comprehensive E2E tests for the voice conversation system.
  * These tests verify the critical paths for:
  * - Session initialization
  * - Conversation flow with memory persistence
  * - Handoffs between personas
  * - Session cleanup
- * 
+ *
  * Run with: npx vitest run src/tests/e2e-conversation-flow.test.ts
- * 
+ *
  * @module tests/e2e-conversation-flow
  */
 
@@ -86,7 +86,7 @@ describe('E2E: Session Initialization', () => {
   it('should create unique session IDs', () => {
     const session1 = createMockSession();
     const session2 = createMockSession();
-    
+
     expect(session1.sessionId).not.toBe(session2.sessionId);
   });
 
@@ -108,7 +108,7 @@ describe('E2E: Session Initialization', () => {
   it('should support different initial personas', () => {
     const mayaSession = createMockSession({ personaId: 'maya-santos' });
     const alexSession = createMockSession({ personaId: 'alex-chen' });
-    
+
     expect(mayaSession.personaId).toBe('maya-santos');
     expect(alexSession.personaId).toBe('alex-chen');
   });
@@ -150,31 +150,32 @@ describe('E2E: Conversation Flow', () => {
   it('should maintain context across turns', () => {
     // Turn 1: User introduces topic
     session.conversationHistory.push({ role: 'user', content: "I'm stressed about work" });
-    session.conversationHistory.push({ 
-      role: 'assistant', 
-      content: "I hear that work is stressing you out. What's been going on?" 
+    session.conversationHistory.push({
+      role: 'assistant',
+      content: "I hear that work is stressing you out. What's been going on?",
     });
 
     // Turn 2: User elaborates (context should be maintained)
-    session.conversationHistory.push({ 
-      role: 'user', 
-      content: "My boss keeps adding more projects without considering my workload" 
+    session.conversationHistory.push({
+      role: 'user',
+      content: 'My boss keeps adding more projects without considering my workload',
     });
     session.conversationHistory.push({
       role: 'assistant',
-      content: "That sounds frustrating - it's hard when your workload keeps growing without acknowledgment.",
+      content:
+        "That sounds frustrating - it's hard when your workload keeps growing without acknowledgment.",
     });
 
     // Verify context is maintained
     expect(session.conversationHistory).toHaveLength(4);
-    const allContent = session.conversationHistory.map(m => m.content).join(' ');
+    const allContent = session.conversationHistory.map((m) => m.content).join(' ');
     expect(allContent.toLowerCase()).toContain('stress');
     expect(allContent.toLowerCase()).toContain('work');
   });
 
   it('should handle empty user input gracefully', () => {
     session.conversationHistory.push({ role: 'user', content: '' });
-    
+
     // System should handle empty input
     expect(session.conversationHistory[0].content).toBe('');
   });
@@ -182,7 +183,7 @@ describe('E2E: Conversation Flow', () => {
   it('should handle very long user input', () => {
     const longMessage = 'a'.repeat(5000);
     session.conversationHistory.push({ role: 'user', content: longMessage });
-    
+
     expect(session.conversationHistory[0].content.length).toBe(5000);
   });
 });
@@ -200,9 +201,9 @@ describe('E2E: Persona Handoffs', () => {
 
   it('should handoff from Ferni to specialist persona', () => {
     // User asks about financial topic
-    session.conversationHistory.push({ 
-      role: 'user', 
-      content: "I'm thinking about investing in stocks" 
+    session.conversationHistory.push({
+      role: 'user',
+      content: "I'm thinking about investing in stocks",
     });
 
     // Ferni responds and hands off
@@ -217,7 +218,8 @@ describe('E2E: Persona Handoffs', () => {
     // Peter continues the conversation
     session.conversationHistory.push({
       role: 'assistant',
-      content: "Hey there! Ferni mentioned you're interested in stocks. What's sparking your interest?",
+      content:
+        "Hey there! Ferni mentioned you're interested in stocks. What's sparking your interest?",
     });
 
     expect(session.personaId).toBe('peter-john');
@@ -226,13 +228,14 @@ describe('E2E: Persona Handoffs', () => {
 
   it('should preserve conversation context during handoff', () => {
     // Pre-handoff conversation
-    session.conversationHistory.push({ 
-      role: 'user', 
-      content: 'I want to plan a birthday party' 
+    session.conversationHistory.push({
+      role: 'user',
+      content: 'I want to plan a birthday party',
     });
     session.conversationHistory.push({
       role: 'assistant',
-      content: "A birthday party! How fun. Let me connect you with Jordan who loves event planning.",
+      content:
+        'A birthday party! How fun. Let me connect you with Jordan who loves event planning.',
     });
 
     // Record context before handoff
@@ -286,13 +289,13 @@ describe('E2E: Memory Persistence', () => {
 
     // Add conversation
     session.conversationHistory.push({ role: 'user', content: "My dog's name is Luna" });
-    session.conversationHistory.push({ role: 'assistant', content: "Luna is a beautiful name!" });
+    session.conversationHistory.push({ role: 'assistant', content: 'Luna is a beautiful name!' });
 
     // Memory should contain the conversation
-    const lastUserMessage = session.conversationHistory.find(m => 
-      m.role === 'user' && m.content.includes('Luna')
+    const lastUserMessage = session.conversationHistory.find(
+      (m) => m.role === 'user' && m.content.includes('Luna')
     );
-    
+
     expect(lastUserMessage).toBeDefined();
     expect(lastUserMessage?.content).toContain('Luna');
   });
@@ -317,14 +320,14 @@ describe('E2E: Memory Persistence', () => {
 describe('E2E: Session Cleanup', () => {
   it('should clear conversation history on session end', () => {
     const session = createMockSession();
-    
+
     // Populate session
     session.conversationHistory.push({ role: 'user', content: 'Hello' });
     session.conversationHistory.push({ role: 'assistant', content: 'Hi!' });
-    
+
     // Cleanup simulation
     session.conversationHistory = [];
-    
+
     expect(session.conversationHistory).toHaveLength(0);
   });
 
@@ -385,7 +388,7 @@ describe('E2E: Concurrent Sessions', () => {
     await Promise.all(
       sessions.map(async (session, sessionIndex) => {
         for (let i = 0; i < 3; i++) {
-          await new Promise<void>(resolve => setTimeout(resolve, Math.random() * 10));
+          await new Promise<void>((resolve) => setTimeout(resolve, Math.random() * 10));
           session.personaId = personas[(sessionIndex + i) % personas.length];
         }
       })
@@ -405,7 +408,7 @@ describe('E2E: Concurrent Sessions', () => {
 describe('E2E: Edge Cases', () => {
   it('should handle special characters in user input', () => {
     const session = createMockSession();
-    
+
     const specialInputs = [
       'Hello 👋 how are you?',
       "What's the weather like?",
@@ -424,7 +427,7 @@ describe('E2E: Edge Cases', () => {
 
   it('should handle rapid-fire messages', () => {
     const session = createMockSession();
-    
+
     // Simulate rapid messages
     for (let i = 0; i < 10; i++) {
       session.conversationHistory.push({ role: 'user', content: `Message ${i}` });

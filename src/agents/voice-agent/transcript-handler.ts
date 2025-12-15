@@ -252,7 +252,9 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
           session.say(cached.ssml || cached.response, { allowInterruptions: true });
 
           // Track that we used a cached response
+          if (services && typeof services.addTurn === 'function') {
           services.addTurn('assistant', cached.response);
+          }
           if (userData) {
             userData.lastAgentResponse = cached.response;
             userData.lastAgentResponseTime = Date.now();
@@ -480,6 +482,7 @@ function processFinalTranscript(ctx: TranscriptHandlerContext & { event: Transcr
   processGameTopicChange(event.transcript, silenceContext, sessionId);
 
   // Dynamic tool loading based on conversation topic
+  if (dynamicToolLoader) {
   dynamicToolLoader
     .processMessage(event.transcript)
     .then((loadedDomains) => {
@@ -494,6 +497,7 @@ function processFinalTranscript(ctx: TranscriptHandlerContext & { event: Transcr
     .catch((error) => {
       getLogger().warn({ error }, 'Failed to process message for dynamic tool loading');
     });
+  }
 
   // Process voice identity
   processVoiceIdentity(sessionId, event.transcript, userData);
@@ -793,10 +797,12 @@ function processFeedbackCollection(
     };
 
     // Process feedback (synchronous)
+    if (autoOptimizer) {
     try {
       autoOptimizer.processUserMessage(transcript, feedbackContext, lastToolId);
     } catch (err) {
       diag.debug('Feedback processing error', { error: String(err) });
+      }
     }
   } catch (feedbackError) {
     diag.warn('Feedback collection error', { error: String(feedbackError) });

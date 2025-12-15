@@ -42,6 +42,7 @@ import {
   getTeamReference,
   shouldIncludeTeamReference,
   type HandoffContext,
+  type TeamChemistryConfig,
 } from './shared/team-chemistry.js';
 
 // Cognitive Profiles (existing system)
@@ -178,6 +179,26 @@ export class PersonaIntelligenceEngine {
   }
 
   // ============================================================================
+  // PRIVATE HELPERS
+  // ============================================================================
+
+  /**
+   * Build TeamChemistryConfig from PersonaIntelligenceConfig
+   * This provides proper typing instead of using `as any`
+   */
+  private buildTeamChemistryConfig(): TeamChemistryConfig {
+    return {
+      teamReferenceFrequency: this.config.teamReferenceFrequency,
+      teamReferenceMinSessions: 3,
+      insideJokeMinRelationship: 'friend',
+      teamStoryMinRelationship: 'acquaintance',
+      handoffContextAlways: true,
+      complimentMaxPerSession: 1,
+      complimentMinSessionsBetween: 5,
+    };
+  }
+
+  // ============================================================================
   // SESSION MANAGEMENT
   // ============================================================================
 
@@ -242,7 +263,7 @@ export class PersonaIntelligenceEngine {
         referencesAvailable: shouldIncludeTeamReference(
           this.sessionNumber,
           this.lastTeamReferenceSession,
-          { ...this.config, teamReferenceFrequency: this.config.teamReferenceFrequency } as any
+          this.buildTeamChemistryConfig()
         ),
       },
     };
@@ -338,10 +359,11 @@ export class PersonaIntelligenceEngine {
     let teamSection = '';
     if (this.config.enableTeamChemistry) {
       if (
-        shouldIncludeTeamReference(this.sessionNumber, this.lastTeamReferenceSession, {
-          teamReferenceFrequency: this.config.teamReferenceFrequency,
-          teamReferenceMinSessions: 3,
-        } as any)
+        shouldIncludeTeamReference(
+          this.sessionNumber,
+          this.lastTeamReferenceSession,
+          this.buildTeamChemistryConfig()
+        )
       ) {
         teamSection = '[TEAM AWARENESS]\n';
         teamSection +=

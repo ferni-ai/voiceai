@@ -82,11 +82,35 @@
       "shareFerni": "Ferniをシェア",
       "supportFerni": "Ferniをサポート",
       "takeTour": "ツアーを開始",
-      "language": "言語"
+      "language": "言語",
+      "whatsGrowing": "成長中"
     },
     "pinItem": "上部に固定",
     "unpinItem": "固定解除",
     "comingSoon": "近日公開"
+  },
+  "roadmap": {
+    "eyebrow": "成長中",
+    "title": "これからの道のり",
+    "intro": "素晴らしい関係には季節があります。これは私たちが一緒に植える種です。",
+    "sections": {
+      "connect": "つながる新しい方法",
+      "personalize": "あなた仕様に",
+      "platform": "プラットフォーム"
+    },
+    "expectedArrival": "予定時期",
+    "betterThanHuman": "人間以上",
+    "alreadyGrowing": "すでに成長中",
+    "wantThis": "これが欲しい",
+    "voted": "楽しみにしています！",
+    "peopleExcited": "{count}人がこれを楽しみにしています",
+    "footerText": "あなたの声が私たちの構築するものを形作ります。一緒に成長してくれてありがとう。",
+    "stages": {
+      "seed": "種まき",
+      "sprout": "成長中",
+      "bud": "つぼみ",
+      "bloom": "間もなく"
+    }
   },
   "session": {
     "connecting": "接続中...",

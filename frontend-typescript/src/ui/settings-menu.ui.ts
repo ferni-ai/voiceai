@@ -20,6 +20,9 @@ import {
   UNLOCKABLE_FEATURES,
   type RelationshipStage,
 } from '../services/relationship-stage.service.js';
+// Roadmap service - for "What's Growing" experience
+import { roadmapService } from '../services/roadmap.service.js';
+import { showRoadmapPanel } from './roadmap-panel.ui.js';
 
 // Track setTimeout calls for memory leak prevention
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -83,71 +86,104 @@ export interface SettingsMenuUICallbacks {
 // ICONS
 // ============================================================================
 
+// ============================================================================
+// ICONS - Natural, earthy, on-brand (consistent 1.5px stroke, rounded caps)
+// ============================================================================
 const ICONS = {
-  history:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
-  analytics:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
-  brain:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.54"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.54"/></svg>',
-  ritual:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
-  commands:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
-  target:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
-  download:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
-  help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-  theme:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
-  menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>',
+  // Navigation & UI
   close:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
-  team: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
-  heart:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
-  bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
-  music:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
-  lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
-  sparkles:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
-  calendar:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',
-  mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>',
-  fingerprint:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4"/><path d="M5 19.5C5.5 18 6 15 6 12c0-.7.12-1.37.34-2"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M2 16h.01"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M9 6.8a6 6 0 0 1 9 5.2c0 .47 0 1.17-.02 2"/></svg>',
-  creditCard:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>',
-  infinity:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4Zm0 0c2 2.67 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.33-6 4Z"/></svg>',
-  household:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
-  memory:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
-  wellbeing:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
-  coffee:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>',
-  seedling:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>',
-  palette:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.555C21.965 6.012 17.461 2 12 2z"/></svg>',
-  share:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>',
-  trophy:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
-  globe:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
-  watch:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6"/><polyline points="12 10 12 12 13 13"/><path d="m16.13 7.66-.81-4.05a2 2 0 0 0-2-1.61h-2.68a2 2 0 0 0-2 1.61l-.78 4.05"/><path d="m7.88 16.36.8 4a2 2 0 0 0 2 1.61h2.72a2 2 0 0 0 2-1.61l.81-4.05"/></svg>',
-  video:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>',
-  users:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/></svg>',
   chevronRight:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+
+  // Journey & Growth (natural metaphors)
+  heart:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+  sparkles:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>',
+  seedling:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 22V12"/><path d="M12 12c0-3-2.5-5-6-5 0 3 2 6 6 6Z"/><path d="M12 8c0-3 2.5-5 6-5 0 3-2 6-6 6"/></svg>',
+  target:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+  trophy:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>',
+
+  // Time & Memory (flowing, organic)
+  history:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  memory:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="m16.24 16.24 2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="m16.24 7.76 2.83-2.83"/></svg>',
+  calendar:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',
+
+  // Insights & Analytics (gentle, organic shapes)
+  analytics:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 16c0-4 1-8 4-10s5 2 6 6c1 4 2 4 4 4"/></svg>',
+  brain:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 4.5a2.5 2.5 0 0 0-4.96-.44 2.5 2.5 0 0 0-2.96 3.08 3 3 0 0 0 .34 5.58 2.5 2.5 0 0 0 2.96 3.08A2.5 2.5 0 0 0 12 19.5Z"/><path d="M12 4.5a2.5 2.5 0 0 1 4.96-.44 2.5 2.5 0 0 1 2.96 3.08 3 3 0 0 1-.34 5.58 2.5 2.5 0 0 1-2.96 3.08A2.5 2.5 0 0 1 12 19.5Z"/><path d="M12 4.5v15"/></svg>',
+  wellbeing:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
+
+  // Connection & Communication
+  team: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="5" cy="12" r="2"/></svg>',
+  users:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  share:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 3v12"/><path d="m8 7 4-4 4 4"/><path d="M20 21H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1Z"/></svg>',
+
+  // Voice & Sound
+  mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>',
+  music:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+
+  // Rituals & Practices
+  ritual:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 22c-4 0-7-3-7-7 0-2 1-4 2-5 .5-1.5.5-3 0-4 2 1 4 3 4 6 0-3 2-5 4-6-.5 1-.5 2.5 0 4 1 1 2 3 2 5 0 4-3 7-7 7Z"/><path d="M12 22v-3"/></svg>',
+  coffee:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>',
+
+  // Settings & Personalization
+  theme:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>',
+  palette:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="13.5" cy="6.5" r="1.5" fill="currentColor"/><circle cx="17.5" cy="10.5" r="1.5" fill="currentColor"/><circle cx="8.5" cy="7.5" r="1.5" fill="currentColor"/><circle cx="6.5" cy="12.5" r="1.5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.555C21.965 6.012 17.461 2 12 2z"/></svg>',
+  bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
+  globe:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>',
+
+  // Account (natural, personal)
+  leaf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>',
+  river:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 2c-2 4-6 6-6 10a6 6 0 0 0 12 0c0-4-4-6-6-10Z"/><path d="M12 22v-6"/></svg>',
+  scroll:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v3h4"/><path d="M19 7V5a2 2 0 0 0-2-2H4"/><path d="M15 11H9"/><path d="M15 7H9"/></svg>',
+  contact:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  download:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M8 21h8"/><path d="M3 16v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/></svg>',
+
+  // Help & Support
+  help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>',
+  commands:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>',
+
+  // Roadmap features (keeping these for backward compatibility)
+  fingerprint:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 11c0 1-.1 2.5-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4"/><path d="M5 19.5C5.5 18 6 15 6 12c0-.7.12-1.37.34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/></svg>',
+  household:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+  watch:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
+  video:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+
+  // Legacy aliases (deprecated but kept for compatibility)
+  creditCard:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 4H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z"/><path d="M1 10h22"/></svg>',
+  infinity:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4Zm0 0c2 2.67 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.33-6 4Z"/></svg>',
 };
 
 // ============================================================================
@@ -221,6 +257,7 @@ class SettingsMenuUI {
   private spotifyConfigured = false;
   private expandedSections: Set<string> = new Set(['connect', 'personalize']);
   private pinnedItems: Set<string> = getPinnedItems();
+  private languageExpanded = false;
 
   initialize(): void {
     // Check for existing elements (HMR protection)
@@ -399,9 +436,15 @@ class SettingsMenuUI {
   }
 
   /**
-   * Render a menu item with optional locked state and progress hint
+   * Render a menu item with optional locked state or progress hint
+   * Roadmap features are hidden from the menu - they only appear in the Roadmap Panel
    */
   private renderMenuItem(action: string, icon: string, label: string, extraClasses = ''): string {
+    // Hide roadmap items from the menu - they live in "What's Growing" panel
+    if (roadmapService.isRoadmapFeature(action)) {
+      return '';
+    }
+
     const isLocked = this.isFeatureLocked(action);
     const isPinned = this.pinnedItems.has(action);
     const lockedClass = isLocked ? 'settings-menu__item--locked' : '';
@@ -566,12 +609,9 @@ class SettingsMenuUI {
                   t('menu.sections.account'),
                   expandedSections.has('account'),
                   `
-            ${this.renderMenuItem('subscription', ICONS.infinity, t('menu.items.yourPlan'))}
-            ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.manageBilling'))}
-            ${this.renderMenuItem('voice-enrollment', ICONS.fingerprint, t('menu.items.voiceId'))}
-            ${this.renderMenuItem('household', ICONS.household, t('menu.items.householdMembers'))}
-            ${this.renderMenuItem('contact-settings', ICONS.heart, t('menu.items.contactInfo'))}
-            ${this.renderMenuItem('export', ICONS.download, t('menu.items.exportData'))}
+            ${this.renderMenuItem('support-ferni', ICONS.heart, t('menu.items.supportFerniExpanded'))}
+            ${this.renderMenuItem('contact-settings', ICONS.contact, t('menu.items.contactInfo'))}
+            ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
           `
                 )
               : ''
@@ -582,8 +622,8 @@ class SettingsMenuUI {
 
           <!-- Bottom Quick Actions -->
           <div class="settings-menu__quick-actions">
+            ${this.renderMenuItem('whats-growing', ICONS.seedling, t('menu.items.whatsGrowing'))}
             ${this.renderMenuItem('share-ferni', ICONS.share, t('menu.items.shareFerni'))}
-            ${this.renderMenuItem('support-ferni', ICONS.seedling, t('menu.items.supportFerni'))}
             ${this.renderMenuItem('help', ICONS.help, t('menu.items.takeTour'))}
           </div>
         </nav>
@@ -615,6 +655,14 @@ class SettingsMenuUI {
         const htmlBtn = btn as HTMLElement;
         const action = htmlBtn.dataset.action;
         const isLocked = htmlBtn.dataset.locked === 'true';
+        const isRoadmap = htmlBtn.dataset.roadmap === 'true';
+
+        // Roadmap features open the inspiring "What's Growing" panel
+        if (isRoadmap && action) {
+          this.hide();
+          showRoadmapPanel(action);
+          return;
+        }
 
         if (isLocked) {
           // Show a gentle animation indicating it's locked
@@ -662,31 +710,38 @@ class SettingsMenuUI {
 
     // Toggle language dropdown
     const toggleBtn = this.panel.querySelector('[data-action="toggle-language"]');
-    const languageList = this.panel.querySelector('.settings-menu__language-list');
 
-    if (toggleBtn && languageList) {
+    if (toggleBtn) {
       toggleBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const isExpanded = languageList.getAttribute('data-expanded') === 'true';
-        languageList.setAttribute('data-expanded', isExpanded ? 'false' : 'true');
-        toggleBtn.classList.toggle('settings-menu__item--expanded', !isExpanded);
+        this.languageExpanded = !this.languageExpanded;
+        // Re-render just the language selector
+        const selector = this.panel?.querySelector('.settings-menu__language-selector');
+        if (selector) {
+          selector.outerHTML = this.renderLanguageSelector();
+          // Rebind events for the new elements
+          this.bindLanguageSelectorEvents();
+        }
       });
     }
 
-    // Handle language selection
-    this.panel.querySelectorAll('[data-action="set-language"]').forEach((btn) => {
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const htmlBtn = btn as HTMLElement;
-        const locale = htmlBtn.dataset.locale as SupportedLocale;
+    // Handle language selection (only if expanded)
+    if (this.languageExpanded) {
+      this.panel.querySelectorAll('[data-action="set-language"]').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const htmlBtn = btn as HTMLElement;
+          const locale = htmlBtn.dataset.locale as SupportedLocale;
 
-        if (locale) {
-          await setLocale(locale);
-          // Re-render the entire menu to reflect language change
-          this.renderContent();
-        }
+          if (locale) {
+            await setLocale(locale);
+            this.languageExpanded = false; // Collapse after selection
+            // Re-render the entire menu to reflect language change
+            this.renderContent();
+          }
+        });
       });
-    });
+    }
   }
 
   /**
@@ -740,14 +795,12 @@ class SettingsMenuUI {
       'calendar-settings': { icon: ICONS.calendar, label: t('menu.items.calendar') },
       notifications: { icon: ICONS.bell, label: t('menu.items.notifications') },
       theme: { icon: ICONS.theme, label: t('menu.items.toggleTheme') },
-      subscription: { icon: ICONS.infinity, label: t('menu.items.yourPlan') },
-      billing: { icon: ICONS.creditCard, label: t('menu.items.manageBilling') },
+      'support-ferni': { icon: ICONS.heart, label: t('menu.items.supportFerniExpanded') },
       'voice-enrollment': { icon: ICONS.fingerprint, label: t('menu.items.voiceId') },
       household: { icon: ICONS.household, label: t('menu.items.householdMembers') },
       'contact-settings': { icon: ICONS.heart, label: t('menu.items.contactInfo') },
       export: { icon: ICONS.download, label: t('menu.items.exportData') },
       'share-ferni': { icon: ICONS.share, label: t('menu.items.shareFerni') },
-      'support-ferni': { icon: ICONS.seedling, label: t('menu.items.supportFerni') },
       help: { icon: ICONS.help, label: t('menu.items.takeTour') },
     };
 
@@ -844,9 +897,11 @@ class SettingsMenuUI {
     const currentLocale = getLocale();
     const currentLang = SUPPORTED_LOCALES.find((l) => l.code === currentLocale);
 
+    const expandedClass = this.languageExpanded ? 'settings-menu__item--expanded' : '';
+
     return `
       <div class="settings-menu__language-selector">
-        <button class="settings-menu__item settings-menu__item--expandable" data-action="toggle-language">
+        <button class="settings-menu__item settings-menu__item--expandable ${expandedClass}" data-action="toggle-language">
           <span class="settings-menu__icon">${ICONS.globe}</span>
           <span class="settings-menu__label">${t('menu.items.language')}</span>
           <span class="settings-menu__language-current">
@@ -855,21 +910,27 @@ class SettingsMenuUI {
           </span>
           <span class="settings-menu__chevron">${ICONS.chevronRight}</span>
         </button>
-        <div class="settings-menu__language-list" data-expanded="false">
-          ${SUPPORTED_LOCALES.map(
-            (lang) => `
-            <button
-              class="settings-menu__language-option ${lang.code === currentLocale ? 'settings-menu__language-option--active' : ''}"
-              data-action="set-language"
-              data-locale="${lang.code}"
-            >
-              <span class="settings-menu__language-flag">${lang.flag}</span>
-              <span class="settings-menu__language-name">${lang.nativeName}</span>
-              ${lang.code === currentLocale ? '<span class="settings-menu__language-check">✓</span>' : ''}
-            </button>
-          `
-          ).join('')}
-        </div>
+        ${
+          this.languageExpanded
+            ? `
+          <div class="settings-menu__language-list-inner">
+            ${SUPPORTED_LOCALES.map(
+              (lang) => `
+              <button
+                class="settings-menu__language-option ${lang.code === currentLocale ? 'settings-menu__language-option--active' : ''}"
+                data-action="set-language"
+                data-locale="${lang.code}"
+              >
+                <span class="settings-menu__language-flag">${lang.flag}</span>
+                <span class="settings-menu__language-name">${lang.nativeName}</span>
+                ${lang.code === currentLocale ? '<span class="settings-menu__language-check">✓</span>' : ''}
+              </button>
+            `
+            ).join('')}
+          </div>
+        `
+            : ''
+        }
       </div>
     `;
   }
@@ -994,6 +1055,10 @@ class SettingsMenuUI {
         break;
       case 'marketplace-admin':
         this.callbacks.onMarketplaceAdminClick?.();
+        break;
+      case 'whats-growing':
+        // Open roadmap panel with overview (no specific feature)
+        showRoadmapPanel();
         break;
     }
   }
@@ -1242,25 +1307,27 @@ class SettingsMenuUI {
       .settings-menu__item {
         display: flex;
         align-items: center;
-        gap: var(--space-3);
+        gap: var(--space-3, 12px);
         width: 100%;
-        padding: var(--space-2) var(--space-3);
-        margin-bottom: var(--space-0, 0);
+        padding: var(--space-3, 12px) var(--space-4, 16px);
+        margin-bottom: 2px;
         background: transparent;
         border: none;
-        border-radius: var(--radius-md);
+        border-radius: var(--radius-lg, 12px);
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
         text-align: left;
         position: relative;
+        min-height: 44px; /* Consistent touch target */
       }
 
       .settings-menu__item:hover {
-        background: var(--color-background-secondary);
+        background: var(--color-background-secondary, #f5f2ed);
       }
 
       .settings-menu__item:active {
-        background: var(--color-background-tertiary);
+        background: var(--color-background-tertiary, #ebe6df);
+        transform: scale(0.98);
       }
 
       /* ========================================================================
@@ -1326,10 +1393,14 @@ class SettingsMenuUI {
       }
 
       .settings-menu__icon {
-        width: 20px;
-        height: 20px;
-        color: var(--color-accent-primary, #2d5a3d);
+        width: 22px;
+        height: 22px;
+        color: var(--persona-primary, #4a6741);
         flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color ${DURATION.FAST}ms ${EASING.STANDARD};
       }
 
       .settings-menu__icon svg {
@@ -1337,10 +1408,16 @@ class SettingsMenuUI {
         height: 100%;
       }
 
+      .settings-menu__item:hover .settings-menu__icon {
+        color: var(--persona-secondary, #3d5a35);
+      }
+
       .settings-menu__label {
-        font-family: var(--font-body);
-        font-size: var(--text-sm);
-        color: var(--color-text-primary);
+        font-family: var(--font-body, Inter, sans-serif);
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-text-primary, #2c2520);
+        flex: 1;
       }
 
       /* Active/Connected state for items like Spotify */
@@ -1403,20 +1480,22 @@ class SettingsMenuUI {
         transform: rotate(90deg);
       }
 
-      .settings-menu__language-list {
-        display: grid;
-        grid-template-rows: 0fr;
-        transition: grid-template-rows ${DURATION.NORMAL}ms ${EASING.STANDARD};
+      .settings-menu__language-list-inner {
         overflow: hidden;
-        padding-left: var(--space-6, 24px);
+        padding-left: var(--space-4, 16px);
+        padding-top: var(--space-2, 8px);
+        animation: slideDown ${DURATION.NORMAL}ms ${EASING.STANDARD};
       }
 
-      .settings-menu__language-list[data-expanded="true"] {
-        grid-template-rows: 1fr;
-      }
-
-      .settings-menu__language-list > * {
-        overflow: hidden;
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .settings-menu__language-option {
@@ -1424,7 +1503,7 @@ class SettingsMenuUI {
         align-items: center;
         gap: var(--space-3, 12px);
         width: 100%;
-        padding: var(--space-2, 8px) var(--space-3, 12px);
+        padding: var(--space-2, 8px) var(--space-4, 16px);
         margin-bottom: 2px;
         background: transparent;
         border: none;
@@ -1456,9 +1535,13 @@ class SettingsMenuUI {
       }
 
       /* RTL support for language selector */
-      [dir="rtl"] .settings-menu__language-list {
+      [dir="rtl"] .settings-menu__language-list-inner {
         padding-left: 0;
-        padding-right: var(--space-6, 24px);
+        padding-right: var(--space-4, 16px);
+      }
+
+      [dir="rtl"] .settings-menu__language-selector {
+        text-align: right;
       }
 
       [dir="rtl"] .settings-menu__language-current {
@@ -1511,6 +1594,81 @@ class SettingsMenuUI {
       .settings-menu__lock-icon svg {
         width: 100%;
         height: 100%;
+      }
+
+      /* ========================================================================
+         ROADMAP FEATURE STATE (Coming Soon / What's Growing)
+         ======================================================================== */
+      .settings-menu__item--roadmap {
+        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.06)), transparent);
+        border: 1px dashed var(--persona-primary, #4a6741);
+        border-radius: var(--radius-md, 8px);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .settings-menu__item--roadmap::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, transparent, var(--persona-tint, rgba(74, 103, 65, 0.03)));
+        opacity: 0;
+        transition: opacity ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .settings-menu__item--roadmap:hover {
+        background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.1)), transparent);
+        border-style: solid;
+      }
+
+      .settings-menu__item--roadmap:hover::before {
+        opacity: 1;
+      }
+
+      .settings-menu__item--roadmap .settings-menu__icon {
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .settings-menu__roadmap-hint {
+        font-family: var(--font-body);
+        font-size: var(--text-xs);
+        color: var(--persona-primary, #4a6741);
+        font-weight: var(--font-weight-medium, 500);
+      }
+
+      .settings-menu__roadmap-badge {
+        padding: 2px 8px;
+        background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+        color: white;
+        font-size: 0.6rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-radius: var(--radius-full, 9999px);
+        flex-shrink: 0;
+      }
+
+      /* Dark theme roadmap styles */
+      [data-theme="midnight"] .settings-menu__item--roadmap {
+        background: linear-gradient(135deg, var(--persona-tint, rgba(124, 179, 107, 0.1)), transparent);
+        border-color: var(--color-accent-secondary, #7cb36b);
+      }
+
+      [data-theme="midnight"] .settings-menu__item--roadmap:hover {
+        background: linear-gradient(135deg, var(--persona-tint, rgba(124, 179, 107, 0.15)), transparent);
+      }
+
+      [data-theme="midnight"] .settings-menu__item--roadmap .settings-menu__icon {
+        color: var(--color-accent-secondary, #7cb36b);
+      }
+
+      [data-theme="midnight"] .settings-menu__roadmap-hint {
+        color: var(--color-accent-secondary, #7cb36b);
+      }
+
+      [data-theme="midnight"] .settings-menu__roadmap-badge {
+        background: linear-gradient(135deg, var(--persona-primary, #5a7a51), var(--persona-secondary, #4a6a41));
       }
 
       /* Shake animation for locked items */

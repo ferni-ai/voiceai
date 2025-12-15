@@ -1,0 +1,696 @@
+/**
+ * GCE Voice Worker
+ *
+ * Unified worker for Google Compute Engine deployment.
+ * Uses the single-process pattern for optimal GCE performance.
+ *
+ * Architecture:
+ * - Single process handles multiple concurrent sessions
+ * - Pre-warmed resources (VAD, TTS connections, persona configs)
+ * - Clean orchestrator-based session management
+ * - Horizontal scaling via GCE instance group
+ *
+ * Usage:
+ *   node dist/agents/worker.js start
+ *
+ * @module agents/worker
+ */
+
+import 'dotenv/config';
+
+// ============================================================================
+// STARTUP LOGGING
+// ============================================================================
+
+const _startTime = Date.now();
+const log = (msg: string, data?: Record<string, unknown>) => {
+  const dataStr = data ? ` ${JSON.stringify(data)}` : '';
+  process.stderr.write(`[${new Date().toISOString()}] [worker] ${msg}${dataStr}\n`);
+};
+
+log('🚀 GCE Voice Worker starting', {
+  pid: process.pid,
+  nodeVersion: process.version,
+  env: process.env.NODE_ENV || 'development',
+});
+
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+
+const AGENT_NAME = process.env.AGENT_NAME || 'voice-agent';
+
+// ============================================================================
+// PHASE 1: HEALTH SERVER (Immediate)
+// ============================================================================
+
+log('Phase 1: Starting health server');
+
+import { startHealthCheckServer } from './shared/health-server.js';
+startHealthCheckServer(AGENT_NAME);
+
+// ============================================================================
+// PHASE 2: LOAD MODULES
+// ============================================================================
+
+log('Phase 2: Loading modules');
+const moduleLoadStart = Date.now();
+
+import { initializeLogger, JobContext, JobProcess, runWithJobContextAsync } from '@livekit/agents';
+import {
+  JobType,
+  ParticipantPermission,
+  ServerMessage,
+  WorkerMessage,
+  WorkerStatus,
+  type Job,
+} from '@livekit/protocol';
+import { Room, RoomEvent } from '@livekit/rtc-node';
+import { AccessToken } from 'livekit-server-sdk';
+import { EventEmitter } from 'node:events';
+import { WebSocket } from 'ws';
+
+// Import voice agent entry point
+import {
+  markLivekitConnected,
+  markLivekitDisconnected,
+  signalWorkerAcceptingJobs,
+} from './shared/worker-readiness.js';
+import { runFullVoiceAgentEntry } from './voice-agent-entry.js';
+
+const moduleLoadTime = Date.now() - moduleLoadStart;
+log('Modules loaded', { moduleLoadTimeMs: moduleLoadTime });
+
+// Initialize LiveKit SDK logger
+initializeLogger({ pretty: true, level: 'info' });
+
+// ============================================================================
+// PHASE 3: WARMUP RESOURCES
+// ============================================================================
+
+log('Phase 3: Warming resources');
+
+let preloadedVAD: unknown = null;
+
+async function warmupResources(): Promise<void> {
+  const warmupStart = Date.now();
+
+  try {
+    const tasks: Array<Promise<void>> = [];
+
+    // 1. Load VAD model
+    tasks.push(
+      (async () => {
+        try {
+          const silero = await import('@livekit/agents-plugin-silero');
+          preloadedVAD = await silero.VAD.load();
+          log('✅ VAD model loaded');
+        } catch (e) {
+          log('⚠️ VAD preload failed', { error: String(e) });
+        }
+      })()
+    );
+
+    // 2. Warm persona cache
+    tasks.push(
+      (async () => {
+        try {
+          const { warmupResources: warmCache, setupIPCHandler } =
+            await import('./shared/resource-server.js');
+          setupIPCHandler();
+          await warmCache();
+          log('✅ Persona cache warmed');
+        } catch (e) {
+          log('⚠️ Persona cache warmup failed', { error: String(e) });
+        }
+      })()
+    );
+
+    // 3. Run startup initialization
+    tasks.push(
+      (async () => {
+        try {
+          const { startup } = await import('../startup.js');
+          await startup();
+          log('✅ Startup initialization complete');
+        } catch (e) {
+          log('⚠️ Startup initialization failed', { error: String(e) });
+        }
+      })()
+    );
+
+    // 4. Pre-warm critical session handlers (reduces cold-start latency by ~50-100ms)
+    tasks.push(
+      (async () => {
+        try {
+          const handlerWarmupStart = Date.now();
+          await Promise.all([
+            import('./voice-agent/session-init-handler.js'),
+            import('./voice-agent/transcript-handler.js'),
+            import('./voice-agent/music-handler.js'),
+            import('./voice-agent/data-channel-handler.js'),
+            import('./voice-agent/greeting-handler.js'),
+            import('./voice-agent/cleanup-handler.js'),
+            import('./shared/handoff-handler.js'),
+            import('../tools/handoff/index.js'),
+            import('../services/conversation-manager.js'),
+          ]);
+          log('✅ Critical handlers pre-loaded', { durationMs: Date.now() - handlerWarmupStart });
+        } catch (e) {
+          log('⚠️ Handler pre-load failed (non-fatal)', { error: String(e) });
+        }
+      })()
+    );
+
+    // 5. Pre-warm TTS and voice dependencies
+    tasks.push(
+      (async () => {
+        try {
+          const voiceWarmupStart = Date.now();
+          await Promise.all([
+            import('../speech/voice-manager.js'),
+            import('../config/cartesia-config.js'),
+            import('@livekit/agents-plugin-google'),
+            import('@google/genai'),
+          ]);
+          log('✅ Voice dependencies pre-loaded', { durationMs: Date.now() - voiceWarmupStart });
+        } catch (e) {
+          log('⚠️ Voice deps pre-load failed (non-fatal)', { error: String(e) });
+        }
+      })()
+    );
+
+    await Promise.all(tasks);
+    log('✅ Resource warmup complete', { durationMs: Date.now() - warmupStart });
+  } catch (e) {
+    log('⚠️ Warmup failed (proceeding anyway)', { error: String(e) });
+  }
+}
+
+// ============================================================================
+// JOB METRICS
+// ============================================================================
+
+let totalJobs = 0;
+let completedJobs = 0;
+let failedJobs = 0;
+let activeJobs = 0;
+let workerId = `worker-${process.pid}`;
+
+// ============================================================================
+// IN-PROCESS JOB EXECUTOR
+// ============================================================================
+
+class InProcessInferenceExecutor {
+  async doInference(method: string, _data: unknown): Promise<unknown> {
+    throw new Error(`Inference not supported: ${method}`);
+  }
+}
+
+interface JobInfo {
+  job: Job;
+  url: string;
+  token: string;
+  acceptArgs: {
+    name: string;
+    identity: string;
+    metadata: string;
+  };
+}
+
+async function runJobInProcess(info: JobInfo): Promise<void> {
+  const jobId = info.job.id;
+  const startTime = Date.now();
+
+  activeJobs++;
+  totalJobs++;
+
+  log('Starting job', {
+    jobId,
+    roomName: info.job.room?.name,
+    activeJobs,
+    totalJobs,
+  });
+
+  const room = new Room();
+  const closeEvent = new EventEmitter();
+  let connected = false;
+  let shutdown = false;
+
+  room.on(RoomEvent.Disconnected, () => {
+    if (!shutdown) {
+      log('Room disconnected', { jobId });
+      closeEvent.emit('close', false);
+    }
+  });
+
+  const onConnect = () => {
+    connected = true;
+    log('Room connected', { jobId });
+  };
+
+  const onShutdown = (reason: string) => {
+    shutdown = true;
+    log('Shutdown requested', { jobId, reason });
+    closeEvent.emit('close', true, reason);
+  };
+
+  const proc = new JobProcess();
+  const runningJobInfo = {
+    acceptArguments: info.acceptArgs,
+    job: info.job,
+    url: info.url,
+    token: info.token,
+    workerId,
+  };
+
+  const ctx = new JobContext(
+    proc,
+    runningJobInfo,
+    room,
+    onConnect,
+    onShutdown,
+    new InProcessInferenceExecutor()
+  );
+
+  try {
+    const unconnectedTimeout = setTimeout(() => {
+      if (!connected && !shutdown) {
+        log('WARNING: Room not connected after 10s', { jobId });
+      }
+    }, 10000);
+
+    await runWithJobContextAsync(ctx, async () => {
+      try {
+        // Use voice-agent-entry.ts (working code)
+        // The orchestrator has integration issues - see ORCHESTRATOR-ARCHITECTURE-AUDIT.md
+        await runFullVoiceAgentEntry(ctx);
+      } catch (sessionError) {
+        log('Session error', { jobId, error: String(sessionError) });
+        throw sessionError;
+      } finally {
+        clearTimeout(unconnectedTimeout);
+      }
+    });
+
+    // Wait for graceful close
+    await new Promise<void>((resolve) => {
+      if (!ctx.room.isConnected) {
+        resolve();
+        return;
+      }
+      const timeout = setTimeout(() => resolve(), 30000);
+      closeEvent.once('close', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+    });
+
+    completedJobs++;
+    activeJobs--;
+    log('Job completed', {
+      jobId,
+      durationMs: Date.now() - startTime,
+      success: true,
+    });
+  } catch (error) {
+    failedJobs++;
+    activeJobs--;
+    log('Job failed', {
+      jobId,
+      durationMs: Date.now() - startTime,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  } finally {
+    try {
+      if (ctx.room.isConnected) {
+        await ctx.room.disconnect();
+      }
+    } catch {
+      // Ignore
+    }
+  }
+}
+
+// ============================================================================
+// LIVEKIT CONNECTION
+// ============================================================================
+
+const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
+const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
+const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
+
+if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
+  log('ERROR: Missing LiveKit credentials');
+  process.exit(1);
+}
+
+let ws: WebSocket | null = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 10;
+let pingInterval: ReturnType<typeof setInterval> | null = null;
+let lastPongTime = Date.now();
+
+const PING_INTERVAL_MS = 15_000;
+const PONG_TIMEOUT_MS = 30_000;
+
+function startPingKeepalive(): void {
+  if (pingInterval) clearInterval(pingInterval);
+  lastPongTime = Date.now();
+
+  pingInterval = setInterval(() => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+    const timeSinceLastPong = Date.now() - lastPongTime;
+    if (timeSinceLastPong > PONG_TIMEOUT_MS) {
+      log(`WebSocket appears dead, reconnecting...`);
+      markLivekitDisconnected();
+      ws.terminate();
+      scheduleReconnect();
+      return;
+    }
+
+    try {
+      ws.ping();
+    } catch (error) {
+      log('Ping failed', { error: String(error) });
+    }
+  }, PING_INTERVAL_MS);
+}
+
+function stopPingKeepalive(): void {
+  if (pingInterval) {
+    clearInterval(pingInterval);
+    pingInterval = null;
+  }
+}
+
+async function connectToLiveKit(): Promise<void> {
+  const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
+  token.addGrant({ agent: true });
+  const jwt = await token.toJwt();
+
+  const baseUrl = new URL(LIVEKIT_URL);
+  baseUrl.protocol = baseUrl.protocol.replace('http', 'ws');
+  const url = new URL(`${baseUrl.toString()}agent`);
+
+  log('Connecting to LiveKit', { url: url.toString() });
+
+  return new Promise((resolve, reject) => {
+    ws = new WebSocket(url.toString(), {
+      headers: { authorization: `Bearer ${jwt}` },
+    });
+
+    ws.on('open', () => {
+      log('Connected to LiveKit server');
+      reconnectAttempts = 0;
+      markLivekitConnected();
+      startPingKeepalive();
+
+      const registerMsg = new WorkerMessage({
+        message: {
+          case: 'register',
+          value: {
+            type: JobType.JT_ROOM,
+            version: '0.1.0',
+            agentName: AGENT_NAME,
+            allowedPermissions: new ParticipantPermission({
+              canPublish: true,
+              canSubscribe: true,
+              canPublishData: true,
+              canUpdateMetadata: true,
+              hidden: false,
+              agent: true,
+            }),
+          },
+        },
+      });
+      ws!.send(registerMsg.toBinary());
+      resolve();
+    });
+
+    ws.on('pong', () => {
+      lastPongTime = Date.now();
+    });
+
+    ws.on('message', (data: Buffer) => {
+      void (async () => {
+        try {
+          const msg = new ServerMessage();
+          msg.fromBinary(new Uint8Array(data));
+          await handleServerMessage(msg);
+        } catch (error) {
+          log('Error handling message', { error: String(error) });
+        }
+      })();
+    });
+
+    ws.on('close', (code) => {
+      log('WebSocket closed', { code });
+      markLivekitDisconnected();
+      stopPingKeepalive();
+      scheduleReconnect();
+    });
+
+    ws.on('error', (error) => {
+      log('WebSocket error', { error: error.message });
+      reject(error);
+    });
+  });
+}
+
+function scheduleReconnect(): void {
+  if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+    log('Max reconnect attempts reached, exiting');
+    process.exit(1);
+  }
+
+  const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+  reconnectAttempts++;
+
+  log('Scheduling reconnect', { attempt: reconnectAttempts, delayMs: delay });
+  setTimeout(() => {
+    void connectToLiveKit().catch(log);
+  }, delay);
+}
+
+interface PendingJob {
+  job: Job;
+  acceptArgs: {
+    name: string;
+    identity: string;
+    metadata: string;
+  };
+  /** Timestamp when job was added to pending queue */
+  timestamp: number;
+}
+const pendingJobs = new Map<string, PendingJob>();
+
+/** TTL for pending jobs - if not assigned within 60s, clean up */
+const PENDING_JOB_TTL_MS = 60_000;
+
+/** Cleanup interval for stale pending jobs */
+let pendingJobsCleanupInterval: ReturnType<typeof setInterval> | null = null;
+
+function startPendingJobsCleanup(): void {
+  if (pendingJobsCleanupInterval) return;
+
+  pendingJobsCleanupInterval = setInterval(() => {
+    const now = Date.now();
+    let cleaned = 0;
+
+    for (const [jobId, pending] of pendingJobs) {
+      if (now - pending.timestamp > PENDING_JOB_TTL_MS) {
+        pendingJobs.delete(jobId);
+        cleaned++;
+        log('Cleaned up stale pending job', { jobId, ageMs: now - pending.timestamp });
+      }
+    }
+
+    if (cleaned > 0) {
+      log('Pending jobs cleanup complete', { cleaned, remaining: pendingJobs.size });
+    }
+  }, 30_000); // Run every 30 seconds
+}
+
+function stopPendingJobsCleanup(): void {
+  if (pendingJobsCleanupInterval) {
+    clearInterval(pendingJobsCleanupInterval);
+    pendingJobsCleanupInterval = null;
+  }
+}
+
+async function handleServerMessage(msg: ServerMessage): Promise<void> {
+  const { message } = msg;
+  if (!message) return;
+
+  switch (message.case) {
+    case 'register': {
+      workerId = message.value.workerId || workerId;
+      log('Worker registered', { workerId });
+
+      const statusMsg = new WorkerMessage({
+        message: {
+          case: 'updateWorker',
+          value: { load: 0, status: WorkerStatus.WS_AVAILABLE },
+        },
+      });
+      ws?.send(statusMsg.toBinary());
+
+      signalWorkerAcceptingJobs();
+      log('Worker ready to accept jobs');
+
+      // Start pending jobs cleanup to prevent memory leaks
+      startPendingJobsCleanup();
+
+      // Periodic status updates
+      setInterval(() => {
+        if (ws?.readyState === WebSocket.OPEN) {
+          const currentLoad = activeJobs > 0 ? 0.5 : 0;
+          const status = activeJobs >= 3 ? WorkerStatus.WS_FULL : WorkerStatus.WS_AVAILABLE;
+          const updateMsg = new WorkerMessage({
+            message: {
+              case: 'updateWorker',
+              value: { load: currentLoad, status },
+            },
+          });
+          ws.send(updateMsg.toBinary());
+        }
+      }, 10000);
+      break;
+    }
+
+    case 'availability': {
+      const { job } = message.value;
+      if (!job) return;
+
+      log('Job availability request', { jobId: job.id, roomName: job.room?.name });
+
+      const acceptArgs = {
+        name: AGENT_NAME,
+        identity: `${AGENT_NAME}-${process.pid}`,
+        metadata: JSON.stringify({ singleProcess: true }),
+      };
+      pendingJobs.set(job.id, { job, acceptArgs, timestamp: Date.now() });
+
+      const response = new WorkerMessage({
+        message: {
+          case: 'availability',
+          value: {
+            jobId: job.id,
+            available: true,
+            participantIdentity: acceptArgs.identity,
+            participantName: acceptArgs.name,
+            participantMetadata: acceptArgs.metadata,
+          },
+        },
+      });
+      ws?.send(response.toBinary());
+      break;
+    }
+
+    case 'assignment': {
+      const assignment = message.value;
+      const jobId = assignment.job?.id;
+
+      log('Job assignment received', { jobId });
+
+      if (!jobId || !assignment.job) {
+        log('Invalid assignment - no job');
+        return;
+      }
+
+      const pending = pendingJobs.get(jobId);
+      pendingJobs.delete(jobId);
+
+      runJobInProcess({
+        job: assignment.job,
+        url: assignment.url || LIVEKIT_URL,
+        token: assignment.token || '',
+        acceptArgs: pending?.acceptArgs || {
+          name: AGENT_NAME,
+          identity: `${AGENT_NAME}-${process.pid}`,
+          metadata: '',
+        },
+      }).catch((error) => {
+        log('Job execution failed', { jobId, error: String(error) });
+      });
+      break;
+    }
+
+    case 'termination': {
+      log('Job termination received', { jobId: message.value.jobId });
+      break;
+    }
+
+    default:
+      log('Unknown message type', { case: message.case });
+  }
+}
+
+// ============================================================================
+// MAIN STARTUP
+// ============================================================================
+
+async function main(): Promise<void> {
+  await warmupResources();
+
+  log('Phase 4: Connecting to LiveKit');
+  await connectToLiveKit();
+
+  // Diagnostic summary
+  setInterval(() => {
+    log('Diagnostic summary', {
+      uptimeMs: Date.now() - _startTime,
+      memoryMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+      totalJobs,
+      completedJobs,
+      failedJobs,
+      activeJobs,
+      workerId,
+    });
+  }, 60000);
+
+  const totalStartupTime = Date.now() - _startTime;
+  log('✅ GCE Voice Worker ready', {
+    totalStartupMs: totalStartupTime,
+    moduleLoadMs: moduleLoadTime,
+    workerId,
+    mode: 'SINGLE_PROCESS',
+  });
+}
+
+// ============================================================================
+// GRACEFUL SHUTDOWN
+// ============================================================================
+
+const shutdown = async (signal: string) => {
+  log(`Received ${signal}, shutting down...`, { activeJobs });
+
+  markLivekitDisconnected();
+  stopPingKeepalive();
+  stopPendingJobsCleanup();
+  ws?.close();
+
+  const shutdownStart = Date.now();
+  while (activeJobs > 0 && Date.now() - shutdownStart < 30000) {
+    await new Promise<void>((r) => setTimeout(r, 1000));
+    log('Waiting for active jobs...', { activeJobs });
+  }
+
+  log('Shutdown complete', { totalJobs, completedJobs, failedJobs });
+  process.exit(0);
+};
+
+process.on('SIGTERM', () => void shutdown('SIGTERM'));
+process.on('SIGINT', () => void shutdown('SIGINT'));
+
+// ============================================================================
+// ENTRY POINT
+// ============================================================================
+
+main().catch((error) => {
+  log('❌ Worker startup failed', { error: String(error) });
+  process.exit(1);
+});

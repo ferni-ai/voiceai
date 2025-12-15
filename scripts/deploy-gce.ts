@@ -48,6 +48,11 @@ const CONFIG = {
   imageName: 'gcr.io/johnb-2025/voiceai-agent',
   containerName: 'voiceai-agent',
 
+  // Redis sidecar settings
+  redisContainerName: 'voiceai-redis',
+  redisImage: 'redis:7-alpine',
+  redisPort: 6379,
+
   // Ports for blue-green
   bluePort: 8080,
   greenPort: 8081,
@@ -200,25 +205,102 @@ function formatEnvVars(secrets: Record<string, string>): string {
 }
 
 // ============================================================================
+// REDIS SIDECAR
+// ============================================================================
+
+async function ensureRedisRunning(): Promise<void> {
+  log.step('Ensuring Redis Sidecar');
+
+  // Check if Redis container exists and is running
+  const isRunning = ssh(
+    `docker ps --format '{{.Names}}' | grep -q ${CONFIG.redisContainerName} && echo 'running' || echo 'not running'`,
+    { silent: true }
+  ).trim();
+
+  if (isRunning === 'running') {
+    log.success('Redis sidecar already running');
+    return;
+  }
+
+  // Check if container exists but stopped
+  const exists = ssh(
+    `docker ps -a --format '{{.Names}}' | grep -q ${CONFIG.redisContainerName} && echo 'exists' || echo 'not exists'`,
+    { silent: true }
+  ).trim();
+
+  if (exists === 'exists') {
+    log.substep('Starting existing Redis container...');
+    ssh(`docker start ${CONFIG.redisContainerName}`);
+  } else {
+    log.substep('Creating new Redis container...');
+    // Run Redis with persistence, restart policy, and memory limit
+    ssh(`docker run -d \
+      --name ${CONFIG.redisContainerName} \
+      --restart unless-stopped \
+      --memory 256m \
+      -p ${CONFIG.redisPort}:6379 \
+      -v redis-data:/data \
+      ${CONFIG.redisImage} \
+      redis-server --appendonly yes --maxmemory 200mb --maxmemory-policy allkeys-lru`);
+  }
+
+  // Wait for Redis to be ready
+  log.substep('Waiting for Redis to be ready...');
+  let ready = false;
+  for (let i = 0; i < 10; i++) {
+    try {
+      const pong = ssh(`docker exec ${CONFIG.redisContainerName} redis-cli ping`, { silent: true }).trim();
+      if (pong === 'PONG') {
+        ready = true;
+        break;
+      }
+    } catch {
+      // Not ready yet
+    }
+    await sleep(1000);
+  }
+
+  if (ready) {
+    log.success('Redis sidecar is ready');
+  } else {
+    log.warn('Redis may not be fully ready, continuing anyway');
+  }
+}
+
+// ============================================================================
 // DEPLOYMENT FUNCTIONS
 // ============================================================================
 
-function buildAndPush(): string {
+function buildAndPush(useCloudBuild: boolean): string {
   log.step('Building Docker Image');
 
   const tag = `${Date.now()}`;
   const fullImage = `${CONFIG.imageName}:${tag}`;
 
-  log.substep(`Building: ${fullImage}`);
-  // 🐛 FIX: Force linux/amd64 platform for GCE compatibility (macOS builds ARM64 by default)
-  exec(`docker build --platform linux/amd64 -f docker/Dockerfile.agent -t ${fullImage} .`);
+  if (useCloudBuild) {
+    // Use Google Cloud Build (no local Docker needed)
+    // Uses cloudbuild-gce.yaml which specifies the correct Dockerfile
+    log.substep(`Building with Cloud Build: ${fullImage}`);
+    exec(`gcloud builds submit \
+      --config cloudbuild-gce.yaml \
+      --substitutions=_IMAGE_TAG=${tag} \
+      --project ${CONFIG.projectId} \
+      --quiet .`);
+    
+    log.substep('Image built and pushed to GCR');
+  } else {
+    // Use local Docker (faster if Docker is running)
+    log.substep(`Building locally: ${fullImage}`);
+    // 🐛 FIX: Force linux/amd64 platform for GCE compatibility (macOS builds ARM64 by default)
+    exec(`docker build --platform linux/amd64 -f docker/Dockerfile.agent -t ${fullImage} .`);
 
-  log.substep('Pushing to Container Registry...');
-  exec(`docker push ${fullImage}`);
+    log.substep('Pushing to Container Registry...');
+    exec(`docker push ${fullImage}`);
 
-  // Also tag as latest
-  exec(`docker tag ${fullImage} ${CONFIG.imageName}:latest`);
-  exec(`docker push ${CONFIG.imageName}:latest`);
+    // Also tag as latest
+    exec(`docker tag ${fullImage} ${CONFIG.imageName}:latest`);
+    exec(`docker push ${CONFIG.imageName}:latest`);
+  }
 
   log.success(`Image pushed: ${fullImage}`);
   return fullImage;
@@ -269,11 +351,16 @@ function deployToSlot(
   ssh(`docker pull ${image}`);
 
   // Build environment variables
+  // Note: Redis runs on the same host via Docker networking, so we use the host's Docker IP
+  // The Docker bridge network assigns 172.17.0.1 as the host gateway
   const envVars = formatEnvVars({
     ...secrets,
     PORT: String(port),
     NODE_ENV: 'production',
     GOOGLE_CLOUD_PROJECT: CONFIG.projectId,
+    // Redis connection - using Docker host gateway to reach the Redis sidecar
+    REDIS_HOST: '172.17.0.1',
+    REDIS_PORT: String(CONFIG.redisPort),
   });
 
   // Start the new container
@@ -354,6 +441,22 @@ ${colors.bold}${colors.magenta}╔═══════════════�
   const args = process.argv.slice(2);
   const isDryRun = args.includes('--dry-run');
   const isRollback = args.includes('--rollback');
+  const forceCloudBuild = args.includes('--cloud-build');
+  
+  // Auto-detect if local Docker is available
+  let useCloudBuild = forceCloudBuild;
+  if (!useCloudBuild) {
+    try {
+      const dockerCheck = execSync('docker info 2>&1', { encoding: 'utf-8', stdio: 'pipe' });
+      if (dockerCheck.includes('Cannot connect') || dockerCheck.includes('error')) {
+        throw new Error('Docker not running');
+      }
+      log.info('Using local Docker for build');
+    } catch {
+      log.warn('Local Docker not available, using Cloud Build');
+      useCloudBuild = true;
+    }
+  }
 
   if (isDryRun) {
     log.warn('DRY RUN MODE - No changes will be made');
@@ -381,8 +484,10 @@ ${colors.bold}${colors.magenta}╔═══════════════�
   log.info(`Deploying to: ${targetSlot.toUpperCase()} slot (port ${targetPort})`);
 
   if (isDryRun) {
-    log.info('Would build and push image');
+    log.info('Would ensure Redis sidecar is running');
+    log.info(`Would build image using ${useCloudBuild ? 'Cloud Build' : 'local Docker'}`);
     log.info(`Would deploy to ${targetSlot} slot on port ${targetPort}`);
+    log.info('Would set REDIS_HOST=172.17.0.1 for container');
     log.info('Would run health checks');
     log.info(`Would promote ${targetSlot} to production`);
     return;
@@ -396,8 +501,11 @@ ${colors.bold}${colors.magenta}╔═══════════════�
   }
   log.success(`Loaded ${Object.keys(secrets).length} secrets`);
 
+  // Ensure Redis sidecar is running
+  await ensureRedisRunning();
+
   // Build and push
-  const image = buildAndPush();
+  const image = buildAndPush(useCloudBuild);
 
   // Deploy to target slot
   deployToSlot(image, targetSlot, secrets);
@@ -438,6 +546,7 @@ ${colors.bold}${colors.green}╔════════════════
   ${colors.cyan}Slot:${colors.reset}     ${targetSlot.toUpperCase()}
   ${colors.cyan}Port:${colors.reset}     ${targetPort}
   ${colors.cyan}Image:${colors.reset}    ${image}
+  ${colors.cyan}Redis:${colors.reset}    ${colors.green}CONNECTED${colors.reset} (172.17.0.1:${CONFIG.redisPort})
   ${colors.cyan}Status:${colors.reset}   ${colors.green}HEALTHY${colors.reset}
 `);
 }

@@ -43,6 +43,9 @@ let persistenceMetrics:
   | typeof import('../../services/persistence-metrics.js').persistenceMetrics
   | null = null;
 let cognitiveWebSocket: typeof import('../../services/cognitive-websocket.js') | null = null;
+let sessionDataManager:
+  | ReturnType<typeof import('../../services/session-data-manager.js').getSessionDataManager>
+  | null = null;
 
 async function getCognitiveBroadcast() {
   if (!cognitiveBroadcast) {
@@ -66,6 +69,18 @@ async function getPersistenceMetrics() {
     }
   }
   return persistenceMetrics;
+}
+
+async function getSessionDataManager() {
+  if (!sessionDataManager) {
+    try {
+      const module = await import('../../services/session-data-manager.js');
+      sessionDataManager = module.getSessionDataManager();
+    } catch {
+      return null;
+    }
+  }
+  return sessionDataManager;
 }
 
 async function initWebSocketServer(httpServer: Server) {
@@ -132,6 +147,120 @@ async function handleCognitiveAPI(url: string, res: ServerResponse): Promise<voi
   // Unknown cognitive endpoint
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Unknown cognitive endpoint' }));
+}
+
+/**
+ * Handle cache stats API requests (SessionDataManager)
+ */
+async function handleCacheAPI(url: string, res: ServerResponse): Promise<void> {
+  const sdm = await getSessionDataManager();
+
+  // CORS headers for dashboard
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (!sdm) {
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'SessionDataManager not available' }));
+    return;
+  }
+
+  if (url === '/api/cache' || url === '/api/cache/stats') {
+    // Return cache statistics
+    const stats = sdm.getStats();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        success: true,
+        data: stats,
+        timestamp: new Date().toISOString(),
+      })
+    );
+    return;
+  }
+
+  // Unknown cache endpoint
+  res.writeHead(404, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ error: 'Unknown cache endpoint' }));
+}
+
+/**
+ * Handle memory monitoring API requests
+ */
+async function handleMemoryAPI(url: string, res: ServerResponse): Promise<void> {
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  try {
+    const { getMemoryMonitor } = await import('../../services/memory-monitor.js');
+    const monitor = getMemoryMonitor();
+
+    if (url === '/api/memory' || url === '/api/memory/metrics') {
+      // Current memory metrics
+      const metrics = await monitor.getMetrics();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, data: metrics, timestamp: new Date().toISOString() }));
+      return;
+    }
+
+    if (url === '/api/memory/history') {
+      // Memory metrics history
+      const history = monitor.getHistory();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, data: history, timestamp: new Date().toISOString() }));
+      return;
+    }
+
+    if (url === '/api/memory/alerts') {
+      // Alert history
+      const alerts = monitor.getAlerts();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, data: alerts, timestamp: new Date().toISOString() }));
+      return;
+    }
+
+    if (url === '/api/memory/cleanup') {
+      // Force cleanup
+      const result = await monitor.forceCleanup();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          success: true,
+          data: result,
+          message: `Cleaned ${result.cleaned} items, freed ~${result.freedMB.toFixed(2)}MB`,
+          timestamp: new Date().toISOString(),
+        })
+      );
+      return;
+    }
+
+    // Unknown endpoint
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Unknown memory endpoint' }));
+  } catch (error) {
+    log.error({ error: String(error), url }, 'Memory API error');
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Memory monitor not available' }));
+  }
+}
+
+/**
+ * Handle Prometheus metrics export
+ */
+async function handlePrometheusMetrics(res: ServerResponse): Promise<void> {
+  try {
+    const { exportPrometheusMetrics } = await import('../../services/memory-monitor.js');
+    const metrics = await exportPrometheusMetrics();
+    res.writeHead(200, { 'Content-Type': 'text/plain; version=0.0.4; charset=utf-8' });
+    res.end(metrics);
+  } catch (error) {
+    log.error({ error: String(error) }, 'Prometheus metrics export failed');
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end('# Error exporting metrics');
+  }
 }
 
 /**
@@ -257,6 +386,24 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
       // Persistence metrics API endpoints
       if (url.startsWith('/api/metrics')) {
         await handleMetricsAPI(url, res);
+        return;
+      }
+
+      // Cache stats API endpoints (SessionDataManager)
+      if (url.startsWith('/api/cache')) {
+        await handleCacheAPI(url, res);
+        return;
+      }
+
+      // Memory monitoring API endpoints
+      if (url.startsWith('/api/memory')) {
+        await handleMemoryAPI(url, res);
+        return;
+      }
+
+      // Prometheus metrics endpoint
+      if (url === '/metrics') {
+        await handlePrometheusMetrics(res);
         return;
       }
 

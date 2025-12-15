@@ -177,7 +177,7 @@ export function applyPronunciationsOptimized(text: string): string {
  * Get statistics about pattern categorization
  * Useful for debugging and optimization tuning
  */
-export function getCategoryStats(): { name: string; count: number }[] {
+export function getCategoryStats(): Array<{ name: string; count: number }> {
   const categories = getCategorizedPatterns();
   return categories.map((c) => ({ name: c.name, count: c.patterns.length }));
 }
@@ -189,12 +189,12 @@ export function estimatePatternChecks(text: string): {
   total: number;
   checked: number;
   skipped: number;
-  categories: { name: string; checked: boolean; count: number }[];
+  categories: Array<{ name: string; checked: boolean; count: number }>;
 } {
   const categories = getCategorizedPatterns();
   let checked = 0;
   let skipped = 0;
-  const categoryStats: { name: string; checked: boolean; count: number }[] = [];
+  const categoryStats: Array<{ name: string; checked: boolean; count: number }> = [];
 
   for (const category of categories) {
     const willCheck = category.quickCheck(text);

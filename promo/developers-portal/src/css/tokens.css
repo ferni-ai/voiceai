@@ -1,0 +1,256 @@
+/**
+ * Ferni Developer Portal - Design Tokens
+ * Theme: Cedar Night (Dark) - Developers prefer dark mode
+ */
+
+:root {
+  /* ========================================
+     COLORS - Cedar Night Theme
+     ======================================== */
+
+  /* Backgrounds */
+  --bg-primary: #584840;
+  --bg-secondary: #60504a;
+  --bg-tertiary: #685852;
+  --bg-elevated: #70605a;
+  --bg-glass: rgba(230, 195, 160, 0.08);
+  --bg-overlay: rgba(88, 72, 64, 0.95);
+  --bg-code: #2a2420;
+  --bg-code-inline: rgba(230, 195, 160, 0.12);
+
+  /* Text */
+  --text-primary: #faf6f0;
+  --text-secondary: #f0ebe4;
+  --text-muted: #e8e2da;
+  --text-dimmed: #ddd6cc;
+  --text-inverse: #2a2420;
+
+  /* Accent - Gold */
+  --accent-primary: #d4a84a;
+  --accent-hover: #e0bc6a;
+  --accent-pressed: #c49a3a;
+  --accent-glow: rgba(212, 168, 74, 0.22);
+  --accent-subtle: rgba(212, 168, 74, 0.08);
+  --accent-text: #e8c870;
+
+  /* Borders */
+  --border-subtle: rgba(215, 185, 145, 0.12);
+  --border-medium: rgba(215, 185, 145, 0.2);
+  --border-strong: rgba(215, 185, 145, 0.3);
+
+  /* Semantic */
+  --success: #6bc48f;
+  --success-glow: rgba(107, 196, 143, 0.22);
+  --error: #e07575;
+  --error-glow: rgba(224, 117, 117, 0.22);
+  --warning: #e0b860;
+  --warning-glow: rgba(224, 184, 96, 0.22);
+  --info: #7da6cf;
+  --info-glow: rgba(125, 166, 207, 0.22);
+
+  /* Code syntax colors */
+  --syntax-keyword: #e8c870;
+  --syntax-string: #6bc48f;
+  --syntax-number: #7da6cf;
+  --syntax-comment: #9a8a7a;
+  --syntax-function: #d4a84a;
+  --syntax-variable: #faf6f0;
+  --syntax-operator: #e8e2da;
+  --syntax-class: #e07b9a;
+
+  /* HTTP methods */
+  --method-get: #6bc48f;
+  --method-post: #7da6cf;
+  --method-put: #e0b860;
+  --method-delete: #e07575;
+  --method-patch: #d4a84a;
+
+  /* ========================================
+     TYPOGRAPHY
+     ======================================== */
+  --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+
+  /* Font sizes */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --text-5xl: 3rem;
+  --text-6xl: 3.75rem;
+
+  /* Line heights */
+  --leading-tight: 1.2;
+  --leading-snug: 1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+
+  /* ========================================
+     SPACING
+     ======================================== */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+  --space-32: 8rem;
+
+  /* ========================================
+     BORDERS & RADIUS
+     ======================================== */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* ========================================
+     SHADOWS
+     ======================================== */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 12px 48px rgba(0, 0, 0, 0.35);
+  --shadow-glow: 0 0 40px var(--accent-glow);
+  --shadow-glow-sm: 0 0 20px var(--accent-glow);
+
+  /* ========================================
+     ANIMATIONS
+     ======================================== */
+  --duration-fast: 100ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --duration-slower: 500ms;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-gentle: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ========================================
+     LAYOUT
+     ======================================== */
+  --container-max: 1280px;
+  --container-narrow: 768px;
+  --sidebar-width: 280px;
+  --header-height: 64px;
+}
+
+/* ========================================
+   GLOBAL STYLES
+   ======================================== */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Selection */
+::selection {
+  background: var(--accent-primary);
+  color: var(--text-inverse);
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Links */
+a {
+  color: var(--accent-text);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-gentle);
+}
+
+a:hover {
+  color: var(--accent-hover);
+}
+
+/* Headings */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: var(--leading-tight);
+  color: var(--text-primary);
+}
+
+h1 {
+  font-size: var(--text-5xl);
+}
+h2 {
+  font-size: var(--text-4xl);
+}
+h3 {
+  font-size: var(--text-2xl);
+}
+h4 {
+  font-size: var(--text-xl);
+}
+h5 {
+  font-size: var(--text-lg);
+}
+h6 {
+  font-size: var(--text-base);
+}
+
+/* Code */
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--bg-code-inline);
+  padding: 0.15em 0.4em;
+  border-radius: var(--radius-sm);
+}
+
+pre {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  background: var(--bg-code);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  overflow-x: auto;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');

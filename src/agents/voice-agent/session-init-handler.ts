@@ -117,19 +117,25 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
   resetMetPersonas(); // Reset "first meeting" tracking for natural greetings
 
   // Notify frontend of state reset
-  if (room?.localParticipant) {
+  // Note: room may be a RoomAdapter (publishData at top level) or raw Room (publishData on localParticipant)
+  if (room) {
     try {
-      await room.localParticipant.publishData(
-        new TextEncoder().encode(
+      const data = new TextEncoder().encode(
           JSON.stringify({
             type: 'state_reset',
             activePersona: 'ferni',
             timestamp: Date.now(),
           })
-        ),
-        { reliable: true }
       );
-      logger.debug('Notified frontend of state reset');
+      
+      // Try adapter-style first (publishData on room), then raw Room style
+      if (typeof (room as { publishData?: unknown }).publishData === 'function') {
+        await (room as { publishData: (d: Uint8Array, o: { reliable: boolean }) => Promise<void> }).publishData(data, { reliable: true });
+        logger.debug('Notified frontend of state reset (adapter)');
+      } else if (room.localParticipant && typeof room.localParticipant.publishData === 'function') {
+        await room.localParticipant.publishData(data, { reliable: true });
+        logger.debug('Notified frontend of state reset (raw room)');
+      }
     } catch (notifyErr) {
       logger.warn({ error: String(notifyErr) }, 'Failed to notify frontend of state reset');
     }

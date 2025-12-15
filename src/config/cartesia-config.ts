@@ -24,10 +24,7 @@ export {
 } from '../speech/tts/cartesia-core.js';
 
 // Import for local use
-import {
-  CARTESIA_MODEL,
-  DEFAULT_VOICE_IDS,
-} from '../speech/tts/cartesia-core.js';
+import { CARTESIA_MODEL, DEFAULT_VOICE_IDS } from '../speech/tts/cartesia-core.js';
 
 // ============================================================================
 // VOICE_IDS ALIAS (backwards compatibility)

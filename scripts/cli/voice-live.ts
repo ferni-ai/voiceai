@@ -1,22 +1,26 @@
 #!/usr/bin/env npx tsx
 /**
- * Live Voice Conversation CLI
+ * Ferni Voice CLI - The CEO and His Team
  *
- * Connect to the REAL Ferni voice agent - same platform as the web UI.
- * Uses LiveKit for real-time voice with full platform capabilities:
+ * Connect to the REAL Ferni voice platform with full team capabilities.
+ * Ferni leads the team and can bring in specialists when needed.
+ *
+ * Features:
+ * - Full team: Ferni (CEO), Maya, Alex, Jordan, Peter, Nayan
+ * - Live handoffs between team members
  * - All 70+ context builders
  * - Persistent memory
- * - Gemini Live STT
- * - Cartesia TTS
+ * - Gemini Live STT + Cartesia TTS
  *
  * Prerequisites:
  *   1. Token server running: node token-server.js
  *   2. Agent running: pnpm agent:dev (or deployed to Cloud Run)
- *   3. brew install sox portaudio (for audio)
+ *   3. brew install sox (for microphone capture)
  *
  * Usage:
- *   ferni voice                    # Talk to Ferni
- *   ferni voice --persona maya     # Talk to Maya
+ *   ferni voice                    # Talk to Ferni (CEO)
+ *   ferni voice --persona maya     # Start with Maya
+ *   ferni voice --team             # Show team roster
  */
 
 import { config as dotenvConfig } from 'dotenv';
@@ -43,184 +47,295 @@ const CONFIG = {
 };
 
 // ============================================================================
-// SOUND EFFECTS - Two modes: MP3 (rich) or Synth (lightweight)
+// ANSI COLORS & STYLES
 // ============================================================================
 
-// Sound mode: 'mp3' uses pre-recorded sounds, 'synth' generates tones
-// Set FERNI_SOUNDS=mp3 for the macOS app experience
-type SoundMode = 'mp3' | 'synth';
-const SOUND_MODE: SoundMode = (process.env.FERNI_SOUNDS as SoundMode) || 'synth';
-
-// MP3 sound files location
-const SOUNDS_DIR = join(PROJECT_ROOT, 'design-system', 'assets', 'sounds');
-import { existsSync } from 'fs';
-
-/**
- * Play an MP3 sound file (richer, pre-recorded sounds).
- */
-function playSoundMP3(soundName: string): void {
-  const soundPath = join(SOUNDS_DIR, `${soundName}.mp3`);
-  if (!existsSync(soundPath)) {
-    // Fall back to synth if MP3 not found
-    playSoundSynth(soundName as keyof typeof SOUND_CONFIGS);
-    return;
-  }
-
-  // Use afplay on macOS, aplay on Linux
-  const player = process.platform === 'darwin' ? 'afplay' : 'aplay';
-  spawn(player, [soundPath], {
-    stdio: 'ignore',
-    detached: true,
-  }).unref();
-}
-
-/**
- * Sound configurations for synthesized sounds.
- * Matches frontend's Web Audio API synthesis.
- */
-interface SoundTone {
-  frequency: number;
-  delay: number;
-  duration: number;
-  volume: number;
-}
-
-interface SoundConfig {
-  tones: SoundTone[];
-  type: 'sine';
-}
-
-const SOUND_CONFIGS: Record<string, SoundConfig> = {
-  // Dramatic entrance - quick ascending flourish
-  intro: {
-    type: 'sine',
-    tones: [
-      { frequency: 392.0, delay: 0, duration: 0.12, volume: 0.1 },       // G4
-      { frequency: 493.88, delay: 0.06, duration: 0.12, volume: 0.1 },   // B4
-      { frequency: 587.33, delay: 0.12, duration: 0.18, volume: 0.12 },  // D5 (held longer)
-    ],
-  },
-  // C major chord ascending - connect feel
-  connect: {
-    type: 'sine',
-    tones: [
-      { frequency: 523.25, delay: 0, duration: 0.15, volume: 0.12 },     // C5
-      { frequency: 659.25, delay: 0.08, duration: 0.15, volume: 0.12 },  // E5
-      { frequency: 783.99, delay: 0.16, duration: 0.15, volume: 0.12 },  // G5
-    ],
-  },
-  // Descending chord - disconnect feel
-  disconnect: {
-    type: 'sine',
-    tones: [
-      { frequency: 783.99, delay: 0, duration: 0.12, volume: 0.1 },      // G5
-      { frequency: 659.25, delay: 0.06, duration: 0.12, volume: 0.1 },   // E5
-      { frequency: 523.25, delay: 0.12, duration: 0.12, volume: 0.1 },   // C5
-    ],
-  },
-  // Warm goodbye ceremony - Am7 → G/B → Cmaj7 resolution (~2s)
-  goodbye: {
-    type: 'sine',
-    tones: [
-      { frequency: 220.0, delay: 0, duration: 0.8, volume: 0.08 },       // A3 - Am7 root
-      { frequency: 261.63, delay: 0.05, duration: 0.8, volume: 0.08 },   // C4 - Am7 color
-      { frequency: 329.63, delay: 0.1, duration: 0.8, volume: 0.08 },    // E4 - Am7 fifth
-      { frequency: 246.94, delay: 0.5, duration: 0.8, volume: 0.08 },    // B3 - G/B bass
-      { frequency: 293.66, delay: 0.55, duration: 0.8, volume: 0.08 },   // D4 - G chord
-      { frequency: 392.0, delay: 0.6, duration: 0.8, volume: 0.08 },     // G4 - G chord root
-      { frequency: 261.63, delay: 1.0, duration: 0.8, volume: 0.08 },    // C4 - Cmaj7 root
-      { frequency: 329.63, delay: 1.05, duration: 0.8, volume: 0.08 },   // E4 - Cmaj7
-      { frequency: 392.0, delay: 1.1, duration: 0.8, volume: 0.08 },     // G4 - Cmaj7
-      { frequency: 493.88, delay: 1.15, duration: 0.8, volume: 0.08 },   // B4 - Cmaj7 seventh
-    ],
-  },
-  // Phone receiver click - tactile finality
-  hangup: {
-    type: 'sine',
-    tones: [
-      { frequency: 180, delay: 0, duration: 0.06, volume: 0.12 },        // Low thud
-      { frequency: 420, delay: 0.015, duration: 0.06, volume: 0.12 },    // Mid click
-      { frequency: 280, delay: 0.04, duration: 0.06, volume: 0.12 },     // Low resonance
-    ],
-  },
-};
-
-/**
- * Play a synthesized sound using sox.
- */
-function playSoundSynth(soundName: keyof typeof SOUND_CONFIGS): void {
-  const config = SOUND_CONFIGS[soundName];
-  if (!config) return;
-
-  for (const tone of config.tones) {
-    setTimeout(() => {
-      spawn('sox', [
-        '-n', '-d',
-        'synth', String(tone.duration),
-        'sine', String(tone.frequency),
-        'vol', String(tone.volume),
-        'fade', 'q', '0.01', String(tone.duration), '0.05',
-      ], {
-        stdio: 'ignore',
-        detached: true,
-      }).unref();
-    }, tone.delay * 1000);
-  }
-}
-
-/**
- * Play a sound - uses MP3 or synth based on FERNI_SOUNDS env var.
- */
-function playSound(soundName: 'intro' | 'connect' | 'disconnect' | 'goodbye' | 'hangup'): void {
-  if (SOUND_MODE === 'mp3') {
-    // Map sound names to MP3 files
-    const mp3Map: Record<string, string> = {
-      intro: 'dramatic-entrance',
-      connect: 'connect',
-      disconnect: 'disconnect',
-      goodbye: 'disconnect', // goodbye uses disconnect MP3
-      hangup: 'disconnect', // no separate hangup MP3
-    };
-    playSoundMP3(mp3Map[soundName] || soundName);
-  } else {
-    playSoundSynth(soundName);
-  }
-}
-
-/**
- * Perform the goodbye ceremony.
- * MP3 mode: plays disconnect.mp3 (simpler, uses existing sound)
- * Synth mode: plays goodbye chord → pause → hangup click
- */
-async function playGoodbyeCeremony(): Promise<void> {
-  if (SOUND_MODE === 'mp3') {
-    // Use the rich disconnect MP3
-    playSoundMP3('disconnect');
-    await new Promise((resolve) => setTimeout(resolve, 600)); // MP3 is ~500ms
-  } else {
-    // Full synthesized ceremony
-    playSound('goodbye');
-    await new Promise((resolve) => setTimeout(resolve, 2400));
-    playSound('hangup');
-    await new Promise((resolve) => setTimeout(resolve, 150));
-  }
-}
-
-// ============================================================================
-// COLORS
-// ============================================================================
-
-const colors = {
+const c = {
   reset: '\x1b[0m',
   bold: '\x1b[1m',
   dim: '\x1b[2m',
+  italic: '\x1b[3m',
+  underline: '\x1b[4m',
+  // Standard colors
   red: '\x1b[31m',
   green: '\x1b[32m',
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
   magenta: '\x1b[35m',
   cyan: '\x1b[36m',
+  white: '\x1b[37m',
+  // Bright colors
+  brightRed: '\x1b[91m',
+  brightGreen: '\x1b[92m',
+  brightYellow: '\x1b[93m',
+  brightBlue: '\x1b[94m',
+  brightMagenta: '\x1b[95m',
+  brightCyan: '\x1b[96m',
+  // Background
+  bgGreen: '\x1b[42m',
+  bgBlue: '\x1b[44m',
+  bgMagenta: '\x1b[45m',
 };
+
+// Legacy alias for compatibility
+const colors = c;
+
+// ============================================================================
+// THE TEAM - Ferni's Leadership Team
+// ============================================================================
+
+interface TeamMember {
+  id: string;
+  name: string;
+  emoji: string;
+  role: string;
+  title: string;
+  color: string;
+  specialty: string;
+}
+
+const TEAM: Record<string, TeamMember> = {
+  ferni: {
+    id: 'ferni',
+    name: 'Ferni',
+    emoji: '🌿',
+    role: 'CEO & Life Coach',
+    title: 'Chief Executive Officer',
+    color: c.green,
+    specialty: 'Leadership, life direction, bringing in the right expert',
+  },
+  maya: {
+    id: 'maya',
+    name: 'Maya',
+    emoji: '🦋',
+    role: 'Habits Coach',
+    title: 'Chief Habits Officer',
+    color: c.magenta,
+    specialty: 'Building habits, breaking bad ones, behavior change',
+  },
+  alex: {
+    id: 'alex',
+    name: 'Alex',
+    emoji: '💬',
+    role: 'Communications Coach',
+    title: 'Chief Communications Officer',
+    color: c.brightBlue,
+    specialty: 'Difficult conversations, relationships, conflict resolution',
+  },
+  jordan: {
+    id: 'jordan',
+    name: 'Jordan',
+    emoji: '📋',
+    role: 'Life Planner',
+    title: 'Chief Planning Officer',
+    color: c.yellow,
+    specialty: 'Goals, planning, productivity, time management',
+  },
+  peter: {
+    id: 'peter',
+    name: 'Peter',
+    emoji: '🔬',
+    role: 'Research Analyst',
+    title: 'Chief Research Officer',
+    color: c.cyan,
+    specialty: 'Deep research, analysis, finding answers',
+  },
+  nayan: {
+    id: 'nayan',
+    name: 'Nayan',
+    emoji: '🧘',
+    role: 'Wisdom Sage',
+    title: 'Chief Wisdom Officer',
+    color: c.brightYellow,
+    specialty: 'Philosophy, mindfulness, deeper meaning',
+  },
+};
+
+// Current active persona (tracks handoffs)
+let activePersona: TeamMember = TEAM.ferni;
+
+// Session tracking
+let sessionStartTime: number | null = null;
+let turnCount = 0;
+let handoffCount = 0;
+
+// ============================================================================
+// TEAM DISPLAY FUNCTIONS
+// ============================================================================
+
+function showTeamRoster(): void {
+  console.log(`
+${c.bold}${c.green}╔══════════════════════════════════════════════════════════════════╗
+║                    🌿 FERNI'S LEADERSHIP TEAM                    ║
+╚══════════════════════════════════════════════════════════════════╝${c.reset}
+`);
+
+  for (const member of Object.values(TEAM)) {
+    const isActive = member.id === activePersona.id;
+    const indicator = isActive ? `${c.brightGreen}●${c.reset}` : `${c.dim}○${c.reset}`;
+    console.log(`  ${indicator} ${member.color}${member.emoji} ${member.name}${c.reset} - ${c.dim}${member.role}${c.reset}`);
+    console.log(`      ${c.dim}${member.specialty}${c.reset}`);
+    console.log();
+  }
+
+  console.log(`${c.dim}Ask Ferni to bring in any team member, or say "Let me talk to Maya"${c.reset}\n`);
+}
+
+function showHandoffTransition(from: TeamMember, to: TeamMember): void {
+  console.log();
+  console.log(`${c.dim}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${c.reset}`);
+  console.log(`  ${from.color}${from.emoji} ${from.name}${c.reset} ${c.dim}is handing off to${c.reset} ${to.color}${to.emoji} ${to.name}${c.reset}`);
+  console.log(`  ${c.dim}${to.role} • ${to.specialty}${c.reset}`);
+  console.log(`${c.dim}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${c.reset}`);
+  console.log();
+}
+
+function showActivePersona(): void {
+  console.log(`\n  ${c.dim}Currently speaking with:${c.reset} ${activePersona.color}${activePersona.emoji} ${activePersona.name}${c.reset} ${c.dim}(${activePersona.role})${c.reset}\n`);
+}
+
+function formatDuration(ms: number): string {
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  if (hours > 0) {
+    return `${hours}h ${minutes % 60}m`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${seconds % 60}s`;
+  }
+  return `${seconds}s`;
+}
+
+function showStatus(): void {
+  const duration = sessionStartTime ? formatDuration(Date.now() - sessionStartTime) : '0s';
+
+  console.log(`
+${c.bold}${c.green}Session Status${c.reset}
+${c.dim}─────────────────────────────────────${c.reset}
+  ${c.dim}Active:${c.reset}    ${activePersona.color}${activePersona.emoji} ${activePersona.name}${c.reset} ${c.dim}(${activePersona.role})${c.reset}
+  ${c.dim}Duration:${c.reset}  ${duration}
+  ${c.dim}Turns:${c.reset}     ${turnCount}
+  ${c.dim}Handoffs:${c.reset}  ${handoffCount}
+${c.dim}─────────────────────────────────────${c.reset}
+`);
+}
+
+function showCommands(): void {
+  console.log(`
+${c.bold}${c.green}Available Commands${c.reset}
+${c.dim}─────────────────────────────────────${c.reset}
+  ${c.cyan}team${c.reset}      Show the team roster
+  ${c.cyan}who${c.reset}       Who am I speaking with?
+  ${c.cyan}status${c.reset}    Show session status
+  ${c.cyan}help${c.reset}      Show these commands
+  ${c.cyan}exit${c.reset}      End conversation
+${c.dim}─────────────────────────────────────${c.reset}
+
+${c.bold}Quick Switch (@ commands):${c.reset}
+  ${c.green}@ferni${c.reset}    Switch to Ferni (CEO)
+  ${c.magenta}@maya${c.reset}     Switch to Maya (Habits)
+  ${c.brightBlue}@alex${c.reset}     Switch to Alex (Comms)
+  ${c.yellow}@jordan${c.reset}   Switch to Jordan (Planning)
+  ${c.cyan}@peter${c.reset}    Switch to Peter (Research)
+  ${c.brightYellow}@nayan${c.reset}    Switch to Nayan (Wisdom)
+${c.dim}─────────────────────────────────────${c.reset}
+
+${c.dim}Voice Commands:${c.reset}
+  ${c.dim}"Let me talk to Maya"${c.reset}  - Request handoff
+  ${c.dim}"Take me to Ferni"${c.reset}     - Return to CEO
+`);
+}
+
+// Quick persona switch animation
+function showQuickSwitch(to: TeamMember): void {
+  const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+  let i = 0;
+
+  console.log();
+  process.stdout.write(`  ${c.dim}Requesting ${to.color}${to.emoji} ${to.name}${c.reset}${c.dim}...${c.reset} `);
+
+  const spinner = setInterval(() => {
+    process.stdout.write(`\r  ${c.dim}Requesting ${to.color}${to.emoji} ${to.name}${c.reset}${c.dim}...${c.reset} ${frames[i]}`);
+    i = (i + 1) % frames.length;
+  }, 80);
+
+  // Stop spinner after 2 seconds (agent should respond by then)
+  setTimeout(() => {
+    clearInterval(spinner);
+    process.stdout.write(`\r  ${c.dim}Requesting ${to.color}${to.emoji} ${to.name}${c.reset}${c.dim}...${c.reset} ${c.green}sent${c.reset}\n\n`);
+  }, 1500);
+}
+
+// Parse @ commands - returns persona if matched
+function parseAtCommand(input: string): TeamMember | null {
+  const match = input.match(/^@(\w+)$/i);
+  if (!match) return null;
+
+  const name = match[1].toLowerCase();
+  return TEAM[name] || null;
+}
+
+function formatSpeaker(isAgent: boolean): string {
+  if (isAgent) {
+    return `${activePersona.color}${activePersona.emoji} ${activePersona.name}${c.reset}`;
+  }
+  return `${c.blue}You${c.reset}`;
+}
+
+// Detect persona from agent identity or data messages
+function detectPersonaFromIdentity(identity: string): TeamMember | null {
+  const lowerIdentity = identity.toLowerCase();
+  for (const member of Object.values(TEAM)) {
+    if (lowerIdentity.includes(member.id)) {
+      return member;
+    }
+  }
+  return null;
+}
+
+// Handle handoff data messages
+function handleDataMessage(data: Uint8Array, debug: boolean): void {
+  try {
+    const msg = JSON.parse(new TextDecoder().decode(data));
+
+    // Detect handoff events
+    if (msg.type === 'handoff_start' || msg.type === 'handoff_initiated') {
+      const targetId = msg.targetPersona || msg.target_persona || msg.to;
+      if (targetId && TEAM[targetId]) {
+        const oldPersona = activePersona;
+        activePersona = TEAM[targetId];
+        handoffCount++;
+        showHandoffTransition(oldPersona, activePersona);
+      }
+    }
+
+    // Detect handoff complete
+    if (msg.type === 'handoff_complete' || msg.type === 'persona_changed') {
+      const newId = msg.persona || msg.persona_id || msg.newPersona;
+      if (newId && TEAM[newId] && TEAM[newId].id !== activePersona.id) {
+        const oldPersona = activePersona;
+        activePersona = TEAM[newId];
+        handoffCount++;
+        showHandoffTransition(oldPersona, activePersona);
+      }
+    }
+
+    // Detect persona in agent greeting or state
+    if (msg.type === 'agent_state' || msg.type === 'session_state') {
+      const personaId = msg.persona || msg.persona_id;
+      if (personaId && TEAM[personaId]) {
+        activePersona = TEAM[personaId];
+      }
+    }
+
+    if (debug) {
+      console.log(`${c.dim}[DATA] ${JSON.stringify(msg).substring(0, 100)}${c.reset}`);
+    }
+  } catch {
+    // Not JSON, ignore
+  }
+}
 
 // ============================================================================
 // TOKEN FETCHING
@@ -274,6 +389,7 @@ async function connectToRoom(
 
   // Handle connection events
   room.on(RoomEvent.Connected, () => {
+    sessionStartTime = Date.now();
     console.log(`${colors.green}Connected to room!${colors.reset}`);
   });
 
@@ -283,68 +399,86 @@ async function connectToRoom(
 
   // Handle participants
   room.on(RoomEvent.ParticipantConnected, (participant) => {
-    if (participant.identity?.includes('agent')) {
-      playSound('connect');
+    const detected = detectPersonaFromIdentity(participant.identity || '');
+    if (detected) {
+      activePersona = detected;
+      console.log(`${detected.color}${detected.emoji} ${detected.name} joined${c.reset} ${c.dim}(${detected.role})${c.reset}`);
+    } else {
+      console.log(`${c.green}Agent joined: ${participant.identity}${c.reset}`);
     }
-    console.log(`${colors.green}Agent joined: ${participant.identity}${colors.reset}`);
   });
 
   room.on(RoomEvent.ParticipantDisconnected, (participant) => {
-    if (participant.identity?.includes('agent')) {
-      playSound('disconnect');
-    }
-    console.log(`${colors.yellow}Agent left: ${participant.identity}${colors.reset}`);
+    console.log(`${c.yellow}Agent left: ${participant.identity}${c.reset}`);
   });
 
-  // Track audio playback process for cleanup
+  // Track audio playback process - PERSISTENT across track subscriptions
   let audioPlayProcess: ChildProcess | null = null;
+  const PLAYBACK_SAMPLE_RATE = 48000;
+  const PLAYBACK_CHANNELS = 1;
+
+  // Start persistent sox process for audio playback
+  const startAudioPlayback = () => {
+    if (audioPlayProcess && !audioPlayProcess.killed) {
+      return; // Already running
+    }
+
+    audioPlayProcess = spawn('sox', [
+      '-t', 'raw',              // Input is raw PCM
+      '-b', '16',               // 16-bit
+      '-e', 'signed-integer',   // Signed integers
+      '-r', String(PLAYBACK_SAMPLE_RATE),  // Sample rate (48kHz default for LiveKit)
+      '-c', String(PLAYBACK_CHANNELS),     // Mono
+      '-',                      // Read from stdin
+      '-d',                     // Output to default audio device (speakers)
+    ], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+
+    audioPlayProcess.on('error', (err) => {
+      console.log(`${colors.yellow}Audio playback error: ${err.message}${colors.reset}`);
+    });
+
+    audioPlayProcess.on('close', (code) => {
+      if (options.debug) {
+        console.log(`${c.dim}[sox] Process closed with code ${code}${c.reset}`);
+      }
+      audioPlayProcess = null;
+    });
+
+    audioPlayProcess.stderr?.on('data', (data: Buffer) => {
+      // Suppress sox WARN messages about audio format
+      const msg = data.toString().trim();
+      if (msg && !msg.includes('WARN') && options.debug) {
+        console.log(`${c.dim}[sox] ${msg}${c.reset}`);
+      }
+    });
+
+    if (options.debug) {
+      console.log(`${colors.green}Audio playback started${colors.reset}`);
+    }
+  };
 
   // Handle audio tracks from agent - PIPE TO SPEAKERS
-  room.on(RoomEvent.TrackSubscribed, async (track, publication, participant) => {
+  room.on(RoomEvent.TrackSubscribed, async (track, _publication, participant) => {
     // Only handle audio tracks from the agent
     if (track.kind !== lk.TrackKind.KIND_AUDIO) return;
     if (!participant.identity?.includes('agent')) return;
 
     if (options.debug) {
-      console.log(`${colors.dim}[TRACK] Subscribed to audio from ${participant.identity}${colors.reset}`);
+      console.log(`${c.dim}[TRACK] Subscribed to audio from ${participant.identity}${c.reset}`);
     }
+
+    // Ensure sox is running
+    startAudioPlayback();
 
     try {
       const { AudioStream } = lk;
 
       // Create audio stream to receive frames
-      const audioStream = new AudioStream(track);
+      const audioStream = new AudioStream(track, PLAYBACK_SAMPLE_RATE, PLAYBACK_CHANNELS);
 
-      // Spawn sox play process to play audio
-      // Format: 16-bit signed PCM, 48kHz (LiveKit default), mono
-      const PLAYBACK_SAMPLE_RATE = 48000;
-      const PLAYBACK_CHANNELS = 1;
-
-      audioPlayProcess = spawn('sox', [
-        '-t', 'raw',              // Input is raw PCM
-        '-b', '16',               // 16-bit
-        '-e', 'signed-integer',   // Signed integers
-        '-r', String(PLAYBACK_SAMPLE_RATE),  // Sample rate (48kHz default for LiveKit)
-        '-c', String(PLAYBACK_CHANNELS),     // Mono
-        '-',                      // Read from stdin
-        '-d',                     // Output to default audio device (speakers)
-      ], {
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-
-      audioPlayProcess.on('error', (err) => {
-        console.log(`${colors.yellow}Audio playback error: ${err.message}${colors.reset}`);
-      });
-
-      audioPlayProcess.stderr?.on('data', (data) => {
-        // Suppress sox WARN messages about audio format
-        const msg = data.toString();
-        if (!msg.includes('WARN') && options.debug) {
-          console.log(`${colors.dim}[sox] ${msg}${colors.reset}`);
-        }
-      });
-
-      console.log(`${colors.green}Audio playback active - you'll hear Ferni speak!${colors.reset}`);
+      let frameCount = 0;
 
       // Pipe audio frames to sox
       for await (const frame of audioStream) {
@@ -353,7 +487,12 @@ async function connectToRoom(
           const samples = frame.data;
           const buffer = Buffer.from(samples.buffer, samples.byteOffset, samples.byteLength);
           audioPlayProcess.stdin.write(buffer);
+          frameCount++;
         }
+      }
+
+      if (options.debug) {
+        console.log(`${c.dim}[TRACK] Audio stream ended after ${frameCount} frames${c.reset}`);
       }
     } catch (err) {
       console.log(`${colors.yellow}Audio stream error: ${(err as Error).message}${colors.reset}`);
@@ -365,8 +504,9 @@ async function connectToRoom(
     for (const segment of segments) {
       if (segment.final && segment.text) {
         const isAgent = participant?.identity?.includes('agent');
-        const speaker = isAgent ? `${colors.cyan}Ferni${colors.reset}` : `${colors.blue}You${colors.reset}`;
+        const speaker = formatSpeaker(isAgent);
         console.log(`${speaker}: ${segment.text}`);
+        turnCount++;
       }
     }
   });
@@ -375,30 +515,16 @@ async function connectToRoom(
   room.registerTextStreamHandler('lk.transcription', async (reader, { identity }) => {
     const text = await reader.readAll();
     const isAgent = identity?.includes('agent');
-    const speaker = isAgent ? `${colors.cyan}Ferni${colors.reset}` : `${colors.blue}You${colors.reset}`;
+    const speaker = formatSpeaker(isAgent);
     if (text.trim()) {
       console.log(`${speaker}: ${text}`);
+      turnCount++;
     }
   });
 
-  // Handle data messages
-  room.on(RoomEvent.DataReceived, (data, participant) => {
-    if (options.debug) {
-      try {
-        const msg = JSON.parse(new TextDecoder().decode(data));
-        console.log(`${colors.dim}[DATA] ${JSON.stringify(msg).substring(0, 100)}${colors.reset}`);
-      } catch {}
-    }
-  });
-
-  // Handle audio tracks from agent
-  room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
-    if (options.debug) {
-      console.log(
-        `${colors.dim}[TRACK] Subscribed to ${track.kind} from ${participant.identity}${colors.reset}`
-      );
-    }
-    // The rtc-node SDK handles audio playback through the system
+  // Handle data messages (including handoffs)
+  room.on(RoomEvent.DataReceived, (data) => {
+    handleDataMessage(data, options.debug);
   });
 
   // Connect
@@ -484,8 +610,6 @@ async function connectToRoom(
       console.log(`${colors.yellow}Mic process error: ${err.message}${colors.reset}`);
     });
 
-    // Play intro sound when microphone is ready (dramatic-entrance.mp3)
-    playSound('intro');
     console.log(`${colors.green}Microphone active - start speaking!${colors.reset}`);
   } catch (err) {
     console.log(`${colors.yellow}Microphone error: ${(err as Error).message}${colors.reset}`);
@@ -513,9 +637,10 @@ async function connectToRoom(
   }
 
   console.log(`
-${colors.green}Ready!${colors.reset} Speak naturally - Ferni is listening.
+${c.green}Ready!${c.reset} Speak naturally - ${activePersona.color}${activePersona.emoji} ${activePersona.name}${c.reset} is listening.
 
-${colors.dim}Type 'exit' to disconnect.${colors.reset}
+${c.dim}Type${c.reset} help ${c.dim}for commands, or just start talking.${c.reset}
+${c.dim}Say "Let me talk to Maya" to request a handoff.${c.reset}
 `);
 
   // Keep alive and handle exit
@@ -525,27 +650,91 @@ ${colors.dim}Type 'exit' to disconnect.${colors.reset}
   });
 
   rl.on('line', async (line) => {
-    if (line.trim().toLowerCase() === 'exit' || line.trim().toLowerCase() === 'quit') {
-      console.log(`\n${colors.dim}Saying goodbye...${colors.reset}`);
+    const cmd = line.trim().toLowerCase();
+
+    if (cmd === 'exit' || cmd === 'quit') {
+      console.log(`\n${c.dim}Disconnecting...${c.reset}`);
       cleanupAudio();
       await room.disconnect();
       dispose();
-      // Play the warm goodbye ceremony (same as frontend app)
-      await playGoodbyeCeremony();
-      console.log(`${colors.green}Goodbye!${colors.reset}\n`);
+      console.log(`${activePersona.color}${activePersona.emoji} ${activePersona.name}${c.reset}: ${c.dim}Goodbye! Take care.${c.reset}\n`);
       process.exit(0);
+    }
+
+    if (cmd === 'team') {
+      showTeamRoster();
+      return;
+    }
+
+    if (cmd === 'who') {
+      showActivePersona();
+      return;
+    }
+
+    if (cmd === 'status') {
+      showStatus();
+      return;
+    }
+
+    if (cmd === 'help' || cmd === '?') {
+      showCommands();
+      return;
+    }
+
+    // @ command for quick persona switch
+    const targetPersona = parseAtCommand(cmd);
+    if (targetPersona) {
+      // Check if already talking to this persona
+      if (targetPersona.id === activePersona.id) {
+        console.log(`\n  ${c.dim}Already speaking with ${activePersona.color}${activePersona.emoji} ${activePersona.name}${c.reset}\n`);
+        return;
+      }
+
+      // Show animation
+      showQuickSwitch(targetPersona);
+
+      // Send handoff request via data channel
+      try {
+        const handoffRequest = JSON.stringify({
+          type: 'handoff_request',
+          source: 'cli',
+          targetPersona: targetPersona.id,
+          fromPersona: activePersona.id,
+          timestamp: Date.now(),
+        });
+
+        await room.localParticipant?.publishData(
+          new TextEncoder().encode(handoffRequest),
+          { reliable: true }
+        );
+
+        if (options.debug) {
+          console.log(`${c.dim}[DEBUG] Sent handoff_request for ${targetPersona.id}${c.reset}`);
+        }
+      } catch (err) {
+        console.log(`${c.red}Failed to send switch request${c.reset}`);
+        if (options.debug) {
+          console.log(`${c.dim}${err}${c.reset}`);
+        }
+      }
+      return;
+    }
+
+    // Unknown command - show suggestions
+    if (cmd.startsWith('@')) {
+      const attemptedName = cmd.slice(1);
+      console.log(`\n  ${c.yellow}Unknown team member: ${attemptedName}${c.reset}`);
+      console.log(`  ${c.dim}Available: @ferni, @maya, @alex, @jordan, @peter, @nayan${c.reset}\n`);
     }
   });
 
   // Handle Ctrl+C
   process.on('SIGINT', async () => {
-    console.log(`\n${colors.dim}Saying goodbye...${colors.reset}`);
+    console.log(`\n${c.dim}Disconnecting...${c.reset}`);
     cleanupAudio();
     await room.disconnect();
     dispose();
-    // Play the warm goodbye ceremony (same as frontend app)
-    await playGoodbyeCeremony();
-    console.log(`${colors.green}Goodbye!${colors.reset}\n`);
+    console.log(`${activePersona.color}${activePersona.emoji} ${activePersona.name}${c.reset}: ${c.dim}Goodbye! Take care.${c.reset}\n`);
     process.exit(0);
   });
 
@@ -565,28 +754,40 @@ interface Options {
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
+  // Show team roster if requested
+  if (args.includes('--team') || args.includes('-t')) {
+    showTeamRoster();
+    return;
+  }
+
   if (args.includes('--help') || args.includes('-h')) {
     console.log(`
-${colors.bold}Live Voice Conversation${colors.reset}
+${c.bold}${c.green}Ferni Voice CLI${c.reset} - ${c.dim}The CEO and His Team${c.reset}
 
-Talk to the REAL Ferni with full platform capabilities.
+Talk to Ferni, the CEO, and his leadership team. Ferni can bring in
+specialists when you need specific expertise.
 
-${colors.bold}Usage:${colors.reset}
-  ferni voice                    # Talk to Ferni
-  ferni voice --persona maya     # Talk to Maya
+${c.bold}Usage:${c.reset}
+  ferni voice                    # Talk to Ferni (CEO)
+  ferni voice --persona maya     # Start with Maya
+  ferni voice --team             # Show team roster
   ferni voice --debug            # Show debug info
 
-${colors.bold}Prerequisites:${colors.reset}
+${c.bold}Prerequisites:${c.reset}
   1. Token server: node token-server.js
   2. Agent: pnpm agent:dev
 
-${colors.bold}Available Personas:${colors.reset}
-  ferni    - Life coach (default)
-  maya     - Habits coach
-  alex     - Communications coach
-  jordan   - Life planner
-  peter    - Research analyst
-  nayan    - Wisdom sage
+${c.bold}The Team:${c.reset}
+  ${TEAM.ferni.color}${TEAM.ferni.emoji} ${TEAM.ferni.name}${c.reset}   - ${c.dim}CEO & Life Coach (default)${c.reset}
+  ${TEAM.maya.color}${TEAM.maya.emoji} ${TEAM.maya.name}${c.reset}    - ${c.dim}Habits Coach${c.reset}
+  ${TEAM.alex.color}${TEAM.alex.emoji} ${TEAM.alex.name}${c.reset}    - ${c.dim}Communications Coach${c.reset}
+  ${TEAM.jordan.color}${TEAM.jordan.emoji} ${TEAM.jordan.name}${c.reset}  - ${c.dim}Life Planner${c.reset}
+  ${TEAM.peter.color}${TEAM.peter.emoji} ${TEAM.peter.name}${c.reset}   - ${c.dim}Research Analyst${c.reset}
+  ${TEAM.nayan.color}${TEAM.nayan.emoji} ${TEAM.nayan.name}${c.reset}   - ${c.dim}Wisdom Sage${c.reset}
+
+${c.bold}Quick Switch:${c.reset}
+  Type ${c.cyan}@maya${c.reset}, ${c.cyan}@alex${c.reset}, ${c.cyan}@jordan${c.reset}, ${c.cyan}@peter${c.reset}, ${c.cyan}@nayan${c.reset}, or ${c.cyan}@ferni${c.reset}
+  Or say "Let me talk to Maya" to request a handoff.
 `);
     return;
   }
@@ -601,16 +802,25 @@ ${colors.bold}Available Personas:${colors.reset}
     options.persona = args[personaIdx + 1].toLowerCase();
   }
 
-  console.log(`
-${colors.bold}${colors.magenta}╔════════════════════════════════════════════════════════════╗
-║  🎙️  Live Voice with Ferni                                  ║
-╚════════════════════════════════════════════════════════════╝${colors.reset}
+  // Set initial persona from --persona flag
+  if (TEAM[options.persona]) {
+    activePersona = TEAM[options.persona];
+  }
 
-${colors.dim}Connecting to the REAL platform with:${colors.reset}
-  ${colors.cyan}•${colors.reset} All 70+ context builders
-  ${colors.cyan}•${colors.reset} Persistent memory
-  ${colors.cyan}•${colors.reset} Gemini Live STT
-  ${colors.cyan}•${colors.reset} Cartesia TTS
+  console.log(`
+${c.bold}${c.green}╔════════════════════════════════════════════════════════════════════╗
+║  🌿 FERNI AI - Your Personal CEO                                   ║
+║     One Agent to Lead Them All                                     ║
+╚════════════════════════════════════════════════════════════════════╝${c.reset}
+
+${c.dim}Starting with:${c.reset} ${activePersona.color}${activePersona.emoji} ${activePersona.name}${c.reset} ${c.dim}(${activePersona.role})${c.reset}
+
+${c.dim}Platform capabilities:${c.reset}
+  ${c.green}•${c.reset} 6 specialized team members
+  ${c.green}•${c.reset} 70+ context builders
+  ${c.green}•${c.reset} Persistent memory
+  ${c.green}•${c.reset} Live handoffs between agents
+  ${c.green}•${c.reset} Gemini Live STT + Cartesia TTS
 
 `);
 
@@ -663,6 +873,12 @@ ${colors.dim}Connecting to the REAL platform with:${colors.reset}
 
 // Export for CLI integration
 export async function handleVoiceLive(args: string[]): Promise<void> {
+  // Show team roster if requested
+  if (args.includes('--team') || args.includes('-t')) {
+    showTeamRoster();
+    return;
+  }
+
   const options: Options = {
     persona: 'ferni',
     debug: args.includes('--debug') || args.includes('-d'),
@@ -673,14 +889,22 @@ export async function handleVoiceLive(args: string[]): Promise<void> {
     options.persona = args[personaIdx + 1].toLowerCase();
   }
 
+  // Set initial persona from --persona flag
+  if (TEAM[options.persona]) {
+    activePersona = TEAM[options.persona];
+  }
+
   // Same flow as main
   const roomName = `cli-voice-${Date.now()}`;
   const username = `cli-user-${Math.random().toString(36).slice(2, 6)}`;
 
   console.log(`
-${colors.bold}${colors.magenta}╔════════════════════════════════════════════════════════════╗
-║  🎙️  Live Voice with Ferni                                  ║
-╚════════════════════════════════════════════════════════════╝${colors.reset}
+${c.bold}${c.green}╔════════════════════════════════════════════════════════════════════╗
+║  🌿 FERNI AI - Your Personal CEO                                   ║
+║     One Agent to Lead Them All                                     ║
+╚════════════════════════════════════════════════════════════════════╝${c.reset}
+
+${c.dim}Starting with:${c.reset} ${activePersona.color}${activePersona.emoji} ${activePersona.name}${c.reset} ${c.dim}(${activePersona.role})${c.reset}
 `);
 
   try {

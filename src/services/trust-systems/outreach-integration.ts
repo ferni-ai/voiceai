@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { registerInterval } from '../../utils/interval-manager.js';
 import {
   generateRandomWarmth,
   generateThinkingOfYouMoments,
@@ -88,8 +89,8 @@ const outreachQueue = new Map<string, OutreachItem[]>();
 const sentToday = new Map<string, number>();
 const sentThisWeek = new Map<string, number>();
 
-// Reset counters
-setInterval(() => {
+// Reset counters (managed by IntervalManager for proper shutdown)
+registerInterval('outreach-counter-reset', () => {
   // Reset daily counters at midnight
   const now = new Date();
   if (now.getHours() === 0 && now.getMinutes() === 0) {

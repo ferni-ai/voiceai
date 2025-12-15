@@ -879,7 +879,8 @@ export class CallMusicPlayer {
       this.cleanupTempFile(audioPath);
       this.state.isPlaying = false;
       this.state.currentTrack = null;
-      this.notifyStateChange('stopped');
+      // 🐛 FIX: Pass track info to callbacks so they can check track name
+      this.events.emit('stateChange', 'stopped', track, isAmbient);
       return { success: false, previousTrack };
     }
 
@@ -1054,7 +1055,7 @@ export class CallMusicPlayer {
         // 🐛 FIX: __dirname doesn't work correctly in ESM modules in Docker
         // Use process.cwd() and explicit paths instead
         const cwd = process.cwd();
-        
+
         // Try multiple locations for sound files:
         // 1. Production (Docker): /app/sounds/ - sounds copied to container root
         // 2. Development: frontend-typescript/public/sounds/
@@ -1081,10 +1082,7 @@ export class CallMusicPlayer {
         }
 
         if (localPath) {
-          getLogger().info(
-            { localPath, url },
-            '🎵 Found local audio file'
-          );
+          getLogger().info({ localPath, url }, '🎵 Found local audio file');
           const fileBuffer = fs.readFileSync(localPath);
           buffer = fileBuffer.buffer.slice(
             fileBuffer.byteOffset,
@@ -1403,6 +1401,7 @@ export class CallMusicPlayer {
   stop(): void {
     const wasPlaying = this.state.isPlaying;
     const stoppedTrack = this.state.currentTrack;
+    const wasAmbient = this.state.isAmbientMode;
 
     // 🎤 Clear mid-song moment timer
     if (this.midSongMomentTimer) {
@@ -1436,7 +1435,12 @@ export class CallMusicPlayer {
     );
 
     // ✨ Notify frontend - stop dancing and hide Now Playing UI
-    this.notifyStateChange('stopped');
+    // 🐛 FIX: Pass saved track info to callbacks so they can check track name
+    // Before this fix, notifyStateChange() passed null track (because state was
+    // already cleared) which caused session sounds (like connect.mp3) to trigger
+    // "Music Ended" phrases because the track?.name.startsWith('sound-') check
+    // returned undefined (falsy). Now we emit with saved track info.
+    this.events.emit('stateChange', 'stopped', stoppedTrack, wasAmbient);
   }
 
   /**

@@ -382,7 +382,9 @@ export function stopMetricsExport(): void {
   }
 
   // Final flush
-  flushMetrics().catch(() => {});
+  flushMetrics().catch((err) => {
+    log.debug({ error: String(err) }, 'Final metrics flush failed (non-critical)');
+  });
 }
 
 /**

@@ -12,6 +12,7 @@
 
 import Redis from 'ioredis';
 import { createLogger } from '../utils/safe-logger.js';
+import { registerInterval } from '../utils/interval-manager.js';
 
 const log = createLogger({ module: 'RateLimiter' });
 
@@ -121,8 +122,8 @@ function checkMemoryRateLimit(key: string, maxRequests: number, windowMs: number
   return { allowed: true, remaining: maxRequests - entry.count, resetAt: entry.resetAt };
 }
 
-// Cleanup expired entries every minute
-setInterval(() => {
+// Cleanup expired entries every minute (managed by IntervalManager)
+registerInterval('rate-limiter-cleanup', () => {
   const now = Date.now();
   let cleaned = 0;
   for (const [key, entry] of memoryStore) {

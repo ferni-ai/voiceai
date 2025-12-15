@@ -201,6 +201,72 @@ const dirtyUsers = new Set<string>();
 const loadedUsers = new Set<string>();
 
 // ============================================================================
+// SESSION DATA MANAGER INTEGRATION
+// ============================================================================
+
+/**
+ * Clear ALL cached data for a specific user.
+ * Called by SessionDataManager when a session ends.
+ * This is CRITICAL for preventing memory leaks.
+ */
+export function clearUserMemoriesCache(userId: string): void {
+  let cleared = 0;
+
+  // Clear memories for this user
+  for (const [id, mem] of memoriesCache) {
+    if (mem.userId === userId) {
+      memoriesCache.delete(id);
+      cleared++;
+    }
+  }
+
+  // Clear tracking sets
+  loadedUsers.delete(userId);
+  dirtyUsers.delete(userId);
+
+  getLogger().debug({ userId, cleared }, '🧹 PersonaMemories user cache cleared');
+}
+
+/**
+ * Clear ALL cached data (for shutdown).
+ */
+export function clearAllMemoriesCache(): void {
+  memoriesCache.clear();
+  loadedUsers.clear();
+  dirtyUsers.clear();
+  getLogger().info('🧹 PersonaMemories all caches cleared');
+}
+
+/**
+ * Get cache statistics for monitoring.
+ */
+export function getMemoriesCacheStats(): { users: number; entries: number } {
+  const users = new Set<string>();
+  for (const mem of memoriesCache.values()) {
+    users.add(mem.userId);
+  }
+  return { users: users.size, entries: memoriesCache.size };
+}
+
+/**
+ * Register with SessionDataManager (call during initialization).
+ */
+export async function registerWithSessionDataManager(): Promise<void> {
+  try {
+    const { getSessionDataManager } = await import('./session-data-manager.js');
+    getSessionDataManager().registerService({
+      name: 'PersonaMemories',
+      clearUserData: clearUserMemoriesCache,
+      clearAllData: clearAllMemoriesCache,
+      getStats: getMemoriesCacheStats,
+    });
+  } catch {
+    // SessionDataManager may not be initialized yet
+    getLogger().debug('SessionDataManager not available for PersonaMemories registration');
+  }
+}
+
+// ============================================================================
 // PERSISTENCE FUNCTIONS
 // ============================================================================
 

@@ -12,8 +12,8 @@
  */
 import { getLogger } from '../../utils/safe-logger.js';
 import {
-  registerContextBuilder,
   createStandardInjection,
+  registerContextBuilder,
   type ContextBuilderInput,
   type ContextInjection,
 } from './index.js';
@@ -44,6 +44,14 @@ async function buildMusicContext(input: ContextBuilderInput): Promise<ContextInj
     const musicState = musicPlayer.getState();
     if (musicState.isPlaying && musicState.currentTrack) {
       const track = musicState.currentTrack;
+
+      // 🐛 FIX: Skip system sounds (session sounds like connect.mp3)
+      // These have track names like "sound-session-start", "sound-handoff"
+      // We don't want Ferni to comment on these short stingers
+      if (track.name.startsWith('sound-')) {
+        getLogger().debug({ track: track.name }, 'Skipping system sound in music context');
+        return injections; // Return empty - don't tell LLM about system sounds
+      }
       // Check if user EXPLICITLY wants to stop music (must mention "music" or be very direct)
       const explicitMusicStop =
         /\b(stop|turn off|pause|no more)\s+(the\s+)?music\b/i.test(userText) ||

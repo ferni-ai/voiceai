@@ -1,9 +1,9 @@
 /**
  * Handoff Session Isolation Tests
- * 
+ *
  * FIX BUG #1-4: Verifies that handoff state is properly isolated per session
  * and that cross-session contamination does not occur.
- * 
+ *
  * These tests validate the fix for the critical bugs where:
  * - BUG #1: Global state (currentAgent, handoffHistory) was per-module not per-session
  * - BUG #2: metPersonas set was global - persisted incorrectly across users
@@ -11,19 +11,19 @@
  * - BUG #4: conversationContext was global - overwritten by concurrent sessions
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import type { AgentId } from '../services/agent-bus.js';
 import {
+  captureHandoffContext,
   createHandoffState,
+  getHandoffContext,
   type HandoffState,
+  hasMetPersona,
+  incrementMeetingCount,
+  markPersonaMet,
   recordHandoff,
   setCurrentAgent,
-  hasMetPersona,
-  markPersonaMet,
-  incrementMeetingCount,
-  captureHandoffContext,
-  getHandoffContext,
 } from '../tools/handoff-state.js';
-import type { AgentId } from '../services/agent-bus.js';
 
 describe('Handoff Session Isolation', () => {
   describe('BUG #1: currentAgent isolation', () => {
@@ -43,7 +43,13 @@ describe('Handoff Session Isolation', () => {
       const sessions = Array.from({ length: 5 }, () => createHandoffState('ferni'));
 
       // Each session gets a different agent
-      const agents: AgentId[] = ['ferni', 'maya-santos', 'alex-chen', 'jordan-taylor', 'peter-john'];
+      const agents: AgentId[] = [
+        'ferni',
+        'maya-santos',
+        'alex-chen',
+        'jordan-taylor',
+        'peter-john',
+      ];
       sessions.forEach((session, i) => {
         setCurrentAgent(session, agents[i]);
       });
@@ -194,7 +200,9 @@ describe('Handoff Session Isolation', () => {
       // Simulate concurrent updates
       const updates = sessions.map(async (session, i) => {
         // Small random delay to simulate real concurrency
-        await new Promise<void>((resolve) => { setTimeout(resolve, Math.random() * 10); });
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, Math.random() * 10);
+        });
         setCurrentAgent(session, `agent-${i}` as AgentId);
         markPersonaMet(session, `persona-${i}`);
         incrementMeetingCount(session, `persona-${i}`);
@@ -207,7 +215,7 @@ describe('Handoff Session Isolation', () => {
         expect(session.currentAgent).toBe(`agent-${i}`);
         expect(hasMetPersona(session, `persona-${i}`)).toBe(true);
         expect(session.perPersonaMeetingCount.get(`persona-${i}`)).toBe(1);
-        
+
         // Should NOT have state from other sessions
         if (i > 0) {
           expect(hasMetPersona(session, `persona-${i - 1}`)).toBe(false);

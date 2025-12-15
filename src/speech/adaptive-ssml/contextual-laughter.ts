@@ -225,55 +225,60 @@ const SUPPORTIVE_PATTERNS = [
 
 /**
  * Persona-specific laughter tendencies.
+ *
+ * HUMANIZATION FIX (Dec 2025): Significantly reduced laugh probabilities
+ * and increased minTurnsBetweenLaughs. Real humans laugh about once every
+ * 2-3 minutes in conversation, not every few exchanges. Over-laughing
+ * feels performative and undermines trust.
  */
 const PERSONA_LAUGH_STYLES: Record<string, PersonaLaughStyle> = {
   ferni: {
-    laughProbabilityBase: 0.35,
+    laughProbabilityBase: 0.18, // Reduced from 0.35
     preferredTypes: ['warm', 'self-deprecating', 'full'],
     laughAfterOwnJokes: true,
     laughWithUser: true,
-    selfDeprecatingFrequency: 0.3,
-    minTurnsBetweenLaughs: 3,
+    selfDeprecatingFrequency: 0.2, // Reduced from 0.3
+    minTurnsBetweenLaughs: 6, // Increased from 3
   },
   'peter-john': {
-    laughProbabilityBase: 0.2,
+    laughProbabilityBase: 0.12, // Reduced from 0.2
     preferredTypes: ['chuckle', 'soft'],
     laughAfterOwnJokes: false, // Peter is more deadpan
     laughWithUser: true,
-    selfDeprecatingFrequency: 0.15,
-    minTurnsBetweenLaughs: 5,
+    selfDeprecatingFrequency: 0.1, // Reduced from 0.15
+    minTurnsBetweenLaughs: 8, // Increased from 5
   },
   'alex-chen': {
-    laughProbabilityBase: 0.4,
+    laughProbabilityBase: 0.2, // Reduced from 0.4
     preferredTypes: ['full', 'soft', 'warm'],
     laughAfterOwnJokes: true,
     laughWithUser: true,
-    selfDeprecatingFrequency: 0.2,
-    minTurnsBetweenLaughs: 2,
+    selfDeprecatingFrequency: 0.15, // Reduced from 0.2
+    minTurnsBetweenLaughs: 5, // Increased from 2
   },
   'maya-santos': {
-    laughProbabilityBase: 0.45,
+    laughProbabilityBase: 0.22, // Reduced from 0.45
     preferredTypes: ['warm', 'full', 'chuckle'],
     laughAfterOwnJokes: true,
     laughWithUser: true,
-    selfDeprecatingFrequency: 0.25,
-    minTurnsBetweenLaughs: 2,
+    selfDeprecatingFrequency: 0.18, // Reduced from 0.25
+    minTurnsBetweenLaughs: 5, // Increased from 2
   },
   'jordan-taylor': {
-    laughProbabilityBase: 0.5,
+    laughProbabilityBase: 0.25, // Reduced from 0.5
     preferredTypes: ['full', 'warm'],
     laughAfterOwnJokes: true,
     laughWithUser: true,
-    selfDeprecatingFrequency: 0.2,
-    minTurnsBetweenLaughs: 2,
+    selfDeprecatingFrequency: 0.15, // Reduced from 0.2
+    minTurnsBetweenLaughs: 5, // Increased from 2
   },
   'nayan-patel': {
-    laughProbabilityBase: 0.15,
+    laughProbabilityBase: 0.08, // Reduced from 0.15
     preferredTypes: ['chuckle', 'warm'],
     laughAfterOwnJokes: false, // Nayan is more subtle
     laughWithUser: true,
-    selfDeprecatingFrequency: 0.1,
-    minTurnsBetweenLaughs: 6,
+    selfDeprecatingFrequency: 0.05, // Reduced from 0.1
+    minTurnsBetweenLaughs: 10, // Increased from 6
   },
 };
 
@@ -347,10 +352,7 @@ export function resetLaughterSession(sessionId: string): void {
  * @param sessionId - Session ID for tracking
  * @returns Decision about whether/how to add laughter
  */
-export function decideLaughter(
-  context: LaughterContext,
-  sessionId: string = 'default'
-): LaughterDecision {
+export function decideLaughter(context: LaughterContext, sessionId = 'default'): LaughterDecision {
   const {
     responseText,
     userMessage,
@@ -419,9 +421,10 @@ export function decideLaughter(
     };
   }
 
-  // Block 6: Too many laughs in session (max 8)
-  if (history.laughCount >= 8) {
-    return { ...noLaugh, reason: 'Max session laughs reached (8)' };
+  // Block 6: Too many laughs in session (max 4)
+  // HUMANIZATION FIX: Reduced from 8 to 4 - laughter should be rare and meaningful
+  if (history.laughCount >= 4) {
+    return { ...noLaugh, reason: 'Max session laughs reached (4)' };
   }
 
   // =========================================================================
@@ -585,21 +588,20 @@ export function applyLaughter(text: string, decision: LaughterDecision): string 
       return `${decision.laughText} ${text}`;
 
     case 'after':
-    case 'end':
+    case 'end': {
       // Insert before final punctuation if possible
       const finalPuncMatch = text.match(/([.!?]+)\s*$/);
       if (finalPuncMatch && finalPuncMatch.index !== undefined) {
-        return text.slice(0, finalPuncMatch.index) + ` ${decision.laughText}` + finalPuncMatch[0];
+        return `${text.slice(0, finalPuncMatch.index)} ${decision.laughText}${finalPuncMatch[0]}`;
       }
       return `${text} ${decision.laughText}`;
+    }
 
     case 'inline':
       if (decision.insertPosition > 0 && decision.insertPosition < text.length) {
-        return (
-          text.slice(0, decision.insertPosition) +
-          ` ${decision.laughText} ` +
-          text.slice(decision.insertPosition)
-        );
+        return `${text.slice(0, decision.insertPosition)} ${decision.laughText} ${text.slice(
+          decision.insertPosition
+        )}`;
       }
       return `${text} ${decision.laughText}`;
 
@@ -623,7 +625,7 @@ export function applyLaughter(text: string, decision: LaughterDecision): string 
 export function addContextualLaughter(
   responseText: string,
   context: Omit<LaughterContext, 'responseText'>,
-  sessionId: string = 'default'
+  sessionId = 'default'
 ): { text: string; decision: LaughterDecision } {
   const fullContext: LaughterContext = { ...context, responseText };
   const decision = decideLaughter(fullContext, sessionId);

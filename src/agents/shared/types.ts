@@ -118,6 +118,8 @@ export interface UserData {
   lastUserMessage?: string;
   lastAgentResponse?: string; // For response quality tracking
   lastAgentResponseTime?: number; // For engagement scoring
+  /** Timestamp when agent finished speaking (for echo prevention cooldown) */
+  lastAgentSpeechEndTime?: number;
   lastEmotionAnalysis?: {
     primary: string;
     intensity: number;

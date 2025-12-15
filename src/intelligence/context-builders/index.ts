@@ -1110,3 +1110,81 @@ export {
 // ============================================================================
 
 export { createBuilderRng, createSimpleRng, type BuilderRng } from './rng-utils.js';
+
+// ============================================================================
+// SESSION CLEANUP (Memory Leak Prevention)
+// ============================================================================
+
+/**
+ * Clear all session-scoped state from context builders.
+ * Call this when a session ends to prevent memory leaks.
+ */
+export async function cleanupContextBuilderSession(sessionId: string): Promise<void> {
+  // Clear the context output cache for this session
+  // (Keys are prefixed with sessionId)
+  for (const key of contextOutputCache.keys()) {
+    if (key.startsWith(sessionId)) {
+      contextOutputCache.delete(key);
+    }
+  }
+
+  // Clear deep understanding session state
+  try {
+    const { clearDeepUnderstandingSession } = await import('./deep-understanding.js');
+    clearDeepUnderstandingSession(sessionId);
+  } catch {
+    /* module not loaded */
+  }
+
+  // Clear conversational superpowers session state
+  try {
+    const { clearSuperpowersSession } = await import('./conversational-superpowers.js');
+    clearSuperpowersSession(sessionId);
+  } catch {
+    /* module not loaded */
+  }
+
+  // Clear superhuman insights session state
+  try {
+    const { clearSuperhumanInsightsSession } = await import('./superhuman-insights.js');
+    clearSuperhumanInsightsSession(sessionId);
+  } catch {
+    /* module not loaded */
+  }
+
+  log.debug({ sessionId }, '🧹 Context builder session state cleared');
+}
+
+/**
+ * Clear ALL session state from context builders (for shutdown).
+ */
+export async function cleanupAllContextBuilderSessions(): Promise<void> {
+  // Clear entire context output cache
+  contextOutputCache.clear();
+
+  // Clear all deep understanding sessions
+  try {
+    const { clearAllDeepUnderstandingSessions } = await import('./deep-understanding.js');
+    clearAllDeepUnderstandingSessions();
+  } catch {
+    /* module not loaded */
+  }
+
+  // Clear all conversational superpowers sessions
+  try {
+    const { clearAllSuperpowersSessions } = await import('./conversational-superpowers.js');
+    clearAllSuperpowersSessions();
+  } catch {
+    /* module not loaded */
+  }
+
+  // Clear all superhuman insights sessions
+  try {
+    const { clearAllSuperhumanInsightsSessions } = await import('./superhuman-insights.js');
+    clearAllSuperhumanInsightsSessions();
+  } catch {
+    /* module not loaded */
+  }
+
+  log.info('🧹 All context builder session state cleared');
+}

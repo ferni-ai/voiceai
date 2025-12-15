@@ -1,47 +1,33 @@
 /**
  * Voice AI Agents
  *
- * Multi-persona voice agent system with modular intelligence.
+ * Multi-persona voice agent system with clean architecture.
  *
- * Architecture (REFACTORED):
+ * Architecture (GCE Optimized):
  * ┌─────────────────────────────────────────────────────────────────┐
  * │ src/agents/                                                     │
- * │   ├── shared/             - Utilities for ANY agent            │
- * │   │   ├── types.ts        - Session types (UserData)           │
- * │   │   ├── health-server.ts - HTTP health check                 │
- * │   │   ├── external-apis.ts - Stock quotes, weather             │
- * │   │   └── handoff-handler.ts - Handoff event handling          │
+ * │   ├── core/               - Foundation types & utilities       │
+ * │   │   ├── types.ts        - SessionContext, adapters           │
+ * │   │   ├── result.ts       - Result<T,E> error handling         │
+ * │   │   ├── errors.ts       - Structured error hierarchy         │
+ * │   │   └── pipeline.ts     - Composable pipeline pattern        │
  * │   │                                                             │
- * │   ├── handlers/           - Event and lifecycle handlers       │
- * │   │   ├── silence-handler.ts - Silence detection               │
- * │   │   └── user-identification.ts - User identification         │
+ * │   ├── adapters/           - External service adapters          │
+ * │   │   ├── livekit.ts      - LiveKit room adapter               │
+ * │   │   └── cartesia.ts     - Cartesia TTS adapter               │
  * │   │                                                             │
- * │   ├── processors/         - Turn processing (NEW)              │
- * │   │   ├── turn-processor.ts - Message analysis & context       │
- * │   │   └── types.ts        - Processor type definitions         │
+ * │   ├── worker.ts           - ⭐ UNIFIED: GCE entry point        │
+ * │   ├── voice-agent-entry.ts - Session lifecycle management      │
  * │   │                                                             │
- * │   ├── realtime/           - Frontend communication (NEW)       │
- * │   │   └── frontend-publisher.ts - Data channel messages        │
- * │   │                                                             │
- * │   ├── session/            - Session state management (NEW)     │
- * │   │   └── session-state.ts - Unified state manager             │
- * │   │                                                             │
- * │   └── voice-agent.ts      - ⭐ PRIMARY: Generic agent          │
- * │                                                                 │
- * │ src/intelligence/context-builders/  - Modular context system   │
- * │   ├── emotional.ts        - Distress, validation, mirroring    │
- * │   ├── crisis.ts           - Market panic, grief, life events   │
- * │   ├── celebration.ts      - Milestones, good news              │
- * │   ├── memory.ts           - Cross-session, callbacks           │
- * │   ├── engagement.ts       - Curiosity, depth, follow-ups       │
- * │   ├── pacing.ts           - Response length, fatigue           │
- * │   ├── humanizing.ts       - Self-corrections, humor, wit       │
- * │   └── ...                 - And more!                          │
+ * │   ├── shared/             - Shared utilities                   │
+ * │   ├── handlers/           - Event handlers                     │
+ * │   ├── processors/         - Turn processing                    │
+ * │   ├── realtime/           - Frontend communication             │
+ * │   └── session/            - Session state management           │
  * └─────────────────────────────────────────────────────────────────┘
  *
  * Usage:
- *   PERSONA_ID=ferni node dist/agents/voice-agent.js start
- *   PERSONA_ID=peter-john node dist/agents/voice-agent.js start
+ *   node dist/agents/worker.js start  (GCE - recommended)
  *
  * Available personas:
  *   - ferni: The life coach (main persona)
@@ -50,6 +36,57 @@
  *   - maya-santos: Habits & routines specialist
  *   - jordan-taylor: Event planning specialist
  */
+
+// ============================================================================
+// CORE (Foundation types & utilities)
+// Re-export selectively to avoid conflicts with shared/types.ts
+// ============================================================================
+
+export {
+  // Errors
+  AgentError,
+  BaseStep,
+  HandlerError,
+  LLMError,
+  PersonaLoadError,
+  PersonaNotFoundError,
+  // Pipeline
+  Pipeline,
+  PipelineStepError,
+  RoomConnectionError,
+  RoomDisconnectedError,
+  SessionSetupError,
+  SessionTimeoutError,
+  TTSError,
+  TransformStep,
+  createStep,
+  err,
+  getUserMessage,
+  isErr,
+  isOk,
+  isRecoverable,
+  ok,
+  unwrap,
+  wrapError,
+  type PipelineStep,
+  // Result type
+  type Result,
+} from './core/index.js';
+
+// ============================================================================
+// ADAPTERS (External service adapters)
+// ============================================================================
+
+export {
+  CartesiaTTSAdapter,
+  LiveKitRoomAdapter,
+  MockRoomAdapter,
+  MockTTSAdapter,
+  connectToRoom,
+  createLiveKitAdapter,
+  createLocalizedTTSAdapter,
+  createTTSAdapter,
+} from './adapters/index.js';
 
 // ============================================================================
 // SHARED UTILITIES (for any agent)
@@ -87,8 +124,8 @@ export * from './handlers/index.js';
 
 // Re-export key performance utilities for easy access
 export {
-  parallelCollect,
   ParallelExecutor,
+  parallelCollect,
   parallelMap,
 } from './shared/performance/parallel-executor.js';
 
@@ -101,14 +138,14 @@ export {
 } from './shared/performance/firestore-pool.js';
 
 export {
-  createStreamingSession,
   LookaheadBuffer,
   ResponseStreamProcessor,
+  createStreamingSession,
 } from './shared/performance/response-streaming.js';
 
 export {
-  cachePersonaBundle,
   EdgeCache,
+  cachePersonaBundle,
   getCachedPersonaBundle,
   getOrLoadPersonaBundle,
   getPersonaBundleCache,
@@ -116,9 +153,9 @@ export {
 } from './shared/performance/edge-cache.js';
 
 export {
+  WebSocketKeepAlive,
   createSessionKeepAlive,
   getSessionKeepAlive,
-  WebSocketKeepAlive,
 } from './shared/performance/websocket-keepalive.js';
 
 export {
@@ -132,11 +169,15 @@ export {
 } from './shared/performance/batch-analytics.js';
 
 // ============================================================================
-// PRIMARY AGENT
+// PRIMARY ENTRY POINT
 // ============================================================================
 
-// Generic voice agent (supports all personas via PERSONA_ID env var)
-export * from './voice-agent.js';
+// The voice agent is launched via worker.ts which manages job dispatch.
+// See: worker.ts for GCE deployment entry point
+// See: voice-agent-entry.ts for session lifecycle
+
+// Export the main entry function
+export { runFullVoiceAgentEntry } from './voice-agent-entry.js';
 
 // ============================================================================
 // DJ INTEGRATION (radio show experience)

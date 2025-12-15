@@ -10,6 +10,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { canAddFeedback, recordFeedback } from '../feedback-coordinator.js';
 import {
   BACKCHANNEL_LIBRARY,
   getPersonaBackchannelStyle,
@@ -170,6 +171,12 @@ export class BackchannelEngine {
    * Decide whether to emit a backchannel
    */
   decide(context: BackchannelContext): BackchannelDecision {
+    // HUMANIZATION FIX: Check global feedback budget first
+    // This prevents stacking with other feedback (prefix, laughter, etc.)
+    if (context.sessionId && !canAddFeedback(context.sessionId, 'backchannel', context.turnCount)) {
+      return this.noBackchannel('feedback_budget_exceeded');
+    }
+
     // Determine effective mode for adaptive
     const effectiveMode = this.determineAdaptiveMode(context);
     this.lastAdaptiveMode = effectiveMode;
@@ -236,6 +243,11 @@ export class BackchannelEngine {
 
     // Record this backchannel
     this.recordBackchannel(category, phrase, effectiveMode);
+
+    // HUMANIZATION FIX: Record in global feedback coordinator
+    if (context.sessionId) {
+      recordFeedback(context.sessionId, 'backchannel');
+    }
 
     // Determine volume and overlap based on mode
     const isLive = effectiveMode === 'live';

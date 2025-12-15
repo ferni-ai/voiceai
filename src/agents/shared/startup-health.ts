@@ -108,15 +108,10 @@ let _prewarmState: 'pending' | 'running' | 'complete' | 'failed' | 'timeout' = '
 let _issues: string[] = [];
 
 // Critical dependencies that MUST be loaded for the agent to work
-const CRITICAL_DEPS = [
-  'voice',
-  'google',
-  'silero',
-  'voiceAgentSession',
-] as const;
+const CRITICAL_DEPS = ['voice', 'google', 'silero', 'voiceAgentSession'] as const;
 
 // ============================================================================
-// STATE SETTERS (Called by voice-agent-child.ts)
+// STATE SETTERS (Called by worker.ts or orchestrator)
 // ============================================================================
 
 export function recordCoreImportTime(): void {
@@ -160,29 +155,25 @@ export function getPrewarmState(): typeof _prewarmState {
 export function getStartupHealth(options: HealthCheckOptions = {}): StartupHealth {
   const { detailed = true, includeTiming = true, includeMemory = true } = options;
 
-  // Try to get deps from voice-agent-child
-  let deps: Record<string, unknown> | null = null;
-  try {
-    // Dynamic import to avoid circular dependency
-    const childModule = require('../voice-agent-child.js');
-    deps = childModule.getPreloadedDeps?.() ?? null;
-  } catch {
-    // Module not loaded yet
-  }
+  // In the new GCE architecture, dependencies are loaded by worker.ts directly
+  // The old child process dependency tracking is no longer used
+  const deps: Record<string, unknown> | null = null;
 
   // Calculate dependency status
   const depEntries = deps ? Object.entries(deps) : [];
   const loadedDeps = depEntries.filter(([k, v]) => v !== null && k !== 'personaBundlesReady');
-  const missingDeps = depEntries.filter(([k, v]) => v === null && k !== 'personaBundlesReady').map(([k]) => k);
+  const missingDeps = depEntries
+    .filter(([k, v]) => v === null && k !== 'personaBundlesReady')
+    .map(([k]) => k);
 
   // Check critical dependencies
-  const criticalStatus = CRITICAL_DEPS.map(name => ({
+  const criticalStatus = CRITICAL_DEPS.map((name) => ({
     name,
     loaded: deps ? deps[name] !== null : false,
     required: true,
   }));
 
-  const criticalMissing = criticalStatus.filter(c => !c.loaded);
+  const criticalMissing = criticalStatus.filter((c) => !c.loaded);
 
   // Determine overall status
   let status: StartupHealth['status'] = 'starting';
@@ -206,7 +197,7 @@ export function getStartupHealth(options: HealthCheckOptions = {}): StartupHealt
   // Collect issues
   const issues = [..._issues];
   if (criticalMissing.length > 0) {
-    issues.push(`Missing critical dependencies: ${criticalMissing.map(c => c.name).join(', ')}`);
+    issues.push(`Missing critical dependencies: ${criticalMissing.map((c) => c.name).join(', ')}`);
   }
 
   // Memory info
@@ -220,9 +211,7 @@ export function getStartupHealth(options: HealthCheckOptions = {}): StartupHealt
 
     prewarm: {
       state: _prewarmState,
-      durationMs: _prewarmStartTime && _prewarmEndTime
-        ? _prewarmEndTime - _prewarmStartTime
-        : null,
+      durationMs: _prewarmStartTime && _prewarmEndTime ? _prewarmEndTime - _prewarmStartTime : null,
       phase: _prewarmPhase,
     },
 
@@ -233,31 +222,32 @@ export function getStartupHealth(options: HealthCheckOptions = {}): StartupHealt
       critical: criticalStatus,
     },
 
-    timing: includeTiming ? {
-      moduleLoadMs: _moduleLoadTime ? Date.now() - _moduleLoadTime : null,
-      coreImportMs: _coreImportTime,
-      prewarmMs: _prewarmStartTime && _prewarmEndTime
-        ? _prewarmEndTime - _prewarmStartTime
-        : null,
-      totalStartupMs: _prewarmEndTime
-        ? _prewarmEndTime - _moduleLoadTime
-        : null,
-    } : {
-      moduleLoadMs: null,
-      coreImportMs: null,
-      prewarmMs: null,
-      totalStartupMs: null,
-    },
+    timing: includeTiming
+      ? {
+          moduleLoadMs: _moduleLoadTime ? Date.now() - _moduleLoadTime : null,
+          coreImportMs: _coreImportTime,
+          prewarmMs:
+            _prewarmStartTime && _prewarmEndTime ? _prewarmEndTime - _prewarmStartTime : null,
+          totalStartupMs: _prewarmEndTime ? _prewarmEndTime - _moduleLoadTime : null,
+        }
+      : {
+          moduleLoadMs: null,
+          coreImportMs: null,
+          prewarmMs: null,
+          totalStartupMs: null,
+        },
 
-    memory: includeMemory ? {
-      heapUsedMB: Math.round(memUsage.heapUsed / 1024 / 1024),
-      heapTotalMB: Math.round(memUsage.heapTotal / 1024 / 1024),
-      externalMB: Math.round(memUsage.external / 1024 / 1024),
-    } : {
-      heapUsedMB: 0,
-      heapTotalMB: 0,
-      externalMB: 0,
-    },
+    memory: includeMemory
+      ? {
+          heapUsedMB: Math.round(memUsage.heapUsed / 1024 / 1024),
+          heapTotalMB: Math.round(memUsage.heapTotal / 1024 / 1024),
+          externalMB: Math.round(memUsage.external / 1024 / 1024),
+        }
+      : {
+          heapUsedMB: 0,
+          heapTotalMB: 0,
+          externalMB: 0,
+        },
 
     issues,
 
@@ -279,10 +269,12 @@ export function isHealthy(): boolean {
 /**
  * Wait until the agent is healthy (for Cloud Run startup probes)
  */
-export async function waitUntilHealthy(options: {
-  timeout?: number;
-  pollInterval?: number;
-} = {}): Promise<StartupHealth> {
+export async function waitUntilHealthy(
+  options: {
+    timeout?: number;
+    pollInterval?: number;
+  } = {}
+): Promise<StartupHealth> {
   const { timeout = 30000, pollInterval = 500 } = options;
   const startTime = Date.now();
 
@@ -297,7 +289,7 @@ export async function waitUntilHealthy(options: {
       throw new Error(`Agent startup failed: ${health.issues.join(', ')}`);
     }
 
-    await new Promise(resolve => setTimeout(resolve, pollInterval));
+    await new Promise((resolve) => setTimeout(resolve, pollInterval));
   }
 
   const finalHealth = getStartupHealth();
@@ -399,4 +391,3 @@ export function getPrometheusMetrics(): string {
 
   return lines.join('\n');
 }
-

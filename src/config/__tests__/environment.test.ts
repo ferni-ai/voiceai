@@ -24,13 +24,53 @@ import {
 } from '../environment.js';
 
 describe('Environment Configuration', () => {
+  // Store original env vars to restore after each test
+  const originalEnv: Record<string, string | undefined> = {};
+  const envVarsToIsolate = [
+    'K_SERVICE',
+    'GOOGLE_CLOUD_PROJECT',
+    'GCLOUD_PROJECT',
+    'GCP_PROJECT_ID',
+    'FIREBASE_PROJECT_ID',
+    'FIRESTORE_DATABASE',
+    'MEMORY_STORE_TYPE',
+    'REDIS_URL',
+    'REDIS_HOST',
+    'DATABASE_URL',
+    'SPOTIFY_CLIENT_ID',
+    'SPOTIFY_CLIENT_SECRET',
+    'SPOTIFY_REFRESH_TOKEN',
+    'TWILIO_ACCOUNT_SID',
+    'TWILIO_AUTH_TOKEN',
+    'TWILIO_PHONE_NUMBER',
+    'LIVEKIT_URL',
+    'LIVEKIT_API_KEY',
+    'LIVEKIT_API_SECRET',
+    'GOOGLE_API_KEY',
+    'CARTESIA_API_KEY',
+    'MUSIC_ENABLED',
+  ];
+
   beforeEach(() => {
     resetConfig();
+    // Save and clear all relevant env vars for true isolation
+    for (const key of envVarsToIsolate) {
+      originalEnv[key] = process.env[key];
+      delete process.env[key];
+    }
   });
 
   afterEach(() => {
     resetConfig();
     vi.unstubAllEnvs();
+    // Restore original env vars
+    for (const key of envVarsToIsolate) {
+      if (originalEnv[key] !== undefined) {
+        process.env[key] = originalEnv[key];
+      } else {
+        delete process.env[key];
+      }
+    }
   });
 
   describe('detectEnvironment', () => {

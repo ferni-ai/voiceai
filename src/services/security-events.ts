@@ -23,6 +23,7 @@ import * as admin from 'firebase-admin';
 import { getGCPProjectId } from '../config/environment.js';
 import { getRedisCache } from '../memory/redis-cache.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { registerInterval } from '../utils/interval-manager.js';
 
 const log = getLogger();
 
@@ -900,8 +901,8 @@ export function cleanupSecurityData(): void {
   }
 }
 
-// Periodic cleanup (every 5 minutes)
-setInterval(cleanupSecurityData, 5 * 60 * 1000);
+// Periodic cleanup (every 5 minutes, managed by IntervalManager)
+registerInterval('security-events-cleanup', cleanupSecurityData, 5 * 60 * 1000);
 
 // ============================================================================
 // EXPORTS

@@ -14,10 +14,163 @@ This module is **production-ready** with:
 - ✅ Optimized FFT with iterative Cooley-Tukey algorithm
 - ✅ Tunable detection thresholds via exported constants
 
+## 🎭 Speech Orchestrator (NEW - Recommended Entry Point)
+
+The **SpeechOrchestrator** is the unified coordination layer for all speech humanization:
+
+```typescript
+import { getOrchestrator } from './orchestrator/index.js';
+
+// Initialize once per session
+const orchestrator = getOrchestrator(sessionId, 'ferni');
+await orchestrator.initialize();
+
+// Humanize LLM responses
+const result = await orchestrator.humanize(text, {
+  topicWeight: 'medium',
+  userEmotion,
+});
+console.log(result.ssml); // SSML-tagged response
+
+// Analyze user speech
+const analysis = await orchestrator.analyzeFull({ text: userText });
+if (analysis.agentGuidance.shouldSlowDown) {
+  // Adjust pacing
+}
+
+// Get backchanneling decisions
+const backchannel = orchestrator.getBackchannel({
+  sessionId, personaId, userSpeechDuration, ...
+});
+
+// Anticipate during user speech (call DURING speech, not after)
+const anticipated = orchestrator.anticipate({
+  sessionId,
+  partialTranscript,
+});
+```
+
+**Benefits:**
+- Single API to learn
+- Correct humanization ordering guaranteed
+- Built-in feedback coordination
+- Session lifecycle management
+
+## 📊 Speech Config (Centralized Constants)
+
+All magic numbers are now in `config/speech-config.ts`:
+
+```typescript
+import {
+  BACKCHANNELING_CONFIG,
+  TURN_PREDICTION_CONFIG,
+  EMOTION_DETECTION_CONFIG,
+  HUMANIZATION_CONFIG,
+} from './config/index.js';
+
+// Easy tuning for A/B testing
+const timing = BACKCHANNELING_CONFIG.enhanced;
+console.log(timing.minSpeechDuration); // 3000ms
+```
+
+## 🎤 Persona Voice Loader (Dynamic Bundle Loading)
+
+Voice data (backchannels, catchphrases, expressions) is loaded dynamically from persona bundles:
+
+```typescript
+import {
+  loadPersonaVoiceData,
+  getBackchannelSync,
+  getSilenceFillerSync,
+} from './persona-voice-loader.js';
+
+// Preload on session start
+await loadPersonaVoiceData('ferni');
+
+// Sync access (uses cache)
+const backchannel = getBackchannelSync('ferni', 'empathetic');
+const filler = getSilenceFillerSync('ferni', 5000); // 5s silence
+
+// Data comes from persona bundles:
+// src/personas/bundles/{persona}/content/behaviors/backchannels.json
+// src/personas/bundles/{persona}/content/behaviors/catchphrases.json
+// src/personas/bundles/{persona}/content/voice/expressions.json
+```
+
+This replaces hardcoded data in `persona-phrases.ts` with dynamic loading from
+persona bundles, following clean architecture principles.
+
+## 🔮 Unified Anticipation Pipeline (NEW!)
+
+Combines intent prediction and emotional prosody anticipation for responsive agents:
+
+```typescript
+import {
+  getAnticipationPipeline,
+  resetAnticipationPipeline,
+} from './anticipation/index.js';
+
+// Get pipeline for session
+const pipeline = getAnticipationPipeline(sessionId);
+
+// Process DURING user speech (not after)
+const result = pipeline.process({
+  sessionId,
+  partialTranscript: 'I just got promoted...',
+  isSpeaking: true,
+  tone: 'excited',
+});
+
+// Check if actionable
+if (result?.isActionable) {
+  // Intent: 'celebration' | 'emotional_share' | 'question' | etc.
+  console.log(result.intent.intent, result.intent.confidence);
+
+  // Emotion: 'rising_excitement' | 'falling_sadness' | etc.
+  console.log(result.emotion.trajectory, result.emotion.confidence);
+
+  // Prepared prosody
+  const { speedMultiplier, volumeMultiplier, microReactionSsml } = result.prosody;
+}
+
+// Get micro-reaction for response start
+if (pipeline.shouldUseMicroReaction()) {
+  const ssml = pipeline.getLatest()?.prosody.microReactionSsml;
+  // Prepend: "<emotion value='excited'/>Oh!<break time='100ms'/>"
+}
+
+// Clean up
+resetAnticipationPipeline(sessionId);
+```
+
+This unifies:
+- `response-anticipation/` (intent prediction, templates)
+- `sesame-inspired/anticipatory-prosody.ts` (emotional trajectory, micro-reactions)
+
 ## Architecture Overview
 
 ```
 src/speech/
+├── orchestrator/                 # 🆕 Unified coordination layer
+│   ├── orchestrator.ts          # Main SpeechOrchestrator class
+│   ├── types.ts                 # Type definitions
+│   └── index.ts                 # Re-exports
+├── config/                       # 🆕 Centralized configuration
+│   ├── speech-config.ts         # All tunable constants
+│   └── index.ts                 # Re-exports
+├── anticipation/                 # 🆕 Unified anticipation pipeline
+│   ├── types.ts                 # Type definitions
+│   ├── intent-predictor.ts      # Intent prediction
+│   ├── emotion-predictor.ts     # Emotional trajectory prediction
+│   ├── pipeline.ts              # Unified pipeline
+│   └── index.ts                 # Re-exports
+├── pronunciation-memory/         # 🆕 Split into subdirectory (was 616 lines)
+│   ├── types.ts                 # Type definitions
+│   ├── constants.ts             # Difficult name pronunciations
+│   ├── service.ts               # Main service class
+│   ├── session.ts               # Session management
+│   └── index.ts                 # Re-exports
+├── persona-voice-loader.ts       # 🆕 Dynamic loading from persona bundles
 ├── __tests__/                    # Test files
 │   ├── audio-prosody.test.ts    # ✅ Comprehensive
 │   ├── human-listening-pipeline.test.ts # ✅ Good
