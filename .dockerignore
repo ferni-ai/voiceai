@@ -52,6 +52,8 @@ coverage/
 
 # Docs & tests
 *.md
+# BUT include persona bundle markdown files (system prompts, bios, etc.)
+!src/personas/bundles/**/*.md
 docs/
 e2e/
 __tests__/
