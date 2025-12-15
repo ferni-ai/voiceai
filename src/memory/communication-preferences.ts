@@ -215,7 +215,7 @@ function analyzeResponseSentiment(response: string): ResponseSignal {
 
 export class CommunicationPreferences implements ICommunicationPreferences {
   private config: PreferencesConfig;
-  private preferences: Map<string, InteractionPreference[]> = new Map(); // userId -> preferences
+  private preferences = new Map<string, InteractionPreference[]>(); // userId -> preferences
 
   constructor(config?: Partial<PreferencesConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -418,10 +418,7 @@ export class CommunicationPreferences implements ICommunicationPreferences {
       return daysOld < 30;
     });
 
-    pref.confidence = Math.min(
-      1,
-      recentEvidence.length / this.config.minObservationsForConfidence
-    );
+    pref.confidence = Math.min(1, recentEvidence.length / this.config.minObservationsForConfidence);
   }
 
   /**
@@ -527,4 +524,3 @@ export default {
   resetCommunicationPreferences,
   analyzeResponseSentiment,
 };
-

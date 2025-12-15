@@ -61,7 +61,7 @@ interface UserEmotionalData {
 
 export class EmotionalThreading implements IEmotionalThreading {
   private config: ThreadingConfig;
-  private userData: Map<string, UserEmotionalData> = new Map();
+  private userData = new Map<string, UserEmotionalData>();
 
   constructor(config?: Partial<ThreadingConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -289,9 +289,7 @@ export class EmotionalThreading implements IEmotionalThreading {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - this.config.staleThreadDays);
 
-    return threads.filter(
-      (t) => t.status !== 'resolved' && t.lastMentioned >= cutoffDate
-    );
+    return threads.filter((t) => t.status !== 'resolved' && t.lastMentioned >= cutoffDate);
   }
 
   /**
@@ -332,8 +330,7 @@ export class EmotionalThreading implements IEmotionalThreading {
     trend /= scores.length - 1;
 
     // Check for volatility
-    const variance =
-      scores.reduce((sum, s) => sum + Math.pow(s - trend, 2), 0) / scores.length;
+    const variance = scores.reduce((sum, s) => sum + Math.pow(s - trend, 2), 0) / scores.length;
     if (variance > 0.5) {
       return 'volatile';
     }
@@ -482,4 +479,3 @@ export default {
   getEmotionalThreading,
   resetEmotionalThreading,
 };
-

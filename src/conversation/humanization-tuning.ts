@@ -35,7 +35,7 @@ export const DEFAULT_TUNING = {
     },
     /** Energy/mood changes over conversation */
     moodSignal: {
-      probability: 0.20,
+      probability: 0.2,
       cooldownTurns: 8,
       maxPerSession: 3,
     },
@@ -65,7 +65,7 @@ export const DEFAULT_TUNING = {
     },
     /** Respond to detected disengagement */
     disengagementResponse: {
-      probability: 0.40,
+      probability: 0.4,
       cooldownTurns: 6,
       maxPerSession: 4,
     },
@@ -84,11 +84,11 @@ export const DEFAULT_TUNING = {
     /** Base rate for any speech modification */
     baseFrequency: 0.15,
     /** Um, uh, so, like */
-    fillerProbability: 0.40, // 40% of baseFrequency triggers
+    fillerProbability: 0.4, // 40% of baseFrequency triggers
     /** "I think", "maybe" */
-    hedgeProbability: 0.30,
+    hedgeProbability: 0.3,
     /** Thinking phrases */
-    thinkingProbability: 0.30,
+    thinkingProbability: 0.3,
     /** Self-correction "wait, let me rephrase" */
     selfCorrection: {
       probability: 0.12,
@@ -113,7 +113,7 @@ export const DEFAULT_TUNING = {
     },
     /** Acknowledging when user changed our mind */
     mindChange: {
-      probability: 0.50,
+      probability: 0.5,
       cooldownTurns: 6,
       maxPerSession: 3,
     },
@@ -140,13 +140,13 @@ export const DEFAULT_TUNING = {
   memory: {
     /** "Earlier you mentioned..." callbacks */
     memoryCallback: {
-      probability: 0.20,
+      probability: 0.2,
       minTurn: 4,
     },
     /** "Last time we talked about..." (cross-session) */
     anticipation: {
-      probability: 0.40, // When there IS something to anticipate
-      sessionOpeningProbability: 0.60,
+      probability: 0.4, // When there IS something to anticipate
+      sessionOpeningProbability: 0.6,
       cooldownTurns: 10,
       maxPerSession: 3,
     },
@@ -296,10 +296,10 @@ const PERSONA_OVERRIDES: Record<string, DeepPartial<typeof DEFAULT_TUNING>> = {
     // Ferni: More empathetic, uses silence, less playful initially
     presence: {
       breathSound: { probability: 0.35 }, // More breathing
-      physicalPresence: { probability: 0.30 },
+      physicalPresence: { probability: 0.3 },
     },
     attunement: {
-      firstTurnNoticing: { probability: 0.60 }, // More perceptive
+      firstTurnNoticing: { probability: 0.6 }, // More perceptive
     },
     naturalness: {
       baseFrequency: 0.12, // Slightly less disfluent - more composed
@@ -312,8 +312,8 @@ const PERSONA_OVERRIDES: Record<string, DeepPartial<typeof DEFAULT_TUNING>> = {
   'nayan-patel': {
     // Nayan: Wise, measured, fewer imperfections
     presence: {
-      breathSound: { probability: 0.20 },
-      spontaneousThought: { probability: 0.10 },
+      breathSound: { probability: 0.2 },
+      spontaneousThought: { probability: 0.1 },
     },
     naturalness: {
       baseFrequency: 0.08, // Very composed speech
@@ -323,7 +323,7 @@ const PERSONA_OVERRIDES: Record<string, DeepPartial<typeof DEFAULT_TUNING>> = {
       playfulness: { probability: 0.08 }, // More serious
     },
     silence: {
-      presencePause: { probability: 0.40 }, // Comfortable with silence
+      presencePause: { probability: 0.4 }, // Comfortable with silence
     },
   },
 
@@ -351,7 +351,7 @@ const PERSONA_OVERRIDES: Record<string, DeepPartial<typeof DEFAULT_TUNING>> = {
       physicalPresence: { probability: 0.25 },
     },
     reactions: {
-      excitementInterruption: { probability: 0.40 },
+      excitementInterruption: { probability: 0.4 },
       playfulness: { probability: 0.18 },
     },
     naturalness: {
@@ -366,7 +366,7 @@ const PERSONA_OVERRIDES: Record<string, DeepPartial<typeof DEFAULT_TUNING>> = {
       spontaneousThought: { probability: 0.12 },
     },
     naturalness: {
-      baseFrequency: 0.10, // More polished
+      baseFrequency: 0.1, // More polished
     },
     reactions: {
       playfulness: { probability: 0.12 },
@@ -419,10 +419,7 @@ export function getTuningValue<K extends keyof HumanizationTuning>(
  * Check if a feature should fire based on probability
  * Uses deterministic hashing for reproducibility
  */
-export function shouldFireFeature(
-  probability: number,
-  seed: string
-): boolean {
+export function shouldFireFeature(probability: number, seed: string): boolean {
   if (probability <= 0) return false;
   if (probability >= 1) return true;
 
@@ -449,9 +446,7 @@ export function getEffectiveProbability(
   }
 ): number {
   let probability = baseProbability;
-  const tuning = context.personaId
-    ? getPersonaTuning(context.personaId)
-    : DEFAULT_TUNING;
+  const tuning = context.personaId ? getPersonaTuning(context.personaId) : DEFAULT_TUNING;
 
   // Apply context modifiers
   if (context.isSeriousContext) {
@@ -522,8 +517,8 @@ export const TUNING_PRESETS = {
   empathetic: {
     multiplier: 1.0,
     overrides: {
-      attunement: { firstTurnNoticing: { probability: 0.70 } },
-      silence: { presencePause: { probability: 0.40 } },
+      attunement: { firstTurnNoticing: { probability: 0.7 } },
+      silence: { presencePause: { probability: 0.4 } },
       reactions: { playfulness: { probability: 0.08 } },
     },
     description: 'More attunement, less playfulness',
@@ -541,4 +536,3 @@ export function applyPresetMultiplier(
   // Implementation left simple for now
   return tuning; // TODO: Implement recursive probability scaling
 }
-

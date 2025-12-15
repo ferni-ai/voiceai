@@ -192,17 +192,15 @@ export class LLMSignalExtractor implements IHumanSignalExtractor {
     context: ExtractionContext
   ): Promise<ExtractedSignals> {
     // Build transcript
-    let transcript = turns
-      .map((t) => `${t.role.toUpperCase()}: ${t.content}`)
-      .join('\n\n');
+    let transcript = turns.map((t) => `${t.role.toUpperCase()}: ${t.content}`).join('\n\n');
 
     // Truncate if too long
     if (transcript.length > this.config.maxTranscriptLength) {
       const halfLength = this.config.maxTranscriptLength / 2;
-      transcript =
-        transcript.slice(0, halfLength) +
-        '\n\n[... conversation continues ...]\n\n' +
-        transcript.slice(-halfLength);
+      transcript = `${transcript.slice(
+        0,
+        halfLength
+      )}\n\n[... conversation continues ...]\n\n${transcript.slice(-halfLength)}`;
     }
 
     // Build prompt
@@ -254,10 +252,7 @@ export class LLMSignalExtractor implements IHumanSignalExtractor {
   // REGEX FALLBACK
   // ============================================================================
 
-  private regexFallback(
-    turns: ConversationTurn[],
-    context: ExtractionContext
-  ): ExtractedSignals {
+  private regexFallback(turns: ConversationTurn[], context: ExtractionContext): ExtractedSignals {
     // Use existing regex-based extractor
     const result = extractHumanSignals(turns, context);
 
@@ -365,7 +360,14 @@ export class LLMSignalExtractor implements IHumanSignalExtractor {
       dreams: signals.dreams.map((d) => ({
         id: `dream_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         description: d.description,
-        category: d.category as 'career' | 'travel' | 'learning' | 'creative' | 'family' | 'health' | 'other',
+        category: d.category as
+          | 'career'
+          | 'travel'
+          | 'learning'
+          | 'creative'
+          | 'family'
+          | 'health'
+          | 'other',
         sentiment: 'excited' as const,
         status: 'someday' as const,
         firstMentioned: now,
@@ -391,7 +393,10 @@ export class LLMSignalExtractor implements IHumanSignalExtractor {
       })),
       challenges: signals.challenges.map((c) => {
         // Map LLM status values to ChallengeProgress status values
-        const statusMap: Record<string, 'struggling' | 'working_on_it' | 'making_progress' | 'breakthrough' | 'resolved'> = {
+        const statusMap: Record<
+          string,
+          'struggling' | 'working_on_it' | 'making_progress' | 'breakthrough' | 'resolved'
+        > = {
           just_started: 'working_on_it',
           working_on_it: 'working_on_it',
           making_progress: 'making_progress',
@@ -416,7 +421,13 @@ export class LLMSignalExtractor implements IHumanSignalExtractor {
       stressTriggers: signals.stressTriggers.map((t) => ({
         id: `stress_${t.category}_${Date.now()}`,
         trigger: t.trigger,
-        category: t.category as 'work' | 'financial' | 'health' | 'relationships' | 'time' | 'uncertainty',
+        category: t.category as
+          | 'work'
+          | 'financial'
+          | 'health'
+          | 'relationships'
+          | 'time'
+          | 'uncertainty',
         intensity: 'moderate' as const,
         discoveredAt: now,
       })),
@@ -430,7 +441,10 @@ export class LLMSignalExtractor implements IHumanSignalExtractor {
       })),
       avoidances: signals.avoidances.map((a) => {
         // Map LLM approach values to RecurringAvoidance approach values
-        const approachMap: Record<string, 'never_raise' | 'only_if_they_do' | 'gentle_check_in_ok'> = {
+        const approachMap: Record<
+          string,
+          'never_raise' | 'only_if_they_do' | 'gentle_check_in_ok'
+        > = {
           never_bring_up: 'never_raise',
           only_if_they_do: 'only_if_they_do',
         };
@@ -479,4 +493,3 @@ export default {
   resetLLMSignalExtractor,
   configureLLMSignalExtractor,
 };
-

@@ -147,6 +147,23 @@ async function healthCheck(port: number): Promise<boolean> {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       log.warn(`Health check failed: ${msg}`);
+
+      // Fallback: Try SSH-based health check if external check fails
+      // This helps when firewall rules aren't properly configured
+      if (attempt === CONFIG.healthCheckRetries - 1) {
+        log.substep('Trying SSH-based health check as fallback...');
+        try {
+          const result = ssh(`curl -s -o /dev/null -w "%{http_code}" http://localhost:${port}/health`, {
+            silent: true,
+          }).trim();
+          if (result === '200') {
+            log.success('SSH-based health check passed (external firewall may be blocking)');
+            return true;
+          }
+        } catch {
+          // SSH health check also failed
+        }
+      }
     }
 
     if (attempt < CONFIG.healthCheckRetries) {
@@ -358,6 +375,8 @@ function deployToSlot(
     PORT: String(port),
     NODE_ENV: 'production',
     GOOGLE_CLOUD_PROJECT: CONFIG.projectId,
+    // Firebase needs FIREBASE_PROJECT_ID for initialization
+    FIREBASE_PROJECT_ID: CONFIG.projectId,
     // Redis connection - using Docker host gateway to reach the Redis sidecar
     REDIS_HOST: '172.17.0.1',
     REDIS_PORT: String(CONFIG.redisPort),
@@ -383,6 +402,118 @@ function promoteSlot(slot: 'blue' | 'green'): void {
   ssh(`docker rm ${otherContainer} 2>/dev/null || true`, { silent: true });
 
   log.success(`${slot.toUpperCase()} is now live!`);
+}
+
+// ============================================================================
+// DISK CLEANUP (Prevents GCE instance from running out of space)
+// ============================================================================
+
+interface CleanupResult {
+  imagesRemoved: number;
+  spaceFreed: string;
+  logsRotated: boolean;
+}
+
+function performDiskCleanup(aggressive: boolean = false): CleanupResult {
+  log.step('Disk Cleanup');
+  
+  const result: CleanupResult = {
+    imagesRemoved: 0,
+    spaceFreed: '0B',
+    logsRotated: false,
+  };
+
+  // 1. Remove all stopped containers
+  log.substep('Removing stopped containers...');
+  ssh(`docker container prune -f`, { silent: true });
+
+  // 2. Remove dangling images (untagged)
+  log.substep('Removing dangling images...');
+  ssh(`docker image prune -f`, { silent: true });
+
+  // 3. Keep only the 3 most recent images (for rollback capability)
+  log.substep('Removing old deployment images (keeping last 3)...');
+  try {
+    const imageList = ssh(
+      `docker images ${CONFIG.imageName} --format '{{.ID}} {{.CreatedAt}}' | sort -k2 -r | tail -n +4 | awk '{print $1}'`,
+      { silent: true }
+    ).trim();
+    
+    if (imageList) {
+      const imageIds = imageList.split('\n').filter(Boolean);
+      result.imagesRemoved = imageIds.length;
+      
+      for (const imageId of imageIds) {
+        ssh(`docker rmi ${imageId} 2>/dev/null || true`, { silent: true });
+      }
+      log.substep(`Removed ${result.imagesRemoved} old image(s)`);
+    }
+  } catch {
+    log.warn('Could not clean up old images');
+  }
+
+  // 4. Remove unused volumes (careful - only do this if aggressive)
+  if (aggressive) {
+    log.substep('Removing unused volumes...');
+    ssh(`docker volume prune -f`, { silent: true });
+  }
+
+  // 5. Remove build cache
+  log.substep('Cleaning Docker build cache...');
+  ssh(`docker builder prune -f --keep-storage 2G`, { silent: true });
+
+  // 6. Rotate container logs (Docker logs can grow huge)
+  log.substep('Configuring Docker log rotation...');
+  try {
+    // Check if daemon.json exists, create/update if needed
+    const daemonConfigExists = ssh(
+      `test -f /etc/docker/daemon.json && echo 'exists' || echo 'missing'`,
+      { silent: true }
+    ).trim();
+
+    if (daemonConfigExists === 'missing') {
+      // Create daemon.json with log rotation settings
+      ssh(`sudo bash -c 'cat > /etc/docker/daemon.json << EOF
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "50m",
+    "max-file": "3"
+  }
+}
+EOF'`, { silent: true });
+      log.substep('Created Docker daemon config with log rotation');
+      result.logsRotated = true;
+    }
+  } catch {
+    log.warn('Could not configure Docker log rotation');
+  }
+
+  // 7. Truncate existing container logs (immediate relief)
+  log.substep('Truncating existing container logs...');
+  try {
+    ssh(`sudo sh -c 'truncate -s 0 /var/lib/docker/containers/*/*-json.log 2>/dev/null || true'`, { silent: true });
+  } catch {
+    // May fail if no logs exist
+  }
+
+  // 8. Clean apt cache (if aggressive)
+  if (aggressive) {
+    log.substep('Cleaning apt cache...');
+    ssh(`sudo apt-get clean 2>/dev/null || true`, { silent: true });
+    ssh(`sudo apt-get autoremove -y 2>/dev/null || true`, { silent: true });
+  }
+
+  // 9. Report disk space
+  try {
+    const diskUsage = ssh(`df -h / | tail -1 | awk '{print $4 " available (" $5 " used)"}'`, { silent: true }).trim();
+    result.spaceFreed = diskUsage;
+    log.success(`Disk status: ${diskUsage}`);
+  } catch {
+    log.warn('Could not get disk usage');
+  }
+
+  return result;
 }
 
 function rollback(): void {
@@ -490,6 +621,7 @@ ${colors.bold}${colors.magenta}╔═══════════════�
     log.info('Would set REDIS_HOST=172.17.0.1 for container');
     log.info('Would run health checks');
     log.info(`Would promote ${targetSlot} to production`);
+    log.info('Would perform disk cleanup (remove old images, truncate logs)');
     return;
   }
 
@@ -532,10 +664,9 @@ ${colors.bold}${colors.magenta}╔═══════════════�
   // Promote the new slot
   promoteSlot(targetSlot);
 
-  // Clean up old images
-  log.step('Cleanup');
-  log.substep('Removing old Docker images...');
-  ssh(`docker image prune -f`, { silent: true });
+  // Comprehensive disk cleanup (prevents running out of space)
+  const aggressiveCleanup = args.includes('--aggressive-cleanup');
+  const cleanup = performDiskCleanup(aggressiveCleanup);
 
   console.log(`
 ${colors.bold}${colors.green}╔═══════════════════════════════════════════════════════════╗
@@ -548,6 +679,8 @@ ${colors.bold}${colors.green}╔════════════════
   ${colors.cyan}Image:${colors.reset}    ${image}
   ${colors.cyan}Redis:${colors.reset}    ${colors.green}CONNECTED${colors.reset} (172.17.0.1:${CONFIG.redisPort})
   ${colors.cyan}Status:${colors.reset}   ${colors.green}HEALTHY${colors.reset}
+  ${colors.cyan}Disk:${colors.reset}     ${cleanup.spaceFreed}
+  ${colors.cyan}Cleaned:${colors.reset}  ${cleanup.imagesRemoved} old images removed
 `);
 }
 

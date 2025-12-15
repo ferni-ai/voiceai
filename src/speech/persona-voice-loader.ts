@@ -109,8 +109,12 @@ async function loadPersonaVoiceDataInternal(personaId: string): Promise<PersonaV
   const bundlePath = getPersonaBundlePath(personaId);
 
   const [backchannels, catchphrases, expressions] = await Promise.all([
-    loadJsonFile<PersonaBackchannels>(join(bundlePath, 'content', 'behaviors', 'backchannels.json')),
-    loadJsonFile<PersonaCatchphrases>(join(bundlePath, 'content', 'behaviors', 'catchphrases.json')),
+    loadJsonFile<PersonaBackchannels>(
+      join(bundlePath, 'content', 'behaviors', 'backchannels.json')
+    ),
+    loadJsonFile<PersonaCatchphrases>(
+      join(bundlePath, 'content', 'behaviors', 'catchphrases.json')
+    ),
     loadJsonFile<PersonaExpressions>(join(bundlePath, 'content', 'voice', 'expressions.json')),
   ]);
 
@@ -143,7 +147,10 @@ export async function loadPersonaVoiceData(personaId: string): Promise<PersonaVo
   try {
     const data = await promise;
     voiceDataCache.set(normalizedId, data);
-    log.debug({ personaId: normalizedId, hasBackchannels: !!data.backchannels }, 'Loaded persona voice data');
+    log.debug(
+      { personaId: normalizedId, hasBackchannels: !!data.backchannels },
+      'Loaded persona voice data'
+    );
     return data;
   } finally {
     loadingPromises.delete(normalizedId);
@@ -154,9 +161,16 @@ export async function loadPersonaVoiceData(personaId: string): Promise<PersonaVo
  * Preload voice data for common personas
  */
 export async function preloadCommonPersonaVoice(): Promise<void> {
-  const commonPersonas = ['ferni', 'nayan-patel', 'peter-john', 'maya-santos', 'jordan-taylor', 'alex-chen'];
+  const commonPersonas = [
+    'ferni',
+    'nayan-patel',
+    'peter-john',
+    'maya-santos',
+    'jordan-taylor',
+    'alex-chen',
+  ];
 
-  await Promise.all(commonPersonas.map((id) => loadPersonaVoiceData(id).catch(() => null)));
+  await Promise.all(commonPersonas.map(async (id) => loadPersonaVoiceData(id).catch(() => null)));
 
   log.info({ count: voiceDataCache.size }, 'Preloaded persona voice data');
 }
@@ -194,18 +208,15 @@ function normalizePersonaIdInternal(personaId: string): string {
 const DEFAULT_BACKCHANNELS: Record<BackchannelEmotionType, string[]> = {
   neutral: ['Mm-hmm', 'Right', 'Yeah', 'I see', 'Okay'],
   engaged: ['Oh!', 'Interesting', 'Hmm', 'Really?'],
-  empathetic: ['I hear you', 'That\'s hard', 'I understand', 'Yeah...'],
+  empathetic: ['I hear you', "That's hard", 'I understand', 'Yeah...'],
   excited: ['Oh!', 'Yes!', 'Nice!'],
-  supportive: ['I\'m here', 'Take your time', 'I understand'],
+  supportive: ["I'm here", 'Take your time', 'I understand'],
 };
 
 /**
  * Get a backchannel phrase synchronously (uses cache, falls back to defaults)
  */
-export function getBackchannelSync(
-  personaId: string,
-  emotionType: BackchannelEmotionType
-): string {
+export function getBackchannelSync(personaId: string, emotionType: BackchannelEmotionType): string {
   const normalizedId = normalizePersonaIdInternal(personaId);
   const cached = voiceDataCache.get(normalizedId);
 
@@ -294,16 +305,13 @@ export function getExpressionSync(
 /**
  * Get a silence filler based on silence duration
  */
-export function getSilenceFillerSync(
-  personaId: string,
-  silenceDurationMs: number
-): string | null {
+export function getSilenceFillerSync(personaId: string, silenceDurationMs: number): string | null {
   const normalizedId = normalizePersonaIdInternal(personaId);
   const cached = voiceDataCache.get(normalizedId);
 
   if (cached?.backchannels?.silence_fillers) {
     const { early, mid, late } = cached.backchannels.silence_fillers;
-    
+
     let phrases: string[];
     if (silenceDurationMs < 3000) {
       phrases = early;
@@ -335,4 +343,3 @@ export function hasVoiceDataLoaded(personaId: string): boolean {
 export function getLoadedPersonaCount(): number {
   return voiceDataCache.size;
 }
-

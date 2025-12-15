@@ -921,14 +921,23 @@ describe('response-naturalness', () => {
       expect(enhancements.prefix).toBeNull();
     });
 
-    it('should add prefix for follow-ups', () => {
-      const enhancements = responseNaturalness.getResponseEnhancements({
-        personaId: 'ferni',
-        turnCount: 5,
-        isFollowUp: true,
-      });
-
-      expect(enhancements.prefix).toBeTruthy();
+    it('should sometimes add prefix for follow-ups (probabilistic)', () => {
+      // shouldAddPrefix is probabilistic (50% for follow-ups)
+      // Run multiple times to verify it CAN add prefixes
+      let gotPrefix = false;
+      for (let i = 0; i < 20; i++) {
+        const enhancements = responseNaturalness.getResponseEnhancements({
+          personaId: 'ferni',
+          turnCount: 5,
+          isFollowUp: true,
+        });
+        if (enhancements.prefix) {
+          gotPrefix = true;
+          break;
+        }
+      }
+      // With 50% chance over 20 iterations, probability of never getting prefix is 0.5^20 ≈ 0.0001%
+      expect(gotPrefix).toBe(true);
     });
 
     it('should suggest thinking filler for questions', () => {

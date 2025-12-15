@@ -29,13 +29,13 @@ export interface SessionDataService {
   name: string;
 
   /** Clear all cached data for a specific user */
-  clearUserData(userId: string): void | Promise<void>;
+  clearUserData: (userId: string) => void | Promise<void>;
 
   /** Clear ALL cached data (for shutdown) */
-  clearAllData(): void | Promise<void>;
+  clearAllData: () => void | Promise<void>;
 
   /** Get current cache statistics */
-  getStats(): { users: number; entries: number; sizeEstimate?: number };
+  getStats: () => { users: number; entries: number; sizeEstimate?: number };
 }
 
 interface TrackedSession {
@@ -422,7 +422,8 @@ class SessionDataManagerImpl {
     oldestSessionAge: number | null;
   } {
     const memUsage = process.memoryUsage();
-    const serviceStats: Record<string, { users: number; entries: number; sizeEstimate?: number }> = {};
+    const serviceStats: Record<string, { users: number; entries: number; sizeEstimate?: number }> =
+      {};
 
     for (const [name, service] of this.services) {
       try {
@@ -511,7 +512,9 @@ export function getSessionDataManager(): SessionDataManagerImpl {
 /**
  * Initialize the SessionDataManager with config and start auto-eviction.
  */
-export function initializeSessionDataManager(config?: Partial<ManagerConfig>): SessionDataManagerImpl {
+export function initializeSessionDataManager(
+  config?: Partial<ManagerConfig>
+): SessionDataManagerImpl {
   if (instance) {
     log.warn('SessionDataManager already initialized');
     return instance;
@@ -629,4 +632,3 @@ export default {
   shutdownSessionDataManager,
   createSessionCache,
 };
-

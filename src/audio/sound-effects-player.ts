@@ -12,6 +12,9 @@
  *
  * Uses its own BackgroundAudioPlayer instance to avoid any interference
  * with music playback or triggering music-related callbacks.
+ *
+ * ⚠️ TEMPORARILY DISABLED: fluent-ffmpeg inside LiveKit's BackgroundAudioPlayer
+ * can throw unhandled errors that crash the process. Disable until fixed upstream.
  */
 
 import { voice } from '@livekit/agents';
@@ -22,6 +25,10 @@ import * as path from 'path';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'SoundEffectsPlayer' });
+
+// ⚠️ SAFETY FLAG: Disable sound effects to prevent ffmpeg crashes
+// Set to true when LiveKit fixes the fluent-ffmpeg error handling
+const SOUND_EFFECTS_ENABLED = false;
 
 // Extract BackgroundAudioPlayer from the voice namespace
 const { BackgroundAudioPlayer } = voice;
@@ -236,4 +243,3 @@ export function resetSoundEffectsPlayer(): void {
 }
 
 export default SoundEffectsPlayer;
-

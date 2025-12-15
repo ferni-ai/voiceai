@@ -145,4 +145,3 @@ export function getIntervalStats(): Array<{
 export function hasInterval(name: string): boolean {
   return intervals.has(name);
 }
-

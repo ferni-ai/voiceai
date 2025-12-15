@@ -37,6 +37,25 @@ echo ""
 echo "  ✓ Quick checks passed"
 
 # =============================================================================
+# DEPLOYMENT SAFETY CHECK (BLOCKS COMMIT)
+# =============================================================================
+echo ""
+echo "🚀 Deployment safety check..."
+
+# Check for unsafe deployment patterns
+npx tsx scripts/check-deploy-safety.ts 2>/dev/null || {
+  echo ""
+  echo "  ❌ UNSAFE DEPLOYMENT PATTERN DETECTED - COMMIT BLOCKED"
+  echo ""
+  echo "  Run 'npx tsx scripts/check-deploy-safety.ts' for details"
+  echo "  Use 'ferni deploy' instead of direct gcloud/firebase commands"
+  echo ""
+  exit 1
+}
+
+echo "  ✓ Deployment safety check passed"
+
+# =============================================================================
 # CODE QUALITY AUDIT (Informational)
 # =============================================================================
 echo ""

@@ -51,22 +51,35 @@ When you finish implementing a feature, **proactively suggest the correct deploy
 | `promo/ferni-website/*`             | `npm run deploy:landing`      | Deploys landing page                        |
 | Multiple areas                      | `npm run deploy:all`          | Deploys everything                          |
 
-### ⛔ NEVER USE DIRECT GCLOUD DEPLOYS
+### ⛔ NEVER USE DIRECT GCLOUD DEPLOYS (PRE-COMMIT WILL BLOCK!)
 
-**CRITICAL:** Always use `npm run deploy:*` commands. NEVER use raw gcloud commands:
+**CRITICAL:** The pre-commit hook WILL BLOCK commits containing direct cloud commands!
 
-| ❌ WRONG                              | ✅ RIGHT                       |
+| ❌ FORBIDDEN (blocks commit)          | ✅ REQUIRED                    |
 | ------------------------------------- | ------------------------------ |
-| `gcloud compute ssh ... docker run`   | `npm run deploy:agent`         |
-| `gcloud run deploy john-bogle-ui`     | `npm run deploy:ui:async`      |
+| `gcloud compute ssh ... docker run`   | `ferni deploy gce`             |
+| `gcloud run deploy ...`               | `ferni deploy ui`              |
+| `firebase deploy --only hosting`      | `ferni deploy frontend`        |
+| `docker push gcr.io/...`              | `ferni deploy` (handles push)  |
 
-**Why?** The deploy scripts implement proper deployment:
-1. Build and push container image
-2. Health check the new deployment
-3. Only shift traffic if healthy
-4. Proper environment variable handling
+**Enforcement:**
+1. **Pre-commit hook** - Scans for direct cloud commands, blocks commit
+2. **CI/CD** - Uses Ferni CLI internally
+3. **Code review** - Run `pnpm quality:deploy` to scan codebase
 
-Direct gcloud deploys skip health checks and can push broken code to production.
+**Why?** Direct deploys cause:
+- "Runner initialization timed out" errors
+- Choppy/broken audio
+- Zombie revisions consuming resources
+- No rollback capability
+- Missed health checks
+
+**Ferni CLI provides:**
+- Blue-green deployment (zero downtime)
+- Health check before traffic shift
+- Automatic rollback on failure
+- Old revision cleanup (no zombies)
+- Disk cleanup on every deploy
 
 ### CRITICAL: Firebase Hosting Has TWO Sites
 

@@ -30,14 +30,24 @@ import type {
 } from './interfaces/index.js';
 
 // Import implementations
-import { retrieveMemories, getConversationPrimingMemories, buildMemoryIndex } from './advanced-retrieval.js';
+import {
+  retrieveMemories,
+  getConversationPrimingMemories,
+  buildMemoryIndex,
+} from './advanced-retrieval.js';
 import { getRetrievalExplainer } from './retrieval-explanations.js';
 import { getSessionPrimer } from './session-priming.js';
 import { getUnifiedEmotionalMemory } from './emotional-memory-unified.js';
 import { getAssociativeMemory, type AssociativeMemory } from './associative-memory.js';
-import { getCommunicationPreferences, type CommunicationPreferences } from './communication-preferences.js';
+import {
+  getCommunicationPreferences,
+  type CommunicationPreferences,
+} from './communication-preferences.js';
 import { getEmotionalThreading, type EmotionalThreading } from './emotional-threading.js';
-import { getBehavioralPatternDetector, type BehavioralPatternDetector } from './behavioral-pattern-detector.js';
+import {
+  getBehavioralPatternDetector,
+  type BehavioralPatternDetector,
+} from './behavioral-pattern-detector.js';
 import { getNaturalReferenceGenerator } from './natural-reference-generator.js';
 import { getLLMSignalExtractor } from './llm-signal-extractor.js';
 
@@ -80,10 +90,10 @@ export class MemoryOrchestrator implements IMemoryOrchestrator {
   private signalExtractor = getLLMSignalExtractor();
 
   // Per-user subsystems (accessed via getters)
-  private associativeMemories: Map<string, AssociativeMemory> = new Map();
-  private commPreferences: Map<string, CommunicationPreferences> = new Map();
-  private emotionalThreading: Map<string, EmotionalThreading> = new Map();
-  private patternDetectors: Map<string, BehavioralPatternDetector> = new Map();
+  private associativeMemories = new Map<string, AssociativeMemory>();
+  private commPreferences = new Map<string, CommunicationPreferences>();
+  private emotionalThreading = new Map<string, EmotionalThreading>();
+  private patternDetectors = new Map<string, BehavioralPatternDetector>();
 
   constructor(config?: Partial<OrchestratorConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -326,11 +336,10 @@ export class MemoryOrchestrator implements IMemoryOrchestrator {
     // 3. Priming memories (for session start)
     if (isSessionStart) {
       try {
-        const primingMemories = await getConversationPrimingMemories(
-          userId,
-          personaId || 'ferni',
-          { maxMemories: 3, sessionCount: context.sessionCount || 0 }
-        );
+        const primingMemories = await getConversationPrimingMemories(userId, personaId || 'ferni', {
+          maxMemories: 3,
+          sessionCount: context.sessionCount || 0,
+        });
         for (const item of primingMemories) {
           // Avoid duplicates
           if (!memories.some((m) => m.item.id === item.id)) {
@@ -535,10 +544,14 @@ export class MemoryOrchestrator implements IMemoryOrchestrator {
         emotionalLines.push(`- Unresolved emotional topic: ${thread.topic} (${thread.emotion})`);
       }
       if (emotional.userState.unresolvedConcerns.length > 0) {
-        emotionalLines.push(`- Concerns to be aware of: ${emotional.userState.unresolvedConcerns.join(', ')}`);
+        emotionalLines.push(
+          `- Concerns to be aware of: ${emotional.userState.unresolvedConcerns.join(', ')}`
+        );
       }
       if (emotional.userState.celebratableWins.length > 0) {
-        emotionalLines.push(`- Wins to potentially celebrate: ${emotional.userState.celebratableWins.join(', ')}`);
+        emotionalLines.push(
+          `- Wins to potentially celebrate: ${emotional.userState.celebratableWins.join(', ')}`
+        );
       }
       sections.push(`[EMOTIONAL CONTEXT]\n${emotionalLines.join('\n')}`);
     }
@@ -582,9 +595,7 @@ export class MemoryOrchestrator implements IMemoryOrchestrator {
   /**
    * Map relationship stage from unified emotional memory to our interface type
    */
-  private mapRelationshipStage(
-    stage: string
-  ): 'new' | 'building' | 'established' | 'deep' {
+  private mapRelationshipStage(stage: string): 'new' | 'building' | 'established' | 'deep' {
     const stageMap: Record<string, 'new' | 'building' | 'established' | 'deep'> = {
       new_acquaintance: 'new',
       new: 'new',
@@ -629,7 +640,9 @@ export class MemoryOrchestrator implements IMemoryOrchestrator {
       for (const indicator of heavyIndicators) {
         if (turn.content.toLowerCase().includes(indicator)) {
           // Extract context
-          const match = turn.content.match(new RegExp(`\\b\\w+\\s+${indicator}\\s+(?:about\\s+)?([^.!?]+)`, 'i'));
+          const match = turn.content.match(
+            new RegExp(`\\b\\w+\\s+${indicator}\\s+(?:about\\s+)?([^.!?]+)`, 'i')
+          );
           if (match) {
             topics.push(match[1].slice(0, 50));
           }
@@ -685,4 +698,3 @@ export default {
   getMemoryOrchestrator,
   resetMemoryOrchestrator,
 };
-

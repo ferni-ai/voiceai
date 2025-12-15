@@ -744,10 +744,22 @@ export class CallMusicPlayer {
       };
 
       // Wait for playback to complete, then cleanup
+      // ⚠️ FIX: Add .catch() to handle fluent-ffmpeg "Output stream closed" errors
+      // LiveKit's BackgroundAudioPlayer uses fluent-ffmpeg which can throw unhandled errors
       if (this.currentPlayHandle) {
-        void this.currentPlayHandle.waitForPlayout().then(() => {
-          handleTrackEnd('waitForPlayout');
-        });
+        void this.currentPlayHandle
+          .waitForPlayout()
+          .then(() => {
+            handleTrackEnd('waitForPlayout');
+          })
+          .catch((err: unknown) => {
+            // fluent-ffmpeg can throw "Output stream closed" when tracks end abruptly
+            // This is not fatal - the backup timer will handle track completion
+            getLogger().warn(
+              { track: track.name, error: String(err) },
+              '🎧 waitForPlayout error (non-fatal, backup timer will handle)'
+            );
+          });
       }
 
       // 🐛 FIX: Backup timer in case waitForPlayout never resolves
@@ -988,10 +1000,20 @@ export class CallMusicPlayer {
     };
 
     // Handle track end
+    // ⚠️ FIX: Add .catch() to handle fluent-ffmpeg "Output stream closed" errors
     if (this.currentPlayHandle) {
-      void this.currentPlayHandle.waitForPlayout().then(() => {
-        handleTrackEnd('waitForPlayout');
-      });
+      void this.currentPlayHandle
+        .waitForPlayout()
+        .then(() => {
+          handleTrackEnd('waitForPlayout');
+        })
+        .catch((err: unknown) => {
+          // fluent-ffmpeg can throw "Output stream closed" when tracks end abruptly
+          getLogger().warn(
+            { track: track.name, error: String(err) },
+            '🎧 waitForPlayout error in crossfade (non-fatal)'
+          );
+        });
     }
 
     // 🐛 FIX: Backup timer in case waitForPlayout never resolves

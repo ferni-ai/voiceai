@@ -66,7 +66,10 @@ function getSafetySettings() {
   if (!HarmCategory || !HarmBlockThreshold) return [];
 
   return [
-    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
+    {
+      category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+      threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+    },
     {
       category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
       threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH,
@@ -227,7 +230,7 @@ IMPORTANT: Return ONLY valid JSON. No markdown, no code blocks, just the JSON ob
       ),
     ]);
 
-    const response = result.response;
+    const { response } = result;
     const text = response.text();
 
     log.debug({ latency: Date.now() - startTime, textLength: text.length }, 'Generation complete');
@@ -246,7 +249,10 @@ IMPORTANT: Return ONLY valid JSON. No markdown, no code blocks, just the JSON ob
   }
 }
 
-export async function generateText(prompt: string, options: GenerationOptions = {}): Promise<string | null> {
+export async function generateText(
+  prompt: string,
+  options: GenerationOptions = {}
+): Promise<string | null> {
   try {
     const client = await getClient();
     if (!client) {
@@ -274,7 +280,7 @@ export async function generateText(prompt: string, options: GenerationOptions = 
       ),
     ]);
 
-    const response = result.response;
+    const { response } = result;
     const text = response.text().trim();
 
     log.debug({ latency: Date.now() - startTime }, 'Text generation complete');
@@ -353,4 +359,3 @@ export function getCacheStats(): { size: number; keys: string[] } {
     keys: Array.from(responseCache.keys()),
   };
 }
-

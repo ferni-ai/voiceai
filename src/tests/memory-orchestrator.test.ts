@@ -77,10 +77,22 @@ function createMockRecallContext(overrides: Partial<RecallContext> = {}): Recall
 function createMockTurns(): ConversationTurn[] {
   return [
     { role: 'user', content: "I've been stressed about work lately", timestamp: new Date() },
-    { role: 'assistant', content: "That sounds challenging. What's been going on?", timestamp: new Date() },
-    { role: 'user', content: "My boss keeps changing the deadlines", timestamp: new Date() },
-    { role: 'assistant', content: "That must be frustrating when expectations keep shifting", timestamp: new Date() },
-    { role: 'user', content: "Yeah, I don't know if I should bring it up with them", timestamp: new Date() },
+    {
+      role: 'assistant',
+      content: "That sounds challenging. What's been going on?",
+      timestamp: new Date(),
+    },
+    { role: 'user', content: 'My boss keeps changing the deadlines', timestamp: new Date() },
+    {
+      role: 'assistant',
+      content: 'That must be frustrating when expectations keep shifting',
+      timestamp: new Date(),
+    },
+    {
+      role: 'user',
+      content: "Yeah, I don't know if I should bring it up with them",
+      timestamp: new Date(),
+    },
   ];
 }
 
@@ -187,7 +199,7 @@ describe('MemoryOrchestrator', () => {
       // The pattern detector should have been called
       const detector = getBehavioralPatternDetector();
       const patterns = await detector.getPatterns(TEST_USER_ID);
-      
+
       // May or may not find patterns depending on turn content
       expect(patterns).toBeDefined();
     });
@@ -259,10 +271,10 @@ describe('AssociativeMemory', () => {
 
     memory.registerMemory(mockMemory);
 
-    const triggered = await memory.getTriggeredMemories(
-      "I'm feeling anxious about tomorrow",
-      { userId: TEST_USER_ID, currentEmotion: 'anxious' }
-    );
+    const triggered = await memory.getTriggeredMemories("I'm feeling anxious about tomorrow", {
+      userId: TEST_USER_ID,
+      currentEmotion: 'anxious',
+    });
 
     // May or may not trigger depending on trigger strength
     expect(triggered).toBeDefined();
@@ -300,10 +312,18 @@ describe('BehavioralPatternDetector', () => {
     // Test data needs context indicators (decision, choice, job offer, relationship, move)
     // to satisfy the pattern's contextIndicators requirement
     const turns: ConversationTurn[] = [
-      { role: 'user', content: "I don't know if I should take this job offer", timestamp: new Date() },
-      { role: 'user', content: "What if I make the wrong choice about this job?", timestamp: new Date() },
+      {
+        role: 'user',
+        content: "I don't know if I should take this job offer",
+        timestamp: new Date(),
+      },
+      {
+        role: 'user',
+        content: 'What if I make the wrong choice about this job?',
+        timestamp: new Date(),
+      },
       { role: 'user', content: "I'm not sure about this decision at all", timestamp: new Date() },
-      { role: 'user', content: "Should I make a decision now or wait?", timestamp: new Date() },
+      { role: 'user', content: 'Should I make a decision now or wait?', timestamp: new Date() },
     ];
 
     const patterns = await detector.analyzeForPatterns(turns, []);
@@ -317,9 +337,9 @@ describe('BehavioralPatternDetector', () => {
   it('should detect progress minimization pattern', async () => {
     const detector = getBehavioralPatternDetector();
     const turns: ConversationTurn[] = [
-      { role: 'user', content: "It was just a small thing, not a big deal", timestamp: new Date() },
-      { role: 'user', content: "Anyone could have done that", timestamp: new Date() },
-      { role: 'user', content: "I barely did anything special", timestamp: new Date() },
+      { role: 'user', content: 'It was just a small thing, not a big deal', timestamp: new Date() },
+      { role: 'user', content: 'Anyone could have done that', timestamp: new Date() },
+      { role: 'user', content: 'I barely did anything special', timestamp: new Date() },
       { role: 'user', content: "I'm not that talented, just got lucky", timestamp: new Date() },
     ];
 
@@ -331,18 +351,18 @@ describe('BehavioralPatternDetector', () => {
 
   it('should persist patterns across analyses', async () => {
     const detector = getBehavioralPatternDetector();
-    
+
     // First analysis
     const firstTurns: ConversationTurn[] = [
       { role: 'user', content: "I don't know what to do", timestamp: new Date() },
-      { role: 'user', content: "What if I mess up?", timestamp: new Date() },
+      { role: 'user', content: 'What if I mess up?', timestamp: new Date() },
       { role: 'user', content: "I'm torn between the options", timestamp: new Date() },
     ];
     const firstPatterns = await detector.analyzeForPatterns(firstTurns, []);
 
     // Second analysis with existing patterns
     const secondTurns: ConversationTurn[] = [
-      { role: 'user', content: "Should I apply for this job?", timestamp: new Date() },
+      { role: 'user', content: 'Should I apply for this job?', timestamp: new Date() },
       { role: 'user', content: "I'm not sure if I'm qualified", timestamp: new Date() },
     ];
     const secondPatterns = await detector.analyzeForPatterns(secondTurns, firstPatterns);
@@ -356,7 +376,7 @@ describe('BehavioralPatternDetector', () => {
 
   it('should provide active pattern guidance', async () => {
     const detector = getBehavioralPatternDetector();
-    
+
     // Create and save a pattern
     const turns: ConversationTurn[] = [
       { role: 'user', content: "I don't know if I should do this", timestamp: new Date() },
@@ -495,7 +515,7 @@ describe('EmotionalThreading', () => {
 
     // Get context to find thread
     const context = await threading.getSessionContext(TEST_USER_ID);
-    
+
     if (context.activeThreads.length > 0) {
       const threadId = context.activeThreads[0].id;
       await threading.resolveThread(TEST_USER_ID, threadId);
@@ -585,4 +605,3 @@ describe('NaturalReferenceGenerator', () => {
     expect(mayaRef.reference).toBeTruthy();
   });
 });
-

@@ -125,7 +125,7 @@ export async function handleWaitlistRoutes(
   }
 
   // Handle CORS preflight
-  if (await handleCorsPreflightIfNeeded(req, res)) {
+  if (handleCorsPreflightIfNeeded(req, res)) {
     return true;
   }
 

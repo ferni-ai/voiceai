@@ -445,7 +445,7 @@ export async function registerTopicTrackingWithSessionManager(): Promise<void> {
     const { getSessionDataManager } = await import('./session-data-manager.js');
     getSessionDataManager().registerService({
       name: 'TopicTracking',
-      clearUserData: (userId: string) => clearTopicHistory(userId),
+      clearUserData: async (userId: string) => clearTopicHistory(userId),
       clearAllData: clearAllTopicHistory,
       getStats: getTopicTrackingStats,
     });

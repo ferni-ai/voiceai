@@ -123,19 +123,23 @@ function checkMemoryRateLimit(key: string, maxRequests: number, windowMs: number
 }
 
 // Cleanup expired entries every minute (managed by IntervalManager)
-registerInterval('rate-limiter-cleanup', () => {
-  const now = Date.now();
-  let cleaned = 0;
-  for (const [key, entry] of memoryStore) {
-    if (entry.resetAt <= now) {
-      memoryStore.delete(key);
-      cleaned++;
+registerInterval(
+  'rate-limiter-cleanup',
+  () => {
+    const now = Date.now();
+    let cleaned = 0;
+    for (const [key, entry] of memoryStore) {
+      if (entry.resetAt <= now) {
+        memoryStore.delete(key);
+        cleaned++;
+      }
     }
-  }
-  if (cleaned > 0) {
-    log.debug({ cleaned }, 'Cleaned expired in-memory rate limit entries');
-  }
-}, 60000);
+    if (cleaned > 0) {
+      log.debug({ cleaned }, 'Cleaned expired in-memory rate limit entries');
+    }
+  },
+  60000
+);
 
 // ============================================================================
 // REDIS RATE LIMITING

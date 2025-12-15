@@ -193,10 +193,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     const { dirname, join } = await import('path');
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = dirname(__filename);
-    const richPromptPath = join(
-      __dirname,
-      '../personas/bundles/ferni/identity/system-prompt.md'
-    );
+    const richPromptPath = join(__dirname, '../personas/bundles/ferni/identity/system-prompt.md');
     const systemPrompt = await fs.readFile(richPromptPath, 'utf-8');
     process.stderr.write(
       `[voice-agent-entry] Using RICH prompt (${systemPrompt.length} chars, ~${Math.round(systemPrompt.length / 4)} tokens) - tools from definitions only! 🎉\n`
@@ -552,18 +549,18 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // 🔍 DEBUG: Comprehensive event logging to capture Gemini responses
     // =========================================================================
     process.stderr.write(`[voice-agent-entry] 🔍 Setting up Gemini debug logging...\n`);
-    
+
     // Log ALL session events for debugging
     const debugEvents = [
       'agent_state_changed',
-      'user_state_changed', 
+      'user_state_changed',
       'function_calls_collected',
       'function_tools_executed',
       'agent_speech_started',
       'agent_speech_stopped',
       'user_input_transcribed',
     ];
-    
+
     // Try to hook into raw LLM events if available
     if (session.llm && typeof session.llm.on === 'function') {
       process.stderr.write(`[voice-agent-entry] 🔍 Hooking into LLM events...\n`);
@@ -574,7 +571,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         process.stderr.write(`${'='.repeat(70)}\n\n`);
       });
     }
-    
+
     // Hook into function calls collected (before execution)
     const fnCallsHandler = (event: unknown) => {
       process.stderr.write(`\n${'='.repeat(70)}\n`);

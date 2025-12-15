@@ -53,7 +53,7 @@ describe('Discovery Context Builder', () => {
       expect(result).toEqual([]);
     });
 
-    it('should return empty array for turn 1 (too early)', () => {
+    it('should return name discovery for turn 1 (early is intentional)', () => {
       const input = {
         userText: 'Hello',
         analysis: { topics: { detected: [] }, emotion: { primary: 'neutral' } },
@@ -63,7 +63,9 @@ describe('Discovery Context Builder', () => {
 
       const result = buildDiscoveryContext(input);
 
-      expect(result).toEqual([]);
+      // Name discovery is intentionally triggered on turns 1-2 ("Ask early, it matters!")
+      expect(result.length).toBe(1);
+      expect(result[0].type).toBe('discovery_name');
     });
 
     it('should return empty array for turn 7+ (too late)', () => {

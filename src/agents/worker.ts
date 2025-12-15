@@ -50,6 +50,45 @@ import { startHealthCheckServer } from './shared/health-server.js';
 startHealthCheckServer(AGENT_NAME);
 
 // ============================================================================
+// PHASE 1.5: START CONTAINER WATCHDOG (Self-monitoring + Auto-cleanup)
+// ============================================================================
+
+log('Phase 1.5: Starting container watchdog');
+
+import { startWatchdog } from '../services/container-watchdog.js';
+startWatchdog({
+  // Alert when disk reaches these thresholds
+  diskWarningPercent: 70,
+  diskCriticalPercent: 85,
+  diskEmergencyPercent: 95,
+  // Auto-cleanup when critical/emergency
+  autoCleanupEnabled: true,
+  // Check intervals
+  diskCheckIntervalMs: 60_000, // Every minute
+  memoryCheckIntervalMs: 30_000, // Every 30 seconds
+  healthReportIntervalMs: 3600_000, // Hourly summary
+});
+
+log('✅ Container watchdog started');
+
+// Start Ops Orchestrator (unified monitoring & alerting)
+import { startOpsOrchestrator } from '../services/ops-orchestrator.js';
+startOpsOrchestrator({
+  // Cost thresholds (USD)
+  costHourlyWarning: 5, // Alert if hourly > $5
+  costDailyWarning: 50, // Alert if daily > $50
+  costDailyCritical: 100, // Critical if daily > $100
+  // Latency thresholds
+  latencyP99Warning: 2000, // 2 seconds
+  latencyP99Critical: 5000, // 5 seconds
+  // Error rate thresholds
+  errorRateWarning: 0.05, // 5%
+  errorRateCritical: 0.1, // 10%
+});
+
+log('✅ Ops orchestrator started');
+
+// ============================================================================
 // PHASE 2: LOAD MODULES
 // ============================================================================
 
@@ -675,7 +714,9 @@ const shutdown = async (signal: string) => {
 
   const shutdownStart = Date.now();
   while (activeJobs > 0 && Date.now() - shutdownStart < 30000) {
-    await new Promise<void>((r) => setTimeout(r, 1000));
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 1000);
+    });
     log('Waiting for active jobs...', { activeJobs });
   }
 

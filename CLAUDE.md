@@ -199,6 +199,38 @@ ferni deploy gce --dry-run
 
 **Key files:** `scripts/deploy-gce.ts`, `scripts/deploy.ts`
 
+### 💽 GCE Disk Management (Auto-Cleanup)
+
+The GCE instance can run out of disk space from old Docker images, logs, and build cache. Cleanup now runs **automatically on every deploy**, but you can also run it manually:
+
+```bash
+# Check disk status
+ferni disk                    # or: pnpm ops:disk
+pnpm ops:disk
+
+# Run cleanup (removes old images, truncates logs)
+ferni disk clean              # or: pnpm ops:disk:clean
+pnpm ops:disk:clean
+
+# Aggressive cleanup (also removes volumes, apt cache)
+ferni disk clean:aggressive   # or: pnpm ops:disk:clean:aggressive
+
+# Preview what would be cleaned
+pnpm ops:disk:clean:dry-run
+
+# Set up automatic daily cleanup (cron at 3 AM)
+ferni disk setup-cron         # or: pnpm ops:disk:setup-cron
+```
+
+**What gets cleaned on each deploy:**
+- Stopped containers
+- Dangling (untagged) images
+- Old deployment images (keeps last 3 for rollback)
+- Docker build cache (keeps 2GB)
+- Truncates container logs
+
+**Key files:** `scripts/cleanup-gce.ts`, `scripts/deploy-gce.ts`
+
 ## ⚡ Build Optimization (pnpm + esbuild)
 
 We use **esbuild** for fast TypeScript compilation and **pnpm** for fast dependency installs.
@@ -713,13 +745,72 @@ Templates include: `tinyVersion`, `miniVersion`, `fullVersion`, `habitLoop`, `st
 | Editing generated files | Check filename for `.generated.` |
 | Wrong deploy target | Check table in Deployment section |
 | Forgetting to sync tokens | Run `pnpm tokens:sync` after token edits |
-| Direct `gcloud run deploy` | **NEVER** - use `pnpm deploy:*:async` (blue-green) |
+| Direct `gcloud run deploy` | **NEVER** - use `ferni deploy` (see below) |
 
 **If pre-commit fails:**
 ```bash
 pnpm lint:fix      # Auto-fix lint issues
 pnpm format        # Auto-fix formatting
 pnpm tokens:sync   # Fix token drift
+```
+
+## 🚨 DEPLOYMENT RULES (CRITICAL - READ BEFORE DEPLOYING)
+
+### ⛔ FORBIDDEN DEPLOYMENT COMMANDS
+
+These commands will be **BLOCKED by pre-commit hooks**:
+
+```bash
+# ❌ NEVER USE - Direct cloud commands skip health checks!
+gcloud run deploy voiceai-agent ...
+gcloud run deploy john-bogle-ui ...
+gcloud compute ssh ... docker run ...
+firebase deploy --only hosting
+docker push gcr.io/...
+```
+
+### ✅ ALWAYS USE FERNI CLI
+
+```bash
+# ✅ CORRECT - Ferni CLI handles blue-green, health checks, cleanup
+ferni deploy gce           # Voice agent to GCE
+ferni deploy ui            # UI backend to Cloud Run  
+ferni deploy frontend      # Frontend to Firebase
+ferni deploy landing       # Landing page
+ferni deploy all           # Everything
+
+# ✅ CORRECT - npm script aliases (also use Ferni CLI)
+pnpm deploy:agent          # Voice agent
+pnpm deploy:ui             # UI backend
+```
+
+### Why Ferni CLI?
+
+| Direct gcloud | Ferni CLI |
+|---------------|-----------|
+| ❌ No health checks | ✅ Waits for `/health/ready` |
+| ❌ No rollback | ✅ Auto-rollback on failure |
+| ❌ Zombie revisions | ✅ Auto-cleanup old revisions |
+| ❌ Choppy audio | ✅ Zero-downtime blue-green |
+| ❌ Manual everything | ✅ One command |
+
+### Deployment Safety Enforcement
+
+1. **Pre-commit hook** - Blocks commits with direct cloud commands
+2. **CI/CD pipeline** - Uses Ferni CLI internally
+3. **Code review** - `pnpm quality:deploy` scans for unsafe patterns
+
+```bash
+# Check for unsafe deployment patterns
+pnpm quality:deploy
+```
+
+### Emergency Bypass (NEVER in normal circumstances)
+
+```bash
+# Only if systems are completely down and Ferni CLI broken
+git commit --no-verify -m "EMERGENCY: ..."
+# Then IMMEDIATELY fix and redeploy properly
 ```
 
 ## Subdirectory CLAUDE.md Files

@@ -63,7 +63,10 @@ interface SerializedTrigger extends Omit<AssociativeTrigger, 'createdAt' | 'last
   lastFired: string;
 }
 
-interface SerializedPattern extends Omit<BehavioralPattern, 'firstObserved' | 'lastObserved' | 'examples'> {
+interface SerializedPattern extends Omit<
+  BehavioralPattern,
+  'firstObserved' | 'lastObserved' | 'examples'
+> {
   firstObserved: string;
   lastObserved: string;
   examples: Array<{
@@ -188,11 +191,13 @@ export class FirestoreMemoryPersistence {
       const snapshot = await userDoc.collection('associative_memory').get();
 
       for (const doc of snapshot.docs) {
-        const data = doc.data() as { 
-          triggers: SerializedTrigger[]; 
-          memory?: SerializedMemoryItem;
-        } | undefined;
-        
+        const data = doc.data() as
+          | {
+              triggers: SerializedTrigger[];
+              memory?: SerializedMemoryItem;
+            }
+          | undefined;
+
         if (data?.triggers) {
           const triggers: AssociativeTrigger[] = data.triggers.map((t) => ({
             ...t,
@@ -227,10 +232,7 @@ export class FirestoreMemoryPersistence {
   /**
    * Save behavioral patterns for a user
    */
-  async saveBehavioralPatterns(
-    userId: string,
-    patterns: BehavioralPattern[]
-  ): Promise<void> {
+  async saveBehavioralPatterns(userId: string, patterns: BehavioralPattern[]): Promise<void> {
     if (!this.db) return;
 
     try {
@@ -238,7 +240,7 @@ export class FirestoreMemoryPersistence {
 
       for (const pattern of patterns) {
         const patternDoc = userDoc.collection('behavioral_patterns').doc(pattern.patternType);
-        
+
         const serialized: SerializedPattern = {
           ...pattern,
           firstObserved: pattern.firstObserved.toISOString(),
@@ -299,10 +301,7 @@ export class FirestoreMemoryPersistence {
   /**
    * Save emotional threads for a user
    */
-  async saveEmotionalThreads(
-    userId: string,
-    threads: EmotionalThread[]
-  ): Promise<void> {
+  async saveEmotionalThreads(userId: string, threads: EmotionalThread[]): Promise<void> {
     if (!this.db) return;
 
     try {
@@ -401,7 +400,10 @@ export class FirestoreMemoryPersistence {
       if (snapshot.exists) {
         const data = snapshot.data() as CommunicationPreferencesData | undefined;
         if (data?.preferences) {
-          log.debug({ userId, prefCount: data.preferences.length }, 'Loaded communication preferences');
+          log.debug(
+            { userId, prefCount: data.preferences.length },
+            'Loaded communication preferences'
+          );
           return data.preferences;
         }
       }
@@ -483,4 +485,3 @@ export default {
   getFirestoreMemoryPersistence,
   resetFirestoreMemoryPersistence,
 };
-

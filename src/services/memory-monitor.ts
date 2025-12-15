@@ -29,12 +29,12 @@ export interface MemoryMetrics {
     arrayBuffers: number;
   };
   rss: number;
-  caches: {
+  caches: Array<{
     name: string;
     users: number;
     entries: number;
     sizeEstimate?: number;
-  }[];
+  }>;
   sessions: {
     active: number;
     totalTracked: number;
@@ -103,12 +103,12 @@ export class MemoryMonitor {
 
     log.info({ config: this.config }, '🔍 Memory monitor started');
 
-    // Initial check
-    this.check();
+    // Initial check (fire and forget, errors are logged internally)
+    void this.check();
 
     // Schedule periodic checks
     this.checkTimer = setInterval(() => {
-      this.check();
+      void this.check();
     }, this.config.checkIntervalMs);
   }
 
@@ -253,11 +253,7 @@ export class MemoryMonitor {
       }
 
       // Auto-cleanup if enabled
-      if (
-        this.config.autoCleanup &&
-        metrics.pressure.shouldCleanup &&
-        !this.cleanupInProgress
-      ) {
+      if (this.config.autoCleanup && metrics.pressure.shouldCleanup && !this.cleanupInProgress) {
         log.warn(
           { heapPercent: metrics.heap.percentUsed },
           '⚠️ Memory pressure elevated, triggering auto-cleanup'
@@ -324,7 +320,9 @@ export class MemoryMonitor {
     }
   }
 
-  private async runCleanup(trigger: 'auto' | 'manual'): Promise<{ cleaned: number; freedMB: number }> {
+  private async runCleanup(
+    trigger: 'auto' | 'manual'
+  ): Promise<{ cleaned: number; freedMB: number }> {
     if (this.cleanupInProgress) {
       return { cleaned: 0, freedMB: 0 };
     }
@@ -354,9 +352,8 @@ export class MemoryMonitor {
 
       // 3. Clear context builder caches
       try {
-        const { clearContextOutputCache } = await import(
-          '../intelligence/context-builders/index.js'
-        );
+        const { clearContextOutputCache } =
+          await import('../intelligence/context-builders/index.js');
         clearContextOutputCache();
         cleaned++;
       } catch {
@@ -366,7 +363,7 @@ export class MemoryMonitor {
       // 4. Clear topic tracking for old data
       try {
         const { clearAllTopicHistory } = await import('./topic-tracking.js');
-        await clearAllTopicHistory();
+        clearAllTopicHistory(); // sync function
         cleaned++;
       } catch {
         // Not loaded or function doesn't exist
@@ -530,4 +527,3 @@ export async function getMemoryMetrics(): Promise<MemoryMetrics> {
 export async function exportPrometheusMetrics(): Promise<string> {
   return getMemoryMonitor().exportPrometheus();
 }
-

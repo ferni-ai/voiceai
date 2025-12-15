@@ -148,6 +148,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Deployment safety check
+        run: |
+          echo "🔍 Scanning for unsafe deployment patterns..."
+          npx tsx scripts/check-deploy-safety.ts --all || {
+            echo "❌ Unsafe deployment patterns detected!"
+            echo "Direct gcloud/firebase commands are forbidden."
+            echo "Use 'ferni deploy' CLI instead."
+            exit 1
+          }
+          echo "✅ Deployment safety passed"
+
       - name: Type check
         run: pnpm typecheck
         continue-on-error: true

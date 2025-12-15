@@ -45,7 +45,8 @@ const PATTERN_DEFINITIONS: PatternDefinition[] = [
     type: 'pre_decision_doubt',
     description: 'Tends to express doubt and uncertainty before major decisions',
     implication: 'They need reassurance during decision-making, but usually make good choices',
-    suggestedResponse: 'Acknowledge the difficulty while reminding them of past successful decisions',
+    suggestedResponse:
+      'Acknowledge the difficulty while reminding them of past successful decisions',
     detectPatterns: {
       indicators: [
         /(?:I|we) don't know (?:if|whether|what)/gi,
@@ -241,7 +242,7 @@ interface DetectionAccumulator {
 }
 
 export class BehavioralPatternDetector implements IBehavioralPatternDetector {
-  private patterns: Map<string, BehavioralPattern[]> = new Map(); // userId -> patterns
+  private patterns = new Map<string, BehavioralPattern[]>(); // userId -> patterns
 
   /**
    * Analyze conversation turns for behavioral patterns
@@ -250,7 +251,7 @@ export class BehavioralPatternDetector implements IBehavioralPatternDetector {
     turns: ConversationTurn[],
     existingPatterns: BehavioralPattern[]
   ): Promise<BehavioralPattern[]> {
-    const accumulators: Map<PatternType, DetectionAccumulator> = new Map();
+    const accumulators = new Map<PatternType, DetectionAccumulator>();
 
     // Initialize accumulators for each pattern type
     for (const def of PATTERN_DEFINITIONS) {
@@ -262,7 +263,7 @@ export class BehavioralPatternDetector implements IBehavioralPatternDetector {
       const turn = turns[i];
       if (turn.role !== 'user') continue;
 
-      const content = turn.content;
+      const { content } = turn;
       const timestamp = turn.timestamp || new Date();
 
       // Check each pattern
@@ -456,9 +457,7 @@ export class BehavioralPatternDetector implements IBehavioralPatternDetector {
     mostFrequent: PatternType | null;
   } {
     const patterns = this.patterns.get(userId) || [];
-    const highConf = patterns
-      .filter((p) => p.confidence > 0.5)
-      .map((p) => p.patternType);
+    const highConf = patterns.filter((p) => p.confidence > 0.5).map((p) => p.patternType);
 
     const sorted = [...patterns].sort((a, b) => b.frequency - a.frequency);
 
@@ -489,18 +488,21 @@ export function getBehavioralPatternDetector(): BehavioralPatternDetector {
  */
 export async function loadPatternsFromPersistence(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
-  
+
   try {
     const { getFirestoreMemoryPersistence } = await import('./firestore-memory-persistence.js');
     const persistence = await getFirestoreMemoryPersistence();
-    
+
     if (persistence.isAvailable()) {
       const patterns = await persistence.loadBehavioralPatterns(userId);
       if (patterns.length > 0) {
         const detector = getBehavioralPatternDetector();
         await detector.savePatterns(userId, patterns);
         loadedUsers.add(userId);
-        log.debug({ userId, patternCount: patterns.length }, 'Loaded behavioral patterns from Firestore');
+        log.debug(
+          { userId, patternCount: patterns.length },
+          'Loaded behavioral patterns from Firestore'
+        );
       }
     }
   } catch (error) {
@@ -515,14 +517,17 @@ export async function savePatternsToPeristence(userId: string): Promise<void> {
   try {
     const { getFirestoreMemoryPersistence } = await import('./firestore-memory-persistence.js');
     const persistence = await getFirestoreMemoryPersistence();
-    
+
     if (persistence.isAvailable()) {
       const detector = getBehavioralPatternDetector();
       const patterns = await detector.getPatterns(userId);
-      
+
       if (patterns.length > 0) {
         await persistence.saveBehavioralPatterns(userId, patterns);
-        log.debug({ userId, patternCount: patterns.length }, 'Saved behavioral patterns to Firestore');
+        log.debug(
+          { userId, patternCount: patterns.length },
+          'Saved behavioral patterns to Firestore'
+        );
       }
     }
   } catch (error) {
@@ -543,4 +548,3 @@ export default {
   resetBehavioralPatternDetector,
   PATTERN_DEFINITIONS,
 };
-

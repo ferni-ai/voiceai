@@ -119,7 +119,7 @@ const REFERENCE_TEMPLATES: Record<AssociativeTrigger['triggerType'], string[]> =
   emotion: [
     "You've felt this way before - I remember {context}",
     'This sounds similar to {context}',
-    "I recall you going through something like this",
+    'I recall you going through something like this',
   ],
   topic: [
     "We've talked about {topic} before",
@@ -127,7 +127,7 @@ const REFERENCE_TEMPLATES: Record<AssociativeTrigger['triggerType'], string[]> =
     "You've been thinking about {topic} for a while",
   ],
   situation: [
-    "This reminds me of when you were dealing with {situation}",
+    'This reminds me of when you were dealing with {situation}',
     "You've navigated something similar before",
     'I remember you facing this kind of {situation}',
   ],
@@ -147,8 +147,8 @@ const REFERENCE_TEMPLATES: Record<AssociativeTrigger['triggerType'], string[]> =
 
 export class AssociativeMemory implements IAssociativeMemory {
   private config: AssociativeConfig;
-  private triggers: Map<string, AssociativeTrigger[]> = new Map(); // userId -> triggers
-  private memories: Map<string, MemoryItem> = new Map(); // memoryId -> memory
+  private triggers = new Map<string, AssociativeTrigger[]>(); // userId -> triggers
+  private memories = new Map<string, MemoryItem>(); // memoryId -> memory
 
   constructor(config?: Partial<AssociativeConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -159,7 +159,7 @@ export class AssociativeMemory implements IAssociativeMemory {
    */
   async registerTrigger(
     memoryId: string,
-    triggers: Omit<AssociativeTrigger, 'triggerId' | 'createdAt' | 'lastFired' | 'fireCount'>[]
+    triggers: Array<Omit<AssociativeTrigger, 'triggerId' | 'createdAt' | 'lastFired' | 'fireCount'>>
   ): Promise<void> {
     const now = new Date();
     const existingTriggers = this.triggers.get(memoryId) || [];
@@ -221,8 +221,7 @@ export class AssociativeMemory implements IAssociativeMemory {
           if (!memory) continue;
 
           // Calculate activation strength with decay
-          const daysSinceFired =
-            (Date.now() - trigger.lastFired.getTime()) / (1000 * 60 * 60 * 24);
+          const daysSinceFired = (Date.now() - trigger.lastFired.getTime()) / (1000 * 60 * 60 * 24);
           const decayedStrength = Math.max(
             0,
             trigger.strength - daysSinceFired * this.config.strengthDecayPerDay
@@ -357,7 +356,8 @@ export class AssociativeMemory implements IAssociativeMemory {
 
     // Deduplicate
     return triggers.filter(
-      (t, i) => triggers.findIndex((other) => other.type === t.type && other.value === t.value) === i
+      (t, i) =>
+        triggers.findIndex((other) => other.type === t.type && other.value === t.value) === i
     );
   }
 
@@ -471,7 +471,7 @@ export class AssociativeMemory implements IAssociativeMemory {
 // ============================================================================
 
 const associativeMemories = new Map<string, AssociativeMemory>();
-let persistenceInitialized = false;
+const persistenceInitialized = false;
 
 /**
  * Get associative memory for a user (with Firestore persistence)
@@ -494,19 +494,19 @@ async function loadFromPersistence(userId: string, memory: AssociativeMemory): P
   try {
     const { getFirestoreMemoryPersistence } = await import('./firestore-memory-persistence.js');
     const persistence = await getFirestoreMemoryPersistence();
-    
+
     if (persistence.isAvailable()) {
       const data = await persistence.loadAssociativeTriggers(userId);
-      
+
       // Import the loaded data
       const triggers: Array<[string, AssociativeTrigger[]]> = [];
       const memories: Array<[string, MemoryItem]> = [];
-      
+
       for (const [memoryId, { triggers: t, memory: m }] of data.entries()) {
         triggers.push([memoryId, t]);
         if (m) memories.push([memoryId, m]);
       }
-      
+
       memory.import({ triggers, memories });
       log.debug({ userId, loaded: data.size }, 'Loaded associative memory from Firestore');
     }
@@ -525,15 +525,15 @@ export async function saveAssociativeMemory(userId: string): Promise<void> {
   try {
     const { getFirestoreMemoryPersistence } = await import('./firestore-memory-persistence.js');
     const persistence = await getFirestoreMemoryPersistence();
-    
+
     if (persistence.isAvailable()) {
       const exported = memory.export();
-      
+
       for (const [memoryId, triggers] of exported.triggers) {
         const memoryItem = exported.memories.find(([id]) => id === memoryId)?.[1];
         await persistence.saveAssociativeTriggers(userId, memoryId, triggers, memoryItem);
       }
-      
+
       log.debug({ userId }, 'Saved associative memory to Firestore');
     }
   } catch (error) {
@@ -554,4 +554,3 @@ export default {
   saveAssociativeMemory,
   clearAssociativeMemory,
 };
-

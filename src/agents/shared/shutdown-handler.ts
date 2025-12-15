@@ -120,6 +120,24 @@ export function registerShutdownSignalHandlers(): void {
   // leave the container in a "zombie" state where health checks pass but the
   // agent can't receive room dispatches from LiveKit Cloud.
   process.on('uncaughtException', (error: Error, origin: string) => {
+    // ⚠️ KNOWN ISSUE: fluent-ffmpeg throws "Output stream closed" when WebRTC disconnects
+    // This is NOT fatal - it just means the audio stream ended (user disconnected, etc.)
+    // LiveKit's BackgroundAudioPlayer doesn't attach error handler to ffmpeg command
+    const isFfmpegStreamError =
+      error.message?.includes('Output stream closed') ||
+      error.message?.includes('Output stream error') ||
+      error.stack?.includes('fluent-ffmpeg');
+
+    if (isFfmpegStreamError) {
+      diag.warn('⚠️ ffmpeg stream error (non-fatal, user likely disconnected)', {
+        error: error.message,
+        origin,
+        processUptime: process.uptime(),
+      });
+      // Don't count this toward exception threshold - it's expected behavior
+      return;
+    }
+
     uncaughtExceptionCount++;
 
     // Check for critical LiveKit errors FIRST - these require immediate restart

@@ -733,6 +733,14 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: ['status', 'clear', 'warmup', 'stats', 'keys'],
     examples: ['ferni cache status', 'ferni cache clear --pattern="user:*"'],
   },
+  disk: {
+    name: 'Disk',
+    description: 'GCE disk management & Docker cleanup',
+    icon: '💽',
+    handler: handleDisk,
+    subcommands: ['status', 'clean', 'clean:aggressive', 'setup-cron'],
+    examples: ['ferni disk', 'ferni disk status', 'ferni disk clean', 'ferni disk setup-cron'],
+  },
   notify: {
     name: 'Notify',
     description: 'Send notifications to team (Slack, PagerDuty)',
@@ -811,6 +819,20 @@ const COMMANDS: Record<string, CliCommand> = {
     handler: handleCEORoster,
     subcommands: ['show', 'maya', 'alex', 'jordan', 'peter', 'nayan', 'ferni'],
     examples: ['ferni roster', 'ferni roster maya', 'ferni roster alex'],
+  },
+  // Operations & Infrastructure
+  disk: {
+    name: 'Disk',
+    description: 'GCE disk management & cleanup',
+    icon: '💽',
+    handler: handleDisk,
+    subcommands: ['status', 'clean', 'clean:aggressive', 'setup-cron'],
+    examples: [
+      'ferni disk',
+      'ferni disk clean',
+      'ferni disk clean:aggressive',
+      'ferni disk setup-cron',
+    ],
   },
 };
 
@@ -6238,6 +6260,38 @@ async function handleCache(args: string[]): Promise<void> {
 
   log.error(`Unknown cache subcommand: ${subcommand}`);
   console.log(`\n  Available: status, clear, warmup, stats, keys`);
+}
+
+async function handleDisk(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+  const isDryRun = args.includes('--dry-run');
+
+  log.header('💽 GCE Disk Management');
+
+  // Map CLI subcommands to script arguments
+  const scriptArgsMap: Record<string, string[]> = {
+    'status': ['--status'],
+    'clean': isDryRun ? ['--dry-run'] : [],
+    'clean:aggressive': isDryRun ? ['--aggressive', '--dry-run'] : ['--aggressive'],
+    'setup-cron': ['--setup-cron'],
+  };
+
+  const scriptArgs = scriptArgsMap[subcommand];
+  if (!scriptArgs) {
+    log.error(`Unknown disk subcommand: ${subcommand}`);
+    console.log(`\n  Available: status, clean, clean:aggressive, setup-cron`);
+    return;
+  }
+
+  // Run the cleanup-gce.ts script
+  const cmd = `npx tsx scripts/cleanup-gce.ts ${scriptArgs.join(' ')}`;
+  
+  try {
+    execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
+  } catch (error) {
+    log.error('Disk operation failed');
+    process.exit(1);
+  }
 }
 
 async function handleNotify(args: string[]): Promise<void> {

@@ -248,6 +248,33 @@ async function handleMemoryAPI(url: string, res: ServerResponse): Promise<void> 
 }
 
 /**
+ * Handle watchdog API requests (container self-monitoring)
+ */
+async function handleWatchdogAPI(res: ServerResponse): Promise<void> {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  try {
+    const { getHealthData } = await import('../../services/container-watchdog.js');
+    const data = getHealthData();
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        success: true,
+        data,
+        timestamp: new Date().toISOString(),
+      })
+    );
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Watchdog API error');
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Watchdog not available' }));
+  }
+}
+
+/**
  * Handle Prometheus metrics export
  */
 async function handlePrometheusMetrics(res: ServerResponse): Promise<void> {
@@ -398,6 +425,12 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
       // Memory monitoring API endpoints
       if (url.startsWith('/api/memory')) {
         await handleMemoryAPI(url, res);
+        return;
+      }
+
+      // Watchdog API endpoint (container health monitoring)
+      if (url === '/api/watchdog' || url === '/api/watchdog/status') {
+        await handleWatchdogAPI(res);
         return;
       }
 

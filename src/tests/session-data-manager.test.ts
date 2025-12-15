@@ -223,5 +223,3 @@ describe('SessionDataManager', () => {
     });
   });
 });
-
-

@@ -1047,6 +1047,10 @@ describe('voice-ids.ts', () => {
     });
 
     it('should use legacy JACK_B_VOICE_ID as fallback', async () => {
+      // Reset modules to clear any cached imports
+      vi.resetModules();
+      // Delete FERNI_VOICE_ID to ensure fallback is used
+      delete process.env.FERNI_VOICE_ID;
       process.env.JACK_B_VOICE_ID = 'legacy-jack-id';
       const { getVoiceIdForPersona } = await import('../config/voice-ids.js');
 

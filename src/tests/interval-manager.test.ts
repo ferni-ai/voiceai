@@ -58,14 +58,22 @@ describe('IntervalManager', () => {
       let firstCallCount = 0;
       let secondCallCount = 0;
 
-      IntervalManager.registerInterval('test-interval', () => {
-        firstCallCount++;
-      }, 1000);
+      IntervalManager.registerInterval(
+        'test-interval',
+        () => {
+          firstCallCount++;
+        },
+        1000
+      );
 
       // Replace with new interval
-      IntervalManager.registerInterval('test-interval', () => {
-        secondCallCount++;
-      }, 1000);
+      IntervalManager.registerInterval(
+        'test-interval',
+        () => {
+          secondCallCount++;
+        },
+        1000
+      );
 
       vi.advanceTimersByTime(3000);
 
@@ -179,5 +187,3 @@ describe('IntervalManager', () => {
     });
   });
 });
-
-

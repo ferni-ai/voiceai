@@ -293,9 +293,12 @@ export class SessionCache<T = unknown> {
 
   private startCleanupTimer(): void {
     // Clean up expired entries every 5 minutes
-    this.cleanupTimer = setInterval(() => {
-      this.cleanupExpired();
-    }, 5 * 60 * 1000);
+    this.cleanupTimer = setInterval(
+      () => {
+        this.cleanupExpired();
+      },
+      5 * 60 * 1000
+    );
   }
 
   private cleanupExpired(): void {
@@ -385,7 +388,7 @@ export function getUserDataCache(): SessionCache {
 export async function initializeSessionCaches(): Promise<void> {
   const caches = [getProductivityCache(), getContextCache(), getUserDataCache()];
 
-  await Promise.all(caches.map((c) => c.initialize()));
+  await Promise.all(caches.map(async (c) => c.initialize()));
 
   log.info({ caches: caches.length }, 'Session caches initialized');
 }
@@ -422,7 +425,8 @@ export function getAllCacheStats(): {
       hits: totalHits,
       misses: totalMisses,
       hitRate: totalRequests > 0 ? totalHits / totalRequests : 0,
-      memoryBytes: (prodStats.memoryBytes ?? 0) + (ctxStats.memoryBytes ?? 0) + (userStats.memoryBytes ?? 0),
+      memoryBytes:
+        (prodStats.memoryBytes ?? 0) + (ctxStats.memoryBytes ?? 0) + (userStats.memoryBytes ?? 0),
     },
   };
 }
@@ -433,7 +437,7 @@ export function getAllCacheStats(): {
 export async function shutdownSessionCaches(): Promise<void> {
   const caches = [productivityCache, contextCache, userDataCache].filter(Boolean) as SessionCache[];
 
-  await Promise.all(caches.map((c) => c.shutdown()));
+  await Promise.all(caches.map(async (c) => c.shutdown()));
 
   productivityCache = null;
   contextCache = null;
@@ -451,4 +455,3 @@ function createEmptyStats(): CacheStats {
     redisConnected: false,
   };
 }
-

@@ -158,7 +158,10 @@ export async function initializeOutreachPersistence(): Promise<void> {
       clearAllData: clearAllOutreachData,
       getStats: () => {
         const stats = getOutreachMemoryStats();
-        return { users: stats.totalUsers, entries: stats.commitments + stats.opportunities + stats.sentLogs };
+        return {
+          users: stats.totalUsers,
+          entries: stats.commitments + stats.opportunities + stats.sentLogs,
+        };
       },
     });
   } catch {

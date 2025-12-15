@@ -388,7 +388,9 @@ describe('E2E: Concurrent Sessions', () => {
     await Promise.all(
       sessions.map(async (session, sessionIndex) => {
         for (let i = 0; i < 3; i++) {
-          await new Promise<void>((resolve) => setTimeout(resolve, Math.random() * 10));
+          await new Promise<void>((resolve) => {
+            setTimeout(resolve, Math.random() * 10);
+          });
           session.personaId = personas[(sessionIndex + i) % personas.length];
         }
       })

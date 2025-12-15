@@ -30,10 +30,10 @@ const REFERENCE_STYLES: Record<ReferenceStyle['style'], ReferenceStyle> = {
   casual: {
     style: 'casual',
     templates: [
-      "Oh! That reminds me of {summary}",
+      'Oh! That reminds me of {summary}',
       "Wait, wasn't that kind of like {summary}?",
-      "This is totally like {summary}",
-      "Hmm, you know what this makes me think of?",
+      'This is totally like {summary}',
+      'Hmm, you know what this makes me think of?',
       "Didn't you have something similar going on with {topic}?",
     ],
   },
@@ -41,19 +41,19 @@ const REFERENCE_STYLES: Record<ReferenceStyle['style'], ReferenceStyle> = {
     style: 'warm',
     templates: [
       "I've been thinking about {summary}",
-      "You shared something meaningful about this before",
-      "This connects to something close to your heart",
-      "I remember when you opened up about {topic}",
-      "Something about this reminds me of what you shared",
+      'You shared something meaningful about this before',
+      'This connects to something close to your heart',
+      'I remember when you opened up about {topic}',
+      'Something about this reminds me of what you shared',
     ],
   },
   gentle: {
     style: 'gentle',
     templates: [
-      "I remember you mentioned {topic} before...",
+      'I remember you mentioned {topic} before...',
       "You've been through something like this",
-      "This seems connected to {summary}",
-      "You touched on something similar a while back",
+      'This seems connected to {summary}',
+      'You touched on something similar a while back',
       "If I recall, you've dealt with {topic} before",
     ],
   },
@@ -62,27 +62,27 @@ const REFERENCE_STYLES: Record<ReferenceStyle['style'], ReferenceStyle> = {
     templates: [
       "How's {topic} going, by the way?",
       "I'm curious - what happened with {summary}?",
-      "Speaking of which - whatever happened with {topic}?",
-      "That makes me wonder about {summary}",
+      'Speaking of which - whatever happened with {topic}?',
+      'That makes me wonder about {summary}',
       "Didn't you mention something about {topic}?",
     ],
   },
   playful: {
     style: 'playful',
     templates: [
-      "Ha! This is giving me major {topic} vibes",
-      "Okay, but this is basically {summary} part two",
-      "Why does this feel exactly like {summary}?",
+      'Ha! This is giving me major {topic} vibes',
+      'Okay, but this is basically {summary} part two',
+      'Why does this feel exactly like {summary}?',
       "Plot twist: it's {topic} all over again",
-      "Deja vu much? Remember {summary}?",
+      'Deja vu much? Remember {summary}?',
     ],
   },
   reflective: {
     style: 'reflective',
     templates: [
-      "Looking back at {summary}...",
+      'Looking back at {summary}...',
       "I've noticed this pattern with {topic}",
-      "This seems to be an important theme for you",
+      'This seems to be an important theme for you',
       "You've grown so much since {timeAgo}",
       "It's interesting how {topic} keeps coming up",
     ],
@@ -168,7 +168,7 @@ function getTimeExpression(timestamp: Date): TimeExpression {
 // ============================================================================
 
 interface PersonaVoice {
-  preferredStyles: ReferenceStyle['style'][];
+  preferredStyles: Array<ReferenceStyle['style']>;
   wordChoices: {
     remember: string[];
     you: string[];
@@ -388,7 +388,7 @@ export class NaturalReferenceGenerator implements INaturalReferenceGenerator {
     // Truncate intelligently at a word boundary
     const truncated = firstSentence.slice(0, 50);
     const lastSpace = truncated.lastIndexOf(' ');
-    return truncated.slice(0, lastSpace).toLowerCase() + '...';
+    return `${truncated.slice(0, lastSpace).toLowerCase()}...`;
   }
 
   /**
@@ -397,7 +397,7 @@ export class NaturalReferenceGenerator implements INaturalReferenceGenerator {
   private getAlternativeStyles(
     primary: ReferenceStyle['style'],
     context: { userMood: string; personaId: string }
-  ): ReferenceStyle['style'][] {
+  ): Array<ReferenceStyle['style']> {
     const personaVoice = PERSONA_VOICES[context.personaId] || PERSONA_VOICES.ferni;
 
     // Get persona's preferred styles that aren't the primary
@@ -427,8 +427,7 @@ export class NaturalReferenceGenerator implements INaturalReferenceGenerator {
     }
 
     // Higher confidence for recent memories
-    const daysSince =
-      (Date.now() - memory.item.timestamp.getTime()) / (1000 * 60 * 60 * 24);
+    const daysSince = (Date.now() - memory.item.timestamp.getTime()) / (1000 * 60 * 60 * 24);
     if (daysSince < 7) {
       confidence *= 1.1;
     } else if (daysSince > 90) {
@@ -486,4 +485,3 @@ export default {
   resetNaturalReferenceGenerator,
   generateNaturalReference,
 };
-

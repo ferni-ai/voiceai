@@ -44,8 +44,14 @@ export function detectProfileFormat(profile: unknown): ProfileFormat {
 
   const p = profile as Record<string, unknown>;
 
-  // CompositeUserProfile has nested aggregates
-  if ('identity' in p && 'communication' in p && 'relationship' in p) {
+  // CompositeUserProfile has nested aggregates (all 5 required)
+  if (
+    'identity' in p &&
+    'communication' in p &&
+    'relationship' in p &&
+    'financial' in p &&
+    'memory' in p
+  ) {
     return 'composite';
   }
 
