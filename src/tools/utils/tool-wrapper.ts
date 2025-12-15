@@ -30,11 +30,13 @@
  * });
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import { withResilience, humanizeError } from '../../services/self-healing/index.js';
 import { isLifeCoachAnalyticsEnabled, trackToolUsage } from '../domains/shared/index.js';
 import type { Tool, ToolContext, ToolDefinition, ToolDomain } from '../registry/types.js';
 import { sanitizePlainText } from '../validation.js';
+
+const log = createLogger({ module: 'tool-wrapper' });
 
 // Lazy import anomaly detection to avoid circular deps
 let anomalyMonitor: {
@@ -56,7 +58,9 @@ async function initAnomalyDetection(): Promise<void> {
 }
 
 // Trigger initialization (non-blocking)
-initAnomalyDetection().catch(() => {});
+initAnomalyDetection().catch((err) => {
+  log.debug({ error: String(err) }, 'Anomaly detection init failed (non-critical)');
+});
 
 // Track success/failure for anomaly detection per tool
 const toolStats = new Map<string, { successes: number; failures: number; lastReport: number }>();
@@ -223,7 +227,6 @@ export function wrapToolExecute(
   options: WrapperOptions = {}
 ): (params: Record<string, unknown>, context?: { ctx: ToolContext }) => Promise<unknown> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
-  const log = getLogger();
 
   return async (params: Record<string, unknown>, execContext?: { ctx: ToolContext }) => {
     const startTime = Date.now();
@@ -383,7 +386,7 @@ export function wrapToolDefinition(
 
   // Handle deprecation warnings
   if (opts.enableDeprecationWarnings && definition.deprecated) {
-    getLogger().warn(
+    log.warn(
       { toolId: definition.id, message: definition.deprecationMessage },
       'Using deprecated tool'
     );

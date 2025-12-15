@@ -39,10 +39,6 @@ import { getDJIntegration } from '../dj-integration.js';
 // 🎭 Unified conversation session cleanup - loaded dynamically to avoid startup timeout
 // import { cleanupConversationSession } from '../integrations/conversation-session-integration.js';
 import { unregisterSessionTTS } from '../../api/session-accent-routes.js';
-import {
-  createFirestoreSuperhumanStore,
-  saveSuperhumanData,
-} from '../../services/superhuman-persistence.js';
 import { cleanupDynamicSpeed } from '../integrations/dynamic-speed-integration.js';
 import {
   finalizeSpeechMetrics,
@@ -52,6 +48,9 @@ import {
 // Better-than-human API services cleanup
 import { clearEmotionalArc } from '../../intelligence/context-builders/advanced-voice-emotion.js';
 import { clearSession as clearHumeSession } from '../../services/emotion-analysis/hume.js';
+
+// Event cleanup registry for tracking and cleaning up event handlers
+import { runSessionCleanup as runRegistryCleanup } from '../session/event-cleanup-registry.js';
 
 // FIX AUDIT: Import proper types for event handlers instead of using `any`
 import type { HandoffEventPayload } from '../shared/handoff-handler.js';
@@ -113,6 +112,12 @@ export interface CleanupContext {
 /**
  * Handle all cleanup tasks when a session disconnects.
  * Non-fatal - errors are logged but don't prevent other cleanup.
+ *
+ * PERFORMANCE: Cleanup is now parallelized into 4 groups:
+ * - Group 1: Event listeners (sync, immediate)
+ * - Group 2: Independent data persistence (parallel)
+ * - Group 3: Independent service cleanup (parallel)
+ * - Group 4: Final teardown (sequential, must be last)
  */
 export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
   const {
@@ -134,72 +139,32 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
     stopPeriodicSync,
   } = ctx;
 
+  const cleanupStart = Date.now();
+
   try {
     // ================================================================
-    // STEP 1: Remove event listeners to prevent memory leaks
+    // GROUP 1: SYNCHRONOUS EVENT LISTENER CLEANUP (immediate, prevents memory leaks)
     // ================================================================
-    if (dataChannelCleanup) {
-      dataChannelCleanup();
-    }
+    if (dataChannelCleanup) dataChannelCleanup();
+    if (handoffHandler) handoffEvents.off('voiceSwitch', handoffHandler);
+    if (cameoUnlockHandler) cameoUnlockEvents.off('memberUnlocked', cameoUnlockHandler);
+    if (cameoCleanup) cameoCleanup();
+    if (stopPeriodicSync) stopPeriodicSync();
 
-    if (handoffHandler) {
-      handoffEvents.off('voiceSwitch', handoffHandler);
-    }
-
-    // CAMEO UNLOCK: Remove team member introduction listener
-    if (cameoUnlockHandler) {
-      cameoUnlockEvents.off('memberUnlocked', cameoUnlockHandler);
-    }
-
-    if (cameoCleanup) {
-      cameoCleanup();
-    }
-
-    // ================================================================
-    // STEP 2: Clean up session-scoped state
-    // ================================================================
-    try {
-      const { clearHandoffSessionState } = await import('../shared/handoff-handler.js');
-      clearHandoffSessionState(sessionId);
-      diag.session('Handoff session state cleaned up');
-    } catch (handoffCleanupErr) {
-      diag.warn('Handoff session state cleanup failed (non-fatal)', {
-        error: String(handoffCleanupErr),
-      });
-    }
-
-    try {
-      const { resetSessionState } = await import('../../services/cameo/index.js');
-      resetSessionState(sessionId);
-      diag.session('Cameo session state cleaned up');
-    } catch (cameoCleanupErr) {
-      diag.warn('Cameo session state cleanup failed (non-fatal)', {
-        error: String(cameoCleanupErr),
-      });
-    }
-
-    // ================================================================
-    // STEP 3: End conversation state and log final state
-    // ================================================================
+    // End conversation state (needed for data below)
     const finalConvState = endConversationState(sessionId);
     if (finalConvState) {
       diag.session('Conversation state ended', {
         turnCount: finalConvState.flow.turnCount,
         durationMinutes: finalConvState.flow.durationMinutes,
-        topicsDiscussed: finalConvState.topic.history.length,
-        keyMoments: finalConvState.user.keyMoments.length,
-        finalSentiment: finalConvState.emotional.sentiment,
       });
     }
 
-    // ================================================================
-    // STEP 3b: Emit conversation:end for async processing (Phase 2 Scaling)
-    // This triggers background workers for trust updates, analytics, learning
-    // ================================================================
     const sessionDurationMs = services?.sessionStartTime
       ? Date.now() - services.sessionStartTime
       : 0;
 
+    // Emit async event for background processing
     emitConversationEnd({
       sessionId,
       userId: userId || 'anonymous',
@@ -208,247 +173,281 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
       durationMs: sessionDurationMs,
       emotionalHighlight: finalConvState?.emotional.sentiment,
     });
-    diag.session('📤 conversation:end emitted for async processing');
 
     // ================================================================
-    // STEP 4: End cognitive intelligence session
+    // GROUP 2: PARALLEL DATA PERSISTENCE (independent, can run together)
     // ================================================================
-    await cleanupCognitiveSession(userId, sessionPersona.id, sessionId, services);
+    const persistenceGroup = await Promise.allSettled([
+      // Cognitive session
+      cleanupCognitiveSession(userId, sessionPersona.id, sessionId, services),
 
-    // ================================================================
-    // STEP 5: First Taste Trial - Record session time
-    // ================================================================
-    if (userData?.isTrialUser && userId) {
-      try {
-        const { recordTrialTime } = await import('../../services/first-taste-trial.js');
-        const sessionDurationMs = Date.now() - services.sessionStartTime;
-        await recordTrialTime(userId, sessionDurationMs);
-        diag.session('Trial time recorded', {
-          userId,
-          sessionDurationMs,
-          wasFirstConversation: userData.isFirstConversation,
-        });
-      } catch (trialErr) {
-        diag.warn('Trial time recording failed (non-fatal)', { error: String(trialErr) });
-      }
-    }
+      // Trust profiles
+      userId ? cleanupTrustProfiles(userId) : Promise.resolve(),
 
-    // ================================================================
-    // STEP 6: DJ Integration - Save session summary
-    // ================================================================
-    await cleanupDJIntegration(services);
+      // Deep understanding profiles
+      userId ? cleanupDeepUnderstandingProfiles(userId, sessionId) : Promise.resolve(),
 
-    // Music handler timers cleanup
-    if (musicCleanup) {
-      try {
-        musicCleanup();
-        diag.session('🎧 Music handler timers cleaned up');
-      } catch (timerErr) {
-        diag.warn('🎧 Music timer cleanup failed (non-fatal)', { error: String(timerErr) });
-      }
-    }
+      // Trial time recording
+      userData?.isTrialUser && userId
+        ? (async () => {
+            const { recordTrialTime } = await import('../../services/first-taste-trial.js');
+            await recordTrialTime(userId, sessionDurationMs);
+            diag.session('Trial time recorded', { userId, sessionDurationMs });
+          })()
+        : Promise.resolve(),
 
-    // DJ Booth: Clean up audio orchestration
-    cleanupDJBooth();
+      // DJ integration summary
+      cleanupDJIntegration(services),
 
-    // ================================================================
-    // STEP 7: Voice Humanization - Clean up all services
-    // ================================================================
-    cleanupVoiceHumanization(voiceHumanization, sessionId);
+      // Utilities cleanup
+      utilitiesCleanup ? cleanupUtilities(utilitiesCleanup) : Promise.resolve(),
 
-    // Advanced voice humanization services
-    try {
-      recordSessionEnd(sessionId);
+      // Humanization state persistence
+      (async () => {
+        const saveResult = await saveHumanizationState(userId || 'anonymous', sessionId);
+        if (saveResult.saved) {
+          diag.session('🎭 Humanization state persisted', { items: saveResult.items });
+        }
+      })(),
 
-      // User Analytics: Record session end for DAU/WAU/MAU metrics
-      void recordUserSessionEnd(sessionId, userData?.turnCount || 0, []).catch((err) =>
-        diag.warn('📊 User analytics session end failed', { error: String(err) })
-      );
+      // Identity session
+      cleanupIdentitySession(sessionId),
 
-      // Unregister TTS for accent changes
-      unregisterSessionTTS(sessionId);
+      // Game state
+      cleanupGames(sessionId),
+    ]);
 
-      // 🎤 UNIFIED SPEECH MODULE CLEANUP
-      // Single call cleans up ALL 30+ session-scoped speech services:
-      // - Audio prosody, WPM tracking, backchanneling (standard + enhanced + unified)
-      // - Cognitive speech, TTS context, pronunciation memory, Cartesia context
-      // - Human listening pipeline, voice humanization, turn prediction, emotional contagion
-      // - Voice tremor, volume dynamics, energy dynamics, fluency/filler analysis
-      // - FFT analyzer, laughter detection, breath detection
-      // - Word timing, response anticipation, ambient awareness
-      // - Voice manager, catchphrase tracking, conversation trackers
-      cleanupSpeechSession(sessionId, { verbose: false, reason: 'normal' });
-
-      // Finalize unified speech metrics and cleanup dynamic speed
-      logMetricsSummary(sessionId);
-      finalizeSpeechMetrics(sessionId, true);
-      cleanupDynamicSpeed(sessionId);
-
-      diag.session('🎤 Speech module cleaned up (30+ services)');
-    } catch (advVhErr) {
-      diag.warn('🎤 Speech module cleanup failed (non-fatal)', {
-        error: String(advVhErr),
-      });
-    }
-
-    // ================================================================
-    // STEP 8: Stop periodic sync and save profiles
-    // ================================================================
-    // First stop the periodic sync to prevent race conditions
-    if (stopPeriodicSync) {
-      stopPeriodicSync();
-      diag.session('🛑 Periodic sync stopped', { sessionId });
-    }
-
-    // Then save all profiles
-    if (userId) {
-      await cleanupTrustProfiles(userId);
-      await cleanupDeepUnderstandingProfiles(userId, sessionId);
-
-      // Save superhuman intelligence data
-      try {
-        const { getFirestoreStore } = await import('../../memory/firestore-store.js');
-        const superhumanStore = createFirestoreSuperhumanStore(async () => {
-          const store = getFirestoreStore();
-          if (!store) throw new Error('Firestore not initialized');
-          return store as unknown as {
-            collection: (name: string) => {
-              doc: (id: string) => {
-                get: () => Promise<{ exists: boolean; data: () => unknown }>;
-                set: (data: unknown, opts?: { merge?: boolean }) => Promise<void>;
-                delete: () => Promise<void>;
-              };
-            };
-          };
-        });
-        await saveSuperhumanData(userId, sessionId, superhumanStore);
-        diag.session('🧠 Superhuman intelligence saved', { userId });
-      } catch (superhumanErr) {
-        diag.warn('Superhuman data save failed (non-fatal)', {
-          error: String(superhumanErr),
+    // Log any failures from persistence group
+    persistenceGroup.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        diag.warn(`Persistence cleanup ${index} failed (non-fatal)`, {
+          error: String(result.reason),
         });
       }
-    }
+    });
 
-    // Save utility preferences and patterns
-    if (utilitiesCleanup) {
-      await cleanupUtilities(utilitiesCleanup);
-    }
+    diag.session('✅ Persistence group complete', {
+      durationMs: Date.now() - cleanupStart,
+      succeeded: persistenceGroup.filter((r) => r.status === 'fulfilled').length,
+      failed: persistenceGroup.filter((r) => r.status === 'rejected').length,
+    });
 
     // ================================================================
-    // STEP 9: End session services
+    // GROUP 3: PARALLEL SERVICE CLEANUP (independent, can run together)
     // ================================================================
+    const serviceGroup = await Promise.allSettled([
+      // Session-scoped state cleanup
+      (async () => {
+        const { clearHandoffSessionState } = await import('../shared/handoff-handler.js');
+        clearHandoffSessionState(sessionId);
+      })(),
+
+      (async () => {
+        const { resetSessionState } = await import('../../services/cameo/index.js');
+        resetSessionState(sessionId);
+      })(),
+
+      // Music cleanup
+      (async () => {
+        if (musicCleanup) musicCleanup();
+        cleanupDJBooth();
+        await cleanupMusic();
+      })(),
+
+      // Voice humanization cleanup
+      (async () => {
+        cleanupVoiceHumanization(voiceHumanization, sessionId);
+        recordSessionEnd(sessionId);
+        void recordUserSessionEnd(sessionId, userData?.turnCount || 0, []).catch(() => {
+          // Non-critical failure - session end recording failed
+        });
+        unregisterSessionTTS(sessionId);
+        cleanupSpeechSession(sessionId, { verbose: false, reason: 'normal' });
+        logMetricsSummary(sessionId);
+        finalizeSpeechMetrics(sessionId, true);
+        cleanupDynamicSpeed(sessionId);
+      })(),
+
+      // World awareness
+      (async () => {
+        const { cleanupWorldAwareness } = await import(
+          '../../services/world-awareness/session-integration.js'
+        );
+        cleanupWorldAwareness(userId || 'anonymous');
+      })(),
+
+      // Personal journey
+      (async () => {
+        const { cleanupPersonalJourney } = await import(
+          '../../services/personal-journey/session-integration.js'
+        );
+        cleanupPersonalJourney(userId || 'anonymous');
+      })(),
+
+      // Unified conversation session
+      (async () => {
+        const { cleanupConversationSession } = await import(
+          '../integrations/conversation-session-integration.js'
+        );
+        cleanupConversationSession(sessionId);
+      })(),
+
+      // Humanization analytics
+      (async () => {
+        const { humanizationAnalytics } = await import(
+          '../../conversation/humanization/analytics.js'
+        );
+        const analyticsStats = humanizationAnalytics.endSession(sessionId);
+        if (analyticsStats) {
+          diag.session('📊 Humanization analytics', {
+            totalHumanizations: analyticsStats.totalHumanizations,
+            uniqueFeatures: analyticsStats.uniqueFeaturesUsed,
+          });
+        }
+        cleanupProsodyBridge(sessionId);
+      })(),
+
+      // Human listening
+      cleanupHumanListening(sessionId),
+
+      // Deep humanization
+      cleanupDeepHumanization(sessionId),
+    ]);
+
+    // Log any failures from service group
+    serviceGroup.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        diag.warn(`Service cleanup ${index} failed (non-fatal)`, {
+          error: String(result.reason),
+        });
+      }
+    });
+
+    diag.session('✅ Service group complete', {
+      durationMs: Date.now() - cleanupStart,
+      succeeded: serviceGroup.filter((r) => r.status === 'fulfilled').length,
+      failed: serviceGroup.filter((r) => r.status === 'rejected').length,
+    });
+
+    // ================================================================
+    // GROUP 4: FINAL TEARDOWN (sequential, must be last)
+    // ================================================================
+
+    // End session services
     await services.endSession();
 
     // Reset handoff state for next session
     resetHandoffState();
     resetMetPersonas();
 
-    // ================================================================
-    // STEP 10: Shutdown music and games
-    // ================================================================
-    await cleanupMusic();
-    await cleanupGames(sessionId);
-
-    // ================================================================
-    // STEP 11: Flush optimization data
-    // ================================================================
+    // Flush optimization data
     cleanupOptimization(sessionId, patternAnalyzer, autoOptimizer, feedbackCollector);
-
-    // ================================================================
-    // STEP 12: End identity session
-    // ================================================================
-    await cleanupIdentitySession(sessionId);
-
-    // ================================================================
-    // STEP 13: World awareness cleanup
-    // ================================================================
-    try {
-      const { cleanupWorldAwareness } =
-        await import('../../services/world-awareness/session-integration.js');
-      cleanupWorldAwareness(userId || 'anonymous');
-      diag.session('🌍 World awareness cleaned up');
-    } catch (worldCleanupErr) {
-      diag.debug('World awareness cleanup failed (non-fatal)', {
-        error: String(worldCleanupErr),
-      });
-    }
-
-    // ================================================================
-    // STEP 14: Personal journey cleanup
-    // ================================================================
-    try {
-      const { cleanupPersonalJourney } =
-        await import('../../services/personal-journey/session-integration.js');
-      cleanupPersonalJourney(userId || 'anonymous');
-      diag.session('🌟 Personal journey cleaned up');
-    } catch (journeyCleanupErr) {
-      diag.debug('Personal journey cleanup failed (non-fatal)', {
-        error: String(journeyCleanupErr),
-      });
-    }
-
-    // ================================================================
-    // STEP 15: 🎭 UNIFIED CONVERSATION SESSION CLEANUP
-    // Single cleanup that handles: endHumanizationSession,
-    // cleanupAdvancedHumanization, and resetConversationOrchestrator
-    // ================================================================
-    try {
-      // Dynamic import to avoid startup timeout
-      const { cleanupConversationSession } =
-        await import('../integrations/conversation-session-integration.js');
-      cleanupConversationSession(sessionId);
-      diag.session('🎭 Unified conversation session cleaned up');
-    } catch (unifiedCleanupErr) {
-      diag.warn('Unified conversation session cleanup failed (non-fatal)', {
-        error: String(unifiedCleanupErr),
-      });
-    }
-
-    // ================================================================
-    // STEP 15b: Humanization analytics & persistence (still needed)
-    // ================================================================
-    try {
-      // End analytics session and log stats
-      const { humanizationAnalytics } =
-        await import('../../conversation/humanization/analytics.js');
-      const analyticsStats = humanizationAnalytics.endSession(sessionId);
-      if (analyticsStats) {
-        diag.session('📊 Humanization analytics', {
-          totalHumanizations: analyticsStats.totalHumanizations,
-          uniqueFeatures: analyticsStats.uniqueFeaturesUsed,
-          avgBreathingSync: analyticsStats.avgBreathingSyncQuality.toFixed(2),
-        });
-      }
-
-      // Persist humanization data to Firestore
-      const saveResult = await saveHumanizationState(userId || 'anonymous', sessionId);
-      if (saveResult.saved) {
-        diag.session('🎭 Humanization state persisted', { items: saveResult.items });
-      }
-
-      // Cleanup prosody bridge (voice analysis layer)
-      cleanupProsodyBridge(sessionId);
-    } catch (humanizationEndErr) {
-      diag.warn('Humanization persistence failed (non-fatal)', {
-        error: String(humanizationEndErr),
-      });
-    }
-
-    // ================================================================
-    // STEP 16: Human listening pipeline cleanup
-    // ================================================================
-    await cleanupHumanListening(sessionId);
-
-    // ================================================================
-    // STEP 17: Deep humanization cleanup
-    // ================================================================
-    await cleanupDeepHumanization(sessionId);
 
     // Better-than-human API services cleanup
     cleanupAdvancedEmotionServices(sessionId);
 
-    diag.session('Session cleanup complete');
+    // ================================================================
+    // GROUP 5: SESSION DATA MANAGER CLEANUP (clears all user caches)
+    // ================================================================
+    // This is CRITICAL for preventing memory leaks - cleans up ALL
+    // stateful services that cache user data (ProductivityStore,
+    // PersonaMemories, OutreachIntelligence, TopicTracking, etc.)
+    if (userId) {
+      try {
+        const { getSessionDataManager } = await import('../../services/session-data-manager.js');
+        const cleanupResult = await getSessionDataManager().sessionEnded(userId);
+        diag.session('🧹 SessionDataManager cleanup', {
+          cleaned: cleanupResult.cleaned.length,
+          errors: cleanupResult.errors.length,
+          services: cleanupResult.cleaned,
+        });
+      } catch (sdmError) {
+        diag.warn('SessionDataManager cleanup failed (non-fatal)', { error: String(sdmError) });
+      }
+    }
+
+    // ================================================================
+    // GROUP 6: EVENT CLEANUP REGISTRY (catches any remaining handlers)
+    // ================================================================
+    // Final safety net - cleans up any event handlers that were
+    // registered but not yet cleaned up by specific cleanup functions
+    try {
+      const registryResult = await runRegistryCleanup(sessionId);
+      if (registryResult.cleaned > 0) {
+        diag.session('🔌 Event registry cleanup', {
+          cleaned: registryResult.cleaned,
+          errors: registryResult.errors,
+          durationMs: registryResult.totalDurationMs,
+        });
+      }
+    } catch (registryError) {
+      diag.warn('Event registry cleanup failed (non-fatal)', { error: String(registryError) });
+    }
+
+    // ================================================================
+    // GROUP 7: GLOBAL SESSION REGISTRY CLEANUP
+    // ================================================================
+    // Clean up ALL session-scoped services that registered with the
+    // global session registry (SessionIntelligence, PredictiveAnticipation,
+    // ProactiveMemory, TemporalContext, CuriosityEngine, etc.)
+    try {
+      const { resetSessionGlobally, getGlobalRegistryStats } = await import(
+        '../../utils/session-registry.js'
+      );
+      const statsBefore = getGlobalRegistryStats();
+      const registriesWithSession = statsBefore.filter((r) => r.sessionIds.includes(sessionId));
+
+      if (registriesWithSession.length > 0) {
+        resetSessionGlobally(sessionId);
+        diag.session('🗂️ Global session registry cleanup', {
+          registries: registriesWithSession.map((r) => r.name),
+          count: registriesWithSession.length,
+        });
+      }
+    } catch (globalRegistryError) {
+      diag.warn('Global session registry cleanup failed (non-fatal)', {
+        error: String(globalRegistryError),
+      });
+    }
+
+    // ================================================================
+    // GROUP 8: CONTEXT BUILDER SESSION STATE CLEANUP
+    // ================================================================
+    // Clean up session-scoped state in context builders
+    // (deep-understanding, conversational-superpowers, superhuman-insights, etc.)
+    try {
+      const { cleanupContextBuilderSession } = await import(
+        '../../intelligence/context-builders/index.js'
+      );
+      await cleanupContextBuilderSession(sessionId);
+      diag.session('🧠 Context builder session state cleared');
+    } catch (contextBuilderError) {
+      diag.warn('Context builder cleanup failed (non-fatal)', {
+        error: String(contextBuilderError),
+      });
+    }
+
+    // ================================================================
+    // GROUP 9: SUPERHUMAN ENGINE CLEANUP (per-user state)
+    // ================================================================
+    // Clean up superhuman conversation engines (evolving jokes, emotional memory,
+    // linguistic mirroring, vulnerability matching, etc.)
+    if (userId) {
+      try {
+        const { clearAllSuperhumanEngines } = await import(
+          '../../conversation/superhuman/index.js'
+        );
+        clearAllSuperhumanEngines(userId, sessionId);
+        diag.session('✨ Superhuman engines cleared', { userId });
+      } catch (superhumanError) {
+        diag.warn('Superhuman engine cleanup failed (non-fatal)', {
+          error: String(superhumanError),
+        });
+      }
+    }
+
+    const totalDuration = Date.now() - cleanupStart;
+    diag.session('✅ Session cleanup complete', { totalDurationMs: totalDuration });
   } catch (error) {
     diag.error('Session cleanup error', { error: String(error) });
   }

@@ -147,6 +147,45 @@ function buildHandoffTools(): ToolSet {
         });
       },
     }),
+
+    handoffToAlex: llm.tool({
+      description:
+        'Transfer to Alex for scheduling events, sending invitations, or calendar management.',
+      parameters: z.object({}),
+      execute: async (_, { ctx }) => {
+        const { AlexAgent } = await import('./alex-agent.js');
+        return llm.handoff({
+          agent: new AlexAgent(ctx.session.chatCtx),
+          returns: 'Connecting you with Alex for scheduling!',
+        });
+      },
+    }),
+
+    handoffToPeter: llm.tool({
+      description:
+        'Transfer to Peter for investment research or market analysis related to financial goals.',
+      parameters: z.object({}),
+      execute: async (_, { ctx }) => {
+        const { PeterAgent } = await import('./peter-agent.js');
+        return llm.handoff({
+          agent: new PeterAgent(ctx.session.chatCtx),
+          returns: 'Connecting you with Peter for investment insights!',
+        });
+      },
+    }),
+
+    handoffToNayan: llm.tool({
+      description:
+        'Transfer to Nayan for wisdom, long-term perspective on life transitions, or philosophical reflection.',
+      parameters: z.object({}),
+      execute: async (_, { ctx }) => {
+        const { NayanAgent } = await import('./nayan-agent.js');
+        return llm.handoff({
+          agent: new NayanAgent(ctx.session.chatCtx),
+          returns: 'Connecting you with Nayan for perspective!',
+        });
+      },
+    }),
   } as ToolSet;
 }
 
