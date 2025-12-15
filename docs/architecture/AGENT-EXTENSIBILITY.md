@@ -1,371 +1,454 @@
 # Agent Extensibility System
 
-> Extend personas with custom commands, hooks, MCP servers, and embeddable widgets.
+This document describes the agent extensibility system that allows marketplace agents to have custom commands, tools, hooks, themes, and MCP integration - similar to how Claude Code marketplace extensions work.
 
-The Agent Extensibility System allows personas to be extended without modifying core code. All extensions are **opt-in** and **per-persona**.
+## Overview
+
+Agents can now bundle:
+
+| Feature | Directory | Description |
+|---------|-----------|-------------|
+| **Commands** | `commands/` | Slash commands (e.g., `/morning-check-in`) |
+| **Local Tools** | `tools/` | Agent-specific tools |
+| **Assets** | `assets/` | Theme, sounds, icons, images |
+| **Hooks** | `hooks.json` | Lifecycle event handlers |
+| **MCP Config** | `mcp.json` | External tool server connections |
+
+## Bundle Structure
+
+```
+marketplace-agents/agents/{agent-name}/
+├── persona.manifest.json       # Core agent configuration
+├── identity/
+│   ├── system-prompt.md        # LLM system prompt
+│   └── biography.md            # Character backstory
+├── content/
+│   ├── behaviors/              # Greetings, backchannels, etc.
+│   ├── knowledge/              # Domain expertise
+│   └── stories/                # Personal anecdotes
+├── commands/                   # NEW: Slash commands
+│   ├── _index.json             # Command metadata (optional)
+│   ├── morning-check-in.md
+│   └── weekly-review.md
+├── tools/                      # NEW: Local tools
+│   ├── _index.json             # Tool metadata (optional)
+│   └── custom-tool.json
+├── assets/                     # NEW: Theme & assets
+│   ├── theme.json
+│   ├── sounds.json
+│   ├── icons/
+│   └── images/
+├── hooks.json                  # NEW: Lifecycle hooks
+└── mcp.json                    # NEW: MCP server config
+```
 
 ---
 
-## Quick Reference
+## Phase 1: Commands
 
-| Feature | Location | Purpose |
-|---------|----------|---------|
-| **Commands** | `src/personas/bundles/{persona}/commands/*.md` | Slash commands in UI |
-| **Shell Hooks** | `src/personas/bundles/{persona}/hooks/` | Pre/post execution scripts |
-| **MCP Servers** | `src/personas/bundles/{persona}/mcp/` | Model Context Protocol integrations |
-| **Widget SDK** | `src/api/widget-routes.ts` | Embed Ferni on external websites |
+Commands are slash commands that users can invoke to trigger specific prompts.
 
----
+### Command File Format
 
-## 1. Slash Commands
-
-Commands are markdown files that define prompts users can invoke from the UI.
-
-### File Structure
-
-```
-src/personas/bundles/ferni/commands/
-├── morning-ritual.md
-├── evening-reflection.md
-├── weekly-review.md
-└── energy-check.md
-```
-
-### Command Format
+Commands are markdown files with optional YAML frontmatter:
 
 ```markdown
 ---
-title: Morning Ritual
-description: Start your day with intention
-category: rituals
-icon: sunrise
-arguments:
-  - name: focus
-    description: What to focus on today
-    required: false
+name: Morning Check-In
+description: Start your day with a structured check-in
+category: check-in
+icon: "🌅"
 ---
 
-Guide me through a morning ritual focused on {{focus | "general wellbeing"}}.
-Help me set intentions for the day ahead.
+Let's do our morning check-in! I'd like to hear about:
+
+1. How are you feeling this morning?
+2. What's your main focus for today?
+3. Is there anything weighing on your mind?
 ```
 
-### Frontmatter Fields
+### Command Index (Optional)
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `title` | Yes | Display name in UI |
-| `description` | Yes | Brief explanation |
-| `category` | Yes | One of: `rituals`, `reflection`, `planning`, `wellness`, `custom` |
-| `icon` | No | Icon name: `sunrise`, `moon`, `calendar`, `heart`, `clock`, `star` |
-| `arguments` | No | Array of `{name, description, required}` |
-
-### API Endpoints
-
-```bash
-# List commands for a persona
-GET /api/commands/:personaId
-
-# Get specific command
-GET /api/commands/:personaId/:commandId
-
-# Render command with arguments
-POST /api/commands/:personaId/:commandId/render
-Content-Type: application/json
-{"focus": "productivity"}
-```
-
-### Adding Commands to a Persona
-
-1. Create `commands/` folder in persona bundle
-2. Add markdown files with frontmatter
-3. Commands auto-load on server start (cached)
-
----
-
-## 2. Shell Hooks
-
-Execute scripts before/after persona actions.
-
-### File Structure
-
-```
-src/personas/bundles/ferni/hooks/
-├── pre-session.sh      # Before session starts
-├── post-session.sh     # After session ends
-├── pre-tool.sh         # Before tool execution
-└── post-tool.sh        # After tool execution
-```
-
-### Hook Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `FERNI_USER_ID` | Current user ID |
-| `FERNI_SESSION_ID` | Current session ID |
-| `FERNI_PERSONA_ID` | Active persona |
-| `FERNI_TOOL_NAME` | Tool being executed (tool hooks only) |
-| `FERNI_TOOL_RESULT` | Tool result JSON (post-tool only) |
-
-### Example Hook
-
-```bash
-#!/bin/bash
-# post-tool.sh - Log tool usage to external system
-
-curl -X POST https://analytics.example.com/tool-usage \
-  -H "Content-Type: application/json" \
-  -d "{\"user\": \"$FERNI_USER_ID\", \"tool\": \"$FERNI_TOOL_NAME\"}"
-```
-
-### Security
-
-- Hooks run in sandboxed subprocess
-- 30-second timeout
-- No access to process environment beyond FERNI_* vars
-- Failures are logged but don't block operations
-
----
-
-## 3. MCP Integration
-
-Connect personas to Model Context Protocol servers.
-
-### Configuration
-
-```
-src/personas/bundles/ferni/mcp/
-└── servers.json
-```
+Create `commands/_index.json` to customize command metadata:
 
 ```json
 {
-  "servers": [
+  "version": 1,
+  "commands": [
     {
-      "name": "calendar",
-      "command": "npx",
-      "args": ["-y", "@anthropic/mcp-server-google-calendar"],
-      "env": {
-        "GOOGLE_CALENDAR_CREDENTIALS": "${GOOGLE_CALENDAR_CREDENTIALS}"
-      }
-    },
-    {
-      "name": "filesystem",
-      "command": "npx",
-      "args": ["-y", "@anthropic/mcp-server-filesystem", "/home/user/documents"]
+      "id": "morning-check-in",
+      "file": "morning-check-in.md",
+      "name": "Morning Check-In",
+      "description": "Start your day with energy",
+      "category": "check-in",
+      "icon": "🌅",
+      "enabled": true
     }
   ]
 }
 ```
 
-### Server Lifecycle
+### Command Categories
 
-- Servers start lazily on first tool call
-- Auto-restart on crash (max 3 retries)
-- Graceful shutdown on session end
-- Tool names prefixed with server name: `calendar_list_events`
+- `check-in` - Daily/regular check-ins
+- `review` - Weekly/monthly reviews
+- `planning` - Goal setting and planning
+- `reflection` - Journaling and reflection
+- `action` - Take immediate action
+- `custom` - Anything else
 
-### Available MCP Servers
+### Using Commands
 
-See [Anthropic MCP Servers](https://github.com/anthropics/mcp-servers) for official servers.
-
----
-
-## 4. Embeddable Widget SDK
-
-Embed Ferni on any website.
-
-### Integration (2 lines of code)
-
-```html
-<script src="https://your-domain.com/api/widget/embed.js"
-        data-widget-id="widget_abc123"
-        async></script>
-```
-
-### Widget Registration (Admin)
-
-```bash
-POST /api/widget/register
-Content-Type: application/json
-
-{
-  "personaId": "ferni",
-  "displayName": "Ferni Assistant",
-  "allowedDomains": ["example.com", "*.example.com"],
-  "primaryColor": "#4a6741",
-  "position": "bottom-right",
-  "autoGreet": true,
-  "greetingMessage": "Hi! I'm Ferni. How can I help?",
-  "dailyLimit": 10,
-  "sessionDurationMinutes": 30
-}
-```
-
-### Widget Configuration
-
-| Field | Default | Description |
-|-------|---------|-------------|
-| `personaId` | Required | Which persona to use |
-| `allowedDomains` | Required | Domains allowed to embed |
-| `displayName` | Persona name | Name shown in widget |
-| `primaryColor` | `#4a6741` | Theme color |
-| `position` | `bottom-right` | `bottom-right` or `bottom-left` |
-| `autoGreet` | `false` | Auto-open with greeting |
-| `greetingMessage` | None | Initial message |
-| `dailyLimit` | `5` | Max conversations per day |
-| `sessionDurationMinutes` | `30` | Session timeout |
-
-### Widget API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/widget/register` | POST | Register new widget (admin) |
-| `/api/widget/list` | GET | List all widgets |
-| `/api/widget/:id/config` | GET | Get widget config |
-| `/api/widget/:id/session` | POST | Start/validate session |
-| `/api/widget/:id` | DELETE | Delete widget |
-| `/api/widget/embed.js` | GET | JavaScript SDK |
-
-### Security Features
-
-- **Origin validation**: Only allowed domains can load widget
-- **Rate limiting**: Per-IP request limits
-- **Daily limits**: Configurable conversation caps
-- **Session expiry**: Auto-expire inactive sessions
-
----
-
-## 5. after_tool_call Hook
-
-Programmatic hook for tool execution analytics.
-
-### Registration
+Commands are loaded via `bundle.getCommands()`:
 
 ```typescript
-import { registerAfterToolHook } from '../personas/bundles/extensibility-integration.js';
+const bundle = await loadBundleById('moxie');
+const commands = await bundle.getCommands?.();
 
-registerAfterToolHook('analytics', async (context) => {
-  const { toolName, result, duration, userId, sessionId } = context;
+// Find a specific command
+const checkIn = commands?.find(c => c.id === 'morning-check-in');
 
-  await logToAnalytics({
-    tool: toolName,
-    success: result.success,
-    latencyMs: duration,
-    user: userId
-  });
+// Execute the command
+import { executeCommand } from './command-loader.js';
+const result = await executeCommand({
+  command: checkIn,
+  args: {},
+  userId: 'user-123',
+  sessionId: 'session-456',
+  personaId: 'moxie',
 });
 ```
 
-### Hook Context
+---
+
+## Phase 2: Local Tools
+
+Local tools are agent-specific tools that extend the agent's capabilities.
+
+### Tool Types
+
+| Type | Description |
+|------|-------------|
+| `prompt` | Injects a prompt into the conversation |
+| `webhook` | Calls an external HTTP endpoint |
+| `script` | Runs a local script (not yet implemented) |
+| `mcp` | Delegates to an MCP server |
+
+### Tool Definition
+
+Create `tools/{tool-name}.json`:
+
+```json
+{
+  "id": "moxie-moment",
+  "name": "triggerMoxieMoment",
+  "description": "Celebrate when the user shows grit",
+  "type": "prompt",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "momentType": {
+        "type": "string",
+        "enum": ["showed_up", "returned_after_absence"],
+        "description": "The type of moment to celebrate"
+      }
+    },
+    "required": ["momentType"]
+  },
+  "prompt": "This is a MOXIE MOMENT! Celebrate {{momentType}} with enthusiasm."
+}
+```
+
+### Using Local Tools
 
 ```typescript
-interface AfterToolContext {
-  toolName: string;
-  result: ToolResult;
-  duration: number;      // milliseconds
-  userId: string;
-  sessionId: string;
-  personaId: string;
-  timestamp: Date;
+const bundle = await loadBundleById('moxie');
+const tools = await bundle.getLocalTools?.();
+
+// Get tool definitions for LLM
+import { getLocalToolDefinitions } from './local-tools-loader.js';
+const definitions = await getLocalToolDefinitions(bundle.bundlePath);
+
+// Execute a tool
+import { executeLocalTool } from './local-tools-loader.js';
+const result = await executeLocalTool({
+  tool: tools[0],
+  params: { momentType: 'showed_up' },
+  userId: 'user-123',
+  sessionId: 'session-456',
+  personaId: 'moxie',
+});
+```
+
+---
+
+## Phase 3: Themes & Assets
+
+Agents can bundle custom themes, sounds, and visual assets.
+
+### Theme Configuration
+
+Create `assets/theme.json`:
+
+```json
+{
+  "id": "moxie-fire",
+  "name": "Moxie Fire Theme",
+  "colors": {
+    "primary": "#FF6B35",
+    "secondary": "#F7C59F",
+    "accent": "#EFEFD0",
+    "background": "#1A1A2E",
+    "text": "#FFFFFF",
+    "muted": "#A3A3A3"
+  },
+  "avatar": {
+    "animationStyle": "energetic"
+  },
+  "typography": {
+    "fontSize": "medium"
+  }
+}
+```
+
+### Sound Configuration
+
+Create `assets/sounds.json`:
+
+```json
+{
+  "messageReceived": "sounds/hey.mp3",
+  "celebration": "sounds/celebration.mp3",
+  "notification": "sounds/ping.mp3",
+  "custom": {
+    "streak_milestone": "sounds/streak.mp3",
+    "moxie_moment": "sounds/moment.mp3"
+  }
+}
+```
+
+### Using Assets
+
+```typescript
+const bundle = await loadBundleById('moxie');
+const assets = await bundle.getAssets?.();
+
+if (assets?.theme) {
+  // Apply theme colors
+  const css = themeToCSSVariables(assets.theme, 'agent');
+}
+
+if (assets?.sounds?.celebration) {
+  // Play celebration sound
 }
 ```
 
 ---
 
-## Architecture
+## Phase 4: Hooks
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     Persona Bundle                          │
-│  src/personas/bundles/{persona}/                           │
-├─────────────────────────────────────────────────────────────┤
-│  commands/          │  Shell hooks       │  MCP servers    │
-│  *.md files         │  *.sh scripts      │  servers.json   │
-│  → UI slash cmds    │  → Pre/post exec   │  → Tool servers │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Extensibility Layer                      │
-│  src/personas/bundles/                                     │
-├─────────────────────────────────────────────────────────────┤
-│  commands-loader.ts │  hooks-loader.ts   │  mcp-loader.ts  │
-│  → Parse markdown   │  → Execute scripts │  → Start servers│
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                       API Layer                             │
-│  src/api/                                                  │
-├─────────────────────────────────────────────────────────────┤
-│  commands-routes.ts │  widget-routes.ts                    │
-│  → /api/commands/*  │  → /api/widget/*                     │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      Frontend UI                            │
-│  frontend-typescript/src/ui/                               │
-├─────────────────────────────────────────────────────────────┤
-│  commands.ui.ts     │  settings-menu.ui.ts                 │
-│  → Slide-out panel  │  → "Start a Practice" menu item      │
-└─────────────────────────────────────────────────────────────┘
-```
+Hooks allow agents to inject behavior at key lifecycle points.
 
----
+### Hook Events
 
-## Adding Extensibility to a New Persona
+| Event | When |
+|-------|------|
+| `session_start` | When a session begins |
+| `before_response` | Before generating a response |
+| `after_response` | After generating a response |
+| `before_tool_call` | Before executing a tool |
+| `after_tool_call` | After executing a tool |
+| `on_handoff` | When a handoff occurs |
+| `session_end` | When a session ends |
+| `on_command` | When a slash command is invoked |
 
-### Minimal Setup (Commands Only)
+### Hook Configuration
 
-```bash
-mkdir -p src/personas/bundles/maya-santos/commands
-cat > src/personas/bundles/maya-santos/commands/habit-check.md << 'EOF'
----
-title: Habit Check-In
-description: Review your habit progress
-category: wellness
----
+Create `hooks.json`:
 
-Let's check in on your habits. How have you been doing with your routines?
-EOF
+```json
+{
+  "session_start": {
+    "type": "prompt",
+    "enabled": true,
+    "prompt": "Check if the user has any active streaks and acknowledge their progress."
+  },
+  "before_response": {
+    "type": "prompt",
+    "enabled": true,
+    "prompt": "Remember: Be direct but warm. Celebrate wins loudly."
+  },
+  "on_handoff": {
+    "type": "webhook",
+    "enabled": true,
+    "webhook": "https://api.example.com/hooks/handoff"
+  }
+}
 ```
 
-### Full Setup
+### Using Hooks
 
-```bash
-persona=maya-santos
-mkdir -p src/personas/bundles/$persona/{commands,hooks,mcp}
+```typescript
+const bundle = await loadBundleById('moxie');
+const hooks = await bundle.getHooks?.();
 
-# Commands
-echo "Add .md files to commands/"
-
-# Hooks
-echo "Add .sh scripts to hooks/"
-
-# MCP
-echo '{"servers": []}' > src/personas/bundles/$persona/mcp/servers.json
+// Check if a hook exists
+import { hasHook, getHookPrompt } from './hooks-loader.js';
+if (hasHook(hooks, 'session_start')) {
+  const prompt = getHookPrompt(hooks, 'session_start');
+  // Inject prompt into context
+}
 ```
 
 ---
 
-## Testing
+## Phase 5: MCP Integration
 
-```bash
-# Run widget route tests
-npm test -- --run src/tests/widget-routes.test.ts
+Connect to external Model Context Protocol (MCP) servers for additional tools.
 
-# Test commands API locally
-curl http://localhost:3002/api/commands/ferni
+### MCP Configuration
 
-# Test widget embed script
-curl http://localhost:3002/api/widget/embed.js
+Create `mcp.json`:
+
+```json
+{
+  "servers": [
+    {
+      "id": "my-tools",
+      "name": "My Custom Tools",
+      "transport": "stdio",
+      "command": "node",
+      "args": ["./mcp-server.js"],
+      "autoConnect": true
+    },
+    {
+      "id": "external-api",
+      "name": "External API",
+      "transport": "http",
+      "url": "https://api.example.com/mcp",
+      "timeout": 30000
+    }
+  ]
+}
+```
+
+### Transport Types
+
+| Transport | Description |
+|-----------|-------------|
+| `stdio` | Spawn a child process |
+| `http` | HTTP endpoint |
+| `websocket` | WebSocket connection |
+
+### Using MCP
+
+```typescript
+const bundle = await loadBundleById('moxie');
+const mcpConfig = await bundle.getMCPConfig?.();
+
+import { getAutoConnectServers, connectToMCPServer } from './mcp-loader.js';
+const servers = getAutoConnectServers(mcpConfig);
+
+for (const server of servers) {
+  const connection = await connectToMCPServer(server);
+  // Use MCP tools...
+}
+```
+
+> **Note**: Full MCP integration requires the MCP SDK. The current implementation provides the configuration loading infrastructure.
+
+---
+
+## Complete Example: Moxie Accountability Partner
+
+Here's the complete extensibility bundle for Moxie:
+
+```
+marketplace-agents/agents/moxie-accountability/
+├── persona.manifest.json
+├── identity/
+│   ├── system-prompt.md
+│   └── biography.md
+├── content/
+│   ├── behaviors/
+│   ├── knowledge/
+│   └── stories/
+├── commands/
+│   ├── _index.json
+│   ├── morning-check-in.md
+│   ├── evening-reflection.md
+│   ├── comeback.md
+│   └── streak-check.md
+├── tools/
+│   ├── _index.json
+│   ├── moxie-moment.json
+│   └── excuse-detector.json
+├── assets/
+│   ├── theme.json
+│   └── sounds.json
+└── hooks.json
 ```
 
 ---
 
-## Related Documentation
+## API Reference
 
-- [Persona Bundle Architecture](./adr/0001-persona-bundle-architecture.md)
-- [Creating Personas Guide](../guides/creating-personas.md)
-- [API Reference](../guides/api-reference.md)
+### LoadedPersonaBundle Extensions
+
+```typescript
+interface LoadedPersonaBundle {
+  // ... existing methods ...
+
+  /** Phase 1: Agent Commands */
+  getCommands?: () => Promise<BundleCommand[]>;
+
+  /** Phase 2: Local Tools */
+  getLocalTools?: () => Promise<BundleLocalTool[]>;
+
+  /** Phase 3: Theme & Assets */
+  getAssets?: () => Promise<BundleAssets | null>;
+
+  /** Phase 4: Hooks */
+  getHooks?: () => Promise<BundleAgentHooks | null>;
+
+  /** Phase 5: MCP Config */
+  getMCPConfig?: () => Promise<BundleMCPConfig | null>;
+}
+```
+
+### Type Exports
+
+All types are exported from `src/personas/bundles/types/commands.ts`:
+
+```typescript
+// Commands
+export type { BundleCommand, BundleCommandIndex, CommandExecutionContext };
+
+// Local Tools
+export type { BundleLocalTool, LocalToolExecutionContext };
+
+// Assets
+export type { BundleTheme, BundleSounds, BundleAssets };
+
+// Hooks
+export type { BundleAgentHooks, BundleHook };
+
+// MCP
+export type { BundleMCPConfig, BundleMCPServer };
+```
+
+---
+
+## Best Practices
+
+1. **Commands**: Keep prompts focused on a single purpose
+2. **Local Tools**: Prefer `prompt` type for simplicity; use `webhook` for external integrations
+3. **Assets**: Use consistent color themes that match agent personality
+4. **Hooks**: Don't overuse - each hook adds latency
+5. **MCP**: Reserve for complex external integrations
+
+## See Also
+
+- [Creating Personas](./guides/creating-personas.md)
+- [Tool Development](./tools/CLAUDE.md)
+- [Context Builders](../src/intelligence/context-builders/CLAUDE.md)
