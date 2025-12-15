@@ -333,6 +333,10 @@ class SettingsMenuUI {
     this.panel.classList.remove('settings-menu--visible');
     this.isVisible = false;
     this.trigger?.classList.remove('settings-trigger--active');
+    
+    // Reset language dropdown state when menu closes
+    this.languageExpanded = false;
+    
     this.callbacks.onClose?.();
   }
 
@@ -344,13 +348,45 @@ class SettingsMenuUI {
     }
   }
 
+  /**
+   * iOS Safari compatibility: Add both click and touchend events
+   * iOS sometimes doesn't fire click events properly on dynamically created elements
+   */
+  private addTapListener(
+    element: Element | null,
+    handler: (e: Event) => void,
+    options?: { stopPropagation?: boolean }
+  ): void {
+    if (!element) return;
+
+    // Standard click event
+    element.addEventListener('click', handler);
+
+    // iOS Safari: touchend as backup (handles taps that don't trigger click)
+    element.addEventListener('touchend', (e: Event) => {
+      const touch = e as TouchEvent;
+      // Only handle single-finger taps
+      if (touch.touches && touch.touches.length > 0) return;
+
+      // Prevent double-firing with click
+      e.preventDefault();
+
+      if (options?.stopPropagation) {
+        e.stopPropagation();
+      }
+
+      handler(e);
+    }, { passive: false });
+  }
+
   private createTrigger(): void {
     this.trigger = document.createElement('button');
     this.trigger.className = 'settings-trigger';
     this.trigger.setAttribute('aria-label', t('accessibility.openSettings'));
     this.trigger.innerHTML = ICONS.menu;
 
-    this.trigger.addEventListener('click', () => this.toggle());
+    // iOS Safari: Use tap listener for better touch handling
+    this.addTapListener(this.trigger, () => this.toggle());
 
     document.body.appendChild(this.trigger);
   }
@@ -630,15 +666,19 @@ class SettingsMenuUI {
       </div>
     `;
 
-    // Bind events - close on backdrop click
-    this.panel
-      .querySelector('.settings-menu__backdrop')
-      ?.addEventListener('click', () => this.hide());
-    this.panel.querySelector('.settings-menu__close')?.addEventListener('click', () => this.hide());
+    // Bind events - close on backdrop click (iOS Safari compatible)
+    this.addTapListener(
+      this.panel.querySelector('.settings-menu__backdrop'),
+      () => this.hide()
+    );
+    this.addTapListener(
+      this.panel.querySelector('.settings-menu__close'),
+      () => this.hide()
+    );
 
-    // Bind collapsible section toggle events
+    // Bind collapsible section toggle events (iOS Safari compatible)
     this.panel.querySelectorAll('.settings-menu__section-header').forEach((header) => {
-      header.addEventListener('click', () => {
+      this.addTapListener(header, () => {
         const sectionId = (header as HTMLElement).dataset.section;
         if (sectionId) {
           this.toggleSection(sectionId);
@@ -646,8 +686,9 @@ class SettingsMenuUI {
       });
     });
 
+    // Menu item tap handlers (iOS Safari compatible)
     this.panel.querySelectorAll('.settings-menu__item').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
+      this.addTapListener(btn, (e) => {
         const target = e.target as HTMLElement;
         // Don't trigger main action if clicking unpin button
         if (target.closest('.settings-menu__unpin-btn')) return;
@@ -674,7 +715,7 @@ class SettingsMenuUI {
         this.handleAction(action);
       });
 
-      // Right-click to pin/unpin
+      // Right-click to pin/unpin (desktop only, no iOS equivalent needed)
       btn.addEventListener('contextmenu', (e) => {
         const htmlBtn = btn as HTMLElement;
         const action = htmlBtn.dataset.action;
@@ -687,15 +728,15 @@ class SettingsMenuUI {
       });
     });
 
-    // Handle unpin button clicks
+    // Handle unpin button clicks (iOS Safari compatible)
     this.panel.querySelectorAll('.settings-menu__unpin-btn').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
+      this.addTapListener(btn, (e) => {
         e.stopPropagation();
         const action = (btn as HTMLElement).dataset.unpin;
         if (action) {
           this.togglePinned(action);
         }
-      });
+      }, { stopPropagation: true });
     });
 
     // Bind language selector events
@@ -704,15 +745,16 @@ class SettingsMenuUI {
 
   /**
    * Bind events for the language selector dropdown
+   * iOS Safari compatible using tap listeners
    */
   private bindLanguageSelectorEvents(): void {
     if (!this.panel) return;
 
-    // Toggle language dropdown
+    // Toggle language dropdown (iOS Safari compatible)
     const toggleBtn = this.panel.querySelector('[data-action="toggle-language"]');
 
     if (toggleBtn) {
-      toggleBtn.addEventListener('click', (e) => {
+      this.addTapListener(toggleBtn, (e) => {
         e.stopPropagation();
         this.languageExpanded = !this.languageExpanded;
         // Re-render just the language selector
@@ -722,13 +764,13 @@ class SettingsMenuUI {
           // Rebind events for the new elements
           this.bindLanguageSelectorEvents();
         }
-      });
+      }, { stopPropagation: true });
     }
 
-    // Handle language selection (only if expanded)
+    // Handle language selection (only if expanded) - iOS Safari compatible
     if (this.languageExpanded) {
       this.panel.querySelectorAll('[data-action="set-language"]').forEach((btn) => {
-        btn.addEventListener('click', async (e) => {
+        this.addTapListener(btn, async (e) => {
           e.stopPropagation();
           const htmlBtn = btn as HTMLElement;
           const locale = htmlBtn.dataset.locale as SupportedLocale;
@@ -739,7 +781,7 @@ class SettingsMenuUI {
             // Re-render the entire menu to reflect language change
             this.renderContent();
           }
-        });
+        }, { stopPropagation: true });
       });
     }
   }
@@ -1480,21 +1522,31 @@ class SettingsMenuUI {
         transform: rotate(90deg);
       }
 
+      /* Language selector - wrapper stays collapsed by default */
+      .settings-menu__language-selector {
+        position: relative;
+      }
+      
+      /* Language list - only shows when explicitly rendered (via JS) */
       .settings-menu__language-list-inner {
         overflow: hidden;
         padding-left: var(--space-4, 16px);
         padding-top: var(--space-2, 8px);
         animation: slideDown ${DURATION.NORMAL}ms ${EASING.STANDARD};
+        /* Ensure proper display */
+        display: block;
       }
 
       @keyframes slideDown {
         from {
           opacity: 0;
           transform: translateY(-8px);
+          max-height: 0;
         }
         to {
           opacity: 1;
           transform: translateY(0);
+          max-height: 500px;
         }
       }
 
@@ -1906,8 +1958,9 @@ class SettingsMenuUI {
       /* Mobile (max 480px) - Full width panel */
       @media (max-width: 480px) {
         .settings-trigger {
-          top: var(--ma-breath, 13px);
-          right: var(--ma-breath, 13px);
+          /* Position respecting safe areas on notched devices */
+          top: calc(var(--ma-breath, 13px) + env(safe-area-inset-top, 0px));
+          right: calc(var(--ma-breath, 13px) + env(safe-area-inset-right, 0px));
           width: 40px;
           height: 40px;
         }
@@ -1917,28 +1970,76 @@ class SettingsMenuUI {
           max-width: none;
           border-left: none;
           border-radius: 0;
+          /* iOS Safari: Use dvh for proper viewport handling */
+          height: 100vh;
+          height: 100dvh;
+          /* NO padding on card - let children handle safe areas to avoid doubling */
+        }
+        
+        .settings-menu__nav {
+          /* iOS Safari: Smooth momentum scrolling */
+          -webkit-overflow-scrolling: touch;
+          /* Prevent overscroll bounce from affecting layout */
+          overscroll-behavior: contain;
+          /* Safe area padding for home indicator */
+          padding-bottom: calc(var(--space-6, 24px) + env(safe-area-inset-bottom, 0));
+          /* Safe area padding for left/right edges (landscape) */
+          padding-left: env(safe-area-inset-left, 0);
+          padding-right: env(safe-area-inset-right, 0);
         }
 
         .settings-menu__header {
+          /* ONLY location for top safe area padding */
           padding: var(--space-4, 16px);
+          padding-top: calc(var(--space-4, 16px) + env(safe-area-inset-top, 0));
+          padding-left: calc(var(--space-4, 16px) + env(safe-area-inset-left, 0));
+          padding-right: calc(var(--space-4, 16px) + env(safe-area-inset-right, 0));
         }
 
         .settings-menu__section {
-          padding: 0 var(--space-4, 16px);
+          padding: 0 calc(var(--space-4, 16px) + env(safe-area-inset-left, 0));
+          padding-right: calc(var(--space-4, 16px) + env(safe-area-inset-right, 0));
+        }
+        
+        /* iOS Safari: Fix touch targets being too small */
+        .settings-menu__item {
+          min-height: 48px;
+          -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Close button: NO extra margin - already handled by header padding */
+        .settings-menu__close {
+          margin-top: 0;
+        }
+        
+        /* Language list: Ensure proper display */
+        .settings-menu__language-list-inner {
+          max-height: 300px;
+          overflow-y: auto;
         }
       }
       
-      /* iPhone Pro specific (390-430px) - Full width but with safe areas */
+      /* iPhone Pro specific (390-430px) - Same as mobile */
       @media (min-width: 390px) and (max-width: 430px) {
         .settings-menu__card {
-          /* Full width for immersive feel on Pro phones */
           width: 100%;
           max-width: none;
-          padding-top: env(safe-area-inset-top, 0);
         }
-        
-        .settings-menu__header {
-          padding-top: calc(var(--space-5, 20px) + env(safe-area-inset-top, 0));
+      }
+      
+      /* iOS Safari specific fixes using @supports */
+      @supports (-webkit-touch-callout: none) {
+        @media (max-width: 480px) {
+          /* iOS Safari only on mobile */
+          .settings-menu__card {
+            /* Use -webkit-fill-available for iOS Safari */
+            height: -webkit-fill-available;
+          }
+          
+          .settings-menu__nav {
+            /* Ensure momentum scrolling on iOS */
+            -webkit-overflow-scrolling: touch;
+          }
         }
       }
 

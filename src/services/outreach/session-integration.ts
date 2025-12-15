@@ -273,6 +273,12 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
     return { commitmentsFound: 0, triggersCreated: 0, contextUpdated: false };
   }
 
+  // Skip test users - don't create outreach triggers for E2E tests
+  if (userId.startsWith('e2e-test') || userId.startsWith('test-') || userId.includes('-test-')) {
+    log.debug({ userId }, 'Skipping outreach for test user');
+    return { commitmentsFound: 0, triggersCreated: 0, contextUpdated: false };
+  }
+
   log.debug({ userId, personaId, turns: turns.length }, 'Analyzing session for outreach');
 
   // Combine all user turns into text for analysis

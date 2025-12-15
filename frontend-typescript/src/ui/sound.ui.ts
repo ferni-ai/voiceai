@@ -48,14 +48,18 @@ interface SoundConfig {
 
 // ============================================================================
 // MP3 SOUND PATHS - Real audio files for key moments
+//
+// Note: Most sounds now use the synthesizer for that "airy, happy" feel.
+// MP3s are kept as fallback and can be replaced with custom recordings.
+// The synth sounds are designed to sound like wind chimes and gentle bells.
 // ============================================================================
 
 const MP3_SOUNDS: Partial<Record<SoundName, string>> = {
+  // Note: We now prefer synth sounds for their airy, delightful quality.
+  // These MP3s serve as fallbacks if synth sounds don't work.
   connect: '/sounds/connect.mp3',
   disconnect: '/sounds/disconnect.mp3',
-  goodbye: '/sounds/disconnect.mp3', // Use disconnect sound for goodbye too
-  // enter: Uses synthesized C major chord (C4→E4→G4→C5) - the "magic" sound!
-  // hangup uses synth-only for that satisfying click feel
+  goodbye: '/sounds/disconnect.mp3',
 };
 
 // Pre-loaded audio elements for instant playback
@@ -122,152 +126,177 @@ function recordSoundPlay(name: SoundName): void {
   lastPlayTimes.set(name, now);
 }
 
-// Sound configurations - musical, satisfying tones
+// ============================================================================
+// SOUND CONFIGURATIONS - Airy, Happy, Delightful
+//
+// Design Philosophy:
+// - Wind chimes and gentle bells for connection/disconnection
+// - Bright, sparkling tones that feel like morning sunshine
+// - Soft, rounded attacks for warmth (never harsh)
+// - Higher octaves for lightness and happiness
+// - Long, gentle decays that linger like a smile
+// ============================================================================
+
 const SOUNDS: Record<SoundName, SoundConfig> = {
+  // ✨ CONNECT - Magical awakening, like wind chimes greeting you
+  // Pentatonic scale (no tension) creates instant happiness
+  // F5 → A5 → C6 → F6 (pure, bright, ascending joy)
   connect: {
-    frequencies: [523.25, 659.25, 783.99], // C5, E5, G5 (C major chord ascending)
-    delays: [0, 0.08, 0.16],
-    duration: 0.15,
-    type: 'sine',
-    volume: 0.12,
-    attack: 0.01,
-    decay: 0.12,
-  },
-  disconnect: {
-    frequencies: [783.99, 659.25, 523.25], // G5, E5, C5 (descending)
-    delays: [0, 0.06, 0.12],
-    duration: 0.12,
-    type: 'sine',
-    volume: 0.1,
-    attack: 0.01,
-    decay: 0.1,
-  },
-  // 🌅 GOODBYE - Warm, resolving session end (2s per sonic identity spec)
-  // Musical: Am7 → G/B → Cmaj7 → (hold) - "That was meaningful"
-  // This is the CEREMONY sound, not abrupt disconnect
-  goodbye: {
-    // Am7 (A3-C4-E4-G4) → G/B (B3-D4-G4) → Cmaj7 (C4-E4-G4-B4)
-    // Simplified to key notes that create the warm resolution feel
-    frequencies: [
-      220.0, // A3 - Am7 root
-      261.63, // C4 - Am7 color
-      329.63, // E4 - Am7 fifth
-      246.94, // B3 - G/B bass
-      293.66, // D4 - G chord
-      392.0, // G4 - G chord root
-      261.63, // C4 - Cmaj7 root (final resolution)
-      329.63, // E4 - Cmaj7
-      392.0, // G4 - Cmaj7
-      493.88, // B4 - Cmaj7 seventh (color)
-    ],
-    delays: [0, 0.05, 0.1, 0.5, 0.55, 0.6, 1.0, 1.05, 1.1, 1.15],
-    duration: 0.8, // Each note's duration
+    frequencies: [698.46, 880.0, 1046.5, 1396.91], // F5, A5, C6, F6
+    delays: [0, 0.06, 0.12, 0.2],
+    duration: 0.35,
     type: 'sine',
     volume: 0.08,
-    attack: 0.05, // Softer attack for warmth
-    decay: 0.7, // Long decay for resolution feel
+    attack: 0.03, // Soft attack like a breeze
+    decay: 0.3, // Long, lingering decay
   },
-  // 📞 HANGUP - Satisfying phone receiver click
-  // Like gently placing down a phone receiver - tactile finality
-  // Plays at the moment of actual disconnect for that "click" closure
-  hangup: {
-    frequencies: [
-      180, // Low thud (receiver body)
-      420, // Mid click (latch)
-      280, // Low resonance (settling)
-    ],
-    delays: [0, 0.015, 0.04], // Very quick sequence
-    duration: 0.06,
-    type: 'sine',
-    volume: 0.12,
-    attack: 0.002, // Very quick attack (click)
-    decay: 0.05, // Quick decay (not reverby)
-  },
-  // 🎭 ENTER - Ferni joins the room (dramatic entrance)
-  // Ascending chord with presence - "I'm here for you"
-  enter: {
-    frequencies: [261.63, 329.63, 392.0, 523.25], // C4, E4, G4, C5 (C major octave)
-    delays: [0, 0.1, 0.2, 0.35],
+
+  // 🍃 DISCONNECT - Gentle goodbye, like leaves settling
+  // Descending but still happy - "see you soon" not "goodbye forever"
+  // Uses major 6th interval for warmth
+  disconnect: {
+    frequencies: [1046.5, 880.0, 698.46], // C6, A5, F5 (gentle descent)
+    delays: [0, 0.1, 0.2],
     duration: 0.25,
     type: 'sine',
-    volume: 0.1,
-    attack: 0.03,
+    volume: 0.06,
+    attack: 0.04,
     decay: 0.2,
   },
-  // 🎉 TEAM UNLOCK - New teammate joins your roster!
-  // Warm, celebratory ascending arpeggio - like a friend arriving
-  // G major add9 voicing: G3→B3→D4→A4 (warmer, more "welcome" feeling)
-  teamUnlock: {
-    frequencies: [196.0, 246.94, 293.66, 440.0], // G3, B3, D4, A4
-    delays: [0, 0.08, 0.16, 0.28],
+
+  // 🌅 GOODBYE - Warm, resolving session end
+  // Simple, heartfelt: just two notes that feel like a warm hug
+  // Major 6th harmony (D5 + B5) - universally warm interval
+  goodbye: {
+    frequencies: [587.33, 739.99, 987.77], // D5, F#5, B5 (Bm add11 - bittersweet beautiful)
+    delays: [0, 0.15, 0.3],
+    duration: 0.6,
+    type: 'sine',
+    volume: 0.06,
+    attack: 0.08, // Very soft entrance
+    decay: 0.5, // Long, warm fade
+  },
+
+  // 🎐 HANGUP - Soft wind chime "ting"
+  // Single clear note that feels final but gentle
+  hangup: {
+    frequencies: [1318.51, 1760.0], // E6, A6 (pure fifth - satisfying)
+    delays: [0, 0.02],
+    duration: 0.15,
+    type: 'sine',
+    volume: 0.05,
+    attack: 0.005,
+    decay: 0.14,
+  },
+
+  // 🌸 ENTER - Ferni arrives with gentle magic
+  // Like morning birdsong or a friendly greeting
+  // Bright, ascending, full of possibility
+  enter: {
+    frequencies: [659.25, 880.0, 1046.5, 1318.51], // E5, A5, C6, E6 (A major spread)
+    delays: [0, 0.08, 0.16, 0.26],
     duration: 0.3,
     type: 'sine',
-    volume: 0.12,
-    attack: 0.04,
+    volume: 0.08,
+    attack: 0.025,
     decay: 0.25,
   },
+
+  // 🎊 TEAM UNLOCK - Celebration sparkles!
+  // Like confetti or champagne bubbles - effervescent joy
+  // Cascading major arpeggio that twinkles
+  teamUnlock: {
+    frequencies: [784.0, 987.77, 1174.66, 1567.98, 1975.53], // G5, B5, D6, G6, B6
+    delays: [0, 0.05, 0.1, 0.17, 0.25],
+    duration: 0.25,
+    type: 'sine',
+    volume: 0.07,
+    attack: 0.015,
+    decay: 0.22,
+  },
+
+  // 💫 CLICK - Tiny water droplet
+  // Soft, round, satisfying micro-interaction
   click: {
-    frequency: 1200,
-    duration: 0.04,
-    type: 'sine',
-    volume: 0.06,
-    attack: 0.001,
-    decay: 0.035,
-  },
-  hover: {
-    frequency: 800,
-    duration: 0.025,
-    type: 'sine',
-    volume: 0.03,
-    attack: 0.001,
-    decay: 0.02,
-  },
-  switch: {
-    frequencies: [440, 554.37], // A4, C#5 (major third)
-    delays: [0, 0.05],
-    duration: 0.1,
-    type: 'sine',
-    volume: 0.08,
-    attack: 0.01,
-    decay: 0.08,
-  },
-  // Success - subtle two-note acknowledgment, not triumphant
-  // A4 → C5 (minor third up) - gentle "got it"
-  success: {
-    frequencies: [440, 523.25], // A4 → C5 (just 2 notes)
-    delays: [0, 0.12],
-    duration: 0.15,
-    type: 'sine',
-    volume: 0.06, // Quiet
-    attack: 0.02,
-    decay: 0.12,
-  },
-  // Zen warmth pulse - gentle, human, not game-like
-  // Just a soft A3 hum that fades warmly - "I see you"
-  celebrate: {
-    frequency: 220, // A3 - warm low tone
-    duration: 0.4,
-    type: 'sine',
-    volume: 0.04, // Very quiet
-    attack: 0.1, // Slow fade in
-    decay: 0.3, // Slow fade out
-  },
-  thinking: {
-    frequencies: [350, 370],
-    delays: [0, 0.3],
-    duration: 0.15,
+    frequency: 1760, // A6 - bright but not harsh
+    duration: 0.06,
     type: 'sine',
     volume: 0.04,
-    attack: 0.05,
-    decay: 0.1,
+    attack: 0.003,
+    decay: 0.055,
   },
-  message: {
-    frequency: 880,
-    duration: 0.08,
+
+  // 🌬️ HOVER - Gentle breath of air
+  // So subtle you almost imagine it
+  hover: {
+    frequency: 1318.51, // E6 - airy
+    duration: 0.04,
+    type: 'sine',
+    volume: 0.02,
+    attack: 0.005,
+    decay: 0.035,
+  },
+
+  // 🔄 SWITCH - Persona carousel whoosh
+  // Two-note interval that suggests movement and choice
+  // Perfect fourth interval - forward motion without tension
+  switch: {
+    frequencies: [880.0, 1174.66], // A5, D6 (perfect fourth)
+    delays: [0, 0.04],
+    duration: 0.12,
     type: 'sine',
     volume: 0.06,
     attack: 0.01,
-    decay: 0.06,
+    decay: 0.1,
+  },
+
+  // ✅ SUCCESS - Happy little acknowledgment
+  // Like a gentle "ping!" of delight
+  // Major third going up - universally happy
+  success: {
+    frequencies: [880.0, 1108.73], // A5, C#6 (major third)
+    delays: [0, 0.08],
+    duration: 0.2,
+    type: 'sine',
+    volume: 0.05,
+    attack: 0.015,
+    decay: 0.18,
+  },
+
+  // 🎉 CELEBRATE - Sparkle shower
+  // Multiple quick high notes like light catching glitter
+  celebrate: {
+    frequencies: [1318.51, 1567.98, 1760.0, 2093.0], // E6, G6, A6, C7
+    delays: [0, 0.03, 0.07, 0.12],
+    duration: 0.15,
+    type: 'sine',
+    volume: 0.05,
+    attack: 0.01,
+    decay: 0.13,
+  },
+
+  // 💭 THINKING - Soft contemplation
+  // Gentle oscillation like breathing or meditation
+  // Two notes very close together create shimmer
+  thinking: {
+    frequencies: [523.25, 554.37], // C5, C#5 - gentle shimmer
+    delays: [0, 0.2],
+    duration: 0.25,
+    type: 'sine',
+    volume: 0.03,
+    attack: 0.08,
+    decay: 0.15,
+  },
+
+  // 💬 MESSAGE - Soft notification bubble
+  // Like a soap bubble popping gently
+  message: {
+    frequency: 1396.91, // F6 - clear but soft
+    duration: 0.1,
+    type: 'sine',
+    volume: 0.04,
+    attack: 0.008,
+    decay: 0.09,
   },
 };
 

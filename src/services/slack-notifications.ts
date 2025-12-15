@@ -175,6 +175,41 @@ export class SlackNotificationService {
   }
 
   /**
+   * Send a notification (alias for notify with simplified interface)
+   */
+  async sendNotification(params: {
+    type: 'deployment' | 'incident' | 'system' | 'alert';
+    title: string;
+    message: string;
+    severity?: 'info' | 'warning' | 'critical' | 'error';
+    details?: Record<string, unknown>;
+  }): Promise<boolean> {
+    // Map simplified types to NotificationType
+    const typeMap: Record<string, NotificationType> = {
+      deployment: 'deployment_success',
+      incident: 'incident_opened',
+      system: 'health_degraded',
+      alert: 'crisis_alert',
+    };
+
+    // Map severity
+    const severityMap: Record<string, 'info' | 'warning' | 'error' | 'success'> = {
+      info: 'info',
+      warning: 'warning',
+      critical: 'error',
+      error: 'error',
+    };
+
+    return this.notify({
+      type: typeMap[params.type] || 'health_degraded',
+      title: params.title,
+      message: params.message,
+      severity: severityMap[params.severity || 'info'],
+      metadata: params.details,
+    });
+  }
+
+  /**
    * Send a rollout notification
    */
   async notifyRollout(

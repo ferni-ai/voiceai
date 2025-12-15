@@ -150,14 +150,18 @@ export async function initializeServices(indexPersona = true): Promise<GlobalSer
       getLogger().warn({ error }, 'Unified trust persistence init skipped (non-critical)');
     }
 
-    // Initialize proactive outreach system (SMS, calls, emails)
-    try {
-      const { initializeOutreachSystem } = await import('./outreach/index.js');
-      await initializeOutreachSystem();
-      getLogger().info('📬 Proactive outreach system initialized');
-    } catch (error) {
-      getLogger().warn({ error }, 'Outreach system init skipped (requires Twilio/SendGrid config)');
-    }
+    // TODO: Outreach system disabled - needs to be refactored into separate service
+    // Loading 300k triggers on voice agent startup causes memory issues and slow cold starts.
+    // Outreach should run as a separate Cloud Run worker or scheduled job.
+    // See architectural discussion: separate voice agent from outreach worker.
+    getLogger().info('📬 Proactive outreach system disabled (run separately)');
+    // try {
+    //   const { initializeOutreachSystem } = await import('./outreach/index.js');
+    //   await initializeOutreachSystem();
+    //   getLogger().info('📬 Proactive outreach system initialized');
+    // } catch (error) {
+    //   getLogger().warn({ error }, 'Outreach system init skipped (requires Twilio/SendGrid config)');
+    // }
 
     // Start session cleanup to prevent orphaned session memory leaks
     // Dynamic import to avoid circular dependency with session-manager.ts

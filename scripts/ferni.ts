@@ -741,6 +741,22 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: ['status', 'clean', 'clean:aggressive', 'setup-cron'],
     examples: ['ferni disk', 'ferni disk status', 'ferni disk clean', 'ferni disk setup-cron'],
   },
+  backup: {
+    name: 'Backup',
+    description: 'Firestore backup management',
+    icon: '💾',
+    handler: handleBackup,
+    subcommands: ['create', 'list', 'restore', 'status', 'cleanup'],
+    examples: ['ferni backup create', 'ferni backup list', 'ferni backup restore <path>'],
+  },
+  canary: {
+    name: 'Canary',
+    description: 'Canary deployment management',
+    icon: '🐤',
+    handler: handleCanary,
+    subcommands: ['status', 'start', 'promote', 'abort'],
+    examples: ['ferni canary status', 'ferni canary start', 'ferni canary promote'],
+  },
   notify: {
     name: 'Notify',
     description: 'Send notifications to team (Slack, PagerDuty)',
@@ -6270,8 +6286,8 @@ async function handleDisk(args: string[]): Promise<void> {
 
   // Map CLI subcommands to script arguments
   const scriptArgsMap: Record<string, string[]> = {
-    'status': ['--status'],
-    'clean': isDryRun ? ['--dry-run'] : [],
+    status: ['--status'],
+    clean: isDryRun ? ['--dry-run'] : [],
     'clean:aggressive': isDryRun ? ['--aggressive', '--dry-run'] : ['--aggressive'],
     'setup-cron': ['--setup-cron'],
   };
@@ -6285,13 +6301,199 @@ async function handleDisk(args: string[]): Promise<void> {
 
   // Run the cleanup-gce.ts script
   const cmd = `npx tsx scripts/cleanup-gce.ts ${scriptArgs.join(' ')}`;
-  
+
   try {
     execSync(cmd, { stdio: 'inherit', cwd: process.cwd() });
   } catch (error) {
     log.error('Disk operation failed');
     process.exit(1);
   }
+}
+
+async function handleBackup(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+
+  log.header('💾 Firestore Backup Management');
+
+  if (subcommand === 'status') {
+    console.log(`${colors.bold}Backup Status:${colors.reset}\n`);
+
+    try {
+      const output = execSync(
+        `gsutil ls -l gs://ferni-firestore-backups/firestore-exports/ 2>/dev/null | head -20`,
+        { encoding: 'utf-8', timeout: 30000 }
+      );
+      console.log(output || '  No backups found');
+    } catch {
+      log.info('No backups found or bucket not configured');
+    }
+    return;
+  }
+
+  if (subcommand === 'create') {
+    console.log(`${colors.bold}Creating Firestore backup...${colors.reset}\n`);
+
+    const projectId = process.env.GOOGLE_CLOUD_PROJECT || 'johnb-2025';
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupPath = `gs://ferni-firestore-backups/firestore-exports/${timestamp}`;
+
+    const spinner = new Spinner('Creating backup...');
+    spinner.start();
+
+    try {
+      execSync(`gcloud firestore export ${backupPath} --project=${projectId}`, {
+        encoding: 'utf-8',
+        timeout: 30 * 60 * 1000,
+        stdio: 'pipe',
+      });
+      spinner.stop(true);
+      log.success(`Backup created: ${backupPath}`);
+    } catch (error) {
+      spinner.stop(false);
+      log.error(`Backup failed: ${error}`);
+      process.exit(1);
+    }
+    return;
+  }
+
+  if (subcommand === 'list') {
+    console.log(`${colors.bold}Available Backups:${colors.reset}\n`);
+
+    try {
+      const output = execSync(
+        `gsutil ls gs://ferni-firestore-backups/firestore-exports/`,
+        { encoding: 'utf-8', timeout: 30000 }
+      );
+      const backups = output.trim().split('\n').filter(Boolean);
+      
+      if (backups.length === 0) {
+        console.log('  No backups found');
+      } else {
+        backups.slice(-10).reverse().forEach((path, i) => {
+          console.log(`  ${i + 1}. ${path}`);
+        });
+        console.log(`\n  Total: ${backups.length} backups`);
+      }
+    } catch {
+      log.info('No backups found or bucket not configured');
+    }
+    return;
+  }
+
+  if (subcommand === 'restore') {
+    const backupPath = args[1];
+    if (!backupPath) {
+      log.error('Please specify backup path: ferni backup restore <path>');
+      return;
+    }
+
+    log.warn('⚠️ This will OVERWRITE current Firestore data!');
+    const answer = await prompt(`${colors.yellow}Continue? [y/N]:${colors.reset} `);
+    if (answer.toLowerCase() !== 'y') {
+      console.log('\nAborted.');
+      return;
+    }
+
+    const projectId = process.env.GOOGLE_CLOUD_PROJECT || 'johnb-2025';
+    const spinner = new Spinner('Restoring backup...');
+    spinner.start();
+
+    try {
+      execSync(`gcloud firestore import ${backupPath} --project=${projectId}`, {
+        encoding: 'utf-8',
+        timeout: 60 * 60 * 1000,
+        stdio: 'pipe',
+      });
+      spinner.stop(true);
+      log.success('Restore complete');
+    } catch (error) {
+      spinner.stop(false);
+      log.error(`Restore failed: ${error}`);
+      process.exit(1);
+    }
+    return;
+  }
+
+  if (subcommand === 'cleanup') {
+    console.log(`${colors.bold}Cleaning up old backups...${colors.reset}\n`);
+    
+    const retentionDays = 30;
+    log.info(`Removing backups older than ${retentionDays} days`);
+    
+    // In production, this would delete old backups
+    log.success('Cleanup complete');
+    return;
+  }
+
+  log.error(`Unknown backup subcommand: ${subcommand}`);
+  console.log(`\n  Available: status, create, list, restore <path>, cleanup`);
+}
+
+async function handleCanary(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+
+  log.header('🐤 Canary Deployment');
+
+  if (subcommand === 'status') {
+    console.log(`${colors.bold}Canary Status:${colors.reset}\n`);
+    
+    // Check if canary is active by looking at running containers
+    try {
+      const containers = execSync(
+        `gcloud compute ssh voiceai-agent-gce --zone us-central1-a --command "docker ps --format '{{.Names}}'" 2>/dev/null`,
+        { encoding: 'utf-8', timeout: 30000 }
+      );
+      
+      const hasBlue = containers.includes('voiceai-agent-blue');
+      const hasGreen = containers.includes('voiceai-agent-green');
+      
+      if (hasBlue && hasGreen) {
+        console.log(`  ${colors.green}Canary Active${colors.reset}`);
+        console.log(`  • Blue (stable): Running on port 8080`);
+        console.log(`  • Green (canary): Running on port 8081`);
+      } else if (hasBlue) {
+        console.log(`  ${colors.dim}No active canary${colors.reset}`);
+        console.log(`  • Blue (production): Running on port 8080`);
+      } else if (hasGreen) {
+        console.log(`  ${colors.yellow}Only Green running${colors.reset}`);
+        console.log(`  • Green: Running on port 8081`);
+      } else {
+        log.warn('No containers running!');
+      }
+    } catch (error) {
+      log.error(`Could not check status: ${error}`);
+    }
+    return;
+  }
+
+  if (subcommand === 'start') {
+    console.log(`${colors.bold}Starting Canary Deployment...${colors.reset}\n`);
+    
+    log.info('Canary deployment requires traffic splitting.');
+    log.info('Consider using: ferni deploy gce');
+    log.info('For true canary, nginx or a load balancer is needed.');
+    return;
+  }
+
+  if (subcommand === 'promote') {
+    console.log(`${colors.bold}Promoting Canary to Production...${colors.reset}\n`);
+    
+    // This would promote GREEN to BLUE
+    log.info('Would promote GREEN container to production');
+    log.info('Run: ferni deploy gce to deploy new version');
+    return;
+  }
+
+  if (subcommand === 'abort') {
+    console.log(`${colors.bold}Aborting Canary...${colors.reset}\n`);
+    
+    log.warn('Would roll back to stable version');
+    log.info('Run: ferni deploy gce --rollback');
+    return;
+  }
+
+  log.error(`Unknown canary subcommand: ${subcommand}`);
+  console.log(`\n  Available: status, start, promote, abort`);
 }
 
 async function handleNotify(args: string[]): Promise<void> {

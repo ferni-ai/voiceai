@@ -570,6 +570,12 @@ export function getActiveIncident(): Incident | undefined {
   return incidents.get(activeIncident.current);
 }
 
+export function getActiveIncidents(): Incident[] {
+  return Array.from(incidents.values()).filter(
+    (i) => i.status !== 'resolved' && i.status !== 'postmortem'
+  );
+}
+
 export function getRecentIncidents(limit = 10): Incident[] {
   return Array.from(incidents.values())
     .sort((a, b) => b.detectedAt - a.detectedAt)

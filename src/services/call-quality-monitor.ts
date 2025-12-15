@@ -627,3 +627,33 @@ export function getActiveCalls(): CallSession[] {
 export function getRecentCalls(limit = 100): CallSession[] {
   return completedSessions.slice(-limit);
 }
+
+/**
+ * Get call quality monitor interface (for compatibility with other services)
+ */
+export function getCallQualityMonitor(): {
+  getStats: () => {
+    qualityScore: number;
+    successRate: number;
+    totalCalls: number;
+    activeCalls: number;
+    avgDurationMs: number;
+    avgTimeToFirstResponseMs: number;
+  };
+  getRecentCalls: (limit?: number) => CallSession[];
+} {
+  return {
+    getStats: () => {
+      const metrics = calculateMetrics();
+      return {
+        qualityScore: metrics.qualityScore,
+        successRate: metrics.connectionSuccessRate,
+        totalCalls: completedSessions.length,
+        activeCalls: sessions.size,
+        avgDurationMs: metrics.avgCallDurationMs,
+        avgTimeToFirstResponseMs: metrics.avgFirstResponseTimeMs,
+      };
+    },
+    getRecentCalls,
+  };
+}
