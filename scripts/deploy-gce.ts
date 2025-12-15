@@ -390,18 +390,49 @@ function deployToSlot(
   log.success(`${slot.toUpperCase()} container started on port ${port}`);
 }
 
-function promoteSlot(slot: 'blue' | 'green'): void {
-  log.step(`Promoting ${slot.toUpperCase()} to Production`);
+function promoteSlot(
+  slot: 'blue' | 'green',
+  image: string,
+  secrets: Record<string, string>
+): void {
+  log.step(`Promoting ${slot.toUpperCase()} to Production (port ${CONFIG.bluePort})`);
 
   const otherSlot = slot === 'blue' ? 'green' : 'blue';
+  const currentContainer = `${CONFIG.containerName}-${slot}`;
   const otherContainer = `${CONFIG.containerName}-${otherSlot}`;
+  const productionContainer = `${CONFIG.containerName}-production`;
 
-  // Stop the old slot
+  // 1. Stop the old production container (if any)
   log.substep(`Stopping old ${otherSlot} container...`);
   ssh(`docker stop ${otherContainer} 2>/dev/null || true`, { silent: true });
   ssh(`docker rm ${otherContainer} 2>/dev/null || true`, { silent: true });
 
-  log.success(`${slot.toUpperCase()} is now live!`);
+  // 2. Stop the staging container (we'll restart it on production port)
+  log.substep(`Stopping staging ${slot} container...`);
+  ssh(`docker stop ${currentContainer} 2>/dev/null || true`, { silent: true });
+  ssh(`docker rm ${currentContainer} 2>/dev/null || true`, { silent: true });
+
+  // 3. Also clean up any old "production" named container
+  ssh(`docker stop ${productionContainer} 2>/dev/null || true`, { silent: true });
+  ssh(`docker rm ${productionContainer} 2>/dev/null || true`, { silent: true });
+
+  // 4. Start the verified image on production port 8080
+  log.substep(`Starting on production port ${CONFIG.bluePort}...`);
+  const envVars = formatEnvVars({
+    ...secrets,
+    PORT: String(CONFIG.bluePort),
+    NODE_ENV: 'production',
+    GOOGLE_CLOUD_PROJECT: CONFIG.projectId,
+    FIREBASE_PROJECT_ID: CONFIG.projectId,
+    REDIS_HOST: '172.17.0.1',
+    REDIS_PORT: String(CONFIG.redisPort),
+  });
+
+  // Use "blue" as the production container name for consistency
+  const dockerCmd = `docker run -d --name ${CONFIG.containerName}-blue --restart unless-stopped -p ${CONFIG.bluePort}:${CONFIG.bluePort} ${envVars} ${image}`;
+  ssh(dockerCmd);
+
+  log.success(`Production is now live on port ${CONFIG.bluePort}!`);
 }
 
 // ============================================================================
@@ -549,7 +580,7 @@ function rollback(): void {
   sleep(5000).then(async () => {
     const healthy = await healthCheck(port);
     if (healthy) {
-      promoteSlot(targetSlot);
+      promoteSlot(targetSlot, previousImage, secrets);
       log.success('Rollback complete!');
     } else {
       log.error('Rollback failed health check');
@@ -661,8 +692,8 @@ ${colors.bold}${colors.magenta}╔═══════════════�
     process.exit(1);
   }
 
-  // Promote the new slot
-  promoteSlot(targetSlot);
+  // Promote the new slot to production port 8080
+  promoteSlot(targetSlot, image, secrets);
 
   // Comprehensive disk cleanup (prevents running out of space)
   const aggressiveCleanup = args.includes('--aggressive-cleanup');
@@ -674,8 +705,8 @@ ${colors.bold}${colors.green}╔════════════════
 ╚═══════════════════════════════════════════════════════════╝${colors.reset}
 
   ${colors.cyan}Service:${colors.reset}  ${CONFIG.containerName}
-  ${colors.cyan}Slot:${colors.reset}     ${targetSlot.toUpperCase()}
-  ${colors.cyan}Port:${colors.reset}     ${targetPort}
+  ${colors.cyan}Tested:${colors.reset}   ${targetSlot.toUpperCase()} slot (port ${targetPort})
+  ${colors.cyan}Live:${colors.reset}     Production port ${CONFIG.bluePort}
   ${colors.cyan}Image:${colors.reset}    ${image}
   ${colors.cyan}Redis:${colors.reset}    ${colors.green}CONNECTED${colors.reset} (172.17.0.1:${CONFIG.redisPort})
   ${colors.cyan}Status:${colors.reset}   ${colors.green}HEALTHY${colors.reset}
