@@ -56,15 +56,14 @@ describe('Voice Agent Entry - Module Structure', () => {
     }
   });
 
-  it('should have tool building logic', async () => {
+  it('should use FerniAgent which builds its own tools', async () => {
     const fs = await import('fs/promises');
     const entryPath = path.resolve(__dirname, '../voice-agent-entry.ts');
     const content = await fs.readFile(entryPath, 'utf-8');
 
-    // Check that tool building is present
-    expect(content).toContain('buildAgentTools');
-    expect(content).toContain('buildEssentialTools');
-    expect(content).toContain('tools: toolCount > 0 ? tools : undefined');
+    // Check that FerniAgent is used (agents now build their own tools internally)
+    expect(content).toContain('FerniAgent');
+    expect(content).toContain('tools built internally');
   });
 
   it('should have frontend publisher integration', async () => {
@@ -295,8 +294,8 @@ describe('Voice Agent Entry - Integration Checklist', () => {
       { name: 'Greeting Handler', pattern: 'generateAndSpeakGreeting' },
       { name: 'Cleanup Handler', pattern: 'handleSessionCleanup' },
 
-      // Tools & Optimization
-      { name: 'Tool Building', pattern: 'buildAgentTools' },
+      // Tools & Optimization (agents now build their own tools)
+      { name: 'Agent Tools', pattern: 'FerniAgent' },
       { name: 'Auto Optimizer', pattern: 'autoOptimizer' },
       { name: 'Pattern Analyzer', pattern: 'patternAnalyzer' },
       { name: 'Feedback Collector', pattern: 'feedbackCollector' },

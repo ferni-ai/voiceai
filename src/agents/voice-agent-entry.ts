@@ -4,6 +4,10 @@
  * This is the main entry point for voice agent sessions in the lightweight child process.
  * It uses all the extracted handlers from voice-agent/ for full feature parity with voice-agent.ts.
  *
+ * ARCHITECTURE:
+ * - Phase modules in ./voice-agent/phases/ handle discrete initialization steps
+ * - This file orchestrates the phases and manages the session lifecycle
+ *
  * INTEGRATIONS:
  * - Session services (user profile, trial status, trust systems)
  * - User identification (voice ID, metadata)
@@ -19,159 +23,55 @@
  * - Bundle runtime (rich persona content)
  */
 
-import type { JobContext, voice as voiceType } from '@livekit/agents';
-import type { PreloadedDeps } from './voice-agent-child.js';
+import type { JobContext } from '@livekit/agents';
 
-// Lazy-loaded module cache (populated from preloaded or dynamic import)
-let voice: typeof voiceType | null = null;
-let google: typeof import('@livekit/agents-plugin-google') | null = null;
-let silero: typeof import('@livekit/agents-plugin-silero') | null = null;
-let genai: typeof import('@google/genai') | null = null;
+// Event cleanup registry for proper memory management
+import {
+  createSessionCleanupTracker,
+  runSessionCleanup,
+} from './session/event-cleanup-registry.js';
 
-// ============================================================================
-// TYPES
-// ============================================================================
+// Phase modules (extracted for maintainability)
+import {
+  loadVoiceDeps as loadVoiceDepsPhase,
+  getCachedVoiceDeps,
+  loadPersonaPhase,
+  getPrewarmedResources,
+  loadPersonaLocally,
+  connectToRoom,
+  waitForParticipant,
+  detectConnectionType,
+  type VoiceDeps,
+} from './voice-agent/phases/index.js';
 
 // Import the full PersonaConfig type for proper type compatibility
 import type { PersonaConfig } from '../personas/types.js';
 
-// ToolSet matches the ToolContext type expected by voice.Agent
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ToolSet = Record<string, any>;
+// ============================================================================
+// MODULE-LEVEL STATE (Cached voice deps)
+// ============================================================================
 
-// Simplified persona config for fallback scenarios
-interface SimplePersonaConfig {
-  id: string;
-  name: string;
-  voice: { voiceId: string; provider: string };
-  systemPrompt: string;
-}
+let cachedVoiceDeps: VoiceDeps | null = null;
 
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 
-/** Load core voice dependencies - uses preloaded from prewarm if available */
-async function loadVoiceDeps(preloaded?: Partial<PreloadedDeps>): Promise<void> {
-  if (voice) return;
-  const startTime = Date.now();
-
-  if (preloaded?.voice && preloaded?.google && preloaded?.silero && preloaded?.genai) {
-    process.stderr.write(`[voice-agent-entry] Using PRELOADED voice deps ✅\n`);
-    voice = preloaded.voice;
-    google = preloaded.google;
-    silero = preloaded.silero;
-    genai = preloaded.genai;
-    return;
-  }
-
-  process.stderr.write(`[voice-agent-entry] Loading voice deps (not preloaded)...\n`);
-  const [agents, googleMod, sileroMod, genaiMod] = await Promise.all([
-    import('@livekit/agents'),
-    import('@livekit/agents-plugin-google'),
-    import('@livekit/agents-plugin-silero'),
-    import('@google/genai'),
-  ]);
-  voice = agents.voice;
-  google = googleMod;
-  silero = sileroMod;
-  genai = genaiMod;
-  process.stderr.write(`[voice-agent-entry] Voice deps loaded in ${Date.now() - startTime}ms\n`);
+/** Load core voice dependencies (uses phase module) */
+async function loadVoiceDeps(): Promise<void> {
+  if (cachedVoiceDeps) return;
+  cachedVoiceDeps = await loadVoiceDepsPhase();
 }
 
-/** Check for pre-warmed resources and get persona config */
-async function getPrewarmedResources(
-  personaId: string,
-  preloaded?: Partial<PreloadedDeps>
-): Promise<{ usePrewarmed: boolean; persona: PersonaConfig | null; systemPrompt: string | null }> {
-  try {
-    const cacheReader = preloaded?.cacheReader ?? (await import('./shared/cache-reader.js'));
-    const { isMainProcessWarmedUp, getPersonaConfig, getSystemPrompt } = cacheReader;
-
-    if (isMainProcessWarmedUp()) {
-      process.stderr.write(`[voice-agent-entry] Using main process cache ✅\n`);
-      const config = getPersonaConfig(personaId);
-      const prompt = getSystemPrompt(personaId);
-      if (config) {
-        return { usePrewarmed: true, persona: config as PersonaConfig, systemPrompt: prompt };
-      }
+/** Get voice, google, silero, genai from cached deps */
+function getVoiceDeps(): VoiceDeps {
+  if (!cachedVoiceDeps) {
+    cachedVoiceDeps = getCachedVoiceDeps();
+    if (!cachedVoiceDeps) {
+      throw new Error('Voice deps not loaded - call loadVoiceDeps first');
     }
-  } catch {
-    process.stderr.write(`[voice-agent-entry] Cache unavailable, loading locally\n`);
   }
-  return { usePrewarmed: false, persona: null, systemPrompt: null };
-}
-
-/** Load persona from bundles (fallback path when cache miss) */
-async function loadPersonaLocally(
-  personaId: string,
-  preloaded?: Partial<PreloadedDeps>
-): Promise<PersonaConfig | null> {
-  const personas = await import('../personas/index.js');
-  if (!preloaded?.personaBundlesReady) {
-    await personas.initializeFromBundles();
-  } else {
-    process.stderr.write(`[voice-agent-entry] Using PRELOADED persona bundles ✅\n`);
-  }
-  // Return the full persona config directly - it should have all required fields
-  const result = await personas.getPersonaAsync(personaId);
-  return result ?? null; // Convert undefined to null for type consistency
-}
-
-/**
- * Build tools for the agent based on persona.
- */
-async function buildTools(personaId: string): Promise<ToolSet> {
-  const toolsStart = Date.now();
-  process.stderr.write(`[voice-agent-entry] 🔧 Building tools for ${personaId}...\n`);
-
-  try {
-    const { buildAgentTools, buildEssentialTools } = await import('../tools/builder.js');
-
-    const [personaTools, essentialTools] = await Promise.all([
-      buildAgentTools(personaId),
-      buildEssentialTools(),
-    ]);
-
-    const allTools: ToolSet = {
-      ...essentialTools,
-      ...personaTools,
-    };
-
-    const toolCount = Object.keys(allTools).length;
-    const toolNames = Object.keys(allTools).slice(0, 10).join(', ');
-    process.stderr.write(
-      `[voice-agent-entry] 🔧 Built ${toolCount} tools in ${Date.now() - toolsStart}ms\n`
-    );
-    process.stderr.write(
-      `[voice-agent-entry] 🔧 Tools: ${toolNames}${toolCount > 10 ? '...' : ''}\n`
-    );
-
-    const hasMusicTools = Object.keys(allTools).some(
-      (name) => name.toLowerCase().includes('music') || name.toLowerCase().includes('play')
-    );
-    process.stderr.write(`[voice-agent-entry] 🎵 Music tools available: ${hasMusicTools}\n`);
-
-    return allTools;
-  } catch (error) {
-    process.stderr.write(
-      `[voice-agent-entry] ⚠️ Tool building failed: ${error}. Proceeding without tools.\n`
-    );
-    return {};
-  }
-}
-
-/** Connect to room with timeout */
-async function connectToRoom(ctx: JobContext): Promise<void> {
-  process.stderr.write(`[voice-agent-entry] Connecting to room...\n`);
-  const connectStart = Date.now();
-  const timeout = new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error('Room connection timed out after 30s')), 30000);
-  });
-  await Promise.race([ctx.connect(), timeout]);
-  process.stderr.write(
-    `[voice-agent-entry] Connected to ${ctx.room.name} in ${Date.now() - connectStart}ms\n`
-  );
+  return cachedVoiceDeps;
 }
 
 // ============================================================================
@@ -184,21 +84,12 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
   const roomName = ctx.job.room?.name || 'unknown';
   const sessionId = `session-${jobId}-${Date.now()}`;
 
-  // Get preloaded deps
-  let preloaded: PreloadedDeps | null = null;
-  try {
-    const { getPreloadedDeps } = await import('./voice-agent-child.js');
-    preloaded = getPreloadedDeps();
-  } catch {
-    /* not running as child process */
-  }
-
-  // Use preloaded modules or fallback to dynamic import
-  const e2eDiagnostics = preloaded?.e2eDiagnostics ?? (await import('./shared/e2e-diagnostics.js'));
+  // In the new GCE architecture, dependencies are loaded directly by worker.ts
+  // Import modules on demand
+  const e2eDiagnostics = await import('./shared/e2e-diagnostics.js');
   const { e2e } = e2eDiagnostics;
 
-  const lightweightResilience =
-    preloaded?.lightweightResilience ?? (await import('./shared/lightweight-resilience.js'));
+  const lightweightResilience = await import('./shared/lightweight-resilience.js');
   const { withResilience, humanizeError } = lightweightResilience;
 
   let currentPhase:
@@ -215,8 +106,11 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let session: any = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const cleanupHandlers: Array<() => void | Promise<void>> = [];
+
+  // Create session-scoped cleanup tracker for automatic event handler cleanup
+  const cleanupTracker = createSessionCleanupTracker(sessionId);
 
   try {
     // =========================================================================
@@ -224,7 +118,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // =========================================================================
     e2e.resourceLoading('voice-dependencies');
     const depsStart = Date.now();
-    await withResilience(async () => loadVoiceDeps(preloaded ?? undefined), {
+    await withResilience(async () => loadVoiceDeps(), {
       maxRetries: 2,
       baseDelay: 1000,
       operationName: 'load-voice-deps',
@@ -265,13 +159,13 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       usePrewarmed,
       persona: cachedPersona,
       systemPrompt: cachedPrompt,
-    } = await getPrewarmedResources(personaId, preloaded ?? undefined);
+    } = await getPrewarmedResources(personaId);
 
     let persona = cachedPersona;
     if (!usePrewarmed) {
       const startup = await import('../startup.js');
       await startup.startup();
-      persona = await loadPersonaLocally(personaId, preloaded ?? undefined);
+      persona = await loadPersonaLocally(personaId);
     }
     e2e.resourceLoaded(`persona:${personaId}`, Date.now() - personaStart);
 
@@ -293,7 +187,21 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       speechCharacteristics: { baseSpeedMultiplier: 1.0, pauseMultiplier: 1.0 },
     }) as unknown as PersonaConfig;
 
-    const systemPrompt = cachedPrompt || sessionPersona.systemPrompt;
+    // ✅ FULL RICH PROMPT - Tools work from definitions, so use all tokens for personality!
+    const fs = await import('fs/promises');
+    const { fileURLToPath } = await import('url');
+    const { dirname, join } = await import('path');
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    const richPromptPath = join(
+      __dirname,
+      '../personas/bundles/ferni/identity/system-prompt.md'
+    );
+    const systemPrompt = await fs.readFile(richPromptPath, 'utf-8');
+    process.stderr.write(
+      `[voice-agent-entry] Using RICH prompt (${systemPrompt.length} chars, ~${Math.round(systemPrompt.length / 4)} tokens) - tools from definitions only! 🎉\n`
+    );
+
     process.stderr.write(`[voice-agent-entry] Using persona: ${sessionPersona.name}\n`);
 
     // =========================================================================
@@ -382,27 +290,29 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       `[voice-agent-entry] 📦 Services initialized (userId: ${userId || 'anonymous'}, returning: ${isReturningUser})\n`
     );
 
+    // Register session with SessionDataManager for proper cache cleanup
+    // This is CRITICAL for preventing memory leaks - when session ends,
+    // all user data caches will be automatically cleared
+    if (userId) {
+      try {
+        const { getSessionDataManager } = await import('../services/session-data-manager.js');
+        getSessionDataManager().sessionStarted(userId);
+      } catch {
+        // SessionDataManager may not be initialized - non-fatal
+      }
+    }
+
     // =========================================================================
-    // STEP 5: BUILD TOOLS & CREATE SESSION
+    // STEP 5: CREATE SESSION
     // =========================================================================
     currentPhase = 'session';
     e2e.resourceLoading('agent-session');
     const sessionStart = Date.now();
 
-    // Build tools
-    e2e.resourceLoading('tools');
-    const toolsStart = Date.now();
-    const tools = await buildTools(personaId);
-    e2e.resourceLoaded('tools', Date.now() - toolsStart);
-
-    // Load VAD
+    // Load VAD using cached deps
+    const { silero } = getVoiceDeps();
     type VADType = Awaited<ReturnType<typeof import('@livekit/agents-plugin-silero').VAD.load>>;
-    let vad: VADType;
-    if (preloaded?.vadModel) {
-      vad = preloaded.vadModel as VADType;
-    } else {
-      vad = await silero!.VAD.load();
-    }
+    const vad: VADType = await silero.VAD.load();
 
     // =========================================================================
     // VOICE LOCALIZATION (International Accent Support)
@@ -429,51 +339,42 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       }
     }
 
-    // Create TTS with localized voice
-    let tts;
-    if (preloaded?.ttsCore) {
-      // Use lightweight TTS core for fast startup in child processes
-      tts = preloaded.ttsCore.createTTSFromConfig(sessionPersona.name, {
-        ...voiceConfig,
-        voiceId: effectiveVoiceId,
-        accent: userAccent || 'american',
-      });
-    } else {
-      // Fallback to full PersonaAwareTTS (with voice switching support)
-      const voiceManager = await import('../speech/voice-manager.js');
-      tts = voiceManager.createPersonaAwareTTS(sessionPersona.name, {
-        ...voiceConfig,
-        voiceId: effectiveVoiceId,
-        accent: userAccent || 'american',
-        isLocalizedVoice,
-      });
-
-      // Initialize voice manager and register TTS for mid-session accent changes
-      const sessionVoiceManager = voiceManager.getSessionVoiceManager(sessionId);
-      sessionVoiceManager.initialize();
-
-      try {
-        const { registerSessionTTS } = await import('../api/session-accent-routes.js');
-        registerSessionTTS(sessionId, tts, sessionPersona.id, userAccent || 'american');
-      } catch {
-        // Non-critical - accent changes just won't work mid-session
-      }
-    }
-
-    // Create Agent with tools
-    const toolCount = Object.keys(tools).length;
-    process.stderr.write(`[voice-agent-entry] Creating Agent with ${toolCount} tools\n`);
-
-    const agent = new voice!.Agent({
-      instructions: systemPrompt,
-      tools: toolCount > 0 ? tools : undefined,
+    // Create TTS with localized voice using PersonaAwareTTS (with voice switching support)
+    const voiceManager = await import('../speech/voice-manager.js');
+    const tts = voiceManager.createPersonaAwareTTS(sessionPersona.name, {
+      ...voiceConfig,
+      voiceId: effectiveVoiceId,
+      accent: userAccent || 'american',
+      isLocalizedVoice,
     });
 
-    session = new voice!.AgentSession({
+    // Initialize voice manager and register TTS for mid-session accent changes
+    const sessionVoiceManager = voiceManager.getSessionVoiceManager(sessionId);
+    sessionVoiceManager.initialize();
+
+    try {
+      const { registerSessionTTS } = await import('../api/session-accent-routes.js');
+      registerSessionTTS(sessionId, tts, sessionPersona.id, userAccent || 'american');
+    } catch {
+      // Non-critical - accent changes just won't work mid-session
+    }
+
+    // Get voice deps for session creation
+    const { voice, google, genai } = getVoiceDeps();
+
+    // Create FerniAgent - builds tools internally from domain imports
+    // No more buildTools() phase - FerniAgent owns its tools
+    process.stderr.write(`[voice-agent-entry] Creating FerniAgent (tools built internally)\n`);
+    const { FerniAgent } = await import('./personas/ferni-agent.js');
+    const agent = new FerniAgent(systemPrompt, {
+      skipGreeting: true, // Greeting handled by generateAndSpeakGreeting below
+    });
+
+    session = new voice.AgentSession({
       vad,
-      llm: new google!.beta.realtime.RealtimeModel({
+      llm: new google.beta.realtime.RealtimeModel({
         model: 'gemini-2.0-flash-exp',
-        modalities: [genai!.Modality.TEXT],
+        modalities: [genai.Modality.TEXT],
         temperature: 0.8,
         language: 'en-US',
         instructions: systemPrompt,
@@ -647,6 +548,45 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       `[voice-agent-entry] Session started! (isPhone: ${isPhoneCall}, isWeb: ${isWebConnection})\n`
     );
 
+    // =========================================================================
+    // 🔍 DEBUG: Comprehensive event logging to capture Gemini responses
+    // =========================================================================
+    process.stderr.write(`[voice-agent-entry] 🔍 Setting up Gemini debug logging...\n`);
+    
+    // Log ALL session events for debugging
+    const debugEvents = [
+      'agent_state_changed',
+      'user_state_changed', 
+      'function_calls_collected',
+      'function_tools_executed',
+      'agent_speech_started',
+      'agent_speech_stopped',
+      'user_input_transcribed',
+    ];
+    
+    // Try to hook into raw LLM events if available
+    if (session.llm && typeof session.llm.on === 'function') {
+      process.stderr.write(`[voice-agent-entry] 🔍 Hooking into LLM events...\n`);
+      session.llm.on('response', (resp: unknown) => {
+        process.stderr.write(`\n${'='.repeat(70)}\n`);
+        process.stderr.write(`🤖 [RAW LLM RESPONSE]:\n`);
+        process.stderr.write(`${JSON.stringify(resp, null, 2)}\n`);
+        process.stderr.write(`${'='.repeat(70)}\n\n`);
+      });
+    }
+    
+    // Hook into function calls collected (before execution)
+    const fnCallsHandler = (event: unknown) => {
+      process.stderr.write(`\n${'='.repeat(70)}\n`);
+      process.stderr.write(`📥 [FUNCTION CALLS COLLECTED] (Gemini wants to call these tools):\n`);
+      process.stderr.write(`${JSON.stringify(event, null, 2)}\n`);
+      process.stderr.write(`${'='.repeat(70)}\n\n`);
+    };
+    session.on('function_calls_collected' as Parameters<typeof session.on>[0], fnCallsHandler);
+    cleanupTracker.register('event', 'function_calls_collected handler', () => {
+      session.off?.('function_calls_collected', fnCallsHandler);
+    });
+
     // TOOL TRACKING HANDLER
     setupToolTrackingHandler({
       session,
@@ -654,7 +594,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       services,
       sessionPersona: sessionPersona,
       sessionId,
-      debugEnabled: false,
+      debugEnabled: true,
     });
 
     // SESSION STATE HANDLERS (silence detection, engagement)
@@ -685,7 +625,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       dynamicToolLoader,
       autoOptimizer,
     });
-    session.on(voice!.AgentSessionEventTypes.UserInputTranscribed, (event: unknown) => {
+    session.on(voice.AgentSessionEventTypes.UserInputTranscribed, (event: unknown) => {
       transcriptHandler.handler(
         event as import('./voice-agent/transcript-handler.js').TranscriptEvent
       );
@@ -706,7 +646,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       });
     };
     handoffEvents.on('voiceSwitch', wrappedHandoffHandler);
-    cleanupHandlers.push(() => {
+    cleanupTracker.register('event', 'handoffEvents.voiceSwitch', () => {
       void handoffEvents.off('voiceSwitch', wrappedHandoffHandler);
     });
 
@@ -999,17 +939,29 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // =========================================================================
     currentPhase = 'running';
 
-    // Monitor connection state
-    ctx.room.on('connectionStateChanged', (state: unknown) => {
+    // Monitor connection state with cleanup tracking
+    const connectionStateHandler = (state: unknown) => {
       process.stderr.write(`[voice-agent-entry] 🔌 Connection state: ${state}\n`);
+    };
+    ctx.room.on('connectionStateChanged', connectionStateHandler);
+    cleanupTracker.register('event', 'room.connectionStateChanged', () => {
+      ctx.room.off('connectionStateChanged', connectionStateHandler);
     });
 
-    ctx.room.on('reconnecting', () => {
+    const reconnectingHandler = () => {
       process.stderr.write(`[voice-agent-entry] 🔌 Reconnecting...\n`);
+    };
+    ctx.room.on('reconnecting', reconnectingHandler);
+    cleanupTracker.register('event', 'room.reconnecting', () => {
+      ctx.room.off('reconnecting', reconnectingHandler);
     });
 
-    ctx.room.on('reconnected', () => {
+    const reconnectedHandler = () => {
       process.stderr.write(`[voice-agent-entry] 🔌 Reconnected!\n`);
+    };
+    ctx.room.on('reconnected', reconnectedHandler);
+    cleanupTracker.register('event', 'room.reconnected', () => {
+      ctx.room.off('reconnected', reconnectedHandler);
     });
 
     // Wait for disconnect
@@ -1021,6 +973,13 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     });
 
     e2e.sessionEnded(jobId, 'disconnected', Date.now() - startTime);
+
+    // Run event cleanup registry (cleans up all registered event handlers)
+    process.stderr.write(`[voice-agent-entry] 🧹 Running event cleanup registry...\n`);
+    const registryResult = await runSessionCleanup(sessionId);
+    process.stderr.write(
+      `[voice-agent-entry] 🧹 Registry cleanup: ${registryResult.cleaned} cleaned, ${registryResult.errors} errors, ${registryResult.totalDurationMs}ms\n`
+    );
 
     // Run cleanup
     process.stderr.write(`[voice-agent-entry] 🧹 Running cleanup handlers...\n`);
@@ -1087,6 +1046,16 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       }
     } catch {
       /* diagnosis is best-effort */
+    }
+
+    // Run event cleanup registry even on error
+    try {
+      const registryResult = await runSessionCleanup(sessionId);
+      process.stderr.write(
+        `[voice-agent-entry] 🧹 Registry cleanup on error: ${registryResult.cleaned} cleaned\n`
+      );
+    } catch {
+      /* ignore registry cleanup errors */
     }
 
     // Run cleanup handlers even on error

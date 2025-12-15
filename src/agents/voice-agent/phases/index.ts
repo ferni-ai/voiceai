@@ -1,0 +1,18 @@
+/**
+ * Voice Agent Phases
+ *
+ * Re-exports all phase modules for voice agent entry.
+ * Phases are designed to be composed together in the main entry function.
+ *
+ * @module voice-agent/phases
+ */
+
+export * from './types.js';
+export { loadVoiceDeps, getCachedVoiceDeps, areVoiceDepsLoaded } from './load-deps.js';
+export {
+  loadPersonaPhase,
+  getPrewarmedResources,
+  loadPersonaLocally,
+} from './load-persona.js';
+// buildTools removed - agents now build their own tools via direct domain imports
+export { connectToRoom, waitForParticipant, detectConnectionType } from './connect-room.js';
