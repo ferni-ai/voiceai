@@ -169,6 +169,8 @@ temp/
 # ===================
 
 \*.md
+# BUT include persona bundle markdown files (system prompts, bios, etc.)
+!src/personas/bundles/**/*.md
 docs/
 /brand/
 reference/
