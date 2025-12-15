@@ -135,6 +135,9 @@ COPY --from=builder /app/dist ./dist
 # Copy persona bundles (JSON, MD files needed at runtime)
 COPY --from=builder /app/src/personas/bundles/ ./dist/personas/bundles/
 
+# Copy task wisdom JSON files (not compiled by esbuild)
+COPY --from=builder /app/src/tasks/wisdom/*.json ./dist/tasks/wisdom/
+
 # Copy sound effects for session intro/outro (connect.mp3, disconnect.mp3, etc.)
 # These are used by the DJ system for "opening the show" moments
 COPY frontend-typescript/public/sounds/ ./sounds/
