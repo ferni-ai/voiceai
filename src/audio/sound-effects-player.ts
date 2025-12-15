@@ -55,6 +55,12 @@ class SoundEffectsPlayer {
    * Must be called before playing any sounds
    */
   async initialize(room: Room, session?: AgentSession): Promise<boolean> {
+    // ⚠️ SAFETY: Skip initialization when disabled to prevent FFmpeg crashes
+    if (!SOUND_EFFECTS_ENABLED) {
+      log.info('🔊 Sound effects disabled - skipping initialization (using verbal fallbacks)');
+      return false;
+    }
+
     if (this.isReady) {
       log.debug('🔊 Sound effects player already initialized');
       return true;
@@ -84,8 +90,13 @@ class SoundEffectsPlayer {
 
   /**
    * Check if the player is ready to play sounds
+   * Returns false if sound effects are disabled globally
    */
   isInitialized(): boolean {
+    // ⚠️ SAFETY: Return false when disabled to force verbal fallbacks
+    if (!SOUND_EFFECTS_ENABLED) {
+      return false;
+    }
     return this.isReady && this.audioPlayer !== null;
   }
 
@@ -105,6 +116,12 @@ class SoundEffectsPlayer {
    * @returns Promise<boolean> - true if sound started playing
    */
   async playSound(url: string, volume = 0.5): Promise<boolean> {
+    // ⚠️ SAFETY: Sound effects disabled due to fluent-ffmpeg crashes
+    if (!SOUND_EFFECTS_ENABLED) {
+      log.debug('🔊 Sound effects disabled (SOUND_EFFECTS_ENABLED=false)');
+      return false;
+    }
+
     if (!this.isInitialized() || !this.audioPlayer) {
       log.debug('🔊 Sound effects player not initialized');
       return false;
