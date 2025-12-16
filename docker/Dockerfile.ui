@@ -43,12 +43,13 @@ COPY tsconfig.build.json ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --prefer-offline
 
-# Copy build script and source
-COPY scripts/build-fast.ts ./scripts/
+# Copy build script (now in apps/cli/) and source
+COPY apps/cli/src/commands/build/build-fast.ts ./apps/cli/src/commands/build/
 COPY src/ ./src/
 
 # Build with esbuild (falls back to tsc)
-RUN pnpm build:fast || pnpm build
+# Note: build-fast.ts is now at apps/cli/src/commands/build/build-fast.ts
+RUN npx tsx apps/cli/src/commands/build/build-fast.ts || pnpm build
 
 # ============================================================================
 # Stage 2: Build Frontend (runs in parallel with backend)

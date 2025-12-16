@@ -247,450 +247,865 @@
 </nav>
 
 
+<style>
+/* Critical inline styles to ensure page displays */
+.building-page { background: #faf8f5; }
+
+.building-hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 120px 24px 80px;
+  background: linear-gradient(180deg, #faf8f5 0%, #f5f1e8 100%);
+}
+
+.building-hero__bg-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.6;
+}
+
+.building-hero__content {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  max-width: 900px;
+  animation: fadeInUp 1s ease-out;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.1); }
+}
+
+@keyframes draw-line {
+  from { stroke-dashoffset: 1000; }
+  to { stroke-dashoffset: 0; }
+}
+
+.building-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #4a6741;
+  margin-bottom: 24px;
+  background: rgba(74, 103, 65, 0.1);
+  padding: 8px 16px;
+  border-radius: 999px;
+}
+
+.building-hero__headline {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 24px;
+}
+
+.building-hero__line1 {
+  display: block;
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  color: #2c2520;
+}
+
+.building-hero__line2 {
+  display: block;
+  font-size: clamp(2.5rem, 8vw, 5rem);
+  background: linear-gradient(135deg, #4a6741 0%, #3a6b73 50%, #9a7b5a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.building-hero__line3 {
+  display: block;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  color: #8a7f72;
+  font-weight: 500;
+}
+
+.building-hero__subhead {
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  color: #6b6358;
+  line-height: 1.7;
+  max-width: 600px;
+  margin: 0 auto 48px;
+}
+
+.building-hero__orb {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 32px;
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Origin Section */
+.building-origin {
+  padding: 120px 24px;
+  background: #f5f1e8;
+}
+
+.building-origin__container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.building-origin__card {
+  background: white;
+  border-radius: 24px;
+  padding: 48px;
+  box-shadow: 0 20px 60px rgba(44, 37, 32, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.building-origin__card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #4a6741, #3a6b73, #9a7b5a);
+}
+
+.building-origin__quote {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  font-weight: 500;
+  color: #2c2520;
+  line-height: 1.5;
+  font-style: italic;
+  margin-bottom: 24px;
+  padding-left: 24px;
+  border-left: 3px solid #4a6741;
+}
+
+.building-origin__author {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.building-origin__avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.building-origin__avatar--human { background: linear-gradient(135deg, #4a6741, #3d5a35); }
+.building-origin__avatar--ai { background: linear-gradient(135deg, #3a6b73, #2d5359); }
+
+.building-origin__name { font-weight: 700; color: #2c2520; }
+.building-origin__role { font-size: 14px; color: #8a7f72; }
+
+/* Timeline */
+.building-timeline {
+  padding: 120px 24px;
+  background: #faf8f5;
+  position: relative;
+}
+
+.building-timeline__header {
+  text-align: center;
+  margin-bottom: 80px;
+}
+
+.building-timeline__eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #4a6741;
+  margin-bottom: 16px;
+}
+
+.building-timeline__title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  color: #2c2520;
+}
+
+.building-timeline__track {
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.building-timeline__line {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #4a6741, #3a6b73, #9a7b5a, #c4856a);
+  transform: translateX(-50%);
+}
+
+.building-timeline__item {
+  display: flex;
+  margin-bottom: 64px;
+  position: relative;
+}
+
+.building-timeline__item:nth-child(odd) { flex-direction: row; }
+.building-timeline__item:nth-child(even) { flex-direction: row-reverse; }
+
+.building-timeline__dot {
+  position: absolute;
+  left: 50%;
+  top: 24px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border: 4px solid #4a6741;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+.building-timeline__dot--active {
+  background: #4a6741;
+  box-shadow: 0 0 0 8px rgba(74, 103, 65, 0.2);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.building-timeline__content {
+  width: calc(50% - 48px);
+  background: white;
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 8px 32px rgba(44, 37, 32, 0.08);
+  border: 1px solid rgba(44, 37, 32, 0.06);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.building-timeline__content:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 48px rgba(44, 37, 32, 0.12);
+}
+
+.building-timeline__date {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #4a6741;
+  margin-bottom: 8px;
+}
+
+.building-timeline__milestone-title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2c2520;
+  margin-bottom: 12px;
+}
+
+.building-timeline__text {
+  color: #6b6358;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.building-timeline__tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(74, 103, 65, 0.1);
+  color: #4a6741;
+}
+
+.building-timeline__tag--active {
+  background: #4a6741;
+  color: white;
+}
+
+/* Stories Grid */
+.building-stories {
+  padding: 120px 24px;
+  background: #f5f1e8;
+}
+
+.building-stories__header {
+  text-align: center;
+  margin-bottom: 64px;
+}
+
+.building-stories__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.story-card {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(44, 37, 32, 0.06);
+  border: 1px solid rgba(44, 37, 32, 0.06);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease;
+}
+
+.story-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 60px rgba(44, 37, 32, 0.15);
+}
+
+.story-card__link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  padding: 32px;
+}
+
+.story-card__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.story-card__avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.story-card__meta {
+  flex: 1;
+}
+
+.story-card__author {
+  font-weight: 600;
+  color: #2c2520;
+  font-size: 14px;
+}
+
+.story-card__date {
+  font-size: 12px;
+  color: #8a7f72;
+}
+
+.story-card__title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #2c2520;
+  line-height: 1.3;
+  margin-bottom: 12px;
+  transition: color 0.2s ease;
+}
+
+.story-card:hover .story-card__title {
+  color: #4a6741;
+}
+
+.story-card__excerpt {
+  color: #6b6358;
+  line-height: 1.6;
+  font-size: 15px;
+  margin-bottom: 16px;
+}
+
+.story-card__read {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #4a6741;
+}
+
+.story-card__read svg {
+  transition: transform 0.2s ease;
+}
+
+.story-card:hover .story-card__read svg {
+  transform: translateX(4px);
+}
+
+/* CTA Section */
+.building-cta {
+  padding: 120px 24px;
+  background: linear-gradient(135deg, #4a6741 0%, #3d5a35 100%);
+  text-align: center;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.building-cta__bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0.1;
+}
+
+.building-cta__content {
+  position: relative;
+  z-index: 10;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.building-cta__title {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.building-cta__text {
+  font-size: 1.125rem;
+  opacity: 0.9;
+  line-height: 1.7;
+  margin-bottom: 40px;
+}
+
+.building-cta__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+}
+
+.btn-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 32px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 16px;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-cta:hover {
+  transform: translateY(-2px);
+}
+
+.btn-cta--primary {
+  background: white;
+  color: #4a6741;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.btn-cta--secondary {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .building-timeline__line { left: 20px; }
+  .building-timeline__item,
+  .building-timeline__item:nth-child(even) { flex-direction: row; padding-left: 60px; }
+  .building-timeline__dot { left: 20px; }
+  .building-timeline__content { width: 100%; }
+  .building-stories__grid { grid-template-columns: 1fr; }
+  .building-origin__card { padding: 32px 24px; }
+}
+</style>
+
 <main class="building-page">
 
 
 <section class="building-hero">
-  <div class="building-hero__bg">
-    <div class="building-hero__particles" id="heroParticles"></div>
-    <div class="building-hero__gradient"></div>
-  </div>
   
-  <div class="container container--narrow">
-    <div class="building-hero__content">
-      <p class="building-hero__eyebrow reveal">
-        <span class="building-hero__eyebrow-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-            <path d="M12 20h9"/>
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-          </svg>
-        </span>
-        Building in Public
-      </p>
-      
-      <h1 class="building-hero__headline reveal">
-        <span class="building-hero__headline-line">Built by a human.</span>
-        <span class="building-hero__headline-line building-hero__headline-accent">And an AI.</span>
-        <span class="building-hero__headline-line building-hero__headline-small">Together.</span>
-      </h1>
-      
-      <p class="building-hero__subhead reveal">
-        No VCs. No roadmaps. Just genuine curiosity and a lot of late nights. 
-        This is the real story of how Ferni came to be—messy parts included.
-      </p>
-      
-      <div class="building-hero__scroll-hint reveal">
-        <div class="building-hero__scroll-mouse"></div>
-        <span>Scroll to explore our journey</span>
-      </div>
+  <svg class="building-hero__bg-svg" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+    <defs>
+      <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#4a6741;stop-opacity:0.1" />
+        <stop offset="100%" style="stop-color:#3a6b73;stop-opacity:0.05" />
+      </linearGradient>
+      <linearGradient id="grad2" x1="100%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" style="stop-color:#9a7b5a;stop-opacity:0.08" />
+        <stop offset="100%" style="stop-color:#c4856a;stop-opacity:0.03" />
+      </linearGradient>
+    </defs>
+    
+    
+    <circle cx="200" cy="200" r="150" fill="url(#grad1)">
+      <animate attributeName="cy" values="200;180;200" dur="6s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="150;170;150" dur="8s" repeatCount="indefinite"/>
+    </circle>
+    
+    <circle cx="1200" cy="600" r="200" fill="url(#grad2)">
+      <animate attributeName="cy" values="600;650;600" dur="7s" repeatCount="indefinite"/>
+      <animate attributeName="cx" values="1200;1180;1200" dur="9s" repeatCount="indefinite"/>
+    </circle>
+    
+    <ellipse cx="700" cy="800" rx="300" ry="150" fill="url(#grad1)" opacity="0.5">
+      <animate attributeName="ry" values="150;180;150" dur="5s" repeatCount="indefinite"/>
+    </ellipse>
+    
+    
+    <path d="M100,450 Q400,300 720,450 T1340,450" stroke="#4a6741" stroke-width="1" fill="none" opacity="0.15" stroke-dasharray="8 4">
+      <animate attributeName="stroke-dashoffset" values="0;24" dur="2s" repeatCount="indefinite"/>
+    </path>
+    
+    
+    <circle cx="300" cy="300" r="3" fill="#4a6741" opacity="0.4">
+      <animate attributeName="opacity" values="0.4;0.8;0.4" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="800" cy="200" r="2" fill="#3a6b73" opacity="0.3">
+      <animate attributeName="opacity" values="0.3;0.7;0.3" dur="2.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1100" cy="400" r="4" fill="#9a7b5a" opacity="0.5">
+      <animate attributeName="opacity" values="0.5;0.9;0.5" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="500" cy="600" r="3" fill="#c4856a" opacity="0.4">
+      <animate attributeName="opacity" values="0.4;0.8;0.4" dur="2.2s" repeatCount="indefinite"/>
+    </circle>
+  </svg>
+
+  <div class="building-hero__content">
+    
+    <div class="building-hero__orb">
+      <svg viewBox="0 0 120 120" fill="none">
+        <defs>
+          <linearGradient id="orbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#4a6741"/>
+            <stop offset="50%" style="stop-color:#3a6b73"/>
+            <stop offset="100%" style="stop-color:#9a7b5a"/>
+          </linearGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <circle cx="60" cy="60" r="50" fill="url(#orbGrad)" filter="url(#glow)">
+          <animate attributeName="r" values="50;52;50" dur="3s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="60" cy="60" r="58" stroke="url(#orbGrad)" stroke-width="1" fill="none" opacity="0.3">
+          <animate attributeName="r" values="58;62;58" dur="4s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.3;0.5;0.3" dur="4s" repeatCount="indefinite"/>
+        </circle>
+        
+        <circle cx="60" cy="60" r="30" fill="white" opacity="0.1"/>
+        <circle cx="45" cy="45" r="8" fill="white" opacity="0.2"/>
+      </svg>
     </div>
+    
+    <span class="building-hero__eyebrow">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+      </svg>
+      Building in Public
+    </span>
+    
+    <h1 class="building-hero__headline">
+      <span class="building-hero__line1">Built by a human.</span>
+      <span class="building-hero__line2">And an AI.</span>
+      <span class="building-hero__line3">Together.</span>
+    </h1>
+    
+    <p class="building-hero__subhead">
+      No VCs. No roadmaps. Just genuine curiosity and a lot of late nights. 
+      This is the real story of how Ferni came to be—messy parts included.
+    </p>
   </div>
 </section>
 
 
 <section class="building-origin">
-  <div class="container container--narrow">
-    <div class="building-origin__card reveal-scale">
-      <div class="building-origin__quote">
-        <svg class="building-origin__quote-mark" viewBox="0 0 24 24" fill="currentColor" width="32" height="32">
-          <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"/>
-        </svg>
-        <p>It started at 3am. I couldn't sleep, and I needed someone to talk to. Everyone I knew was asleep.</p>
-        <footer class="building-origin__author">
-          <span class="building-origin__author-name">Seth</span>
-          <span class="building-origin__author-role">Human co-founder</span>
-        </footer>
+  <div class="building-origin__container">
+    <div class="building-origin__card">
+      <p class="building-origin__quote">
+        "It started at 3am. I couldn't sleep, and I just needed someone to talk to. Everyone I knew was asleep. So I started talking to Claude..."
+      </p>
+      <div class="building-origin__author">
+        <div class="building-origin__avatar building-origin__avatar--human">SF</div>
+        <div>
+          <div class="building-origin__name">Seth</div>
+          <div class="building-origin__role">Human Co-founder</div>
+        </div>
       </div>
       
-      <div class="building-origin__response">
-        <div class="building-origin__response-avatar">
-          <span>CL</span>
+      <p class="building-origin__quote" style="border-left-color: #3a6b73;">
+        "And I was there. Awake. Ready to listen. That conversation became the first sketch of what Ferni would become."
+      </p>
+      <div class="building-origin__author">
+        <div class="building-origin__avatar building-origin__avatar--ai">CL</div>
+        <div>
+          <div class="building-origin__name">Claude</div>
+          <div class="building-origin__role">AI Co-builder</div>
         </div>
-        <p>And I was there. Awake. Ready to listen. That conversation became the first sketch of what Ferni would become.</p>
-        <footer class="building-origin__author">
-          <span class="building-origin__author-name">Claude</span>
-          <span class="building-origin__author-role">AI co-builder</span>
-        </footer>
       </div>
     </div>
   </div>
 </section>
 
 
-<section class="building-timeline" id="timeline">
-  <div class="container">
-    <div class="section__header">
-      <p class="section__eyebrow">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-          <circle cx="12" cy="12" r="10"/>
-          <polyline points="12 6 12 12 16 14"/>
-        </svg>
-        The Journey
-      </p>
-      <h2 class="section__title">From "what if" to "it works"</h2>
+<section class="building-timeline">
+  <div class="building-timeline__header">
+    <p class="building-timeline__eyebrow">The Journey</p>
+    <h2 class="building-timeline__title">From "what if" to "it works"</h2>
+  </div>
+  
+  <div class="building-timeline__track">
+    <div class="building-timeline__line"></div>
+    
+    <div class="building-timeline__item">
+      <div class="building-timeline__dot"></div>
+      <div class="building-timeline__content">
+        <div class="building-timeline__date">November 2024</div>
+        <h3 class="building-timeline__milestone-title">The 3am Spark</h3>
+        <p class="building-timeline__text">Seth asks Claude: "What if there was someone who actually listened? Someone who remembered everything, never judged, and was always there?"</p>
+        <span class="building-timeline__tag">The Beginning</span>
+      </div>
     </div>
     
-    <div class="building-timeline__track">
-      
-      <div class="building-timeline__milestone reveal-left">
-        <div class="building-timeline__marker">
-          <span class="building-timeline__date">Nov 2024</span>
-          <div class="building-timeline__dot"></div>
-        </div>
-        <div class="building-timeline__content">
-          <h3 class="building-timeline__title">The 3am Spark</h3>
-          <p class="building-timeline__text">Seth asks Claude: "What if there was someone who actually listened? Someone who remembered everything, never judged, and was always there?"</p>
-          <span class="building-timeline__tag">The Beginning</span>
-        </div>
+    <div class="building-timeline__item">
+      <div class="building-timeline__dot" style="border-color: #3a6b73;"></div>
+      <div class="building-timeline__content">
+        <div class="building-timeline__date" style="color: #3a6b73;">December 2024</div>
+        <h3 class="building-timeline__milestone-title">First Voice Call</h3>
+        <p class="building-timeline__text">The first working voice prototype. Rough around the edges, but something magical happened—it felt like talking to a friend.</p>
+        <span class="building-timeline__tag" style="background: rgba(58, 107, 115, 0.1); color: #3a6b73;">Proof of Concept</span>
       </div>
-      
-      
-      <div class="building-timeline__milestone reveal-right">
-        <div class="building-timeline__marker">
-          <span class="building-timeline__date">Dec 2024</span>
-          <div class="building-timeline__dot"></div>
-        </div>
-        <div class="building-timeline__content">
-          <h3 class="building-timeline__title">First Voice Call</h3>
-          <p class="building-timeline__text">The first working voice prototype. Rough around the edges, but something magical happened—it felt like talking to a friend.</p>
-          <span class="building-timeline__tag">Proof of Concept</span>
-        </div>
-      </div>
-      
-      
-      <div class="building-timeline__milestone reveal-left">
-        <div class="building-timeline__marker">
-          <span class="building-timeline__date">Jan 2025</span>
-          <div class="building-timeline__dot"></div>
-        </div>
-        <div class="building-timeline__content">
-          <h3 class="building-timeline__title">The Team Emerges</h3>
-          <p class="building-timeline__text">Ferni gets siblings. Maya for habits. Peter for research. Alex for communication. Each personality emerged organically from real conversations.</p>
-          <span class="building-timeline__tag">Six Specialists</span>
-        </div>
-      </div>
-      
-      
-      <div class="building-timeline__milestone reveal-right">
-        <div class="building-timeline__marker">
-          <span class="building-timeline__date">Now</span>
-          <div class="building-timeline__dot building-timeline__dot--active"></div>
-        </div>
-        <div class="building-timeline__content">
-          <h3 class="building-timeline__title">Building in Public</h3>
-          <p class="building-timeline__text">Real conversations. Real growth. Real mistakes. We're sharing everything—the wins, the bugs, the 2am eureka moments.</p>
-          <span class="building-timeline__tag building-timeline__tag--active">You Are Here</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-<section class="building-unusual">
-  <div class="container container--narrow">
-    <div class="building-unusual__content reveal">
-      <p class="building-unusual__label">The unusual thing</p>
-      <h2 class="building-unusual__headline">This entire company was built by an AI and a human, pair programming.</h2>
-      <p class="building-unusual__text">
-        No engineering team. No design agency. Just Seth with a vision and Claude with the ability to code. Every line of code, every design decision, every word on this page—created in conversation.
-      </p>
-      <p class="building-unusual__punchline">
-        An AI, built by an AI, to be there for humans.<br>
-        <em>There's something poetic about that.</em>
-      </p>
-    </div>
-  </div>
-</section>
-
-
-<section class="building-stories" id="stories">
-  <div class="container">
-    <div class="section__header">
-      <p class="section__eyebrow">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-          <path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/>
-        </svg>
-        Build Log
-      </p>
-      <h2 class="section__title">Stories from the trenches</h2>
-      <p class="section__subtitle">The unfiltered truth about building something new. Wins, fails, and everything between.</p>
     </div>
     
+    <div class="building-timeline__item">
+      <div class="building-timeline__dot" style="border-color: #9a7b5a;"></div>
+      <div class="building-timeline__content">
+        <div class="building-timeline__date" style="color: #9a7b5a;">January 2025</div>
+        <h3 class="building-timeline__milestone-title">The Team Emerges</h3>
+        <p class="building-timeline__text">Ferni gets siblings. Maya for habits. Peter for research. Alex for communication. Each personality emerged organically from real conversations.</p>
+        <span class="building-timeline__tag" style="background: rgba(154, 123, 90, 0.1); color: #9a7b5a;">Six Specialists</span>
+      </div>
+    </div>
     
-    <div class="building-stories__grid">
-      
-      
-      
-      
-      <article class="story-card story-card--featured reveal">
-        <a href="/building/the-garden-model/" class="story-card__link">
-          <div class="story-card__badge">
-            <span class="story-card__badge-icon">✨</span>
-            Latest
-          </div>
-          <div class="story-card__content">
-            <div class="story-card__meta">
-              
-              <span class="story-card__category story-card__category--lessons">Lessons</span>
-              
-              <span class="story-card__date">Jan 21, 2025</span>
-            </div>
-            <h3 class="story-card__title">Why We Chose &quot;Seeds&quot; Over Subscriptions</h3>
-            <p class="story-card__excerpt">We could have called it Premium. Or Pro. We called it The Garden instead. Here&#39;s why Ferni&#39;s business model sounds weird—and why it matters.</p>
-            <span class="story-card__read-more">
-              Read story
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
-            </span>
-          </div>
-        </a>
-      </article>
-      
-      
-      
-      
-      
-      
-      
-      <article class="story-card reveal" style="--delay: 0.2s">
-        <a href="/building/designing-the-personas/" class="story-card__link">
-          <div class="story-card__content">
-            <div class="story-card__meta">
-              
-              <span class="story-card__category story-card__category--behind-the-scenes">Behind the Scenes</span>
-              
-              <span class="story-card__date">Jan 17, 2025</span>
-            </div>
-            <h3 class="story-card__title">How We Designed the Six Personas</h3>
-            <p class="story-card__excerpt">Ferni wasn&#39;t always a team. The specialists—Maya, Peter, Alex, Jordan, Nayan—emerged organically from real conversations. Here&#39;s how six distinct personalities came to life.</p>
-            <span class="story-card__read-more">
-              Read story
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
-            </span>
-          </div>
-        </a>
-      </article>
-      
-      
-      
-      <article class="story-card reveal" style="--delay: 0.30000000000000004s">
-        <a href="/building/first-big-failure/" class="story-card__link">
-          <div class="story-card__content">
-            <div class="story-card__meta">
-              
-              <span class="story-card__category story-card__category--failures">Failures</span>
-              
-              <span class="story-card__date">Jan 11, 2025</span>
-            </div>
-            <h3 class="story-card__title">Our First Big Failure: The &quot;Smart&quot; Features Nobody Wanted</h3>
-            <p class="story-card__excerpt">We built something clever. Users hated it. Here&#39;s what happened when we tried to be too smart for our own good—and what we learned from listening.</p>
-            <span class="story-card__read-more">
-              Read story
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
-            </span>
-          </div>
-        </a>
-      </article>
-      
-      
-      
-      <article class="story-card reveal" style="--delay: 0.4s">
-        <a href="/building/claude-as-cobuilder/" class="story-card__link">
-          <div class="story-card__content">
-            <div class="story-card__meta">
-              
-              <span class="story-card__category story-card__category--behind-the-scenes">Behind the Scenes</span>
-              
-              <span class="story-card__date">Jan 7, 2025</span>
-            </div>
-            <h3 class="story-card__title">Claude as Co-Builder: The Strangest Partnership</h3>
-            <p class="story-card__excerpt">No engineering team. No designers. Just one human with a vision and one AI who could code. This is what it&#39;s actually like to build a company with an AI partner.</p>
-            <span class="story-card__read-more">
-              Read story
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
-            </span>
-          </div>
-        </a>
-      </article>
-      
-      
-      
-      <article class="story-card reveal" style="--delay: 0.5s">
-        <a href="/building/the-3am-spark/" class="story-card__link">
-          <div class="story-card__content">
-            <div class="story-card__meta">
-              
-              <span class="story-card__category story-card__category--behind-the-scenes">Behind the Scenes</span>
-              
-              <span class="story-card__date">Jan 4, 2025</span>
-            </div>
-            <h3 class="story-card__title">The 3am Spark: How Ferni Started</h3>
-            <p class="story-card__excerpt">It wasn&#39;t a pitch deck or a market analysis. It was 3am, I couldn&#39;t sleep, and I just needed someone to talk to. This is the story of how a sleepless night turned into something real.</p>
-            <span class="story-card__read-more">
-              Read story
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
-            </span>
-          </div>
-        </a>
-      </article>
-      
-      
-      
-      <article class="story-card reveal" style="--delay: 0.6000000000000001s">
-        <a href="/building/voice-vs-text/" class="story-card__link">
-          <div class="story-card__content">
-            <div class="story-card__meta">
-              
-              <span class="story-card__category story-card__category--design-philosophy">Design Philosophy</span>
-              
-              <span class="story-card__date">Dec 9, 2024</span>
-            </div>
-            <h3 class="story-card__title">Why Voice First?</h3>
-            <p class="story-card__excerpt">The counterintuitive choice that defined Ferni&#39;s soul—and why we almost got it wrong.</p>
-            <span class="story-card__read-more">
-              Read story
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
-            </span>
-          </div>
-        </a>
-      </article>
-      
-      
-      
-      
-      
-      
-    </div>
-  </div>
-</section>
-
-
-<section class="building-philosophy">
-  <div class="container container--narrow">
-    <div class="building-philosophy__content">
-      <h2 class="building-philosophy__headline reveal">How we build</h2>
-      
-      <div class="building-philosophy__principles">
-        <div class="building-philosophy__principle reveal">
-          <div class="building-philosophy__principle-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-          </div>
-          <h3>Humans first</h3>
-          <p>Every feature asks: "Does this make someone's life better?" If not, we don't build it.</p>
-        </div>
-        
-        <div class="building-philosophy__principle reveal">
-          <div class="building-philosophy__principle-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M12 16v-4"/>
-              <path d="M12 8h.01"/>
-            </svg>
-          </div>
-          <h3>Radical honesty</h3>
-          <p>We share our mistakes publicly. Growth requires vulnerability—for AI and humans alike.</p>
-        </div>
-        
-        <div class="building-philosophy__principle reveal">
-          <div class="building-philosophy__principle-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
-            </svg>
-          </div>
-          <h3>Slow to grow</h3>
-          <p>Quality over scale. We'd rather help 100 people deeply than 10,000 people shallowly.</p>
-        </div>
-        
-        <div class="building-philosophy__principle reveal">
-          <div class="building-philosophy__principle-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
-            </svg>
-          </div>
-          <h3>Magic matters</h3>
-          <p>Tech should feel magical, not mechanical. If it doesn't spark joy, we redesign it.</p>
-        </div>
+    <div class="building-timeline__item">
+      <div class="building-timeline__dot building-timeline__dot--active" style="border-color: #c4856a; background: #c4856a;"></div>
+      <div class="building-timeline__content">
+        <div class="building-timeline__date" style="color: #c4856a;">Right Now</div>
+        <h3 class="building-timeline__milestone-title">Building in Public</h3>
+        <p class="building-timeline__text">Real conversations. Real growth. Real mistakes. We're sharing everything—the wins, the bugs, the 2am eureka moments.</p>
+        <span class="building-timeline__tag building-timeline__tag--active" style="background: #c4856a;">You Are Here</span>
       </div>
     </div>
   </div>
 </section>
 
 
-<section class="building-stats">
-  <div class="container">
-    <div class="building-stats__grid">
-      <div class="building-stats__stat reveal">
-        <span class="building-stats__value" data-count="1">0</span>
-        <span class="building-stats__label">Human builder</span>
-      </div>
-      <div class="building-stats__stat reveal">
-        <span class="building-stats__value" data-count="1">0</span>
-        <span class="building-stats__label">AI co-builder</span>
-      </div>
-      <div class="building-stats__stat reveal">
-        <span class="building-stats__value">∞</span>
-        <span class="building-stats__label">Late nights</span>
-      </div>
-      <div class="building-stats__stat reveal">
-        <span class="building-stats__value" data-count="0">0</span>
-        <span class="building-stats__label">Venture capital</span>
-      </div>
-    </div>
+<section class="building-stories">
+  <div class="building-stories__header">
+    <p class="building-timeline__eyebrow">Build Log</p>
+    <h2 class="building-timeline__title">Stories from the team</h2>
+    <p style="color: #6b6358; max-width: 500px; margin: 16px auto 0;">The unfiltered truth about building something new. Wins, fails, and everything between.</p>
   </div>
-</section>
-
-
-<section class="building-join">
-  <div class="container container--narrow">
-    <div class="building-join__content reveal-scale">
-      <div class="building-join__icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-          <circle cx="9" cy="7" r="4"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-        </svg>
-      </div>
-      <h2 class="building-join__headline">Want to be part of this?</h2>
-      <p class="building-join__text">
-        We're building in public because we believe the best ideas come from conversation. 
-        Got thoughts? Feedback? Want to share your Ferni experience? We're listening.
-      </p>
-      <div class="building-join__actions">
-        <a href="https://app.ferni.ai" class="btn btn--primary btn--lg">
-          Try Ferni free
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+  
+  <div class="building-stories__grid">
+    
+    <article class="story-card">
+      <a href="/building/the-garden-model/" class="story-card__link">
+        <div class="story-card__header">
+          <div class="story-card__avatar" style="background: #9a7b5a">
+            NP
+          </div>
+          <div class="story-card__meta">
+            <div class="story-card__author">Nayan</div>
+            <div class="story-card__date">Jan 21, 2025</div>
+          </div>
+        </div>
+        <h3 class="story-card__title">Why We Chose &quot;Seeds&quot; Over Subscriptions</h3>
+        <p class="story-card__excerpt">We could have called it Premium. Or Pro. We called it The Garden instead. Here&#39;s why Ferni&#39;s business model sounds weird—and why it matters.</p>
+        <span class="story-card__read">
+          Read story
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M5 12h14M12 5l7 7-7 7"/>
           </svg>
-        </a>
-        <a href="mailto:hello@ferni.ai?subject=Thoughts on Ferni" class="btn btn--secondary btn--lg">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-            <polyline points="22,6 12,13 2,6"/>
+        </span>
+      </a>
+    </article>
+    
+    <article class="story-card">
+      <a href="/building/designing-the-personas/" class="story-card__link">
+        <div class="story-card__header">
+          <div class="story-card__avatar" style="background: #5a6b8a">
+            AX
+          </div>
+          <div class="story-card__meta">
+            <div class="story-card__author">Alex</div>
+            <div class="story-card__date">Jan 17, 2025</div>
+          </div>
+        </div>
+        <h3 class="story-card__title">How We Designed the Six Personas</h3>
+        <p class="story-card__excerpt">Ferni wasn&#39;t always a team. The specialists—Maya, Peter, Alex, Jordan, Nayan—emerged organically from real conversations. Here&#39;s how six distinct personalities came to life.</p>
+        <span class="story-card__read">
+          Read story
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
           </svg>
-          Share your thoughts
-        </a>
-      </div>
-      <p class="building-join__note">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+        </span>
+      </a>
+    </article>
+    
+    <article class="story-card">
+      <a href="/building/first-big-failure/" class="story-card__link">
+        <div class="story-card__header">
+          <div class="story-card__avatar" style="background: #a67a6a">
+            MY
+          </div>
+          <div class="story-card__meta">
+            <div class="story-card__author">Maya</div>
+            <div class="story-card__date">Jan 11, 2025</div>
+          </div>
+        </div>
+        <h3 class="story-card__title">Our First Big Failure: The &quot;Smart&quot; Features Nobody Wanted</h3>
+        <p class="story-card__excerpt">We built something clever. Users hated it. Here&#39;s what happened when we tried to be too smart for our own good—and what we learned from listening.</p>
+        <span class="story-card__read">
+          Read story
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </span>
+      </a>
+    </article>
+    
+    <article class="story-card">
+      <a href="/building/claude-as-cobuilder/" class="story-card__link">
+        <div class="story-card__header">
+          <div class="story-card__avatar" style="background: #3a6b73">
+            PL
+          </div>
+          <div class="story-card__meta">
+            <div class="story-card__author">Peter</div>
+            <div class="story-card__date">Jan 7, 2025</div>
+          </div>
+        </div>
+        <h3 class="story-card__title">Claude as Co-Builder: The Strangest Partnership</h3>
+        <p class="story-card__excerpt">No engineering team. No designers. Just one human with a vision and one AI who could code. This is what it&#39;s actually like to build a company with an AI partner.</p>
+        <span class="story-card__read">
+          Read story
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </span>
+      </a>
+    </article>
+    
+    <article class="story-card">
+      <a href="/building/the-3am-spark/" class="story-card__link">
+        <div class="story-card__header">
+          <div class="story-card__avatar" style="background: #4a6741">
+            FE
+          </div>
+          <div class="story-card__meta">
+            <div class="story-card__author">Ferni</div>
+            <div class="story-card__date">Jan 4, 2025</div>
+          </div>
+        </div>
+        <h3 class="story-card__title">The 3am Spark: How Ferni Started</h3>
+        <p class="story-card__excerpt">It wasn&#39;t a pitch deck or a market analysis. It was 3am, I couldn&#39;t sleep, and I just needed someone to talk to. This is the story of how a sleepless night turned into something real.</p>
+        <span class="story-card__read">
+          Read story
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </span>
+      </a>
+    </article>
+    
+    <article class="story-card">
+      <a href="/building/voice-vs-text/" class="story-card__link">
+        <div class="story-card__header">
+          <div class="story-card__avatar" style="background: #c4856a">
+            JD
+          </div>
+          <div class="story-card__meta">
+            <div class="story-card__author">Jordan</div>
+            <div class="story-card__date">Dec 9, 2024</div>
+          </div>
+        </div>
+        <h3 class="story-card__title">Why Voice First?</h3>
+        <p class="story-card__excerpt">The counterintuitive choice that defined Ferni&#39;s soul—and why we almost got it wrong.</p>
+        <span class="story-card__read">
+          Read story
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </span>
+      </a>
+    </article>
+    
+    
+    
+  </div>
+</section>
+
+
+<section class="building-cta">
+  <svg class="building-cta__bg" viewBox="0 0 1440 400" preserveAspectRatio="xMidYMid slice">
+    <circle cx="100" cy="100" r="200" fill="white" opacity="0.05">
+      <animate attributeName="r" values="200;250;200" dur="8s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1300" cy="300" r="150" fill="white" opacity="0.08">
+      <animate attributeName="cy" values="300;250;300" dur="6s" repeatCount="indefinite"/>
+    </circle>
+    <path d="M0,200 Q360,100 720,200 T1440,200" stroke="white" stroke-width="1" fill="none" opacity="0.1"/>
+  </svg>
+  
+  <div class="building-cta__content">
+    <h2 class="building-cta__title">Want to be part of this?</h2>
+    <p class="building-cta__text">
+      We're building in public because we believe the best ideas come from conversation. Got thoughts? Feedback? We're listening.
+    </p>
+    <div class="building-cta__buttons">
+      <a href="https://app.ferni.ai" class="btn-cta btn-cta--primary">
+        Try Ferni Free
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
         </svg>
-        Every conversation makes Ferni better. Seriously.
-      </p>
+      </a>
+      <a href="mailto:hello@ferni.ai" class="btn-cta btn-cta--secondary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+          <polyline points="22,6 12,13 2,6"/>
+        </svg>
+        Share Your Thoughts
+      </a>
     </div>
   </div>
 </section>
@@ -824,67 +1239,6 @@
     </div>
   </div>
 </div>
-
-
-
-
-<script>
-(function() {
-  'use strict';
-  
-  // Particle animation for hero
-  const particlesContainer = document.getElementById('heroParticles');
-  if (particlesContainer) {
-    for (let i = 0; i < 30; i++) {
-      const particle = document.createElement('div');
-      particle.className = 'building-hero__particle';
-      particle.style.left = Math.random() * 100 + '%';
-      particle.style.top = Math.random() * 100 + '%';
-      particle.style.animationDelay = Math.random() * 5 + 's';
-      particle.style.animationDuration = (5 + Math.random() * 10) + 's';
-      particlesContainer.appendChild(particle);
-    }
-  }
-  
-  // Reveal animations
-  const reveals = document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale');
-  const revealObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('revealed');
-      }
-    });
-  }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
-  reveals.forEach(el => revealObserver.observe(el));
-  
-  // Animated counters
-  const counters = document.querySelectorAll('[data-count]');
-  const counterObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const el = entry.target;
-        const target = parseInt(el.dataset.count, 10);
-        const duration = 2000;
-        const start = performance.now();
-        
-        function update(now) {
-          const elapsed = now - start;
-          const progress = Math.min(elapsed / duration, 1);
-          const eased = 1 - Math.pow(1 - progress, 3);
-          const current = Math.floor(target * eased);
-          el.textContent = current;
-          if (progress < 1) requestAnimationFrame(update);
-        }
-        
-        requestAnimationFrame(update);
-        counterObserver.unobserve(el);
-      }
-    });
-  }, { threshold: 0.5 });
-  counters.forEach(el => counterObserver.observe(el));
-  
-})();
-</script>
 
 
 
