@@ -79,6 +79,7 @@ import {
 
 import {
   HANDOFF_TIMEOUT_MS,
+  MAX_HANDOFF_QUEUE_SIZE,
   getHandoffSessionState,
   startProgressHeartbeat,
   stopProgressHeartbeat,
@@ -425,6 +426,11 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
             }
 
             voiceSwitchSuccess = true;
+
+            // 🐛 FIX BUG-003: Wait 150ms after voice switch to ensure TTS is ready
+            // This prevents greeting from playing in wrong voice due to race condition
+            await new Promise<void>((resolve) => setTimeout(resolve, 150));
+
             diag.entry(
               `Voice switched to ${persona.name}, ready to speak${attempt > 0 ? ` (retry ${attempt})` : ''}`
             );
@@ -959,9 +965,9 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
       );
 
       // Add to queue (limit queue size to prevent memory issues)
-      // FIX ISSUE #5: Increased from 5 to 10 to handle rapid persona switches better
-      // (e.g., during testing or unusual conversation patterns)
-      if (state.pendingHandoffs.length < 10) {
+      // FIX ISSUE #5: Queue size is now a shared constant from session-state.ts
+      // FIX BUG #10: Use exported constant instead of hardcoded magic number
+      if (state.pendingHandoffs.length < MAX_HANDOFF_QUEUE_SIZE) {
         state.pendingHandoffs.push(data);
       } else {
         logger.warn(

@@ -29,6 +29,12 @@ export const HANDOFF_TIMEOUT_MS = 8000; // 8 seconds (UI is 10s)
  */
 export const MAX_PENDING_HANDOFFS = 10;
 
+/**
+ * Alias for consistency with other modules
+ * FIX BUG #10: Export both names for backwards compatibility
+ */
+export const MAX_HANDOFF_QUEUE_SIZE = MAX_PENDING_HANDOFFS;
+
 // ============================================================================
 // STATE ACCESSORS
 // ============================================================================

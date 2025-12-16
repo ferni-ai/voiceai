@@ -54,21 +54,31 @@ function loadAgentConfig(): AgentConfigFile {
   if (agentConfig) return agentConfig;
 
   try {
-    // Get the project root (navigate up from src/personas/registry)
+    // FIX BUG #9: Get the project root correctly
+    // Path is: src/personas/registry/unified-registry.ts
+    // Need to go up 3 levels to reach project root, then into data/
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = dirname(__filename);
-    const configPath = join(__dirname, '../../../data/agent-config.json');
+    // Try multiple paths for robustness (monorepo vs standalone)
+    const possiblePaths = [
+      join(__dirname, '../../../data/agent-config.json'),  // Standard: from src/personas/registry
+      join(__dirname, '../../../../data/agent-config.json'), // If in deeper nested structure
+      join(process.cwd(), 'data/agent-config.json'),  // From CWD (most reliable in production)
+    ];
 
-    if (existsSync(configPath)) {
-      const content = readFileSync(configPath, 'utf-8');
-      agentConfig = JSON.parse(content) as AgentConfigFile;
-      getLogger().debug({ config: agentConfig }, 'Loaded agent config');
-    } else {
-      getLogger().debug('No agent-config.json found, all agents enabled');
-      agentConfig = { disabledAgents: [] };
+    for (const configPath of possiblePaths) {
+      if (existsSync(configPath)) {
+        const content = readFileSync(configPath, 'utf-8');
+        agentConfig = JSON.parse(content) as AgentConfigFile;
+        getLogger().debug({ configPath, config: agentConfig }, 'Loaded agent config');
+        return agentConfig;
+      }
     }
+
+    getLogger().debug({ triedPaths: possiblePaths }, 'No agent-config.json found, all agents enabled');
+    agentConfig = { disabledAgents: [] };
   } catch (error) {
-    getLogger().warn({ error }, 'Failed to load agent-config.json, defaulting to all enabled');
+    getLogger().warn({ error: String(error) }, 'Failed to load agent-config.json, defaulting to all enabled');
     agentConfig = { disabledAgents: [] };
   }
 

@@ -23,6 +23,8 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { isTeamMemberUnlocked } from '../../intelligence/context-builders/team-availability.js';
+// FIX BUG #6: Import normalizeAgentIdSync for robust ID matching
+import { normalizeAgentIdSync } from '../../personas/agent-directory.js';
 import { isCoach } from '../../personas/persona-ids.js';
 import { AgentRegistry, type Agent } from '../../personas/registry/unified-registry.js';
 import { TEAM_MEMBERS } from '../../services/team-unlocks.js';
@@ -209,7 +211,8 @@ export async function createHandoffTools(currentAgentId?: string): Promise<Hando
 
     return toolSet;
   } catch (err) {
-    getLogger().error({ error: err }, 'Failed to generate handoff tools');
+    // FIX BUG #11: Proper error type narrowing
+    getLogger().error({ error: String(err) }, 'Failed to generate handoff tools');
     throw err;
   }
 }
@@ -438,9 +441,15 @@ export async function buildHandoffTools(
         //
         // This is critical for unlock validation - build time may not have profile data,
         // but runtime context always should (after user joins session)
-        const ctx = (
-          runContext as { ctx?: { userData?: { services?: { userProfile?: UserProfile | null } } } }
-        )?.ctx;
+        //
+        // 🐛 FIX BUG-008: Include recentMessages and conversationTopics in type for clearing
+        type RuntimeUserData = {
+          services?: { userProfile?: UserProfile | null; sessionId?: string };
+          recentMessages?: Array<{ role: 'user' | 'assistant'; content: string }>;
+          conversationTopics?: string[];
+          lastEmotionAnalysis?: { primary: string; intensity: number };
+        };
+        const ctx = (runContext as { ctx?: { userData?: RuntimeUserData } })?.ctx;
         const userData = ctx?.userData;
         const runtimeUserProfile = userData?.services?.userProfile || userProfile || null;
         const runtimeTier =
@@ -461,15 +470,36 @@ export async function buildHandoffTools(
           `🔍 Handoff tool runtime context for ${def.agentName}`
         );
 
+        // FIX BUG: Extract conversation context for cognitive handoff
+        // This ensures the receiving persona gets cognitive context about the user
+        const emotionalState = userData?.lastEmotionAnalysis?.primary || 'neutral';
+        const topics = userData?.conversationTopics || [];
+        const recentMessages = userData?.recentMessages || [];
+        const sessionId = userData?.services?.sessionId;
+
         // Use the generic executor with runtime user context for unlock validation
+        // NOW INCLUDES cognitive handoff context!
         const result = await executeHandoff(def.agentId, reason, {
           context: context_summary ? { summary: context_summary } : undefined,
           userProfile: runtimeUserProfile,
           subscriptionTier: runtimeTier,
+          // Pass conversation context for cognitive handoff
+          emotionalState,
+          topics,
+          recentMessages,
+          sessionId,
         });
 
         if (!result.success) {
           return { error: result.error, rateLimited: result.rateLimited };
+        }
+
+        // 🐛 FIX BUG-008: Clear stale conversation context after successful handoff
+        // Without this, the new persona would see messages from the previous persona's conversation
+        if (userData) {
+          userData.recentMessages = [];
+          userData.conversationTopics = [];
+          // Note: We preserve lastEmotionAnalysis as it's useful context for the new persona
         }
 
         // FIX: The executor now waits for handler completion, so we use actual result values.
@@ -620,16 +650,17 @@ Example flow:
         .describe('What you just said to introduce them (used to time the visual reveal)'),
     }),
     execute: async ({ memberId, spoken_intro }, _runContext) => {
-      // Find the team member
+      // FIX BUG #6: Use normalized ID matching for robust ID comparison
+      // This handles all ID formats: maya-santos, maya_santos, Maya, etc.
+      const normalizedInput = normalizeAgentIdSync(memberId);
       const member = TEAM_MEMBERS.find(
-        (m) =>
-          m.memberId === memberId || m.memberId.replace(/-/g, '_') === memberId.replace(/-/g, '_')
+        (m) => normalizeAgentIdSync(m.memberId) === normalizedInput
       );
 
       if (!member) {
         return {
           success: false,
-          error: `Unknown team member: ${memberId}`,
+          error: `Unknown team member: ${memberId} (normalized: ${normalizedInput})`,
         };
       }
 

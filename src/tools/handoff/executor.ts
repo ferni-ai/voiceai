@@ -36,6 +36,7 @@ import {
   type CognitiveHandoffContext,
 } from './cognitive-handoff.js';
 import { createHandoffEvent } from './types.js';
+import { HANDOFF_TIMING } from '../../config/handoff-timing.js';
 // FIX BUG: Import state management from state.ts to keep state in sync
 // FIX BUG: Import handoffEvents from state.ts instead of creating a duplicate!
 // The handler in voice-agent.ts registers on state.ts's EventEmitter,
@@ -45,9 +46,12 @@ import {
   handoffEvents,
   isHandoffAllowed,
   isSameAgent, // Use the shared EventEmitter from state.ts
+  recordHandoff as recordHandoffToState,
   resetHandoffState as resetStateHandoffState,
   setCurrentAgent,
 } from './state.js';
+// FIX BUG #12: Import HandoffRecord from types.ts instead of duplicating
+import type { HandoffRecord } from './types.js';
 
 // ============================================================================
 // HANDOFF STATE
@@ -57,51 +61,15 @@ import {
 // See FIX BUG comment above - executor.ts was maintaining its own state
 // which caused getAgentContext() to return wrong identity after handoffs
 
-/** Last handoff timestamp (for rate limiting) */
-let lastHandoffTimestamp = 0;
-
-/** Minimum time between handoffs (ms) */
-const HANDOFF_COOLDOWN_MS = 2000;
+// FIX BUG #2: Remove duplicate lastHandoffTimestamp - use shared state from state.ts
+// The isHandoffAllowed() function from state.ts handles rate limiting with HANDOFF_TIMING.DEBOUNCE_MS
 
 // NOTE: handoffEvents is now imported from state.ts to ensure a single shared instance
 // Previously, this module had its own EventEmitter which caused events to be emitted
 // on a different instance than where handlers were registered.
 
-// ============================================================================
-// HANDOFF RECORD TRACKING
-// ============================================================================
-
-interface HandoffRecord {
-  timestamp: number;
-  from: AgentId;
-  to: AgentId;
-  reason: string;
-  duration?: number;
-}
-
-const handoffHistory: HandoffRecord[] = [];
-const MAX_HISTORY_LENGTH = 50;
-
-function recordHandoff(from: AgentId, to: AgentId, reason: string): void {
-  const now = Date.now();
-  const lastRecord = handoffHistory[handoffHistory.length - 1];
-
-  const record: HandoffRecord = {
-    timestamp: now,
-    from,
-    to,
-    reason,
-    duration: lastRecord ? now - lastRecord.timestamp : undefined,
-  };
-
-  handoffHistory.push(record);
-
-  if (handoffHistory.length > MAX_HISTORY_LENGTH) {
-    handoffHistory.shift();
-  }
-
-  getLogger().debug({ handoff: record }, 'Handoff recorded');
-}
+// FIX BUG #2: Delegate to state.ts for handoff recording to maintain single source of truth
+// The recordHandoffToState function handles history tracking and rate limiting updates
 
 // ============================================================================
 // HANDOFF CONTEXT
@@ -207,11 +175,10 @@ export { getCurrentAgent, isHandoffAllowed, isSameAgent, setCurrentAgent };
  * Resets both executor and state.js state (including rate limiting)
  */
 export function resetHandoffState(): void {
-  // Reset state.js state (includes rate limiting, current agent, met personas, etc.)
+  // FIX BUG #2: Delegate all state to state.ts for single source of truth
+  // state.ts handles: rate limiting, current agent, met personas, handoff history
   resetStateHandoffState();
-  // Reset executor-specific state
-  lastHandoffTimestamp = 0;
-  handoffHistory.length = 0;
+  // Reset executor-specific state (conversation context only)
   conversationContext = null;
   getLogger().info('Handoff state reset');
 }
@@ -379,15 +346,15 @@ export async function executeHandoff(
   try {
     agent = await AgentRegistry.getAgentOrNull(canonicalTargetId);
   } catch (err) {
-    getLogger().warn({ targetAgentId, error: err }, 'Failed to get agent from registry');
+    // FIX BUG #11: Proper error type narrowing
+    getLogger().warn({ targetAgentId, error: String(err) }, 'Failed to get agent from registry');
   }
 
   // Get display name
   const targetAgentName = agent?.name || getPersonaDisplayName(canonicalTargetId);
 
-  // Record the handoff
-  lastHandoffTimestamp = Date.now();
-  recordHandoff(previousAgent, canonicalTargetId as AgentId, reason);
+  // FIX BUG #2: Record the handoff via state.ts (updates rate limiting timestamp too)
+  recordHandoffToState(previousAgent, canonicalTargetId as AgentId, reason);
 
   // FIX BUG #6: Capture conversation context if provided
   // This ensures the new persona has awareness of what was just discussed
@@ -423,7 +390,8 @@ export async function executeHandoff(
   try {
     voiceId = getVoiceId(canonicalTargetId);
   } catch (err) {
-    getLogger().warn({ targetAgentId }, 'Could not get voice ID');
+    // FIX BUG #11: Proper error type narrowing
+    getLogger().warn({ targetAgentId, error: String(err) }, 'Could not get voice ID');
   }
 
   // Build instructions for the new agent
@@ -455,7 +423,7 @@ export async function executeHandoff(
 
   // FIX: Wait for handler to complete before returning to LLM
   // This prevents race conditions where LLM responds before greeting is spoken
-  const HANDOFF_HANDLER_TIMEOUT_MS = 15000; // 15 second timeout
+  // FIX BUG #2 & #8: Use shared HANDOFF_TIMING constant
 
   const handlerCompletePromise = new Promise<{
     success: boolean;
@@ -463,16 +431,9 @@ export async function executeHandoff(
     instructionsUpdated: boolean;
     error?: string;
   }>((resolve) => {
-    // Set up timeout
-    const timeoutId = setTimeout(() => {
-      getLogger().warn(
-        { targetId: canonicalTargetId },
-        '⚠️ Handoff handler timeout - proceeding without confirmation'
-      );
-      resolve({ success: true, greetingSpoken: false, instructionsUpdated: false });
-    }, HANDOFF_HANDLER_TIMEOUT_MS);
+    // FIX BUG #8: Track listener so we can always clean it up
+    let listenerRemoved = false;
 
-    // Listen for handler completion
     const onComplete = (completionData: {
       targetId: string;
       success: boolean;
@@ -482,10 +443,26 @@ export async function executeHandoff(
     }) => {
       if (completionData.targetId === canonicalTargetId) {
         clearTimeout(timeoutId);
-        handoffEvents.off('handoffHandlerComplete', onComplete);
+        if (!listenerRemoved) {
+          handoffEvents.off('handoffHandlerComplete', onComplete);
+          listenerRemoved = true;
+        }
         resolve(completionData);
       }
     };
+
+    // Set up timeout - FIX BUG #8: Remove listener on timeout to prevent leak
+    const timeoutId = setTimeout(() => {
+      getLogger().warn(
+        { targetId: canonicalTargetId },
+        '⚠️ Handoff handler timeout - proceeding without confirmation'
+      );
+      if (!listenerRemoved) {
+        handoffEvents.off('handoffHandlerComplete', onComplete);
+        listenerRemoved = true;
+      }
+      resolve({ success: true, greetingSpoken: false, instructionsUpdated: false });
+    }, HANDOFF_TIMING.HANDOFF_TIMEOUT_MS);
 
     handoffEvents.on('handoffHandlerComplete', onComplete);
   });
@@ -557,7 +534,8 @@ async function generateHandoffGreeting(
       return aliveEntrance;
     }
   } catch (err) {
-    getLogger().warn({ error: err }, 'Could not get ALIVE entrance');
+    // FIX BUG #11: Proper error type narrowing
+    getLogger().warn({ error: String(err) }, 'Could not get ALIVE entrance');
   }
 
   // Fall back to a generic greeting with cognitive enhancement
@@ -756,20 +734,15 @@ INSTRUCTIONS:
 }
 
 // ============================================================================
-// UTILITY EXPORTS
+// UTILITY EXPORTS - FIX BUG #2: Delegate to state.ts for single source of truth
 // ============================================================================
 
-export function getHandoffHistory(): readonly HandoffRecord[] {
-  return [...handoffHistory];
-}
-
-export function getLastHandoff(): HandoffRecord | undefined {
-  return handoffHistory[handoffHistory.length - 1];
-}
-
-export function clearHandoffHistory(): void {
-  handoffHistory.length = 0;
-}
+// Re-export history functions from state.ts
+export {
+  getHandoffHistory,
+  getLastHandoff,
+  clearHandoffHistory,
+} from './state.js';
 
 // ============================================================================
 // EXPORTS

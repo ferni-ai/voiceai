@@ -135,6 +135,8 @@ export function isSameAgent(id1: string, id2: string): boolean {
  * Returns true if handoff is allowed, false if too soon after last handoff.
  *
  * REFACTORED: Uses shared HANDOFF_TIMING constants from design system.
+ * FIX BUG #2: No longer updates timestamp here - that's done in recordHandoff()
+ * This prevents the timestamp being updated when we're just checking (not executing)
  */
 export function isHandoffAllowed(): boolean {
   const now = Date.now();
@@ -151,7 +153,8 @@ export function isHandoffAllowed(): boolean {
     return false;
   }
 
-  lastHandoffTimestamp = now;
+  // FIX BUG #2: Don't update timestamp here - recordHandoff() does that
+  // This function is purely for checking, not recording
   return true;
 }
 
@@ -203,15 +206,39 @@ export function isCurrentAgent(agentId: string): boolean {
 // ============================================================================
 
 /**
- * Record a handoff in history
+ * Record a handoff in history (full record version)
  */
-export function recordHandoff(record: HandoffRecord): void {
+export function recordHandoffRecord(record: HandoffRecord): void {
   handoffHistory.push(record);
 
   // Trim history if too long
   if (handoffHistory.length > MAX_HISTORY_LENGTH) {
     handoffHistory.shift();
   }
+}
+
+/**
+ * Record a handoff in history (convenience version with separate params)
+ * FIX BUG #2: Also updates rate limiting timestamp for single source of truth
+ */
+export function recordHandoff(from: AgentId, to: AgentId, reason: string): void {
+  const now = Date.now();
+  const lastRecord = handoffHistory[handoffHistory.length - 1];
+
+  const record: HandoffRecord = {
+    timestamp: now,
+    from,
+    to,
+    reason,
+    duration: lastRecord ? now - lastRecord.timestamp : undefined,
+  };
+
+  // FIX BUG #2: Update rate limiting timestamp here (single source of truth)
+  lastHandoffTimestamp = now;
+
+  recordHandoffRecord(record);
+
+  getLogger().debug({ handoff: record }, 'Handoff recorded');
 }
 
 /**
@@ -640,13 +667,28 @@ export async function getAgentContextAsync(): Promise<string> {
 
 /**
  * Internal: Fetch context in background and cache it
+ * FIX BUG #12: Added retry logic for robustness against transient failures
  */
-async function fetchAgentContextAsync(agentId: string): Promise<void> {
+async function fetchAgentContextAsync(agentId: string, retryCount = 0): Promise<void> {
+  const MAX_RETRIES = 2;
+  const RETRY_DELAY_MS = 100;
+
   try {
     const context = await AgentDirectory.getLLMContext(agentId);
     cachedAgentContext = { agentId, context };
   } catch (error) {
-    getLogger().warn({ error, agentId }, 'Failed to fetch agent context from manifest');
+    if (retryCount < MAX_RETRIES) {
+      getLogger().debug(
+        { error: String(error), agentId, attempt: retryCount + 1 },
+        'Agent context fetch failed, retrying...'
+      );
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * (retryCount + 1)));
+      return fetchAgentContextAsync(agentId, retryCount + 1);
+    }
+    getLogger().warn(
+      { error: String(error), agentId, attempts: MAX_RETRIES + 1 },
+      'Failed to fetch agent context from manifest after retries'
+    );
   }
 }
 
@@ -672,9 +714,35 @@ export function suggestHandoff(userInput: string): {
   return { suggest: false, to: null, reason: null };
 }
 
-// FIX BUG #7: Module-level cache for team data to enable sync access
+// FIX BUG #4 & #7: Module-level cache for team data to enable sync access
 let cachedTeamForHandoff: Array<{ id: AgentId; name: string; specialty: string }> | null = null;
 let teamCachePromise: Promise<void> | null = null;
+
+/**
+ * FIX BUG #4: Eagerly load team cache at module initialization
+ * This ensures getTeamForHandoff() returns real data on first call
+ * instead of hardcoded fallback
+ */
+function initializeTeamCache(): void {
+  if (teamCachePromise) return; // Already loading
+
+  teamCachePromise = AgentDirectory.getTeamForHandoff()
+    .then((team) => {
+      cachedTeamForHandoff = team.map((t) => ({
+        id: t.id as AgentId,
+        name: t.name,
+        specialty: t.specialty,
+      }));
+      getLogger().debug({ count: cachedTeamForHandoff.length }, 'Team for handoff cache loaded');
+    })
+    .catch((err) => {
+      getLogger().warn({ error: String(err) }, 'Failed to load team for handoff');
+      teamCachePromise = null; // Allow retry
+    });
+}
+
+// FIX BUG #4: Start loading team cache immediately at module load
+void initializeTeamCache();
 
 /**
  * Get all available team members for handoff.
@@ -682,41 +750,26 @@ let teamCachePromise: Promise<void> | null = null;
  * REFACTORED: Now delegates to AgentDirectory.
  * No hardcoded team list - discovered from manifests!
  *
- * FIX BUG #7: Now returns cached data instead of empty array.
- * First call triggers async load, subsequent calls return cached data.
+ * FIX BUG #4 & #7: Eagerly loads at module init, returns minimal fallback only if needed.
+ * First call usually has cached data from eager load.
  */
 export function getTeamForHandoff(): Array<{ id: AgentId; name: string; specialty: string }> {
-  // Return cached data if available
+  // Return cached data if available (should be ready from eager load)
   if (cachedTeamForHandoff) {
     return cachedTeamForHandoff;
   }
 
   // Trigger async load if not already in progress
   if (!teamCachePromise) {
-    teamCachePromise = AgentDirectory.getTeamForHandoff()
-      .then((team) => {
-        cachedTeamForHandoff = team.map((t) => ({
-          id: t.id as AgentId,
-          name: t.name,
-          specialty: t.specialty,
-        }));
-        getLogger().debug({ count: cachedTeamForHandoff.length }, 'Team for handoff cache loaded');
-      })
-      .catch((err) => {
-        getLogger().warn({ error: err }, 'Failed to load team for handoff');
-        teamCachePromise = null; // Allow retry
-      });
+    initializeTeamCache();
   }
 
-  // Return fallback team while loading
-  // This ensures the first call isn't empty
+  // FIX BUG #4: Return minimal fallback (coordinator only) while loading
+  // This prevents returning a hardcoded full team that could become stale
+  // The real team will be loaded shortly from AgentDirectory
+  getLogger().warn('Team cache not ready - returning coordinator fallback');
   return [
-    { id: 'ferni' as AgentId, name: 'Ferni', specialty: 'life coaching and team coordination' },
-    { id: 'peter-john' as AgentId, name: 'Peter', specialty: 'stock picking and research' },
-    { id: 'alex-chen' as AgentId, name: 'Alex', specialty: 'communication and writing' },
-    { id: 'maya-santos' as AgentId, name: 'Maya', specialty: 'habits and routines' },
-    { id: 'jordan-taylor' as AgentId, name: 'Jordan', specialty: 'event planning' },
-    { id: 'nayan-patel' as AgentId, name: 'Nayan', specialty: 'wisdom and philosophy' },
+    { id: 'ferni' as AgentId, name: 'Ferni', specialty: 'team coordinator' },
   ];
 }
 
