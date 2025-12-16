@@ -118,6 +118,10 @@ export class FirestoreVectorStore implements IVectorStore {
   private readonly MAX_RECOVERY_ATTEMPTS = 10;
   private recoveryTimer: ReturnType<typeof setInterval> | null = null;
 
+  // FIX AUDIT ISSUE: Limit fallback cache size to prevent unbounded memory growth
+  // 768-dim floats × 10,000 docs ≈ 30MB max memory usage
+  private readonly MAX_FALLBACK_CACHE_SIZE = 10_000;
+
   constructor(config?: FirestoreVectorConfig) {
     this.config = {
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
@@ -280,6 +284,34 @@ export class FirestoreVectorStore implements IVectorStore {
   }
 
   /**
+   * FIX AUDIT ISSUE: Add to fallback cache with size limit enforcement
+   * Uses LRU-style eviction when cache is full
+   */
+  private addToFallbackCache(
+    id: string,
+    doc: VectorDocument,
+    embedding: number[]
+  ): void {
+    // Evict oldest entries if at capacity
+    if (this.fallbackCache.size >= this.MAX_FALLBACK_CACHE_SIZE) {
+      // Remove oldest entries (first 10% of cache)
+      const toEvict = Math.ceil(this.MAX_FALLBACK_CACHE_SIZE * 0.1);
+      let evicted = 0;
+      for (const key of this.fallbackCache.keys()) {
+        if (evicted >= toEvict) break;
+        this.fallbackCache.delete(key);
+        evicted++;
+      }
+      getLogger().warn(
+        { evicted, remaining: this.fallbackCache.size },
+        'Evicted entries from fallback cache due to size limit'
+      );
+    }
+
+    this.fallbackCache.set(id, { doc: { ...doc, embedding }, embedding });
+  }
+
+  /**
    * FIX AUDIT ISSUE: Schedule periodic recovery attempts when in fallback mode
    */
   private scheduleRecoveryAttempt(): void {
@@ -438,8 +470,8 @@ export class FirestoreVectorStore implements IVectorStore {
     }
 
     if (this.useFallback || !this.db) {
-      // Fallback: store in memory
-      this.fallbackCache.set(doc.id, { doc: { ...doc, embedding }, embedding });
+      // Fallback: store in memory with size limit
+      this.addToFallbackCache(doc.id, doc, embedding);
       getLogger().debug(`Added document to fallback cache: ${doc.id}`);
       return;
     }
@@ -461,8 +493,8 @@ export class FirestoreVectorStore implements IVectorStore {
       getLogger().debug(`Added document to Firestore vectors: ${doc.id}`);
     } catch (error) {
       getLogger().error(`Failed to add document ${doc.id}: ${error}`);
-      // Fallback to memory
-      this.fallbackCache.set(doc.id, { doc: { ...doc, embedding }, embedding });
+      // Fallback to memory with size limit
+      this.addToFallbackCache(doc.id, doc, embedding);
     }
   }
 

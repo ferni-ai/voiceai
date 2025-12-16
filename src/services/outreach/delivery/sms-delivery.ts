@@ -81,6 +81,12 @@ const SMS_CONCAT_LIMIT = 1600; // 10 segments max
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [30_000, 60_000, 180_000]; // 30s, 1m, 3m
 
+// Cleanup configuration - prevent unbounded memory growth
+const MAX_DELIVERY_RECORDS = 10_000; // Max records to keep in memory
+const RECORD_TTL_HOURS = 24; // Records older than this are cleaned up
+const CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // Run cleanup every hour
+let cleanupInterval: NodeJS.Timeout | null = null;
+
 // ============================================================================
 // INITIALIZATION
 // ============================================================================
@@ -93,6 +99,17 @@ export function initializeSMSDelivery(deliveryConfig: SMSDeliveryConfig): void {
 
   try {
     twilioClient = Twilio(config.twilioAccountSid, config.twilioAuthToken);
+
+    // Start periodic cleanup to prevent memory leaks
+    if (!cleanupInterval) {
+      // Initial cleanup of any stale records
+      runRecordCleanup();
+
+      cleanupInterval = setInterval(() => {
+        runRecordCleanup();
+      }, CLEANUP_INTERVAL_MS);
+    }
+
     log.info('✅ SMS Delivery initialized');
   } catch (error) {
     log.error({ error }, 'Failed to initialize Twilio client');
@@ -433,9 +450,8 @@ export function cancelPendingRetry(outreachId: string): boolean {
 /**
  * Clear old delivery records
  */
-export function clearOldRecords(maxAgeDays = 30): number {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - maxAgeDays);
+export function clearOldRecords(maxAgeHours = RECORD_TTL_HOURS): number {
+  const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000);
 
   let cleared = 0;
   for (const [sid, record] of deliveryRecords) {
@@ -446,21 +462,71 @@ export function clearOldRecords(maxAgeDays = 30): number {
   }
 
   if (cleared > 0) {
-    log.info({ cleared }, 'Cleared old SMS delivery records');
+    log.info({ cleared, maxAgeHours }, 'Cleared old SMS delivery records');
   }
 
   return cleared;
 }
 
 /**
+ * Enforce max size limit by removing oldest records
+ */
+function enforceMaxSize(): number {
+  if (deliveryRecords.size <= MAX_DELIVERY_RECORDS) {
+    return 0;
+  }
+
+  // Sort by sentAt and keep only the newest MAX_DELIVERY_RECORDS
+  const sorted = Array.from(deliveryRecords.entries()).sort(
+    ([, a], [, b]) => b.sentAt.getTime() - a.sentAt.getTime()
+  );
+
+  const toRemove = sorted.slice(MAX_DELIVERY_RECORDS);
+  for (const [sid] of toRemove) {
+    deliveryRecords.delete(sid);
+  }
+
+  log.info(
+    { removed: toRemove.length, remaining: deliveryRecords.size },
+    'Enforced max delivery records limit'
+  );
+
+  return toRemove.length;
+}
+
+/**
+ * Run periodic record cleanup (TTL + size limit)
+ */
+function runRecordCleanup(): void {
+  const ttlCleared = clearOldRecords();
+  const sizeCleared = enforceMaxSize();
+
+  if (ttlCleared > 0 || sizeCleared > 0) {
+    log.debug(
+      { ttlCleared, sizeCleared, remaining: deliveryRecords.size },
+      'SMS delivery record cleanup complete'
+    );
+  }
+}
+
+/**
  * Shutdown SMS delivery
  */
 export function shutdownSMSDelivery(): void {
+  // Stop cleanup interval
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
+  }
+
   // Cancel all pending retries
-  for (const [id, timeout] of pendingRetries) {
+  for (const [, timeout] of pendingRetries) {
     clearTimeout(timeout);
   }
   pendingRetries.clear();
+
+  // Clear delivery records
+  deliveryRecords.clear();
 
   log.info('SMS delivery shut down');
 }
