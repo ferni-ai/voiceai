@@ -1790,7 +1790,8 @@ button {
   gap: var(--space-4);
   margin: var(--space-8) auto;
   max-width: 300px;
-  color: rgba(255, 255, 255, 0.3);
+  /* 4.89:1 contrast on dark bg - WCAG AA compliant */
+  color: rgba(255, 255, 255, 0.5);
   font-family: var(--font-body);
   font-size: 0.875rem;
 }
@@ -2114,7 +2115,8 @@ button {
 
 .showcase__app-status {
   font-size: 12px;
-  color: var(--color-ferni-green);
+  /* Use lighter green for dark backgrounds - 5.68:1 contrast on #2c2520 */
+  color: var(--color-dark-accent, #8fa67a);
 }
 
 .showcase__app-chat {
@@ -4921,7 +4923,9 @@ img[loading='lazy']:not([data-src]) {
   background: var(--color-ferni);
 }
 .journey__avatar--maya {
-  background: var(--color-maya);
+  /* Use secondary (darker) color for better contrast - 5.23:1 with white */
+  background: var(--color-maya-secondary);
+  color: white;
 }
 .journey__avatar--peter {
   background: var(--color-peter);
@@ -4931,9 +4935,13 @@ img[loading='lazy']:not([data-src]) {
 }
 .journey__avatar--jordan {
   background: var(--color-jordan);
+  /* Use dark text for lighter background - 5.3:1 contrast */
+  color: var(--color-natural-ink);
 }
 .journey__avatar--nayan {
   background: var(--color-nayan);
+  /* Use dark text for lighter background - 4.8:1 contrast */
+  color: var(--color-natural-ink);
 }
 
 .journey__stage-unlock span {

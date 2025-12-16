@@ -555,8 +555,8 @@
             maxlength="200"
             data-persona="${personaId}"
           />
-          <button class="team-card__preview-btn" data-persona="${personaId}">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <button class="team-card__preview-btn" data-persona="${personaId}" aria-label="Send message to ${this.getPersonaName(personaId)}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true">
               <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
             </svg>
           </button>
