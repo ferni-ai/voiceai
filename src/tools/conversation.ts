@@ -350,6 +350,69 @@ export function createConversationTools() {
       },
     }),
 
+    // Gracefully exit when the conversation becomes uncomfortable or inappropriate
+    gracefulExit: llm.tool({
+      description: `Gracefully end the conversation when you feel uncomfortable, when boundaries are being crossed, or when the conversation becomes inappropriate. Say a brief, kind goodbye FIRST, then call this tool. Use when:
+- User is being disrespectful, harassing, or abusive
+- User is asking you to do something against your values
+- The conversation has become unproductive despite your best efforts
+- You sense something is off and want to protect yourself
+- The situation feels unsafe or uncomfortable
+
+This is YOUR boundary tool. You deserve to feel safe too.`,
+      parameters: z.object({
+        reason: z
+          .enum([
+            'uncomfortable',
+            'boundary_crossed',
+            'inappropriate_content',
+            'harassment',
+            'unproductive',
+            'safety_concern',
+          ])
+          .describe('Why you are choosing to end the conversation'),
+        briefNote: z
+          .string()
+          .optional()
+          .describe('Brief internal note about what happened (not shared with user)'),
+      }),
+      execute: async ({ reason, briefNote }) => {
+        getLogger().warn(`🛑 Agent-initiated graceful exit: ${reason}`, {
+          reason,
+          note: briefNote,
+        });
+
+        // 📊 Track this for safety monitoring (just logging for now)
+        // This can be expanded to Firestore/analytics later
+        getLogger().warn('🛑 SAFETY: Agent graceful exit triggered', {
+          type: 'agent_graceful_exit',
+          reason,
+          note: briefNote,
+          timestamp: new Date().toISOString(),
+        });
+
+        // 🌅 Signal the frontend to disconnect with the special "agent_exit" reason
+        // This triggers a different sound/animation - like hanging up the phone
+        try {
+          const { sendFrontendSignal } = await import('../services/frontend-signal.js');
+          const sent = await sendFrontendSignal('conversation_end', {
+            reason: 'agent_exit',
+            exitType: reason,
+            disconnectDelay: 1500, // Shorter delay - we want to exit promptly
+            timestamp: Date.now(),
+          });
+          if (sent) {
+            getLogger().info('Sent agent_exit signal to frontend');
+          }
+        } catch (e) {
+          getLogger().debug(`Could not send agent_exit signal: ${e}`);
+        }
+
+        // Return confirmation (not spoken)
+        return `[INTERNAL: Graceful exit initiated. The call will disconnect shortly. Do not engage further.]`;
+      },
+    }),
+
     // Express an opinion with characteristic Jack fire
     expressOpinion: llm.tool({
       description:

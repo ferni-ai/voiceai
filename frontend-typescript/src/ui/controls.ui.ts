@@ -233,6 +233,7 @@ function updateWrapUpState(isWrappingUp: boolean): void {
     removeClass(elements.disconnectBtn, 'btn-wrap-up');
     removeClass(elements.disconnectBtn, 'btn-attention');
     removeClass(elements.disconnectBtn, 'btn-closing'); // Clear closing state too
+    removeClass(elements.disconnectBtn, 'btn-agent-hangup'); // Clear agent hangup state too
 
     // Reset button text
     const textSpan = elements.disconnectBtn.querySelector('.btn-text');
@@ -262,6 +263,31 @@ export function showClosingState(): void {
   }
 
   // Disable the button during ceremony
+  elements.disconnectBtn.disabled = true;
+}
+
+/**
+ * 📞 Show the "agent hangup" state on the disconnect button.
+ * Called when Ferni/agent chooses to end the conversation.
+ * More tactile "button pressed" animation - like hanging up a phone.
+ */
+export function showAgentHangupState(): void {
+  if (!elements?.disconnectBtn) return;
+
+  // Remove any existing states
+  removeClass(elements.disconnectBtn, 'btn-attention');
+  removeClass(elements.disconnectBtn, 'btn-closing');
+
+  // Add agent hangup state - tactile button press
+  addClass(elements.disconnectBtn, 'btn-agent-hangup');
+
+  // Brief text change
+  const textSpan = elements.disconnectBtn.querySelector('.btn-text');
+  if (textSpan) {
+    textSpan.textContent = 'Ending...';
+  }
+
+  // Disable the button
   elements.disconnectBtn.disabled = true;
 }
 
@@ -307,6 +333,7 @@ export const controlsUI = {
   init: initControlsUI,
   setConnecting,
   showClosingState, // 🌅 For goodbye ceremony
+  showAgentHangupState, // 📞 For agent-initiated disconnect
   dispose,
 };
 
