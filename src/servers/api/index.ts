@@ -6,6 +6,9 @@
 
 import 'dotenv/config';
 import http from 'http';
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'APIServer' });
 
 // Shared utilities
 import { setCorsHeaders, handleCorsPreflightRequest } from '../shared/cors.js';
@@ -94,9 +97,7 @@ const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
 
 if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
-  console.error(
-    '❌ Missing required environment variables: LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET'
-  );
+  log.error('Missing required environment variables: LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET');
   process.exit(1);
 }
 
@@ -183,7 +184,7 @@ const server = http.createServer(async (req, res) => {
     const engagementHandled = await handleEngagementRoutes(req, res, pathname, parsedUrl);
     if (engagementHandled) return;
   } catch (err) {
-    console.error('❌ Engagement route error:', err);
+    log.error({ error: String(err) }, 'Engagement route error');
   }
 
   try {
@@ -193,7 +194,7 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
   } catch (err) {
-    console.error('❌ Marketplace route error:', err);
+    log.error({ error: String(err) }, 'Marketplace route error');
   }
 
   try {
@@ -205,7 +206,7 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
   } catch (err) {
-    console.error('❌ Marketplace admin route error:', err);
+    log.error({ error: String(err) }, 'Marketplace admin route error');
   }
 
   try {
@@ -213,7 +214,7 @@ const server = http.createServer(async (req, res) => {
     const diagnosticsHandled = await handleDiagnosticsRoutes(req, res, pathname, parsedUrl);
     if (diagnosticsHandled) return;
   } catch (err) {
-    console.error('❌ Diagnostics route error:', err);
+    log.error({ error: String(err) }, 'Diagnostics route error');
   }
 
   try {
@@ -223,7 +224,7 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
   } catch (err) {
-    console.error('❌ API v1 route error:', err);
+    log.error({ error: String(err) }, 'API v1 route error');
   }
 
   try {
@@ -233,7 +234,7 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
   } catch (err) {
-    console.error('❌ Migration route error:', err);
+    log.error({ error: String(err) }, 'Migration route error');
   }
 
   try {
@@ -243,7 +244,7 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
   } catch (err) {
-    console.error('❌ Account route error:', err);
+    log.error({ error: String(err) }, 'Account route error');
   }
 
   try {
@@ -253,7 +254,7 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
   } catch (err) {
-    console.error('❌ Session accent route error:', err);
+    log.error({ error: String(err) }, 'Session accent route error');
   }
 
   try {
@@ -263,7 +264,7 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
   } catch (err) {
-    console.error('❌ Auth monitoring route error:', err);
+    log.error({ error: String(err) }, 'Auth monitoring route error');
   }
 
   try {
@@ -525,7 +526,7 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify(response.body));
         return;
       } catch (err) {
-        console.error('❌ Subscription route error:', err);
+        log.error({ error: String(err) }, 'Subscription route error');
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Internal server error' }));
         return;
@@ -564,7 +565,7 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify(response.body));
         return;
       } catch (err) {
-        console.error('❌ Monetization route error:', err);
+        log.error({ error: String(err) }, 'Monetization route error');
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Internal server error' }));
         return;
@@ -577,14 +578,14 @@ const server = http.createServer(async (req, res) => {
         const handled = await handleAppleRoutes(req, res);
         if (handled) return;
       } catch (err) {
-        console.error('❌ Apple IAP route error:', err);
+        log.error({ error: String(err) }, 'Apple IAP route error');
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Internal server error' }));
         return;
       }
     }
   } catch (err) {
-    console.error('❌ API route error:', err);
+    log.error({ error: String(err) }, 'API route error');
   }
 
   // ============================================================================
@@ -606,15 +607,11 @@ const stopDDoSMonitoring = startDDoSMonitoring('ui-server', 30_000);
 
 // Start the server
 server.listen(PORT, '0.0.0.0', () => {
-  console.log('');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('  🌐 Ferni UI Server (TypeScript)');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`  📍 Server: http://0.0.0.0:${PORT}`);
-  console.log(`  🔗 LiveKit: ${LIVEKIT_URL}`);
-  console.log('  🛡️  DDoS Protection: ENABLED (Slack alerts active)');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('');
+  log.info({
+    port: PORT,
+    livekitUrl: LIVEKIT_URL,
+    ddosProtection: true,
+  }, 'UI Server started');
 
   // Start Spotify token auto-refresh
   startSpotifyAutoRefresh();

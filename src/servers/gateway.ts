@@ -14,6 +14,9 @@ import 'dotenv/config';
 import { spawn, type ChildProcess } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createLogger } from '../utils/safe-logger.js';
+
+const log = createLogger({ module: 'Gateway' });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '../..');
@@ -30,7 +33,7 @@ const servers: ServerProcess[] = [];
  * Start a server process
  */
 function startServer(name: string, command: string, args: string[], port: number): ChildProcess {
-  console.log(`🚀 Starting ${name} on port ${port}...`);
+  log.info({ name, port }, 'Starting server');
 
   const proc = spawn(command, args, {
     cwd: rootDir,
@@ -42,19 +45,19 @@ function startServer(name: string, command: string, args: string[], port: number
   proc.stdout?.on('data', (data) => {
     const lines = data.toString().split('\n').filter(Boolean);
     lines.forEach((line: string) => {
-      console.log(`[${name}] ${line}`);
+      log.info({ server: name }, line);
     });
   });
 
   proc.stderr?.on('data', (data) => {
     const lines = data.toString().split('\n').filter(Boolean);
     lines.forEach((line: string) => {
-      console.error(`[${name}] ${line}`);
+      log.error({ server: name }, line);
     });
   });
 
   proc.on('exit', (code) => {
-    console.log(`[${name}] Exited with code ${code}`);
+    log.info({ server: name, exitCode: code }, 'Server exited');
     // Remove from servers list
     const index = servers.findIndex((s) => s.name === name);
     if (index !== -1) servers.splice(index, 1);
@@ -84,10 +87,10 @@ function startUIServer(): ChildProcess {
  * Graceful shutdown
  */
 function shutdown(): void {
-  console.log('\n👋 Shutting down gateway...');
+  log.info('Shutting down gateway...');
 
   servers.forEach(({ name, process }) => {
-    console.log(`Stopping ${name}...`);
+    log.info({ server: name }, 'Stopping server');
     process.kill('SIGTERM');
   });
 
@@ -110,9 +113,7 @@ async function main(): Promise<void> {
   const tokenOnly = args.includes('--token');
   const uiOnly = args.includes('--ui');
 
-  console.log('');
-  console.log('🌐 Ferni Gateway Server');
-  console.log('━'.repeat(50));
+  log.info('Gateway server initializing');
 
   // Handle shutdown signals
   // Note: These handlers are added once on startup and cleaned up on process exit
@@ -132,21 +133,14 @@ async function main(): Promise<void> {
     startUIServer();
   }
 
-  console.log('');
-  console.log('📡 Gateway running:');
-  if (!uiOnly) {
-    console.log(`   Token Server: http://localhost:${process.env.TOKEN_SERVER_PORT || 3001}`);
-  }
-  if (!tokenOnly) {
-    console.log(`   UI Server:    http://localhost:${process.env.PORT || 3002}`);
-  }
-  console.log('');
-  console.log('Press Ctrl+C to stop all servers');
-  console.log('━'.repeat(50));
+  log.info({
+    tokenServer: !uiOnly ? `http://localhost:${process.env.TOKEN_SERVER_PORT || 3001}` : null,
+    uiServer: !tokenOnly ? `http://localhost:${process.env.PORT || 3002}` : null,
+  }, 'Gateway running');
 }
 
 // Run
 main().catch((err) => {
-  console.error('[gateway] Fatal error:', String(err));
+  log.error({ error: String(err) }, 'Gateway fatal error');
   process.exit(1);
 });

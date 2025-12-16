@@ -6,6 +6,9 @@
 
 import fs from 'fs';
 import path from 'path';
+import { createLogger } from '../../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'Spotify' });
 
 /**
  * Spotify token data
@@ -59,13 +62,13 @@ export function getRefreshToken(): string | null {
       }
     }
   } catch (err) {
-    console.warn('⚠️ Could not read Spotify tokens file:', (err as Error).message);
+    log.warn({ error: (err as Error).message }, 'Could not read Spotify tokens file');
   }
 
   // Fall back to .env (old system)
   const envToken = process.env.SPOTIFY_REFRESH_TOKEN;
   if (envToken) {
-    console.log('🎵 Using refresh token from .env (consider running pnpm auth:spotify)');
+    log.info('Using refresh token from .env (consider running pnpm auth:spotify)');
     return envToken;
   }
 
@@ -103,9 +106,9 @@ export function saveTokens(
       scope: existingScope,
     };
     fs.writeFileSync(SPOTIFY_TOKENS_FILE, JSON.stringify(data, null, 2));
-    console.log('🎵 Saved updated tokens to .spotify-tokens.json');
+    log.info('Saved updated tokens to .spotify-tokens.json');
   } catch (err) {
-    console.warn('⚠️ Could not save Spotify tokens:', (err as Error).message);
+    log.warn({ error: (err as Error).message }, 'Could not save Spotify tokens');
   }
 }
 
@@ -139,13 +142,11 @@ export async function refreshTokenIfNeeded(): Promise<void> {
 
   // Refresh if less than 10 minutes remaining
   if (expiresAt > 0 && minutesUntilExpiry > 10) {
-    console.log(`🎵 Spotify token valid for ${minutesUntilExpiry} more minutes`);
+    log.debug({ minutesUntilExpiry }, 'Spotify token still valid');
     return;
   }
 
-  console.log(
-    `🎵 Spotify token ${expiresAt === 0 ? 'not cached' : `expiring in ${minutesUntilExpiry} min`} - refreshing...`
-  );
+  log.info({ expiresAt, minutesUntilExpiry }, 'Refreshing Spotify token');
 
   try {
     const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
@@ -163,7 +164,7 @@ export async function refreshTokenIfNeeded(): Promise<void> {
     });
 
     if (!tokenResponse.ok) {
-      console.error('❌ Auto-refresh failed:', tokenResponse.status);
+      log.error({ status: tokenResponse.status }, 'Auto-refresh failed');
       return;
     }
 
@@ -179,9 +180,9 @@ export async function refreshTokenIfNeeded(): Promise<void> {
     saveTokens(data.access_token, data.refresh_token || refreshToken, data.expires_in);
 
     const newMinutes = Math.round(data.expires_in / 60);
-    console.log(`✅ Spotify token auto-refreshed! Valid for ${newMinutes} minutes`);
+    log.info({ validForMinutes: newMinutes }, 'Spotify token auto-refreshed');
   } catch (err) {
-    console.error('❌ Auto-refresh error:', (err as Error).message);
+    log.error({ error: (err as Error).message }, 'Auto-refresh error');
   }
 }
 
@@ -211,7 +212,7 @@ export async function getAccessToken(): Promise<string | null> {
  */
 export function setWebDeviceId(deviceId: string): void {
   spotifyWebDeviceId = deviceId;
-  console.log('🎵 Spotify Web Player device registered:', deviceId);
+  log.info({ deviceId }, 'Spotify Web Player device registered');
 }
 
 /**
@@ -230,5 +231,5 @@ export function startAutoRefresh(): void {
 
   // Then check every 5 minutes
   setInterval(() => refreshTokenIfNeeded(), 5 * 60 * 1000);
-  console.log('🎵 Spotify auto-refresh enabled (checks every 5 min)');
+  log.info('Spotify auto-refresh enabled (checks every 5 min)');
 }

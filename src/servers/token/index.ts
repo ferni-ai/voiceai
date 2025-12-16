@@ -15,6 +15,9 @@ import 'dotenv/config';
 import http from 'http';
 import url from 'url';
 import crypto from 'crypto';
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'TokenServer' });
 
 // DDoS protection
 import {
@@ -156,9 +159,7 @@ export function createTokenServer(): http.Server {
 
         recordDemoSession(ip);
 
-        console.log(
-          `✅ Demo token generated (${(rateCheck.sessionsRemaining || 0) - 1} sessions remaining for this IP today)`
-        );
+        log.info({ sessionsRemaining: (rateCheck.sessionsRemaining || 0) - 1 }, 'Demo token generated');
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(
@@ -175,7 +176,7 @@ export function createTokenServer(): http.Server {
           })
         );
       } catch (error) {
-        console.error('❌ Demo token error:', error);
+        log.error({ error: String(error) }, 'Demo token error');
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Failed to create demo session' }));
       }
@@ -229,9 +230,7 @@ export function createTokenServer(): http.Server {
           },
         });
 
-        console.log(
-          `✅ Token generated for "${username}" in room "${room}" (firebase: ${firebase_uid || 'none'}, persona: ${personaId})`
-        );
+        log.info({ username, room, firebaseUid: firebase_uid || 'none', personaId }, 'Token generated');
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(
@@ -245,7 +244,7 @@ export function createTokenServer(): http.Server {
           })
         );
       } catch (error) {
-        console.error('❌ Token error:', error);
+        log.error({ error: String(error) }, 'Token error');
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Failed to generate token' }));
       }
@@ -282,7 +281,7 @@ export function createTokenServer(): http.Server {
         return;
       }
 
-      console.log(`🎵 Spotify OAuth started for device: ${device_id}`);
+      log.info({ deviceId: device_id }, 'Spotify OAuth started');
       res.writeHead(302, { Location: spotify.buildAuthUrl(state) });
       res.end();
       return;
@@ -292,7 +291,7 @@ export function createTokenServer(): http.Server {
       const { code, state, error } = query;
 
       if (error) {
-        console.error(`❌ Spotify OAuth error: ${error}`);
+        log.error({ error }, 'Spotify OAuth error');
         res.writeHead(302, { Location: '/?spotify_error=' + encodeURIComponent(error) });
         res.end();
         return;
@@ -300,7 +299,7 @@ export function createTokenServer(): http.Server {
 
       const stateData = oauthStates.consume(state || '');
       if (!stateData) {
-        console.error('❌ Invalid or expired OAuth state');
+        log.error('Invalid or expired OAuth state');
         res.writeHead(302, { Location: '/?spotify_error=invalid_state' });
         res.end();
         return;
@@ -316,7 +315,7 @@ export function createTokenServer(): http.Server {
       }
 
       spotify.saveTokens(stateData.device_id!, tokens);
-      console.log('✅ Spotify linked successfully');
+      log.info('Spotify linked successfully');
       res.writeHead(302, { Location: stateData.return_url + '?spotify_linked=true' });
       res.end();
       return;
@@ -385,7 +384,7 @@ export function createTokenServer(): http.Server {
       }
 
       spotify.removeTokens(device_id);
-      console.log(`🎵 Spotify unlinked for device: ${device_id}`);
+      log.info({ deviceId: device_id }, 'Spotify unlinked');
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, message: 'Spotify unlinked' }));
@@ -430,7 +429,7 @@ export function createTokenServer(): http.Server {
         }
       }
 
-      console.log(`📅 Starting Google Calendar OAuth for user: ${user_id}`);
+      log.info({ userId: user_id }, 'Starting Google Calendar OAuth');
       res.writeHead(302, { Location: googleCalendar.buildAuthUrl(state) });
       res.end();
       return;
@@ -440,7 +439,7 @@ export function createTokenServer(): http.Server {
       const { code, state, error } = query;
 
       if (error) {
-        console.error(`❌ Google Calendar OAuth error: ${error}`);
+        log.error({ error }, 'Google Calendar OAuth error');
         res.writeHead(302, { Location: '/?calendar_error=' + encodeURIComponent(error) });
         res.end();
         return;
@@ -448,7 +447,7 @@ export function createTokenServer(): http.Server {
 
       const stateData = googleOAuthStates.get(state || '');
       if (!stateData) {
-        console.error('❌ Invalid Google OAuth state');
+        log.error('Invalid Google OAuth state');
         res.writeHead(302, { Location: '/?calendar_error=invalid_state' });
         res.end();
         return;
@@ -466,7 +465,7 @@ export function createTokenServer(): http.Server {
       }
 
       googleCalendar.saveTokens(stateData.user_id, tokens);
-      console.log('✅ Google Calendar linked successfully');
+      log.info('Google Calendar linked successfully');
       res.writeHead(302, { Location: stateData.return_url + '?calendar_linked=true' });
       res.end();
       return;
@@ -535,7 +534,7 @@ export function createTokenServer(): http.Server {
       }
 
       googleCalendar.removeTokens(user_id);
-      console.log(`📅 Google Calendar unlinked for user: ${user_id}`);
+      log.info({ userId: user_id }, 'Google Calendar unlinked');
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, message: 'Google Calendar unlinked' }));
@@ -571,24 +570,20 @@ export function startTokenServer(port = PORT): http.Server {
   startRateLimitCleanup();
 
   server.listen(port, () => {
-    console.log('');
-    console.log('🎫 LiveKit Token Server (TypeScript)');
-    console.log('━'.repeat(50));
-    console.log(`📡 Server running at http://localhost:${port}`);
-    console.log(`🔗 LiveKit URL: ${getLiveKitUrl()}`);
-    console.log(`🎵 Spotify: ${spotify.isConfigured() ? '✅ Configured' : '❌ Not configured'}`);
-    console.log(
-      `📅 Google Calendar: ${googleCalendar.isConfigured() ? '✅ Configured' : '❌ Not configured'}`
-    );
-    console.log(`🛡️  DDoS Protection: ✅ Enabled`);
-    console.log('━'.repeat(50));
+    log.info({
+      port,
+      livekitUrl: getLiveKitUrl(),
+      spotifyConfigured: spotify.isConfigured(),
+      googleCalendarConfigured: googleCalendar.isConfigured(),
+      ddosProtection: true,
+    }, 'Token server started');
   });
 
   // Graceful shutdown
   process.on('SIGINT', () => {
-    console.log('\n👋 Shutting down token server...');
+    log.info('Shutting down token server...');
     server.close(() => {
-      console.log('✅ Server stopped');
+      log.info('Server stopped');
       process.exit(0);
     });
   });

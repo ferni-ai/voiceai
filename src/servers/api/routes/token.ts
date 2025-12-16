@@ -8,6 +8,9 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { AccessToken, AgentDispatchClient } from 'livekit-server-sdk';
 import { rateLimit } from '../../../api/auth-middleware.js';
 import * as demoSessions from '../services/demo-sessions.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'TokenRoutes' });
 
 // Configuration
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
@@ -229,7 +232,7 @@ export async function handleTokenRoutes(
           metadata: JSON.stringify(agentMetadata),
         });
       } catch (dispatchErr) {
-        console.log(`ℹ️ Demo agent dispatch note: ${(dispatchErr as Error).message}`);
+        log.debug({ note: (dispatchErr as Error).message }, 'Demo agent dispatch note');
       }
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -247,7 +250,7 @@ export async function handleTokenRoutes(
         })
       );
     } catch (error) {
-      console.error('❌ Demo token error:', error);
+      log.error({ error: String(error) }, 'Demo token error');
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Failed to create demo session' }));
     }
@@ -292,7 +295,7 @@ export async function handleTokenRoutes(
             })
           );
         } catch (err) {
-          console.error('❌ Demo claim error:', err);
+          log.error({ error: String(err) }, 'Demo claim error');
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Internal server error' }));
         }
@@ -334,7 +337,7 @@ export async function handleTokenRoutes(
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true }));
         } catch (err) {
-          console.error('❌ Demo session update error:', err);
+          log.error({ error: String(err) }, 'Demo session update error');
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Failed to update demo session' }));
         }
@@ -375,10 +378,10 @@ export async function handleTokenRoutes(
           const verified = await verifyFirebaseToken(firebaseToken);
           if (verified) {
             firebaseUid = verified.uid;
-            console.log(`🔐 Firebase auth: ${firebaseUid.substring(0, 8)}...`);
+            log.debug({ firebaseUid: firebaseUid.substring(0, 8) }, 'Firebase auth');
           }
         } catch (firebaseErr) {
-          console.log(`🔐 Firebase auth note: ${(firebaseErr as Error).message}`);
+          log.debug({ note: (firebaseErr as Error).message }, 'Firebase auth note');
         }
       }
 
@@ -406,12 +409,10 @@ export async function handleTokenRoutes(
           countryCode: geo.countryCode,
         };
       } catch (geoErr) {
-        console.log(`🌍 Geo detection note: ${(geoErr as Error).message}`);
+        log.debug({ note: (geoErr as Error).message }, 'Geo detection note');
       }
 
-      console.log(
-        `✅ Generated token for user "${username}" in room "${room}" (persona: ${selectedPersona}, accent: ${geoData.detectedAccent})`
-      );
+      log.info({ username, room, persona: selectedPersona, accent: geoData.detectedAccent }, 'Generated token');
 
       // Dispatch agent
       try {
@@ -429,9 +430,9 @@ export async function handleTokenRoutes(
         await getAgentDispatch().createDispatch(room, AGENT_NAME, {
           metadata: JSON.stringify(agentMetadata),
         });
-        console.log(`✅ Dispatched agent "${AGENT_NAME}" to room "${room}"`);
+        log.info({ agent: AGENT_NAME, room }, 'Dispatched agent');
       } catch (dispatchErr) {
-        console.log(`ℹ️ Agent dispatch note: ${(dispatchErr as Error).message}`);
+        log.debug({ note: (dispatchErr as Error).message }, 'Agent dispatch note');
       }
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -449,7 +450,7 @@ export async function handleTokenRoutes(
         })
       );
     } catch (error) {
-      console.error('❌ Error generating token:', error);
+      log.error({ error: String(error) }, 'Error generating token');
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Failed to generate token' }));
     }
