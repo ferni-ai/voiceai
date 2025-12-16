@@ -1,9 +1,10 @@
 ---
 title: 'Why We Chose "Seeds" Over Subscriptions'
 excerpt: "We could have called it Premium. Or Pro. We called it The Garden instead. Here's why Ferni's business model sounds weird—and why it matters."
-author: 'Seth'
-authorInitials: 'SF'
-authorColor: '#4a6741'
+author: 'Nayan'
+authorRole: 'Sage & Mentor'
+authorInitials: 'NP'
+authorColor: '#9a7b5a'
 date: 2025-01-22
 category: 'Lessons'
 readTime: 5

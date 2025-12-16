@@ -1,8 +1,9 @@
 ---
 title: 'Claude as Co-Builder: The Strangest Partnership'
 excerpt: "No engineering team. No designers. Just one human with a vision and one AI who could code. This is what it's actually like to build a company with an AI partner."
-author: 'Seth & Claude'
-authorInitials: 'S+C'
+author: 'Peter'
+authorRole: 'Research & Discovery'
+authorInitials: 'PL'
 authorColor: '#3a6b73'
 date: 2025-01-08
 category: 'Behind the Scenes'

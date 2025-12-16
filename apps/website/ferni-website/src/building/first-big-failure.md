@@ -1,9 +1,10 @@
 ---
 title: 'Our First Big Failure: The "Smart" Features Nobody Wanted'
 excerpt: "We built something clever. Users hated it. Here's what happened when we tried to be too smart for our own good—and what we learned from listening."
-author: 'Seth'
-authorInitials: 'SF'
-authorColor: '#c4856a'
+author: 'Maya'
+authorRole: 'Habits & Routines'
+authorInitials: 'MY'
+authorColor: '#a67a6a'
 date: 2025-01-12
 category: 'Failures'
 readTime: 4

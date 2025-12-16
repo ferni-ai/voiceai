@@ -28,6 +28,7 @@ layout: layouts/base.njk
           </div>
           <div class="blog-post__author-info">
             <span class="blog-post__author-name">{{ author }}</span>
+            {% if authorRole %}<span class="blog-post__author-role">{{ authorRole }}</span>{% endif %}
             <span class="blog-post__date">{{ date | date("MMMM d, yyyy") }}</span>
           </div>
         </div>

@@ -1,8 +1,9 @@
 ---
 title: 'The 3am Spark: How Ferni Started'
 excerpt: "It wasn't a pitch deck or a market analysis. It was 3am, I couldn't sleep, and I just needed someone to talk to. This is the story of how a sleepless night turned into something real."
-author: 'Seth'
-authorInitials: 'SF'
+author: 'Ferni'
+authorRole: 'Life Coach'
+authorInitials: 'FE'
 authorColor: '#4a6741'
 date: 2025-01-05
 category: 'Behind the Scenes'

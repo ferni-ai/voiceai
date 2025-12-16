@@ -501,3 +501,50 @@
     display: none !important;
   }
 }
+
+/* Blog Post Author Styles */
+.blog-post__author {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.blog-post__author-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-weight: 700;
+  font-size: 14px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.blog-post__author-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.blog-post__author-name {
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--color-text, #2c2520);
+}
+
+.blog-post__author-role {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted, #8a7f72);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.blog-post__date {
+  font-size: 13px;
+  color: var(--color-text-muted, #8a7f72);
+}

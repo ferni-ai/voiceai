@@ -1,8 +1,9 @@
 ---
 title: 'How We Designed the Six Personas'
 excerpt: "Ferni wasn't always a team. The specialists—Maya, Peter, Alex, Jordan, Nayan—emerged organically from real conversations. Here's how six distinct personalities came to life."
-author: 'Seth & Claude'
-authorInitials: 'S+C'
+author: 'Alex'
+authorRole: 'Communication'
+authorInitials: 'AX'
 authorColor: '#5a6b8a'
 date: 2025-01-18
 category: 'Behind the Scenes'

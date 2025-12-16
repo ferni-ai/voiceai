@@ -1,9 +1,10 @@
 ---
 title: "Why Voice First?"
 excerpt: "The counterintuitive choice that defined Ferni's soul—and why we almost got it wrong."
-author: "Jordan"
-authorRole: "Planning & Events"
-authorColor: "#c4856a"
+author: 'Jordan'
+authorRole: 'Planning & Events'
+authorInitials: 'JD'
+authorColor: '#c4856a'
 date: 2024-12-10
 category: "Design Philosophy"
 image: "voice-first.jpg"
