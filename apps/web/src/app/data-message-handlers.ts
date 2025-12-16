@@ -1167,16 +1167,45 @@ export function handleCameoUnlock(event: CameoUnlockMessage): void {
  * This triggers the auto-disconnect after the agent has said goodbye.
  *
  * Flow:
- * 1. Play disconnect sound
+ * 1. Play appropriate sound based on reason
  * 2. Wait for sound to complete (or delay)
  * 3. Disconnect from the room
  */
 export function handleConversationEnd(event: ConversationEndEvent): void {
   log.info('Conversation end signal received:', {
     reason: event.reason,
+    exitType: event.exitType,
     delay: event.disconnectDelay,
   });
 
+  // 📞 AGENT EXIT - When Ferni chooses to hang up
+  // More tactile, quicker, like placing a phone receiver down firmly
+  if (event.reason === 'agent_exit') {
+    log.info('🛑 Agent-initiated exit:', event.exitType);
+
+    // Play the phone click sound - satisfying, tactile finality
+    soundUI.play('phoneClick');
+
+    // Brief, respectful message - no cheerful "see you!"
+    messageUI.show('Take care.', 'info', 1500);
+
+    // 🌟 Neutral/settling expression - not warm farewell
+    ferniExpressions.setExpression('settling', 400, 1000);
+
+    // Dispatch with agent_exit flag for different UI treatment
+    const delay = event.disconnectDelay ?? 1500;
+    setTimeout(() => {
+      log.info('Agent-initiated disconnect');
+      window.dispatchEvent(
+        new CustomEvent('ferni:conversation-end-disconnect', {
+          detail: { agentInitiated: true, exitType: event.exitType },
+        })
+      );
+    }, delay);
+    return;
+  }
+
+  // 🌅 NORMAL GOODBYE - Warm farewell ceremony
   // Play warm goodbye sound (different from abrupt disconnect)
   soundUI.play('goodbye');
 

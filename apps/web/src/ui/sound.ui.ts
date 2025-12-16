@@ -25,6 +25,7 @@ type SoundName =
   | 'disconnect'
   | 'goodbye' // Warm, resolving goodbye (different from abrupt disconnect)
   | 'hangup' // Satisfying phone receiver click at moment of disconnect
+  | 'phoneClick' // Tactile phone click - when Ferni hangs up (more assertive than hangup)
   | 'enter' // Ferni enters/joins - dramatic entrance
   | 'teamUnlock' // New teammate unlocked - celebratory!
   | 'click'
@@ -113,6 +114,7 @@ const SAME_SOUND_COOLDOWN: Partial<Record<SoundName, number>> = {
   disconnect: 1000,
   goodbye: 3000, // Goodbye is a ceremony - don't repeat
   hangup: 1000, // Hangup click shouldn't repeat
+  phoneClick: 1000, // Phone click shouldn't repeat
   enter: 2000, // Ferni enters - don't repeat quickly
   switch: 300, // Switch can be slightly more frequent
 };
@@ -204,6 +206,20 @@ const SOUNDS: Record<SoundName, SoundConfig> = {
     volume: 0.05,
     attack: 0.005,
     decay: 0.14,
+  },
+
+  // 📞 PHONE CLICK - Tactile phone receiver click
+  // When Ferni hangs up - more assertive, like placing a receiver down firmly
+  // Lower frequency, sharper attack = more "physical" feel
+  // Two-tone click: thunk + settle (like a mechanical latch)
+  phoneClick: {
+    frequencies: [220, 147], // A3, D3 - low, solid thunk
+    delays: [0, 0.03],
+    duration: 0.08,
+    type: 'sine',
+    volume: 0.12, // Slightly louder for presence
+    attack: 0.002, // Very sharp attack - tactile
+    decay: 0.07, // Quick decay - no lingering
   },
 
   // 🌸 ENTER - Ferni arrives with gentle magic
@@ -559,6 +575,9 @@ export function playGoodbye(): void {
 export function playHangup(): void {
   play('hangup');
 }
+export function playPhoneClick(): void {
+  play('phoneClick');
+}
 export function playEnter(): void {
   play('enter');
 }
@@ -605,6 +624,7 @@ export const soundUI = {
   playDisconnect,
   playGoodbye,
   playHangup,
+  playPhoneClick,
   playEnter,
   playTeamUnlock,
   playClick,

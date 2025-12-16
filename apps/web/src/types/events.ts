@@ -695,10 +695,18 @@ export function isWrapUpMessage(data: unknown): data is WrapUpEvent {
  */
 export interface ConversationEndEvent {
   readonly type: 'conversation_end';
-  readonly reason: 'goodbye_complete' | 'user_request' | 'timeout';
+  readonly reason: 'goodbye_complete' | 'user_request' | 'timeout' | 'agent_exit';
   /** Delay in ms before disconnecting (allows sound to play) */
   readonly disconnectDelay?: number;
   readonly timestamp: number;
+  /** When reason is 'agent_exit', this describes why the agent chose to exit */
+  readonly exitType?:
+    | 'uncomfortable'
+    | 'boundary_crossed'
+    | 'inappropriate_content'
+    | 'harassment'
+    | 'unproductive'
+    | 'safety_concern';
 }
 
 /**
