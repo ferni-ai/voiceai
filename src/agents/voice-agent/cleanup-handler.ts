@@ -274,8 +274,8 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
       (async () => {
         cleanupVoiceHumanization(voiceHumanization, sessionId);
         recordSessionEnd(sessionId);
-        void recordUserSessionEnd(sessionId, userData?.turnCount || 0, []).catch(() => {
-          // Non-critical failure - session end recording failed
+        void recordUserSessionEnd(sessionId, userData?.turnCount || 0, []).catch((err) => {
+          diag.debug('Session end recording failed (non-critical)', { error: String(err) });
         });
         unregisterSessionTTS(sessionId);
         cleanupSpeechSession(sessionId, { verbose: false, reason: 'normal' });

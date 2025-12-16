@@ -105,7 +105,7 @@ process.on('uncaughtException', (err) => {
 });
 
 process.on('unhandledRejection', (reason) => {
-  log('ERROR', `UNHANDLED REJECTION: ${reason}`);
+  log('ERROR', `UNHANDLED REJECTION: ${String(reason)}`);
 });
 
 // Track import timing

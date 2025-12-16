@@ -165,6 +165,13 @@ import {
   type Tool,
 } from '../tools/index.js';
 
+// Tool Orchestrator - Scalable, semantic-based tool selection
+import {
+  initializeToolOrchestrator,
+  isOrchestratorInitialized,
+  getToolsForAgent,
+} from '../tools/orchestrator/index.js';
+
 // Performance instrumentation
 import { perfInstrumentation } from '../services/performance-instrumentation.js';
 
@@ -445,26 +452,93 @@ class VoiceAgent extends voice.Agent<UserData> {
     const logger = log();
 
     // =========================================================================
-    // TOOL LOADING - Using new registry-based system with LAZY LOADING
+    // TOOL LOADING - Using Unified Tool Orchestrator OR registry-based system
     // =========================================================================
     //
-    // The new system builds tools from agent manifests:
-    // - Each agent's manifest defines which tool domains they need
-    // - Tools are registered by capability, not by agent
-    // - Forbidden tools are automatically filtered
-    // - LAZY LOADING: Only essential domains load at startup, others on-demand
+    // TWO MODES:
+    // 1. ORCHESTRATOR MODE (when USE_TOOL_ORCHESTRATOR=true):
+    //    - Semantic-based tool selection (RAG for tools)
+    //    - Scales to 1000+ tools, shows only 25-40 to LLM
+    //    - Context-aware loading (emotion, time of day, topic)
+    //    - Pre-computed embeddings for <50ms selection
     //
-    // Benefits:
-    // - Single source of truth for agent capabilities (manifest)
-    // - No hard-coded agent names in tool code
-    // - Easier to add new agents or modify existing ones
-    // - Reduced memory footprint through lazy loading
+    // 2. LEGACY MODE (default):
+    //    - Registry-based system with lazy loading
+    //    - Each agent's manifest defines tool domains
+    //
+    // To enable orchestrator mode:
+    //   export USE_TOOL_ORCHESTRATOR=true
     // =========================================================================
 
     perfInstrumentation.startPhase('tool-loading');
 
+    // Check if orchestrator mode is enabled
+    const useOrchestrator = process.env.USE_TOOL_ORCHESTRATOR === 'true';
+
+    if (useOrchestrator) {
+      // ORCHESTRATOR MODE - Semantic-based tool selection
+      logger.info({ personaId: persona.id }, '🎯 Using Tool Orchestrator for semantic tool selection');
+
+      // Initialize orchestrator if not ready
+      if (!isOrchestratorInitialized()) {
+        perfInstrumentation.startPhase('tool-orchestrator-init');
+        await initializeToolOrchestrator();
+        perfInstrumentation.endPhase('tool-orchestrator-init');
+        logger.info('✅ Tool Orchestrator initialized');
+      }
+
+      // Get tools via orchestrator
+      const orchestratorResult = await getToolsForAgent({
+        persona: {
+          id: persona.id,
+          displayName: persona.displayName || persona.name,
+          tools: (persona as { tools?: { domains?: string[]; required?: string[]; forbidden?: string[] } }).tools,
+        },
+        userId: 'session-user', // Will be updated with real user ID
+        initialTranscript: '', // No initial transcript at session start
+        subscriptionTier: 'free', // Default, will be updated
+      });
+
+      perfInstrumentation.endPhase('tool-loading');
+
+      const toolNames = Object.keys(orchestratorResult.tools);
+      logger.info(
+        {
+          personaId: persona.id,
+          mode: 'orchestrator',
+          toolCount: orchestratorResult.meta.toolCount,
+          selectionTimeMs: orchestratorResult.meta.selectionTimeMs,
+          sources: orchestratorResult.meta.sources,
+          sampleTools: toolNames.slice(0, 10),
+        },
+        '🔧 Tools selected via orchestrator'
+      );
+
+      // 🔍 DIAGNOSTIC: Check specifically for music tools
+      const musicToolNames = toolNames.filter(
+        (name) =>
+          name.toLowerCase().includes('music') ||
+          name.toLowerCase().includes('spotify') ||
+          name === 'playMusic' ||
+          name === 'pauseMusic'
+      );
+      logger.info(
+        {
+          musicToolCount: musicToolNames.length,
+          musicTools: musicToolNames,
+          hasPlayMusic: toolNames.includes('playMusic'),
+        },
+        '🎵 [DIAG] Music tools from orchestrator'
+      );
+
+      return new VoiceAgent(persona, {
+        instructions: persona.systemPrompt,
+        tools: orchestratorResult.tools,
+      });
+    }
+
+    // LEGACY MODE - Registry-based system with lazy loading
     // Initialize the tool registry if not already done
-    // Now uses lazy loading by default - only essential domains at startup
     if (!isToolRegistryInitialized()) {
       perfInstrumentation.startPhase('tool-registry-init');
       const initResult = await initializeTools({
@@ -489,7 +563,7 @@ class VoiceAgent extends voice.Agent<UserData> {
     // Build tools using registry-based system
     // Each agent's manifest defines exactly which domains/tools they need
     // This keeps tool count manageable (40-60 per agent) for optimal Gemini performance
-    logger.info({ personaId: persona.id }, 'Building tools from agent manifest');
+    logger.info({ personaId: persona.id }, 'Building tools from agent manifest (legacy mode)');
 
     // Get persona's required domains and lazy-load any that aren't yet loaded
     const personaManifest = persona as { tools?: { domains?: string[] } };
@@ -775,17 +849,23 @@ class VoiceAgent extends voice.Agent<UserData> {
                         ];
                         const wasAdvice = adviceIndicators.some((i) => lowerResponse.includes(i));
                         if (wasAdvice) {
-                          recordAdviceGivenToSession(ahSessionId).catch(() => {});
+                          recordAdviceGivenToSession(ahSessionId).catch((err) => {
+                            diag.warn('Failed to record advice to session', { error: String(err) });
+                          });
                         }
                       })
-                      .catch(() => {});
+                      .catch((err) => {
+                        diag.warn('Failed to check advice indicators', { error: String(err) });
+                      });
 
                     // Record the full response for repair detection
                     import('../conversation/advanced-humanization-integration.js')
                       .then(({ recordAgentResponse }) => {
                         recordAgentResponse(ahSessionId, accumulatedText);
                       })
-                      .catch(() => {});
+                      .catch((err) => {
+                        diag.warn('Failed to record agent response', { error: String(err) });
+                      });
                   }
 
                   // ============================================================
@@ -2007,8 +2087,9 @@ class VoiceAgent extends voice.Agent<UserData> {
                   player.setCurrentUserMood(voiceEmotion.primary);
                 }
               })
-              .catch(() => {
-                // Music player not available - that's fine
+              .catch((err) => {
+                // Music player not available - that's fine, just log at debug level
+                diag.debug('Music player mood update skipped', { error: String(err) });
               });
 
             // 🎧 DJ ENHANCEMENTS: Track emotion for session flow (Phase 5 & 7)

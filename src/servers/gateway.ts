@@ -115,6 +115,8 @@ async function main(): Promise<void> {
   console.log('━'.repeat(50));
 
   // Handle shutdown signals
+  // Note: These handlers are added once on startup and cleaned up on process exit
+  // No explicit removeListener needed since process terminates after handling
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
 
@@ -144,4 +146,7 @@ async function main(): Promise<void> {
 }
 
 // Run
-main().catch(console.error);
+main().catch((err) => {
+  console.error('[gateway] Fatal error:', String(err));
+  process.exit(1);
+});

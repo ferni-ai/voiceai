@@ -416,7 +416,9 @@ function scheduleReconnect(): void {
 
   log('Scheduling reconnect', { attempt: reconnectAttempts, delayMs: delay });
   setTimeout(() => {
-    void connectToLiveKit().catch(console.error);
+    void connectToLiveKit().catch((err) => {
+      log('Reconnection failed', { error: String(err) });
+    });
   }, delay);
 }
 
