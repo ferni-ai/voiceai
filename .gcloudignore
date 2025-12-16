@@ -43,8 +43,16 @@
 # ===================
 
 # Apps - Electron, iOS, Android builds (1.4GB)
-
-apps/
+# Exclude large subdirs but keep apps/cli/ for build scripts
+apps/android/
+apps/electron/
+apps/ios/
+apps/macos-menubar/
+apps/marketing/
+apps/marketplace-agents/
+apps/web/
+apps/website/
+# NOTE: apps/cli/ is intentionally NOT excluded (needed for Dockerfile.agent build)
 
 # Ferni-speaker build directory (1.2GB) - rebuilt inside Docker
 

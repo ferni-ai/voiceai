@@ -7,7 +7,16 @@
 # Note: evalops is now production-ready and included in the build
 
 # Large directories
-apps/
+# Apps - exclude large subdirs but keep apps/cli/ for build scripts
+apps/android/
+apps/electron/
+apps/ios/
+apps/macos-menubar/
+apps/marketing/
+apps/marketplace-agents/
+apps/web/
+apps/website/
+# NOTE: apps/cli/ is intentionally NOT excluded (needed for Dockerfile.agent build)
 ferni-speaker-build/
 promo/
 functions/
