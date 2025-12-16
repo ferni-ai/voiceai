@@ -27,7 +27,19 @@ const CACHE_MAX_AGE_MS = 10 * 60 * 1000;
 // TYPES
 // ============================================================================
 
+/**
+ * Lightweight communication config for cache.
+ * Only includes fields needed for greeting generation.
+ */
+export interface CachedCommunicationConfig {
+  greetingStyle: 'warm-friend' | 'professional' | 'enthusiastic' | 'calm-supportive' | 'casual-peer' | 'wise-mentor';
+  returningUserStyle: 'warm-friend' | 'professional' | 'enthusiastic' | 'calm-supportive' | 'casual-peer' | 'wise-mentor';
+  formalityLevel: number;
+}
+
 export interface PersonaCacheEntry {
+  /** Persona ID (e.g., 'ferni', 'alex-chen') - needed by music handler and other components */
+  id: string;
   name: string;
   systemPrompt: string;
   voice: {
@@ -44,6 +56,8 @@ export interface PersonaCacheEntry {
     baseSpeedMultiplier?: number;
     pauseMultiplier?: number;
   };
+  /** Communication config for greeting generation */
+  communication?: CachedCommunicationConfig;
 }
 
 interface WarmupStatus {

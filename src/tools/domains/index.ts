@@ -219,6 +219,13 @@ export { getToolDefinitions as getHabitPersistenceToolDefinitions } from './habi
 export { getToolDefinitions as getTimelessPerspectiveToolDefinitions } from './timeless-perspective/index.js';
 
 // ============================================================================
+// DEVELOPER TOOLS DOMAIN
+// ============================================================================
+
+// Developer domain - CLI commands, file editing, bash
+export { getToolDefinitions as getDeveloperToolDefinitions } from './developer/index.js';
+
+// ============================================================================
 // LEGACY DOMAIN EXPORTS (for backwards compatibility)
 // These will be deprecated once all consumers migrate to registry-based system
 // ============================================================================
@@ -309,6 +316,8 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./milestone-mastery/index.js').then(async (m) => m.getToolDefinitions()),
     import('./habit-persistence/index.js').then(async (m) => m.getToolDefinitions()),
     import('./timeless-perspective/index.js').then(async (m) => m.getToolDefinitions()),
+    // Developer tools domain - CLI commands, file editing, bash
+    import('./developer/index.js').then(async (m) => m.getToolDefinitions()),
   ]);
 
   // Collect successful results
@@ -641,6 +650,13 @@ export const DOMAIN_METADATA = {
     description:
       "Nayan Patel's specialty: superhuman patience, wisdom across decades, and the long view that transcends current struggles",
     icon: '🏔️',
+    status: 'active',
+  },
+  // Developer Tools Domain
+  developer: {
+    name: 'Developer Tools',
+    description: 'Voice-driven development: Ferni CLI commands, file editing, bash, and code search',
+    icon: '💻',
     status: 'active',
   },
 } as const;

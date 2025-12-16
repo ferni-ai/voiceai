@@ -230,10 +230,11 @@ class ResourceRegistry {
         fs.mkdirSync(CACHE_DIR, { recursive: true });
       }
 
-      // Build serializable cache data (include personality for session init)
+      // Build serializable cache data (include personality and communication for session init)
       const cacheData: Record<
         string,
         {
+          id: string; // Persona ID for music handler and other components
           name: string;
           systemPrompt: string;
           voice: { voiceId: string; provider: string };
@@ -244,6 +245,11 @@ class ResourceRegistry {
             energy?: number;
           };
           speechCharacteristics?: { baseSpeedMultiplier?: number; pauseMultiplier?: number };
+          communication?: {
+            greetingStyle: string;
+            returningUserStyle: string;
+            formalityLevel: number;
+          };
         }
       > = {};
 
@@ -259,13 +265,27 @@ class ResourceRegistry {
             energy?: number;
           };
           speechCharacteristics?: { baseSpeedMultiplier?: number; pauseMultiplier?: number };
+          communication?: {
+            greetingStyle?: string;
+            returningUserStyle?: string;
+            formalityLevel?: number;
+          };
         };
         cacheData[id] = {
+          id, // Include persona ID in cache for music handler and other components
           name: persona.name || id,
           systemPrompt: persona.systemPrompt || '',
           voice: persona.voice || { voiceId: '', provider: 'cartesia' },
           personality: persona.personality,
           speechCharacteristics: persona.speechCharacteristics,
+          // Include communication config for greeting generation
+          communication: persona.communication
+            ? {
+                greetingStyle: persona.communication.greetingStyle || 'warm-friend',
+                returningUserStyle: persona.communication.returningUserStyle || 'warm-friend',
+                formalityLevel: persona.communication.formalityLevel ?? 0.3,
+              }
+            : undefined,
         };
       }
 

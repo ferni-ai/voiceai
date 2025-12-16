@@ -73,7 +73,7 @@ export type ToolDomain =
   | 'workflow-mastery' // Workflow optimization, process improvement, efficiency
   | 'habit-persistence' // Habit tracking persistence and behavioral insights
   | 'milestone-mastery' // Milestone tracking and achievement recognition
-  | 'developer'; // Developer tools for debugging and testing
+  | 'developer'; // Developer tools: CLI commands, file editing, bash
 
 /**
  * All available tool domains
@@ -207,7 +207,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   'workflow-mastery': 'productivity', // Process optimization
   'habit-persistence': 'lifestyle', // Habit tracking persistence
   'milestone-mastery': 'lifestyle', // Achievement tracking
-  developer: 'information', // Developer tools
+  developer: 'productivity', // Developer tools for coding and CLI
 };
 
 // ============================================================================
