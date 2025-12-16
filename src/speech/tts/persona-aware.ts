@@ -173,24 +173,24 @@ export class PersonaAwareTTS extends tts.TTS {
 
   /**
    * Switch accent without changing the persona.
-   * This is a simple version that just updates internal state.
-   * For proper accent changes, use switchToLocalizedAccent() instead.
    *
    * @param newAccent - The new accent to use
-   * @deprecated Use switchToLocalizedAccent() for proper accent changes
+   * @param personaId - The persona ID to get localized voice for (defaults to current persona name)
+   * @deprecated Use switchToLocalizedAccent() directly for proper accent changes
    */
-  switchAccent(newAccent: EnglishAccent): void {
+  switchAccent(newAccent: EnglishAccent, personaId?: string): void {
     if (this.accent === newAccent) {
       log('debug', { accent: newAccent }, 'Already using this accent');
       return;
     }
 
     log(
-      'info',
+      'warn',
       { from: this.accent, to: newAccent, persona: this.personaName },
-      '🌍 Accent switch requested (simple)'
+      '⚠️ switchAccent() is deprecated - calling switchToLocalizedAccent() instead'
     );
-    this.switchVoice(this.personaName, this.voiceId, newAccent);
+    // Call the proper async method (fire-and-forget since this method is sync)
+    void this.switchToLocalizedAccent(newAccent, personaId ?? this.personaName);
   }
 
   /**

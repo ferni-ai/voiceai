@@ -636,6 +636,10 @@
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
         Voice
       </a>
+      <a href="/crash-analytics-dashboard.html" class="nav-link">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Crashes
+      </a>
       <button class="theme-toggle" onclick="toggleTheme()">
         <svg class="icon sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
       </button>
@@ -852,11 +856,17 @@
             { label: 'Last 5min', value: data.errors?.errorsLast5Min || 0 },
           ], 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01')}
 
-          ${renderHealthCard('Personas', 'persona', data.personaHealth, '#', [
+          ${renderHealthCard('Personas', 'persona', data.personaHealth, '/persona-dashboard.html', [
             { label: 'Load Time', value: formatDuration(data.persona?.avgBundleLoadTimeMs || 0) },
             { label: 'Active', value: data.persona?.activePersonas || 0 },
             { label: 'Handoffs', value: (data.persona?.totalHandoffsIn || 0) + (data.persona?.totalHandoffsOut || 0) },
           ], 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z')}
+
+          ${renderHealthCard('Crash Analytics', 'crash', data.crashHealth || 100, '/crash-analytics-dashboard.html', [
+            { label: 'Uptime', value: data.crash?.uptimeFormatted || 'N/A' },
+            { label: 'Crashes', value: data.crash?.totalCrashes || 0 },
+            { label: 'Memory', value: data.crash?.memoryPercent ? formatPercent(data.crash.memoryPercent) : 'N/A' },
+          ], 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01')}
         </section>
 
         <!-- Alerts Section -->

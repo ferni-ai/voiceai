@@ -286,11 +286,11 @@ const DEFAULT_FLAGS: FeatureFlags = {
     analytics: true,
   },
   outreach: {
-    enabled: false, // Disabled - being extracted to separate worker architecture
-    triggerCreation: false,
-    systemInitialization: false,
-    triggerProcessing: false,
-    delivery: false,
+    enabled: true, // Enabled for user-initiated calls ("call me", "have Maya call me")
+    triggerCreation: false, // Disabled - no AI-initiated triggers
+    systemInitialization: true, // Initialize outreach engine
+    triggerProcessing: false, // Disabled - no automatic trigger processing
+    delivery: true, // Enabled - actually make calls when user requests
   },
 };
 

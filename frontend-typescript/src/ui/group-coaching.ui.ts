@@ -46,42 +46,52 @@ interface GroupCoachingCallbacks {
 // SESSION TYPE INFO
 // ============================================================================
 
-const SESSION_TYPES: Array<{
+interface SessionTypeInfo {
   id: GroupSessionType;
   name: string;
   icon: string;
   description: string;
   maxParticipants: number;
-}> = [
-  {
-    id: 'couple',
-    name: t('groupCoaching.sessionTypes.couple.name'),
-    icon: '💑',
-    description: t('groupCoaching.sessionTypes.couple.description'),
-    maxParticipants: 2,
-  },
-  {
-    id: 'family',
-    name: t('groupCoaching.sessionTypes.family.name'),
-    icon: '👨‍👩‍👧‍👦',
-    description: t('groupCoaching.sessionTypes.family.description'),
-    maxParticipants: 6,
-  },
-  {
-    id: 'team',
-    name: t('groupCoaching.sessionTypes.team.name'),
-    icon: '👥',
-    description: t('groupCoaching.sessionTypes.team.description'),
-    maxParticipants: 10,
-  },
-  {
-    id: 'peer_support',
-    name: t('groupCoaching.sessionTypes.peer.name'),
-    icon: '🤝',
-    description: t('groupCoaching.sessionTypes.peer.description'),
-    maxParticipants: 8,
-  },
-];
+}
+
+// Lazy getter to avoid calling t() at module load time (before i18n is initialized)
+let _sessionTypesCache: SessionTypeInfo[] | null = null;
+
+function getSessionTypes(): SessionTypeInfo[] {
+  if (!_sessionTypesCache) {
+    _sessionTypesCache = [
+      {
+        id: 'couple',
+        name: t('groupCoaching.sessionTypes.couple.name'),
+        icon: '💑',
+        description: t('groupCoaching.sessionTypes.couple.description'),
+        maxParticipants: 2,
+      },
+      {
+        id: 'family',
+        name: t('groupCoaching.sessionTypes.family.name'),
+        icon: '👨‍👩‍👧‍👦',
+        description: t('groupCoaching.sessionTypes.family.description'),
+        maxParticipants: 6,
+      },
+      {
+        id: 'team',
+        name: t('groupCoaching.sessionTypes.team.name'),
+        icon: '👥',
+        description: t('groupCoaching.sessionTypes.team.description'),
+        maxParticipants: 10,
+      },
+      {
+        id: 'peer_support',
+        name: t('groupCoaching.sessionTypes.peer.name'),
+        icon: '🤝',
+        description: t('groupCoaching.sessionTypes.peer.description'),
+        maxParticipants: 8,
+      },
+    ];
+  }
+  return _sessionTypesCache;
+}
 
 // ============================================================================
 // ICONS
@@ -233,9 +243,9 @@ class GroupCoachingUI {
             .map(
               (session) => `
           <div class="group-coaching__session" data-session-id="${session.id}">
-            <div class="group-coaching__session-icon">${SESSION_TYPES.find((t) => t.id === session.type)?.icon || '👥'}</div>
+            <div class="group-coaching__session-icon">${getSessionTypes().find((t) => t.id === session.type)?.icon || '👥'}</div>
             <div class="group-coaching__session-info">
-              <span class="group-coaching__session-type">${SESSION_TYPES.find((t) => t.id === session.type)?.name || session.type}</span>
+              <span class="group-coaching__session-type">${getSessionTypes().find((t) => t.id === session.type)?.name || session.type}</span>
               <span class="group-coaching__session-status">${session.status} • ${session.participants.length} ${t('groupCoaching.participantsLabel')}</span>
             </div>
             <button class="group-coaching__session-join" data-session-id="${session.id}">
@@ -283,7 +293,7 @@ class GroupCoachingUI {
   private renderCreate(): void {
     if (!this.wrapper) return;
 
-    const typeOptions = SESSION_TYPES.map(
+    const typeOptions = getSessionTypes().map(
       (type) => `
       <button class="group-coaching__type" data-type="${type.id}">
         <div class="group-coaching__type-icon">${type.icon}</div>
@@ -321,7 +331,7 @@ class GroupCoachingUI {
   private renderSession(session: GroupSession, joinLink?: string): void {
     if (!this.wrapper) return;
 
-    const typeInfo = SESSION_TYPES.find((t) => t.id === session.type);
+    const typeInfo = getSessionTypes().find((t) => t.id === session.type);
     const participantsList = session.participants
       .map(
         (p) => `

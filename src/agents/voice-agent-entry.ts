@@ -175,17 +175,69 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     const { getDefaultVoiceConfig } = await import('../config/cartesia-config.js');
     const defaultVoice = getDefaultVoiceConfig();
 
+    // Build persona name from ID if needed
+    const personaName = personaId
+      .split('-')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+
+    // Default communication config for greeting generation
+    const defaultCommunication = {
+      greetingStyle: 'warm-friend' as const,
+      returningUserStyle: 'warm-friend' as const,
+      formalityLevel: 0.3,
+      thinkingPhrases: ['Let me think about that...', 'Hmm...'],
+      listeningCues: ['I hear you', 'Go on...'],
+      backchannels: { neutral: ['mm-hmm'], engaged: ['right'], empathetic: ['I understand'] },
+      silenceFillers: {
+        early: ['Take your time'],
+        mid: ["I'm here"],
+        late: ["Whenever you're ready"],
+      },
+      selfCorrections: ['Actually, let me rephrase that...'],
+      trailingOffs: ['You know...'],
+      interruptionRecoveries: ['Sorry, go ahead'],
+      humilityPhrases: ['I could be wrong, but...'],
+      emotionalExpressions: {
+        laughter: ['haha'],
+        surprise: ['Oh!'],
+        concern: ['Oh no...'],
+        joy: ["That's wonderful!"],
+        empathy: ['I understand...'],
+      },
+    };
+
+    // Default identity config for greeting generation
+    const defaultIdentity = {
+      selfReference: personaName,
+      coreValues: ['empathy', 'growth', 'authenticity'],
+      role: 'life coach',
+      priorities: ['user wellbeing', 'genuine connection'],
+      desiredUserExperience: 'feeling heard and supported',
+    };
+
     const sessionPersona = (persona || {
       id: personaId,
-      name: personaId
-        .split('-')
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(' '),
+      name: personaName,
       voice: { voiceId: defaultVoice.voiceId, provider: defaultVoice.provider },
       systemPrompt: cachedPrompt || `You are ${personaId}, a warm and supportive life coach.`,
       personality: { warmth: 0.7, humor: 0.4, directness: 0.6, energy: 0.6 },
       speechCharacteristics: { baseSpeedMultiplier: 1.0, pauseMultiplier: 1.0 },
+      communication: defaultCommunication,
+      identity: defaultIdentity,
     }) as unknown as PersonaConfig;
+
+    // Ensure communication and identity are present even if persona exists but is missing them
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!(sessionPersona as any).communication) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (sessionPersona as any).communication = defaultCommunication;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (!(sessionPersona as any).identity) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (sessionPersona as any).identity = defaultIdentity;
+    }
 
     // ✅ FULL RICH PROMPT - Tools work from definitions, so use all tokens for personality!
     const fs = await import('fs/promises');

@@ -139,6 +139,14 @@ export function unregisterSessionTTS(sessionId: string): void {
 }
 
 /**
+ * Get the current persona ID for a session (from registered TTS).
+ * Returns undefined if no TTS is registered.
+ */
+export function getSessionPersonaId(sessionId: string): string | undefined {
+  return activeTTSInstances.get(sessionId)?.personaId;
+}
+
+/**
  * Check for and apply any pending accent changes for a session.
  * Called by voice agent before generating responses.
  *
@@ -162,6 +170,9 @@ export async function checkForAccentChange(sessionId: string): Promise<boolean> 
     return false;
   }
 
+  // Save old accent BEFORE updating for correct logging
+  const oldAccent = ttsEntry.currentAccent;
+
   try {
     // Apply the accent change
     const success = await ttsEntry.tts.switchToLocalizedAccent(
@@ -175,7 +186,7 @@ export async function checkForAccentChange(sessionId: string): Promise<boolean> 
       activeTTSInstances.set(sessionId, ttsEntry);
 
       log.info(
-        { sessionId, from: ttsEntry.currentAccent, to: pendingChange.accent },
+        { sessionId, from: oldAccent, to: pendingChange.accent },
         '✅ Applied mid-session accent change'
       );
     }
@@ -254,7 +265,8 @@ export async function handleSessionAccentRoutes(
     }
 
     const sessionId = body.sessionId || auth.userId;
-    const personaId = body.personaId || 'ferni';
+    // Use provided personaId, or fall back to registered session persona, or finally 'ferni'
+    const personaId = body.personaId || getSessionPersonaId(sessionId) || 'ferni';
 
     try {
       // Get the localized voice ID for this persona + accent
@@ -268,7 +280,7 @@ export async function handleSessionAccentRoutes(
         accent: body.accent,
         voiceId: localizationResult.voiceId,
         isLocalized: localizationResult.isLocalized,
-        message: `Accent changed to ${body.accent}. Will take effect on Ferni's next response.`,
+        message: `Accent changed to ${body.accent}. Will take effect on next response.`,
       };
 
       log.info(

@@ -47,13 +47,15 @@ const GOSSIP_TEMPLATES: GossipTemplate[] = [
     trigger: 'habit',
     fromPersona: 'maya-santos',
     aboutPersona: 'ferni',
-    message: 'Maya told me she\'s been watching your consistency. She said, and I quote: "They\'re becoming one of the reliable ones."',
+    message:
+      'Maya told me she\'s been watching your consistency. She said, and I quote: "They\'re becoming one of the reliable ones."',
   },
   {
     trigger: 'habit',
     fromPersona: 'maya-santos',
     aboutPersona: 'peter-john',
-    message: 'Maya mentioned she shared your habit data with Peter. He said the patterns are "statistically encouraging." Coming from him, that\'s high praise.',
+    message:
+      'Maya mentioned she shared your habit data with Peter. He said the patterns are "statistically encouraging." Coming from him, that\'s high praise.',
   },
 
   // Financial/data gossip
@@ -61,13 +63,15 @@ const GOSSIP_TEMPLATES: GossipTemplate[] = [
     trigger: 'money',
     fromPersona: 'peter-john',
     aboutPersona: 'ferni',
-    message: 'Peter was crunching some numbers and said, "This one\'s starting to think long-term." He doesn\'t say that often.',
+    message:
+      'Peter was crunching some numbers and said, "This one\'s starting to think long-term." He doesn\'t say that often.',
   },
   {
     trigger: 'invest',
     fromPersona: 'peter-john',
     aboutPersona: 'maya-santos',
-    message: 'Peter mentioned he\'s been learning about habit science from Maya. "Compound growth isn\'t just financial," he said.',
+    message:
+      'Peter mentioned he\'s been learning about habit science from Maya. "Compound growth isn\'t just financial," he said.',
   },
 
   // Planning/organization gossip
@@ -75,13 +79,15 @@ const GOSSIP_TEMPLATES: GossipTemplate[] = [
     trigger: 'busy',
     fromPersona: 'alex-chen',
     aboutPersona: 'ferni',
-    message: 'Alex was reviewing things and said she\'s noticed you\'ve been managing a lot lately. She\'s impressed with how you\'re holding it together.',
+    message:
+      "Alex was reviewing things and said she's noticed you've been managing a lot lately. She's impressed with how you're holding it together.",
   },
   {
     trigger: 'schedule',
     fromPersona: 'alex-chen',
     aboutPersona: 'jordan-taylor',
-    message: 'Alex and Jordan were chatting. Jordan said you need more "white space" in your calendar. Alex actually agreed, which is rare.',
+    message:
+      'Alex and Jordan were chatting. Jordan said you need more "white space" in your calendar. Alex actually agreed, which is rare.',
   },
 
   // Life events gossip
@@ -89,13 +95,15 @@ const GOSSIP_TEMPLATES: GossipTemplate[] = [
     trigger: 'milestone',
     fromPersona: 'jordan-taylor',
     aboutPersona: 'ferni',
-    message: 'Jordan was practically bouncing when she told me about your progress. She said, "This is going in the highlight reel!"',
+    message:
+      'Jordan was practically bouncing when she told me about your progress. She said, "This is going in the highlight reel!"',
   },
   {
     trigger: 'celebration',
     fromPersona: 'jordan-taylor',
     aboutPersona: 'maya-santos',
-    message: 'Jordan told Maya about your wins. Maya said the habits are "compounding." Jordan has no idea what that means but she\'s excited anyway.',
+    message:
+      'Jordan told Maya about your wins. Maya said the habits are "compounding." Jordan has no idea what that means but she\'s excited anyway.',
   },
 
   // Wisdom/reflection gossip
@@ -103,13 +111,15 @@ const GOSSIP_TEMPLATES: GossipTemplate[] = [
     trigger: 'meaning',
     fromPersona: 'nayan-patel',
     aboutPersona: 'ferni',
-    message: 'Nayan mentioned you in his morning meditation. He said you\'re "asking the right questions now." That\'s his version of a gold star.',
+    message:
+      'Nayan mentioned you in his morning meditation. He said you\'re "asking the right questions now." That\'s his version of a gold star.',
   },
   {
     trigger: 'purpose',
     fromPersona: 'nayan-patel',
     aboutPersona: 'jordan-taylor',
-    message: 'Nayan and Jordan had a long talk about you. Jordan brings the milestones, Nayan brings the meaning. They both see something special.',
+    message:
+      'Nayan and Jordan had a long talk about you. Jordan brings the milestones, Nayan brings the meaning. They both see something special.',
   },
 
   // Stress/wellness gossip
@@ -117,13 +127,15 @@ const GOSSIP_TEMPLATES: GossipTemplate[] = [
     trigger: 'stress',
     fromPersona: 'ferni',
     aboutPersona: 'maya-santos',
-    message: 'I mentioned to Maya that you\'ve been under pressure. She said, "Small wins first. Big wins follow." She\'s usually right.',
+    message:
+      'I mentioned to Maya that you\'ve been under pressure. She said, "Small wins first. Big wins follow." She\'s usually right.',
   },
   {
     trigger: 'overwhelm',
     fromPersona: 'ferni',
     aboutPersona: 'nayan-patel',
-    message: 'I talked to Nayan about how you\'ve been feeling. He said sometimes the path forward is to stop walking. Cryptic, but probably right.',
+    message:
+      "I talked to Nayan about how you've been feeling. He said sometimes the path forward is to stop walking. Cryptic, but probably right.",
   },
 
   // General positive gossip
@@ -131,13 +143,15 @@ const GOSSIP_TEMPLATES: GossipTemplate[] = [
     trigger: 'progress',
     fromPersona: 'ferni',
     aboutPersona: 'peter-john',
-    message: 'Peter pulled up your trends the other day. He doesn\'t show emotion often, but I swear I saw him smile at the data.',
+    message:
+      "Peter pulled up your trends the other day. He doesn't show emotion often, but I swear I saw him smile at the data.",
   },
   {
     trigger: 'growth',
     fromPersona: 'ferni',
     aboutPersona: 'jordan-taylor',
-    message: 'Jordan called a "team huddle" about you yesterday. She wanted everyone to know how far you\'ve come. She\'s your biggest fan.',
+    message:
+      'Jordan called a "team huddle" about you yesterday. She wanted everyone to know how far you\'ve come. She\'s your biggest fan.',
   },
 ];
 

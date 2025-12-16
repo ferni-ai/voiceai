@@ -4,6 +4,12 @@
  * Handles graceful shutdown by flushing all pending data before exit.
  * Also handles uncaught exceptions and unhandled rejections to prevent
  * the agent from silently "cutting out".
+ *
+ * Enhanced features:
+ * - Preemptive restart when memory exceeds threshold (before OOM)
+ * - Crash analytics with persistence
+ * - Slack notifications on crash
+ * - Exponential backoff detection for crash loops
  */
 
 import { diag } from '../../services/diagnostic-logger.js';
@@ -15,6 +21,32 @@ let isShuttingDown = false;
 let uncaughtExceptionCount = 0;
 const EXCEPTION_WINDOW_MS = 60_000; // 1 minute
 const MAX_EXCEPTIONS_BEFORE_EXIT = 5;
+
+// Memory thresholds for preemptive restart
+const MEMORY_PREEMPTIVE_RESTART_THRESHOLD = 0.92; // 92% of heap limit - restart before OOM
+const MEMORY_HEAP_LIMIT_MB = parseInt(process.env.NODE_MAX_HEAP_MB || '3072', 10);
+
+// Crash analytics
+interface CrashEvent {
+  timestamp: string;
+  reason: string;
+  type: 'exception' | 'memory' | 'livekit' | 'signal' | 'crash_loop';
+  memoryUsage?: {
+    heapUsedMB: number;
+    heapTotalMB: number;
+    rssMB: number;
+  };
+  uptimeSeconds: number;
+  exceptionCount: number;
+}
+
+const crashHistory: CrashEvent[] = [];
+const MAX_CRASH_HISTORY = 20;
+
+// Crash loop detection
+let recentRestarts: number[] = [];
+const CRASH_LOOP_WINDOW_MS = 300_000; // 5 minutes
+const CRASH_LOOP_THRESHOLD = 3; // 3 restarts in 5 minutes = crash loop
 
 // ============================================================================
 // CRITICAL LIVEKIT ERRORS
@@ -41,6 +73,152 @@ function isCriticalLiveKitError(error: Error): boolean {
   );
 }
 
+// ============================================================================
+// CRASH ANALYTICS & NOTIFICATIONS
+// ============================================================================
+
+/**
+ * Record a crash event for analytics
+ */
+function recordCrashEvent(
+  reason: string,
+  type: CrashEvent['type']
+): CrashEvent {
+  const memUsage = process.memoryUsage();
+  const event: CrashEvent = {
+    timestamp: new Date().toISOString(),
+    reason,
+    type,
+    memoryUsage: {
+      heapUsedMB: Math.round(memUsage.heapUsed / 1024 / 1024),
+      heapTotalMB: Math.round(memUsage.heapTotal / 1024 / 1024),
+      rssMB: Math.round(memUsage.rss / 1024 / 1024),
+    },
+    uptimeSeconds: Math.round(process.uptime()),
+    exceptionCount: uncaughtExceptionCount,
+  };
+
+  crashHistory.push(event);
+  if (crashHistory.length > MAX_CRASH_HISTORY) {
+    crashHistory.shift();
+  }
+
+  // Also track restart time for crash loop detection
+  recentRestarts.push(Date.now());
+  recentRestarts = recentRestarts.filter(
+    (t) => Date.now() - t < CRASH_LOOP_WINDOW_MS
+  );
+
+  return event;
+}
+
+/**
+ * Check if we're in a crash loop (too many restarts in short window)
+ */
+function isInCrashLoop(): boolean {
+  return recentRestarts.length >= CRASH_LOOP_THRESHOLD;
+}
+
+/**
+ * Send crash notification to Slack
+ */
+async function notifyCrashToSlack(event: CrashEvent): Promise<void> {
+  try {
+    const { getSlackNotifications } = await import('../../services/slack-notifications.js');
+    const slack = getSlackNotifications();
+
+    const severityMap: Record<CrashEvent['type'], 'warning' | 'error'> = {
+      exception: 'error',
+      memory: 'error',
+      livekit: 'error',
+      signal: 'warning',
+      crash_loop: 'error',
+    };
+
+    const inCrashLoop = isInCrashLoop();
+    const title = inCrashLoop
+      ? `🔄 CRASH LOOP DETECTED: ${event.reason}`
+      : `💥 Process Crash: ${event.reason}`;
+
+    await slack.notify({
+      type: 'incident_opened',
+      title,
+      message: inCrashLoop
+        ? `Container has restarted ${recentRestarts.length} times in ${CRASH_LOOP_WINDOW_MS / 60000} minutes. Investigating required.`
+        : `Voice agent crashed after ${event.uptimeSeconds}s uptime.`,
+      severity: severityMap[event.type],
+      metadata: {
+        crashType: event.type,
+        uptimeSeconds: event.uptimeSeconds,
+        heapUsedMB: event.memoryUsage?.heapUsedMB,
+        heapTotalMB: event.memoryUsage?.heapTotalMB,
+        exceptionCount: event.exceptionCount,
+        recentRestarts: recentRestarts.length,
+        instanceName: process.env.GCE_INSTANCE || 'voiceai-agent',
+      },
+    });
+
+    diag.info('Crash notification sent to Slack');
+  } catch (error) {
+    diag.warn('Failed to send crash notification to Slack', { error: String(error) });
+  }
+}
+
+/**
+ * Persist crash analytics to Firestore (async, best-effort)
+ */
+async function persistCrashAnalytics(event: CrashEvent): Promise<void> {
+  try {
+    // Dynamic import to avoid circular dependencies
+    const admin = await import('firebase-admin');
+
+    // Check if already initialized
+    const app = admin.apps.length > 0 ? admin.apps[0] : admin.initializeApp();
+    if (!app) return;
+
+    const firestore = admin.firestore();
+    const instanceId = process.env.GCE_INSTANCE || 'voiceai-agent';
+    const docRef = firestore.collection('crash_analytics').doc();
+
+    await docRef.set({
+      ...event,
+      instanceId,
+      environment: process.env.NODE_ENV || 'production',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    diag.info('Crash analytics persisted to Firestore');
+  } catch (error) {
+    // Silently fail - crash analytics is best-effort
+    diag.debug('Failed to persist crash analytics (non-critical)', { error: String(error) });
+  }
+}
+
+/**
+ * Get crash history for diagnostics
+ */
+export function getCrashHistory(): CrashEvent[] {
+  return [...crashHistory];
+}
+
+/**
+ * Check if preemptive restart is needed due to memory pressure
+ */
+function shouldPreemptiveRestart(): { needed: boolean; reason?: string } {
+  const memUsage = process.memoryUsage();
+  const heapUsedMB = memUsage.heapUsed / 1024 / 1024;
+  const heapUsageRatio = heapUsedMB / MEMORY_HEAP_LIMIT_MB;
+
+  if (heapUsageRatio >= MEMORY_PREEMPTIVE_RESTART_THRESHOLD) {
+    return {
+      needed: true,
+      reason: `Heap at ${(heapUsageRatio * 100).toFixed(1)}% (${Math.round(heapUsedMB)}MB / ${MEMORY_HEAP_LIMIT_MB}MB) - preemptive restart to avoid OOM`,
+    };
+  }
+
+  return { needed: false };
+}
+
 /**
  * Handle graceful shutdown - flush all pending data before exit
  */
@@ -52,6 +230,30 @@ export async function gracefulShutdown(signal: string): Promise<void> {
   isShuttingDown = true;
 
   diag.info(`Received ${signal}, initiating graceful shutdown...`);
+
+  // Determine crash type from signal
+  const crashTypeMap: Record<string, CrashEvent['type']> = {
+    SIGTERM: 'signal',
+    SIGINT: 'signal',
+    UNCAUGHT_EXCEPTION_THRESHOLD: 'exception',
+    LIVEKIT_CRITICAL_ERROR: 'livekit',
+    MEMORY_PREEMPTIVE_RESTART: 'memory',
+    CRASH_LOOP_DETECTED: 'crash_loop',
+  };
+
+  const crashType = crashTypeMap[signal] || 'exception';
+  const isNormalShutdown = signal === 'SIGTERM' || signal === 'SIGINT';
+
+  // Record crash event (skip for normal shutdowns)
+  if (!isNormalShutdown) {
+    const event = recordCrashEvent(signal, crashType);
+
+    // Send notifications in parallel (don't block shutdown)
+    void Promise.all([
+      notifyCrashToSlack(event),
+      persistCrashAnalytics(event),
+    ]).catch((err) => diag.warn('Crash notification failed', { error: String(err) }));
+  }
 
   try {
     // 1. Clear all registered intervals first (prevents new work)
@@ -212,34 +414,68 @@ export function registerShutdownSignalHandlers(): void {
   });
 
   // =========================================================================
-  // MEMORY WARNING HANDLER
+  // MEMORY WARNING HANDLER (WITH PREEMPTIVE RESTART)
   // =========================================================================
   // Node.js doesn't have a built-in memory warning, but we can set up periodic checks
+  // Enhanced: Will trigger preemptive restart before OOM
   const MEMORY_CHECK_INTERVAL = 30_000; // Check every 30 seconds
   const MEMORY_WARNING_THRESHOLD = 0.85; // 85% of heap limit
   const MEMORY_CRITICAL_THRESHOLD = 0.95; // 95% of heap limit
+
+  let gcAttemptCount = 0;
+  const MAX_GC_ATTEMPTS_BEFORE_RESTART = 3;
 
   setInterval(() => {
     const memUsage = process.memoryUsage();
     const heapUsedMB = memUsage.heapUsed / 1024 / 1024;
     const heapTotalMB = memUsage.heapTotal / 1024 / 1024;
-    const heapLimitMB = 3072; // From NODE_OPTIONS --max-old-space-size
+    const heapLimitMB = MEMORY_HEAP_LIMIT_MB;
 
     const heapUsageRatio = heapUsedMB / heapLimitMB;
 
+    // Check for preemptive restart threshold
+    const preemptiveCheck = shouldPreemptiveRestart();
+    if (preemptiveCheck.needed) {
+      diag.error('🔄 PREEMPTIVE RESTART - memory threshold exceeded', {
+        heapUsedMB: Math.round(heapUsedMB),
+        heapLimitMB,
+        usagePercent: Math.round(heapUsageRatio * 100),
+        reason: preemptiveCheck.reason,
+      });
+
+      // Write to stderr for immediate visibility
+      process.stderr.write(
+        `\n[PREEMPTIVE RESTART] ${preemptiveCheck.reason}\n` +
+          `Heap: ${Math.round(heapUsedMB)}MB / ${heapLimitMB}MB\n` +
+          `Triggering graceful shutdown to prevent OOM kill\n\n`
+      );
+
+      void gracefulShutdown('MEMORY_PREEMPTIVE_RESTART');
+      return;
+    }
+
     if (heapUsageRatio > MEMORY_CRITICAL_THRESHOLD) {
-      diag.error('🚨 CRITICAL MEMORY USAGE - agent may crash soon', {
+      diag.error('🚨 CRITICAL MEMORY USAGE - attempting recovery', {
         heapUsedMB: Math.round(heapUsedMB),
         heapTotalMB: Math.round(heapTotalMB),
         heapLimitMB,
         usagePercent: Math.round(heapUsageRatio * 100),
         rss: Math.round(memUsage.rss / 1024 / 1024),
+        gcAttempts: gcAttemptCount,
       });
 
       // Try to trigger garbage collection if available
       if (global.gc) {
         diag.warn('Triggering manual garbage collection');
         global.gc();
+        gcAttemptCount++;
+
+        // If GC isn't helping after several attempts, restart
+        if (gcAttemptCount >= MAX_GC_ATTEMPTS_BEFORE_RESTART) {
+          diag.error('GC not reducing memory pressure - triggering preemptive restart');
+          void gracefulShutdown('MEMORY_PREEMPTIVE_RESTART');
+          return;
+        }
       }
     } else if (heapUsageRatio > MEMORY_WARNING_THRESHOLD) {
       diag.warn('⚠️ HIGH MEMORY USAGE', {
@@ -247,10 +483,29 @@ export function registerShutdownSignalHandlers(): void {
         heapLimitMB,
         usagePercent: Math.round(heapUsageRatio * 100),
       });
+      // Reset GC counter if memory dropped back to warning level
+      gcAttemptCount = Math.max(0, gcAttemptCount - 1);
+    } else {
+      // Memory is healthy - reset GC counter
+      gcAttemptCount = 0;
     }
   }, MEMORY_CHECK_INTERVAL);
 
   diag.info('Process signal handlers registered', {
-    handlers: ['SIGTERM', 'SIGINT', 'uncaughtException', 'unhandledRejection', 'memoryMonitor'],
+    handlers: [
+      'SIGTERM',
+      'SIGINT',
+      'uncaughtException',
+      'unhandledRejection',
+      'memoryMonitor',
+      'preemptiveRestart',
+      'crashAnalytics',
+    ],
+    config: {
+      memoryPreemptiveThreshold: `${MEMORY_PREEMPTIVE_RESTART_THRESHOLD * 100}%`,
+      heapLimitMB: MEMORY_HEAP_LIMIT_MB,
+      crashLoopWindow: `${CRASH_LOOP_WINDOW_MS / 60000} minutes`,
+      crashLoopThreshold: CRASH_LOOP_THRESHOLD,
+    },
   });
 }

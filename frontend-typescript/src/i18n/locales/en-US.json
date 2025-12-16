@@ -582,6 +582,7 @@
   },
 
   "roadmap": {
+    "loading": "Loading roadmap...",
     "eyebrow": "WHAT'S GROWING",
     "title": "The Journey Ahead",
     "intro": "Every great relationship has seasons. These are seeds we're planting together.",
@@ -645,6 +646,11 @@
       "milestone30": "30-day streak",
       "claimed": "Claimed!",
       "reward": "+{seeds} seeds"
+    },
+    "streak": {
+      "startStreak": "Start a streak!",
+      "tooltip": "{days} day streak!",
+      "nextReward": "{days} days to next reward"
     },
     "howSeedsWork": {
       "title": "How Seeds Work",

@@ -54,6 +54,7 @@ export default defineConfig({
       '/api/evalops': 'http://localhost:3002',
       '/api/metrics': 'http://localhost:3002',
       '/api': 'http://localhost:3002',
+      '/usage': 'http://localhost:3002',
       '/health': 'http://localhost:3002',
     },
   },

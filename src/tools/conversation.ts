@@ -308,6 +308,48 @@ export function createConversationTools() {
       },
     }),
 
+    // End the conversation and disconnect
+    endConversation: llm.tool({
+      description:
+        'End the conversation and disconnect the call. Use AFTER saying your goodbye. This triggers the disconnect - the user will hear your goodbye, then the call ends gracefully with a warm sound effect. Only call this ONCE at the very end.',
+      parameters: z.object({
+        reason: z
+          .enum(['goodbye_complete', 'user_request', 'natural_end'])
+          .describe('Why the conversation is ending'),
+      }),
+      execute: async ({ reason }) => {
+        getLogger().info(`Ending conversation: ${reason}`);
+
+        // 🎧 Play the exit sound - "Wrap the show"
+        try {
+          const { getDJIntegration } = await import('../agents/dj-integration.js');
+          const dj = getDJIntegration();
+          const wrapResult = await dj.wrapShow();
+          getLogger().info('🎧 Session wrap sound', { playedSound: wrapResult.playedSound });
+        } catch (wrapErr) {
+          getLogger().debug(`Failed to play session-end sound: ${wrapErr}`);
+        }
+
+        // 🌅 Signal the frontend to auto-disconnect
+        try {
+          const { sendFrontendSignal } = await import('../services/frontend-signal.js');
+          const sent = await sendFrontendSignal('conversation_end', {
+            reason: reason === 'natural_end' ? 'goodbye_complete' : reason,
+            disconnectDelay: 2500, // Give time for farewell to be spoken
+            timestamp: Date.now(),
+          });
+          if (sent) {
+            getLogger().info('Sent conversation_end signal to frontend');
+          }
+        } catch (e) {
+          getLogger().debug(`Could not send conversation_end signal: ${e}`);
+        }
+
+        // Return confirmation (not spoken - just for internal tracking)
+        return `[INTERNAL: Conversation ending. The call will disconnect in a moment. Do not speak after this.]`;
+      },
+    }),
+
     // Express an opinion with characteristic Jack fire
     expressOpinion: llm.tool({
       description:

@@ -2,21 +2,28 @@
 /**
  * Build Ferni CLI Binary
  *
- * Creates a standalone macOS binary for the Ferni CLI using Node.js SEA
- * (Single Executable Applications).
+ * Creates standalone CLI binaries for local and container use.
+ *
+ * Modes:
+ *   --local     Build macOS SEA binary (default on macOS)
+ *   --container Build bundled JS + shell wrapper (for Docker)
+ *   --release   Enable minification
  *
  * Usage:
- *   npx tsx scripts/build-cli-binary.ts          # Development build
- *   npx tsx scripts/build-cli-binary.ts --release # Release build (optimized)
+ *   npx tsx apps/cli/src/commands/build/build-cli-binary.ts              # Auto-detect
+ *   npx tsx apps/cli/src/commands/build/build-cli-binary.ts --container  # For Docker
+ *   npx tsx apps/cli/src/commands/build/build-cli-binary.ts --release    # Production
  *
  * Output:
- *   dist/ferni - Standalone binary (~90MB, includes Node.js runtime)
+ *   --local:     dist/ferni          (standalone binary, ~90MB)
+ *   --container: dist/ferni-bundle/  (bundled JS + wrapper, ~2MB)
  */
 
 import { execSync } from 'child_process';
-import { chmodSync, copyFileSync, existsSync, statSync, unlinkSync } from 'fs';
+import { chmodSync, copyFileSync, existsSync, mkdirSync, statSync, unlinkSync, writeFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { platform } from 'os';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, "..", "..", "..", "..", "..");
@@ -176,42 +183,138 @@ function signBinary(): void {
   log.success('Binary signed');
 }
 
-function printStats(): void {
-  const binaryPath = join(PROJECT_ROOT, 'dist', 'ferni');
-  const stats = statSync(binaryPath);
-  const sizeMB = (stats.size / 1024 / 1024).toFixed(1);
+function printStats(mode: 'local' | 'container'): void {
+  if (mode === 'local') {
+    const binaryPath = join(PROJECT_ROOT, 'dist', 'ferni');
+    const stats = statSync(binaryPath);
+    const sizeMB = (stats.size / 1024 / 1024).toFixed(1);
 
-  console.log('');
-  console.log(`${colors.bold}${colors.green}Build complete!${colors.reset}`);
-  console.log('');
-  console.log(`  Binary: ${colors.cyan}dist/ferni${colors.reset}`);
-  console.log(`  Size:   ${sizeMB} MB`);
-  console.log('');
-  console.log(`${colors.dim}Test with:${colors.reset}`);
-  console.log(`  ./dist/ferni --help`);
-  console.log(`  ./dist/ferni status`);
-  console.log('');
-  console.log(`${colors.dim}Install globally:${colors.reset}`);
-  console.log(`  sudo cp dist/ferni /usr/local/bin/`);
-  console.log('');
+    console.log('');
+    console.log(`${colors.bold}${colors.green}Build complete!${colors.reset}`);
+    console.log('');
+    console.log(`  Binary: ${colors.cyan}dist/ferni${colors.reset}`);
+    console.log(`  Size:   ${sizeMB} MB`);
+    console.log('');
+    console.log(`${colors.dim}Test with:${colors.reset}`);
+    console.log(`  ./dist/ferni --help`);
+    console.log(`  ./dist/ferni status`);
+    console.log('');
+    console.log(`${colors.dim}Install globally:${colors.reset}`);
+    console.log(`  sudo cp dist/ferni /usr/local/bin/`);
+    console.log('');
+  } else {
+    const bundlePath = join(PROJECT_ROOT, 'dist', 'ferni-bundle', 'ferni.js');
+    const stats = statSync(bundlePath);
+    const sizeMB = (stats.size / 1024 / 1024).toFixed(1);
+
+    console.log('');
+    console.log(`${colors.bold}${colors.green}Container build complete!${colors.reset}`);
+    console.log('');
+    console.log(`  Bundle: ${colors.cyan}dist/ferni-bundle/${colors.reset}`);
+    console.log(`  Size:   ${sizeMB} MB`);
+    console.log('');
+    console.log(`${colors.dim}Files:${colors.reset}`);
+    console.log(`  dist/ferni-bundle/ferni.js  (bundled CLI)`);
+    console.log(`  dist/ferni-bundle/ferni     (shell wrapper)`);
+    console.log('');
+    console.log(`${colors.dim}In Docker:${colors.reset}`);
+    console.log(`  COPY dist/ferni-bundle/ /usr/local/bin/ferni-bundle/`);
+    console.log(`  RUN ln -s /usr/local/bin/ferni-bundle/ferni /usr/local/bin/ferni`);
+    console.log('');
+  }
 }
+
+// ============================================================================
+// CONTAINER BUILD MODE
+// ============================================================================
+
+function buildContainerBundle(isRelease: boolean): void {
+  log.info('Building container bundle...');
+
+  const bundleDir = join(PROJECT_ROOT, 'dist', 'ferni-bundle');
+  const outfile = join(bundleDir, 'ferni.js');
+  const entryPoint = join(PROJECT_ROOT, 'apps', 'cli', 'src', 'index.ts');
+
+  // Ensure bundle directory exists
+  if (!existsSync(bundleDir)) {
+    mkdirSync(bundleDir, { recursive: true });
+  }
+
+  const minify = isRelease ? '--minify' : '';
+
+  // Bundle CLI to a single JS file
+  // Mark import.meta.url as container mode so CLI knows its context
+  const shimUrl = 'file:///ferni-container/apps/cli/src/index.ts';
+
+  log.step('Bundling with esbuild...');
+  run(
+    `npx esbuild "${entryPoint}" --bundle --platform=node --target=node20 ` +
+      `--outfile="${outfile}" --format=esm ${minify} ` +
+      `--external:@livekit/* --external:@sentry/* --external:pg-native ` +
+      `--external:@google/* ` +
+      `--define:import.meta.url='"${shimUrl}"'`,
+    { stdio: 'inherit' }
+  );
+
+  log.success(`Bundled to ${outfile}`);
+
+  // Create shell wrapper script
+  const wrapperPath = join(bundleDir, 'ferni');
+  const wrapperContent = `#!/bin/sh
+# Ferni CLI - Container wrapper
+# Runs the bundled CLI with node
+
+SCRIPT_DIR="$(dirname "$(readlink -f "$0" 2>/dev/null || echo "$0")")"
+exec node "\${SCRIPT_DIR}/ferni.js" "$@"
+`;
+
+  writeFileSync(wrapperPath, wrapperContent);
+  chmodSync(wrapperPath, 0o755);
+  log.success('Created shell wrapper');
+}
+
+// ============================================================================
+// MAIN
+// ============================================================================
+
+type BuildMode = 'local' | 'container';
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const isRelease = args.includes('--release');
+  const forceContainer = args.includes('--container');
+  const forceLocal = args.includes('--local');
+
+  // Auto-detect mode if not specified
+  // In Docker (Linux), default to container mode
+  // On macOS, default to local (SEA binary)
+  let mode: BuildMode;
+  if (forceContainer) {
+    mode = 'container';
+  } else if (forceLocal) {
+    mode = 'local';
+  } else {
+    mode = platform() === 'darwin' ? 'local' : 'container';
+  }
 
   console.log('');
-  console.log(`${colors.bold}Building Ferni CLI Binary${colors.reset}`);
-  console.log(`${colors.dim}Mode: ${isRelease ? 'Release' : 'Development'}${colors.reset}`);
+  console.log(`${colors.bold}Building Ferni CLI${colors.reset}`);
+  console.log(`${colors.dim}Mode: ${mode} (${isRelease ? 'Release' : 'Development'})${colors.reset}`);
   console.log('');
 
   try {
-    checkPrerequisites();
-    bundleCli(isRelease);
-    generateSeaBlob();
-    createBinary();
-    signBinary();
-    printStats();
+    if (mode === 'container') {
+      // Container mode: Just bundle JS + shell wrapper
+      buildContainerBundle(isRelease);
+    } else {
+      // Local mode: Full SEA binary (macOS only)
+      checkPrerequisites();
+      bundleCli(isRelease);
+      generateSeaBlob();
+      createBinary();
+      signBinary();
+    }
+    printStats(mode);
   } catch (err) {
     log.error((err as Error).message);
     process.exit(1);

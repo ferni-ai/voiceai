@@ -157,6 +157,28 @@ export async function loadPersonaPhase(ctx: JobContext): Promise<PersonaPhaseRes
   const { getDefaultVoiceConfig } = await import('../../../config/cartesia-config.js');
   const defaultVoice = getDefaultVoiceConfig();
 
+  // Default communication config for greeting generation
+  const defaultCommunication = {
+    greetingStyle: 'warm-friend' as const,
+    returningUserStyle: 'warm-friend' as const,
+    formalityLevel: 0.3,
+    thinkingPhrases: ['Let me think about that...', 'Hmm...'],
+    listeningCues: ['I hear you', 'Go on...'],
+    backchannels: { neutral: ['mm-hmm'], engaged: ['right'], empathetic: ['I understand'] },
+    silenceFillers: { early: ['Take your time'], mid: ['I\'m here'], late: ['Whenever you\'re ready'] },
+    selfCorrections: ['Actually, let me rephrase that...'],
+    trailingOffs: ['You know...'],
+    interruptionRecoveries: ['Sorry, go ahead'],
+    humilityPhrases: ['I could be wrong, but...'],
+    emotionalExpressions: {
+      laughter: ['haha'],
+      surprise: ['Oh!'],
+      concern: ['Oh no...'],
+      joy: ['That\'s wonderful!'],
+      empathy: ['I understand...'],
+    },
+  };
+
   // Create full persona config with defaults
   const fullPersona = (persona || {
     id: personaId,
@@ -169,6 +191,24 @@ export async function loadPersonaPhase(ctx: JobContext): Promise<PersonaPhaseRes
     personality: { warmth: 0.7, humor: 0.4, directness: 0.6, energy: 0.6 },
     speechCharacteristics: { baseSpeedMultiplier: 1.0, pauseMultiplier: 1.0 },
   }) as unknown as PersonaConfig;
+
+  // Ensure communication config exists (may be missing from cache)
+  if (!fullPersona.communication) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (fullPersona as any).communication = defaultCommunication;
+  }
+
+  // Ensure identity config exists (greetings.ts accesses identity.selfReference)
+  if (!fullPersona.identity) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (fullPersona as any).identity = {
+      selfReference: fullPersona.name || personaId,
+      coreValues: ['empathy', 'growth', 'authenticity'],
+      role: 'life coach',
+      priorities: ['user wellbeing', 'genuine connection'],
+      desiredUserExperience: 'feeling heard and supported',
+    };
+  }
 
   // Load rich system prompt
   const systemPrompt = await loadRichSystemPrompt(personaId);

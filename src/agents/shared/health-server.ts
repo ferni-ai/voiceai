@@ -9,11 +9,14 @@
  * Endpoints:
  * - GET /health - Liveness check (always returns 200 if server is up)
  * - GET /health/ready - Readiness check (200 only when workers can accept calls)
+ * - GET /health/crash-analytics - Crash analytics summary
  * - GET /api/cognitive - Current cognitive state (for dashboard)
  * - GET /api/cognitive/history - Recent cognitive events
  * - GET /api/metrics - Full persistence metrics snapshot
  * - GET /api/metrics/summary - Concise metrics summary
  * - GET /api/metrics/sessions - Active sessions only
+ * - GET /api/crash-analytics - Crash analytics summary (alias)
+ * - GET /api/crash-analytics/history - Full crash event history
  *
  * Deploy Script Integration:
  * The deploy script checks /health/ready before shifting traffic.
@@ -279,6 +282,72 @@ async function handleWatchdogAPI(res: ServerResponse): Promise<void> {
 }
 
 /**
+ * Handle crash analytics API requests
+ */
+async function handleCrashAnalyticsAPI(url: string, res: ServerResponse): Promise<void> {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  try {
+    const { getCrashHistory } = await import('./shutdown-handler.js');
+    const crashHistory = getCrashHistory();
+
+    if (url === '/health/crash-analytics' || url === '/api/crash-analytics') {
+      // Return crash analytics summary
+      const memUsage = process.memoryUsage();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          success: true,
+          data: {
+            currentUptime: Math.round(process.uptime()),
+            crashHistory,
+            totalCrashes: crashHistory.length,
+            lastCrash: crashHistory.length > 0 ? crashHistory[crashHistory.length - 1] : null,
+            currentMemory: {
+              heapUsedMB: Math.round(memUsage.heapUsed / 1024 / 1024),
+              heapTotalMB: Math.round(memUsage.heapTotal / 1024 / 1024),
+              rssMB: Math.round(memUsage.rss / 1024 / 1024),
+            },
+            processInfo: {
+              pid: process.pid,
+              nodeVersion: process.version,
+              platform: process.platform,
+              instanceName: process.env.GCE_INSTANCE || 'voiceai-agent',
+            },
+          },
+          timestamp: new Date().toISOString(),
+        })
+      );
+      return;
+    }
+
+    if (url === '/api/crash-analytics/history') {
+      // Return full crash history
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          success: true,
+          data: crashHistory,
+          count: crashHistory.length,
+          timestamp: new Date().toISOString(),
+        })
+      );
+      return;
+    }
+
+    // Unknown endpoint
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Unknown crash analytics endpoint' }));
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Crash analytics API error');
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Crash analytics not available', details: String(error) }));
+  }
+}
+
+/**
  * Handle Prometheus metrics export
  */
 async function handlePrometheusMetrics(res: ServerResponse): Promise<void> {
@@ -441,6 +510,12 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
       // Prometheus metrics endpoint
       if (url === '/metrics') {
         await handlePrometheusMetrics(res);
+        return;
+      }
+
+      // Crash analytics API endpoints
+      if (url.startsWith('/health/crash-analytics') || url.startsWith('/api/crash-analytics')) {
+        await handleCrashAnalyticsAPI(url, res);
         return;
       }
 

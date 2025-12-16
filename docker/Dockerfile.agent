@@ -47,17 +47,22 @@ RUN --mount=type=cache,target=/root/.npm \
 # Copy source files (this layer invalidates on source changes)
 COPY src/ ./src/
 
-# Copy build scripts
+# Copy build scripts and CLI source
 COPY apps/cli/src/commands/build/bundle-agent.ts ./apps/cli/src/commands/build/
 COPY apps/cli/src/commands/build/build-fast.ts ./apps/cli/src/commands/build/
+COPY apps/cli/src/commands/build/build-cli-binary.ts ./apps/cli/src/commands/build/
+COPY apps/cli/src/ ./apps/cli/src/
 
-# Build TypeScript + Bundle Agent (2441 modules → 1 file!)
-# The bundle eliminates the 30-120s module loading time in child processes
-# Using build:fast (esbuild) for faster builds - type errors are caught in CI
+# Build TypeScript + Bundle Agent + CLI
+# - Agent bundle: 2441 modules → 1 file (eliminates 30-120s module loading)
+# - CLI bundle: Packaged for in-container ops
 RUN npm run build:fast && \
     echo "=== Creating agent bundle (2441 modules → 1 file) ===" && \
     npx tsx apps/cli/src/commands/build/bundle-agent.ts && \
-    ls -lh dist/agents/voice-agent-bundle.js
+    ls -lh dist/agents/voice-agent-bundle.js && \
+    echo "=== Building Ferni CLI for container ===" && \
+    npx tsx apps/cli/src/commands/build/build-cli-binary.ts --container --release && \
+    ls -lh dist/ferni-bundle/
 
 # ============================================================================
 # Stage 2: Production
@@ -141,6 +146,13 @@ COPY --from=builder /app/src/tasks/wisdom/*.json ./dist/tasks/wisdom/
 # Copy sound effects for session intro/outro (connect.mp3, disconnect.mp3, etc.)
 # These are used by the DJ system for "opening the show" moments
 COPY frontend-typescript/public/sounds/ ./sounds/
+
+# Install Ferni CLI for in-container ops
+# The bundle was built in the builder stage and copied with dist/
+# Create symlink so `ferni` command is available globally
+RUN ln -sf /app/dist/ferni-bundle/ferni /usr/local/bin/ferni && \
+    chmod +x /app/dist/ferni-bundle/ferni /app/dist/ferni-bundle/ferni.js && \
+    echo "Ferni CLI installed:" && ferni --version || echo "(version check skipped)"
 
 # Set environment variables
 ENV NODE_ENV=production

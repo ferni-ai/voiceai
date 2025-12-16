@@ -94,6 +94,78 @@ const icons = {
   arrow: '→',
   bullet: '•',
   spinner: ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'],
+  leaf: '🌿',
+  sparkles: '✨',
+};
+
+// ============================================================================
+// ON-BRAND MESSAGES (Warm, Helpful, Human)
+// ============================================================================
+
+/**
+ * Brand-compliant messages following Ferni voice guidelines:
+ * - Warm, helpful, not blaming
+ * - Suggest solutions
+ * - Human tone, no tech jargon
+ * - Use "we" and "let's" language
+ */
+const messages = {
+  // Build & Deploy
+  buildFailed: (hint?: string) =>
+    `Hmm, the build didn't quite make it. ${hint || "Let's take a look at what went wrong."}`,
+  deploySuccess: (service: string) =>
+    `${service} is live! Your changes are out in the world now.`,
+  deployFailed: (service: string, hint?: string) =>
+    `${service} couldn't be deployed right now. ${hint || "Mind checking the logs?"}`,
+  healthCheckPassed: () => `Everything looks healthy!`,
+  healthCheckFailed: (hint?: string) =>
+    `Something's not feeling right. ${hint || "Let's figure out what's going on."}`,
+
+  // Validation & Quality
+  validationPassed: () => `Looking good! All checks passed.`,
+  validationFailed: (count: number, hint?: string) =>
+    `Found ${count} thing${count > 1 ? 's' : ''} to look at. ${hint || "Nothing we can't handle together."}`,
+  qualityCheckPassed: () => `Nice work! Code quality is on point.`,
+  qualityCheckFailed: (hint?: string) =>
+    `A few things need some love. ${hint || "Let's tidy these up."}`,
+
+  // Missing Requirements
+  missingEnvFile: () =>
+    `Couldn't find .env file. Run \`ferni setup\` to get started.`,
+  missingEnvVar: (varName: string) =>
+    `We need ${varName} to continue. Mind adding it to your .env file?`,
+  missingTool: (tool: string, installHint?: string) =>
+    `${tool} isn't installed yet. ${installHint || `Try installing it first.`}`,
+  missingArg: (arg: string, example?: string) =>
+    `Need a ${arg} to continue.${example ? ` For example: ${example}` : ''}`,
+
+  // Not Found
+  notFound: (item: string, suggestion?: string) =>
+    `Couldn't find ${item}.${suggestion ? ` ${suggestion}` : ''}`,
+  unknownCommand: (cmd: string) =>
+    `"${cmd}" doesn't ring a bell. Try \`ferni help\` to see what's available.`,
+  unknownService: (service: string) =>
+    `Don't recognize "${service}". Available: ui, agent, gce, frontend`,
+
+  // Git & Version Control
+  uncommittedChanges: () =>
+    `You have uncommitted changes. Let's commit or stash them first so nothing gets lost.`,
+  tagExists: (tag: string) =>
+    `Tag ${tag} already exists. Maybe bump to a new version?`,
+  noTagsFound: () =>
+    `No version tags found yet. This might be your first release!`,
+
+  // Success Messages
+  allDone: () => `All done! ${icons.sparkles}`,
+  readyToGo: () => `You're all set!`,
+  savedSuccessfully: () => `Saved!`,
+  deletedSuccessfully: () => `Gone!`,
+  createdSuccessfully: (item: string) => `${item} created! ${icons.leaf}`,
+
+  // Progress
+  workingOn: (task: string) => `Working on ${task}...`,
+  almostThere: () => `Almost there...`,
+  hangTight: () => `Hang tight, this might take a moment...`,
 };
 
 const log = {
@@ -937,7 +1009,7 @@ async function handleAgents(args: string[]): Promise<void> {
     });
 
     if (result.status !== 0) {
-      log.error('Agent builder wizard failed');
+      log.error(messages.buildFailed('The agent wizard ran into trouble.'));
     }
     return;
   }
@@ -969,7 +1041,7 @@ async function handleLogs(args: string[]): Promise<void> {
   if (subcommand === 'search') {
     const query = args[1];
     if (!query) {
-      log.error('Search query required');
+      log.error(messages.missingArg('search query', 'ferni agents search "wellness"'));
       console.log(`\n  Usage: ferni logs search "error message"`);
       return;
     }
@@ -995,7 +1067,7 @@ async function handleLogs(args: string[]): Promise<void> {
   } else {
     const service = SERVICES[subcommand as keyof typeof SERVICES];
     if (!service) {
-      log.error(`Unknown service: ${subcommand}`);
+      log.error(messages.unknownService(subcommand));
       log.info(`Available: ${Object.keys(SERVICES).join(', ')}, all, errors, analyze, search, gce`);
       return;
     }
@@ -1410,7 +1482,7 @@ async function handleDoctor(args: string[]): Promise<void> {
     try {
       envContent = readFileSync(envPath, 'utf-8');
     } catch {
-      log.error('.env file not found');
+      log.error(messages.missingEnvFile());
       issues++;
     }
 
@@ -1559,7 +1631,7 @@ async function handleTokens(args: string[]): Promise<void> {
 
     if (result.status === 0) {
       spinner.stop(true);
-      log.success('All tokens synced successfully');
+      log.success(messages.allDone());
     } else {
       spinner.stop(false);
       console.log(result.stderr?.toString() || result.stdout?.toString());
@@ -1583,7 +1655,7 @@ async function handleTokens(args: string[]): Promise<void> {
 
     if (driftResult.status === 0 && brandResult.status === 0) {
       console.log();
-      log.success('All checks passed');
+      log.success(messages.validationPassed());
     }
   }
 
@@ -1859,7 +1931,7 @@ async function handleEnv(args: string[]): Promise<void> {
     console.log(`${colors.bold}Current .env variables:${colors.reset}\n`);
 
     if (!existsSync(envPath)) {
-      log.error('.env file not found');
+      log.error(messages.missingEnvFile());
       log.info(`Create one with: cp .env.example .env`);
       return;
     }
@@ -1909,7 +1981,7 @@ async function handleEnv(args: string[]): Promise<void> {
     try {
       content = readFileSync(envPath, 'utf-8');
     } catch {
-      log.error('.env file not found');
+      log.error(messages.missingEnvFile());
       return;
     }
 
@@ -1949,7 +2021,7 @@ async function handleEnv(args: string[]): Promise<void> {
     if (missingRequired > 0) {
       log.error(`${missingRequired} required variable(s) missing`);
     } else {
-      log.success('All required variables are set');
+      log.success(messages.readyToGo());
     }
   }
 
@@ -2409,7 +2481,7 @@ async function handleQuality(args: string[]): Promise<void> {
     if (failed === 0) {
       log.success(`All ${passed} checks passed!`);
     } else {
-      log.error(`${failed} check(s) failed, ${passed} passed`);
+      log.error(messages.validationFailed(failed, `${passed} checks passed.`));
     }
   } else if (checks[subcommand as keyof typeof checks]) {
     const check = checks[subcommand as keyof typeof checks];
@@ -2420,7 +2492,7 @@ async function handleQuality(args: string[]): Promise<void> {
       stdio: 'inherit',
     });
   } else {
-    log.error(`Unknown check: ${subcommand}`);
+    log.error(messages.unknownCommand(subcommand));
     log.info(`Available: ${Object.keys(checks).join(', ')}, all, quick`);
   }
 }
@@ -2437,7 +2509,7 @@ async function handlePR(args: string[]): Promise<void> {
   // Check if gh CLI is available
   const ghAvailable = execCommand('which gh 2>/dev/null');
   if (!ghAvailable) {
-    log.error('GitHub CLI (gh) not found');
+    log.error(messages.missingTool('GitHub CLI (gh)', 'Install from: https://cli.github.com'));
     log.info('Install: brew install gh');
     return;
   }
@@ -3490,7 +3562,7 @@ ${colors.bold}MCP Tools Available to Claude:${colors.reset}
     execSync('which claude', { stdio: 'pipe' });
     log.success('Claude Code CLI found');
   } catch {
-    log.error('Claude Code CLI not found!');
+    log.error(messages.missingTool('Claude Code', 'Install from: npm install -g @anthropic-ai/claude-code'));
     console.log(`\n${colors.yellow}Install it with:${colors.reset}`);
     console.log(`${colors.dim}  npm install -g @anthropic-ai/claude-code${colors.reset}\n`);
     return;
@@ -3981,14 +4053,14 @@ async function handleRelease(args: string[]): Promise<void> {
     // Check for uncommitted changes
     const uncommitted = execCommand('git status --porcelain');
     if (uncommitted) {
-      log.error('You have uncommitted changes. Please commit or stash them first.');
+      log.error(messages.uncommittedChanges());
       return;
     }
 
     // Check if tag already exists
     const tagExists = execCommand(`git tag -l ${version}`);
     if (tagExists) {
-      log.error(`Tag ${version} already exists`);
+      log.error(messages.tagExists(version));
       return;
     }
 
@@ -4877,7 +4949,7 @@ async function handleSelfHealHealth(args: string[]): Promise<void> {
       }
     }
   } catch (error) {
-    log.error(`Failed to check health: ${(error as Error).message}`);
+    log.error(messages.healthCheckFailed((error as Error).message));
   }
 
   console.log();
@@ -4899,7 +4971,7 @@ async function handleCircuits(args: string[]): Promise<void> {
   spinner.stop(response.success);
 
   if (!response.success || !response.output) {
-    log.error('Could not reach health endpoint');
+    log.error(messages.healthCheckFailed('Could not reach the service. Is it running?'));
     console.log(`\n  Ensure the service is running at ${serviceUrl}`);
     return;
   }

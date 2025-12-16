@@ -13,6 +13,7 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { appState } from '../state/app.state.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost } from '../utils/api.js';
@@ -760,6 +761,7 @@ async function savePreference(): Promise<void> {
   render();
 
   try {
+    // 1. Save preference for future sessions
     const response = await apiPost<{ error?: string }>('/api/user/accent', {
       accent: state.currentAccent,
       autoDetected: state.autoDetected,
@@ -769,9 +771,50 @@ async function savePreference(): Promise<void> {
       throw new Error(response.data?.error || response.error || 'Failed to save preference');
     }
 
-    state.success =
-      'Your accent preference has been saved! Ferni will use this voice in your next conversation.';
     log.info('Accent preference saved:', state.currentAccent);
+
+    // 2. If there's an active session, also apply the change immediately
+    const connectionState = appState.get('connection');
+    const hasActiveSession = connectionState === 'connected' || connectionState === 'reconnecting';
+
+    if (hasActiveSession) {
+      // Call mid-session accent change API to switch voice immediately
+      // Use a timeout to prevent hanging if Cartesia API is slow
+      try {
+        const sessionPromise = apiPost<{ error?: string; message?: string }>(
+          '/api/session/accent',
+          {
+            accent: state.currentAccent,
+          }
+        );
+
+        // Timeout after 10 seconds
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Session accent change timed out')), 10000)
+        );
+
+        const sessionResponse = await Promise.race([sessionPromise, timeoutPromise]);
+
+        if (sessionResponse.ok) {
+          log.info('Mid-session accent change applied:', state.currentAccent);
+          state.success = 'Accent updated! The voice will change on the next response.';
+        } else {
+          // Session change failed, but preference was saved - still show partial success
+          log.warn('Mid-session accent change failed, but preference saved');
+          state.success =
+            'Your preference is saved. The voice will update when you start a new conversation.';
+        }
+      } catch (sessionErr) {
+        // Mid-session change failed or timed out - still a partial success
+        log.warn('Mid-session accent change failed:', sessionErr);
+        state.success =
+          'Your preference is saved. The voice will update when you start a new conversation.';
+      }
+    } else {
+      // No active session - will take effect next time
+      state.success =
+        'Your accent preference has been saved! Ferni will use this voice in your next conversation.';
+    }
 
     // Close after a short delay
     trackedTimeout(() => {

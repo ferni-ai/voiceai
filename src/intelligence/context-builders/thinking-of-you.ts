@@ -57,9 +57,8 @@ export const thinkingOfYouBuilder: ContextBuilder = {
     const injections: ContextInjection[] = [];
 
     const personaId = persona?.id || 'ferni';
-    const userId = services?.userId;
     const sessionId = services?.sessionId || 'unknown';
-    const turnCount = userData?.turnCount || 0;
+    const turnCount = userData?.turnCount ?? 0;
 
     // Only surface callbacks in turns 1-3 (greeting phase)
     if (turnCount > 3) {
@@ -82,7 +81,7 @@ export const thinkingOfYouBuilder: ContextBuilder = {
     // Future enhancement: Query getMemoryOrchestrator() for recall context
 
     // Check for relationship anniversary using userProfile
-    const firstConversationDate = (userProfile?.customData?.firstConversation as string | undefined);
+    const firstConversationDate = userProfile?.customData?.firstConversation as string | undefined;
     if (firstConversationDate) {
       const anniversary = checkForAnniversary(new Date(firstConversationDate));
       if (anniversary) {
@@ -109,10 +108,14 @@ export const thinkingOfYouBuilder: ContextBuilder = {
     }
 
     // Pick the best callback (prioritize anniversaries, then life events)
-    const priorityOrder = ['anniversary', 'life_event', 'goal_progress', 'pending_topic', 'seasonal'];
-    callbacks.sort(
-      (a, b) => priorityOrder.indexOf(a.type) - priorityOrder.indexOf(b.type)
-    );
+    const priorityOrder = [
+      'anniversary',
+      'life_event',
+      'goal_progress',
+      'pending_topic',
+      'seasonal',
+    ];
+    callbacks.sort((a, b) => priorityOrder.indexOf(a.type) - priorityOrder.indexOf(b.type));
 
     const callback = callbacks[0];
 
@@ -146,7 +149,10 @@ ${getPersonaVoice(personaId, callback)}`;
       })
     );
 
-    log.debug({ personaId, callbackType: callback.type, topic: callback.topic }, 'Thinking of you callback injected');
+    log.debug(
+      { personaId, callbackType: callback.type, topic: callback.topic },
+      'Thinking of you callback injected'
+    );
 
     return injections;
   },
@@ -156,54 +162,34 @@ ${getPersonaVoice(personaId, callback)}`;
 // HELPERS
 // ============================================================================
 
-function generateLifeEventFollowUp(
-  event: { event?: string; summary?: string; context?: string },
-  daysAgo: number
-): string {
-  const timeRef =
-    daysAgo === 1
-      ? 'yesterday'
-      : daysAgo < 7
-        ? 'the other day'
-        : 'last week';
+// NOTE: generateLifeEventFollowUp, generateGoalFollowUp, generatePendingTopicFollowUp
+// were removed as they require memory orchestrator integration (future enhancement).
+// When memory-based callbacks are re-enabled, these can be restored from git history.
 
-  return `"Hey, I was thinking about you. ${timeRef} you mentioned ${event.event || event.summary || 'something'}... how did that go?"
-
-Or more casually:
-"Oh! How did ${event.event || 'that thing'} go?"`;
-}
-
-function generateGoalFollowUp(
-  goal: { goal?: string; summary?: string },
-  daysAgo: number
-): string {
-  return `"I've been thinking about your goal to ${goal.goal || goal.summary || 'work on that thing'}. How's it going?"
-
-Or:
-"Hey, remember when we talked about ${goal.goal || 'your goal'}? Any progress?"`;
-}
-
-function generatePendingTopicFollowUp(topic: { topic?: string; summary?: string }): string {
-  return `"We never finished talking about ${topic.topic || topic.summary || 'that thing'}. Want to pick that up?"
-
-Or:
-"I was thinking about what you said about ${topic.topic || 'that'}... is that still on your mind?"`;
-}
-
-function checkForAnniversary(
-  firstConversation: Date
-): { label: string; message: string } | null {
+function checkForAnniversary(firstConversation: Date): { label: string; message: string } | null {
   const now = new Date();
   const diff = now.getTime() - firstConversation.getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
   // Check for milestone anniversaries
   const milestones = [
-    { days: 7, label: '1 week', message: "It's been a week since we started talking! How does it feel?" },
-    { days: 30, label: '1 month', message: "Can you believe it's been a month? I feel like I really know you now." },
-    { days: 90, label: '3 months', message: "Three months together! We've covered a lot of ground." },
+    {
+      days: 7,
+      label: '1 week',
+      message: "It's been a week since we started talking! How does it feel?",
+    },
+    {
+      days: 30,
+      label: '1 month',
+      message: "Can you believe it's been a month? I feel like I really know you now.",
+    },
+    {
+      days: 90,
+      label: '3 months',
+      message: "Three months together! We've covered a lot of ground.",
+    },
     { days: 180, label: '6 months', message: "Half a year! Look how far you've come." },
-    { days: 365, label: '1 year', message: "A whole year together. This is special." },
+    { days: 365, label: '1 year', message: 'A whole year together. This is special.' },
   ];
 
   for (const milestone of milestones) {
@@ -250,7 +236,8 @@ function getSeasonalCallback(): MemoryCallback | null {
         topic: 'fall',
         originalContext: '',
         daysAgo: 0,
-        followUpPrompt: '"Fall is starting. For some people this is cozy, for others it\'s hard. How about you?"',
+        followUpPrompt:
+          '"Fall is starting. For some people this is cozy, for others it\'s hard. How about you?"',
       },
     },
     winterStart: {
@@ -274,7 +261,7 @@ function getSeasonalCallback(): MemoryCallback | null {
   return null;
 }
 
-function getPersonaVoice(personaId: string, callback: MemoryCallback): string {
+function getPersonaVoice(personaId: string, _callback: MemoryCallback): string {
   const voices: Record<string, string> = {
     ferni: `Ferni brings it up warmly, like he's genuinely been thinking about them:
 "I was wondering about you..." or "Something reminded me of what you said..."`,

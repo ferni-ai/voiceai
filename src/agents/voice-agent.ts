@@ -2938,10 +2938,12 @@ export default defineAgent({
       // HANDOFF EVENT HANDLER - Uses extracted handler for clean modularity
       // ============================================================
       // Create handoff handler with config (uses PersonaRegistry internally)
+      // IMPORTANT: Pass original `tts` variable, NOT `session.tts`!
+      // LiveKit may wrap/proxy session.tts, breaking our switchVoice method
       const handoffHandler = createHandoffHandler({
         ctx,
         session,
-        tts: session.tts as { switchVoice?: (name: string, id: string) => void },
+        tts: tts as { switchVoice?: (name: string, id: string) => void },
         services,
         userData,
         getVoiceAgentRef: () => voiceAgentRef as VoiceAgentRef | null,
@@ -2971,10 +2973,12 @@ export default defineAgent({
       // FIX BUG: Now passes getVoiceAgentRef and hostPersona to enable LLM instruction updates
       let cleanupCameoHandlers: (() => void) | null = null;
       try {
+        // IMPORTANT: Pass original `tts` variable, NOT `session.tts`!
+        // LiveKit may wrap/proxy session.tts, breaking our switchVoice method
         cleanupCameoHandlers = await registerCameoHandlers({
           ctx,
           session,
-          tts: session.tts as { switchVoice?: (name: string, id: string) => void },
+          tts: tts as { switchVoice?: (name: string, id: string) => void },
           hostPersonaId: sessionPersona.id,
           hostVoiceId: sessionPersona.voice.voiceId,
           // FIX BUG: Add voice agent ref for LLM instruction updates during cameos
