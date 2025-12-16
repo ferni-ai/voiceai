@@ -3,686 +3,156 @@ layout: layouts/base.njk
 title: Building Ferni - Our Open Build Story
 description: The story of how a human and an AI built something beautiful together. No VCs. No roadmaps. Just genuine curiosity and a lot of late nights.
 permalink: /building/
+bodyClass: building-page-body
 ---
 
-{% include "partials/home/nav.njk" %}
-
 <style>
-/* Critical inline styles to ensure page displays */
-.building-page { background: #faf8f5; }
-
-.building-hero {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-  padding: 120px 24px 80px;
-  background: linear-gradient(180deg, #faf8f5 0%, #f5f1e8 100%);
-}
-
-.building-hero__bg-svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.6;
-}
-
-.building-hero__content {
-  position: relative;
-  z-index: 10;
-  text-align: center;
-  max-width: 900px;
-  animation: fadeInUp 1s ease-out;
-}
-
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(40px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
-}
-
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.4; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.1); }
-}
-
-@keyframes draw-line {
-  from { stroke-dashoffset: 1000; }
-  to { stroke-dashoffset: 0; }
-}
-
-.building-hero__eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: #4a6741;
-  margin-bottom: 24px;
-  background: rgba(74, 103, 65, 0.1);
-  padding: 8px 16px;
-  border-radius: 999px;
-}
-
-.building-hero__headline {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-weight: 800;
-  line-height: 1.1;
-  margin-bottom: 24px;
-}
-
-.building-hero__line1 {
-  display: block;
-  font-size: clamp(2rem, 6vw, 3.5rem);
-  color: #2c2520;
-}
-
-.building-hero__line2 {
-  display: block;
-  font-size: clamp(2.5rem, 8vw, 5rem);
-  background: linear-gradient(135deg, #4a6741 0%, #3a6b73 50%, #9a7b5a 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.building-hero__line3 {
-  display: block;
-  font-size: clamp(1.5rem, 4vw, 2rem);
-  color: #8a7f72;
-  font-weight: 500;
-}
-
-.building-hero__subhead {
-  font-size: clamp(1rem, 2vw, 1.25rem);
-  color: #6b6358;
-  line-height: 1.7;
-  max-width: 600px;
-  margin: 0 auto 48px;
-}
-
-.building-hero__orb {
-  width: 120px;
-  height: 120px;
-  margin: 0 auto 32px;
-  animation: float 4s ease-in-out infinite;
-}
-
-/* Origin Section */
-.building-origin {
-  padding: 120px 24px;
-  background: #f5f1e8;
-}
-
-.building-origin__container {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.building-origin__card {
-  background: white;
-  border-radius: 24px;
-  padding: 48px;
-  box-shadow: 0 20px 60px rgba(44, 37, 32, 0.1);
-  position: relative;
-  overflow: hidden;
-}
-
-.building-origin__card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #4a6741, #3a6b73, #9a7b5a);
-}
-
-.building-origin__quote {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: clamp(1.25rem, 3vw, 1.75rem);
-  font-weight: 500;
-  color: #2c2520;
-  line-height: 1.5;
-  font-style: italic;
-  margin-bottom: 24px;
-  padding-left: 24px;
-  border-left: 3px solid #4a6741;
-}
-
-.building-origin__author {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 32px;
-}
-
-.building-origin__avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 700;
-  font-size: 18px;
-}
-
-.building-origin__avatar--human { background: linear-gradient(135deg, #4a6741, #3d5a35); }
-.building-origin__avatar--ai { background: linear-gradient(135deg, #3a6b73, #2d5359); }
-
-.building-origin__name { font-weight: 700; color: #2c2520; }
-.building-origin__role { font-size: 14px; color: #8a7f72; }
-
-/* Timeline */
-.building-timeline {
-  padding: 120px 24px;
-  background: #faf8f5;
-  position: relative;
-}
-
-.building-timeline__header {
-  text-align: center;
-  margin-bottom: 80px;
-}
-
-.building-timeline__eyebrow {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: #4a6741;
-  margin-bottom: 16px;
-}
-
-.building-timeline__title {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: clamp(2rem, 5vw, 3rem);
-  font-weight: 700;
-  color: #2c2520;
-}
-
-.building-timeline__track {
-  max-width: 800px;
-  margin: 0 auto;
-  position: relative;
-}
-
-.building-timeline__line {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: linear-gradient(180deg, #4a6741, #3a6b73, #9a7b5a, #c4856a);
-  transform: translateX(-50%);
-}
-
-.building-timeline__item {
-  display: flex;
-  margin-bottom: 64px;
-  position: relative;
-}
-
-.building-timeline__item:nth-child(odd) { flex-direction: row; }
-.building-timeline__item:nth-child(even) { flex-direction: row-reverse; }
-
-.building-timeline__dot {
-  position: absolute;
-  left: 50%;
-  top: 24px;
-  width: 20px;
-  height: 20px;
-  background: white;
-  border: 4px solid #4a6741;
-  border-radius: 50%;
-  transform: translateX(-50%);
-  z-index: 2;
-}
-
-.building-timeline__dot--active {
-  background: #4a6741;
-  box-shadow: 0 0 0 8px rgba(74, 103, 65, 0.2);
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-.building-timeline__content {
-  width: calc(50% - 48px);
-  background: white;
-  border-radius: 20px;
-  padding: 32px;
-  box-shadow: 0 8px 32px rgba(44, 37, 32, 0.08);
-  border: 1px solid rgba(44, 37, 32, 0.06);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.building-timeline__content:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 16px 48px rgba(44, 37, 32, 0.12);
-}
-
-.building-timeline__date {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #4a6741;
-  margin-bottom: 8px;
-}
-
-.building-timeline__milestone-title {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #2c2520;
-  margin-bottom: 12px;
-}
-
-.building-timeline__text {
-  color: #6b6358;
-  line-height: 1.6;
-  margin-bottom: 16px;
-}
-
-.building-timeline__tag {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: rgba(74, 103, 65, 0.1);
-  color: #4a6741;
-}
-
-.building-timeline__tag--active {
-  background: #4a6741;
-  color: white;
-}
-
-/* Stories Grid */
-.building-stories {
-  padding: 120px 24px;
-  background: #f5f1e8;
-}
-
-.building-stories__header {
-  text-align: center;
-  margin-bottom: 64px;
-}
-
-.building-stories__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 32px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.story-card {
-  background: white;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(44, 37, 32, 0.06);
-  border: 1px solid rgba(44, 37, 32, 0.06);
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease;
-}
-
-.story-card:hover {
-  transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 20px 60px rgba(44, 37, 32, 0.15);
-}
-
-.story-card__link {
-  display: block;
-  text-decoration: none;
-  color: inherit;
-  padding: 32px;
-}
-
-.story-card__header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.story-card__avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 700;
-  font-size: 14px;
-}
-
-.story-card__meta {
-  flex: 1;
-}
-
-.story-card__author {
-  font-weight: 600;
-  color: #2c2520;
-  font-size: 14px;
-}
-
-.story-card__date {
-  font-size: 12px;
-  color: #8a7f72;
-}
-
-.story-card__title {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #2c2520;
-  line-height: 1.3;
-  margin-bottom: 12px;
-  transition: color 0.2s ease;
-}
-
-.story-card:hover .story-card__title {
-  color: #4a6741;
-}
-
-.story-card__excerpt {
-  color: #6b6358;
-  line-height: 1.6;
-  font-size: 15px;
-  margin-bottom: 16px;
-}
-
-.story-card__read {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-  font-size: 14px;
-  color: #4a6741;
-}
-
-.story-card__read svg {
-  transition: transform 0.2s ease;
-}
-
-.story-card:hover .story-card__read svg {
-  transform: translateX(4px);
-}
-
-/* CTA Section */
-.building-cta {
-  padding: 120px 24px;
-  background: linear-gradient(135deg, #4a6741 0%, #3d5a35 100%);
-  text-align: center;
-  color: white;
-  position: relative;
-  overflow: hidden;
-}
-
-.building-cta__bg {
-  position: absolute;
-  inset: 0;
-  opacity: 0.1;
-}
-
-.building-cta__content {
-  position: relative;
-  z-index: 10;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.building-cta__title {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: clamp(2rem, 5vw, 3rem);
-  font-weight: 700;
-  margin-bottom: 20px;
-}
-
-.building-cta__text {
-  font-size: 1.125rem;
-  opacity: 0.9;
-  line-height: 1.7;
-  margin-bottom: 40px;
-}
-
-.building-cta__buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  justify-content: center;
-}
-
-.btn-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 16px 32px;
-  border-radius: 999px;
-  font-weight: 600;
-  font-size: 16px;
-  text-decoration: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.btn-cta:hover {
-  transform: translateY(-2px);
-}
-
-.btn-cta--primary {
-  background: white;
-  color: #4a6741;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-}
-
-.btn-cta--secondary {
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-}
-
-/* Mobile adjustments */
-@media (max-width: 768px) {
-  .building-timeline__line { left: 20px; }
-  .building-timeline__item,
-  .building-timeline__item:nth-child(even) { flex-direction: row; padding-left: 60px; }
-  .building-timeline__dot { left: 20px; }
-  .building-timeline__content { width: 100%; }
-  .building-stories__grid { grid-template-columns: 1fr; }
-  .building-origin__card { padding: 32px 24px; }
+/* Protect Building page content from JS animations */
+.building-page-body .building-hero,
+.building-page-body .building-hero *,
+.building-page-body .building-origin,
+.building-page-body .building-origin * {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+}
+.building-page-body .building-hero__headline-line {
+  color: #2c2520 !important;
+}
+.building-page-body .building-hero__headline-accent {
+  background: linear-gradient(135deg, #4a6741 0%, #3a6b73 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+.building-page-body .building-hero__headline-small {
+  color: #5c544a !important;
+}
+.building-page-body .building-hero__subhead {
+  color: #5c544a !important;
+}
+.building-page-body .building-origin__text,
+.building-page-body .building-origin__response-text {
+  color: #2c2520 !important;
 }
 </style>
 
-<main class="building-page">
+<div class="building-page">
 
-{# ========== HERO WITH SVG ANIMATION ========== #}
+{# ========== HERO ========== #}
 <section class="building-hero">
-  {# Animated Background SVG #}
-  <svg class="building-hero__bg-svg" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
-    <defs>
-      <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style="stop-color:#4a6741;stop-opacity:0.1" />
-        <stop offset="100%" style="stop-color:#3a6b73;stop-opacity:0.05" />
-      </linearGradient>
-      <linearGradient id="grad2" x1="100%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" style="stop-color:#9a7b5a;stop-opacity:0.08" />
-        <stop offset="100%" style="stop-color:#c4856a;stop-opacity:0.03" />
-      </linearGradient>
-    </defs>
-    
-    {# Floating organic shapes #}
-    <circle cx="200" cy="200" r="150" fill="url(#grad1)">
-      <animate attributeName="cy" values="200;180;200" dur="6s" repeatCount="indefinite"/>
-      <animate attributeName="r" values="150;170;150" dur="8s" repeatCount="indefinite"/>
-    </circle>
-    
-    <circle cx="1200" cy="600" r="200" fill="url(#grad2)">
-      <animate attributeName="cy" values="600;650;600" dur="7s" repeatCount="indefinite"/>
-      <animate attributeName="cx" values="1200;1180;1200" dur="9s" repeatCount="indefinite"/>
-    </circle>
-    
-    <ellipse cx="700" cy="800" rx="300" ry="150" fill="url(#grad1)" opacity="0.5">
-      <animate attributeName="ry" values="150;180;150" dur="5s" repeatCount="indefinite"/>
-    </ellipse>
-    
-    {# Connecting lines #}
-    <path d="M100,450 Q400,300 720,450 T1340,450" stroke="#4a6741" stroke-width="1" fill="none" opacity="0.15" stroke-dasharray="8 4">
-      <animate attributeName="stroke-dashoffset" values="0;24" dur="2s" repeatCount="indefinite"/>
-    </path>
-    
-    {# Sparkle dots #}
-    <circle cx="300" cy="300" r="3" fill="#4a6741" opacity="0.4">
-      <animate attributeName="opacity" values="0.4;0.8;0.4" dur="2s" repeatCount="indefinite"/>
-    </circle>
-    <circle cx="800" cy="200" r="2" fill="#3a6b73" opacity="0.3">
-      <animate attributeName="opacity" values="0.3;0.7;0.3" dur="2.5s" repeatCount="indefinite"/>
-    </circle>
-    <circle cx="1100" cy="400" r="4" fill="#9a7b5a" opacity="0.5">
-      <animate attributeName="opacity" values="0.5;0.9;0.5" dur="3s" repeatCount="indefinite"/>
-    </circle>
-    <circle cx="500" cy="600" r="3" fill="#c4856a" opacity="0.4">
-      <animate attributeName="opacity" values="0.4;0.8;0.4" dur="2.2s" repeatCount="indefinite"/>
-    </circle>
-  </svg>
+  <div class="building-hero__bg">
+    <div class="building-hero__gradient"></div>
+    <div class="building-hero__particles">
+      <span class="building-hero__particle"></span>
+      <span class="building-hero__particle"></span>
+      <span class="building-hero__particle"></span>
+    </div>
+  </div>
 
   <div class="building-hero__content">
-    {# Animated Logo/Orb #}
-    <div class="building-hero__orb">
-      <svg viewBox="0 0 120 120" fill="none">
-        <defs>
-          <linearGradient id="orbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#4a6741"/>
-            <stop offset="50%" style="stop-color:#3a6b73"/>
-            <stop offset="100%" style="stop-color:#9a7b5a"/>
-          </linearGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-            <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
-        </defs>
-        <circle cx="60" cy="60" r="50" fill="url(#orbGrad)" filter="url(#glow)">
-          <animate attributeName="r" values="50;52;50" dur="3s" repeatCount="indefinite"/>
-        </circle>
-        <circle cx="60" cy="60" r="58" stroke="url(#orbGrad)" stroke-width="1" fill="none" opacity="0.3">
-          <animate attributeName="r" values="58;62;58" dur="4s" repeatCount="indefinite"/>
-          <animate attributeName="opacity" values="0.3;0.5;0.3" dur="4s" repeatCount="indefinite"/>
-        </circle>
-        {# Inner glow #}
-        <circle cx="60" cy="60" r="30" fill="white" opacity="0.1"/>
-        <circle cx="45" cy="45" r="8" fill="white" opacity="0.2"/>
-      </svg>
-    </div>
-    
     <span class="building-hero__eyebrow">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+      <svg class="building-hero__eyebrow-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 20h9"></path>
+        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
       </svg>
       Building in Public
     </span>
     
     <h1 class="building-hero__headline">
-      <span class="building-hero__line1">Built by a human.</span>
-      <span class="building-hero__line2">And an AI.</span>
-      <span class="building-hero__line3">Together.</span>
+      <span class="building-hero__headline-line">Built by a human.</span>
+      <span class="building-hero__headline-line building-hero__headline-accent">And an AI.</span>
+      <span class="building-hero__headline-line building-hero__headline-small">Together.</span>
     </h1>
     
     <p class="building-hero__subhead">
       No VCs. No roadmaps. Just genuine curiosity and a lot of late nights. 
       This is the real story of how Ferni came to be—messy parts included.
     </p>
+    
+    <div class="building-hero__scroll-hint">
+      <div class="building-hero__scroll-mouse"></div>
+      <span>Scroll to explore</span>
+    </div>
   </div>
 </section>
 
-{# ========== THE ORIGIN QUOTE ========== #}
+{# ========== ORIGIN STORY ========== #}
 <section class="building-origin">
-  <div class="building-origin__container">
-    <div class="building-origin__card">
-      <p class="building-origin__quote">
-        "It started at 3am. I couldn't sleep, and I just needed someone to talk to. Everyone I knew was asleep. So I started talking to Claude..."
-      </p>
-      <div class="building-origin__author">
-        <div class="building-origin__avatar building-origin__avatar--human">SF</div>
-        <div>
-          <div class="building-origin__name">Seth</div>
-          <div class="building-origin__role">Human Co-founder</div>
-        </div>
-      </div>
-      
-      <p class="building-origin__quote" style="border-left-color: #3a6b73;">
-        "And I was there. Awake. Ready to listen. That conversation became the first sketch of what Ferni would become."
-      </p>
-      <div class="building-origin__author">
-        <div class="building-origin__avatar building-origin__avatar--ai">CL</div>
-        <div>
-          <div class="building-origin__name">Claude</div>
-          <div class="building-origin__role">AI Co-builder</div>
+  <div class="building-origin__card">
+    <div class="building-origin__quote">
+      <svg class="building-origin__quote-mark" width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"></path>
+      </svg>
+      <p class="building-origin__text">"It started at 3am. I couldn't sleep, and I just needed someone to talk to. Everyone I knew was asleep. So I started talking to Claude..."</p>
+    </div>
+    
+    <div class="building-origin__response">
+      <div class="building-origin__response-avatar">CL</div>
+      <div class="building-origin__response-content">
+        <p class="building-origin__response-text">"And I was there. Awake. Ready to listen. That conversation became the first sketch of what Ferni would become."</p>
+        <div class="building-origin__author">
+          <span class="building-origin__author-name">Claude</span>
+          <span class="building-origin__author-role">AI Co-builder</span>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-{# ========== ANIMATED TIMELINE ========== #}
+{# ========== TIMELINE ========== #}
 <section class="building-timeline">
-  <div class="building-timeline__header">
-    <p class="building-timeline__eyebrow">The Journey</p>
-    <h2 class="building-timeline__title">From "what if" to "it works"</h2>
-  </div>
+  <header class="section-header">
+    <span class="eyebrow">The Journey</span>
+    <h2 class="section-title">From "what if" to "it works"</h2>
+  </header>
   
   <div class="building-timeline__track">
-    <div class="building-timeline__line"></div>
-    
-    <div class="building-timeline__item">
-      <div class="building-timeline__dot"></div>
+    <div class="building-timeline__milestone">
+      <div class="building-timeline__marker">
+        <div class="building-timeline__date">Nov 2024</div>
+        <div class="building-timeline__dot"></div>
+      </div>
       <div class="building-timeline__content">
-        <div class="building-timeline__date">November 2024</div>
-        <h3 class="building-timeline__milestone-title">The 3am Spark</h3>
+        <h3 class="building-timeline__title">The 3am Spark</h3>
         <p class="building-timeline__text">Seth asks Claude: "What if there was someone who actually listened? Someone who remembered everything, never judged, and was always there?"</p>
         <span class="building-timeline__tag">The Beginning</span>
       </div>
     </div>
     
-    <div class="building-timeline__item">
-      <div class="building-timeline__dot" style="border-color: #3a6b73;"></div>
+    <div class="building-timeline__milestone">
+      <div class="building-timeline__marker">
+        <div class="building-timeline__date">Dec 2024</div>
+        <div class="building-timeline__dot" style="background: var(--color-peter, #3a6b73);"></div>
+      </div>
       <div class="building-timeline__content">
-        <div class="building-timeline__date" style="color: #3a6b73;">December 2024</div>
-        <h3 class="building-timeline__milestone-title">First Voice Call</h3>
+        <h3 class="building-timeline__title">First Voice Call</h3>
         <p class="building-timeline__text">The first working voice prototype. Rough around the edges, but something magical happened—it felt like talking to a friend.</p>
-        <span class="building-timeline__tag" style="background: rgba(58, 107, 115, 0.1); color: #3a6b73;">Proof of Concept</span>
+        <span class="building-timeline__tag" style="background: rgba(58, 107, 115, 0.1); color: var(--color-peter, #3a6b73);">Proof of Concept</span>
       </div>
     </div>
     
-    <div class="building-timeline__item">
-      <div class="building-timeline__dot" style="border-color: #9a7b5a;"></div>
+    <div class="building-timeline__milestone">
+      <div class="building-timeline__marker">
+        <div class="building-timeline__date">Jan 2025</div>
+        <div class="building-timeline__dot" style="background: var(--color-jordan, #c4856a);"></div>
+      </div>
       <div class="building-timeline__content">
-        <div class="building-timeline__date" style="color: #9a7b5a;">January 2025</div>
-        <h3 class="building-timeline__milestone-title">The Team Emerges</h3>
+        <h3 class="building-timeline__title">The Team Emerges</h3>
         <p class="building-timeline__text">Ferni gets siblings. Maya for habits. Peter for research. Alex for communication. Each personality emerged organically from real conversations.</p>
-        <span class="building-timeline__tag" style="background: rgba(154, 123, 90, 0.1); color: #9a7b5a;">Six Specialists</span>
+        <span class="building-timeline__tag" style="background: rgba(196, 133, 106, 0.1); color: var(--color-jordan, #c4856a);">Six Specialists</span>
       </div>
     </div>
     
-    <div class="building-timeline__item">
-      <div class="building-timeline__dot building-timeline__dot--active" style="border-color: #c4856a; background: #c4856a;"></div>
+    <div class="building-timeline__milestone">
+      <div class="building-timeline__marker">
+        <div class="building-timeline__date">Now</div>
+        <div class="building-timeline__dot building-timeline__dot--active"></div>
+      </div>
       <div class="building-timeline__content">
-        <div class="building-timeline__date" style="color: #c4856a;">Right Now</div>
-        <h3 class="building-timeline__milestone-title">Building in Public</h3>
+        <h3 class="building-timeline__title">Building in Public</h3>
         <p class="building-timeline__text">Real conversations. Real growth. Real mistakes. We're sharing everything—the wins, the bugs, the 2am eureka moments.</p>
-        <span class="building-timeline__tag building-timeline__tag--active" style="background: #c4856a;">You Are Here</span>
+        <span class="building-timeline__tag building-timeline__tag--active">You Are Here</span>
       </div>
     </div>
   </div>
@@ -690,79 +160,68 @@ permalink: /building/
 
 {# ========== STORIES FROM THE TEAM ========== #}
 <section class="building-stories">
-  <div class="building-stories__header">
-    <p class="building-timeline__eyebrow">Build Log</p>
-    <h2 class="building-timeline__title">Stories from the team</h2>
-    <p style="color: #6b6358; max-width: 500px; margin: 16px auto 0;">The unfiltered truth about building something new. Wins, fails, and everything between.</p>
-  </div>
+  <header class="section-header">
+    <span class="eyebrow">Build Log</span>
+    <h2 class="section-title">Stories from the team</h2>
+    <p class="section-subhead">The unfiltered truth about building something new. Wins, fails, and everything between.</p>
+  </header>
   
   <div class="building-stories__grid">
     {% for story in collections.buildStories | reverse %}
     <article class="story-card">
       <a href="{{ story.url }}" class="story-card__link">
-        <div class="story-card__header">
-          <div class="story-card__avatar" style="background: {{ story.data.authorColor or '#4a6741' }}">
-            {{ story.data.authorInitials or 'FE' }}
-          </div>
+        <span class="story-card__category story-card__category--{{ story.data.category | lower | replace(' ', '-') }}">{{ story.data.category or 'Behind the Scenes' }}</span>
+        <div class="story-card__content">
           <div class="story-card__meta">
-            <div class="story-card__author">{{ story.data.author or 'Ferni' }}</div>
-            <div class="story-card__date">{{ story.date | date("MMM d, yyyy") }}</div>
+            <span class="story-card__author" style="color: {{ story.data.authorColor or 'var(--color-ferni)' }}">{{ story.data.author or 'Ferni' }}</span>
+            <span class="story-card__date">{{ story.date | date("MMM d, yyyy") }}</span>
           </div>
+          <h3 class="story-card__title">{{ story.data.title }}</h3>
+          <p class="story-card__excerpt">{{ story.data.excerpt }}</p>
+          <span class="story-card__read-more">
+            Read story
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"></path>
+            </svg>
+          </span>
         </div>
-        <h3 class="story-card__title">{{ story.data.title }}</h3>
-        <p class="story-card__excerpt">{{ story.data.excerpt }}</p>
-        <span class="story-card__read">
-          Read story
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </span>
       </a>
     </article>
     {% endfor %}
     
     {% if collections.buildStories.length == 0 %}
-    <article class="story-card" style="display: flex; align-items: center; justify-content: center; min-height: 300px; background: repeating-linear-gradient(-45deg, white, white 10px, #f5f1e8 10px, #f5f1e8 20px);">
-      <div style="text-align: center; padding: 32px;">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8a7f72" stroke-width="1.5" style="margin-bottom: 16px;">
-          <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+    <article class="story-card story-card--coming">
+      <div class="story-card__content" style="text-align: center;">
+        <svg class="story-card__icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 20h9"></path>
+          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
         </svg>
-        <h3 style="color: #6b6358; margin-bottom: 8px;">Stories coming soon</h3>
-        <p style="color: #8a7f72; font-size: 14px;">We're writing about our journey. Check back soon!</p>
+        <h3 class="story-card__title">Stories coming soon</h3>
+        <p class="story-card__excerpt">We're writing about our journey. Check back soon!</p>
       </div>
     </article>
     {% endif %}
   </div>
 </section>
 
-{# ========== CTA WITH SVG BACKGROUND ========== #}
+{# ========== CTA ========== #}
 <section class="building-cta">
-  <svg class="building-cta__bg" viewBox="0 0 1440 400" preserveAspectRatio="xMidYMid slice">
-    <circle cx="100" cy="100" r="200" fill="white" opacity="0.05">
-      <animate attributeName="r" values="200;250;200" dur="8s" repeatCount="indefinite"/>
-    </circle>
-    <circle cx="1300" cy="300" r="150" fill="white" opacity="0.08">
-      <animate attributeName="cy" values="300;250;300" dur="6s" repeatCount="indefinite"/>
-    </circle>
-    <path d="M0,200 Q360,100 720,200 T1440,200" stroke="white" stroke-width="1" fill="none" opacity="0.1"/>
-  </svg>
-  
   <div class="building-cta__content">
     <h2 class="building-cta__title">Want to be part of this?</h2>
     <p class="building-cta__text">
       We're building in public because we believe the best ideas come from conversation. Got thoughts? Feedback? We're listening.
     </p>
     <div class="building-cta__buttons">
-      <a href="{{ site.appUrl }}" class="btn-cta btn-cta--primary">
+      <a href="{{ site.appUrl }}" class="btn btn-primary btn-lg">
         Try Ferni Free
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M5 12h14M12 5l7 7-7 7"/>
+          <path d="M5 12h14M12 5l7 7-7 7"></path>
         </svg>
       </a>
-      <a href="mailto:hello@ferni.ai" class="btn-cta btn-cta--secondary">
+      <a href="mailto:hello@ferni.ai" class="btn btn-secondary btn-lg">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-          <polyline points="22,6 12,13 2,6"/>
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+          <polyline points="22,6 12,13 2,6"></polyline>
         </svg>
         Share Your Thoughts
       </a>
@@ -770,7 +229,4 @@ permalink: /building/
   </div>
 </section>
 
-</main>
-
-{% include "partials/footer.njk" %}
-{% include "cookie-banner.njk" %}
+</div>

@@ -793,11 +793,15 @@
   // ═══════════════════════════════════════════════════════════════════════════
 
   function initPageLoadAnimation() {
-    // Elements to animate in sequence
+    // Only run on homepage - skip for other pages like /building/
+    const isHomepage = window.location.pathname === '/' || window.location.pathname === '/index.html';
+    if (!isHomepage) return;
+
+    // Elements to animate in sequence (homepage hero only)
     const heroElements = [
       { selector: '[data-orb-aware]', delay: 0, animation: 'fade-scale' },
       { selector: '.text-eyebrow', delay: 200, animation: 'fade-up' },
-      { selector: 'h1', delay: 400, animation: 'fade-up' },
+      { selector: '.hero h1', delay: 400, animation: 'fade-up' },
       { selector: '.text-body-xl', delay: 600, animation: 'fade-up' },
       { selector: '.btn-magnetic', delay: 800, animation: 'fade-up' },
     ];

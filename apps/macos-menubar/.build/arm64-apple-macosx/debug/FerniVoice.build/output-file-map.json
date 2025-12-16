@@ -2,6 +2,27 @@
   "": {
     "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/master.swiftdeps"
   },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Animation/AvatarLamp.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarLamp.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarLamp.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarLamp~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarLamp.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarLamp.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Animation/AvatarSoul.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarSoul.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarSoul.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarSoul~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarSoul.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarSoul.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Animation/PixarAnimations.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/PixarAnimations.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/PixarAnimations.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/PixarAnimations~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/PixarAnimations.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/PixarAnimations.dia"
+  },
   "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/FerniVoiceApp.swift": {
     "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/FerniVoiceApp.d",
     "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/FerniVoiceApp.swift.o",
@@ -23,12 +44,40 @@
     "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceState.swiftdeps",
     "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceState.dia"
   },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/ClaudeCodeBridge.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/ClaudeCodeBridge.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/ClaudeCodeBridge.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/ClaudeCodeBridge~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/ClaudeCodeBridge.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/ClaudeCodeBridge.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/ClaudeCodeIntegration.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/ClaudeCodeIntegration.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/ClaudeCodeIntegration.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/ClaudeCodeIntegration~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/ClaudeCodeIntegration.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/ClaudeCodeIntegration.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/TerminalBridge.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/TerminalBridge.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/TerminalBridge.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/TerminalBridge~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/TerminalBridge.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/TerminalBridge.dia"
+  },
   "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/VoiceSession.swift": {
     "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceSession.d",
     "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceSession.swift.o",
     "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceSession~partial.swiftmodule",
     "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceSession.swiftdeps",
     "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceSession.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/AuroraEdge.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AuroraEdge.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AuroraEdge.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AuroraEdge~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AuroraEdge.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AuroraEdge.dia"
   },
   "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/AvatarComposite.swift": {
     "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarComposite.d",
@@ -50,6 +99,13 @@
     "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/GlowHalo~partial.swiftmodule",
     "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/GlowHalo.swiftdeps",
     "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/GlowHalo.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/PixarAvatar.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/PixarAvatar.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/PixarAvatar.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/PixarAvatar~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/PixarAvatar.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/PixarAvatar.dia"
   },
   "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/VoiceWindow.swift": {
     "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceWindow.d",

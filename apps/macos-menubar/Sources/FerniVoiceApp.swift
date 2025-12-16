@@ -132,6 +132,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         menu.addItem(NSMenuItem.separator())
         
+        // Claude Code Integration
+        let claudeHeaderItem = NSMenuItem(title: "Claude Code", action: nil, keyEquivalent: "")
+        claudeHeaderItem.isEnabled = false
+        menu.addItem(claudeHeaderItem)
+        
+        let openClaudeTerminalItem = NSMenuItem(
+            title: "🖥️ Open Claude in Terminal",
+            action: #selector(openClaudeInTerminal),
+            keyEquivalent: ""
+        )
+        openClaudeTerminalItem.target = self
+        menu.addItem(openClaudeTerminalItem)
+        
+        let openClaudeITermItem = NSMenuItem(
+            title: "🖥️ Open Claude in iTerm",
+            action: #selector(openClaudeInITerm),
+            keyEquivalent: ""
+        )
+        openClaudeITermItem.target = self
+        menu.addItem(openClaudeITermItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
         // Cloud/Local toggle
         let modeLabel = voiceManager.useCloudMode ? "☁️ Cloud (app.ferni.ai)" : "🏠 Local (localhost)"
         let modeItem = NSMenuItem(title: modeLabel, action: nil, keyEquivalent: "")
@@ -229,6 +252,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             message: voiceManager.useCloudMode
                 ? "Switched to Cloud Mode (app.ferni.ai)"
                 : "Switched to Local Mode (localhost:3001)"
+        )
+    }
+    
+    @objc private func openClaudeInTerminal() {
+        VisibleTerminalBridge.openTerminalWithClaude()
+        showNotification(
+            title: "Claude Code",
+            message: "Opening Claude in Terminal..."
+        )
+    }
+    
+    @objc private func openClaudeInITerm() {
+        VisibleTerminalBridge.openITermWithClaude()
+        showNotification(
+            title: "Claude Code", 
+            message: "Opening Claude in iTerm..."
         )
     }
     

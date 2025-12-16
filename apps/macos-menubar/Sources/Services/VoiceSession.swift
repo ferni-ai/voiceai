@@ -1,6 +1,7 @@
 import Foundation
 import AVFoundation
 import Combine
+import AppKit
 
 // MARK: - Voice Session Manager
 
@@ -13,6 +14,20 @@ class VoiceSessionManager: ObservableObject {
     @Published var currentPersonaId: String = "ferni"
     @Published private(set) var audioLevels: [Float] = Array(repeating: 0.3, count: 8)
     @Published private(set) var transcriptions: [TranscriptionEntry] = []
+    
+    // MARK: - Claude Code Integration
+    
+    @Published var isClaudeCodeActive = false
+    @Published var claudeCodeResponse: String?
+    
+    // Terminal bridge for visible terminal interaction
+    private var terminalBridge: TerminalBridge {
+        TerminalBridge.shared
+    }
+    
+    private var claudeIntegration: ClaudeCodeIntegration {
+        ClaudeCodeIntegration.shared
+    }
     
     /// Current persona (computed from ID)
     var currentPersona: Persona {
@@ -284,6 +299,11 @@ class VoiceSessionManager: ObservableObject {
                             timestamp: Date()
                         ))
                         
+                        // Check for Claude Code commands (user speech only)
+                        if !isAgent {
+                            checkForClaudeCodeCommand(text)
+                        }
+                        
                         // Keep only last 50 entries
                         if transcriptions.count > 50 {
                             transcriptions.removeFirst()
@@ -292,6 +312,69 @@ class VoiceSessionManager: ObservableObject {
                 }
             }
         }
+    }
+    
+    // MARK: - Claude Code Integration
+    
+    /// Check if user's speech is a Claude Code command
+    private func checkForClaudeCodeCommand(_ transcript: String) {
+        guard claudeIntegration.isClaudeCodeCommand(transcript) else { return }
+        
+        // Extract the coding request
+        let request = claudeIntegration.extractCodingRequest(transcript)
+        guard !request.isEmpty else { return }
+        
+        // Route to Claude via Terminal
+        isClaudeCodeActive = true
+        
+        // Process the voice command through the terminal bridge
+        let response = terminalBridge.processVoiceCommand(request)
+        
+        claudeCodeResponse = response
+        
+        // Add response to transcriptions
+        transcriptions.append(TranscriptionEntry(
+            speaker: "Claude",
+            text: response,
+            isAgent: true,
+            timestamp: Date()
+        ))
+        
+        // Reset active state after a delay (terminal command is async)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+            self?.isClaudeCodeActive = false
+        }
+    }
+    
+    /// Open Claude in Terminal
+    func openClaudeTerminal() {
+        terminalBridge.openInTerminal()
+    }
+    
+    /// Send a command to Claude in Terminal
+    func sendToClaudeTerminal(_ command: String) {
+        isClaudeCodeActive = true
+        terminalBridge.sendCommand(command)
+        claudeCodeResponse = "Sent to Claude"
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            self?.isClaudeCodeActive = false
+        }
+    }
+    
+    /// Confirm Claude's prompt with "yes"
+    func confirmClaude() {
+        terminalBridge.confirmYes()
+    }
+    
+    /// Cancel Claude's operation
+    func cancelClaude() {
+        terminalBridge.pressEscape()
+    }
+    
+    /// Interrupt Claude (Ctrl+C)
+    func interruptClaude() {
+        terminalBridge.interrupt()
     }
     
     // MARK: - Audio Simulation

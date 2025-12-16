@@ -1133,6 +1133,12 @@ export class CallMusicPlayer {
       const rawFilename = `${safeName}_${timestamp}_raw.mp3`;
       const rawFilepath = path.join(this.tempDir, rawFilename);
 
+      // 🐛 FIX: Ensure temp directory exists (defensive - may have been cleaned up)
+      if (!fs.existsSync(this.tempDir)) {
+        getLogger().warn({ tempDir: this.tempDir }, '🎵 Temp directory missing, recreating...');
+        fs.mkdirSync(this.tempDir, { recursive: true });
+      }
+
       // Write to temp file
       fs.writeFileSync(rawFilepath, Buffer.from(buffer));
 

@@ -247,4 +247,17 @@
   --duration-meditative: 3000ms;
   --duration-ambient: 8000ms;
 
+  /* ============================================
+     DARK THEME - WCAG AA Accessible Colors
+     Background: #2c2520 (warm dark brown)
+     ============================================ */
+  --color-dark-bg: #2c2520;
+  --color-dark-bg-elevated: #3a332d;
+  --color-dark-text: #f5f1e8;          /* 10.1:1 contrast - headings */
+  --color-dark-text-secondary: #e4ddd4; /* 6.8:1 contrast - body text */
+  --color-dark-text-muted: #cec5ba;     /* 4.7:1 contrast - captions */
+  --color-dark-accent: #8fa67a;         /* 4.5:1 contrast - links */
+  --color-dark-border: rgba(245, 241, 232, 0.12);
+  --color-dark-border-strong: rgba(245, 241, 232, 0.2);
+
 }

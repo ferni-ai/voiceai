@@ -10,21 +10,19 @@ struct VoiceWindowView: View {
     
     var body: some View {
         ZStack {
-            // Background with blur
-            RoundedRectangle(cornerRadius: 24)
-                .fill(.black.opacity(0.75))
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 24))
+            // Aurora background with rotating gradient edges
+            AuroraBackground(
+                persona: voiceManager.currentPersona,
+                isActive: voiceManager.state.isActive
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 24))
             
-            // Glow border
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(voiceManager.currentPersona.primaryColor, lineWidth: 2)
-                .blur(radius: 8)
-                .opacity(0.5)
-            
-            // Border
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(voiceManager.currentPersona.primaryColor.opacity(0.4), lineWidth: 1)
+            // Aurora edge animation (like Gemini)
+            AuroraEdge(
+                persona: voiceManager.currentPersona,
+                isActive: voiceManager.state.isActive,
+                cornerRadius: 24
+            )
             
             VStack(spacing: 16) {
                 // Avatar with full Pixar animation suite
@@ -37,9 +35,29 @@ struct VoiceWindowView: View {
                 
                 // Status text
                 VStack(spacing: 4) {
-                    Text(voiceManager.state.title)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.white)
+                    HStack(spacing: 6) {
+                        Text(voiceManager.state.title)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.white)
+                        
+                        // Claude Code indicator
+                        if voiceManager.isClaudeCodeActive {
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .fill(Color(hex: 0xda7756))  // Claude orange
+                                    .frame(width: 6, height: 6)
+                                Text("Claude")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(Color(hex: 0xda7756))
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(
+                                Capsule()
+                                    .fill(Color(hex: 0xda7756).opacity(0.2))
+                            )
+                        }
+                    }
                     
                     Text(statusSubtitle)
                         .font(.system(size: 12))

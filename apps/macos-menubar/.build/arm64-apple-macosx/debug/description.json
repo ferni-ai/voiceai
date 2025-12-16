@@ -24,6 +24,18 @@
       "inputs" : [
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Animation/AvatarLamp.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Animation/AvatarSoul.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Animation/PixarAnimations.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/FerniVoiceApp.swift"
         },
         {
@@ -36,7 +48,23 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/ClaudeCodeBridge.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/ClaudeCodeIntegration.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/TerminalBridge.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/VoiceSession.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/AuroraEdge.swift"
         },
         {
           "kind" : "file",
@@ -49,6 +77,10 @@
         {
           "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/GlowHalo.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/PixarAvatar.swift"
         },
         {
           "kind" : "file",
@@ -71,13 +103,21 @@
       "moduleName" : "FerniVoice",
       "moduleOutputPath" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/Modules/FerniVoice.swiftmodule",
       "objects" : [
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarLamp.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarSoul.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/PixarAnimations.swift.o",
         "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/FerniVoiceApp.swift.o",
         "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/Persona.swift.o",
         "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceState.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/ClaudeCodeBridge.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/ClaudeCodeIntegration.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/TerminalBridge.swift.o",
         "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceSession.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AuroraEdge.swift.o",
         "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarComposite.swift.o",
         "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/FerniEyeAvatar.swift.o",
         "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/GlowHalo.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/PixarAvatar.swift.o",
         "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceWindow.swift.o",
         "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/Waveform.swift.o"
       ],
@@ -140,6 +180,18 @@
       "outputs" : [
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarLamp.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarSoul.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/PixarAnimations.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/FerniVoiceApp.swift.o"
         },
         {
@@ -152,7 +204,23 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/ClaudeCodeBridge.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/ClaudeCodeIntegration.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/TerminalBridge.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceSession.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AuroraEdge.swift.o"
         },
         {
           "kind" : "file",
@@ -165,6 +233,10 @@
         {
           "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/GlowHalo.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/PixarAvatar.swift.o"
         },
         {
           "kind" : "file",
@@ -181,13 +253,21 @@
       ],
       "prepareForIndexing" : false,
       "sources" : [
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Animation/AvatarLamp.swift",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Animation/AvatarSoul.swift",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Animation/PixarAnimations.swift",
         "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/FerniVoiceApp.swift",
         "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Models/Persona.swift",
         "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Models/VoiceState.swift",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/ClaudeCodeBridge.swift",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/ClaudeCodeIntegration.swift",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/TerminalBridge.swift",
         "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/VoiceSession.swift",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/AuroraEdge.swift",
         "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/AvatarComposite.swift",
         "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/FerniEyeAvatar.swift",
         "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/GlowHalo.swift",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/PixarAvatar.swift",
         "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/VoiceWindow.swift",
         "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/Waveform.swift"
       ],
@@ -206,13 +286,21 @@
       "-package-name",
       "macos_menubar",
       "-c",
+      "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Animation/AvatarLamp.swift",
+      "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Animation/AvatarSoul.swift",
+      "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Animation/PixarAnimations.swift",
       "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/FerniVoiceApp.swift",
       "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Models/Persona.swift",
       "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Models/VoiceState.swift",
+      "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/ClaudeCodeBridge.swift",
+      "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/ClaudeCodeIntegration.swift",
+      "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/TerminalBridge.swift",
       "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/VoiceSession.swift",
+      "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/AuroraEdge.swift",
       "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/AvatarComposite.swift",
       "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/FerniEyeAvatar.swift",
       "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/GlowHalo.swift",
+      "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/PixarAvatar.swift",
       "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/VoiceWindow.swift",
       "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/Waveform.swift",
       "-I",
@@ -314,6 +402,18 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Animation/AvatarLamp.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Animation/AvatarSoul.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Animation/PixarAnimations.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/FerniVoiceApp.swift"
         },
         {
@@ -326,7 +426,23 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/ClaudeCodeBridge.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/ClaudeCodeIntegration.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/TerminalBridge.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/VoiceSession.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/AuroraEdge.swift"
         },
         {
           "kind" : "file",
@@ -339,6 +455,10 @@
         {
           "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/GlowHalo.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/PixarAvatar.swift"
         },
         {
           "kind" : "file",
@@ -360,7 +480,27 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AuroraEdge.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarComposite.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarLamp.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarSoul.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/ClaudeCodeBridge.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/ClaudeCodeIntegration.swift.o"
         },
         {
           "kind" : "file",
@@ -377,6 +517,18 @@
         {
           "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/Persona.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/PixarAnimations.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/PixarAvatar.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/TerminalBridge.swift.o"
         },
         {
           "kind" : "file",
