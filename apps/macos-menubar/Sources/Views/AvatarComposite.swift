@@ -34,7 +34,7 @@ struct AvatarComposite: View {
         .onAppear {
             startBreathing()
         }
-        .onChange(of: state) { _, newState in
+        .onChange(of: state) { newState in
             handleStateChange(newState)
         }
     }

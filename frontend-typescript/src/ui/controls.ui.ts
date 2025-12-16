@@ -284,7 +284,7 @@ export function showAgentHangupState(): void {
   // Brief text change
   const textSpan = elements.disconnectBtn.querySelector('.btn-text');
   if (textSpan) {
-    textSpan.textContent = 'Ending...';
+    textSpan.textContent = t('session.ending');
   }
 
   // Disable the button

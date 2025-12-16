@@ -3168,9 +3168,10 @@ async function handleVoices(args: string[]): Promise<void> {
     }
 
     // Import the full persona platform
-    const { getVoiceIdForPersona } = await import('../src/config/voice-ids.js');
+    // Note: Path is relative to apps/cli/src/
+    const { getVoiceIdForPersona } = await import('../../../src/config/voice-ids.js');
     const { humanizeText, addBreathGroupPauses } =
-      await import('../src/speech/advanced-humanization/index.js');
+      await import('../../../src/speech/advanced-humanization/index.js');
 
     // Persona configurations matching persona.manifest.json files
     // Includes speech characteristics and emotional context

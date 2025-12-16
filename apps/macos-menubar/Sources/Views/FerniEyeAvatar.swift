@@ -97,7 +97,7 @@ struct FerniEyeAvatar: View {
             startBreathingAnimation()
             startShimmerAnimation()
         }
-        .onChange(of: isActive) { _, active in
+        .onChange(of: isActive) { active in
             if active {
                 startBreathingAnimation()
             }

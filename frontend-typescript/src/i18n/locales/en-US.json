@@ -160,7 +160,9 @@
     "end": "End",
     "untilNextTime": "Until next time...",
     "endConversation": "End conversation",
-    "endConversationGoodbye": "End conversation - Goodbye"
+    "endConversationGoodbye": "End conversation - Goodbye",
+    "takeCare": "Take care.",
+    "ending": "Ending..."
   },
 
   "subscription": {

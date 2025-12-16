@@ -1602,8 +1602,16 @@ class VoiceAIApp {
     });
 
     // 🌅 Conversation End - Auto-disconnect after agent says goodbye
-    window.addEventListener('ferni:conversation-end-disconnect', () => {
+    window.addEventListener('ferni:conversation-end-disconnect', (e) => {
       if (appState.get('connection') === 'connected') {
+        const detail = (e as CustomEvent<{ agentInitiated?: boolean; exitType?: string }>).detail;
+
+        // 📞 Agent-initiated disconnect - show tactile button press
+        if (detail?.agentInitiated) {
+          log.info('🛑 Agent-initiated disconnect', { exitType: detail.exitType });
+          controlsUI.showAgentHangupState();
+        }
+
         void this.disconnect();
       }
     });

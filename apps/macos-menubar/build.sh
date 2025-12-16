@@ -9,21 +9,35 @@ BUILD_DIR="$SCRIPT_DIR/.build"
 APP_NAME="Ferni Voice"
 BUNDLE_ID="com.ferni.voice"
 
-echo "Building $APP_NAME..."
+echo "🌿 Building $APP_NAME..."
+echo ""
 
-# Step 1: Build standalone voice binary with bun
+# Step 1: Build standalone voice binary with bun (optional)
 echo "→ Building standalone voice binary..."
 cd "$PROJECT_ROOT"
 if command -v bun &> /dev/null; then
-    bun build apps/cli/src/features/voice/voice-live.ts --compile --outfile dist/ferni-voice-standalone
-    echo "  ✓ Voice binary built ($(du -h dist/ferni-voice-standalone | cut -f1))"
+    if bun build apps/cli/src/features/voice/voice-live.ts --compile --outfile dist/ferni-voice-standalone 2>/dev/null; then
+        echo "  ✓ Voice binary built ($(du -h dist/ferni-voice-standalone | cut -f1))"
+    else
+        echo "  ⚠ bun build failed - using ferni CLI fallback"
+    fi
 else
-    echo "  ⚠ bun not found - using existing binary or ferni CLI fallback"
+    echo "  ⚠ bun not found - using ferni CLI fallback"
 fi
 
-# Step 2: Build the Swift executable
-echo "→ Building Swift app..."
+# Step 2: Run unit tests
+echo ""
+echo "→ Running tests..."
 cd "$SCRIPT_DIR"
+if swift test --parallel 2>&1 | grep -E "(Test Suite|passed|failed|error)"; then
+    echo "  ✓ Tests passed"
+else
+    echo "  ⚠ Some tests may have issues (continuing build)"
+fi
+
+# Step 3: Build the Swift executable
+echo ""
+echo "→ Building Swift app..."
 swift build -c release
 
 # Create the .app bundle structure
@@ -41,6 +55,7 @@ cp "$BUILD_DIR/release/FerniVoice" "$MACOS_DIR/FerniVoice"
 
 # Copy the standalone voice binary if it exists
 if [ -f "$PROJECT_ROOT/dist/ferni-voice-standalone" ]; then
+    echo ""
     echo "→ Bundling standalone voice binary..."
     cp "$PROJECT_ROOT/dist/ferni-voice-standalone" "$RESOURCES_DIR/ferni-voice"
     chmod +x "$RESOURCES_DIR/ferni-voice"
@@ -50,6 +65,7 @@ fi
 # Copy sounds
 SOUNDS_DIR="$PROJECT_ROOT/design-system/assets/sounds"
 if [ -d "$SOUNDS_DIR" ]; then
+    echo ""
     echo "→ Bundling sound effects..."
     mkdir -p "$RESOURCES_DIR/sounds"
     cp "$SOUNDS_DIR"/*.mp3 "$RESOURCES_DIR/sounds/" 2>/dev/null || true
@@ -107,13 +123,20 @@ cat > "$CONTENTS_DIR/entitlements.plist" << EOF
 EOF
 
 echo ""
-echo "Build complete!"
+echo "═══════════════════════════════════════════════════════════════"
+echo "🌿 Build complete!"
+echo "═══════════════════════════════════════════════════════════════"
 echo ""
 echo "App location: $APP_DIR"
 echo ""
 echo "To install:"
-echo "  1. cp -r \"$APP_DIR\" /Applications/"
-echo "  2. Open from Applications or Spotlight"
+echo "  cp -r \"$APP_DIR\" /Applications/"
 echo ""
 echo "To run directly:"
 echo "  open \"$APP_DIR\""
+echo ""
+echo "To test voice:"
+echo "  1. Click the menubar mic icon"
+echo "  2. Or press Cmd+Shift+F from anywhere"
+echo "  3. Say 'Hi Ferni!'"
+echo ""

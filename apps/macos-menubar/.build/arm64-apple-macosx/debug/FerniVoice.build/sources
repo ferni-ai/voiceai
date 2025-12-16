@@ -1,1 +1,9 @@
 /Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/FerniVoiceApp.swift
+/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Models/Persona.swift
+/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Models/VoiceState.swift
+/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/VoiceSession.swift
+/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/AvatarComposite.swift
+/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/FerniEyeAvatar.swift
+/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/GlowHalo.swift
+/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/VoiceWindow.swift
+/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/Waveform.swift

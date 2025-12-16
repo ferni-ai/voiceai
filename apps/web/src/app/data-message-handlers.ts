@@ -32,6 +32,7 @@ import { cameoService } from '../services/cameo.service.js';
 import { conversationTracker } from '../services/conversation-tracker.service.js';
 import { delightService } from '../services/delight.service.js';
 import { engagementService, handoffService, moodService } from '../services/index.js';
+import { t } from '../i18n/index.js';
 import { setWrappingUp } from '../state/app.state.js';
 import { avatarFeedback } from '../ui/avatar-feedback.ui.js';
 import { celebrationsUI } from '../ui/celebrations.ui.js';
@@ -1187,7 +1188,7 @@ export function handleConversationEnd(event: ConversationEndEvent): void {
     soundUI.play('phoneClick');
 
     // Brief, respectful message - no cheerful "see you!"
-    messageUI.show('Take care.', 'info', 1500);
+    messageUI.show(t('session.takeCare'), 'info', 1500);
 
     // 🌟 Neutral/settling expression - not warm farewell
     ferniExpressions.setExpression('settling', 400, 1000);

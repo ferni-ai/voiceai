@@ -56,7 +56,7 @@ struct GlowHalo: View {
         .onAppear {
             startAnimations()
         }
-        .onChange(of: state) { _, newState in
+        .onChange(of: state) { newState in
             updateAnimations(for: newState)
         }
     }
@@ -159,7 +159,7 @@ struct WarmthBloom: View {
             .frame(width: size * 1.4, height: size * 1.4)
             .scaleEffect(scale)
             .opacity(opacity)
-            .onChange(of: isActive) { _, active in
+            .onChange(of: isActive) { active in
                 if active {
                     playBloom()
                 }

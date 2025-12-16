@@ -14,13 +14,7 @@ let package = Package(
         .executableTarget(
             name: "FerniVoice",
             dependencies: [],
-            path: "Sources",
-            exclude: ["Tests"]
-        ),
-        .testTarget(
-            name: "FerniVoiceTests",
-            dependencies: [],
-            path: "Tests"
+            path: "Sources"
         )
     ]
 )

@@ -27,13 +27,13 @@ struct VoiceWindowView: View {
                 .stroke(voiceManager.currentPersona.primaryColor.opacity(0.4), lineWidth: 1)
             
             VStack(spacing: 16) {
-                // Avatar with full animation suite
-                AvatarComposite(
+                // Avatar with full Pixar animation suite
+                PixarAvatar(
                     persona: voiceManager.currentPersona,
-                    state: voiceManager.state,
+                    voiceState: voiceManager.state,
                     size: 80
                 )
-                .frame(height: 120)
+                .frame(height: 140)
                 
                 // Status text
                 VStack(spacing: 4) {
@@ -86,7 +86,7 @@ struct VoiceWindowView: View {
             }
             .padding(24)
         }
-        .frame(width: 200, height: 280)
+        .frame(width: 220, height: 320)
     }
     
     private var statusSubtitle: String {
@@ -122,7 +122,7 @@ class VoiceWindowController: NSWindowController {
         )
         
         let window = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 200, height: 280),
+            contentRect: NSRect(x: 0, y: 0, width: 220, height: 320),
             styleMask: [.nonactivatingPanel, .fullSizeContentView, .borderless],
             backing: .buffered,
             defer: false
@@ -176,6 +176,6 @@ class VoiceWindowController: NSWindowController {
 #Preview {
     let manager = VoiceSessionManager()
     return VoiceWindowView(voiceManager: manager)
-        .frame(width: 200, height: 280)
+        .frame(width: 220, height: 320)
 }
 

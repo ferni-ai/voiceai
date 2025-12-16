@@ -5,7 +5,6 @@ import Combine
 // MARK: - Voice Session Manager
 
 /// Manages the voice session lifecycle, audio, and CLI subprocess
-@MainActor
 class VoiceSessionManager: ObservableObject {
     
     // MARK: - Published State
@@ -59,7 +58,8 @@ class VoiceSessionManager: ObservableObject {
     }
     
     deinit {
-        stop()
+        audioLevelTimer?.invalidate()
+        process?.interrupt()
     }
     
     // MARK: - Session Control
@@ -299,9 +299,8 @@ class VoiceSessionManager: ObservableObject {
     private func startAudioLevelSimulation() {
         // Simulate audio levels when we don't have real audio data
         audioLevelTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            guard let self = self, self.state.isActive else { return }
-            
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self, self.state.isActive else { return }
                 let baseLevel: Float = self.state == .speaking ? 0.5 : 0.3
                 self.audioLevels = (0..<8).map { _ in
                     Float.random(in: (baseLevel - 0.2)...(baseLevel + 0.3))

@@ -1,0 +1,33 @@
+{
+  "": {
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/master.swiftdeps"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/Tests/E2ETests.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/E2ETests.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/E2ETests.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/E2ETests~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/E2ETests.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/E2ETests.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/Tests/PersonaTests.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/PersonaTests.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/PersonaTests.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/PersonaTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/PersonaTests.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/PersonaTests.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/Tests/VoiceSessionTests.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/VoiceSessionTests.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/VoiceSessionTests.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/VoiceSessionTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/VoiceSessionTests.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/VoiceSessionTests.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/Tests/VoiceStateTests.swift": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/VoiceStateTests.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/VoiceStateTests.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/VoiceStateTests~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/VoiceStateTests.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoiceTests.build/VoiceStateTests.dia"
+  }
+}

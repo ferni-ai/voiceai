@@ -35,7 +35,7 @@ struct WaveformView: View {
                 startAnimation()
             }
         }
-        .onChange(of: isActive) { _, active in
+        .onChange(of: isActive) { active in
             if active {
                 startAnimation()
             }
@@ -95,7 +95,7 @@ struct WaveformBar: View {
             .onAppear {
                 startAnimation()
             }
-            .onChange(of: isActive) { _, active in
+            .onChange(of: isActive) { active in
                 if active {
                     startAnimation()
                 }
@@ -165,7 +165,7 @@ struct WaveformRing: View {
                 startAnimation()
             }
         }
-        .onChange(of: isActive) { _, active in
+        .onChange(of: isActive) { active in
             if active {
                 startAnimation()
             } else {

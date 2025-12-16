@@ -922,7 +922,7 @@ async function main(): Promise<void> {
   switch (command) {
     case 'voice':
       // Import and run voice-live
-      const { handleVoiceLive } = await import('./voice-live.js');
+      const { handleVoiceLive } = await import('./voice/voice-live.js');
       await handleVoiceLive(commandArgs);
       break;
 

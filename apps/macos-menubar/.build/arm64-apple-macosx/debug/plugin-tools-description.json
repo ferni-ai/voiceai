@@ -28,6 +28,38 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Models/Persona.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Models/VoiceState.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/VoiceSession.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/AvatarComposite.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/FerniEyeAvatar.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/GlowHalo.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/VoiceWindow.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/Waveform.swift"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
         },
         {
@@ -39,7 +71,15 @@
       "moduleName" : "FerniVoice",
       "moduleOutputPath" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/Modules/FerniVoice.swiftmodule",
       "objects" : [
-        "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/FerniVoiceApp.swift.o"
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/FerniVoiceApp.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/Persona.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceState.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceSession.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarComposite.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/FerniEyeAvatar.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/GlowHalo.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceWindow.swift.o",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/Waveform.swift.o"
       ],
       "otherArguments" : [
         "-target",
@@ -62,7 +102,6 @@
         "-entry-point-function-name",
         "-Xfrontend",
         "FerniVoice_main",
-        "-parse-as-library",
         "-swift-version",
         "5",
         "-plugin-path",
@@ -105,12 +144,52 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/Persona.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceState.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceSession.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarComposite.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/FerniEyeAvatar.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/GlowHalo.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceWindow.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/Waveform.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/Modules/FerniVoice.swiftmodule"
         }
       ],
       "prepareForIndexing" : false,
       "sources" : [
-        "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/FerniVoiceApp.swift"
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/FerniVoiceApp.swift",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Models/Persona.swift",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Models/VoiceState.swift",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/VoiceSession.swift",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/AvatarComposite.swift",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/FerniEyeAvatar.swift",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/GlowHalo.swift",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/VoiceWindow.swift",
+        "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/Waveform.swift"
       ],
       "tempsPath" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build",
       "wholeModuleOptimization" : false
@@ -128,6 +207,14 @@
       "macos_menubar",
       "-c",
       "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/FerniVoiceApp.swift",
+      "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Models/Persona.swift",
+      "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Models/VoiceState.swift",
+      "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/VoiceSession.swift",
+      "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/AvatarComposite.swift",
+      "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/FerniEyeAvatar.swift",
+      "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/GlowHalo.swift",
+      "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/VoiceWindow.swift",
+      "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/Waveform.swift",
       "-I",
       "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/Modules",
       "-target",
@@ -150,7 +237,6 @@
       "-entry-point-function-name",
       "-Xfrontend",
       "FerniVoice_main",
-      "-parse-as-library",
       "-swift-version",
       "5",
       "-plugin-path",
@@ -229,6 +315,38 @@
         {
           "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/FerniVoiceApp.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Models/Persona.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Models/VoiceState.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Services/VoiceSession.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/AvatarComposite.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/FerniEyeAvatar.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/GlowHalo.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/VoiceWindow.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/Views/Waveform.swift"
         }
       ],
       "outputFilePath" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/sources"
@@ -242,7 +360,39 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/AvatarComposite.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/FerniEyeAvatar.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/FerniVoiceApp.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/GlowHalo.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/Persona.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceSession.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceState.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/VoiceWindow.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/Waveform.swift.o"
         }
       ],
       "outputFilePath" : "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.product/Objects.LinkFileList"
