@@ -56,6 +56,8 @@ import { connectionService } from '../services/index.js';
 import { ferni } from '../ui/better-than-human.ui.js';
 // 🎧 Now Playing UI - music state visualization
 import { nowPlayingUI } from '../ui/now-playing.ui.js';
+// 💭 Proactive Outreach UI - "Better than Human" thinking of you
+import { proactiveOutreachUI, type ProactiveOutreachData } from '../ui/proactive-outreach.ui.js';
 // Tone detection for micro-expressions
 import {
   analyzeForMicroExpression,
@@ -150,6 +152,12 @@ export function handleDataMessage(message: DataMessage): void {
   // Try to process as engagement trigger
   if (isEngagementTriggerMessage(message)) {
     handleEngagementTrigger(message);
+    return;
+  }
+
+  // 💭 Try to process as proactive outreach ("Better than Human" thinking of you)
+  if (isProactiveOutreachMessage(message)) {
+    handleProactiveOutreach(message);
     return;
   }
 
@@ -797,6 +805,49 @@ export function handleMood(event: MoodEvent): void {
   if (event.hasTransition) {
     delightService.haptic('medium');
   }
+}
+
+// ============================================================================
+// PROACTIVE OUTREACH ("Better than Human" - Thinking of You)
+// ============================================================================
+
+/**
+ * Type guard for proactive outreach messages.
+ * These are "thinking of you" moments from the backend trust systems.
+ */
+function isProactiveOutreachMessage(message: DataMessage): message is DataMessage & { data: ProactiveOutreachData } {
+  return (
+    message.type === 'proactive_outreach' &&
+    typeof message.data === 'object' &&
+    message.data !== null
+  );
+}
+
+/**
+ * Handle proactive outreach events from the backend.
+ * Shows a notification that Ferni was thinking about them.
+ * 
+ * "Better than Human" - The most meaningful check-ins aren't triggered by actions,
+ * they're the random "I was thinking about you" moments that show someone genuinely cares.
+ */
+function handleProactiveOutreach(message: DataMessage & { data: ProactiveOutreachData }): void {
+  const outreach = message.data;
+  
+  log.info({ type: outreach.type, personaId: outreach.personaId }, '💭 Proactive outreach received');
+
+  // Show the outreach notification
+  proactiveOutreachUI.show(outreach);
+
+  // Play a subtle warm sound
+  soundUI.play('message');
+
+  // Trigger a warm expression
+  ferniExpressions.setExpression('warm', 300, 1500);
+
+  // Dispatch event for other systems
+  document.dispatchEvent(new CustomEvent('ferni:data-message', {
+    detail: message
+  }));
 }
 
 /**
