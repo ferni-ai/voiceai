@@ -179,11 +179,18 @@ const COMMANDS: Record<string, CliCommand> = {
   },
   logs: {
     name: 'Logs',
-    description: 'View Cloud Run logs',
+    description: 'View & analyze Cloud Run logs with AI',
     icon: icons.log,
     handler: handleLogs,
-    subcommands: ['agent', 'ui', 'all', 'errors'],
-    examples: ['ferni logs agent', 'ferni logs ui --tail', 'ferni logs errors'],
+    subcommands: ['agent', 'ui', 'all', 'errors', 'analyze', 'search', 'gce'],
+    examples: [
+      'ferni logs agent',
+      'ferni logs ui --tail',
+      'ferni logs errors',
+      'ferni logs analyze',
+      'ferni logs search "timeout"',
+      'ferni logs gce --since=1h',
+    ],
   },
   status: {
     name: 'Status',
@@ -498,6 +505,20 @@ const COMMANDS: Record<string, CliCommand> = {
     handler: handleAnomalies,
     subcommands: ['recent', 'service', 'stats'],
     examples: ['ferni anomalies', 'ferni anomalies recent', 'ferni anomalies service livekit'],
+  },
+  // Container Runtime Operations (for in-container tech ops)
+  runtime: {
+    name: 'Runtime',
+    description: 'Container runtime diagnostics & AI-powered tech ops',
+    icon: '📦',
+    handler: handleRuntime,
+    subcommands: ['status', 'memory', 'sessions', 'env', 'logs', 'health', 'analyze', 'watch'],
+    examples: [
+      'ferni runtime status',
+      'ferni runtime analyze',
+      'ferni runtime watch',
+      'ferni runtime watch 2',
+    ],
   },
   // AI-Powered Automation
   ai: {
@@ -934,8 +955,33 @@ async function handleLogs(args: string[]): Promise<void> {
   const subcommand = args[0] || 'agent';
   const tail = args.includes('--tail') || args.includes('-f');
   const limit = args.includes('--limit') ? args[args.indexOf('--limit') + 1] : '50';
+  const sinceArg = args.find((a) => a.startsWith('--since='))?.split('=')[1] || '1h';
 
   log.header(`${icons.log} Cloud Run Logs`);
+
+  // AI-powered log analysis
+  if (subcommand === 'analyze') {
+    await handleLogsAnalyze(args.slice(1), sinceArg);
+    return;
+  }
+
+  // Search logs with a query
+  if (subcommand === 'search') {
+    const query = args[1];
+    if (!query) {
+      log.error('Search query required');
+      console.log(`\n  Usage: ferni logs search "error message"`);
+      return;
+    }
+    await handleLogsSearch(query, sinceArg);
+    return;
+  }
+
+  // GCE voice agent logs
+  if (subcommand === 'gce') {
+    await handleLogsGCE(sinceArg, tail);
+    return;
+  }
 
   const services: string[] = [];
   if (subcommand === 'all') {
@@ -950,7 +996,7 @@ async function handleLogs(args: string[]): Promise<void> {
     const service = SERVICES[subcommand as keyof typeof SERVICES];
     if (!service) {
       log.error(`Unknown service: ${subcommand}`);
-      log.info(`Available: ${Object.keys(SERVICES).join(', ')}, all, errors`);
+      log.info(`Available: ${Object.keys(SERVICES).join(', ')}, all, errors, analyze, search, gce`);
       return;
     }
     services.push(service);
@@ -970,6 +1016,153 @@ async function handleLogs(args: string[]): Promise<void> {
       const result = spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
     }
     console.log();
+  }
+}
+
+// AI-powered log analysis using Gemini
+async function handleLogsAnalyze(args: string[], since: string): Promise<void> {
+  const service = args[0] || 'all';
+
+  console.log(`${colors.bold}🤖 AI Log Analysis${colors.reset}\n`);
+  console.log(`  ${colors.dim}Analyzing logs from last ${since}...${colors.reset}\n`);
+
+  const spinner = new Spinner('Fetching logs...');
+  spinner.start();
+
+  // Fetch recent logs
+  let logQuery = 'resource.type=cloud_run_revision';
+  if (service !== 'all') {
+    const svcName = SERVICES[service as keyof typeof SERVICES] || service;
+    logQuery += ` AND resource.labels.service_name="${svcName}"`;
+  }
+
+  const cmd = `gcloud logging read '${logQuery}' --limit=200 --project=${GCP_PROJECT} --format="json" --freshness=${since} 2>/dev/null`;
+  const logsJson = execCommand(cmd);
+
+  spinner.stop(!!logsJson);
+
+  if (!logsJson || logsJson === '[]') {
+    log.warn('No logs found in the specified time range');
+    return;
+  }
+
+  let logs: any[];
+  try {
+    logs = JSON.parse(logsJson);
+  } catch {
+    log.error('Failed to parse logs');
+    return;
+  }
+
+  // Summarize logs for AI analysis
+  const errorLogs = logs.filter((l: any) => l.severity === 'ERROR' || l.severity === 'WARNING');
+  const logSummary = {
+    total: logs.length,
+    errors: logs.filter((l: any) => l.severity === 'ERROR').length,
+    warnings: logs.filter((l: any) => l.severity === 'WARNING').length,
+    timeRange: since,
+    sampleErrors: errorLogs.slice(0, 10).map((l: any) => ({
+      timestamp: l.timestamp,
+      severity: l.severity,
+      message: l.textPayload || l.jsonPayload?.message || JSON.stringify(l.jsonPayload).slice(0, 200),
+    })),
+  };
+
+  console.log(`\n  ${colors.cyan}Log Summary:${colors.reset}`);
+  console.log(`    Total entries:  ${logSummary.total}`);
+  console.log(`    Errors:         ${colors.red}${logSummary.errors}${colors.reset}`);
+  console.log(`    Warnings:       ${colors.yellow}${logSummary.warnings}${colors.reset}\n`);
+
+  if (logSummary.errors === 0 && logSummary.warnings === 0) {
+    console.log(`  ${colors.green}🌿 All clear! No errors or warnings in the logs.${colors.reset}\n`);
+    return;
+  }
+
+  // AI analysis
+  const spinner2 = new Spinner('Analyzing with AI...');
+  spinner2.start();
+
+  try {
+    const prompt = `You are Ferni, a helpful and friendly AI assistant analyzing production logs.
+
+Analyze these log entries and provide:
+1. A brief summary of what's happening (2-3 sentences)
+2. Any patterns you notice (repeated errors, timing issues, etc.)
+3. Actionable recommendations (1-3 bullet points)
+
+Keep your response concise, friendly, and actionable. Use your warm Ferni voice.
+
+Log Summary:
+${JSON.stringify(logSummary, null, 2)}`;
+
+    const analysis = await callGeminiRuntime(prompt);
+    spinner2.stop(true);
+
+    console.log(`  ${colors.green}🌿 Ferni's Analysis:${colors.reset}\n`);
+    console.log(`  ${analysis.split('\n').join('\n  ')}\n`);
+  } catch (error) {
+    spinner2.stop(false);
+
+    // Fallback: basic analysis without AI
+    console.log(`  ${colors.yellow}AI unavailable, showing basic analysis:${colors.reset}\n`);
+    if (logSummary.sampleErrors.length > 0) {
+      console.log(`  ${colors.cyan}Recent errors:${colors.reset}`);
+      logSummary.sampleErrors.slice(0, 5).forEach((e: any) => {
+        const time = new Date(e.timestamp).toLocaleTimeString();
+        console.log(`    ${colors.dim}[${time}]${colors.reset} ${e.message.slice(0, 80)}...`);
+      });
+    }
+  }
+}
+
+// Search logs with a specific query
+async function handleLogsSearch(query: string, since: string): Promise<void> {
+  console.log(`${colors.bold}🔍 Log Search${colors.reset}\n`);
+  console.log(`  Query: "${colors.cyan}${query}${colors.reset}"`);
+  console.log(`  Range: ${since}\n`);
+
+  const spinner = new Spinner('Searching logs...');
+  spinner.start();
+
+  // Search across all services
+  const cmd = `gcloud logging read 'resource.type=cloud_run_revision AND textPayload=~"${query}"' --limit=50 --project=${GCP_PROJECT} --format="table(timestamp,resource.labels.service_name,severity,textPayload)" --freshness=${since} 2>/dev/null`;
+
+  spinner.stop(true);
+
+  console.log();
+  const result = spawnSync('sh', ['-c', cmd], { stdio: 'inherit' });
+
+  if (result.status !== 0) {
+    log.warn('Search completed with no results or errors');
+  }
+}
+
+// GCE voice agent logs via SSH
+async function handleLogsGCE(since: string, tail: boolean): Promise<void> {
+  console.log(`${colors.bold}🖥️ GCE Voice Agent Logs${colors.reset}\n`);
+
+  if (tail) {
+    log.info('Streaming GCE logs (Ctrl+C to stop)...\n');
+    const cmd = `gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a --command="docker logs voiceai-agent -f --tail=100" 2>/dev/null`;
+    const child = spawn('sh', ['-c', cmd], { stdio: 'inherit' });
+    await new Promise((resolve) => child.on('close', resolve));
+    return;
+  }
+
+  const spinner = new Spinner('Fetching GCE logs...');
+  spinner.start();
+
+  // Get logs from the last hour by default
+  const sinceSeconds = since.includes('h') ? parseInt(since) * 3600 : parseInt(since) * 60;
+  const cmd = `gcloud compute ssh sethford@voiceai-agent-gce --zone=us-central1-a --command="docker logs voiceai-agent --since=${sinceSeconds}s 2>&1 | tail -100" 2>/dev/null`;
+
+  const logs = execCommand(cmd);
+  spinner.stop(!!logs);
+
+  if (logs) {
+    console.log(`\n${logs}\n`);
+  } else {
+    log.warn('Could not retrieve GCE logs (VM may be unreachable)');
   }
 }
 
@@ -5133,6 +5326,910 @@ async function handleAnomalies(args: string[]): Promise<void> {
 }
 
 // ============================================================================
+// CONTAINER RUNTIME OPERATIONS (IN-CONTAINER TECH OPS)
+// ============================================================================
+
+async function handleRuntime(args: string[]): Promise<void> {
+  const subcommand = args[0] || 'status';
+
+  log.header('📦 Container Runtime');
+
+  // Detect if running inside a container
+  const isContainer = existsSync('/.dockerenv') || process.env.KUBERNETES_SERVICE_HOST;
+  const containerMode = isContainer ? 'container' : 'local';
+
+  if (!isContainer && subcommand !== 'help') {
+    console.log(`  ${colors.dim}Running in ${containerMode} mode${colors.reset}\n`);
+  }
+
+  switch (subcommand) {
+    case 'status':
+      await handleRuntimeStatus(isContainer);
+      break;
+    case 'memory':
+      await handleRuntimeMemory();
+      break;
+    case 'sessions':
+      await handleRuntimeSessions(isContainer);
+      break;
+    case 'env':
+      await handleRuntimeEnv();
+      break;
+    case 'logs':
+      await handleRuntimeLogs();
+      break;
+    case 'health':
+      await handleRuntimeHealth(isContainer);
+      break;
+    case 'analyze':
+    case 'ai':
+    case 'diagnose':
+      await handleRuntimeAnalyze(isContainer);
+      break;
+    case 'watch':
+    case 'monitor':
+      await handleRuntimeWatch(isContainer, args.slice(1));
+      break;
+    default:
+      console.log(`${colors.bold}Runtime Commands:${colors.reset}\n`);
+      console.log(`  ${colors.cyan}status${colors.reset}     Process status (uptime, memory, pid)`);
+      console.log(`  ${colors.cyan}memory${colors.reset}     Detailed memory usage`);
+      console.log(`  ${colors.cyan}sessions${colors.reset}   Active LiveKit sessions`);
+      console.log(`  ${colors.cyan}env${colors.reset}        Runtime environment variables`);
+      console.log(`  ${colors.cyan}logs${colors.reset}       Recent process logs`);
+      console.log(`  ${colors.cyan}health${colors.reset}     Health check endpoints`);
+      console.log(`  ${colors.cyan}analyze${colors.reset}    ${colors.magenta}AI-powered${colors.reset} diagnostics & recommendations`);
+      console.log(`  ${colors.cyan}watch${colors.reset}      ${colors.magenta}AI-powered${colors.reset} background monitoring with Ferni alerts`);
+  }
+}
+
+async function handleRuntimeStatus(isContainer: boolean): Promise<void> {
+  console.log(`${colors.bold}Process Status:${colors.reset}\n`);
+
+  // Basic process info
+  const uptime = process.uptime();
+  const uptimeStr = formatUptime(uptime);
+  const memUsage = process.memoryUsage();
+  const heapUsedMB = (memUsage.heapUsed / 1024 / 1024).toFixed(1);
+  const heapTotalMB = (memUsage.heapTotal / 1024 / 1024).toFixed(1);
+  const rssMB = (memUsage.rss / 1024 / 1024).toFixed(1);
+
+  console.log(`  ${colors.green}${icons.success}${colors.reset} PID: ${process.pid}`);
+  console.log(`  ${colors.green}${icons.success}${colors.reset} Uptime: ${uptimeStr}`);
+  console.log(`  ${colors.green}${icons.success}${colors.reset} Node: ${process.version}`);
+  console.log(`  ${colors.green}${icons.success}${colors.reset} Platform: ${process.platform} ${process.arch}`);
+  console.log(`  ${colors.green}${icons.success}${colors.reset} Heap: ${heapUsedMB}MB / ${heapTotalMB}MB`);
+  console.log(`  ${colors.green}${icons.success}${colors.reset} RSS: ${rssMB}MB`);
+
+  // Container-specific info
+  if (isContainer) {
+    console.log(`\n${colors.bold}Container Info:${colors.reset}\n`);
+
+    const hostname = process.env.HOSTNAME || 'unknown';
+    const revision = process.env.K_REVISION || process.env.CLOUD_RUN_REVISION || 'unknown';
+    const service = process.env.K_SERVICE || process.env.CLOUD_RUN_SERVICE || 'unknown';
+    const cpuLimit = process.env.CLOUD_RUN_CPU_LIMIT || 'unknown';
+    const memLimit = process.env.CLOUD_RUN_MEMORY_LIMIT || 'unknown';
+
+    console.log(`  ${colors.cyan}${icons.info}${colors.reset} Hostname: ${hostname}`);
+    console.log(`  ${colors.cyan}${icons.info}${colors.reset} Service: ${service}`);
+    console.log(`  ${colors.cyan}${icons.info}${colors.reset} Revision: ${revision}`);
+    console.log(`  ${colors.cyan}${icons.info}${colors.reset} CPU Limit: ${cpuLimit}`);
+    console.log(`  ${colors.cyan}${icons.info}${colors.reset} Memory Limit: ${memLimit}`);
+  }
+
+  // Persona info
+  const personaId = process.env.PERSONA_ID || process.env.AGENT_ID || 'not set';
+  console.log(`\n${colors.bold}Agent Config:${colors.reset}\n`);
+  console.log(`  ${colors.cyan}${icons.info}${colors.reset} Persona: ${personaId}`);
+  console.log(`  ${colors.cyan}${icons.info}${colors.reset} Single Process: ${process.env.USE_SINGLE_PROCESS || 'false'}`);
+  console.log(`  ${colors.cyan}${icons.info}${colors.reset} Node Options: ${process.env.NODE_OPTIONS || 'default'}`);
+
+  console.log();
+}
+
+async function handleRuntimeMemory(): Promise<void> {
+  console.log(`${colors.bold}Memory Usage:${colors.reset}\n`);
+
+  const mem = process.memoryUsage();
+  const formatMB = (bytes: number) => (bytes / 1024 / 1024).toFixed(2);
+
+  const metrics = [
+    { name: 'RSS (Total)', value: mem.rss, desc: 'Total memory allocated to process' },
+    { name: 'Heap Total', value: mem.heapTotal, desc: 'V8 heap allocated' },
+    { name: 'Heap Used', value: mem.heapUsed, desc: 'V8 heap actively used' },
+    { name: 'External', value: mem.external, desc: 'C++ objects bound to JS' },
+    { name: 'Array Buffers', value: mem.arrayBuffers, desc: 'ArrayBuffer memory' },
+  ];
+
+  for (const m of metrics) {
+    const pct = ((m.value / mem.rss) * 100).toFixed(0);
+    const bar = createMemoryBar(parseInt(pct));
+    console.log(`  ${m.name.padEnd(15)} ${formatMB(m.value).padStart(8)}MB  ${bar}  ${colors.dim}${m.desc}${colors.reset}`);
+  }
+
+  // Heap statistics if available
+  if (typeof (process as any).memoryUsage.heap === 'function') {
+    try {
+      const heapStats = (process as any).memoryUsage.heap();
+      console.log(`\n${colors.bold}V8 Heap Statistics:${colors.reset}\n`);
+      console.log(`  Total Heap Size: ${formatMB(heapStats.total_heap_size)}MB`);
+      console.log(`  Used Heap Size: ${formatMB(heapStats.used_heap_size)}MB`);
+      console.log(`  Heap Size Limit: ${formatMB(heapStats.heap_size_limit)}MB`);
+    } catch {
+      // V8 heap stats not available
+    }
+  }
+
+  // GC hint
+  console.log(`\n${colors.dim}Tip: Run 'node --expose-gc' to enable manual GC via global.gc()${colors.reset}`);
+  console.log();
+}
+
+function createMemoryBar(pct: number): string {
+  const width = 20;
+  const filled = Math.round((Math.min(pct, 100) / 100) * width);
+  const empty = width - filled;
+  const color = pct > 80 ? colors.red : pct > 60 ? colors.yellow : colors.green;
+  return `${color}${'█'.repeat(filled)}${colors.dim}${'░'.repeat(empty)}${colors.reset} ${pct}%`;
+}
+
+async function handleRuntimeSessions(isContainer: boolean): Promise<void> {
+  console.log(`${colors.bold}LiveKit Sessions:${colors.reset}\n`);
+
+  // Try to hit the local health endpoint for session info
+  const healthUrl = isContainer ? 'http://localhost:8080/health' : 'http://localhost:3001/health';
+
+  try {
+    const result = execCommandWithStatus(`curl -s "${healthUrl}" 2>/dev/null`);
+    if (result.success && result.output) {
+      try {
+        const data = JSON.parse(result.output);
+        if (data.sessions !== undefined) {
+          console.log(`  ${colors.green}${icons.success}${colors.reset} Active Sessions: ${data.sessions || 0}`);
+        }
+        if (data.workers !== undefined) {
+          console.log(`  ${colors.green}${icons.success}${colors.reset} Workers: ${data.workers || 0}`);
+        }
+        if (data.status) {
+          console.log(`  ${colors.green}${icons.success}${colors.reset} Status: ${data.status}`);
+        }
+      } catch {
+        console.log(`  ${colors.dim}Raw response: ${result.output}${colors.reset}`);
+      }
+    } else {
+      console.log(`  ${colors.yellow}${icons.warning}${colors.reset} Health endpoint not reachable`);
+      console.log(`  ${colors.dim}Tried: ${healthUrl}${colors.reset}`);
+    }
+  } catch {
+    console.log(`  ${colors.yellow}${icons.warning}${colors.reset} Could not query health endpoint`);
+  }
+
+  // Show LiveKit config
+  const livekitUrl = process.env.LIVEKIT_URL || 'not set';
+  console.log(`\n${colors.bold}LiveKit Config:${colors.reset}\n`);
+  console.log(`  ${colors.cyan}${icons.info}${colors.reset} URL: ${livekitUrl}`);
+  console.log(`  ${colors.cyan}${icons.info}${colors.reset} API Key: ${process.env.LIVEKIT_API_KEY ? '****' + process.env.LIVEKIT_API_KEY.slice(-4) : 'not set'}`);
+  console.log(`  ${colors.cyan}${icons.info}${colors.reset} API Secret: ${process.env.LIVEKIT_API_SECRET ? '****(hidden)' : 'not set'}`);
+
+  console.log();
+}
+
+async function handleRuntimeEnv(): Promise<void> {
+  console.log(`${colors.bold}Runtime Environment:${colors.reset}\n`);
+
+  // Group environment variables by category
+  const categories: Record<string, string[]> = {
+    'Agent Config': ['PERSONA_ID', 'AGENT_ID', 'USE_SINGLE_PROCESS', 'NODE_ENV'],
+    'LiveKit': ['LIVEKIT_URL', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET'],
+    'AI Services': ['GOOGLE_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'DEEPGRAM_API_KEY', 'CARTESIA_API_KEY'],
+    'Cloud Run': ['K_SERVICE', 'K_REVISION', 'K_CONFIGURATION', 'PORT', 'CLOUD_RUN_EXECUTION'],
+    'Node.js': ['NODE_VERSION', 'NODE_OPTIONS', 'NODE_PATH'],
+  };
+
+  for (const [category, vars] of Object.entries(categories)) {
+    const hasAny = vars.some(v => process.env[v]);
+    if (hasAny) {
+      console.log(`  ${colors.bold}${category}:${colors.reset}`);
+      for (const v of vars) {
+        const val = process.env[v];
+        if (val) {
+          // Mask secrets
+          const isSensitive = v.includes('KEY') || v.includes('SECRET') || v.includes('TOKEN');
+          const displayVal = isSensitive ? '****' + val.slice(-4) : val;
+          console.log(`    ${v}: ${colors.dim}${displayVal}${colors.reset}`);
+        }
+      }
+      console.log();
+    }
+  }
+}
+
+async function handleRuntimeLogs(): Promise<void> {
+  console.log(`${colors.bold}Recent Logs:${colors.reset}\n`);
+
+  // In container, check if we have access to logs
+  const logPaths = [
+    '/var/log/app.log',
+    '/app/logs/agent.log',
+    './logs/agent.log',
+  ];
+
+  let foundLog = false;
+  for (const logPath of logPaths) {
+    if (existsSync(logPath)) {
+      console.log(`  ${colors.dim}Reading from: ${logPath}${colors.reset}\n`);
+      try {
+        const result = execCommand(`tail -50 "${logPath}" 2>/dev/null`);
+        console.log(result);
+        foundLog = true;
+        break;
+      } catch {
+        continue;
+      }
+    }
+  }
+
+  if (!foundLog) {
+    console.log(`  ${colors.dim}No local log files found.${colors.reset}`);
+    console.log(`\n  ${colors.bold}View logs via:${colors.reset}`);
+    console.log(`    ${colors.cyan}ferni logs agent${colors.reset}        # From Cloud Logging`);
+    console.log(`    ${colors.cyan}docker logs <container>${colors.reset} # From Docker`);
+  }
+
+  console.log();
+}
+
+async function handleRuntimeHealth(isContainer: boolean): Promise<void> {
+  console.log(`${colors.bold}Health Checks:${colors.reset}\n`);
+
+  const endpoints = isContainer
+    ? [
+        { name: 'Main Health', url: 'http://localhost:8080/health' },
+        { name: 'Ready Check', url: 'http://localhost:8080/health/ready' },
+        { name: 'Live Check', url: 'http://localhost:8080/health/live' },
+      ]
+    : [
+        { name: 'Token Server', url: 'http://localhost:3001/health' },
+        { name: 'UI Server', url: 'http://localhost:3002/health' },
+        { name: 'Agent Health', url: 'http://localhost:3001/health/ready' },
+      ];
+
+  for (const ep of endpoints) {
+    const spinner = new Spinner(`Checking ${ep.name}...`);
+    spinner.start();
+
+    try {
+      const result = execCommandWithStatus(`curl -s -o /dev/null -w "%{http_code}" "${ep.url}" 2>/dev/null`);
+      const statusCode = parseInt(result.output.trim() || '0', 10);
+      if (statusCode === 200) {
+        spinner.stop(true);
+        console.log(`    ${colors.dim}${ep.url} → ${statusCode}${colors.reset}`);
+      } else if (statusCode > 0) {
+        spinner.stop(false);
+        console.log(`    ${colors.dim}${ep.url} → ${statusCode}${colors.reset}`);
+      } else {
+        spinner.stop(false);
+        console.log(`    ${colors.dim}${ep.url} → unreachable${colors.reset}`);
+      }
+    } catch {
+      spinner.stop(false);
+      console.log(`    ${colors.dim}${ep.url} → error${colors.reset}`);
+    }
+  }
+
+  console.log();
+}
+
+// Gemini API helper for runtime analysis
+async function callGeminiRuntime(prompt: string): Promise<string> {
+  const apiKey = process.env.GOOGLE_API_KEY;
+  if (!apiKey) {
+    throw new Error('GOOGLE_API_KEY not set - AI analysis requires Gemini API access');
+  }
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 4096, temperature: 0.3 },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Gemini API error: ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No analysis available';
+}
+
+async function handleRuntimeAnalyze(isContainer: boolean): Promise<void> {
+  console.log(`${colors.bold}${colors.magenta}🤖 AI-Powered Runtime Analysis${colors.reset}\n`);
+
+  const spinner = new Spinner('Collecting runtime data...');
+  spinner.start();
+
+  // Collect all runtime data
+  const mem = process.memoryUsage();
+  const uptime = process.uptime();
+
+  // Health endpoint check
+  let healthStatus: Record<string, string> = {};
+  const healthUrl = isContainer ? 'http://localhost:8080/health' : 'http://localhost:3001/health';
+  try {
+    const healthResult = execCommandWithStatus(`curl -s "${healthUrl}" 2>/dev/null`);
+    if (healthResult.success && healthResult.output) {
+      try {
+        healthStatus = JSON.parse(healthResult.output);
+      } catch {
+        healthStatus = { raw: healthResult.output };
+      }
+    }
+  } catch {
+    healthStatus = { error: 'Health endpoint unreachable' };
+  }
+
+  // Environment summary (no secrets)
+  const envSummary = {
+    nodeVersion: process.version,
+    platform: `${process.platform} ${process.arch}`,
+    nodeEnv: process.env.NODE_ENV || 'not set',
+    personaId: process.env.PERSONA_ID || process.env.AGENT_ID || 'not set',
+    singleProcess: process.env.USE_SINGLE_PROCESS || 'false',
+    livekitConfigured: !!process.env.LIVEKIT_URL,
+    geminiConfigured: !!process.env.GOOGLE_API_KEY,
+    cartesiaConfigured: !!process.env.CARTESIA_API_KEY,
+    deepgramConfigured: !!process.env.DEEPGRAM_API_KEY,
+    isContainer,
+    containerService: process.env.K_SERVICE || process.env.CLOUD_RUN_SERVICE || 'not in cloud run',
+    containerRevision: process.env.K_REVISION || process.env.CLOUD_RUN_REVISION || 'not in cloud run',
+  };
+
+  spinner.update('Analyzing with Gemini...');
+
+  const runtimeData = {
+    memory: {
+      rssMB: (mem.rss / 1024 / 1024).toFixed(2),
+      heapUsedMB: (mem.heapUsed / 1024 / 1024).toFixed(2),
+      heapTotalMB: (mem.heapTotal / 1024 / 1024).toFixed(2),
+      externalMB: (mem.external / 1024 / 1024).toFixed(2),
+      heapUsagePercent: ((mem.heapUsed / mem.heapTotal) * 100).toFixed(1),
+    },
+    uptime: {
+      seconds: uptime,
+      formatted: formatUptime(uptime),
+    },
+    health: healthStatus,
+    environment: envSummary,
+  };
+
+  const prompt = `You are a DevOps expert analyzing a Node.js voice AI agent runtime. Analyze this data and provide:
+
+1. **Health Assessment** - Overall health status (Healthy/Warning/Critical)
+2. **Memory Analysis** - Is memory usage normal? Any concerns?
+3. **Configuration Check** - Are all required services configured?
+4. **Recommendations** - Specific actionable suggestions (max 5)
+5. **Potential Issues** - Any red flags or things to watch
+
+Be concise and practical. Use bullet points. Focus on actionable insights.
+
+Runtime Data:
+\`\`\`json
+${JSON.stringify(runtimeData, null, 2)}
+\`\`\`
+
+Context:
+- This is a LiveKit voice agent using Gemini for LLM, Cartesia/Deepgram for TTS/STT
+- Running in ${isContainer ? 'Docker container (likely Cloud Run or GCE)' : 'local development mode'}
+- Single process mode ${envSummary.singleProcess === 'true' ? 'is enabled (good for containers)' : 'is disabled (uses child processes)'}`;
+
+  try {
+    const analysis = await callGeminiRuntime(prompt);
+    spinner.stop(true);
+
+    console.log(`\n${analysis}\n`);
+
+    // Quick stats summary
+    console.log(`${colors.dim}─────────────────────────────────────────${colors.reset}`);
+    console.log(`${colors.dim}Runtime: ${runtimeData.uptime.formatted} | Heap: ${runtimeData.memory.heapUsagePercent}% | RSS: ${runtimeData.memory.rssMB}MB${colors.reset}`);
+    console.log();
+  } catch (error) {
+    spinner.stop(false);
+    log.error(`AI analysis failed: ${(error as Error).message}`);
+    console.log(`\n${colors.dim}Falling back to basic analysis...${colors.reset}\n`);
+
+    // Basic analysis without AI
+    console.log(`${colors.bold}Basic Health Check:${colors.reset}\n`);
+
+    const heapPct = parseFloat(runtimeData.memory.heapUsagePercent);
+    if (heapPct > 85) {
+      console.log(`  ${colors.red}${icons.error}${colors.reset} High heap usage: ${heapPct}% - consider increasing memory or checking for leaks`);
+    } else if (heapPct > 70) {
+      console.log(`  ${colors.yellow}${icons.warning}${colors.reset} Elevated heap usage: ${heapPct}%`);
+    } else {
+      console.log(`  ${colors.green}${icons.success}${colors.reset} Heap usage normal: ${heapPct}%`);
+    }
+
+    if (!envSummary.livekitConfigured) {
+      console.log(`  ${colors.red}${icons.error}${colors.reset} LiveKit not configured`);
+    }
+    if (!envSummary.geminiConfigured) {
+      console.log(`  ${colors.yellow}${icons.warning}${colors.reset} Gemini API not configured`);
+    }
+    if (!envSummary.cartesiaConfigured) {
+      console.log(`  ${colors.yellow}${icons.warning}${colors.reset} Cartesia TTS not configured`);
+    }
+
+    console.log();
+  }
+}
+
+// Ferni's personality for notifications - warm, helpful, slightly playful
+const FERNI_ALERT_PROMPTS = {
+  warning: `You are Ferni, a warm and friendly AI assistant. Write a SHORT alert notification (2-3 sentences max) in your characteristic voice - caring, slightly playful, but professional. You're letting your human friend know about a potential issue. Don't be alarmist, just helpful. End with a gentle suggestion.`,
+  critical: `You are Ferni, a warm and caring AI assistant. Write a SHORT urgent notification (2-3 sentences max) in your characteristic voice. Something needs attention NOW but you're still calm and supportive. Be direct but kind. End with what action to take.`,
+  resolved: `You are Ferni, a warm AI assistant. Write a very SHORT "all clear" message (1-2 sentences). Sound relieved and happy. Maybe a tiny celebration.`,
+  checkIn: `You are Ferni, a friendly AI assistant. Write a very SHORT status update (1 sentence). Everything is fine, just letting them know you're keeping watch. Be brief and warm.`,
+};
+
+interface WatchState {
+  lastCheck: Date;
+  consecutiveIssues: number;
+  lastIssueType: string | null;
+  isHealthy: boolean;
+  checkCount: number;
+}
+
+async function handleRuntimeWatch(isContainer: boolean, args: string[]): Promise<void> {
+  const intervalMinutes = parseInt(args[0] || '5', 10);
+  const intervalMs = intervalMinutes * 60 * 1000;
+
+  // Check which notification channels are configured
+  const channels: string[] = ['Terminal'];
+  if (process.env.SLACK_WEBHOOK_URL || process.env.FERNI_SLACK_WEBHOOK) channels.push('Slack');
+  if ((process.env.SENDGRID_API_KEY || process.env.MAILGUN_API_KEY) && (process.env.FERNI_ALERT_EMAIL || process.env.ALERT_EMAIL)) channels.push('Email');
+  if (process.env.TWILIO_ACCOUNT_SID && (process.env.FERNI_ALERT_PHONE || process.env.ALERT_PHONE_NUMBER)) channels.push('SMS (critical only)');
+
+  console.log(`${colors.bold}${colors.green}🌿 Ferni Runtime Watch${colors.reset}\n`);
+  console.log(`  ${colors.dim}Watching every ${intervalMinutes} minutes...${colors.reset}`);
+  console.log(`  ${colors.dim}Notifications: ${channels.join(' + ')}${colors.reset}`);
+  console.log(`  ${colors.dim}Press Ctrl+C to stop${colors.reset}\n`);
+
+  const state: WatchState = {
+    lastCheck: new Date(),
+    consecutiveIssues: 0,
+    lastIssueType: null,
+    isHealthy: true,
+    checkCount: 0,
+  };
+
+  // Initial check
+  await performWatchCheck(isContainer, state);
+
+  // Start the watch loop
+  const watchLoop = setInterval(async () => {
+    await performWatchCheck(isContainer, state);
+  }, intervalMs);
+
+  // Handle graceful shutdown
+  process.on('SIGINT', async () => {
+    clearInterval(watchLoop);
+    console.log(`\n${colors.green}🌿${colors.reset} Ferni signing off. Stay well! 💚\n`);
+    process.exit(0);
+  });
+
+  // Keep process alive
+  await new Promise(() => {}); // Never resolves - runs until Ctrl+C
+}
+
+async function performWatchCheck(
+  isContainer: boolean,
+  state: WatchState
+): Promise<void> {
+  state.checkCount++;
+  state.lastCheck = new Date();
+
+  const timeStr = state.lastCheck.toLocaleTimeString();
+  process.stdout.write(`${colors.dim}[${timeStr}]${colors.reset} Checking... `);
+
+  // Collect metrics
+  const metrics = await collectWatchMetrics(isContainer);
+
+  // Analyze with Gemini
+  const analysis = await analyzeForAnomalies(metrics, state);
+
+  if (analysis.severity === 'ok') {
+    state.consecutiveIssues = 0;
+    state.isHealthy = true;
+    console.log(`${colors.green}✓${colors.reset} All good`);
+
+    // Occasional check-in (every 12 checks = ~1 hour at 5min intervals)
+    if (state.checkCount % 12 === 0) {
+      const checkInMsg = await generateFerniMessage('checkIn', 'Regular check-in, everything is running smoothly.');
+      console.log(`\n  ${colors.green}🌿${colors.reset} ${colors.dim}${checkInMsg}${colors.reset}\n`);
+    }
+  } else {
+    state.consecutiveIssues++;
+
+    const wasHealthy = state.isHealthy;
+    state.isHealthy = false;
+    state.lastIssueType = analysis.issue;
+
+    // Generate Ferni-voiced alert
+    const alertType = analysis.severity === 'critical' ? 'critical' : 'warning';
+    const ferniMessage = await generateFerniMessage(alertType, analysis.issue);
+
+    console.log(`${analysis.severity === 'critical' ? colors.red + '✗' : colors.yellow + '⚠'}${colors.reset} Issue detected`);
+    console.log(`\n  ${colors.green}🌿 Ferni:${colors.reset} ${ferniMessage}\n`);
+    console.log(`  ${colors.dim}Details: ${analysis.issue}${colors.reset}`);
+    console.log(`  ${colors.dim}Consecutive issues: ${state.consecutiveIssues}${colors.reset}\n`);
+
+    // Send notifications to all configured channels (Slack, Email, SMS)
+    if (wasHealthy || state.consecutiveIssues === 3) {
+      await sendAllNotifications(ferniMessage, analysis, isContainer);
+    }
+  }
+
+  // Check if we recovered
+  if (state.isHealthy && state.lastIssueType && state.consecutiveIssues === 0) {
+    const resolvedMsg = await generateFerniMessage('resolved', `Issue resolved: ${state.lastIssueType}`);
+    console.log(`\n  ${colors.green}🌿 Ferni:${colors.reset} ${resolvedMsg}\n`);
+    state.lastIssueType = null;
+
+    await sendAllNotifications(resolvedMsg, { severity: 'resolved', issue: 'Recovered' }, isContainer);
+  }
+}
+
+async function collectWatchMetrics(isContainer: boolean): Promise<Record<string, any>> {
+  const mem = process.memoryUsage();
+
+  // Health check
+  let healthStatus: any = { status: 'unknown' };
+  const healthUrl = isContainer ? 'http://localhost:8080/health' : 'http://localhost:3001/health';
+  try {
+    const result = execCommandWithStatus(`curl -s -m 5 "${healthUrl}" 2>/dev/null`);
+    if (result.success && result.output) {
+      try {
+        healthStatus = JSON.parse(result.output);
+      } catch {
+        healthStatus = { status: 'parse_error', raw: result.output.slice(0, 100) };
+      }
+    } else {
+      healthStatus = { status: 'unreachable' };
+    }
+  } catch {
+    healthStatus = { status: 'error' };
+  }
+
+  return {
+    timestamp: new Date().toISOString(),
+    memory: {
+      heapUsedMB: (mem.heapUsed / 1024 / 1024).toFixed(1),
+      heapTotalMB: (mem.heapTotal / 1024 / 1024).toFixed(1),
+      rssMB: (mem.rss / 1024 / 1024).toFixed(1),
+      heapUsagePercent: ((mem.heapUsed / mem.heapTotal) * 100).toFixed(1),
+    },
+    health: healthStatus,
+    uptime: process.uptime(),
+    isContainer,
+  };
+}
+
+async function analyzeForAnomalies(
+  metrics: Record<string, any>,
+  state: WatchState
+): Promise<{ severity: 'ok' | 'warning' | 'critical'; issue: string }> {
+  // Quick local checks first (no API call needed for obvious issues)
+  const heapPct = parseFloat(metrics.memory.heapUsagePercent);
+
+  if (metrics.health.status === 'unreachable' || metrics.health.status === 'error') {
+    return { severity: 'critical', issue: 'Health endpoint is unreachable - service may be down' };
+  }
+
+  if (heapPct > 90) {
+    return { severity: 'critical', issue: `Memory critical: ${heapPct}% heap usage - risk of OOM` };
+  }
+
+  if (heapPct > 80) {
+    return { severity: 'warning', issue: `Memory elevated: ${heapPct}% heap usage` };
+  }
+
+  // For more nuanced analysis, use Gemini (but only every few checks to save API calls)
+  if (state.checkCount % 3 === 0) {
+    try {
+      const prompt = `You are monitoring a voice AI agent. Analyze these metrics and respond with ONLY one of:
+- "OK" if everything looks normal
+- "WARNING: <brief issue>" if something needs attention soon
+- "CRITICAL: <brief issue>" if something needs immediate attention
+
+Metrics:
+${JSON.stringify(metrics, null, 2)}
+
+Context: Check ${state.checkCount}, consecutive issues: ${state.consecutiveIssues}`;
+
+      const response = await callGeminiRuntime(prompt);
+      const trimmed = response.trim().toUpperCase();
+
+      if (trimmed.startsWith('CRITICAL:')) {
+        return { severity: 'critical', issue: response.replace(/^CRITICAL:\s*/i, '') };
+      }
+      if (trimmed.startsWith('WARNING:')) {
+        return { severity: 'warning', issue: response.replace(/^WARNING:\s*/i, '') };
+      }
+    } catch {
+      // Gemini unavailable, fall back to local checks only
+    }
+  }
+
+  return { severity: 'ok', issue: '' };
+}
+
+async function generateFerniMessage(type: keyof typeof FERNI_ALERT_PROMPTS, context: string): Promise<string> {
+  try {
+    const prompt = `${FERNI_ALERT_PROMPTS[type]}
+
+Context: ${context}
+
+Write your message now (remember: SHORT, 1-3 sentences max):`;
+
+    const response = await callGeminiRuntime(prompt);
+    return response.trim().replace(/^["']|["']$/g, ''); // Remove quotes if present
+  } catch {
+    // Fallback messages if Gemini is unavailable
+    const fallbacks: Record<string, string> = {
+      warning: `Hey, I noticed something that might need a look: ${context}. Nothing urgent, but worth checking when you have a moment! 🌿`,
+      critical: `Hey, this needs attention soon: ${context}. I'm here to help if you need me! 💚`,
+      resolved: `All clear now! Things are back to normal. 🌿✨`,
+      checkIn: `Still here, still watching. Everything's running smoothly! 🌿`,
+    };
+    return fallbacks[type] || context;
+  }
+}
+
+async function sendSlackAlert(
+  webhookUrl: string,
+  ferniMessage: string,
+  analysis: { severity: string; issue: string },
+  isContainer: boolean
+): Promise<void> {
+  const emoji = analysis.severity === 'critical' ? '🚨' : analysis.severity === 'warning' ? '⚠️' : '✅';
+  const color = analysis.severity === 'critical' ? '#dc3545' : analysis.severity === 'warning' ? '#ffc107' : '#28a745';
+
+  const payload = {
+    username: 'Ferni',
+    icon_emoji: ':herb:',
+    attachments: [
+      {
+        color,
+        blocks: [
+          {
+            type: 'section',
+            text: {
+              type: 'mrkdwn',
+              text: `${emoji} *Runtime Alert*\n\n🌿 ${ferniMessage}`,
+            },
+          },
+          {
+            type: 'context',
+            elements: [
+              {
+                type: 'mrkdwn',
+                text: `*Environment:* ${isContainer ? 'Container' : 'Local'} | *Time:* ${new Date().toLocaleString()}`,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  try {
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    console.log(`  ${colors.dim}(Slack notification failed: ${(error as Error).message})${colors.reset}`);
+  }
+}
+
+// Send email alert via SendGrid or Mailgun
+async function sendEmailAlert(
+  ferniMessage: string,
+  analysis: { severity: string; issue: string },
+  isContainer: boolean
+): Promise<void> {
+  // Support both SendGrid and Mailgun
+  const sendgridKey = process.env.SENDGRID_API_KEY;
+  const mailgunKey = process.env.MAILGUN_API_KEY;
+  const mailgunDomain = process.env.MAILGUN_DOMAIN;
+  const toEmail = process.env.FERNI_ALERT_EMAIL || process.env.ALERT_EMAIL;
+  const fromEmail = process.env.FERNI_FROM_EMAIL || 'ferni@voiceai.app';
+
+  if (!toEmail) {
+    console.log(`  ${colors.dim}(Email skipped: FERNI_ALERT_EMAIL not configured)${colors.reset}`);
+    return;
+  }
+
+  const emoji = analysis.severity === 'critical' ? '🚨' : analysis.severity === 'warning' ? '⚠️' : '✅';
+  const subject = `${emoji} Ferni Alert: ${analysis.severity.toUpperCase()} - ${analysis.issue.slice(0, 50)}`;
+
+  const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: ${analysis.severity === 'critical' ? '#dc3545' : analysis.severity === 'warning' ? '#ffc107' : '#28a745'}; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+    .content { background: #f8f9fa; padding: 20px; border-radius: 0 0 8px 8px; }
+    .ferni { color: #4a6741; font-weight: bold; }
+    .footer { margin-top: 20px; font-size: 12px; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>${emoji} Runtime Alert</h2>
+    </div>
+    <div class="content">
+      <p><span class="ferni">🌿 Ferni says:</span></p>
+      <blockquote style="border-left: 3px solid #4a6741; padding-left: 15px; margin: 15px 0;">
+        ${ferniMessage}
+      </blockquote>
+      <p><strong>Severity:</strong> ${analysis.severity}</p>
+      <p><strong>Issue:</strong> ${analysis.issue}</p>
+      <p><strong>Environment:</strong> ${isContainer ? 'Container' : 'Local'}</p>
+      <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+    </div>
+    <div class="footer">
+      <p>Sent by Ferni Runtime Watch | <a href="https://voiceai.app">voiceai.app</a></p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  try {
+    if (sendgridKey) {
+      // SendGrid API
+      await fetch('https://api.sendgrid.com/v3/mail/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${sendgridKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email: toEmail }] }],
+          from: { email: fromEmail, name: 'Ferni' },
+          subject,
+          content: [
+            { type: 'text/plain', value: `${ferniMessage}\n\nSeverity: ${analysis.severity}\nIssue: ${analysis.issue}` },
+            { type: 'text/html', value: htmlBody },
+          ],
+        }),
+      });
+      console.log(`  ${colors.dim}(Email sent to ${toEmail})${colors.reset}`);
+    } else if (mailgunKey && mailgunDomain) {
+      // Mailgun API
+      const formData = new URLSearchParams();
+      formData.append('from', `Ferni <${fromEmail}>`);
+      formData.append('to', toEmail);
+      formData.append('subject', subject);
+      formData.append('text', `${ferniMessage}\n\nSeverity: ${analysis.severity}\nIssue: ${analysis.issue}`);
+      formData.append('html', htmlBody);
+
+      await fetch(`https://api.mailgun.net/v3/${mailgunDomain}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${Buffer.from(`api:${mailgunKey}`).toString('base64')}`,
+        },
+        body: formData,
+      });
+      console.log(`  ${colors.dim}(Email sent to ${toEmail})${colors.reset}`);
+    } else {
+      console.log(`  ${colors.dim}(Email skipped: No email provider configured)${colors.reset}`);
+    }
+  } catch (error) {
+    console.log(`  ${colors.dim}(Email notification failed: ${(error as Error).message})${colors.reset}`);
+  }
+}
+
+// Send SMS alert via Twilio
+async function sendSMSAlert(
+  ferniMessage: string,
+  analysis: { severity: string; issue: string }
+): Promise<void> {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const fromNumber = process.env.TWILIO_FROM_NUMBER || process.env.TWILIO_PHONE_NUMBER;
+  const toNumber = process.env.FERNI_ALERT_PHONE || process.env.ALERT_PHONE_NUMBER;
+
+  if (!accountSid || !authToken || !fromNumber || !toNumber) {
+    console.log(`  ${colors.dim}(SMS skipped: Twilio not configured)${colors.reset}`);
+    return;
+  }
+
+  // Only send SMS for critical alerts (to avoid SMS spam)
+  if (analysis.severity !== 'critical') {
+    console.log(`  ${colors.dim}(SMS skipped: Only critical alerts trigger SMS)${colors.reset}`);
+    return;
+  }
+
+  const emoji = '🚨';
+  // SMS needs to be short - max 160 chars ideally
+  const shortMessage = ferniMessage.length > 100 ? ferniMessage.slice(0, 97) + '...' : ferniMessage;
+  const smsBody = `${emoji} Ferni Alert: ${shortMessage}`;
+
+  try {
+    const formData = new URLSearchParams();
+    formData.append('To', toNumber);
+    formData.append('From', fromNumber);
+    formData.append('Body', smsBody);
+
+    const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+
+    await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formData,
+    });
+
+    console.log(`  ${colors.dim}(SMS sent to ${toNumber.slice(0, -4)}****)${colors.reset}`);
+  } catch (error) {
+    console.log(`  ${colors.dim}(SMS notification failed: ${(error as Error).message})${colors.reset}`);
+  }
+}
+
+// Unified notification sender - sends to all configured channels
+async function sendAllNotifications(
+  ferniMessage: string,
+  analysis: { severity: string; issue: string },
+  isContainer: boolean
+): Promise<void> {
+  const slackWebhook = process.env.SLACK_WEBHOOK_URL || process.env.FERNI_SLACK_WEBHOOK;
+
+  // Send to all configured channels in parallel
+  const promises: Promise<void>[] = [];
+
+  if (slackWebhook) {
+    promises.push(sendSlackAlert(slackWebhook, ferniMessage, analysis, isContainer));
+  }
+
+  // Always try email (function handles missing config gracefully)
+  promises.push(sendEmailAlert(ferniMessage, analysis, isContainer));
+
+  // Always try SMS for critical (function handles missing config and severity check)
+  promises.push(sendSMSAlert(ferniMessage, analysis));
+
+  await Promise.allSettled(promises);
+}
+
+function formatUptime(seconds: number): string {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+  if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+
+  return parts.join(' ');
+}
+
+// ============================================================================
 // AI-POWERED AUTOMATION HANDLERS
 // ============================================================================
 
@@ -7214,6 +8311,7 @@ ${colors.bold}Commands:${colors.reset}
       'oncall',
       'runbook',
       'backup',
+      'runtime',
     ],
     'Chaos & Testing': ['chaos', 'experiments'],
     'Developer Experience': ['init', 'context', 'tunnel', 'replay', 'cache', 'notify'],

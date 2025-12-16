@@ -182,6 +182,7 @@ function getSecrets(): Record<string, string> {
   log.substep('Fetching secrets from Secret Manager...');
 
   const secretNames = [
+    // Core voice agent secrets
     'livekit-api-key',
     'livekit-api-secret',
     'livekit-url',
@@ -191,6 +192,14 @@ function getSecrets(): Record<string, string> {
     'cartesia-api-key',
     'deepgram-api-key',
     'elevenlabs-api-key',
+    // Notification secrets (for ferni runtime watch)
+    'slack-webhook-url',
+    'sendgrid-api-key',
+    'twilio-account-sid',
+    'twilio-auth-token',
+    'twilio-from-number',
+    'ferni-alert-email',
+    'ferni-alert-phone',
   ];
 
   const secrets: Record<string, string> = {};
