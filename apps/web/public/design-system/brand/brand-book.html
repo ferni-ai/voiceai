@@ -1,0 +1,1218 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ferni Brand Guidelines</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        /* Brand Colors */
+        --color-bg: #f5f1e8;
+        --color-bg-secondary: #e8e0d5;
+        --color-bg-elevated: #fffdfb;
+        --color-text: #2c2520;
+        --color-text-secondary: #5c544a;
+        --color-text-muted: #756a5e;
+        --color-accent: #3d5a45;
+        --color-highlight: #c4a265;
+
+        /* Persona Colors */
+        --color-ferni: #4a6741;
+        --color-jack: #9a7b5a;
+        --color-peter: #3a6b73;
+        --color-alex: #5a6b8a;
+        --color-maya: #a67a6a;
+        --color-jordan: #c4856a;
+
+        /* Typography */
+        --font-display: 'Plus Jakarta Sans', sans-serif;
+        --font-body: 'Inter', sans-serif;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: var(--font-body);
+        background: var(--color-bg);
+        color: var(--color-text);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Page Setup for Print */
+      @page {
+        size: A4;
+        margin: 0;
+      }
+
+      .page {
+        width: 210mm;
+        min-height: 297mm;
+        padding: 20mm;
+        margin: 0 auto 40px;
+        background: white;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+        page-break-after: always;
+      }
+
+      @media print {
+        .page {
+          box-shadow: none;
+          margin: 0;
+        }
+        body {
+          background: white;
+        }
+      }
+
+      /* Typography */
+      h1 {
+        font-family: var(--font-display);
+        font-size: 48px;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.03em;
+        margin-bottom: 16px;
+      }
+
+      h2 {
+        font-family: var(--font-display);
+        font-size: 32px;
+        font-weight: 700;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        margin-bottom: 24px;
+        color: var(--color-text);
+      }
+
+      h3 {
+        font-family: var(--font-display);
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: var(--color-text);
+      }
+
+      h4 {
+        font-family: var(--font-display);
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--color-text-muted);
+        margin-bottom: 16px;
+      }
+
+      p {
+        color: var(--color-text-secondary);
+        margin-bottom: 16px;
+      }
+
+      /* Cover Page */
+      .cover {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-secondary) 100%);
+      }
+
+      .cover-logo {
+        width: 120px;
+        height: 120px;
+        background: var(--color-bg);
+        border-radius: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        font-family: var(--font-display);
+        font-size: 48px;
+        font-weight: 800;
+        margin-bottom: 40px;
+        box-shadow: 0 8px 32px rgba(61, 90, 69, 0.3);
+      }
+
+      .cover h1 {
+        font-size: 64px;
+        margin-bottom: 8px;
+      }
+
+      .cover-subtitle {
+        font-size: 18px;
+        color: var(--color-text-secondary);
+        margin-bottom: 60px;
+      }
+
+      .cover-meta {
+        font-size: 13px;
+        color: var(--color-text-muted);
+      }
+
+      /* Section Styles */
+      .section-title {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 32px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid var(--color-bg-secondary);
+      }
+
+      .section-number {
+        width: 40px;
+        height: 40px;
+        background: var(--color-accent);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      /* Color Swatches */
+      .color-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 32px;
+      }
+
+      .color-swatch {
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+      }
+
+      .color-preview {
+        height: 80px;
+      }
+
+      .color-info {
+        padding: 12px;
+        background: white;
+      }
+
+      .color-name {
+        font-family: var(--font-display);
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--color-text);
+        margin-bottom: 4px;
+      }
+
+      .color-hex {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+        color: var(--color-text-muted);
+      }
+
+      /* Persona Colors */
+      .persona-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+
+      .persona-swatch {
+        text-align: center;
+      }
+
+      .persona-color {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        margin: 0 auto 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      .persona-name {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--color-text);
+      }
+
+      .persona-hex {
+        font-size: 10px;
+        color: var(--color-text-muted);
+        font-family: monospace;
+      }
+
+      /* Typography Scale */
+      .type-scale {
+        margin-bottom: 32px;
+      }
+
+      .type-row {
+        display: flex;
+        align-items: baseline;
+        gap: 24px;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--color-bg-secondary);
+      }
+
+      .type-label {
+        width: 100px;
+        flex-shrink: 0;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--color-text-muted);
+      }
+
+      .type-specs {
+        width: 120px;
+        flex-shrink: 0;
+        font-size: 11px;
+        color: var(--color-text-muted);
+      }
+
+      .type-sample {
+        flex: 1;
+        font-family: var(--font-display);
+      }
+
+      /* Spacing Scale */
+      .spacing-grid {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+        margin-bottom: 24px;
+        padding: 24px;
+        background: var(--color-bg);
+        border-radius: 12px;
+      }
+
+      .spacing-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .spacing-bar {
+        background: var(--color-accent);
+        width: 24px;
+        border-radius: 4px;
+      }
+
+      .spacing-label {
+        font-size: 10px;
+        color: var(--color-text-muted);
+        font-weight: 500;
+      }
+
+      /* Button Examples */
+      .button-row {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+      }
+
+      .btn-example {
+        padding: 14px 28px;
+        border-radius: 9999px;
+        font-family: var(--font-display);
+        font-size: 15px;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+      }
+
+      .btn-primary-example {
+        background: var(--color-accent);
+        color: white;
+      }
+
+      .btn-secondary-example {
+        background: transparent;
+        color: var(--color-text);
+        border: 1.5px solid rgba(44, 37, 32, 0.2);
+      }
+
+      .btn-ghost-example {
+        background: transparent;
+        color: var(--color-text-secondary);
+        padding: 14px 20px;
+      }
+
+      /* Logo Display */
+      .logo-display {
+        display: flex;
+        gap: 32px;
+        margin-bottom: 32px;
+        padding: 40px;
+        background: var(--color-bg);
+        border-radius: 16px;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .logo-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .logo-box {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .logomark {
+        width: 48px;
+        height: 48px;
+        background: var(--color-bg);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        font-family: var(--font-display);
+        font-size: 18px;
+        font-weight: 700;
+      }
+
+      .wordmark {
+        font-family: var(--font-display);
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--color-text);
+      }
+
+      .logo-label {
+        font-size: 11px;
+        color: var(--color-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      /* Quote Block */
+      .quote-block {
+        padding: 32px;
+        background: linear-gradient(135deg, var(--color-accent) 0%, #4a6d52 100%);
+        border-radius: 16px;
+        color: white;
+        text-align: center;
+        margin: 32px 0;
+      }
+
+      .quote-text {
+        font-family: var(--font-display);
+        font-size: 28px;
+        font-weight: 600;
+        line-height: 1.3;
+        margin-bottom: 16px;
+        color: white;
+      }
+
+      .quote-attr {
+        font-size: 13px;
+        opacity: 0.8;
+        color: white;
+      }
+
+      /* Two Column Layout */
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+        margin-bottom: 32px;
+      }
+
+      /* List Styles */
+      .feature-list {
+        list-style: none;
+      }
+
+      .feature-list li {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 12px;
+        font-size: 14px;
+        color: var(--color-text-secondary);
+      }
+
+      .feature-list li::before {
+        content: '✓';
+        color: var(--color-accent);
+        font-weight: 700;
+      }
+
+      .dont-list li::before {
+        content: '✗';
+        color: #a65a52;
+      }
+
+      /* Card Styles */
+      .card {
+        background: white;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 16px;
+        padding: 24px;
+      }
+
+      /* Table */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 24px;
+        font-size: 13px;
+      }
+
+      th {
+        text-align: left;
+        padding: 12px;
+        background: var(--color-bg);
+        font-weight: 600;
+        color: var(--color-text);
+        border-bottom: 2px solid var(--color-bg-secondary);
+      }
+
+      td {
+        padding: 12px;
+        border-bottom: 1px solid var(--color-bg-secondary);
+        color: var(--color-text-secondary);
+      }
+
+      code {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+        background: var(--color-bg);
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+
+      /* Footer */
+      .page-footer {
+        margin-top: auto;
+        padding-top: 24px;
+        border-top: 1px solid var(--color-bg-secondary);
+        display: flex;
+        justify-content: space-between;
+        font-size: 11px;
+        color: var(--color-text-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Page 1: Cover -->
+    <div class="page cover">
+      <div class="cover-logo">
+        <svg viewBox="0 0 120 120" width="120" height="120">
+          <rect width="120" height="120" fill="#F5F1E8" />
+          <circle cx="60" cy="60" r="42" fill="#4a6741" />
+          <circle cx="60" cy="60" r="17" fill="white" />
+          <circle cx="60" cy="60" r="11" fill="#5a8060" />
+          <circle cx="60" cy="60" r="5.5" fill="#2c2520" />
+          <circle cx="58" cy="58" r="2" fill="white" opacity="0.9" />
+        </svg>
+      </div>
+      <h1>Ferni</h1>
+      <p class="cover-subtitle">Brand Guidelines & Design System</p>
+      <p class="cover-meta">Version 1.0 • December 2024</p>
+    </div>
+
+    <!-- Page 2: Brand Foundation -->
+    <div class="page">
+      <div class="section-title">
+        <div class="section-number">1</div>
+        <h2>Brand Foundation</h2>
+      </div>
+
+      <h3>Brand Essence</h3>
+      <p>
+        Ferni exists in the quiet moments—the 2am worry, the commute contemplation, the space before
+        a big decision. We're not replacing human connection. We're filling the gaps.
+      </p>
+
+      <div class="quote-block">
+        <p class="quote-text">"Finally, someone who actually listens."</p>
+        <p class="quote-attr">— Brand Promise</p>
+      </div>
+
+      <h3>Brand Pillars</h3>
+      <div class="two-col">
+        <div class="card">
+          <h4>Presence</h4>
+          <p>
+            Fully attentive, never distracted. When you talk to Ferni, you have their complete
+            attention.
+          </p>
+        </div>
+        <div class="card">
+          <h4>Warmth</h4>
+          <p>Like a trusted friend, not a cold machine. Conversations feel natural and caring.</p>
+        </div>
+        <div class="card">
+          <h4>Wisdom</h4>
+          <p>Thoughtful guidance without judgment. Help navigating life's complexities.</p>
+        </div>
+        <div class="card">
+          <h4>Grounding</h4>
+          <p>Calm, stable, reliable presence. A steady voice when life feels chaotic.</p>
+        </div>
+      </div>
+
+      <h3>Design Philosophy</h3>
+      <p>
+        Our visual language draws from Japanese Zen aesthetics (clean, uncluttered, purposeful),
+        Scandinavian Hygge (warm, inviting, human), and Apple precision (premium, polished,
+        considered).
+      </p>
+
+      <div class="page-footer">
+        <span>Ferni Brand Guidelines</span>
+        <span>2</span>
+      </div>
+    </div>
+
+    <!-- Page 3: Logo -->
+    <div class="page">
+      <div class="section-title">
+        <div class="section-number">2</div>
+        <h2>Logo System</h2>
+      </div>
+
+      <div class="logo-display">
+        <div class="logo-item">
+          <div class="logo-box">
+            <div class="logomark">
+              <svg viewBox="0 0 48 48" width="48" height="48">
+                <rect width="48" height="48" fill="#F5F1E8" />
+                <circle cx="24" cy="24" r="17" fill="#4a6741" />
+                <circle cx="24" cy="24" r="7" fill="white" />
+                <circle cx="24" cy="24" r="4.5" fill="#5a8060" />
+                <circle cx="24" cy="24" r="2.2" fill="#2c2520" />
+              </svg>
+            </div>
+            <span class="wordmark">Ferni</span>
+          </div>
+          <span class="logo-label">Full Logo</span>
+        </div>
+        <div class="logo-item">
+          <div class="logomark">
+            <svg viewBox="0 0 48 48" width="48" height="48">
+              <rect width="48" height="48" fill="#F5F1E8" />
+              <circle cx="24" cy="24" r="17" fill="#4a6741" />
+              <circle cx="24" cy="24" r="7" fill="white" />
+              <circle cx="24" cy="24" r="4.5" fill="#5a8060" />
+              <circle cx="24" cy="24" r="2.2" fill="#2c2520" />
+            </svg>
+          </div>
+          <span class="logo-label">Logomark Only</span>
+        </div>
+        <div class="logo-item">
+          <span class="wordmark">Ferni</span>
+          <span class="logo-label">Wordmark Only</span>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <h3>Logo Construction</h3>
+          <p>
+            The Ferni logo consists of two elements: the "FE" monogram in a rounded square, and the
+            "Ferni" wordmark in Plus Jakarta Sans Bold.
+          </p>
+          <h4 style="margin-top: 24px">Minimum Sizes</h4>
+          <table>
+            <tr>
+              <th>Format</th>
+              <th>Minimum</th>
+            </tr>
+            <tr>
+              <td>Full logo (digital)</td>
+              <td>120px</td>
+            </tr>
+            <tr>
+              <td>Logomark only</td>
+              <td>32px</td>
+            </tr>
+            <tr>
+              <td>Full logo (print)</td>
+              <td>1 inch</td>
+            </tr>
+          </table>
+        </div>
+        <div>
+          <h3>Logo Don'ts</h3>
+          <ul class="feature-list dont-list">
+            <li>Don't stretch or distort</li>
+            <li>Don't rotate the logo</li>
+            <li>Don't add drop shadows or effects</li>
+            <li>Don't place on busy backgrounds</li>
+            <li>Don't change the logomark shape</li>
+            <li>Don't use unapproved colors</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="page-footer">
+        <span>Ferni Brand Guidelines</span>
+        <span>3</span>
+      </div>
+    </div>
+
+    <!-- Page 4: Color System -->
+    <div class="page">
+      <div class="section-title">
+        <div class="section-number">3</div>
+        <h2>Color System</h2>
+      </div>
+
+      <h3>Primary Palette</h3>
+      <div class="color-grid">
+        <div class="color-swatch">
+          <div class="color-preview" style="background: #f5f1e8"></div>
+          <div class="color-info">
+            <div class="color-name">Paper Cream</div>
+            <div class="color-hex">#F5F1E8 • Background</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-preview" style="background: #2c2520"></div>
+          <div class="color-info">
+            <div class="color-name">Natural Ink</div>
+            <div class="color-hex">#2C2520 • Primary Text</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-preview" style="background: #3d5a45"></div>
+          <div class="color-info">
+            <div class="color-name">Forest Green</div>
+            <div class="color-hex">#3D5A45 • Accent</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-preview" style="background: #5c544a"></div>
+          <div class="color-info">
+            <div class="color-name">Secondary</div>
+            <div class="color-hex">#5C544A • Body Text</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-preview" style="background: #c4a265"></div>
+          <div class="color-info">
+            <div class="color-name">Warm Amber</div>
+            <div class="color-hex">#C4A265 • Highlight</div>
+          </div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-preview" style="background: #e8e0d5"></div>
+          <div class="color-info">
+            <div class="color-name">Sand</div>
+            <div class="color-hex">#E8E0D5 • Secondary BG</div>
+          </div>
+        </div>
+      </div>
+
+      <h3>Persona Colors</h3>
+      <p style="margin-bottom: 16px">Each AI specialist has a unique, earthy color identity:</p>
+      <div class="persona-grid">
+        <div class="persona-swatch">
+          <div class="persona-color" style="background: #4a6741"></div>
+          <div class="persona-name">Ferni</div>
+          <div class="persona-hex">#4a6741</div>
+        </div>
+        <div class="persona-swatch">
+          <div class="persona-color" style="background: #9a7b5a"></div>
+          <div class="persona-name">Jack</div>
+          <div class="persona-hex">#9a7b5a</div>
+        </div>
+        <div class="persona-swatch">
+          <div class="persona-color" style="background: #3a6b73"></div>
+          <div class="persona-name">Peter</div>
+          <div class="persona-hex">#3a6b73</div>
+        </div>
+        <div class="persona-swatch">
+          <div class="persona-color" style="background: #5a6b8a"></div>
+          <div class="persona-name">Alex</div>
+          <div class="persona-hex">#5a6b8a</div>
+        </div>
+        <div class="persona-swatch">
+          <div class="persona-color" style="background: #a67a6a"></div>
+          <div class="persona-name">Maya</div>
+          <div class="persona-hex">#a67a6a</div>
+        </div>
+        <div class="persona-swatch">
+          <div class="persona-color" style="background: #c4856a"></div>
+          <div class="persona-name">Jordan</div>
+          <div class="persona-hex">#c4856a</div>
+        </div>
+      </div>
+
+      <div class="page-footer">
+        <span>Ferni Brand Guidelines</span>
+        <span>4</span>
+      </div>
+    </div>
+
+    <!-- Page 5: Typography -->
+    <div class="page">
+      <div class="section-title">
+        <div class="section-number">4</div>
+        <h2>Typography System</h2>
+      </div>
+
+      <h3>Font Families</h3>
+      <div class="two-col" style="margin-bottom: 32px">
+        <div>
+          <h4>Display: Plus Jakarta Sans</h4>
+          <p
+            style="
+              font-family: 'Plus Jakarta Sans';
+              font-size: 24px;
+              font-weight: 700;
+              margin-bottom: 8px;
+            "
+          >
+            Headlines & Display
+          </p>
+          <p style="font-size: 13px">Used for headlines, buttons, navigation, and display text.</p>
+        </div>
+        <div>
+          <h4>Body: Inter</h4>
+          <p style="font-family: 'Inter'; font-size: 18px; margin-bottom: 8px">
+            Body text and paragraphs
+          </p>
+          <p style="font-size: 13px">Used for body copy, UI elements, and readable content.</p>
+        </div>
+      </div>
+
+      <h3>Type Scale</h3>
+      <div class="type-scale">
+        <div class="type-row">
+          <span class="type-label">Display XL</span>
+          <span class="type-specs">96px / 800</span>
+          <span class="type-sample" style="font-size: 48px; font-weight: 800">Finally</span>
+        </div>
+        <div class="type-row">
+          <span class="type-label">Display LG</span>
+          <span class="type-specs">80px / 800</span>
+          <span class="type-sample" style="font-size: 40px; font-weight: 800">Someone</span>
+        </div>
+        <div class="type-row">
+          <span class="type-label">H1</span>
+          <span class="type-specs">40px / 700</span>
+          <span class="type-sample" style="font-size: 32px; font-weight: 700">Who Listens</span>
+        </div>
+        <div class="type-row">
+          <span class="type-label">H2</span>
+          <span class="type-specs">32px / 600</span>
+          <span class="type-sample" style="font-size: 24px; font-weight: 600"
+            >Section Headline</span
+          >
+        </div>
+        <div class="type-row">
+          <span class="type-label">Body LG</span>
+          <span class="type-specs">20px / 400</span>
+          <span class="type-sample" style="font-size: 16px; font-weight: 400; font-family: 'Inter'"
+            >Body text for descriptions and paragraphs.</span
+          >
+        </div>
+        <div class="type-row">
+          <span class="type-label">Eyebrow</span>
+          <span class="type-specs">11px / 700</span>
+          <span
+            class="type-sample"
+            style="
+              font-size: 11px;
+              font-weight: 700;
+              letter-spacing: 0.1em;
+              text-transform: uppercase;
+              font-family: 'Inter';
+            "
+            >INTRODUCING FERNI</span
+          >
+        </div>
+      </div>
+
+      <div class="page-footer">
+        <span>Ferni Brand Guidelines</span>
+        <span>5</span>
+      </div>
+    </div>
+
+    <!-- Page 6: Spacing & Components -->
+    <div class="page">
+      <div class="section-title">
+        <div class="section-number">5</div>
+        <h2>Spacing & Components</h2>
+      </div>
+
+      <h3>Spacing Scale</h3>
+      <p style="margin-bottom: 16px">Based on a 4px base unit:</p>
+      <div class="spacing-grid">
+        <div class="spacing-item">
+          <div class="spacing-bar" style="height: 4px"></div>
+          <span class="spacing-label">4px</span>
+        </div>
+        <div class="spacing-item">
+          <div class="spacing-bar" style="height: 8px"></div>
+          <span class="spacing-label">8px</span>
+        </div>
+        <div class="spacing-item">
+          <div class="spacing-bar" style="height: 12px"></div>
+          <span class="spacing-label">12px</span>
+        </div>
+        <div class="spacing-item">
+          <div class="spacing-bar" style="height: 16px"></div>
+          <span class="spacing-label">16px</span>
+        </div>
+        <div class="spacing-item">
+          <div class="spacing-bar" style="height: 24px"></div>
+          <span class="spacing-label">24px</span>
+        </div>
+        <div class="spacing-item">
+          <div class="spacing-bar" style="height: 32px"></div>
+          <span class="spacing-label">32px</span>
+        </div>
+        <div class="spacing-item">
+          <div class="spacing-bar" style="height: 48px"></div>
+          <span class="spacing-label">48px</span>
+        </div>
+        <div class="spacing-item">
+          <div class="spacing-bar" style="height: 64px"></div>
+          <span class="spacing-label">64px</span>
+        </div>
+        <div class="spacing-item">
+          <div class="spacing-bar" style="height: 80px"></div>
+          <span class="spacing-label">80px</span>
+        </div>
+        <div class="spacing-item">
+          <div class="spacing-bar" style="height: 96px"></div>
+          <span class="spacing-label">96px</span>
+        </div>
+      </div>
+
+      <h3>Buttons</h3>
+      <div class="button-row">
+        <button class="btn-example btn-primary-example">Primary Button</button>
+        <button class="btn-example btn-secondary-example">Secondary</button>
+        <button class="btn-example btn-ghost-example">Ghost</button>
+      </div>
+
+      <h3>Border Radius</h3>
+      <table>
+        <tr>
+          <th>Token</th>
+          <th>Value</th>
+          <th>Use Case</th>
+        </tr>
+        <tr>
+          <td><code>radius-sm</code></td>
+          <td>4px</td>
+          <td>Small buttons, tags</td>
+        </tr>
+        <tr>
+          <td><code>radius-md</code></td>
+          <td>8px</td>
+          <td>Inputs, small cards</td>
+        </tr>
+        <tr>
+          <td><code>radius-lg</code></td>
+          <td>12px</td>
+          <td>Cards, containers</td>
+        </tr>
+        <tr>
+          <td><code>radius-xl</code></td>
+          <td>16px</td>
+          <td>Large cards</td>
+        </tr>
+        <tr>
+          <td><code>radius-full</code></td>
+          <td>9999px</td>
+          <td>Pills, avatars, buttons</td>
+        </tr>
+      </table>
+
+      <div class="page-footer">
+        <span>Ferni Brand Guidelines</span>
+        <span>6</span>
+      </div>
+    </div>
+
+    <!-- Page 7: Voice & Tone -->
+    <div class="page">
+      <div class="section-title">
+        <div class="section-number">6</div>
+        <h2>Voice & Tone</h2>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <h3>Brand Voice</h3>
+          <ul class="feature-list">
+            <li>
+              <strong>Warm but not saccharine</strong><br /><em>"We're here when you need us."</em>
+            </li>
+            <li>
+              <strong>Confident but not arrogant</strong><br /><em
+                >"Ferni remembers everything."</em
+              >
+            </li>
+            <li>
+              <strong>Clear but not cold</strong><br /><em>"Just talk. We'll understand."</em>
+            </li>
+            <li>
+              <strong>Human but not artificial</strong><br /><em
+                >"Like talking to a friend who never forgets."</em
+              >
+            </li>
+          </ul>
+        </div>
+        <div>
+          <h3>Avoid</h3>
+          <ul class="feature-list dont-list">
+            <li>Marketing speak ("Leverage synergies")</li>
+            <li>Tech jargon ("NLP-powered conversations")</li>
+            <li>Hyperbole ("Revolutionary breakthrough")</li>
+            <li>Generic claims ("World-class service")</li>
+            <li>Excessive exclamation marks!!!</li>
+            <li>Emojis in professional contexts</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Headline Examples</h3>
+      <div
+        style="background: var(--color-bg); padding: 24px; border-radius: 12px; margin-bottom: 24px"
+      >
+        <p
+          style="
+            font-family: var(--font-display);
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--color-text);
+          "
+        >
+          Hero Headlines:
+        </p>
+        <p style="font-size: 20px; margin-bottom: 8px">
+          • "Finally, someone who actually listens."
+        </p>
+        <p style="font-size: 20px; margin-bottom: 8px">• "Your AI team. Always there."</p>
+        <p style="font-size: 20px">• "The space between."</p>
+      </div>
+
+      <div style="background: var(--color-bg); padding: 24px; border-radius: 12px">
+        <p
+          style="
+            font-family: var(--font-display);
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--color-text);
+          "
+        >
+          Section Headlines:
+        </p>
+        <p style="font-size: 20px; margin-bottom: 8px">• "They remember. So you don't have to."</p>
+        <p style="font-size: 20px; margin-bottom: 8px">• "A team that actually knows you."</p>
+        <p style="font-size: 20px">• "Fast enough to feel like thinking."</p>
+      </div>
+
+      <div class="page-footer">
+        <span>Ferni Brand Guidelines</span>
+        <span>7</span>
+      </div>
+    </div>
+
+    <!-- Page 8: Photography & Motion -->
+    <div class="page">
+      <div class="section-title">
+        <div class="section-number">7</div>
+        <h2>Photography & Motion</h2>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <h3>Photography Style</h3>
+          <ul class="feature-list">
+            <li><strong>Warm:</strong> Golden hour, amber tones</li>
+            <li><strong>Natural:</strong> Real people, real settings</li>
+            <li><strong>Intimate:</strong> Close, personal, connected</li>
+            <li><strong>Grounded:</strong> Earth tones, natural materials</li>
+          </ul>
+
+          <h4 style="margin-top: 24px">Color Treatment</h4>
+          <p>
+            Warm color grading, lifted shadows, natural saturation, subtle film grain, Paper Cream
+            highlight bias.
+          </p>
+        </div>
+        <div>
+          <h3>Don'ts</h3>
+          <ul class="feature-list dont-list">
+            <li>Stock photo aesthetic</li>
+            <li>Corporate/sterile settings</li>
+            <li>Cool blue color casts</li>
+            <li>Harsh, artificial lighting</li>
+            <li>Posed, fake expressions</li>
+            <li>Neon or saturated colors</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Animation Principles</h3>
+      <table>
+        <tr>
+          <th>Property</th>
+          <th>Value</th>
+          <th>Use Case</th>
+        </tr>
+        <tr>
+          <td>Ease Out</td>
+          <td><code>cubic-bezier(0.16, 1, 0.3, 1)</code></td>
+          <td>Entrances, reveals</td>
+        </tr>
+        <tr>
+          <td>Fast</td>
+          <td>150ms</td>
+          <td>Micro-interactions</td>
+        </tr>
+        <tr>
+          <td>Normal</td>
+          <td>300ms</td>
+          <td>Standard transitions</td>
+        </tr>
+        <tr>
+          <td>Slow</td>
+          <td>500ms</td>
+          <td>Reveals, emphasis</td>
+        </tr>
+        <tr>
+          <td>Cinematic</td>
+          <td>800ms+</td>
+          <td>Hero animations</td>
+        </tr>
+      </table>
+
+      <div
+        style="background: var(--color-bg); padding: 24px; border-radius: 12px; margin-top: 24px"
+      >
+        <h4>Reduced Motion</h4>
+        <p style="margin-bottom: 0">
+          Always respect <code>prefers-reduced-motion</code>. Users who prefer reduced motion should
+          see static content without animations.
+        </p>
+      </div>
+
+      <div class="page-footer">
+        <span>Ferni Brand Guidelines</span>
+        <span>8</span>
+      </div>
+    </div>
+
+    <!-- Page 9: Contact & Credits -->
+    <div class="page" style="display: flex; flex-direction: column">
+      <div class="section-title">
+        <div class="section-number">★</div>
+        <h2>Implementation</h2>
+      </div>
+
+      <h3>CSS Variables</h3>
+      <p>Use design tokens for consistent implementation:</p>
+      <div
+        style="
+          background: #1a1815;
+          color: #f5f1e8;
+          padding: 24px;
+          border-radius: 12px;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          margin-bottom: 32px;
+          overflow-x: auto;
+        "
+      >
+        <pre style="margin: 0">
+:root {
+  --color-bg: #F5F1E8;
+  --color-bg-elevated: #FFFDFB;
+  --color-text: #2C2520;
+  --color-text-secondary: #5C544A;
+  --color-accent: #3D5A45;
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}</pre
+        >
+      </div>
+
+      <h3>Files & Resources</h3>
+      <table>
+        <tr>
+          <th>File</th>
+          <th>Description</th>
+        </tr>
+        <tr>
+          <td><code>/brand/FERNI-SCREEN-GUIDELINES.md</code></td>
+          <td>Full design system documentation</td>
+        </tr>
+        <tr>
+          <td><code>/brand/ferni-design-tokens.css</code></td>
+          <td>CSS custom properties</td>
+        </tr>
+        <tr>
+          <td><code>/brand/brand-book.html</code></td>
+          <td>This visual brand book</td>
+        </tr>
+        <tr>
+          <td><code>/brand/logos/</code></td>
+          <td>Logo assets (SVG, PNG)</td>
+        </tr>
+      </table>
+
+      <div style="margin-top: auto; text-align: center; padding-top: 60px">
+        <div class="cover-logo" style="margin: 0 auto 24px; width: 80px; height: 80px">
+          <svg viewBox="0 0 80 80" width="80" height="80">
+            <rect width="80" height="80" fill="#F5F1E8" />
+            <circle cx="40" cy="40" r="28" fill="#4a6741" />
+            <circle cx="40" cy="40" r="11" fill="white" />
+            <circle cx="40" cy="40" r="7" fill="#5a8060" />
+            <circle cx="40" cy="40" r="3.5" fill="#2c2520" />
+          </svg>
+        </div>
+        <p
+          style="
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--color-text);
+          "
+        >
+          Ferni
+        </p>
+        <p style="color: var(--color-text-muted); margin-bottom: 24px">
+          Your personal AI life coach.
+        </p>
+        <p style="font-size: 12px; color: var(--color-text-dimmed)">
+          © 2024 Ferni. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

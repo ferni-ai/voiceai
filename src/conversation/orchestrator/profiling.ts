@@ -81,16 +81,22 @@ export interface ProfilerSummary {
   p50Duration: number;
   p95Duration: number;
   p99Duration: number;
-  phaseBreakdown: Record<string, {
-    avgDuration: number;
-    maxDuration: number;
-    percentOfTotal: number;
-  }>;
+  phaseBreakdown: Record<
+    string,
+    {
+      avgDuration: number;
+      maxDuration: number;
+      percentOfTotal: number;
+    }
+  >;
   slowTurns: number;
-  featureStats: Record<string, {
-    appliedCount: number;
-    avgDuration: number;
-  }>;
+  featureStats: Record<
+    string,
+    {
+      appliedCount: number;
+      avgDuration: number;
+    }
+  >;
 }
 
 // ============================================================================
@@ -221,7 +227,10 @@ export class ConversationProfiler {
         {
           turn: this.currentTurn,
           duration: Math.round(totalDuration),
-          phases: this.currentPhases.map((p) => ({ name: p.name, duration: Math.round(p.duration) })),
+          phases: this.currentPhases.map((p) => ({
+            name: p.name,
+            duration: Math.round(p.duration),
+          })),
         },
         '🐢 Slow turn detected'
       );
@@ -315,10 +324,7 @@ export class ConversationProfiler {
   /**
    * Time a synchronous feature execution
    */
-  timeFeatureSync<T>(
-    name: string,
-    fn: () => T
-  ): { result: T; duration: number } {
+  timeFeatureSync<T>(name: string, fn: () => T): { result: T; duration: number } {
     const start = performance.now();
     const result = fn();
     const duration = performance.now() - start;
@@ -385,7 +391,10 @@ export class ConversationProfiler {
     }
 
     const totalDurationSum = durations.reduce((a, b) => a + b, 0);
-    const phaseStats: Record<string, { avgDuration: number; maxDuration: number; percentOfTotal: number }> = {};
+    const phaseStats: Record<
+      string,
+      { avgDuration: number; maxDuration: number; percentOfTotal: number }
+    > = {};
 
     for (const [name, data] of Object.entries(phaseBreakdown)) {
       const avgDuration = data.durations.reduce((a, b) => a + b, 0) / data.durations.length;
@@ -527,7 +536,10 @@ const profilers = new Map<string, ConversationProfiler>();
 /**
  * Get or create a profiler for a session
  */
-export function getProfiler(sessionId: string, config?: Partial<ProfilerConfig>): ConversationProfiler {
+export function getProfiler(
+  sessionId: string,
+  config?: Partial<ProfilerConfig>
+): ConversationProfiler {
   if (!profilers.has(sessionId)) {
     profilers.set(sessionId, new ConversationProfiler(sessionId, config));
   }
@@ -642,4 +654,3 @@ export function profileOrchestration(
     );
   }
 }
-

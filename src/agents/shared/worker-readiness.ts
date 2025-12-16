@@ -321,4 +321,3 @@ export function signalWorkerAcceptingJobs(): void {
 export function getMainWorkerId(): string {
   return mainWorkerId;
 }
-

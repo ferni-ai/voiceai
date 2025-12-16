@@ -374,10 +374,7 @@ export function detectUserEnergyDetailed(userMessage: string): DetectionResult<E
  * classifyTopicWeight("Going on vacation!") // 'light'
  * classifyTopicWeight("Working on a project") // 'medium'
  */
-export function classifyTopicWeight(
-  userMessage: string,
-  detectedEmotion?: string
-): TopicWeight {
+export function classifyTopicWeight(userMessage: string, detectedEmotion?: string): TopicWeight {
   const lower = userMessage.toLowerCase();
 
   // Check heavy indicators
@@ -512,7 +509,8 @@ export function detectEngagementLevel(userMessage: string): DetectionResult<Enga
 
   if (detectHighEngagement(userMessage)) {
     signals.push('high_engagement_pattern');
-    const isVeryHigh = userMessage.length > 200 && HIGH_ENGAGEMENT_PATTERNS.some((p) => p.test(userMessage));
+    const isVeryHigh =
+      userMessage.length > 200 && HIGH_ENGAGEMENT_PATTERNS.some((p) => p.test(userMessage));
     return {
       detected: true,
       value: isVeryHigh ? 'very_high' : 'high',
@@ -620,4 +618,3 @@ export default {
   DEEP_SHARING_PATTERNS,
   HESITATION_PATTERNS,
 };
-

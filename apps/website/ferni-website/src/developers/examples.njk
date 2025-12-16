@@ -1,0 +1,148 @@
+---
+layout: layouts/page.njk
+title: Examples Gallery - Developer Documentation
+description: Real-world examples of Ferni agents and integrations
+permalink: /developers/examples/
+---
+
+<section class="docs-hero">
+  <div class="container container-narrow">
+    <a href="/developers/" class="docs-back">← Developer Docs</a>
+    <span class="eyebrow">Examples</span>
+    <h1 class="headline-lg">Examples Gallery</h1>
+    <p class="body-lg">Real-world examples of Ferni agents and integrations.</p>
+  </div>
+</section>
+
+<section class="examples-grid">
+  <div class="container">
+    <div class="section-header reveal">
+      <h2>Agent Templates</h2>
+      <p>Start from these templates and customize for your needs.</p>
+    </div>
+    
+    <div class="examples-list">
+      <div class="example-card reveal">
+        <div class="example-card__header">
+          <span class="example-card__tag">Template</span>
+          <h3 class="example-card__title">Life Coach (Ferni)</h3>
+        </div>
+        <p class="example-card__description">A warm, supportive coach who asks clarifying questions and helps users discover their own answers.</p>
+        <div class="example-card__code">
+          <pre>npm run agents create my-coach --template coach</pre>
+        </div>
+        <div class="example-card__features">
+          <span>Active listening</span>
+          <span>Goal tracking</span>
+          <span>Celebration triggers</span>
+        </div>
+      </div>
+      
+      <div class="example-card reveal reveal-delay-1">
+        <div class="example-card__header">
+          <span class="example-card__tag">Template</span>
+          <h3 class="example-card__title">Sage Mentor (Nayan)</h3>
+        </div>
+        <p class="example-card__description">A wise, patient mentor focused on long-term thinking and compound growth.</p>
+        <div class="example-card__code">
+          <pre>npm run agents create my-sage --template sage</pre>
+        </div>
+        <div class="example-card__features">
+          <span>Long-term perspective</span>
+          <span>Story-based wisdom</span>
+          <span>Calm presence</span>
+        </div>
+      </div>
+      
+      <div class="example-card reveal reveal-delay-2">
+        <div class="example-card__header">
+          <span class="example-card__tag">Template</span>
+          <h3 class="example-card__title">Research Assistant (Peter)</h3>
+        </div>
+        <p class="example-card__description">An analytical agent that finds patterns and turns data into actionable insights.</p>
+        <div class="example-card__code">
+          <pre>npm run agents create my-researcher --template research</pre>
+        </div>
+        <div class="example-card__features">
+          <span>Data analysis</span>
+          <span>Pattern recognition</span>
+          <span>Citation support</span>
+        </div>
+      </div>
+      
+      <div class="example-card reveal">
+        <div class="example-card__header">
+          <span class="example-card__tag">Template</span>
+          <h3 class="example-card__title">Habits Specialist (Maya)</h3>
+        </div>
+        <p class="example-card__description">Helps users build habits through small, consistent actions rather than motivation.</p>
+        <div class="example-card__code">
+          <pre>npm run agents create my-habits --template habits</pre>
+        </div>
+        <div class="example-card__features">
+          <span>Habit stacking</span>
+          <span>Streak tracking</span>
+          <span>Gentle accountability</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="examples-integrations">
+  <div class="container">
+    <div class="section-header reveal">
+      <h2>Integration Examples</h2>
+      <p>Connect Ferni to your existing tools and workflows.</p>
+    </div>
+    
+    <div class="examples-list">
+      <div class="example-card example-card--integration reveal">
+        <div class="example-card__header">
+          <span class="example-card__tag example-card__tag--integration">Integration</span>
+          <h3 class="example-card__title">Slack Bot</h3>
+        </div>
+        <p class="example-card__description">Bring Ferni coaching into your Slack workspace with @mentions and DMs.</p>
+        <div class="example-card__code">
+          <pre>npm run integrations setup slack</pre>
+        </div>
+        <a href="https://github.com/ferni-ai/ferni-slack" class="example-card__link" target="_blank" rel="noopener">View on GitHub →</a>
+      </div>
+      
+      <div class="example-card example-card--integration reveal reveal-delay-1">
+        <div class="example-card__header">
+          <span class="example-card__tag example-card__tag--integration">Integration</span>
+          <h3 class="example-card__title">Zapier Webhook</h3>
+        </div>
+        <p class="example-card__description">Trigger Ferni conversations from any Zapier workflow.</p>
+        <div class="example-card__code">
+          <pre>POST /api/v1/conversations/trigger</pre>
+        </div>
+        <a href="/developers/api/#webhooks" class="example-card__link">View API Docs →</a>
+      </div>
+      
+      <div class="example-card example-card--integration reveal reveal-delay-2">
+        <div class="example-card__header">
+          <span class="example-card__tag example-card__tag--integration">Integration</span>
+          <h3 class="example-card__title">Calendar Sync</h3>
+        </div>
+        <p class="example-card__description">Let Ferni access your calendar for scheduling and planning conversations.</p>
+        <div class="example-card__code">
+          <pre>npm run integrations setup calendar</pre>
+        </div>
+        <a href="/developers/api/#calendar" class="example-card__link">View Docs →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="examples-cta">
+  <div class="container container-narrow">
+    <div class="examples-cta__card reveal">
+      <h2>Built something cool?</h2>
+      <p>We'd love to feature your Ferni integration or agent in our gallery.</p>
+      <a href="mailto:developers@ferni.ai" class="btn btn-primary">Submit Your Example</a>
+    </div>
+  </div>
+</section>
+

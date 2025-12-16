@@ -67,7 +67,10 @@ function createMockContext(): ToolContext {
   };
 }
 
-function createMockToolDefinition(id: string, execute: (params: Record<string, unknown>) => Promise<unknown>): ToolDefinition {
+function createMockToolDefinition(
+  id: string,
+  execute: (params: Record<string, unknown>) => Promise<unknown>
+): ToolDefinition {
   return {
     id,
     name: `Test Tool ${id}`,
@@ -90,7 +93,9 @@ describe('success', () => {
     const result = success({ message: 'hello' });
 
     expect(result.success).toBe(true);
-    expect((result as { success: true; data: { message: string } }).data).toEqual({ message: 'hello' });
+    expect((result as { success: true; data: { message: string } }).data).toEqual({
+      message: 'hello',
+    });
   });
 
   it('creates a success result with string data', () => {
@@ -210,7 +215,9 @@ describe('wrapToolExecute', () => {
 
   it('runs custom validator', async () => {
     const originalExecute = vi.fn().mockResolvedValue('success');
-    const customValidator = vi.fn().mockReturnValue({ valid: false, error: 'Custom validation failed' });
+    const customValidator = vi
+      .fn()
+      .mockReturnValue({ valid: false, error: 'Custom validation failed' });
 
     const wrapped = wrapToolExecute('testTool', 'career', originalExecute, mockContext, {
       enableValidation: true,
@@ -335,9 +342,10 @@ describe('wrapToolDefinition', () => {
       description: 'A tool without execute',
       domain: 'career',
       tags: [],
-      create: () => ({
-        description: 'Tool without execute',
-      } as unknown as Tool),
+      create: () =>
+        ({
+          description: 'Tool without execute',
+        }) as unknown as Tool,
     };
 
     const wrapped = wrapToolDefinition(defWithoutExecute);

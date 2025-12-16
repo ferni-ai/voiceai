@@ -49,6 +49,9 @@ import {
 import { clearEmotionalArc } from '../../intelligence/context-builders/advanced-voice-emotion.js';
 import { clearSession as clearHumeSession } from '../../services/emotion-analysis/hume.js';
 
+// Seed economy
+import { awardSeedsForConversation } from '../../api/roadmap-routes.js';
+
 // Event cleanup registry for tracking and cleaning up event handlers
 import { runSessionCleanup as runRegistryCleanup } from '../session/event-cleanup-registry.js';
 
@@ -215,6 +218,19 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
 
       // Game state
       cleanupGames(sessionId),
+
+      // Seed economy - award 1 seed per completed conversation
+      userId
+        ? (async () => {
+            const result = await awardSeedsForConversation(userId, 1, 'conversation');
+            if (result.success) {
+              diag.session('🌱 Seed awarded for conversation', {
+                userId,
+                newBalance: result.newBalance,
+              });
+            }
+          })()
+        : Promise.resolve(),
     ]);
 
     // Log any failures from persistence group
@@ -270,33 +286,29 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
 
       // World awareness
       (async () => {
-        const { cleanupWorldAwareness } = await import(
-          '../../services/world-awareness/session-integration.js'
-        );
+        const { cleanupWorldAwareness } =
+          await import('../../services/world-awareness/session-integration.js');
         cleanupWorldAwareness(userId || 'anonymous');
       })(),
 
       // Personal journey
       (async () => {
-        const { cleanupPersonalJourney } = await import(
-          '../../services/personal-journey/session-integration.js'
-        );
+        const { cleanupPersonalJourney } =
+          await import('../../services/personal-journey/session-integration.js');
         cleanupPersonalJourney(userId || 'anonymous');
       })(),
 
       // Unified conversation session
       (async () => {
-        const { cleanupConversationSession } = await import(
-          '../integrations/conversation-session-integration.js'
-        );
+        const { cleanupConversationSession } =
+          await import('../integrations/conversation-session-integration.js');
         cleanupConversationSession(sessionId);
       })(),
 
       // Humanization analytics
       (async () => {
-        const { humanizationAnalytics } = await import(
-          '../../conversation/humanization/analytics.js'
-        );
+        const { humanizationAnalytics } =
+          await import('../../conversation/humanization/analytics.js');
         const analyticsStats = humanizationAnalytics.endSession(sessionId);
         if (analyticsStats) {
           diag.session('📊 Humanization analytics', {
@@ -391,9 +403,8 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
     // global session registry (SessionIntelligence, PredictiveAnticipation,
     // ProactiveMemory, TemporalContext, CuriosityEngine, etc.)
     try {
-      const { resetSessionGlobally, getGlobalRegistryStats } = await import(
-        '../../utils/session-registry.js'
-      );
+      const { resetSessionGlobally, getGlobalRegistryStats } =
+        await import('../../utils/session-registry.js');
       const statsBefore = getGlobalRegistryStats();
       const registriesWithSession = statsBefore.filter((r) => r.sessionIds.includes(sessionId));
 
@@ -416,9 +427,8 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
     // Clean up session-scoped state in context builders
     // (deep-understanding, conversational-superpowers, superhuman-insights, etc.)
     try {
-      const { cleanupContextBuilderSession } = await import(
-        '../../intelligence/context-builders/index.js'
-      );
+      const { cleanupContextBuilderSession } =
+        await import('../../intelligence/context-builders/index.js');
       await cleanupContextBuilderSession(sessionId);
       diag.session('🧠 Context builder session state cleared');
     } catch (contextBuilderError) {
@@ -434,9 +444,8 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
     // linguistic mirroring, vulnerability matching, etc.)
     if (userId) {
       try {
-        const { clearAllSuperhumanEngines } = await import(
-          '../../conversation/superhuman/index.js'
-        );
+        const { clearAllSuperhumanEngines } =
+          await import('../../conversation/superhuman/index.js');
         clearAllSuperhumanEngines(userId, sessionId);
         diag.session('✨ Superhuman engines cleared', { userId });
       } catch (superhumanError) {

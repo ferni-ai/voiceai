@@ -14,7 +14,12 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { HumanMemory, ImportantDate, GrowthMarker, InsideJoke } from '../../types/human-memory.js';
+import type {
+  HumanMemory,
+  ImportantDate,
+  GrowthMarker,
+  InsideJoke,
+} from '../../types/human-memory.js';
 import {
   registerContextBuilder,
   createHintInjection,
@@ -81,8 +86,18 @@ function isToday(date: ImportantDate): boolean {
  */
 function formatDate(date: ImportantDate): string {
   const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
   return `${months[date.month - 1]} ${date.day}`;
 }
@@ -177,20 +192,29 @@ function buildEmotionalSignatureContext(
   const lines: string[] = [];
 
   // If user seems stressed, surface comfort patterns
-  const isStressed = currentEmotion && ['anxious', 'stressed', 'frustrated', 'sad', 'upset'].includes(currentEmotion);
+  const isStressed =
+    currentEmotion &&
+    ['anxious', 'stressed', 'frustrated', 'sad', 'upset'].includes(currentEmotion);
 
   if (isStressed && sig.comfortPatterns?.length) {
     const comfortTypes = sig.comfortPatterns.map((p) => p.type).slice(0, 3);
     const comfortAdvice = comfortTypes
       .map((t) => {
         switch (t) {
-          case 'validation': return 'validate their feelings';
-          case 'problem_solving': return 'help find solutions';
-          case 'distraction': return 'gently change subject';
-          case 'presence': return 'just listen';
-          case 'humor': return 'lighten the mood';
-          case 'encouragement': return 'encourage them';
-          default: return t;
+          case 'validation':
+            return 'validate their feelings';
+          case 'problem_solving':
+            return 'help find solutions';
+          case 'distraction':
+            return 'gently change subject';
+          case 'presence':
+            return 'just listen';
+          case 'humor':
+            return 'lighten the mood';
+          case 'encouragement':
+            return 'encourage them';
+          default:
+            return t;
         }
       })
       .join(', ');
@@ -247,9 +271,11 @@ function buildAvoidanceContext(humanMemory: Partial<HumanMemory>): ContextInject
 
   const lines = strongAvoidances.slice(0, 3).map((a) => {
     const approachHint =
-      a.approach === 'never_raise' ? '(never bring up)' :
-      a.approach === 'only_if_they_do' ? '(only if they mention it)' :
-      '(gentle check-in OK)';
+      a.approach === 'never_raise'
+        ? '(never bring up)'
+        : a.approach === 'only_if_they_do'
+          ? '(only if they mention it)'
+          : '(gentle check-in OK)';
     return `• ${a.topic} ${approachHint}`;
   });
 
@@ -388,9 +414,13 @@ function buildRunningThemesContext(humanMemory: Partial<HumanMemory>): ContextIn
 
   const lines = activeThemes.map((t) => {
     const sentimentHint =
-      t.sentiment === 'positive' ? '(going well)' :
-      t.sentiment === 'challenging' ? '(struggling)' :
-      t.sentiment === 'evolving' ? '(in flux)' : '';
+      t.sentiment === 'positive'
+        ? '(going well)'
+        : t.sentiment === 'challenging'
+          ? '(struggling)'
+          : t.sentiment === 'evolving'
+            ? '(in flux)'
+            : '';
     return `• ${t.theme} ${sentimentHint}`;
   });
 
@@ -420,9 +450,13 @@ function buildChallengesContext(humanMemory: Partial<HumanMemory>): ContextInjec
 
   const lines = activeChallenges.slice(0, 2).map((c) => {
     const statusHint =
-      c.status === 'struggling' ? '(needs support)' :
-      c.status === 'working_on_it' ? '(making effort)' :
-      c.status === 'making_progress' ? '(improving!)' : '';
+      c.status === 'struggling'
+        ? '(needs support)'
+        : c.status === 'working_on_it'
+          ? '(making effort)'
+          : c.status === 'making_progress'
+            ? '(improving!)'
+            : '';
     return `• ${c.challenge} ${statusHint}`;
   });
 
@@ -449,9 +483,13 @@ function buildTemporalContext(humanMemory: Partial<HumanMemory>): ContextInjecti
 
   // Map months to seasons
   const currentSeason =
-    month >= 2 && month <= 4 ? 'spring' :
-    month >= 5 && month <= 7 ? 'summer' :
-    month >= 8 && month <= 10 ? 'fall' : 'winter';
+    month >= 2 && month <= 4
+      ? 'spring'
+      : month >= 5 && month <= 7
+        ? 'summer'
+        : month >= 8 && month <= 10
+          ? 'fall'
+          : 'winter';
 
   // Check for tax season (Jan-April)
   const isTaxSeason = month >= 0 && month <= 3;
@@ -471,8 +509,7 @@ function buildTemporalContext(humanMemory: Partial<HumanMemory>): ContextInjecti
 
   const lines = matchingPatterns.slice(0, 2).map((p) => {
     const tone =
-      p.emotionalTone === 'challenging' ? '⚠️' :
-      p.emotionalTone === 'positive' ? '✨' : '';
+      p.emotionalTone === 'challenging' ? '⚠️' : p.emotionalTone === 'positive' ? '✨' : '';
     return `${tone} ${p.pattern} ${p.approach ? `- ${p.approach}` : ''}`;
   });
 
@@ -602,4 +639,3 @@ export {
   isToday,
   getDaysUntil,
 };
-

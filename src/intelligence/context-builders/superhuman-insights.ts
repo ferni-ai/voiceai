@@ -432,7 +432,12 @@ registerContextBuilder({
 
 interface LinguisticPatternResult {
   type: 'linguistic';
-  pattern: 'obligation_language' | 'limiting_belief' | 'dismissal' | 'absolute_thinking' | 'permission_seeking';
+  pattern:
+    | 'obligation_language'
+    | 'limiting_belief'
+    | 'dismissal'
+    | 'absolute_thinking'
+    | 'permission_seeking';
   confidence: number;
   phrases: string[];
 }
@@ -445,7 +450,7 @@ export function detectLinguisticPatterns(
   recentHistory: string[] = []
 ): LinguisticPatternResult | null {
   const allText = [currentMessage, ...recentHistory].join(' ').toLowerCase();
-  
+
   // "I should" patterns - obligation language
   const shouldMatches = allText.match(/i should\s+\w+/gi) || [];
   if (shouldMatches.length >= 2) {
@@ -456,7 +461,7 @@ export function detectLinguisticPatterns(
       phrases: shouldMatches,
     };
   }
-  
+
   // "I can't" patterns - limiting beliefs
   const cantMatches = allText.match(/i (can't|cannot|can not)\s+\w+/gi) || [];
   if (cantMatches.length >= 2) {
@@ -467,7 +472,7 @@ export function detectLinguisticPatterns(
       phrases: cantMatches,
     };
   }
-  
+
   // "It's fine" patterns - dismissal
   const fineMatches = allText.match(/(it's|i'm)\s+(fine|okay|ok|alright)/gi) || [];
   if (fineMatches.length >= 1) {
@@ -478,7 +483,7 @@ export function detectLinguisticPatterns(
       phrases: fineMatches,
     };
   }
-  
+
   // "Always/never" patterns - absolute thinking
   const absoluteMatches = allText.match(/\b(always|never)\b/gi) || [];
   if (absoluteMatches.length >= 2) {
@@ -489,9 +494,10 @@ export function detectLinguisticPatterns(
       phrases: absoluteMatches,
     };
   }
-  
+
   // "Can I" / "Is it okay if" patterns - permission seeking
-  const permissionMatches = allText.match(/(can i|is it okay|would it be okay|am i allowed)/gi) || [];
+  const permissionMatches =
+    allText.match(/(can i|is it okay|would it be okay|am i allowed)/gi) || [];
   if (permissionMatches.length >= 1) {
     return {
       type: 'linguistic',
@@ -500,7 +506,7 @@ export function detectLinguisticPatterns(
       phrases: permissionMatches,
     };
   }
-  
+
   return null;
 }
 
@@ -509,7 +515,7 @@ export function detectLinguisticPatterns(
 // ============================================================================
 
 interface RepeatedTopicResult {
-  type: 'emotional';  // "The Mirror" - emotional pattern surfacing
+  type: 'emotional'; // "The Mirror" - emotional pattern surfacing
   topic: string;
   occurrences: number;
   confidence: number;
@@ -527,14 +533,14 @@ export function detectRepeatedTopics(
   if (topics.length < 3) {
     return null;
   }
-  
+
   // Count current topics
   const counts: Record<string, number> = { ...topicHistory };
   for (const topic of topics) {
     const normalized = topic.toLowerCase().trim();
     counts[normalized] = (counts[normalized] || 0) + 1;
   }
-  
+
   // Find most repeated topic
   let maxTopic: string | null = null;
   let maxCount = 0;
@@ -544,16 +550,16 @@ export function detectRepeatedTopics(
       maxTopic = topic;
     }
   }
-  
+
   if (maxTopic && maxCount >= 3) {
     return {
-      type: 'emotional',  // "The Mirror" surfaces emotional patterns
+      type: 'emotional', // "The Mirror" surfaces emotional patterns
       topic: maxTopic,
       occurrences: maxCount,
       confidence: Math.min(0.4 + maxCount * 0.1, 0.95),
     };
   }
-  
+
   return null;
 }
 
@@ -571,7 +577,7 @@ interface EmotionalWeatherResult {
 
 /**
  * Analyze emotional patterns over time - the "emotional weather" of a user.
- * 
+ *
  * @param sessionCount - Number of sessions worth of data
  * @param emotions - Array of emotion strings in chronological order
  */
@@ -583,29 +589,43 @@ export function analyzeEmotionalWeather(
   if (sessionCount < 3 || emotions.length < 3) {
     return null;
   }
-  
+
   // Map emotions to sentiment scores
   const sentimentMap: Record<string, number> = {
-    joy: 0.9, happy: 0.8, excited: 0.8, hopeful: 0.7, grateful: 0.75, content: 0.6,
-    neutral: 0.5, okay: 0.5,
-    concerned: 0.4, worried: 0.35, anxious: 0.3, stressed: 0.25,
-    sad: 0.2, frustrated: 0.2, angry: 0.15, overwhelmed: 0.1,
+    joy: 0.9,
+    happy: 0.8,
+    excited: 0.8,
+    hopeful: 0.7,
+    grateful: 0.75,
+    content: 0.6,
+    neutral: 0.5,
+    okay: 0.5,
+    concerned: 0.4,
+    worried: 0.35,
+    anxious: 0.3,
+    stressed: 0.25,
+    sad: 0.2,
+    frustrated: 0.2,
+    angry: 0.15,
+    overwhelmed: 0.1,
   };
-  
-  const sentiments = emotions.map(e => sentimentMap[e.toLowerCase()] ?? 0.5);
-  
+
+  const sentiments = emotions.map((e) => sentimentMap[e.toLowerCase()] ?? 0.5);
+
   // Calculate average
   const averageSentiment = sentiments.reduce((sum, s) => sum + s, 0) / sentiments.length;
-  
+
   // Calculate volatility (variance)
-  const variance = sentiments.reduce((sum, s) => sum + Math.pow(s - averageSentiment, 2), 0) / sentiments.length;
+  const variance =
+    sentiments.reduce((sum, s) => sum + Math.pow(s - averageSentiment, 2), 0) / sentiments.length;
   const volatilityScore = Math.sqrt(variance);
-  
+
   // Determine trend by comparing recent to older
   const midpoint = Math.floor(sentiments.length / 2);
   const olderAvg = sentiments.slice(0, midpoint).reduce((sum, s) => sum + s, 0) / midpoint;
-  const recentAvg = sentiments.slice(midpoint).reduce((sum, s) => sum + s, 0) / (sentiments.length - midpoint);
-  
+  const recentAvg =
+    sentiments.slice(midpoint).reduce((sum, s) => sum + s, 0) / (sentiments.length - midpoint);
+
   let trend: 'improving' | 'declining' | 'stable' | 'volatile';
   if (volatilityScore > 0.25) {
     trend = 'volatile';
@@ -616,7 +636,7 @@ export function analyzeEmotionalWeather(
   } else {
     trend = 'stable';
   }
-  
+
   return {
     type: 'emotional_weather',
     trend,
@@ -631,7 +651,12 @@ export function analyzeEmotionalWeather(
 // ============================================================================
 
 interface AnticipatoryCueResult {
-  type: 'hesitant_start' | 'trailing_off' | 'important_incoming' | 'high_stress' | 'topic_avoidance';
+  type:
+    | 'hesitant_start'
+    | 'trailing_off'
+    | 'important_incoming'
+    | 'high_stress'
+    | 'topic_avoidance';
   cue: string;
   confidence: number;
 }
@@ -644,7 +669,7 @@ export function detectAnticipatoryCues(
   voiceStressLevel?: number
 ): AnticipatoryCueResult | null {
   const lowercaseText = text.toLowerCase().trim();
-  
+
   // High stress detected from voice analysis
   if (voiceStressLevel !== undefined && voiceStressLevel > 0.7) {
     return {
@@ -653,7 +678,7 @@ export function detectAnticipatoryCues(
       confidence: voiceStressLevel,
     };
   }
-  
+
   // Hesitant starts: "um", "so", "the thing is"
   if (/^(um|uh|so|well|the thing is|i mean)/i.test(lowercaseText)) {
     return {
@@ -662,7 +687,7 @@ export function detectAnticipatoryCues(
       confidence: 0.7,
     };
   }
-  
+
   // Trailing off: ends with "..."
   if (/\.\.\.$/.test(text.trim())) {
     return {
@@ -671,17 +696,19 @@ export function detectAnticipatoryCues(
       confidence: 0.75,
     };
   }
-  
+
   // Important incoming: "I need to tell you", "there's something", "I have to say"
-  if (/i (need to|have to|want to) (tell|say|share)/i.test(lowercaseText) ||
-      /there's something/i.test(lowercaseText)) {
+  if (
+    /i (need to|have to|want to) (tell|say|share)/i.test(lowercaseText) ||
+    /there's something/i.test(lowercaseText)
+  ) {
     return {
       type: 'important_incoming',
       cue: text,
       confidence: 0.85,
     };
   }
-  
+
   // Topic avoidance: "anyway", "but yeah", "moving on"
   if (/\b(anyway|but yeah|moving on|let's talk about something else)\b/i.test(lowercaseText)) {
     return {
@@ -690,7 +717,7 @@ export function detectAnticipatoryCues(
       confidence: 0.65,
     };
   }
-  
+
   return null;
 }
 

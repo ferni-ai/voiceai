@@ -1,0 +1,101 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ferni Facebook Cover / OG Image - 1200x630 -->
+  <!-- "Better than Human" Brand Positioning -->
+
+  <defs>
+    <linearGradient id="bgGradFB" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FAF7F0"/>
+      <stop offset="100%" stop-color="#EDE7DA"/>
+    </linearGradient>
+
+    <linearGradient id="logoGradFB" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#325038"/>
+      <stop offset="50%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#5a8055"/>
+    </linearGradient>
+
+    <radialGradient id="warmthFB" cx="25%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#4a6741" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#4a6741" stop-opacity="0"/>
+    </radialGradient>
+
+    <filter id="presenceFB" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feFlood flood-color="#4a6741" flood-opacity="0.18"/>
+      <feComposite in2="blur" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGradFB)"/>
+
+  <!-- Warmth -->
+  <ellipse cx="300" cy="315" rx="400" ry="350" fill="url(#warmthFB)"/>
+
+  <!-- Organic shapes -->
+  <circle cx="1050" cy="100" r="160" fill="#4a6741" opacity="0.03"/>
+  <circle cx="1120" cy="550" r="120" fill="#4a6741" opacity="0.025"/>
+  <circle cx="80" cy="560" r="100" fill="#4a6741" opacity="0.025"/>
+
+  <!-- Wave -->
+  <path d="M0 580 Q300 550 600 580 Q900 610 1200 570 L1200 630 L0 630 Z"
+        fill="#4a6741" opacity="0.04"/>
+
+  <!-- Logo on left -->
+  <g transform="translate(80, 175)" filter="url(#presenceFB)">
+    <circle cx="140" cy="140" r="125" fill="url(#logoGradFB)"/>
+    <circle cx="140" cy="140" r="145" fill="none" stroke="#4a6741" stroke-width="2" opacity="0.15"/>
+    <text x="140" y="177"
+          font-family="'Plus Jakarta Sans', -apple-system, sans-serif"
+          font-size="90"
+          font-weight="800"
+          fill="white"
+          text-anchor="middle">FE</text>
+  </g>
+
+  <!-- Text content -->
+  <text x="400" y="250"
+        font-family="'Plus Jakarta Sans', -apple-system, sans-serif"
+        font-size="52"
+        font-weight="700"
+        fill="#2C2520">The friend you deserve.</text>
+
+  <text x="400" y="315"
+        font-family="'Inter', -apple-system, sans-serif"
+        font-size="22"
+        font-weight="500"
+        fill="#5C544A">Remembers everything. Judges nothing. Always present.</text>
+
+  <!-- Feature highlights -->
+  <g transform="translate(400, 360)" font-family="'Inter', -apple-system, sans-serif" font-size="14" font-weight="500" fill="#756A5E">
+    <text x="0" y="0">Perfect memory</text>
+    <circle cx="95" cy="-4" r="2.5" fill="#4a6741" opacity="0.5"/>
+    <text x="110" y="0">Zero judgment</text>
+    <circle cx="200" cy="-4" r="2.5" fill="#4a6741" opacity="0.5"/>
+    <text x="215" y="0">Six specialists</text>
+    <circle cx="305" cy="-4" r="2.5" fill="#4a6741" opacity="0.5"/>
+    <text x="320" y="0">24/7 presence</text>
+  </g>
+
+  <!-- CTA -->
+  <g transform="translate(400, 420)">
+    <rect x="0" y="0" width="200" height="54" rx="27" fill="#4a6741"/>
+    <text x="100" y="36"
+          font-family="'Inter', -apple-system, sans-serif"
+          font-size="17"
+          font-weight="600"
+          fill="white"
+          text-anchor="middle">Start Free</text>
+  </g>
+
+  <!-- Website -->
+  <text x="400" y="520"
+        font-family="'Inter', -apple-system, sans-serif"
+        font-size="16"
+        font-weight="500"
+        fill="#4a6741">ferni.ai</text>
+</svg>

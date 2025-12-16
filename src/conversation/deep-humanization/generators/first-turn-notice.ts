@@ -82,9 +82,7 @@ export async function generateFirstTurnNotice(
 
   if (hasHesitation) {
     // User seems hesitant or deflecting
-    const isDeflecting = /^(fine|okay|good|not bad|alright)\.?$/i.test(
-      context.userMessage.trim()
-    );
+    const isDeflecting = /^(fine|okay|good|not bad|alright)\.?$/i.test(context.userMessage.trim());
     notices = isDeflecting ? NOTICING_DEFLECTION : NOTICING_HESITATION;
   } else if (context.sessionData?.patterns && context.sessionData.patterns.length > 0) {
     // User has mentioned this topic before
@@ -107,4 +105,3 @@ export async function generateFirstTurnNotice(
     cooldownTurns: HUMANIZATION_CONFIG.cooldowns.firstTurnNotice,
   };
 }
-

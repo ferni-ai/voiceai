@@ -217,7 +217,10 @@ describe('Sesame-Inspired Prosody', () => {
       let found = false;
       for (let i = 0; i < 5; i++) {
         resetMicroReactionSession(`${testSessionId}-${i}`);
-        const result = getSessionMicroReaction(`${testSessionId}-${i}`, 'Actually I wanted to talk about something');
+        const result = getSessionMicroReaction(
+          `${testSessionId}-${i}`,
+          'Actually I wanted to talk about something'
+        );
         if (result) {
           found = true;
           break;
@@ -326,12 +329,7 @@ describe('Sesame-Inspired Prosody', () => {
 
       // Multiple rapid calls
       for (let i = 0; i < 5; i++) {
-        const result = smartInjectDisfluency(
-          testSessionId,
-          `Statement number ${i}`,
-          'neutral',
-          5
-        );
+        const result = smartInjectDisfluency(testSessionId, `Statement number ${i}`, 'neutral', 5);
         if (result) injectionCount++;
       }
 

@@ -108,7 +108,8 @@ async function getCachedWorldClassCoaching(
     }
 
     const behaviors = await bundle.getBehaviors();
-    const worldClassCoaching = (behaviors.world_class_coaching as WorldClassCoachingContent) ?? null;
+    const worldClassCoaching =
+      (behaviors.world_class_coaching as WorldClassCoachingContent) ?? null;
 
     worldClassCoachingCache.set(personaId, worldClassCoaching);
     cacheLoadTimes.set(cacheKey, now);
@@ -450,7 +451,9 @@ function formatWorldClassCoachingInjection(
     // Note: Don't inject literal key questions - the LLM copies them verbatim
     // Just describe the type of question to consider
     if (situation.key_question) {
-      parts.push(`Focus on exploring: the underlying ${situationalMatch?.replace(/_/g, ' ')} question`);
+      parts.push(
+        `Focus on exploring: the underlying ${situationalMatch?.replace(/_/g, ' ')} question`
+      );
     }
   }
 
@@ -491,7 +494,7 @@ function matchSituation(userText: string): string | null {
   const situationTriggers: Record<string, string[]> = {
     someone_feeling_stuck: ['stuck', "can't move", 'paralyzed', 'frozen', "don't know what to do"],
     someone_in_shame: ['ashamed', 'embarrassed', 'stupid', 'failure', "what's wrong with me"],
-    someone_lost_meaning: ['meaningless', 'pointless', "why bother", "what's the point", 'empty'],
+    someone_lost_meaning: ['meaningless', 'pointless', 'why bother', "what's the point", 'empty'],
     someone_grieving: ['lost', 'died', 'miss them', 'gone', 'grief'],
     someone_avoiding_change: ['should but', "can't change", 'too hard', 'tried before'],
     someone_building_habits: ['habit', 'routine', 'consistent', 'every day', 'trying to start'],

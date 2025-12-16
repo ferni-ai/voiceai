@@ -1,0 +1,1654 @@
+/**
+ * Your Journey - Unified Relationship Progress & Milestones
+ *
+ * A beautiful modal showing the user's relationship progress with Ferni.
+ * Combines progress overview with milestones scrapbook.
+ *
+ * DESIGN:
+ * - Centered floating modal (per brand guidelines)
+ * - Progress overview at top (stage, stats, ring)
+ * - Category sections with milestone progress
+ * - Warm, personal copy for each milestone
+ * - Unlocked milestones glow softly
+ * - Locked milestones shown as mysteries to discover
+ *
+ * CONSOLIDATES:
+ * - relationship-progress.ui.ts (progress ring, stats, stage)
+ * - journey.ui.ts (milestones scrapbook)
+ * 
+ * ENTRY POINTS:
+ * - Heart indicator click
+ * - Settings menu "Your Journey"
+ */
+
+import { t } from '../i18n/index.js';
+import { DURATION, EASING } from '../config/animation-constants.js';
+import { 
+  relationshipStageService, 
+  STAGE_NAMES,
+} from '../services/relationship-stage.service.js';
+import { trapFocus } from '../utils/accessibility.js';
+import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
+import { createLogger } from '../utils/logger.js';
+import { getConnectionState } from './connection-heart.ui.js';
+import {
+  getCelebratedCount,
+  getMilestones,
+  getProgress,
+  getTotalMilestonesCount,
+} from './ferni-milestones.ui.js';
+import { shareJourneySummaryCard } from './milestone-card.ui.js';
+import { soundUI } from './sound.ui.js';
+import { toast } from './toast.ui.js';
+
+const log = createLogger('JourneyUI');
+
+type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'speaking' | 'error';
+
+// ============================================================================
+// STATE
+// ============================================================================
+
+let journeyModal: HTMLElement | null = null;
+let isOpen = false;
+let focusTrapCleanup: (() => void) | null = null;
+let previousActiveElement: HTMLElement | null = null;
+
+// ============================================================================
+// ICONS (Lucide-style)
+// ============================================================================
+
+// ============================================================================
+// STAGE DESCRIPTIONS - Brand Voice (Warm, Human, Not Saccharine)
+// ============================================================================
+
+const STAGE_DESCRIPTIONS: Record<string, { tagline: string; description: string }> = {
+  'first-meeting': {
+    tagline: 'Just getting started',
+    description: 'Every great friendship starts somewhere. This is our beginning.',
+  },
+  'getting-started': {
+    tagline: 'Building something real',
+    description: 'You keep showing up. That takes courage. I notice.',
+  },
+  'building-trust': {
+    tagline: 'Deeper than small talk',
+    description: 'We are past the surface now. Real conversations. Real growth.',
+  },
+  'established': {
+    tagline: 'A rhythm of our own',
+    description: 'You know me. I know you. This is what trust feels like.',
+  },
+  'deep-partnership': {
+    tagline: 'Something rare',
+    description: 'Few relationships reach this depth. We have built something real.',
+  },
+};
+
+const ICONS = {
+  heart: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+  </svg>`,
+  heartBroken: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19.5 12.572l-7.5 7.428l-7.5-7.428A5 5 0 1 1 12 5.006a5 5 0 1 1 7.5 7.566z"/>
+    <path d="M12 5.006V12l-2 2l2 3"/>
+  </svg>`,
+  heartFilled: `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+  </svg>`,
+  phone: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+  </svg>`,
+  loader: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="12" y1="2" x2="12" y2="6"/>
+    <line x1="12" y1="18" x2="12" y2="22"/>
+    <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/>
+    <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/>
+    <line x1="2" y1="12" x2="6" y2="12"/>
+    <line x1="18" y1="12" x2="22" y2="12"/>
+    <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/>
+    <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/>
+  </svg>`,
+  alertCircle: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="12" y1="8" x2="12" y2="12"/>
+    <line x1="12" y1="16" x2="12.01" y2="16"/>
+  </svg>`,
+  share: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="18" cy="5" r="3"/>
+    <circle cx="6" cy="12" r="3"/>
+    <circle cx="18" cy="19" r="3"/>
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+  </svg>`,
+  team: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </svg>`,
+  conversation: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>`,
+  discovery: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+  </svg>`,
+  sweet: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>
+  </svg>`,
+  close: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"/>
+    <line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>`,
+  lock: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+  </svg>`,
+  check: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>`,
+  messageCircle: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>
+  </svg>`,
+  calendar: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 2v4"/><path d="M16 2v4"/>
+    <rect width="18" height="18" x="3" y="4" rx="2"/>
+    <path d="M3 10h18"/>
+  </svg>`,
+  flame: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+  </svg>`,
+  chevronDown: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m6 9 6 6 6-6"/>
+  </svg>`,
+};
+
+const CATEGORY_META: Record<string, { icon: string; title: string; color: string }> = {
+  relationship: {
+    icon: ICONS.heart,
+    title: 'Our Relationship',
+    color: 'var(--persona-primary, #4a6741)',
+  },
+  team: {
+    icon: ICONS.team,
+    title: 'Team Connection',
+    color: 'var(--color-peter, #3a6b73)',
+  },
+  conversation: {
+    icon: ICONS.conversation,
+    title: 'Our Conversations',
+    color: 'var(--color-alex, #5a6b8a)',
+  },
+  discovery: {
+    icon: ICONS.discovery,
+    title: 'Hidden Discoveries',
+    color: 'var(--color-maya, #a67a6a)',
+  },
+  sweet: {
+    icon: ICONS.sweet,
+    title: 'Sweet Moments',
+    color: 'var(--color-nayan, #b8956a)',
+  },
+};
+
+// ============================================================================
+// HMR CLEANUP - Required per brand guidelines
+// ============================================================================
+
+/**
+ * Clean up any orphaned elements from HMR reloads
+ */
+function cleanupOrphanedElements(): void {
+  document.querySelectorAll('.journey-modal').forEach((el) => el.remove());
+  document.querySelectorAll('.journey-modal-backdrop').forEach((el) => el.remove());
+}
+
+// ============================================================================
+// PUBLIC API
+// ============================================================================
+
+export function openJourney(): void {
+  // HMR cleanup first
+  cleanupOrphanedElements();
+  
+  if (isOpen) return;
+
+  // Store current focus for restoration
+  previousActiveElement = document.activeElement as HTMLElement;
+
+  soundUI.play('switch');
+  createModal();
+  isOpen = true;
+
+  // Set up focus trap after modal is created
+  if (journeyModal) {
+    focusTrapCleanup = trapFocus(journeyModal);
+  }
+
+  log.info('Journey opened');
+}
+
+export function closeJourney(): void {
+  if (!isOpen || !journeyModal) return;
+
+  // Clean up focus trap
+  if (focusTrapCleanup) {
+    focusTrapCleanup();
+    focusTrapCleanup = null;
+  }
+
+  // Clean up iOS tap listeners
+  cleanupTapListeners(journeyModal);
+
+  // Clean up event listener
+  window.removeEventListener(
+    'ferni:connection-heart-state',
+    handleConnectionStateChange as EventListener
+  );
+
+  soundUI.play('click');
+  animateOut(journeyModal).then(() => {
+    journeyModal?.remove();
+    journeyModal = null;
+    isOpen = false;
+    
+    // Restore focus to previous element
+    if (previousActiveElement && previousActiveElement.focus) {
+      previousActiveElement.focus();
+      previousActiveElement = null;
+    }
+  });
+
+  log.info('Journey closed');
+}
+
+/**
+ * Share your journey with others.
+ * Creates a beautiful visual card and shares via native share or download.
+ */
+async function shareJourney(
+  celebrated: number,
+  total: number,
+  streak: number,
+  totalDays: number
+): Promise<void> {
+  const cardData = {
+    celebrated,
+    total,
+    streak,
+    daysTogether: totalDays,
+  };
+
+  try {
+    // Try sharing with visual card
+    const shared = await shareJourneySummaryCard(cardData);
+
+    if (shared) {
+      log.info('Journey card shared via native share');
+    } else {
+      // Card was downloaded as fallback
+      showShareConfirmation('Image saved');
+      log.info('Journey card downloaded');
+    }
+  } catch (err) {
+    // Final fallback to text sharing
+    log.warn('Card share failed, falling back to text:', err);
+
+    const messages = [
+      `${celebrated}/${total} milestones`,
+      streak > 1 ? `${streak} day streak` : '',
+      totalDays > 0 ? `${totalDays} days together` : '',
+    ].filter(Boolean);
+
+    const shareText = `My journey with Ferni:\n${messages.join(' • ')}\n\nferni.ai`;
+
+    try {
+      await navigator.clipboard.writeText(shareText);
+      showShareConfirmation('Copied to clipboard');
+    } catch {
+      log.warn('Could not copy to clipboard');
+    }
+  }
+}
+
+function showShareConfirmation(message = 'Copied to clipboard'): void {
+  // Use shared toast system for consistency
+  toast.success(message);
+}
+
+export function toggleJourney(): void {
+  if (isOpen) {
+    closeJourney();
+  } else {
+    openJourney();
+  }
+}
+
+// ============================================================================
+// MODAL CREATION
+// ============================================================================
+
+function createModal(): void {
+  // Clean up any existing
+  document.querySelector('.journey-modal')?.remove();
+
+  const milestones = getMilestones();
+  const progress = getProgress();
+  const celebrated = getCelebratedCount();
+  const total = getTotalMilestonesCount();
+
+  // Get relationship stage data
+  const stage = relationshipStageService.getStage();
+  const stageMetrics = relationshipStageService.getMetrics();
+  const stageProgress = relationshipStageService.getProgressToNextStage();
+  const stageInfo = STAGE_DESCRIPTIONS[stage] ?? STAGE_DESCRIPTIONS['first-meeting']!;
+  const stageName = STAGE_NAMES[stage] ?? 'First Meeting';
+  const progressPercent = Math.round(stageProgress.progress * 100);
+
+  // Get current connection state
+  let connectionState: ConnectionState = 'disconnected';
+  try {
+    connectionState = getConnectionState();
+  } catch {
+    // If connection heart not initialized, check body classes
+    if (document.body.classList.contains('connected')) {
+      connectionState = 'connected';
+    }
+  }
+
+  // Group milestones by category
+  const grouped: Record<string, typeof milestones> = {};
+  for (const m of milestones) {
+    if (!grouped[m.category]) grouped[m.category] = [];
+    grouped[m.category]!.push(m);
+  }
+
+  // Calculate streak info
+  const streak = progress.currentStreak;
+  const totalDays = progress.conversationDays.length;
+
+  journeyModal = document.createElement('div');
+  journeyModal.className = 'journey-modal';
+  journeyModal.setAttribute('role', 'dialog');
+  journeyModal.setAttribute('aria-label', 'Your Journey with Ferni');
+
+  journeyModal.innerHTML = `
+    <div class="journey-backdrop"></div>
+    <div class="journey-content">
+      <header class="journey-header">
+        <div class="journey-header__text">
+          <span class="journey-eyebrow">YOUR JOURNEY</span>
+        </div>
+        <button class="journey-close" aria-label="${t('common.close')}">
+          ${ICONS.close}
+        </button>
+      </header>
+
+      <div class="journey-body">
+        <!-- Progress Overview Section -->
+        <section class="journey-progress-overview">
+          <div class="journey-progress-ring-container">
+            <svg class="journey-progress-ring" viewBox="0 0 120 120">
+              <circle class="journey-progress-ring__bg" cx="60" cy="60" r="52" />
+              <circle 
+                class="journey-progress-ring__fill" 
+                cx="60" cy="60" r="52"
+                stroke-dasharray="${2 * Math.PI * 52}"
+                stroke-dashoffset="${2 * Math.PI * 52 * (1 - progressPercent / 100)}"
+              />
+            </svg>
+            <div class="journey-progress-ring__text">
+              <span class="journey-progress-ring__percent">${progressPercent}%</span>
+              <span class="journey-progress-ring__label">progress</span>
+            </div>
+          </div>
+          
+          <h2 class="journey-stage-name">${stageName}</h2>
+          <p class="journey-stage-tagline">${stageInfo?.tagline ?? 'Just getting started'}</p>
+          
+          <div class="journey-stats-row">
+            <div class="journey-stat">
+              <span class="journey-stat__icon">${ICONS.messageCircle}</span>
+              <span class="journey-stat__value">${stageMetrics.totalConversations}</span>
+              <span class="journey-stat__label">conversations</span>
+            </div>
+            <div class="journey-stat">
+              <span class="journey-stat__icon">${ICONS.calendar}</span>
+              <span class="journey-stat__value">${stageMetrics.daysSinceFirstMeeting}</span>
+              <span class="journey-stat__label">days together</span>
+            </div>
+            <div class="journey-stat">
+              <span class="journey-stat__icon">${ICONS.flame}</span>
+              <span class="journey-stat__value">${stageMetrics.currentStreak}</span>
+              <span class="journey-stat__label">day streak</span>
+            </div>
+          </div>
+          
+          ${stageProgress.nextStage ? `
+            <div class="journey-next-stage">
+              <span class="journey-next-stage__label">Next: ${STAGE_NAMES[stageProgress.nextStage]}</span>
+              <span class="journey-next-stage__req">${stageProgress.requirement}</span>
+            </div>
+          ` : `
+            <div class="journey-next-stage journey-next-stage--max">
+              <span class="journey-next-stage__label">Max level reached! 🌟</span>
+            </div>
+          `}
+        </section>
+        
+        ${renderConnectionBanner(connectionState)}
+        
+        <!-- Milestones Section -->
+        <section class="journey-milestones-section">
+          <div class="journey-milestones-header" role="button" tabindex="0" aria-expanded="true">
+            <h3 class="journey-milestones-title">Milestones</h3>
+            <span class="journey-milestones-count">${celebrated}/${total}</span>
+            <span class="journey-milestones-toggle">${ICONS.chevronDown}</span>
+          </div>
+          <div class="journey-milestones-body">
+            ${Object.entries(grouped)
+              .map(([category, items]) => renderCategory(category, items))
+              .join('')}
+          </div>
+        </section>
+      </div>
+
+      <footer class="journey-footer">
+        <p>Every moment matters. Keep going.</p>
+        <button class="journey-share" aria-label="${t('accessibility.shareJourney')}">
+          ${ICONS.share}
+          <span>Share</span>
+        </button>
+      </footer>
+    </div>
+  `;
+
+  // Inject styles
+  injectStyles();
+
+  // Add event listeners (iOS-compatible)
+  addTapListener(journeyModal.querySelector('.journey-backdrop'), closeJourney);
+  addTapListener(journeyModal.querySelector('.journey-close'), closeJourney);
+  addTapListener(journeyModal.querySelector('.journey-share'), () => {
+    shareJourney(celebrated, total, streak, totalDays);
+  });
+
+  // Milestones toggle (collapsible section)
+  const milestonesHeader = journeyModal.querySelector('.journey-milestones-header');
+  const milestonesBody = journeyModal.querySelector('.journey-milestones-body');
+  if (milestonesHeader && milestonesBody) {
+    const toggleMilestones = () => {
+      const isExpanded = milestonesHeader.getAttribute('aria-expanded') === 'true';
+      milestonesHeader.setAttribute('aria-expanded', String(!isExpanded));
+      milestonesBody.classList.toggle('collapsed', isExpanded);
+      milestonesHeader.classList.toggle('collapsed', isExpanded);
+    };
+    addTapListener(milestonesHeader, toggleMilestones);
+    milestonesHeader.addEventListener('keydown', (e) => {
+      if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') {
+        e.preventDefault();
+        toggleMilestones();
+      }
+    });
+  }
+
+  // Connect button handler
+  addTapListener(journeyModal.querySelector('.journey-connect-btn'), handleConnectClick);
+
+  // Listen for connection state changes
+  window.addEventListener(
+    'ferni:connection-heart-state',
+    handleConnectionStateChange as EventListener
+  );
+
+  // Escape key to close
+  const handleEscape = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      closeJourney();
+      document.removeEventListener('keydown', handleEscape);
+    }
+  };
+  document.addEventListener('keydown', handleEscape);
+
+  document.body.appendChild(journeyModal);
+  animateIn(journeyModal);
+}
+
+// ============================================================================
+// CONNECTION STATE
+// ============================================================================
+
+function renderConnectionBanner(state: ConnectionState): string {
+  switch (state) {
+    case 'connected':
+    case 'speaking':
+      // Connected - show happy state
+      return `
+        <div class="journey-connection journey-connection--connected">
+          <span class="journey-connection__icon">${ICONS.heartFilled}</span>
+          <span class="journey-connection__text">We're connected</span>
+        </div>
+      `;
+
+    case 'connecting':
+      // Connecting - show loading state
+      return `
+        <div class="journey-connection journey-connection--connecting">
+          <span class="journey-connection__icon journey-connection__icon--spin">${ICONS.loader}</span>
+          <span class="journey-connection__text">Connecting...</span>
+        </div>
+      `;
+
+    case 'error':
+      // Error - show retry option
+      return `
+        <div class="journey-connection journey-connection--error">
+          <span class="journey-connection__icon">${ICONS.heartBroken}</span>
+          <div class="journey-connection__content">
+            <span class="journey-connection__text">Connection lost</span>
+            <p class="journey-connection__subtext">Something went wrong, but we can try again.</p>
+          </div>
+          <button class="journey-connect-btn journey-connect-btn--retry">
+            ${ICONS.phone}
+            <span>Reconnect</span>
+          </button>
+        </div>
+      `;
+
+    case 'disconnected':
+    default:
+      // Disconnected - show connect CTA
+      return `
+        <div class="journey-connection journey-connection--disconnected">
+          <span class="journey-connection__icon">${ICONS.heartBroken}</span>
+          <div class="journey-connection__content">
+            <span class="journey-connection__text">We're not connected</span>
+            <p class="journey-connection__subtext">Start a conversation to continue our journey together.</p>
+          </div>
+          <button class="journey-connect-btn">
+            ${ICONS.phone}
+            <span>Start talking</span>
+          </button>
+        </div>
+      `;
+  }
+}
+
+function handleConnectClick(): void {
+  log.info('Connect clicked from Journey modal');
+
+  // Dispatch event to trigger connection
+  window.dispatchEvent(new CustomEvent('ferni:request-connect'));
+
+  // Update banner immediately to show connecting state
+  updateConnectionBanner('connecting');
+}
+
+function handleConnectionStateChange(e: CustomEvent<{ state: ConnectionState }>): void {
+  const state = e.detail?.state;
+  if (state && journeyModal) {
+    updateConnectionBanner(state);
+  }
+}
+
+function updateConnectionBanner(state: ConnectionState): void {
+  if (!journeyModal) return;
+
+  const existingBanner = journeyModal.querySelector('.journey-connection');
+  if (existingBanner) {
+    const newBannerHtml = renderConnectionBanner(state);
+    const temp = document.createElement('div');
+    temp.innerHTML = newBannerHtml;
+    const newBanner = temp.firstElementChild;
+
+    if (newBanner) {
+      existingBanner.replaceWith(newBanner);
+
+      // Re-attach connect button handler (iOS-compatible)
+      addTapListener(
+        journeyModal.querySelector('.journey-connect-btn'),
+        handleConnectClick
+      );
+    }
+  }
+}
+
+function renderCategory(category: string, items: ReturnType<typeof getMilestones>): string {
+  const meta = CATEGORY_META[category] ?? CATEGORY_META.relationship!;
+  if (!meta) return '';
+
+  const celebratedInCategory = items.filter((m) => m.celebrated).length;
+
+  return `
+    <section class="journey-category">
+      <header class="journey-category__header">
+        <span class="journey-category__icon" style="color: ${meta.color}">
+          ${meta.icon}
+        </span>
+        <h3 class="journey-category__title">${meta.title}</h3>
+        <span class="journey-category__count">${celebratedInCategory}/${items.length}</span>
+      </header>
+      <div class="journey-category__items">
+        ${items.map((m) => renderMilestone(m, meta.color)).join('')}
+      </div>
+    </section>
+  `;
+}
+
+function renderMilestone(milestone: ReturnType<typeof getMilestones>[0], color: string): string {
+  const isCelebrated = milestone.celebrated;
+  const hasProgress = milestone.target && milestone.progress !== undefined;
+  const progressPercent = hasProgress
+    ? Math.min(100, Math.round(((milestone.progress ?? 0) / (milestone.target ?? 1)) * 100))
+    : 0;
+
+  // Format celebration date
+  let dateStr = '';
+  if (isCelebrated && milestone.celebratedAt) {
+    const date = new Date(milestone.celebratedAt);
+    dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  return `
+    <div class="journey-milestone ${isCelebrated ? 'journey-milestone--celebrated' : 'journey-milestone--locked'}" 
+         style="--milestone-color: ${color}">
+      <div class="journey-milestone__status">
+        ${isCelebrated ? ICONS.check : ICONS.lock}
+      </div>
+      <div class="journey-milestone__content">
+        <h4 class="journey-milestone__name">
+          ${isCelebrated ? milestone.name : '???'}
+        </h4>
+        <p class="journey-milestone__message">
+          ${isCelebrated ? milestone.message : milestone.subtitle || 'Keep exploring...'}
+        </p>
+        ${
+          hasProgress && !isCelebrated
+            ? `
+          <div class="journey-milestone__progress">
+            <div class="journey-milestone__progress-bar" style="width: ${progressPercent}%"></div>
+            <span class="journey-milestone__progress-text">${milestone.progress}/${milestone.target}</span>
+          </div>
+        `
+            : ''
+        }
+        ${dateStr ? `<span class="journey-milestone__date">${dateStr}</span>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================================
+// ANIMATIONS
+// ============================================================================
+
+async function animateIn(modal: HTMLElement): Promise<void> {
+  const backdrop = modal.querySelector('.journey-backdrop') as HTMLElement;
+  const content = modal.querySelector('.journey-content') as HTMLElement;
+  const isMobile = window.innerWidth <= 640;
+
+  if (backdrop) {
+    backdrop.style.opacity = '0';
+    backdrop.animate([{ opacity: '0' }, { opacity: '1' }], {
+      duration: DURATION.SLOW,
+      easing: 'ease-out',
+      fill: 'forwards',
+    });
+  }
+
+  if (content) {
+    // Mobile: slide up from bottom (sheet-style)
+    // Desktop: scale + fade from center
+    if (isMobile) {
+      content.style.opacity = '0';
+      content.style.transform = 'translateY(100%)';
+      content.animate(
+        [
+          { opacity: '0', transform: 'translateY(100%)' },
+          { opacity: '1', transform: 'translateY(0)' },
+        ],
+        {
+          duration: DURATION.MODERATE,
+          easing: EASING.SPRING,
+          fill: 'forwards',
+        }
+      );
+    } else {
+      content.style.opacity = '0';
+      content.style.transform = 'scale(0.95) translateY(20px)';
+      content.animate(
+        [
+          { opacity: '0', transform: 'scale(0.95) translateY(20px)' },
+          { opacity: '1', transform: 'scale(1) translateY(0)' },
+        ],
+        {
+          duration: DURATION.DELIBERATE,
+          easing: EASING.SPRING,
+          fill: 'forwards',
+        }
+      );
+    }
+  }
+}
+
+async function animateOut(modal: HTMLElement): Promise<void> {
+  const backdrop = modal.querySelector('.journey-backdrop') as HTMLElement;
+  const content = modal.querySelector('.journey-content') as HTMLElement;
+  const isMobile = window.innerWidth <= 640;
+
+  const animations: Animation[] = [];
+
+  if (backdrop) {
+    animations.push(
+      backdrop.animate([{ opacity: '1' }, { opacity: '0' }], {
+        duration: DURATION.NORMAL,
+        easing: 'ease-out',
+        fill: 'forwards',
+      })
+    );
+  }
+
+  if (content) {
+    // Mobile: slide down (sheet-style)
+    // Desktop: scale + fade out
+    if (isMobile) {
+      animations.push(
+        content.animate(
+          [
+            { opacity: '1', transform: 'translateY(0)' },
+            { opacity: '0', transform: 'translateY(100%)' },
+          ],
+          {
+            duration: DURATION.NORMAL,
+            easing: EASING.STANDARD,
+            fill: 'forwards',
+          }
+        )
+      );
+    } else {
+      animations.push(
+        content.animate(
+          [
+            { opacity: '1', transform: 'scale(1) translateY(0)' },
+            { opacity: '0', transform: 'scale(0.98) translateY(-10px)' },
+          ],
+          {
+            duration: DURATION.NORMAL,
+            easing: EASING.GENTLE,
+            fill: 'forwards',
+          }
+        )
+      );
+    }
+  }
+
+  await Promise.all(animations.map((a) => a.finished));
+}
+
+// ============================================================================
+// STYLES
+// ============================================================================
+
+function injectStyles(): void {
+  if (document.getElementById('journey-ui-styles')) return;
+
+  const style = document.createElement('style');
+  style.id = 'journey-ui-styles';
+  style.textContent = `
+    .journey-modal {
+      position: fixed;
+      inset: 0;
+      z-index: var(--z-modal, 10000);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-4, 16px);
+    }
+
+    .journey-backdrop {
+      position: absolute;
+      inset: 0;
+      background: var(--backdrop-heavy, rgba(44, 37, 32, 0.6));
+      backdrop-filter: blur(var(--glass-blur-strong, 24px));
+      -webkit-backdrop-filter: blur(var(--glass-blur-strong, 24px));
+    }
+
+    .journey-content {
+      position: relative;
+      background: var(--color-background-elevated, #faf8f5);
+      border-radius: var(--radius-2xl, 20px);
+      box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0, 0, 0, 0.25));
+      max-width: 600px;
+      width: 100%;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .journey-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: var(--space-6, 24px);
+      border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+    }
+
+    .journey-header__text {
+      flex: 1;
+    }
+
+    .journey-eyebrow {
+      display: block;
+      font-size: var(--text-xs, 0.75rem);
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      color: var(--persona-primary, #4a6741);
+      margin-bottom: var(--space-1, 4px);
+    }
+
+    .journey-title {
+      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+      font-size: var(--text-2xl, 1.5rem);
+      font-weight: 700;
+      color: var(--color-text-primary, #2c2520);
+      margin: 0;
+      line-height: 1.2;
+    }
+
+    .journey-subtitle {
+      font-size: var(--text-sm, 0.875rem);
+      color: var(--color-text-muted, #70605a);
+      margin: var(--space-2, 8px) 0 0;
+    }
+
+    .journey-close {
+      background: none;
+      border: none;
+      padding: var(--space-2, 8px);
+      margin: calc(var(--space-2, 8px) * -1);
+      cursor: pointer;
+      color: var(--color-text-muted, #70605a);
+      border-radius: var(--radius-full, 9999px);
+      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+
+    .journey-close:hover {
+      background: var(--color-background-hover, rgba(0, 0, 0, 0.05));
+      color: var(--color-text-primary, #2c2520);
+    }
+    
+    .journey-close:focus-visible {
+      outline: 2px solid var(--persona-primary, #4a6741);
+      outline-offset: 2px;
+    }
+
+    .journey-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--space-4, 16px) var(--space-6, 24px);
+    }
+
+    /* ===== PROGRESS OVERVIEW ===== */
+    .journey-progress-overview {
+      text-align: center;
+      padding-bottom: var(--space-5, 20px);
+      margin-bottom: var(--space-4, 16px);
+      border-bottom: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+    }
+
+    .journey-progress-ring-container {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      margin: 0 auto var(--space-4, 16px);
+    }
+
+    .journey-progress-ring {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .journey-progress-ring__bg {
+      fill: none;
+      stroke: var(--color-background-subtle, rgba(0, 0, 0, 0.08));
+      stroke-width: 8;
+    }
+
+    .journey-progress-ring__fill {
+      fill: none;
+      stroke: var(--persona-primary, #4a6741);
+      stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dashoffset ${DURATION.DRAMATIC}ms ${EASING.SPRING};
+    }
+
+    .journey-progress-ring__text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .journey-progress-ring__percent {
+      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+      font-size: var(--text-2xl, 1.5rem);
+      font-weight: 700;
+      color: var(--color-text-primary, #2c2520);
+      line-height: 1;
+    }
+
+    .journey-progress-ring__label {
+      font-size: var(--text-xs, 0.75rem);
+      color: var(--color-text-muted, #70605a);
+      margin-top: 2px;
+    }
+
+    .journey-stage-name {
+      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+      font-size: var(--text-xl, 1.25rem);
+      font-weight: 700;
+      color: var(--color-text-primary, #2c2520);
+      margin: 0 0 var(--space-1, 4px);
+    }
+
+    .journey-stage-tagline {
+      font-size: var(--text-sm, 0.875rem);
+      color: var(--color-text-secondary, #5a4d47);
+      margin: 0 0 var(--space-4, 16px);
+    }
+
+    .journey-stats-row {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-6, 24px);
+      margin-bottom: var(--space-4, 16px);
+    }
+
+    .journey-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-1, 4px);
+    }
+
+    .journey-stat__icon {
+      color: var(--color-text-muted, #70605a);
+      margin-bottom: var(--space-1, 4px);
+    }
+
+    .journey-stat__icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .journey-stat__value {
+      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+      font-size: var(--text-lg, 1.125rem);
+      font-weight: 700;
+      color: var(--color-text-primary, #2c2520);
+      line-height: 1;
+    }
+
+    .journey-stat__label {
+      font-size: var(--text-xs, 0.75rem);
+      color: var(--color-text-muted, #70605a);
+    }
+
+    .journey-next-stage {
+      background: var(--color-background-subtle, rgba(0, 0, 0, 0.03));
+      border-radius: var(--radius-lg, 12px);
+      padding: var(--space-3, 12px) var(--space-4, 16px);
+      display: inline-block;
+    }
+
+    .journey-next-stage__label {
+      display: block;
+      font-size: var(--text-sm, 0.875rem);
+      font-weight: 600;
+      color: var(--persona-primary, #4a6741);
+    }
+
+    .journey-next-stage__req {
+      display: block;
+      font-size: var(--text-xs, 0.75rem);
+      color: var(--color-text-muted, #70605a);
+      margin-top: var(--space-1, 4px);
+    }
+
+    .journey-next-stage--max {
+      background: linear-gradient(135deg, 
+        color-mix(in srgb, var(--persona-primary) 8%, transparent) 0%,
+        color-mix(in srgb, var(--persona-primary) 3%, transparent) 100%
+      );
+    }
+
+    @supports not (background: color-mix(in srgb, red 50%, blue)) {
+      .journey-next-stage--max {
+        background: linear-gradient(135deg, rgba(74, 103, 65, 0.08) 0%, rgba(74, 103, 65, 0.03) 100%);
+      }
+    }
+
+    /* ===== MILESTONES SECTION (Collapsible) ===== */
+    .journey-milestones-section {
+      margin-top: var(--space-4, 16px);
+    }
+
+    .journey-milestones-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2, 8px);
+      padding: var(--space-3, 12px);
+      margin: 0 calc(var(--space-3, 12px) * -1);
+      border-radius: var(--radius-lg, 12px);
+      cursor: pointer;
+      transition: background ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+
+    .journey-milestones-header:hover {
+      background: var(--color-background-hover, rgba(0, 0, 0, 0.03));
+    }
+
+    .journey-milestones-header:focus-visible {
+      outline: 2px solid var(--persona-primary, #4a6741);
+      outline-offset: 2px;
+    }
+
+    .journey-milestones-title {
+      flex: 1;
+      font-size: var(--text-base, 1rem);
+      font-weight: 600;
+      color: var(--color-text-primary, #2c2520);
+      margin: 0;
+    }
+
+    .journey-milestones-count {
+      font-size: var(--text-sm, 0.875rem);
+      color: var(--color-text-muted, #70605a);
+      background: var(--color-background-subtle, rgba(0, 0, 0, 0.05));
+      padding: var(--space-1, 4px) var(--space-2, 8px);
+      border-radius: var(--radius-full, 9999px);
+    }
+
+    .journey-milestones-toggle {
+      color: var(--color-text-muted, #70605a);
+      transition: transform ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+
+    .journey-milestones-header.collapsed .journey-milestones-toggle {
+      transform: rotate(-90deg);
+    }
+
+    .journey-milestones-body {
+      max-height: 2000px;
+      overflow: hidden;
+      transition: max-height ${DURATION.MODERATE}ms ${EASING.STANDARD},
+                  opacity ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+
+    .journey-milestones-body.collapsed {
+      max-height: 0;
+      opacity: 0.5;
+    }
+
+    .journey-category {
+      margin-bottom: var(--space-6, 24px);
+    }
+
+    .journey-category:last-child {
+      margin-bottom: 0;
+    }
+
+    .journey-category__header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2, 8px);
+      margin-bottom: var(--space-3, 12px);
+    }
+
+    .journey-category__icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .journey-category__title {
+      font-size: var(--text-sm, 0.875rem);
+      font-weight: 600;
+      color: var(--color-text-primary, #2c2520);
+      margin: 0;
+      flex: 1;
+    }
+
+    .journey-category__count {
+      font-size: var(--text-xs, 0.75rem);
+      color: var(--color-text-muted, #70605a);
+      background: var(--color-background-subtle, rgba(0, 0, 0, 0.05));
+      padding: var(--space-1, 4px) var(--space-2, 8px);
+      border-radius: var(--radius-full, 9999px);
+    }
+
+    .journey-category__items {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2, 8px);
+    }
+
+    .journey-milestone {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3, 12px);
+      padding: var(--space-3, 12px);
+      background: var(--color-background-subtle, rgba(0, 0, 0, 0.02));
+      border-radius: var(--radius-lg, 12px);
+      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+
+    .journey-milestone--celebrated {
+      background: var(--milestone-bg-celebrated, linear-gradient(135deg, 
+        color-mix(in srgb, var(--persona-primary, #4a6741) 8%, transparent) 0%,
+        color-mix(in srgb, var(--persona-primary, #4a6741) 2%, transparent) 100%
+      ));
+      border: 1px solid var(--milestone-border-celebrated, color-mix(in srgb, var(--persona-primary, #4a6741) 15%, transparent));
+    }
+    
+    /* Fallback for browsers without color-mix support */
+    @supports not (background: color-mix(in srgb, red 50%, blue)) {
+      .journey-milestone--celebrated {
+        background: linear-gradient(135deg, rgba(74, 103, 65, 0.08) 0%, rgba(74, 103, 65, 0.02) 100%);
+        border-color: rgba(74, 103, 65, 0.15);
+      }
+    }
+
+    .journey-milestone--locked {
+      opacity: 0.7;
+    }
+
+    .journey-milestone__status {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-background-elevated, #fff);
+      border: 2px solid var(--milestone-color, var(--persona-primary));
+      color: var(--milestone-color, var(--persona-primary));
+    }
+
+    .journey-milestone--locked .journey-milestone__status {
+      border-color: var(--color-text-muted, #70605a);
+      color: var(--color-text-muted, #70605a);
+      opacity: 0.5;
+    }
+
+    .journey-milestone__content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .journey-milestone__name {
+      font-size: var(--text-sm, 0.875rem);
+      font-weight: 600;
+      color: var(--color-text-primary, #2c2520);
+      margin: 0;
+    }
+
+    .journey-milestone--locked .journey-milestone__name {
+      color: var(--color-text-muted, #70605a);
+    }
+
+    .journey-milestone__message {
+      font-size: var(--text-sm, 0.875rem);
+      color: var(--color-text-secondary, #5a4d47);
+      margin: var(--space-1, 4px) 0 0;
+      line-height: 1.4;
+    }
+
+    .journey-milestone--locked .journey-milestone__message {
+      font-style: italic;
+      color: var(--color-text-muted, #70605a);
+    }
+
+    .journey-milestone__progress {
+      position: relative;
+      height: 4px;
+      background: var(--color-background-subtle, rgba(0, 0, 0, 0.1));
+      border-radius: var(--radius-full, 9999px);
+      margin-top: var(--space-2, 8px);
+      overflow: hidden;
+    }
+
+    .journey-milestone__progress-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background: var(--milestone-color, var(--persona-primary));
+      border-radius: var(--radius-full, 9999px);
+      transition: width ${DURATION.SLOW}ms ${EASING.STANDARD};
+    }
+
+    .journey-milestone__progress-text {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 4px);
+      font-size: var(--text-xs, 0.75rem);
+      color: var(--color-text-muted, #70605a);
+    }
+
+    .journey-milestone__date {
+      display: block;
+      font-size: var(--text-xs, 0.75rem);
+      color: var(--color-text-muted, #70605a);
+      margin-top: var(--space-2, 8px);
+    }
+
+    .journey-footer {
+      padding: var(--space-4, 16px) var(--space-6, 24px);
+      border-top: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-3, 12px);
+    }
+
+    .journey-footer p {
+      font-size: var(--text-sm, 0.875rem);
+      color: var(--color-text-muted, #70605a);
+      margin: 0;
+    }
+
+    .journey-share {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2, 8px);
+      padding: var(--space-2, 8px) var(--space-4, 16px);
+      background: var(--persona-primary, #4a6741);
+      color: white;
+      border: none;
+      border-radius: var(--radius-full, 9999px);
+      font-size: var(--text-sm, 0.875rem);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+
+    .journey-share:hover {
+      background: var(--persona-secondary, #3d5a35);
+      transform: scale(1.02);
+    }
+
+    .journey-share:active {
+      transform: scale(0.98);
+    }
+    
+    .journey-share:focus-visible {
+      outline: 2px solid var(--color-background-elevated, #fff);
+      outline-offset: 2px;
+    }
+
+    .journey-share svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* ===== CONNECTION BANNER ===== */
+    .journey-connection {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3, 12px);
+      padding: var(--space-4, 16px);
+      border-radius: var(--radius-xl, 16px);
+      margin-bottom: var(--space-5, 20px);
+      transition: all ${DURATION.SLOW}ms ${EASING.STANDARD};
+    }
+
+    .journey-connection__icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .journey-connection__icon svg {
+      width: 28px;
+      height: 28px;
+    }
+
+    .journey-connection__icon--spin svg {
+      animation: journey-spin 1.5s linear infinite;
+    }
+
+    @keyframes journey-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .journey-connection__content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .journey-connection__text {
+      font-size: var(--text-base, 1rem);
+      font-weight: 600;
+      color: var(--color-text-primary, #2c2520);
+    }
+
+    .journey-connection__subtext {
+      font-size: var(--text-sm, 0.875rem);
+      color: var(--color-text-secondary, #5a4d47);
+      margin: var(--space-1, 4px) 0 0;
+    }
+
+    /* Connected state - green, happy */
+    .journey-connection--connected {
+      background: var(--connection-bg-connected, linear-gradient(135deg,
+        color-mix(in srgb, var(--persona-primary, #4a6741) 12%, transparent) 0%,
+        color-mix(in srgb, var(--persona-primary, #4a6741) 4%, transparent) 100%
+      ));
+      border: 1px solid var(--connection-border-connected, color-mix(in srgb, var(--persona-primary, #4a6741) 25%, transparent));
+    }
+    
+    @supports not (background: color-mix(in srgb, red 50%, blue)) {
+      .journey-connection--connected {
+        background: linear-gradient(135deg, rgba(74, 103, 65, 0.12) 0%, rgba(74, 103, 65, 0.04) 100%);
+        border-color: rgba(74, 103, 65, 0.25);
+      }
+    }
+
+    .journey-connection--connected .journey-connection__icon {
+      color: var(--persona-primary, #4a6741);
+    }
+
+    .journey-connection--connected .journey-connection__text {
+      color: var(--persona-primary, #4a6741);
+    }
+
+    /* Connecting state - amber/warm */
+    .journey-connection--connecting {
+      background: var(--connection-bg-connecting, linear-gradient(135deg,
+        color-mix(in srgb, var(--color-warning, #d4a574) 12%, transparent) 0%,
+        color-mix(in srgb, var(--color-warning, #d4a574) 4%, transparent) 100%
+      ));
+      border: 1px solid var(--connection-border-connecting, color-mix(in srgb, var(--color-warning, #d4a574) 25%, transparent));
+    }
+    
+    @supports not (background: color-mix(in srgb, red 50%, blue)) {
+      .journey-connection--connecting {
+        background: linear-gradient(135deg, rgba(212, 165, 116, 0.12) 0%, rgba(212, 165, 116, 0.04) 100%);
+        border-color: rgba(212, 165, 116, 0.25);
+      }
+    }
+
+    .journey-connection--connecting .journey-connection__icon {
+      color: var(--color-warning, #d4a574);
+    }
+
+    .journey-connection--connecting .journey-connection__text {
+      color: var(--color-warning-dark, #b8864e);
+    }
+
+    /* Disconnected state - muted gray */
+    .journey-connection--disconnected {
+      background: var(--connection-bg-disconnected, linear-gradient(135deg,
+        color-mix(in srgb, var(--color-text-muted, #70605a) 8%, transparent) 0%,
+        color-mix(in srgb, var(--color-text-muted, #70605a) 2%, transparent) 100%
+      ));
+      border: 1px solid var(--connection-border-disconnected, color-mix(in srgb, var(--color-text-muted, #70605a) 15%, transparent));
+    }
+    
+    @supports not (background: color-mix(in srgb, red 50%, blue)) {
+      .journey-connection--disconnected {
+        background: linear-gradient(135deg, rgba(112, 96, 90, 0.08) 0%, rgba(112, 96, 90, 0.02) 100%);
+        border-color: rgba(112, 96, 90, 0.15);
+      }
+    }
+
+    .journey-connection--disconnected .journey-connection__icon {
+      color: var(--color-text-muted, #9a8a82);
+    }
+
+    /* Error state - red, but not alarming */
+    .journey-connection--error {
+      background: var(--connection-bg-error, linear-gradient(135deg,
+        color-mix(in srgb, var(--color-error, #c44b4b) 8%, transparent) 0%,
+        color-mix(in srgb, var(--color-error, #c44b4b) 2%, transparent) 100%
+      ));
+      border: 1px solid var(--connection-border-error, color-mix(in srgb, var(--color-error, #c44b4b) 20%, transparent));
+    }
+    
+    @supports not (background: color-mix(in srgb, red 50%, blue)) {
+      .journey-connection--error {
+        background: linear-gradient(135deg, rgba(196, 75, 75, 0.08) 0%, rgba(196, 75, 75, 0.02) 100%);
+        border-color: rgba(196, 75, 75, 0.2);
+      }
+    }
+
+    .journey-connection--error .journey-connection__icon {
+      color: var(--color-error, #c44b4b);
+    }
+
+    .journey-connection--error .journey-connection__text {
+      color: var(--color-error, #c44b4b);
+    }
+
+    /* Connect button */
+    .journey-connect-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2, 8px);
+      padding: var(--space-3, 12px) var(--space-5, 20px);
+      background: var(--persona-primary, #4a6741);
+      color: white;
+      border: none;
+      border-radius: var(--radius-full, 9999px);
+      font-size: var(--text-sm, 0.875rem);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+      flex-shrink: 0;
+    }
+
+    .journey-connect-btn:hover {
+      background: var(--persona-secondary, #3d5a35);
+      transform: scale(1.03);
+    }
+
+    .journey-connect-btn:active {
+      transform: scale(0.98);
+    }
+    
+    .journey-connect-btn:focus-visible {
+      outline: 2px solid var(--color-background-elevated, #fff);
+      outline-offset: 2px;
+    }
+
+    .journey-connect-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Retry button variant */
+    .journey-connect-btn--retry {
+      background: var(--color-error, #c44b4b);
+    }
+
+    .journey-connect-btn--retry:hover {
+      background: var(--color-error-dark, #a33d3d);
+    }
+
+    /* Dark theme */
+    [data-theme="midnight"] .journey-backdrop {
+      background: var(--backdrop-heavy-dark, rgba(8, 8, 12, 0.8));
+    }
+
+    [data-theme="midnight"] .journey-content {
+      background: var(--color-background-elevated, #1a1a1f);
+    }
+
+    [data-theme="midnight"] .journey-title {
+      color: var(--color-text-primary, #faf6f0);
+    }
+
+    [data-theme="midnight"] .journey-milestone--celebrated {
+      background: linear-gradient(135deg, rgba(107, 143, 94, 0.15) 0%, rgba(107, 143, 94, 0.05) 100%);
+      border-color: rgba(107, 143, 94, 0.25);
+    }
+
+    [data-theme="midnight"] .journey-connection--connected {
+      background: linear-gradient(135deg, rgba(107, 143, 94, 0.15) 0%, rgba(107, 143, 94, 0.05) 100%);
+      border-color: rgba(107, 143, 94, 0.3);
+    }
+
+    [data-theme="midnight"] .journey-connection--connected .journey-connection__icon,
+    [data-theme="midnight"] .journey-connection--connected .journey-connection__text {
+      color: var(--persona-primary, #6b8f5e);
+    }
+
+    [data-theme="midnight"] .journey-connection--disconnected {
+      background: linear-gradient(135deg, rgba(122, 122, 122, 0.1) 0%, rgba(122, 122, 122, 0.02) 100%);
+      border-color: rgba(122, 122, 122, 0.2);
+    }
+
+    [data-theme="midnight"] .journey-connection--error {
+      background: linear-gradient(135deg, rgba(224, 96, 96, 0.12) 0%, rgba(224, 96, 96, 0.03) 100%);
+      border-color: rgba(224, 96, 96, 0.25);
+    }
+
+    [data-theme="midnight"] .journey-connection__text {
+      color: var(--color-text-primary, #faf6f0);
+    }
+
+    [data-theme="midnight"] .journey-connection__subtext {
+      color: var(--color-text-secondary, #c0b8b0);
+    }
+
+    [data-theme="midnight"] .journey-connect-btn {
+      background: var(--persona-primary, #6b8f5e);
+    }
+
+    [data-theme="midnight"] .journey-connect-btn:hover {
+      background: var(--persona-secondary, #5a7d4e);
+    }
+
+    /* Dark theme - Progress Overview */
+    [data-theme="midnight"] .journey-progress-ring__bg {
+      stroke: rgba(255, 255, 255, 0.1);
+    }
+
+    [data-theme="midnight"] .journey-progress-ring__fill {
+      stroke: var(--persona-primary, #6b8f5e);
+    }
+
+    [data-theme="midnight"] .journey-progress-ring__percent,
+    [data-theme="midnight"] .journey-stage-name,
+    [data-theme="midnight"] .journey-stat__value {
+      color: var(--color-text-primary, #faf6f0);
+    }
+
+    [data-theme="midnight"] .journey-progress-ring__label,
+    [data-theme="midnight"] .journey-stage-tagline,
+    [data-theme="midnight"] .journey-stat__label,
+    [data-theme="midnight"] .journey-stat__icon,
+    [data-theme="midnight"] .journey-next-stage__req {
+      color: var(--color-text-muted, #a09890);
+    }
+
+    [data-theme="midnight"] .journey-next-stage {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    [data-theme="midnight"] .journey-next-stage--max {
+      background: linear-gradient(135deg, rgba(107, 143, 94, 0.12) 0%, rgba(107, 143, 94, 0.04) 100%);
+    }
+
+    [data-theme="midnight"] .journey-milestones-title {
+      color: var(--color-text-primary, #faf6f0);
+    }
+
+    [data-theme="midnight"] .journey-milestones-header:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    [data-theme="midnight"] .journey-progress-overview {
+      border-bottom-color: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Mobile - sheet animation from bottom */
+    @media (max-width: 640px) {
+      .journey-modal {
+        padding: 0;
+        align-items: flex-end;
+      }
+
+      .journey-content {
+        max-height: 90vh;
+        max-height: 90dvh;
+        border-radius: var(--radius-2xl, 20px) var(--radius-2xl, 20px) 0 0;
+        /* Safe area for notched devices - bottom sheet pattern */
+        padding-bottom: env(safe-area-inset-bottom, 0);
+      }
+
+      .journey-header {
+        padding: var(--space-4, 16px);
+        /* Safe area for Dynamic Island / notch */
+        padding-top: max(var(--space-4, 16px), env(safe-area-inset-top, 0));
+      }
+
+      .journey-body {
+        padding: var(--space-3, 12px) var(--space-4, 16px);
+        /* iOS smooth scrolling */
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+      }
+    }
+    
+    /* iOS Safari specific fixes */
+    @supports (-webkit-touch-callout: none) {
+      @media (max-width: 640px) {
+        .journey-content {
+          max-height: -webkit-fill-available;
+        }
+      }
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .journey-milestone,
+      .journey-close,
+      .journey-share,
+      .journey-connection,
+      .journey-connect-btn,
+      .journey-milestone__progress-bar {
+        transition: none;
+      }
+      
+      .journey-connection__icon--spin svg {
+        animation: none;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
+export const journeyUI = {
+  open: openJourney,
+  close: closeJourney,
+  toggle: toggleJourney,
+  isOpen: () => isOpen,
+};
+
+export default journeyUI;
+

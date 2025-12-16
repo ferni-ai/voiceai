@@ -253,7 +253,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
 
           // Track that we used a cached response
           if (services && typeof services.addTurn === 'function') {
-          services.addTurn('assistant', cached.response);
+            services.addTurn('assistant', cached.response);
           }
           if (userData) {
             userData.lastAgentResponse = cached.response;
@@ -483,20 +483,20 @@ function processFinalTranscript(ctx: TranscriptHandlerContext & { event: Transcr
 
   // Dynamic tool loading based on conversation topic
   if (dynamicToolLoader) {
-  dynamicToolLoader
-    .processMessage(event.transcript)
-    .then((loadedDomains) => {
-      if (loadedDomains.length > 0) {
-        diag.tool('Dynamic domains loaded based on user message', {
-          transcript: event.transcript.slice(0, 50),
-          loadedDomains,
-          totalLoadedDomains: dynamicToolLoader.getLoadedDomains().length,
-        });
-      }
-    })
-    .catch((error) => {
-      getLogger().warn({ error }, 'Failed to process message for dynamic tool loading');
-    });
+    dynamicToolLoader
+      .processMessage(event.transcript)
+      .then((loadedDomains) => {
+        if (loadedDomains.length > 0) {
+          diag.tool('Dynamic domains loaded based on user message', {
+            transcript: event.transcript.slice(0, 50),
+            loadedDomains,
+            totalLoadedDomains: dynamicToolLoader.getLoadedDomains().length,
+          });
+        }
+      })
+      .catch((error) => {
+        getLogger().warn({ error }, 'Failed to process message for dynamic tool loading');
+      });
   }
 
   // Process voice identity
@@ -798,10 +798,10 @@ function processFeedbackCollection(
 
     // Process feedback (synchronous)
     if (autoOptimizer) {
-    try {
-      autoOptimizer.processUserMessage(transcript, feedbackContext, lastToolId);
-    } catch (err) {
-      diag.debug('Feedback processing error', { error: String(err) });
+      try {
+        autoOptimizer.processUserMessage(transcript, feedbackContext, lastToolId);
+      } catch (err) {
+        diag.debug('Feedback processing error', { error: String(err) });
       }
     }
   } catch (feedbackError) {

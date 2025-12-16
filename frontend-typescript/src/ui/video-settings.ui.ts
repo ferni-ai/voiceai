@@ -157,9 +157,9 @@ class VideoSettingsUI {
         config: VideoConfig;
       }>('/api/video/state');
 
-      if (response.success) {
-        this.state = response.state;
-        this.config = response.config;
+      if (response.data?.success) {
+        this.state = response.data.state;
+        this.config = response.data.config;
         this.renderContent();
       } else {
         this.renderError('Unable to load video settings');

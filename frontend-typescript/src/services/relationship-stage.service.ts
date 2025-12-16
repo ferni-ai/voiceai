@@ -360,7 +360,7 @@ function pickDailyRandom<T>(items: T[]): T {
   const dayOfYear = Math.floor(
     (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24)
   );
-  return items[dayOfYear % items.length]!;
+  return items[dayOfYear % items.length];
 }
 
 // ============================================================================
@@ -708,7 +708,7 @@ class RelationshipStageService {
    */
   getRelationshipComment(): string {
     const comments = RELATIONSHIP_COMMENTS[this.data.stage];
-    return comments[Math.floor(Math.random() * comments.length)]!;
+    return comments[Math.floor(Math.random() * comments.length)];
   }
 
   /**
@@ -820,7 +820,7 @@ class RelationshipStageService {
       return { nextStage: null, progress: 1, requirement: "You've reached the deepest level!" };
     }
 
-    const nextStage = stageOrder[currentIndex + 1]!;
+    const nextStage = stageOrder[currentIndex + 1];
     const threshold = STAGE_THRESHOLDS[nextStage];
     const metrics = this.data.metrics;
 

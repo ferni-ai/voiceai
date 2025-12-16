@@ -99,7 +99,7 @@ const POST_CONVERSATION_FORECASTS: Record<string, EmotionalForecast> = {
     supportSuggestions: [
       "Write down why you decided this while it's fresh",
       'Remember: doubt is normal, not a sign',
-      "We can talk through it if the wobbles come",
+      'We can talk through it if the wobbles come',
     ],
   },
   vulnerability_shared: {
@@ -108,7 +108,7 @@ const POST_CONVERSATION_FORECASTS: Record<string, EmotionalForecast> = {
     timing: 'tonight',
     reason: 'Vulnerability hangover is real',
     acknowledgment:
-      "Sometimes after sharing something big, we feel exposed. If that happens, know that what you shared was safe with me.",
+      'Sometimes after sharing something big, we feel exposed. If that happens, know that what you shared was safe with me.',
     supportSuggestions: [
       'This vulnerability was brave, not weak',
       "I'm honored you trusted me",
@@ -215,7 +215,11 @@ export function generateForecast(context: ForecastContext): EmotionalForecast | 
   }
 
   // Check for upcoming confrontation
-  const confrontationIndicators = ['going to tell', 'need to talk to', 'having a conversation with'];
+  const confrontationIndicators = [
+    'going to tell',
+    'need to talk to',
+    'having a conversation with',
+  ];
   const hasConfrontation = confrontationIndicators.some((ind) =>
     context.upcomingEvents?.some((e) => e.toLowerCase().includes(ind))
   );

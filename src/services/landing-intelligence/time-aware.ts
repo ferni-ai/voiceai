@@ -95,7 +95,8 @@ const TIME_CONTENT: Record<TimeMode, TimeAwareContent> = {
     mode: 'early-morning',
     hero: {
       tagline: 'Good morning.',
-      headline: 'Start your day with someone <span class="hero__headline-accent">in your corner.</span>',
+      headline:
+        'Start your day with someone <span class="hero__headline-accent">in your corner.</span>',
       subhead:
         'A quick check-in before the chaos begins. Set intentions, process yesterday, or just breathe together.',
     },
@@ -159,11 +160,11 @@ const TIME_CONTENT: Record<TimeMode, TimeAwareContent> = {
     mode: 'night',
     hero: {
       tagline: 'Winding down?',
-      headline: "Let's <span class=\"hero__headline-accent\">reflect</span> on today.",
+      headline: 'Let\'s <span class="hero__headline-accent">reflect</span> on today.',
       subhead:
-        'Before you sleep, take a moment. What went well? What\'s on your mind? I\'m here to listen.',
+        "Before you sleep, take a moment. What went well? What's on your mind? I'm here to listen.",
     },
-    chatGreeting: 'Night owl? I\'m here if you need to process the day.',
+    chatGreeting: "Night owl? I'm here if you need to process the day.",
     emphasizeSection: 'journey',
     visualMode: 'dark',
     backgroundTreatment: 'calming',
@@ -207,7 +208,8 @@ const SPECIAL_OCCASIONS: SpecialOccasion[] = [
     content: {
       hero: {
         tagline: 'New Year, Same Me.',
-        headline: "Ready to be the <span class=\"hero__headline-accent\">best you</span> you've ever been?",
+        headline:
+          'Ready to be the <span class="hero__headline-accent">best you</span> you\'ve ever been?',
         subhead:
           "New year's resolutions work better with someone who remembers them. Let's make this year different.",
       },
@@ -223,7 +225,7 @@ const SPECIAL_OCCASIONS: SpecialOccasion[] = [
     content: {
       hero: {
         tagline: 'Monday again.',
-        headline: "Let's make this week <span class=\"hero__headline-accent\">count.</span>",
+        headline: 'Let\'s make this week <span class="hero__headline-accent">count.</span>',
         subhead:
           'Start your week with intention. What do you want to accomplish? What support do you need?',
       },
@@ -239,8 +241,10 @@ const SPECIAL_OCCASIONS: SpecialOccasion[] = [
     content: {
       hero: {
         tagline: 'Friday made it.',
-        headline: "You survived the week. <span class=\"hero__headline-accent\">Let's celebrate.</span>",
-        subhead: 'Before the weekend starts, take a moment. What are you proud of? What will you let go?',
+        headline:
+          'You survived the week. <span class="hero__headline-accent">Let\'s celebrate.</span>',
+        subhead:
+          'Before the weekend starts, take a moment. What are you proud of? What will you let go?',
       },
       chatGreeting: "It's Friday! How are you feeling about this week?",
     },
@@ -254,7 +258,7 @@ const SPECIAL_OCCASIONS: SpecialOccasion[] = [
     content: {
       hero: {
         tagline: 'Sunday scaries?',
-        headline: "Let's turn anxiety into <span class=\"hero__headline-accent\">a plan.</span>",
+        headline: 'Let\'s turn anxiety into <span class="hero__headline-accent">a plan.</span>',
         subhead:
           "That knot in your stomach about Monday? We can work through it together. You're more ready than you think.",
       },
@@ -303,4 +307,3 @@ export function getTimeAwareClasses(content: TimeAwareContent): string[] {
 
   return classes;
 }
-

@@ -198,9 +198,7 @@ describe('Cache Warming Service', () => {
     });
 
     it('should return default personas on error', async () => {
-      const { discoverBundles } = vi.mocked(
-        await import('../../personas/bundles/index.js')
-      );
+      const { discoverBundles } = vi.mocked(await import('../../personas/bundles/index.js'));
       discoverBundles.mockRejectedValueOnce(new Error('Discovery failed'));
 
       const personas = await getWarmablePersonas();

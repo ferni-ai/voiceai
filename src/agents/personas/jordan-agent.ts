@@ -139,8 +139,7 @@ function buildHandoffTools(): ToolSet {
     }),
 
     handoffToMaya: llm.tool({
-      description:
-        'Transfer to Maya for building habits around life goals.',
+      description: 'Transfer to Maya for building habits around life goals.',
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { MayaAgent } = await import('./maya-agent.js');
@@ -231,9 +230,7 @@ Keep responses enthusiastic and celebratory. You make people feel like their lif
       tools: allTools,
     });
 
-    process.stderr.write(
-      `[JordanAgent] Initialized with ${Object.keys(allTools).length} tools\n`
-    );
+    process.stderr.write(`[JordanAgent] Initialized with ${Object.keys(allTools).length} tools\n`);
   }
 
   async onEnter(): Promise<void> {

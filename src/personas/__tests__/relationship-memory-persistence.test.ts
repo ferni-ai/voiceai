@@ -103,7 +103,9 @@ const createMockFirestore = () => {
 // TEST FIXTURES
 // ============================================================================
 
-function createTestRelationshipMemory(overrides: Partial<RelationshipMemory> = {}): RelationshipMemory {
+function createTestRelationshipMemory(
+  overrides: Partial<RelationshipMemory> = {}
+): RelationshipMemory {
   const now = new Date();
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
@@ -290,7 +292,8 @@ describe('RelationshipMemoryPersistence', () => {
   describe('Serialization', () => {
     it('should serialize Date objects to ISO strings', async () => {
       // Import the module fresh
-      const { RelationshipMemoryPersistence } = await import('../relationship-memory/persistence.js');
+      const { RelationshipMemoryPersistence } =
+        await import('../relationship-memory/persistence.js');
 
       const mockFirestore = createMockFirestore();
       const persistence = new RelationshipMemoryPersistence(mockFirestore as any);
@@ -314,7 +317,8 @@ describe('RelationshipMemoryPersistence', () => {
     });
 
     it('should deserialize ISO strings back to Date objects', async () => {
-      const { RelationshipMemoryPersistence } = await import('../relationship-memory/persistence.js');
+      const { RelationshipMemoryPersistence } =
+        await import('../relationship-memory/persistence.js');
 
       const mockFirestore = createMockFirestore();
       const persistence = new RelationshipMemoryPersistence(mockFirestore as any);
@@ -345,7 +349,8 @@ describe('RelationshipMemoryPersistence', () => {
     });
 
     it('should handle undefined optional dates', async () => {
-      const { RelationshipMemoryPersistence } = await import('../relationship-memory/persistence.js');
+      const { RelationshipMemoryPersistence } =
+        await import('../relationship-memory/persistence.js');
 
       const mockFirestore = createMockFirestore();
       const persistence = new RelationshipMemoryPersistence(mockFirestore as any);
@@ -391,7 +396,8 @@ describe('RelationshipMemoryPersistence', () => {
 
   describe('CRUD Operations', () => {
     it('should save and load a relationship memory', async () => {
-      const { RelationshipMemoryPersistence } = await import('../relationship-memory/persistence.js');
+      const { RelationshipMemoryPersistence } =
+        await import('../relationship-memory/persistence.js');
 
       const mockFirestore = createMockFirestore();
       const persistence = new RelationshipMemoryPersistence(mockFirestore as any);
@@ -410,7 +416,8 @@ describe('RelationshipMemoryPersistence', () => {
     });
 
     it('should return null for non-existent memory', async () => {
-      const { RelationshipMemoryPersistence } = await import('../relationship-memory/persistence.js');
+      const { RelationshipMemoryPersistence } =
+        await import('../relationship-memory/persistence.js');
 
       const mockFirestore = createMockFirestore();
       const persistence = new RelationshipMemoryPersistence(mockFirestore as any);
@@ -421,7 +428,8 @@ describe('RelationshipMemoryPersistence', () => {
     });
 
     it('should delete a relationship memory', async () => {
-      const { RelationshipMemoryPersistence } = await import('../relationship-memory/persistence.js');
+      const { RelationshipMemoryPersistence } =
+        await import('../relationship-memory/persistence.js');
 
       const mockFirestore = createMockFirestore();
       const persistence = new RelationshipMemoryPersistence(mockFirestore as any);
@@ -442,7 +450,8 @@ describe('RelationshipMemoryPersistence', () => {
     });
 
     it('should check if relationship exists', async () => {
-      const { RelationshipMemoryPersistence } = await import('../relationship-memory/persistence.js');
+      const { RelationshipMemoryPersistence } =
+        await import('../relationship-memory/persistence.js');
 
       const mockFirestore = createMockFirestore();
       const persistence = new RelationshipMemoryPersistence(mockFirestore as any);
@@ -461,7 +470,8 @@ describe('RelationshipMemoryPersistence', () => {
     });
 
     it('should load all memories for a user', async () => {
-      const { RelationshipMemoryPersistence } = await import('../relationship-memory/persistence.js');
+      const { RelationshipMemoryPersistence } =
+        await import('../relationship-memory/persistence.js');
 
       const mockFirestore = createMockFirestore();
       const persistence = new RelationshipMemoryPersistence(mockFirestore as any);
@@ -480,7 +490,7 @@ describe('RelationshipMemoryPersistence', () => {
 
       expect(allMemories.length).toBe(3);
 
-      const personaIds = allMemories.map(m => m.personaId);
+      const personaIds = allMemories.map((m) => m.personaId);
       expect(personaIds).toContain('ferni');
       expect(personaIds).toContain('peter-john');
       expect(personaIds).toContain('maya-santos');
@@ -489,7 +499,8 @@ describe('RelationshipMemoryPersistence', () => {
 
   describe('Edge Cases', () => {
     it('should handle empty arrays', async () => {
-      const { RelationshipMemoryPersistence } = await import('../relationship-memory/persistence.js');
+      const { RelationshipMemoryPersistence } =
+        await import('../relationship-memory/persistence.js');
 
       const mockFirestore = createMockFirestore();
       const persistence = new RelationshipMemoryPersistence(mockFirestore as any);
@@ -513,7 +524,8 @@ describe('RelationshipMemoryPersistence', () => {
     });
 
     it('should update existing memory with merge', async () => {
-      const { RelationshipMemoryPersistence } = await import('../relationship-memory/persistence.js');
+      const { RelationshipMemoryPersistence } =
+        await import('../relationship-memory/persistence.js');
 
       const mockFirestore = createMockFirestore();
       const persistence = new RelationshipMemoryPersistence(mockFirestore as any);
@@ -532,12 +544,19 @@ describe('RelationshipMemoryPersistence', () => {
     });
 
     it('should handle all relationship stages', async () => {
-      const { RelationshipMemoryPersistence } = await import('../relationship-memory/persistence.js');
+      const { RelationshipMemoryPersistence } =
+        await import('../relationship-memory/persistence.js');
 
       const mockFirestore = createMockFirestore();
       const persistence = new RelationshipMemoryPersistence(mockFirestore as any);
 
-      const stages: RelationshipStage[] = ['stranger', 'acquaintance', 'friend', 'trusted_advisor', 'inner_circle'];
+      const stages: RelationshipStage[] = [
+        'stranger',
+        'acquaintance',
+        'friend',
+        'trusted_advisor',
+        'inner_circle',
+      ];
 
       for (const stage of stages) {
         const memory = createTestRelationshipMemory({
@@ -552,7 +571,8 @@ describe('RelationshipMemoryPersistence', () => {
     });
 
     it('should preserve complex emotional trajectory data', async () => {
-      const { RelationshipMemoryPersistence } = await import('../relationship-memory/persistence.js');
+      const { RelationshipMemoryPersistence } =
+        await import('../relationship-memory/persistence.js');
 
       const mockFirestore = createMockFirestore();
       const persistence = new RelationshipMemoryPersistence(mockFirestore as any);
@@ -560,14 +580,37 @@ describe('RelationshipMemoryPersistence', () => {
       const memory = createTestRelationshipMemory({
         emotionalTrajectory: {
           recentSessions: [
-            { sessionNumber: 1, date: new Date('2024-01-01'), overallMood: 'positive', energyLevel: 'high', topics: ['goals'] },
-            { sessionNumber: 2, date: new Date('2024-01-02'), overallMood: 'neutral', energyLevel: 'medium', topics: ['work'] },
-            { sessionNumber: 3, date: new Date('2024-01-03'), overallMood: 'struggling', energyLevel: 'low', topics: ['stress'] },
+            {
+              sessionNumber: 1,
+              date: new Date('2024-01-01'),
+              overallMood: 'positive',
+              energyLevel: 'high',
+              topics: ['goals'],
+            },
+            {
+              sessionNumber: 2,
+              date: new Date('2024-01-02'),
+              overallMood: 'neutral',
+              energyLevel: 'medium',
+              topics: ['work'],
+            },
+            {
+              sessionNumber: 3,
+              date: new Date('2024-01-03'),
+              overallMood: 'struggling',
+              energyLevel: 'low',
+              topics: ['stress'],
+            },
           ],
           trendDirection: 'declining',
           trendConfidence: 0.6,
           concerns: [
-            { concern: 'burnout', severity: 'high', firstNoticed: new Date('2024-01-01'), addressed: false },
+            {
+              concern: 'burnout',
+              severity: 'high',
+              firstNoticed: new Date('2024-01-01'),
+              addressed: false,
+            },
           ],
           growthAreas: [
             { area: 'self-care', firstNoticed: new Date('2024-01-02'), progressLevel: 'emerging' },

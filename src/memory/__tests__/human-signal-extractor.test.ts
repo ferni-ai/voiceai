@@ -5,10 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  extractHumanSignals,
-  mergeSignalsIntoMemory,
-} from '../human-signal-extractor.js';
+import { extractHumanSignals, mergeSignalsIntoMemory } from '../human-signal-extractor.js';
 import type { HumanMemory } from '../../types/human-memory.js';
 
 // ============================================================================
@@ -34,9 +31,7 @@ const createContext = (overrides = {}) => ({
 
 describe('Date Extraction', () => {
   it('should extract birthday with month name format', () => {
-    const turns: TestTurn[] = [
-      { role: 'user', content: 'My birthday is March 15' },
-    ];
+    const turns: TestTurn[] = [{ role: 'user', content: 'My birthday is March 15' }];
 
     const result = extractHumanSignals(turns, createContext());
 
@@ -49,9 +44,7 @@ describe('Date Extraction', () => {
   });
 
   it('should extract birthday with slash format', () => {
-    const turns: TestTurn[] = [
-      { role: 'user', content: 'My birthday is on 7/4' },
-    ];
+    const turns: TestTurn[] = [{ role: 'user', content: 'My birthday is on 7/4' }];
 
     const result = extractHumanSignals(turns, createContext());
 
@@ -64,9 +57,7 @@ describe('Date Extraction', () => {
   });
 
   it('should extract anniversary date', () => {
-    const turns: TestTurn[] = [
-      { role: 'user', content: 'Our anniversary is June 20' },
-    ];
+    const turns: TestTurn[] = [{ role: 'user', content: 'Our anniversary is June 20' }];
 
     const result = extractHumanSignals(turns, createContext());
 
@@ -79,13 +70,11 @@ describe('Date Extraction', () => {
   });
 
   it('should mark loss anniversaries as sensitive', () => {
-    const turns: TestTurn[] = [
-      { role: 'user', content: "She passed away on October 5" },
-    ];
+    const turns: TestTurn[] = [{ role: 'user', content: 'She passed away on October 5' }];
 
     const result = extractHumanSignals(turns, createContext());
 
-    const lossAnniversaries = result.importantDates.filter(d => d.type === 'loss_anniversary');
+    const lossAnniversaries = result.importantDates.filter((d) => d.type === 'loss_anniversary');
     expect(lossAnniversaries.length).toBeGreaterThanOrEqual(1);
     expect(lossAnniversaries[0]).toMatchObject({
       type: 'loss_anniversary',
@@ -95,13 +84,11 @@ describe('Date Extraction', () => {
   });
 
   it('should extract loss anniversary with subject', () => {
-    const turns: TestTurn[] = [
-      { role: 'user', content: "My mom passed away on March 15" },
-    ];
+    const turns: TestTurn[] = [{ role: 'user', content: 'My mom passed away on March 15' }];
 
     const result = extractHumanSignals(turns, createContext());
 
-    const lossAnniversaries = result.importantDates.filter(d => d.type === 'loss_anniversary');
+    const lossAnniversaries = result.importantDates.filter((d) => d.type === 'loss_anniversary');
     expect(lossAnniversaries.length).toBeGreaterThanOrEqual(1);
     expect(lossAnniversaries[0]).toMatchObject({
       type: 'loss_anniversary',
@@ -110,13 +97,11 @@ describe('Date Extraction', () => {
   });
 
   it('should extract loss anniversary with "I lost"', () => {
-    const turns: TestTurn[] = [
-      { role: 'user', content: "I lost my father in 2019" },
-    ];
+    const turns: TestTurn[] = [{ role: 'user', content: 'I lost my father in 2019' }];
 
     const result = extractHumanSignals(turns, createContext());
 
-    const lossAnniversaries = result.importantDates.filter(d => d.type === 'loss_anniversary');
+    const lossAnniversaries = result.importantDates.filter((d) => d.type === 'loss_anniversary');
     expect(lossAnniversaries.length).toBeGreaterThanOrEqual(1);
     expect(lossAnniversaries[0]).toMatchObject({
       type: 'loss_anniversary',
@@ -131,9 +116,7 @@ describe('Date Extraction', () => {
 
 describe('Value Extraction', () => {
   it('should extract "family first" value', () => {
-    const turns: TestTurn[] = [
-      { role: 'user', content: 'For me, family comes first, always.' },
-    ];
+    const turns: TestTurn[] = [{ role: 'user', content: 'For me, family comes first, always.' }];
 
     const result = extractHumanSignals(turns, createContext());
 
@@ -165,14 +148,12 @@ describe('Value Extraction', () => {
 
 describe('Dream Extraction', () => {
   it('should extract travel dreams', () => {
-    const turns: TestTurn[] = [
-      { role: 'user', content: 'I want to travel to Japan' },
-    ];
+    const turns: TestTurn[] = [{ role: 'user', content: 'I want to travel to Japan' }];
 
     const result = extractHumanSignals(turns, createContext());
 
     // Should extract at least one travel dream
-    const travelDreams = result.dreams.filter(d => d.category === 'travel');
+    const travelDreams = result.dreams.filter((d) => d.category === 'travel');
     expect(travelDreams.length).toBeGreaterThanOrEqual(1);
     expect(travelDreams[0].description).toContain('Japan');
   });
@@ -191,9 +172,7 @@ describe('Dream Extraction', () => {
   });
 
   it('should extract learning aspirations', () => {
-    const turns: TestTurn[] = [
-      { role: 'user', content: 'I want to learn how to play piano' },
-    ];
+    const turns: TestTurn[] = [{ role: 'user', content: 'I want to learn how to play piano' }];
 
     const result = extractHumanSignals(turns, createContext());
 
@@ -210,9 +189,7 @@ describe('Dream Extraction', () => {
 
 describe('Fear Extraction', () => {
   it('should extract explicit fears', () => {
-    const turns: TestTurn[] = [
-      { role: 'user', content: "I'm afraid of failing my kids" },
-    ];
+    const turns: TestTurn[] = [{ role: 'user', content: "I'm afraid of failing my kids" }];
 
     const result = extractHumanSignals(turns, createContext());
 
@@ -222,9 +199,7 @@ describe('Fear Extraction', () => {
   });
 
   it('should extract worries', () => {
-    const turns: TestTurn[] = [
-      { role: 'user', content: 'I worry about money all the time' },
-    ];
+    const turns: TestTurn[] = [{ role: 'user', content: 'I worry about money all the time' }];
 
     const result = extractHumanSignals(turns, createContext());
 
@@ -239,9 +214,7 @@ describe('Fear Extraction', () => {
 
 describe('Stress Trigger Extraction', () => {
   it('should extract work stress', () => {
-    const turns: TestTurn[] = [
-      { role: 'user', content: 'Work is stressing me out lately' },
-    ];
+    const turns: TestTurn[] = [{ role: 'user', content: 'Work is stressing me out lately' }];
 
     const result = extractHumanSignals(turns, createContext());
 
@@ -253,9 +226,7 @@ describe('Stress Trigger Extraction', () => {
   });
 
   it('should extract financial stress', () => {
-    const turns: TestTurn[] = [
-      { role: 'user', content: 'Money is worrying me right now' },
-    ];
+    const turns: TestTurn[] = [{ role: 'user', content: 'Money is worrying me right now' }];
 
     const result = extractHumanSignals(turns, createContext());
 
@@ -312,9 +283,7 @@ describe('Comfort Pattern Extraction', () => {
   });
 
   it('should extract presence/listening as comfort type', () => {
-    const turns: TestTurn[] = [
-      { role: 'user', content: 'I just need someone to listen' },
-    ];
+    const turns: TestTurn[] = [{ role: 'user', content: 'I just need someone to listen' }];
 
     const result = extractHumanSignals(turns, createContext());
 
@@ -329,9 +298,7 @@ describe('Comfort Pattern Extraction', () => {
 
 describe('Avoidance Detection', () => {
   it('should detect topic avoidance requests', () => {
-    const turns: TestTurn[] = [
-      { role: 'user', content: "I'd rather not talk about my father" },
-    ];
+    const turns: TestTurn[] = [{ role: 'user', content: "I'd rather not talk about my father" }];
 
     const result = extractHumanSignals(turns, createContext());
 
@@ -343,9 +310,7 @@ describe('Avoidance Detection', () => {
   });
 
   it('should detect "don\'t want to discuss" patterns', () => {
-    const turns: TestTurn[] = [
-      { role: 'user', content: "I don't want to talk about the divorce" },
-    ];
+    const turns: TestTurn[] = [{ role: 'user', content: "I don't want to talk about the divorce" }];
 
     const result = extractHumanSignals(turns, createContext());
 
@@ -607,4 +572,3 @@ describe('Edge Cases', () => {
     expect(result.identity?.values).toHaveLength(1);
   });
 });
-

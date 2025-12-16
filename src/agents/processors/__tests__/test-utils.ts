@@ -445,7 +445,10 @@ export const flushPromises = () => new Promise((resolve) => setImmediate(resolve
 /**
  * Create an emotional user message scenario
  */
-export const createEmotionalScenario = (emotion: string, intensity: number): { analysis: ReturnType<typeof createMockAnalysis>; services: Record<string, unknown> } => {
+export const createEmotionalScenario = (
+  emotion: string,
+  intensity: number
+): { analysis: ReturnType<typeof createMockAnalysis>; services: Record<string, unknown> } => {
   const analysis = createMockAnalysis({
     emotion: {
       primary: emotion,
@@ -467,4 +470,3 @@ export const createEmotionalScenario = (emotion: string, intensity: number): { a
     services: createMockServices({ analyze: vi.fn(() => analysis) }),
   };
 };
-

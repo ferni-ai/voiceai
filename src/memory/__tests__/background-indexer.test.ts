@@ -73,9 +73,8 @@ describe('Background Indexer', () => {
 
   describe('startBackgroundIndexing', () => {
     it('should not block when starting', async () => {
-      const { startBackgroundIndexing, isIndexingInProgress } = await import(
-        '../background-indexer.js'
-      );
+      const { startBackgroundIndexing, isIndexingInProgress } =
+        await import('../background-indexer.js');
 
       const mockStore = {
         initialize: vi.fn(),
@@ -95,9 +94,8 @@ describe('Background Indexer', () => {
     });
 
     it('should not start if already indexing', async () => {
-      const { startBackgroundIndexing, isIndexingInProgress, resetIndexingState } = await import(
-        '../background-indexer.js'
-      );
+      const { startBackgroundIndexing, isIndexingInProgress, resetIndexingState } =
+        await import('../background-indexer.js');
 
       resetIndexingState();
 
@@ -156,9 +154,8 @@ describe('Background Indexer', () => {
 
   describe('Index status persistence', () => {
     it('should handle missing Firestore gracefully', async () => {
-      const { startBackgroundIndexing, resetIndexingState } = await import(
-        '../background-indexer.js'
-      );
+      const { startBackgroundIndexing, resetIndexingState } =
+        await import('../background-indexer.js');
 
       resetIndexingState();
 
@@ -231,4 +228,3 @@ describe('Background Indexer', () => {
     });
   });
 });
-

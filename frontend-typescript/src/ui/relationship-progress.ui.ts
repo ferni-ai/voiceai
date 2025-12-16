@@ -1172,7 +1172,7 @@ function updateProgressPanel(): void {
   const stage = relationshipStageService.getStage();
   const metrics = relationshipStageService.getMetrics();
   const progress = relationshipStageService.getProgressToNextStage();
-  const stageInfo = STAGE_DESCRIPTIONS[stage] ?? STAGE_DESCRIPTIONS['first-meeting']!;
+  const stageInfo = STAGE_DESCRIPTIONS[stage] ?? STAGE_DESCRIPTIONS['first-meeting'];
   
   // Update stage info
   const stageName = progressPanel.querySelector('.stage-name');

@@ -85,12 +85,12 @@ async function getAccessToken(): Promise<string> {
           headers: { 'Metadata-Flavor': 'Google' },
         }
       );
-      
+
       if (!response.ok) {
         throw new Error(`Metadata server error: ${response.status}`);
       }
-      
-      const data = await response.json() as { access_token: string };
+
+      const data = (await response.json()) as { access_token: string };
       return data.access_token;
     } catch (error) {
       log.error({ error }, 'Failed to get token from metadata server');
@@ -126,9 +126,9 @@ async function getServiceInfo(
   projectId: string
 ): Promise<{ latestRevision: string; trafficTarget: string } | null> {
   const token = await getAccessToken();
-  
+
   const url = `https://${region}-run.googleapis.com/apis/serving.knative.dev/v1/namespaces/${projectId}/services/${serviceName}`;
-  
+
   const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -143,7 +143,7 @@ async function getServiceInfo(
     throw new Error(`Failed to get service info: ${response.status}`);
   }
 
-  const service = await response.json() as {
+  const service = (await response.json()) as {
     status?: {
       latestReadyRevisionName?: string;
       traffic?: Array<{ revisionName: string; percent: number }>;
@@ -166,10 +166,10 @@ async function triggerNewRevision(
   reason: string
 ): Promise<string> {
   const token = await getAccessToken();
-  
+
   // Get current service
   const getUrl = `https://${region}-run.googleapis.com/apis/serving.knative.dev/v1/namespaces/${projectId}/services/${serviceName}`;
-  
+
   const getResponse = await fetch(getUrl, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -181,8 +181,8 @@ async function triggerNewRevision(
     throw new Error(`Failed to get service: ${getResponse.status}`);
   }
 
-  const service = await getResponse.json() as {
-    metadata: { 
+  const service = (await getResponse.json()) as {
+    metadata: {
       name: string;
       resourceVersion: string;
       annotations?: Record<string, string>;
@@ -203,7 +203,7 @@ async function triggerNewRevision(
   if (!service.spec.template.metadata.annotations) {
     service.spec.template.metadata.annotations = {};
   }
-  
+
   service.spec.template.metadata.annotations['client.knative.dev/user-image'] = timestamp;
   service.spec.template.metadata.annotations['run.googleapis.com/restart-timestamp'] = timestamp;
   service.spec.template.metadata.annotations['run.googleapis.com/restart-reason'] = reason;
@@ -223,10 +223,10 @@ async function triggerNewRevision(
     throw new Error(`Failed to update service: ${updateResponse.status} - ${errorText}`);
   }
 
-  const updated = await updateResponse.json() as {
+  const updated = (await updateResponse.json()) as {
     status?: { latestCreatedRevisionName?: string };
   };
-  
+
   return updated.status?.latestCreatedRevisionName || 'unknown';
 }
 
@@ -242,10 +242,10 @@ async function waitForRevisionReady(
 ): Promise<boolean> {
   const token = await getAccessToken();
   const startTime = Date.now();
-  
+
   while (Date.now() - startTime < timeoutMs) {
     const url = `https://${region}-run.googleapis.com/apis/serving.knative.dev/v1/namespaces/${projectId}/revisions/${revisionName}`;
-    
+
     try {
       const response = await fetch(url, {
         headers: {
@@ -255,13 +255,13 @@ async function waitForRevisionReady(
       });
 
       if (response.ok) {
-        const revision = await response.json() as ServiceRevision;
+        const revision = (await response.json()) as ServiceRevision;
         const readyCondition = revision.conditions?.find((c) => c.type === 'Ready');
-        
+
         if (readyCondition?.status === 'True') {
           return true;
         }
-        
+
         if (readyCondition?.status === 'False') {
           log.error({ revisionName, readyCondition }, 'Revision failed to become ready');
           return false;
@@ -284,7 +284,7 @@ async function waitForRevisionReady(
 
 /**
  * Restart a Cloud Run service
- * 
+ *
  * This triggers a rolling restart by deploying a new revision
  * with the same container image.
  */
@@ -305,7 +305,7 @@ export async function restartService(options: RestartOptions): Promise<RestartRe
   if (!force && lastRestart && Date.now() - lastRestart < COOLDOWN_MS) {
     const waitTime = Math.ceil((COOLDOWN_MS - (Date.now() - lastRestart)) / 1000);
     log.warn({ serviceName, waitTime }, 'Service restart in cooldown');
-    
+
     return {
       success: false,
       serviceName,
@@ -332,7 +332,7 @@ export async function restartService(options: RestartOptions): Promise<RestartRe
 
     // Wait for new revision to be ready
     const isReady = await waitForRevisionReady(serviceName, newRevision, region, projectId);
-    
+
     if (!isReady) {
       throw new Error(`New revision ${newRevision} failed to become ready`);
     }
@@ -363,18 +363,15 @@ export async function restartService(options: RestartOptions): Promise<RestartRe
 
     // Send notification
     if (notify) {
-      handleCircuitStateChange(
-        `service:${serviceName}`,
-        'open',
-        'closed',
-        { successRate: `Restarted: ${reason} (new revision: ${newRevision})` }
-      );
+      handleCircuitStateChange(`service:${serviceName}`, 'open', 'closed', {
+        successRate: `Restarted: ${reason} (new revision: ${newRevision})`,
+      });
     }
 
     return result;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    
+
     log.error({ serviceName, error: errorMessage }, 'Service restart failed');
 
     // Record in history
@@ -390,12 +387,9 @@ export async function restartService(options: RestartOptions): Promise<RestartRe
 
     // Send failure notification
     if (notify) {
-      handleCircuitStateChange(
-        `restart:${serviceName}`,
-        'closed',
-        'open',
-        { lastError: `Restart failed (${reason}): ${errorMessage}` }
-      );
+      handleCircuitStateChange(`restart:${serviceName}`, 'closed', 'open', {
+        lastError: `Restart failed (${reason}): ${errorMessage}`,
+      });
     }
 
     return {
@@ -421,7 +415,7 @@ export function canRestart(serviceName: string): boolean {
 export function getCooldownRemaining(serviceName: string): number {
   const lastRestart = restartCooldowns.get(serviceName);
   if (!lastRestart) return 0;
-  
+
   const remaining = COOLDOWN_MS - (Date.now() - lastRestart);
   return Math.max(0, Math.ceil(remaining / 1000));
 }
@@ -473,7 +467,10 @@ export async function handleCriticalFailure(
     return null;
   }
 
-  log.warn({ serviceName, error: errorStr, context }, 'Critical error detected, initiating restart');
+  log.warn(
+    { serviceName, error: errorStr, context },
+    'Critical error detected, initiating restart'
+  );
 
   return restartService({
     serviceName,
@@ -494,14 +491,13 @@ export function setupAutoRestart(serviceName: string): void {
 
   process.on('uncaughtException', async (error) => {
     log.error({ error: error.message, stack: error.stack }, 'Uncaught exception');
-    
+
     // Try to restart (this process will be replaced)
     await handleCriticalFailure(serviceName, error);
-    
+
     // Exit after restart triggered
     process.exit(1);
   });
 
   log.info({ serviceName }, 'Auto-restart handler configured');
 }
-

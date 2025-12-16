@@ -7,10 +7,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../../utils/session-registry.js';
 import { predictIntent } from './patterns.js';
 import type { AnticipatedResponse, CacheStats, CachedPattern, IntentCategory } from './types.js';
 
@@ -309,4 +306,3 @@ export function resetResponseAnticipationService(sessionId: string): void {
 export function getActiveResponseAnticipationCount(): number {
   return responseAnticipationRegistry.getActiveCount();
 }
-

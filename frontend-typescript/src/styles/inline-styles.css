@@ -9357,12 +9357,13 @@ body {
 }
 
 /* Avatar hungry state - when agent is dragged over the coach area */
-.avatar-container.avatar-hungry {
+/* BUG FIX: Class is added to #coach, not .avatar-container */
+#coach.avatar-hungry .avatar-container {
   filter: drop-shadow(0 0 30px rgba(196, 162, 101, 0.6));
 }
 
 /* Large glowing ring around entire avatar area */
-.avatar-container.avatar-hungry::before {
+#coach.avatar-hungry .avatar-container::before {
   content: '';
   position: absolute;
   inset: -30px;
@@ -9377,7 +9378,7 @@ body {
   pointer-events: none;
 }
 
-.avatar-container.avatar-hungry::after {
+#coach.avatar-hungry .avatar-container::after {
   content: '';
   position: absolute;
   inset: -20px;
@@ -9413,12 +9414,12 @@ body {
 }
 
 /* Avatar eating state - flash of satisfaction */
-.avatar-container.avatar-eating {
+#coach.avatar-eating .avatar-container {
   filter: drop-shadow(0 0 40px rgba(74, 103, 65, 0.7));
 }
 
-.avatar-container.avatar-eating::before,
-.avatar-container.avatar-eating::after {
+#coach.avatar-eating .avatar-container::before,
+#coach.avatar-eating .avatar-container::after {
   display: none;
 }
 
@@ -9427,11 +9428,11 @@ body {
   color: var(--color-text-muted, rgba(44, 37, 32, 0.4));
 }
 
-[data-theme='zen'] .avatar-container.avatar-hungry::after {
+[data-theme='zen'] #coach.avatar-hungry .avatar-container::after {
   border-color: var(--color-ferni, #4a6741);
 }
 
-[data-theme='zen'] .avatar-container.avatar-hungry::before {
+[data-theme='zen'] #coach.avatar-hungry .avatar-container::before {
   background: radial-gradient(
     circle,
     rgba(74, 103, 65, 0.15) 0%,

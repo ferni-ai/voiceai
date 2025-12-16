@@ -72,36 +72,38 @@ const ICONS = {
 // PERSONA COLORS
 // ============================================================================
 
+// Persona colors - use CSS variables from data-persona attribute
+// See design-system/tokens/colors.json for source of truth
 const PERSONA_COLORS: Record<string, { primary: string; secondary: string; tint: string }> = {
   ferni: {
-    primary: 'var(--persona-ferni-primary, #4a6741)',
-    secondary: 'var(--persona-ferni-secondary, #3d5a35)',
-    tint: 'rgba(74, 103, 65, 0.1)',
+    primary: 'var(--persona-primary, #4a6741)',
+    secondary: 'var(--persona-secondary, #3d5a35)',
+    tint: 'var(--persona-tint, rgba(74, 103, 65, 0.06))',
   },
   'maya-santos': {
-    primary: 'var(--persona-maya-primary, #a67a6a)',
-    secondary: 'var(--persona-maya-secondary, #8a635a)',
-    tint: 'rgba(166, 122, 106, 0.1)',
+    primary: 'var(--persona-primary, #a67a6a)',
+    secondary: 'var(--persona-secondary, #8a635a)',
+    tint: 'var(--persona-tint, rgba(166, 122, 106, 0.06))',
   },
   'peter-john': {
-    primary: 'var(--persona-peter-primary, #3a6b73)',
-    secondary: 'var(--persona-peter-secondary, #2d5359)',
-    tint: 'rgba(58, 107, 115, 0.1)',
+    primary: 'var(--persona-primary, #3a6b73)',
+    secondary: 'var(--persona-secondary, #2d5359)',
+    tint: 'var(--persona-tint, rgba(58, 107, 115, 0.06))',
   },
   'alex-chen': {
-    primary: 'var(--persona-alex-primary, #5a6b8a)',
-    secondary: 'var(--persona-alex-secondary, #4a5a73)',
-    tint: 'rgba(90, 107, 138, 0.1)',
+    primary: 'var(--persona-primary, #5a6b8a)',
+    secondary: 'var(--persona-secondary, #4a5a73)',
+    tint: 'var(--persona-tint, rgba(90, 107, 138, 0.06))',
   },
   'jordan-taylor': {
-    primary: 'var(--persona-jordan-primary, #c4856a)',
-    secondary: 'var(--persona-jordan-secondary, #a86d55)',
-    tint: 'rgba(196, 133, 106, 0.1)',
+    primary: 'var(--persona-primary, #c4856a)',
+    secondary: 'var(--persona-secondary, #a86d55)',
+    tint: 'var(--persona-tint, rgba(196, 133, 106, 0.06))',
   },
   'nayan-patel': {
-    primary: 'var(--persona-nayan-primary, #9a7b5a)',
-    secondary: 'var(--persona-nayan-secondary, #8a6a4a)',
-    tint: 'rgba(154, 123, 90, 0.1)',
+    primary: 'var(--persona-primary, #b8956a)',
+    secondary: 'var(--persona-secondary, #9a7a52)',
+    tint: 'var(--persona-tint, rgba(184, 149, 106, 0.06))',
   },
 };
 
@@ -589,7 +591,7 @@ function animateStepIn(content: Element): void {
         {
           duration: DURATION.DELIBERATE,
           easing: EASING.EXPO_OUT,
-          delay: i * STAGGER.FAST,
+          delay: i * STAGGER.TIGHT,
           fill: 'forwards',
         }
       );

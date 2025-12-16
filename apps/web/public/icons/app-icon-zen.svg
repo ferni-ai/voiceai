@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Ferni Eye Logo - 512x512 -->
+  <rect width="512" height="512" rx="96" fill="#F5F1E8"/>
+  <g>
+    <!-- Outer Stone: Body -->
+    <circle cx="256" cy="256" r="166.4" fill="#4a6741"/>
+    <!-- White foundation -->
+    <circle cx="256" cy="256" r="66.56" fill="white"/>
+    <!-- Iris ring -->
+    <circle cx="256" cy="256" r="44.395520000000005" fill="#5a8060"/>
+    <!-- Pupil -->
+    <circle cx="256" cy="256" r="22.197760000000002" fill="#2c2520"/>
+    
+    <circle cx="247.120896" cy="247.120896" r="6.659328" fill="white" opacity="0.9"/>
+  
+  </g>
+</svg>

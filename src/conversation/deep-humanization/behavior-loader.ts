@@ -54,13 +54,8 @@ export async function loadBehaviorContent(
 /**
  * Preload multiple behaviors for a persona
  */
-export async function preloadBehaviors(
-  personaId: string,
-  behaviorNames: string[]
-): Promise<void> {
-  await Promise.all(
-    behaviorNames.map((name) => loadBehaviorContent(personaId, name))
-  );
+export async function preloadBehaviors(personaId: string, behaviorNames: string[]): Promise<void> {
+  await Promise.all(behaviorNames.map((name) => loadBehaviorContent(personaId, name)));
 }
 
 /**
@@ -103,7 +98,7 @@ export const AVAILABLE_BEHAVIORS = [
   'live-reactions',
 ] as const;
 
-export type BehaviorName = typeof AVAILABLE_BEHAVIORS[number];
+export type BehaviorName = (typeof AVAILABLE_BEHAVIORS)[number];
 
 /**
  * Preload all standard behaviors for a persona
@@ -111,4 +106,3 @@ export type BehaviorName = typeof AVAILABLE_BEHAVIORS[number];
 export async function preloadAllBehaviors(personaId: string): Promise<void> {
   await preloadBehaviors(personaId, [...AVAILABLE_BEHAVIORS]);
 }
-

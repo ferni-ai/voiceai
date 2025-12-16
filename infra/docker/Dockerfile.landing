@@ -1,0 +1,46 @@
+# ============================================================================
+# FERNI LANDING PAGE DOCKERFILE
+# ============================================================================
+# Lightweight container for serving landing pages + token generation.
+# Used for: meet-joel, promo pages, etc.
+#
+# Build:
+#   docker build -f docker/Dockerfile.landing \
+#     --build-arg LANDING_DIR=promo/meet-joel \
+#     -t ferni-landing .
+#
+# Run:
+#   docker run -p 8080:8080 ferni-landing
+# ============================================================================
+
+ARG NODE_VERSION=20
+ARG LANDING_DIR=promo/meet-joel
+
+# ============================================================================
+# Production (single stage - no build needed)
+# ============================================================================
+FROM node:${NODE_VERSION}-alpine AS production
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json ./
+
+# Install production dependencies only
+RUN npm ci --only=production --ignore-scripts
+
+# Copy token server
+COPY token-server.js ./
+
+# Copy landing page content
+ARG LANDING_DIR
+COPY ${LANDING_DIR}/ ./public/
+
+# Environment
+ENV PORT=8080
+ENV NODE_ENV=production
+
+EXPOSE 8080
+
+CMD ["node", "token-server.js"]
+

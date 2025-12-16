@@ -1,0 +1,139 @@
+# syntax=docker/dockerfile:1.4
+# ============================================================================
+# FERNI UI SERVER DOCKERFILE (OPTIMIZED WITH PNPM)
+# ============================================================================
+# Multi-stage build for the main UI server.
+# Includes: backend API, frontend app, engagement routes, etc.
+#
+# OPTIMIZATIONS:
+# - pnpm for ~40% faster dependency installs
+# - BuildKit 1.4 syntax enables parallel stage builds
+# - Uses pre-built ferni-speaker image (avoids Rust build on every deploy)
+# - Cache mounts for pnpm store
+#
+# Build:
+#   docker build -f docker/Dockerfile.ui -t ferni-ui .
+#
+# Run:
+#   docker run -p 8080:8080 -e LIVEKIT_URL=... ferni-ui
+# ============================================================================
+
+ARG NODE_VERSION=20
+ARG PROJECT_ID=johnb-2025
+
+# ============================================================================
+# Stage 1: Build Backend TypeScript (with pnpm + esbuild)
+# ============================================================================
+FROM node:${NODE_VERSION}-slim AS backend-builder
+
+# Install git and enable pnpm
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/* \
+    && corepack enable && corepack prepare pnpm@latest --activate
+
+WORKDIR /app
+
+# Copy package files and configs
+COPY package.json pnpm-lock.yaml* ./
+COPY .npmrc ./
+COPY tsconfig.json ./
+COPY tsconfig.build.json ./
+
+# Install dependencies with pnpm
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --prefer-offline
+
+# Copy build script and source
+COPY scripts/build-fast.ts ./scripts/
+COPY src/ ./src/
+
+# Build with esbuild (falls back to tsc)
+RUN pnpm build:fast || pnpm build
+
+# ============================================================================
+# Stage 2: Build Frontend (runs in parallel with backend)
+# Note: frontend-typescript uses npm (not pnpm) with package-lock.json
+# ============================================================================
+FROM node:${NODE_VERSION}-slim AS frontend-builder
+
+# Build arg for admin API key (passed from Cloud Build)
+ARG VITE_ADMIN_API_KEY=""
+
+WORKDIR /app
+
+# Copy design-system dist (needed for @design-system imports)
+COPY design-system/dist ./design-system/dist/
+
+# Copy frontend package files (npm-based)
+COPY frontend-typescript/package.json frontend-typescript/package-lock.json ./frontend-typescript/
+
+WORKDIR /app/frontend-typescript
+
+# Install with npm (frontend uses npm, not pnpm)
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline
+
+COPY frontend-typescript/ ./
+
+# Set env var for Vite build (bakes into the bundle)
+ENV VITE_ADMIN_API_KEY=${VITE_ADMIN_API_KEY}
+
+RUN npm run build
+
+# ============================================================================
+# Stage 3: Pull pre-built ferni-speaker (instead of building Rust)
+# ============================================================================
+ARG PROJECT_ID
+FROM gcr.io/${PROJECT_ID}/ferni-speaker:latest AS speaker-prebuilt
+
+# ============================================================================
+# Stage 4: Production Server
+# ============================================================================
+FROM node:${NODE_VERSION}-slim AS production
+
+WORKDIR /app
+
+# Install system dependencies and pnpm
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && corepack enable && corepack prepare pnpm@latest --activate
+
+# Copy package files and install production dependencies
+COPY package.json pnpm-lock.yaml* ./
+COPY .npmrc ./
+
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --prefer-offline --prod || npm ci --omit=dev
+
+# Copy UI server
+COPY ui-server.js ./
+
+# Copy built backend (compiled TypeScript)
+COPY --from=backend-builder /app/dist ./dist/
+
+# Copy persona bundles
+COPY src/personas/bundles ./src/personas/bundles/
+
+# Create frontend directory and copy built frontend
+RUN mkdir -p frontend-typescript/dist
+COPY --from=frontend-builder /app/frontend-typescript/dist ./frontend-typescript/dist/
+
+# Copy pre-built ferni-speaker (from the pre-built image)
+RUN mkdir -p node_modules/ferni-speaker/models
+COPY --from=speaker-prebuilt /speaker/ ./node_modules/ferni-speaker/
+
+# Verify what we have
+RUN echo "=== Final ferni-speaker contents ===" && ls -la node_modules/ferni-speaker/
+
+# Environment
+ENV NODE_ENV=production
+ENV PORT=8080
+ENV SPEAKER_MODEL_PATH=/app/node_modules/ferni-speaker/models/ecapa_tdnn.onnx
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+CMD ["node", "ui-server.js"]

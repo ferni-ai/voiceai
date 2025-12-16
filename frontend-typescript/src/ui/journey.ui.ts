@@ -337,7 +337,7 @@ function createModal(): void {
   const stage = relationshipStageService.getStage();
   const stageMetrics = relationshipStageService.getMetrics();
   const stageProgress = relationshipStageService.getProgressToNextStage();
-  const stageInfo = STAGE_DESCRIPTIONS[stage] ?? STAGE_DESCRIPTIONS['first-meeting']!;
+  const stageInfo = STAGE_DESCRIPTIONS[stage] ?? STAGE_DESCRIPTIONS['first-meeting'];
   const stageName = STAGE_NAMES[stage] ?? 'First Meeting';
   const progressPercent = Math.round(stageProgress.progress * 100);
 
@@ -356,7 +356,7 @@ function createModal(): void {
   const grouped: Record<string, typeof milestones> = {};
   for (const m of milestones) {
     if (!grouped[m.category]) grouped[m.category] = [];
-    grouped[m.category]!.push(m);
+    grouped[m.category].push(m);
   }
 
   // Calculate streak info
@@ -609,7 +609,7 @@ function updateConnectionBanner(state: ConnectionState): void {
 }
 
 function renderCategory(category: string, items: ReturnType<typeof getMilestones>): string {
-  const meta = CATEGORY_META[category] ?? CATEGORY_META.relationship!;
+  const meta = CATEGORY_META[category] ?? CATEGORY_META.relationship;
   if (!meta) return '';
 
   const celebratedInCategory = items.filter((m) => m.celebrated).length;

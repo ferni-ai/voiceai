@@ -118,15 +118,7 @@ const LAYOUT_PRESETS: Record<string, Partial<LayoutOptimization>> = {
 
   // Price-focused decision maker
   'decision-pricing': {
-    order: [
-      'hero',
-      'proof',
-      'pricing',
-      'features',
-      'faq',
-      'security',
-      'final-cta',
-    ] as SectionId[],
+    order: ['hero', 'proof', 'pricing', 'features', 'faq', 'security', 'final-cta'] as SectionId[],
     emphasis: [
       { section: 'proof', treatment: 'section--expanded', priority: 1 },
       { section: 'pricing', treatment: 'section--highlighted', priority: 2 },
@@ -317,9 +309,7 @@ export async function getOptimalSectionOrder(context: LayoutContext): Promise<La
 
   if (result) {
     // Validate the order contains valid sections
-    const validOrder = result.order.filter((s) =>
-      ALL_SECTIONS.includes(s as SectionId)
-    );
+    const validOrder = result.order.filter((s) => ALL_SECTIONS.includes(s as SectionId));
 
     // Ensure hero is first and final-cta is last
     if (validOrder[0] !== 'hero') {
@@ -389,4 +379,3 @@ export function optimizeForMobile(layout: LayoutOptimization): LayoutOptimizatio
     reasoning: `${layout.reasoning} (optimized for mobile)`,
   };
 }
-

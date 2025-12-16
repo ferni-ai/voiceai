@@ -979,10 +979,10 @@ function injectStyles(): void {
       color: white;
     }
     
-    .card-icon--primary { background: var(--persona-primary, #4a6741); }
-    .card-icon--success { background: #22c55e; }
-    .card-icon--info { background: #3b82f6; }
-    .card-icon--warning { background: #f59e0b; }
+    .card-icon--primary { background: var(--persona-primary, var(--color-accent-primary)); }
+    .card-icon--success { background: var(--color-semantic-success); }
+    .card-icon--info { background: var(--color-semantic-info); }
+    .card-icon--warning { background: var(--color-semantic-warning); }
     
     .card-content {
       flex: 1;
@@ -1004,8 +1004,8 @@ function injectStyles(): void {
       padding: var(--space-1, 4px);
     }
     
-    .card-trend--up { color: #22c55e; }
-    .card-trend--down { color: #ef4444; }
+    .card-trend--up { color: var(--color-semantic-success); }
+    .card-trend--down { color: var(--color-semantic-error); }
     
     /* Persona Health Grid */
     .persona-health-grid {
@@ -1024,9 +1024,9 @@ function injectStyles(): void {
       border-left: 3px solid;
     }
     
-    .persona-health-card--healthy { border-color: #22c55e; }
-    .persona-health-card--warning { border-color: #f59e0b; }
-    .persona-health-card--critical { border-color: #ef4444; }
+    .persona-health-card--healthy { border-color: var(--color-semantic-success); }
+    .persona-health-card--warning { border-color: var(--color-semantic-warning); }
+    .persona-health-card--critical { border-color: var(--color-semantic-error); }
     
     .persona-avatar {
       width: 40px;
@@ -1244,11 +1244,11 @@ function injectStyles(): void {
     }
     
     .evalops-toast--error {
-      background: #ef4444;
+      background: var(--color-semantic-error);
     }
-    
+
     .evalops-toast--success {
-      background: #22c55e;
+      background: var(--color-semantic-success);
     }
     
     /* Personas Tab */
@@ -1289,9 +1289,9 @@ function injectStyles(): void {
       border-radius: var(--radius-full, 999px);
     }
     
-    .persona-status--healthy { background: #dcfce7; color: #166534; }
-    .persona-status--warning { background: #fef3c7; color: #92400e; }
-    .persona-status--critical { background: #fee2e2; color: #991b1b; }
+    .persona-status--healthy { background: var(--color-semantic-success-glow); color: var(--color-semantic-success); }
+    .persona-status--warning { background: var(--color-semantic-warning-glow); color: var(--color-semantic-warning); }
+    .persona-status--critical { background: var(--color-semantic-error-glow); color: var(--color-semantic-error); }
     
     .persona-metrics {
       margin-bottom: var(--space-4, 16px);
@@ -1332,7 +1332,7 @@ function injectStyles(): void {
     }
     
     .metric-value--warning {
-      color: #f59e0b;
+      color: var(--color-semantic-warning);
     }
     
     .persona-actions {
@@ -1405,8 +1405,8 @@ function injectStyles(): void {
       background: var(--color-background-subtle, #F8F6F4);
     }
     
-    .scenario-item--passed .scenario-status { color: #22c55e; }
-    .scenario-item--failed .scenario-status { color: #ef4444; }
+    .scenario-item--passed .scenario-status { color: var(--color-semantic-success); }
+    .scenario-item--failed .scenario-status { color: var(--color-semantic-error); }
     
     .scenario-name {
       flex: 1;

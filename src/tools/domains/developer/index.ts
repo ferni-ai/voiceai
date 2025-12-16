@@ -850,12 +850,7 @@ const searchFilesDef: ToolDefinition = {
               filePattern,
             ]);
           } else {
-            result = runCommandSafe('grep', [
-              '-rn',
-              `--include=${filePattern}`,
-              pattern,
-              '.',
-            ]);
+            result = runCommandSafe('grep', ['-rn', `--include=${filePattern}`, pattern, '.']);
           }
 
           const output = result.stdout.trim();

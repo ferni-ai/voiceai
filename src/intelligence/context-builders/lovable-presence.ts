@@ -177,7 +177,10 @@ function isGoodMomentForTangent(input: ContextBuilderInput): boolean {
   const emotion = input.analysis.emotion;
   const state = input.analysis.state;
 
-  if (emotion.needsSupport || (emotion.distressLevel && emotion.distressLevel >= DISTRESS.MODERATE)) {
+  if (
+    emotion.needsSupport ||
+    (emotion.distressLevel && emotion.distressLevel >= DISTRESS.MODERATE)
+  ) {
     return false;
   }
 

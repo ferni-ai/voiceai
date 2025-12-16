@@ -3,6 +3,8 @@ import { defineConfig } from 'vite';
 
 // Stub for native Capacitor plugins that don't exist in web builds
 const capacitorStub = resolve(__dirname, 'src/stubs/capacitor-stub.ts');
+// Stub for Firebase when not configured
+const firebaseStub = resolve(__dirname, 'src/stubs/firebase-stub.ts');
 
 export default defineConfig({
   root: '.',
@@ -14,6 +16,11 @@ export default defineConfig({
       // Stub native-only Capacitor plugins for web development
       '@ferni/capacitor-purchases': capacitorStub,
       '@capacitor/browser': capacitorStub,
+      '@capacitor/push-notifications': capacitorStub,
+      '@capacitor/local-notifications': capacitorStub,
+      // Firebase stubs for development without credentials
+      'firebase/app': firebaseStub,
+      'firebase/auth': firebaseStub,
     },
   },
   // Use global GSAP from CDN instead of bundling npm version

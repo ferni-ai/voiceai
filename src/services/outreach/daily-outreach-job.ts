@@ -230,9 +230,3 @@ export default {
   resetWeeklyOutreachCounters,
   processScheduledTriggers,
 };
-
-
-
-
-
-

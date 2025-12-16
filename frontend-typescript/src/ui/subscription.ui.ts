@@ -258,13 +258,13 @@ async function verifyPaymentAndCelebrate(tier: string, sessionId: string | null)
       // Not verified yet - wait and retry (webhook might still be processing)
       if (attempt < maxAttempts - 1) {
         log.debug(`Payment not yet confirmed, attempt ${attempt + 1}/${maxAttempts}`);
-        await new Promise((resolve) => trackedTimeout(resolve, pollInterval));
+        await new Promise<void>((resolve) => setTimeout(resolve, pollInterval));
       }
     } catch (error) {
       log.warn('Error verifying payment:', error);
       // Continue polling on error
       if (attempt < maxAttempts - 1) {
-        await new Promise((resolve) => trackedTimeout(resolve, pollInterval));
+        await new Promise<void>((resolve) => setTimeout(resolve, pollInterval));
       }
     }
   }

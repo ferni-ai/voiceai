@@ -400,16 +400,12 @@ async function getTremorOptions(
   sessionId: string
 ): Promise<{ intensity?: 'none' | 'subtle' | 'noticeable' | 'pronounced' }> {
   try {
-    const { getHumanListeningResult } = await import(
-      '../../intelligence/context-builders/human-listening.js'
-    );
+    const { getHumanListeningResult } =
+      await import('../../intelligence/context-builders/human-listening.js');
     const listeningResult = getHumanListeningResult(sessionId);
     if (listeningResult?.audio?.tremor?.detected) {
       return {
-        intensity: listeningResult.audio.tremor.intensity as
-          | 'subtle'
-          | 'noticeable'
-          | 'pronounced',
+        intensity: listeningResult.audio.tremor.intensity as 'subtle' | 'noticeable' | 'pronounced',
       };
     }
   } catch {
@@ -457,9 +453,8 @@ async function recordVoiceBaseline(
     // Process for humanization
     if (userData?.services?.sessionId) {
       try {
-        const { processProsodyForHumanization } = await import(
-          '../../conversation/humanization/prosody-bridge.js'
-        );
+        const { processProsodyForHumanization } =
+          await import('../../conversation/humanization/prosody-bridge.js');
         processProsodyForHumanization(
           userData.services.sessionId,
           userId,

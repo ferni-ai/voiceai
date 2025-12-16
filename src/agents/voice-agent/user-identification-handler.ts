@@ -80,7 +80,9 @@ function isRealName(name: string | undefined): boolean {
  * 6. Music playback mode (phone calls)
  * 7. International accent detection
  */
-export async function identifyUser(ctx: UserIdentificationContext): Promise<UserIdentificationResult> {
+export async function identifyUser(
+  ctx: UserIdentificationContext
+): Promise<UserIdentificationResult> {
   const { jobMetadata, room, sessionId } = ctx;
 
   let userId: string | undefined;
@@ -175,9 +177,8 @@ async function startIdentitySession(
   metadata: Record<string, unknown>
 ): Promise<void> {
   try {
-    const { onSessionStart } = await import(
-      '../../services/trust-and-identity/voice-agent-integration.js'
-    );
+    const { onSessionStart } =
+      await import('../../services/trust-and-identity/voice-agent-integration.js');
     const identityResult = await onSessionStart(sessionId, metadata, null);
 
     diag.session('🔐 Identity session started', {
@@ -196,9 +197,8 @@ async function startIdentitySession(
     // Weather, news, sports, holidays - all pre-fetched
     // ===============================================
     try {
-      const { initWorldAwareness } = await import(
-        '../../services/world-awareness/session-integration.js'
-      );
+      const { initWorldAwareness } =
+        await import('../../services/world-awareness/session-integration.js');
       // Fire and forget - don't block on this
       void initWorldAwareness(identityResult.identityContext.userId, null);
       diag.session('🌍 World awareness initialized');
@@ -211,9 +211,8 @@ async function startIdentitySession(
     // "Better Than Human" - Ferni remembers YOUR journey
     // ===============================================
     try {
-      const { initPersonalJourney } = await import(
-        '../../services/personal-journey/session-integration.js'
-      );
+      const { initPersonalJourney } =
+        await import('../../services/personal-journey/session-integration.js');
       // Fire and forget - don't block on this
       void initPersonalJourney(identityResult.identityContext.userId, null);
       diag.session('🌟 Personal journey awareness initialized');
@@ -282,9 +281,8 @@ async function handleSpeakerChangeIdentity(
   event: SpeakerChangeEvent
 ): Promise<void> {
   try {
-    const { onUserMessage } = await import(
-      '../../services/trust-and-identity/voice-agent-integration.js'
-    );
+    const { onUserMessage } =
+      await import('../../services/trust-and-identity/voice-agent-integration.js');
     // Process as a "speaker change" event - the message indicates a verification need
     const identityUpdate = await onUserMessage(
       sessionId,
@@ -317,9 +315,8 @@ async function detectUserAccent(
   try {
     if (jobMetadata) {
       const metadata = JSON.parse(jobMetadata);
-      const { detectAccentFromLocale, detectAccentFromLocales, isValidAccent } = await import(
-        '../../config/voice-accents.js'
-      );
+      const { detectAccentFromLocale, detectAccentFromLocales, isValidAccent } =
+        await import('../../config/voice-accents.js');
 
       // Priority 1: Explicit accent preference from user settings
       if (metadata.preferredAccent && isValidAccent(metadata.preferredAccent)) {

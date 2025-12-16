@@ -271,7 +271,8 @@ export function adjustTimingForTopicWeight(
   if (topicWeight === 'heavy') {
     return {
       ...baseConfig,
-      cooldownPeriod: baseConfig.cooldownPeriod * BACKCHANNELING_CONFIG.heavyTopicMultiplier.cooldown,
+      cooldownPeriod:
+        baseConfig.cooldownPeriod * BACKCHANNELING_CONFIG.heavyTopicMultiplier.cooldown,
       pauseTriggerDuration:
         baseConfig.pauseTriggerDuration * BACKCHANNELING_CONFIG.heavyTopicMultiplier.pauseTrigger,
     };
@@ -279,11 +280,11 @@ export function adjustTimingForTopicWeight(
   if (topicWeight === 'light') {
     return {
       ...baseConfig,
-      cooldownPeriod: baseConfig.cooldownPeriod * BACKCHANNELING_CONFIG.lightTopicMultiplier.cooldown,
+      cooldownPeriod:
+        baseConfig.cooldownPeriod * BACKCHANNELING_CONFIG.lightTopicMultiplier.cooldown,
       pauseTriggerDuration:
         baseConfig.pauseTriggerDuration * BACKCHANNELING_CONFIG.lightTopicMultiplier.pauseTrigger,
     };
   }
   return baseConfig;
 }
-

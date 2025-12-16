@@ -146,4 +146,3 @@ export function clearCognitiveStyleCache(): void {
   cognitiveCacheStats.misses = 0;
   cognitiveCacheStats.evictions = 0;
 }
-

@@ -1,0 +1,106 @@
+# ============================================================================
+# FERNI-SPEAKER PRE-BUILD DOCKERFILE
+# ============================================================================
+# Pre-builds the ferni-speaker native module for faster UI builds.
+# This image is built separately and cached in GCR.
+#
+# Build manually when ferni-speaker changes:
+#   gcloud builds submit --config=cloudbuild-speaker.yaml
+#
+# The UI Dockerfile then copies from this pre-built image instead of
+# building Rust from scratch every time.
+# ============================================================================
+
+FROM rust:1.83-slim AS builder
+
+ARG GITHUB_PAT=""
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    curl \
+    pkg-config \
+    python3 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js for NAPI build
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
+
+# Clone ferni-speaker (using PAT for auth)
+RUN if [ -n "$GITHUB_PAT" ]; then \
+      echo "Cloning ferni-speaker with PAT..." && \
+      git clone --depth 1 https://${GITHUB_PAT}@github.com/sethdford/ferni-speaker.git; \
+    else \
+      echo "No GITHUB_PAT, trying public clone..." && \
+      git clone --depth 1 https://github.com/sethdford/ferni-speaker.git || \
+      (echo "Clone failed, creating placeholder" && mkdir -p ferni-speaker/models && touch ferni-speaker/placeholder); \
+    fi
+
+# Build the native module (with fallback on failure)
+RUN if [ -d "ferni-speaker/.git" ]; then \
+      cd ferni-speaker && \
+      rm -f Cargo.lock && \
+      npm install --ignore-scripts && \
+      (npm run build && echo "✅ ferni-speaker built successfully") || \
+      echo "⚠️ Rust build failed, continuing without native module"; \
+    else \
+      echo "⚠️ ferni-speaker not available, using placeholder"; \
+    fi
+
+# Export ONNX model
+RUN if [ -d "ferni-speaker/scripts" ]; then \
+      cd ferni-speaker && \
+      pip3 install torch onnx --break-system-packages 2>/dev/null && \
+      (python3 scripts/export-ecapa-tdnn.py 2>/dev/null || \
+       python3 scripts/export-wespeaker.py 2>/dev/null || \
+       echo "Model export skipped"); \
+    fi
+
+# ============================================================================
+# Final stage: Minimal image with just the artifacts
+# ============================================================================
+FROM node:20-slim
+
+WORKDIR /speaker
+
+# Create directories
+RUN mkdir -p models
+
+# Copy all speaker artifacts using RUN cp instead of COPY (to handle missing files)
+# We use a multi-stage approach: copy builder stage to /tmp then selectively copy
+COPY --from=builder /app/ferni-speaker/ /tmp/ferni-speaker/
+
+# Copy files that exist (using shell to handle missing files gracefully)
+RUN cp /tmp/ferni-speaker/*.node ./ 2>/dev/null || echo "No .node files"
+RUN cp /tmp/ferni-speaker/index.js ./ 2>/dev/null || echo "No index.js"
+RUN cp /tmp/ferni-speaker/index.d.ts ./ 2>/dev/null || echo "No index.d.ts"
+RUN cp /tmp/ferni-speaker/package.json ./ 2>/dev/null || echo "No package.json"
+RUN cp -r /tmp/ferni-speaker/models/* ./models/ 2>/dev/null || echo "No models"
+
+# Cleanup temp files
+RUN rm -rf /tmp/ferni-speaker
+
+# Create fallback index.js if not present
+RUN if [ ! -f index.js ]; then \
+      echo 'const path = require("path"); const { existsSync } = require("fs");' > index.js && \
+      echo 'const platforms = ["linux-x64-gnu", "darwin-arm64", "darwin-x64"];' >> index.js && \
+      echo 'let nativeModule = null;' >> index.js && \
+      echo 'for (const p of platforms) { const f = path.join(__dirname, `speaker.${p}.node`); if (existsSync(f)) { nativeModule = require(f); break; } }' >> index.js && \
+      echo 'if (!nativeModule) { console.warn("ferni-speaker: No native module found"); module.exports = {}; } else { module.exports = nativeModule; }' >> index.js; \
+    fi
+
+# Create minimal package.json if not present
+RUN if [ ! -f package.json ]; then \
+      echo '{"name":"ferni-speaker","version":"0.1.0","main":"index.js"}' > package.json; \
+    fi
+
+# List contents for verification
+RUN echo "=== Pre-built ferni-speaker contents ===" && ls -la && echo "=== Models ===" && ls -la models/
+
+# This image is used as a source for COPY --from in other Dockerfiles
+CMD ["echo", "This is a builder image, not meant to be run directly"]

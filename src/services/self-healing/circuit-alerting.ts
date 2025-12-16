@@ -59,7 +59,8 @@ interface AlertRecord {
 // CONFIGURATION
 // ============================================================================
 
-const SLACK_ALERTS_WEBHOOK = process.env.SLACK_ALERTS_WEBHOOK || process.env.SLACK_WEBHOOK_URL || '';
+const SLACK_ALERTS_WEBHOOK =
+  process.env.SLACK_ALERTS_WEBHOOK || process.env.SLACK_WEBHOOK_URL || '';
 const ALERT_EMAIL = process.env.ALERT_EMAIL || '';
 const DEFAULT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -87,22 +88,22 @@ function getAlertSeverity(oldState: CircuitState, newState: CircuitState): Alert
   if (newState === 'open' && oldState !== 'open') {
     return 'critical';
   }
-  
+
   // Circuit stayed open after half-open test
   if (oldState === 'half_open' && newState === 'open') {
     return 'warning';
   }
-  
+
   // Circuit closed - recovery complete
   if (newState === 'closed' && oldState !== 'closed') {
     return 'info';
   }
-  
+
   // Circuit went to half-open - testing recovery
   if (newState === 'half_open') {
     return 'info';
   }
-  
+
   return 'info';
 }
 
@@ -137,11 +138,12 @@ async function sendSlackAlert(event: CircuitEvent, severity: AlertSeverity): Pro
   const color = SEVERITY_COLOR[severity];
   const stateDescription = STATE_DESCRIPTIONS[event.newState];
 
-  const title = severity === 'critical'
-    ? `Circuit Breaker OPEN: ${event.circuitName}`
-    : severity === 'warning'
-      ? `Circuit Breaker Alert: ${event.circuitName}`
-      : `Circuit Breaker Update: ${event.circuitName}`;
+  const title =
+    severity === 'critical'
+      ? `Circuit Breaker OPEN: ${event.circuitName}`
+      : severity === 'warning'
+        ? `Circuit Breaker Alert: ${event.circuitName}`
+        : `Circuit Breaker Update: ${event.circuitName}`;
 
   try {
     const response = await fetch(config.slackWebhookUrl, {
@@ -180,21 +182,31 @@ async function sendSlackAlert(event: CircuitEvent, severity: AlertSeverity): Pro
                   text: `*Status:* ${stateDescription}`,
                 },
               },
-              ...(event.details ? [
-                {
-                  type: 'context',
-                  elements: [
+              ...(event.details
+                ? [
                     {
-                      type: 'mrkdwn',
-                      text: [
-                        event.details.failures !== undefined ? `Failures: ${event.details.failures}` : '',
-                        event.details.successRate ? `Success Rate: ${event.details.successRate}` : '',
-                        event.details.lastError ? `Last Error: ${event.details.lastError.slice(0, 100)}` : '',
-                      ].filter(Boolean).join(' | '),
+                      type: 'context',
+                      elements: [
+                        {
+                          type: 'mrkdwn',
+                          text: [
+                            event.details.failures !== undefined
+                              ? `Failures: ${event.details.failures}`
+                              : '',
+                            event.details.successRate
+                              ? `Success Rate: ${event.details.successRate}`
+                              : '',
+                            event.details.lastError
+                              ? `Last Error: ${event.details.lastError.slice(0, 100)}`
+                              : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' | '),
+                        },
+                      ],
                     },
-                  ],
-                },
-              ] : []),
+                  ]
+                : []),
               {
                 type: 'context',
                 elements: [
@@ -369,14 +381,16 @@ export async function handleCircuitStateChange(
 
   // Wait for alerts but don't block
   if (alertPromises.length > 0) {
-    Promise.all(alertPromises).then((results) => {
-      const sent = results.filter(Boolean).length;
-      if (sent > 0) {
-        log.debug({ circuitName, sent }, 'Alerts sent');
-      }
-    }).catch((error) => {
-      log.warn({ error: String(error) }, 'Alert sending failed');
-    });
+    Promise.all(alertPromises)
+      .then((results) => {
+        const sent = results.filter(Boolean).length;
+        if (sent > 0) {
+          log.debug({ circuitName, sent }, 'Alerts sent');
+        }
+      })
+      .catch((error) => {
+        log.warn({ error: String(error) }, 'Alert sending failed');
+      });
   }
 }
 
@@ -389,7 +403,10 @@ export async function handleCircuitStateChange(
  */
 export function configureAlerting(newConfig: Partial<AlertConfig>): void {
   config = { ...config, ...newConfig };
-  log.info({ hasSlack: !!config.slackWebhookUrl, hasEmail: !!config.alertEmail }, 'Alerting configured');
+  log.info(
+    { hasSlack: !!config.slackWebhookUrl, hasEmail: !!config.alertEmail },
+    'Alerting configured'
+  );
 }
 
 /**
@@ -414,9 +431,7 @@ export function getRecentEvents(limit = 100): CircuitEvent[] {
  * Get events for a specific circuit
  */
 export function getCircuitEvents(circuitName: string, limit = 50): CircuitEvent[] {
-  return eventHistory
-    .filter((e) => e.circuitName === circuitName)
-    .slice(-limit);
+  return eventHistory.filter((e) => e.circuitName === circuitName).slice(-limit);
 }
 
 /**
@@ -434,17 +449,18 @@ export function clearEventHistory(): void {
  * Create an onStateChange callback for circuit breakers that sends alerts
  */
 export function createAlertingCallback(
-  getStats?: (name: string) => { failures: number; totalRequests: number; totalSuccesses: number } | undefined
+  getStats?: (
+    name: string
+  ) => { failures: number; totalRequests: number; totalSuccesses: number } | undefined
 ): (name: string, oldState: CircuitState, newState: CircuitState) => void {
   return (name: string, oldState: CircuitState, newState: CircuitState) => {
     const stats = getStats?.(name);
-    
+
     handleCircuitStateChange(name, oldState, newState, {
       failures: stats?.failures,
-      successRate: stats?.totalRequests 
+      successRate: stats?.totalRequests
         ? `${((stats.totalSuccesses / stats.totalRequests) * 100).toFixed(1)}%`
         : undefined,
     });
   };
 }
-

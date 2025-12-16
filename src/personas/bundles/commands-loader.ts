@@ -85,10 +85,7 @@ function parseFrontmatter(content: string): {
 /**
  * Load a single command from a markdown file
  */
-async function loadCommandFile(
-  filePath: string,
-  commandId: string
-): Promise<BundleCommand | null> {
+async function loadCommandFile(filePath: string, commandId: string): Promise<BundleCommand | null> {
   try {
     const content = await readFile(filePath, 'utf-8');
     const { frontmatter, body } = parseFrontmatter(content);
@@ -156,10 +153,7 @@ export async function loadBundleCommands(bundlePath: string): Promise<BundleComm
       return a.name.localeCompare(b.name);
     });
 
-    log.info(
-      { bundlePath, commandCount: commands.length },
-      'Loaded bundle commands'
-    );
+    log.info({ bundlePath, commandCount: commands.length }, 'Loaded bundle commands');
 
     return commands;
   } catch (error) {
@@ -202,10 +196,7 @@ export async function getCommand(
 /**
  * Execute a command and return the rendered prompt
  */
-export function renderCommand(
-  command: BundleCommand,
-  args: Record<string, string> = {}
-): string {
+export function renderCommand(command: BundleCommand, args: Record<string, string> = {}): string {
   let prompt = command.prompt;
 
   // Replace argument placeholders: {{argName}}

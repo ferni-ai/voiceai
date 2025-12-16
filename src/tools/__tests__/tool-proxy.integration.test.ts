@@ -289,8 +289,16 @@ describe('Tool Proxy', () => {
   describe('createProxiedToolSet', () => {
     it('should return original tools in local mode', async () => {
       const tools: Record<string, Tool> = {
-        tool1: { description: 'Tool 1', parameters: z.object({}), execute: async () => 'result1' } as Tool,
-        tool2: { description: 'Tool 2', parameters: z.object({}), execute: async () => 'result2' } as Tool,
+        tool1: {
+          description: 'Tool 1',
+          parameters: z.object({}),
+          execute: async () => 'result1',
+        } as Tool,
+        tool2: {
+          description: 'Tool 2',
+          parameters: z.object({}),
+          execute: async () => 'result2',
+        } as Tool,
       };
       const defs = [createMockToolDef('tool1'), createMockToolDef('tool2')];
       const ctx = createMockContext();
@@ -303,8 +311,16 @@ describe('Tool Proxy', () => {
 
     it('should proxy tools in remote mode', async () => {
       const tools: Record<string, Tool> = {
-        tool1: { description: 'Tool 1', parameters: z.object({}), execute: async () => 'result1' } as Tool,
-        tool2: { description: 'Tool 2', parameters: z.object({}), execute: async () => 'result2' } as Tool,
+        tool1: {
+          description: 'Tool 1',
+          parameters: z.object({}),
+          execute: async () => 'result1',
+        } as Tool,
+        tool2: {
+          description: 'Tool 2',
+          parameters: z.object({}),
+          execute: async () => 'result2',
+        } as Tool,
       };
       const defs = [createMockToolDef('tool1'), createMockToolDef('tool2')];
       const ctx = createMockContext();

@@ -183,7 +183,9 @@ export function checkNaturalnessIssues(analysis: UnifiedAnalysisResult): string[
 
   // Critical: Mismatch detected
   if (analysis.mismatch.detected && analysis.mismatch.type === 'masking_negative') {
-    warnings.push(`⚠️ MISMATCH: User may be hiding distress. Voice says ${analysis.mismatch.voiceEmotion}.`);
+    warnings.push(
+      `⚠️ MISMATCH: User may be hiding distress. Voice says ${analysis.mismatch.voiceEmotion}.`
+    );
   }
 
   // Warning: High distress
@@ -209,4 +211,3 @@ export default {
   logAnalysisSummary,
   checkNaturalnessIssues,
 };
-

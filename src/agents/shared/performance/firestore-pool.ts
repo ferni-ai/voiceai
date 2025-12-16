@@ -73,11 +73,11 @@ class FirestorePool {
   private db: FirestoreType | null = null;
   private initPromise: Promise<FirestoreType | null> | null = null;
   private config: Required<FirestorePoolConfig>;
-  
+
   // Concurrency management
   private currentConcurrent = 0;
   private requestQueue: Array<QueuedRequest<unknown>> = [];
-  
+
   // Metrics
   private metrics: PoolMetrics = {
     totalRequests: 0,
@@ -96,7 +96,8 @@ class FirestorePool {
 
   constructor(config: FirestorePoolConfig = {}) {
     this.config = {
-      projectId: config.projectId ?? process.env.GOOGLE_CLOUD_PROJECT ?? process.env.GCLOUD_PROJECT ?? '',
+      projectId:
+        config.projectId ?? process.env.GOOGLE_CLOUD_PROJECT ?? process.env.GCLOUD_PROJECT ?? '',
       databaseId: config.databaseId ?? process.env.FIRESTORE_DATABASE ?? '(default)',
       maxConcurrent: config.maxConcurrent ?? 100,
       timeout: config.timeout ?? 30000,
@@ -115,10 +116,10 @@ class FirestorePool {
    */
   async getConnection(): Promise<FirestoreType | null> {
     if (this.db) return this.db;
-    
+
     // Deduplicate initialization calls
     if (this.initPromise) return this.initPromise;
-    
+
     this.initPromise = this.initialize();
     return this.initPromise;
   }
@@ -129,7 +130,7 @@ class FirestorePool {
   private async initialize(): Promise<FirestoreType | null> {
     try {
       const { Firestore } = await import('@google-cloud/firestore');
-      
+
       this.db = new Firestore({
         projectId: this.config.projectId,
         databaseId: this.config.databaseId,
@@ -141,13 +142,16 @@ class FirestorePool {
 
       // Test connection
       await this.db.listCollections();
-      
+
       this.metrics.connectionHealthy = true;
-      log.info({
-        projectId: this.config.projectId,
-        databaseId: this.config.databaseId,
-      }, '🔥 Firestore pool initialized');
-      
+      log.info(
+        {
+          projectId: this.config.projectId,
+          databaseId: this.config.databaseId,
+        },
+        '🔥 Firestore pool initialized'
+      );
+
       return this.db;
     } catch (error) {
       log.warn({ error: String(error) }, 'Firestore pool initialization failed');
@@ -162,7 +166,7 @@ class FirestorePool {
   async execute<T>(operation: (db: FirestoreType) => Promise<T>): Promise<T | null> {
     this.metrics.totalRequests++;
     const startTime = Date.now();
-    
+
     try {
       // Check if we need to queue
       if (this.currentConcurrent >= this.config.maxConcurrent) {
@@ -170,16 +174,16 @@ class FirestorePool {
           this.metrics.failedRequests++;
           throw new Error('Max concurrent operations reached');
         }
-        
+
         if (this.requestQueue.length >= this.config.maxQueueSize) {
           this.metrics.failedRequests++;
           throw new Error('Request queue full');
         }
-        
+
         // Queue the request
         return await this.queueRequest(() => this.executeInternal(operation));
       }
-      
+
       return await this.executeInternal(operation);
     } finally {
       this.recordLatency(Date.now() - startTime);
@@ -194,19 +198,19 @@ class FirestorePool {
   ): Promise<T | null> {
     this.currentConcurrent++;
     this.metrics.currentConcurrent = this.currentConcurrent;
-    
+
     try {
       const db = await this.getConnection();
       if (!db) {
         this.metrics.failedRequests++;
         return null;
       }
-      
+
       let lastError: Error | null = null;
       const maxRetries = this.config.retry.maxRetries ?? 3;
       const initialDelayMs = this.config.retry.initialDelayMs ?? 100;
       const maxDelayMs = this.config.retry.maxDelayMs ?? 5000;
-      
+
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
           const result = await Promise.race([
@@ -215,38 +219,35 @@ class FirestorePool {
               setTimeout(() => reject(new Error('Operation timeout')), this.config.timeout)
             ),
           ]);
-          
+
           this.metrics.successfulRequests++;
           if (attempt > 0) {
             this.metrics.retriedRequests++;
           }
-          
+
           return result;
         } catch (error) {
           lastError = error instanceof Error ? error : new Error(String(error));
-          
+
           // Don't retry on certain errors
           if (this.isNonRetryableError(lastError)) {
             break;
           }
-          
+
           if (attempt < maxRetries) {
-            const delay = Math.min(
-              initialDelayMs * Math.pow(2, attempt),
-              maxDelayMs
-            );
-            await new Promise(resolve => setTimeout(resolve, delay));
+            const delay = Math.min(initialDelayMs * Math.pow(2, attempt), maxDelayMs);
+            await new Promise((resolve) => setTimeout(resolve, delay));
           }
         }
       }
-      
+
       this.metrics.failedRequests++;
       log.warn({ error: lastError?.message }, 'Firestore operation failed after retries');
       throw lastError;
     } finally {
       this.currentConcurrent--;
       this.metrics.currentConcurrent = this.currentConcurrent;
-      
+
       // Process queued requests
       this.processQueue();
     }
@@ -266,7 +267,7 @@ class FirestorePool {
         }
         reject(new Error('Request timeout while queued'));
       }, this.config.timeout);
-      
+
       this.requestQueue.push({
         operation,
         resolve: resolve as (value: unknown) => void,
@@ -274,7 +275,7 @@ class FirestorePool {
         timeout,
         startTime: Date.now(),
       });
-      
+
       this.metrics.currentQueueSize = this.requestQueue.length;
     });
   }
@@ -283,19 +284,14 @@ class FirestorePool {
    * Process queued requests
    */
   private processQueue(): void {
-    while (
-      this.requestQueue.length > 0 &&
-      this.currentConcurrent < this.config.maxConcurrent
-    ) {
+    while (this.requestQueue.length > 0 && this.currentConcurrent < this.config.maxConcurrent) {
       const request = this.requestQueue.shift();
       if (!request) break;
-      
+
       clearTimeout(request.timeout);
       this.metrics.currentQueueSize = this.requestQueue.length;
-      
-      request.operation()
-        .then(request.resolve)
-        .catch(request.reject);
+
+      request.operation().then(request.resolve).catch(request.reject);
     }
   }
 
@@ -317,16 +313,16 @@ class FirestorePool {
    */
   private recordLatency(latencyMs: number): void {
     this.latencies.push(latencyMs);
-    
+
     // Keep bounded
     if (this.latencies.length > this.MAX_LATENCY_SAMPLES) {
       this.latencies.shift();
     }
-    
+
     // Update metrics
     const sorted = [...this.latencies].sort((a, b) => a - b);
     const sum = sorted.reduce((a, b) => a + b, 0);
-    
+
     this.metrics.avgLatencyMs = Math.round(sum / sorted.length);
     this.metrics.p95LatencyMs = sorted[Math.floor(sorted.length * 0.95)] ?? 0;
     this.metrics.p99LatencyMs = sorted[Math.floor(sorted.length * 0.99)] ?? 0;
@@ -346,7 +342,7 @@ class FirestorePool {
     try {
       const db = await this.getConnection();
       if (!db) return false;
-      
+
       await db.listCollections();
       this.metrics.connectionHealthy = true;
       return true;
@@ -420,10 +416,7 @@ export async function resetFirestorePool(): Promise<void> {
 /**
  * Get a document with pooling
  */
-export async function getDocument<T>(
-  collection: string,
-  docId: string
-): Promise<T | null> {
+export async function getDocument<T>(collection: string, docId: string): Promise<T | null> {
   return executeWithPool(async (db) => {
     const doc = await db.collection(collection).doc(docId).get();
     return doc.exists ? (doc.data() as T) : null;
@@ -440,7 +433,10 @@ export async function setDocument<T extends Record<string, unknown>>(
   options?: { merge?: boolean }
 ): Promise<boolean> {
   const result = await executeWithPool(async (db) => {
-    await db.collection(collection).doc(docId).set(data, options ?? {});
+    await db
+      .collection(collection)
+      .doc(docId)
+      .set(data, options ?? {});
     return true;
   });
   return result ?? false;
@@ -451,15 +447,13 @@ export async function setDocument<T extends Record<string, unknown>>(
  */
 export async function queryDocuments<T>(
   collection: string,
-  queryFn: (
-    ref: FirebaseFirestore.CollectionReference
-  ) => FirebaseFirestore.Query
+  queryFn: (ref: FirebaseFirestore.CollectionReference) => FirebaseFirestore.Query
 ): Promise<T[]> {
   const result = await executeWithPool(async (db) => {
     const ref = db.collection(collection);
     const query = queryFn(ref as unknown as FirebaseFirestore.CollectionReference);
     const snapshot = await query.get();
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as T));
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as T);
   });
   return result ?? [];
 }
@@ -476,13 +470,13 @@ export async function batchWrite(
   }>
 ): Promise<boolean> {
   if (operations.length === 0) return true;
-  
+
   const result = await executeWithPool(async (db) => {
     const batch = db.batch();
-    
+
     for (const op of operations) {
       const ref = db.collection(op.collection).doc(op.docId);
-      
+
       switch (op.type) {
         case 'set':
           batch.set(ref, op.data ?? {});
@@ -495,13 +489,12 @@ export async function batchWrite(
           break;
       }
     }
-    
+
     await batch.commit();
     return true;
   });
-  
+
   return result ?? false;
 }
 
 export { FirestorePool };
-

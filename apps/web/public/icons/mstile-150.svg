@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" width="150" height="150">
+  <!-- Ferni Orb Logo - 150x150 -->
+  <defs>
+    <linearGradient id="orbGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="40%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+    <radialGradient id="orbHighlight" cx="35%" cy="25%" r="40%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.4)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+    
+    <filter id="orbGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feFlood flood-color="#4a6741" flood-opacity="0.35"/>
+      <feComposite in2="blur" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="150" height="150" rx="28" fill="#F5F1E8"/>
+  
+    <circle cx="75" cy="75" r="61.938" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.15"/>
+    <circle cx="75" cy="75" r="55.94400000000001" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.1"/>
+
+  <!-- Main orb -->
+  <circle cx="75" cy="75" r="49.95" fill="url(#orbGradient)" filter="url(#orbGlow)"/>
+
+  <!-- Top highlight -->
+  <circle cx="75" cy="75" r="49.95" fill="url(#orbHighlight)"/>
+
+  <!-- Waveform bars -->
+  <g>
+    <rect x="46" y="71.25375" width="2" height="7.4925000000000015" rx="1" fill="rgba(255,255,255,0.95)"/>
+    <rect x="53" y="69.380625" width="2" height="11.238750000000003" rx="1" fill="rgba(255,255,255,0.95)"/>
+    <rect x="60" y="67.5075" width="2" height="14.985000000000003" rx="1" fill="rgba(255,255,255,0.95)"/>
+    <rect x="67" y="66.25874999999999" width="2" height="17.4825" rx="1" fill="rgba(255,255,255,0.95)"/>
+    <rect x="74" y="65.00999999999999" width="2" height="19.980000000000004" rx="1" fill="rgba(255,255,255,0.95)"/>
+    <rect x="81" y="66.25874999999999" width="2" height="17.4825" rx="1" fill="rgba(255,255,255,0.95)"/>
+    <rect x="88" y="67.5075" width="2" height="14.985000000000003" rx="1" fill="rgba(255,255,255,0.95)"/>
+    <rect x="95" y="69.380625" width="2" height="11.238750000000003" rx="1" fill="rgba(255,255,255,0.95)"/>
+    <rect x="102" y="71.25375" width="2" height="7.4925000000000015" rx="1" fill="rgba(255,255,255,0.95)"/>
+  </g>
+</svg>

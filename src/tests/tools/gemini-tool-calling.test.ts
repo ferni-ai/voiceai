@@ -22,10 +22,7 @@ import * as path from 'path';
 describe('Handoff Tool Descriptions', () => {
   describe('Dynamic Tool Generation', () => {
     it('should include "IMMEDIATELY" in handoff tool descriptions', async () => {
-      const handoffFactoryPath = path.join(
-        process.cwd(),
-        'src/tools/handoff/handoff-factory.ts'
-      );
+      const handoffFactoryPath = path.join(process.cwd(), 'src/tools/handoff/handoff-factory.ts');
       const content = fs.readFileSync(handoffFactoryPath, 'utf-8');
 
       // Verify the tool description template includes "IMMEDIATELY"
@@ -34,10 +31,7 @@ describe('Handoff Tool Descriptions', () => {
     });
 
     it('should include "do NOT speak" instruction in handoff descriptions', async () => {
-      const handoffFactoryPath = path.join(
-        process.cwd(),
-        'src/tools/handoff/handoff-factory.ts'
-      );
+      const handoffFactoryPath = path.join(process.cwd(), 'src/tools/handoff/handoff-factory.ts');
       const content = fs.readFileSync(handoffFactoryPath, 'utf-8');
 
       // Verify the tool description tells LLM not to speak about the action
@@ -46,10 +40,7 @@ describe('Handoff Tool Descriptions', () => {
     });
 
     it('should have action-oriented descriptions (not descriptive)', async () => {
-      const handoffFactoryPath = path.join(
-        process.cwd(),
-        'src/tools/handoff/handoff-factory.ts'
-      );
+      const handoffFactoryPath = path.join(process.cwd(), 'src/tools/handoff/handoff-factory.ts');
       const content = fs.readFileSync(handoffFactoryPath, 'utf-8');
 
       // Should NOT contain language that suggests speaking first
@@ -70,7 +61,14 @@ describe('Handoff Tool Descriptions', () => {
 // These tests are skipped until the prompt content is added
 describe.skip('Persona System Prompts - Tool Calling Instructions', () => {
   const personasDir = path.join(process.cwd(), 'src/personas/bundles');
-  const personas = ['ferni', 'maya-santos', 'peter-john', 'alex-chen', 'jordan-taylor', 'nayan-patel'];
+  const personas = [
+    'ferni',
+    'maya-santos',
+    'peter-john',
+    'alex-chen',
+    'jordan-taylor',
+    'nayan-patel',
+  ];
 
   personas.forEach((personaId) => {
     describe(`${personaId} system prompt`, () => {
@@ -101,8 +99,8 @@ describe.skip('Persona System Prompts - Tool Calling Instructions', () => {
       it('should NOT have ambiguous handoff instructions', () => {
         // These patterns caused Gemini to speak instead of call
         const ambiguousPatterns = [
-          "set them up with personality",
-          "announce the handoff",
+          'set them up with personality',
+          'announce the handoff',
           "tell them you're handing off",
           "say you're connecting them",
         ];
@@ -167,10 +165,7 @@ describe('Non-Handoff Tool Descriptions', () => {
 
   describe('Information Tools', () => {
     it('should have action-oriented descriptions', async () => {
-      const informationPath = path.join(
-        process.cwd(),
-        'src/tools/domains/information/index.ts'
-      );
+      const informationPath = path.join(process.cwd(), 'src/tools/domains/information/index.ts');
       const content = fs.readFileSync(informationPath, 'utf-8');
 
       // Information tools should be action-oriented
@@ -272,24 +267,18 @@ describe('Regression Prevention', () => {
 
 describe('Tool Structure Validation', () => {
   it('handoff tools should have required parameters', async () => {
-    const handoffFactoryPath = path.join(
-      process.cwd(),
-      'src/tools/handoff/handoff-factory.ts'
-    );
+    const handoffFactoryPath = path.join(process.cwd(), 'src/tools/handoff/handoff-factory.ts');
     const content = fs.readFileSync(handoffFactoryPath, 'utf-8');
 
     // Should define reason parameter
-    expect(content).toContain("reason: z.string()");
+    expect(content).toContain('reason: z.string()');
 
     // Should have optional context parameter
-    expect(content).toContain("context_summary: z.string().optional()");
+    expect(content).toContain('context_summary: z.string().optional()');
   });
 
   it('handoff tools should return structured results', async () => {
-    const handoffFactoryPath = path.join(
-      process.cwd(),
-      'src/tools/handoff/handoff-factory.ts'
-    );
+    const handoffFactoryPath = path.join(process.cwd(), 'src/tools/handoff/handoff-factory.ts');
     const content = fs.readFileSync(handoffFactoryPath, 'utf-8');
 
     // Should return handoff_complete flag

@@ -53,11 +53,7 @@ const CONTEXT_THOUGHTS = {
     'What does your morning look like?',
     'Started the day with any rituals?',
   ],
-  evening: [
-    'How was your day?',
-    'Winding down?',
-    'What is on your mind tonight?',
-  ],
+  evening: ['How was your day?', 'Winding down?', 'What is on your mind tonight?'],
   latenight: [
     'Burning the midnight oil?',
     'Sometimes the quiet hours bring clarity...',
@@ -80,9 +76,7 @@ export async function generateSpontaneousThought(
   const probability = HUMANIZATION_CONFIG.probabilities.spontaneousThought;
 
   // Higher probability when user is highly engaged
-  const adjustedProbability = signals.isHighlyEngaged
-    ? probability * 1.3
-    : probability;
+  const adjustedProbability = signals.isHighlyEngaged ? probability * 1.3 : probability;
 
   if (Math.random() > adjustedProbability) {
     return null;
@@ -121,4 +115,3 @@ export async function generateSpontaneousThought(
     cooldownTurns: HUMANIZATION_CONFIG.cooldowns.spontaneousThought,
   };
 }
-

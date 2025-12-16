@@ -18,15 +18,15 @@ import { type SupportedLocale, DEFAULT_LOCALE } from '../types.js';
 export const CURRENCY_BY_LOCALE: Record<SupportedLocale, string> = {
   'en-US': 'USD',
   'en-GB': 'GBP',
-  'es': 'EUR',
-  'fr': 'EUR',
-  'de': 'EUR',
-  'ja': 'JPY',
-  'ko': 'KRW',
+  es: 'EUR',
+  fr: 'EUR',
+  de: 'EUR',
+  ja: 'JPY',
+  ko: 'KRW',
   'zh-Hans': 'CNY',
   'zh-Hant': 'TWD',
-  'ar': 'AED',
-  'he': 'ILS',
+  ar: 'AED',
+  he: 'ILS',
 };
 
 /**
@@ -185,15 +185,15 @@ export function formatPrice(
   const periodSuffix: Record<SupportedLocale, Record<string, string>> = {
     'en-US': { monthly: '/mo', annual: '/yr' },
     'en-GB': { monthly: '/mo', annual: '/yr' },
-    'es': { monthly: '/mes', annual: '/año' },
-    'fr': { monthly: '/mois', annual: '/an' },
-    'de': { monthly: '/Mon.', annual: '/Jahr' },
-    'ja': { monthly: '/月', annual: '/年' },
-    'ko': { monthly: '/월', annual: '/년' },
+    es: { monthly: '/mes', annual: '/año' },
+    fr: { monthly: '/mois', annual: '/an' },
+    de: { monthly: '/Mon.', annual: '/Jahr' },
+    ja: { monthly: '/月', annual: '/年' },
+    ko: { monthly: '/월', annual: '/년' },
     'zh-Hans': { monthly: '/月', annual: '/年' },
     'zh-Hant': { monthly: '/月', annual: '/年' },
-    'ar': { monthly: '/شهر', annual: '/سنة' },
-    'he': { monthly: '/חודש', annual: '/שנה' },
+    ar: { monthly: '/شهر', annual: '/سنة' },
+    he: { monthly: '/חודש', annual: '/שנה' },
   };
 
   const suffix = periodSuffix[locale]?.[period] || periodSuffix['en-US'][period];
@@ -254,15 +254,15 @@ export function formatSavings(
   const saveText: Record<SupportedLocale, string> = {
     'en-US': 'Save',
     'en-GB': 'Save',
-    'es': 'Ahorra',
-    'fr': 'Économisez',
-    'de': 'Spare',
-    'ja': '節約',
-    'ko': '절약',
+    es: 'Ahorra',
+    fr: 'Économisez',
+    de: 'Spare',
+    ja: '節約',
+    ko: '절약',
     'zh-Hans': '节省',
     'zh-Hant': '節省',
-    'ar': 'وفر',
-    'he': 'חסוך',
+    ar: 'وفر',
+    he: 'חסוך',
   };
 
   return `${saveText[locale] || 'Save'} ${formatted}`;

@@ -244,4 +244,3 @@ describe('getMoodTracker factory', () => {
     expect(getMoodTracker('persona2').getMood().energy).toBe(0.75);
   });
 });
-

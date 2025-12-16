@@ -602,6 +602,56 @@
       "sprout": "Growing",
       "bud": "Budding",
       "bloom": "Blooming Soon"
+    },
+    "seedBalanceTooltip": "Seeds to plant on features you want",
+    "seedsToPlant": "seeds to plant",
+    "seedToPlant": "seed to plant",
+    "plantSeeds": "Plant seeds on this feature",
+    "plantNow": "Plant Now",
+    "removeSeeds": "Remove your seeds (50% refund)",
+    "seedsPlanted": "{count} seeds planted",
+    "gardeners": "{count} gardeners",
+    "yourSeeds": "Your seeds",
+    "yours": "yours",
+    "plantNewSeed": "Plant a New Seed",
+    "costSeeds": "{count} seeds",
+    "recommendedForYou": "Recommended for you",
+    "recommendedSubtitle": "Based on your conversations",
+    "youMentioned": "You've mentioned",
+    "learnMore": "Learn more",
+    "suggestion": {
+      "title": "Suggest a Feature",
+      "intro": "Have an idea for Ferni? Plant a new seed and watch it grow with community support.",
+      "titleLabel": "What's your idea?",
+      "titlePlaceholder": "A short, catchy name for your feature",
+      "descriptionLabel": "Tell us more",
+      "descriptionPlaceholder": "Describe what this feature would do and why it would help...",
+      "categoryLabel": "Category",
+      "categoryConnect": "New Ways to Connect",
+      "categoryPersonalize": "Make It Yours",
+      "categoryPlatform": "The Platform",
+      "costNotice": "Submitting costs 5 seeds (shows you're committed!)",
+      "submit": "Plant This Seed",
+      "submitting": "Planting...",
+      "successTitle": "Seed Planted!",
+      "successText": "Your idea is now growing. Others can plant seeds on it too!",
+      "done": "Done"
+    },
+    "streaks": {
+      "title": "Streak Rewards",
+      "subtitle": "Keep the conversation going",
+      "daysUntil": "{days} days until {seeds} seeds",
+      "milestone7": "7-day streak",
+      "milestone30": "30-day streak",
+      "claimed": "Claimed!",
+      "reward": "+{seeds} seeds"
+    },
+    "howSeedsWork": {
+      "title": "How Seeds Work",
+      "earn": "Earn seeds by chatting daily and hitting streak milestones",
+      "plant": "Plant seeds on features you want to see built",
+      "grow": "Features with more seeds get prioritized",
+      "suggest": "Suggest new ideas for 5 seeds"
     }
   }
 }

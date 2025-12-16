@@ -153,7 +153,7 @@ const TOPIC_PATTERNS = {
     'anti-hustle',
     'comparison',
     'behind everyone',
-    "everyone else is",
+    'everyone else is',
     'my own pace',
     'winter season',
     'fallow',
@@ -412,9 +412,7 @@ async function buildLifeCoachingContext(input: ContextBuilderInput): Promise<Con
             textLower.includes("can't") ||
             textLower.includes('give up'),
           isGrieving:
-            textLower.includes('lost') ||
-            textLower.includes('grief') ||
-            textLower.includes('miss'),
+            textLower.includes('lost') || textLower.includes('grief') || textLower.includes('miss'),
           hasWin:
             textLower.includes('did it') ||
             textLower.includes('progress') ||
@@ -455,16 +453,16 @@ async function buildLifeCoachingContext(input: ContextBuilderInput): Promise<Con
       }
       case 'lifeTransitions': {
         title = 'LIFE TRANSITIONS';
-        betterThanHuman =
-          'Honor dual emotions. Your superpower: holding space for contradictions.';
+        betterThanHuman = 'Honor dual emotions. Your superpower: holding space for contradictions.';
         phrases = await getLifeTransitionsPhrases(personaId, {
-          stage: textLower.includes('ending') || textLower.includes('leaving')
-            ? 'ending'
-            : textLower.includes('between') || textLower.includes('in-between')
-              ? 'neutral'
-              : textLower.includes('beginning') || textLower.includes('starting')
-                ? 'beginning'
-                : undefined,
+          stage:
+            textLower.includes('ending') || textLower.includes('leaving')
+              ? 'ending'
+              : textLower.includes('between') || textLower.includes('in-between')
+                ? 'neutral'
+                : textLower.includes('beginning') || textLower.includes('starting')
+                  ? 'beginning'
+                  : undefined,
           hasDualEmotions:
             (textLower.includes('happy') && textLower.includes('sad')) ||
             textLower.includes('mixed feelings') ||

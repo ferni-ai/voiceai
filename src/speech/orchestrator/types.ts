@@ -181,4 +181,3 @@ export interface AnticipatedResult {
   /** Reason for anticipation */
   reason: string;
 }
-

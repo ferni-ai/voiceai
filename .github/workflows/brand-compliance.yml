@@ -35,7 +35,7 @@ jobs:
         
       - name: Run brand compliance linter
         id: brand-lint
-        run: npx tsx scripts/lint-brand.ts
+        run: npx tsx apps/cli/src/commands/quality/lint-brand.ts
         continue-on-error: true
         
       - name: Comment on PR
@@ -48,7 +48,7 @@ jobs:
             // Run linter and capture output
             let output;
             try {
-              output = execSync('npx tsx scripts/lint-brand.ts 2>&1', { encoding: 'utf-8' });
+              output = execSync('npx tsx apps/cli/src/commands/quality/lint-brand.ts 2>&1', { encoding: 'utf-8' });
             } catch (e) {
               output = e.stdout || e.message;
             }

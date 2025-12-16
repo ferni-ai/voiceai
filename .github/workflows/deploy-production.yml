@@ -151,7 +151,7 @@ jobs:
       - name: Deployment safety check
         run: |
           echo "🔍 Scanning for unsafe deployment patterns..."
-          npx tsx scripts/check-deploy-safety.ts --all || {
+          npx tsx apps/cli/src/commands/quality/check-deploy-safety.ts --all || {
             echo "❌ Unsafe deployment patterns detected!"
             echo "Direct gcloud/firebase commands are forbidden."
             echo "Use 'ferni deploy' CLI instead."
@@ -593,8 +593,8 @@ jobs:
 
       - name: Run smoke tests
         run: |
-          if [ -f "scripts/smoke-test.ts" ]; then
-            npx tsx scripts/smoke-test.ts
+          if [ -f "apps/cli/src/commands/test/smoke-test.ts" ]; then
+            npx tsx apps/cli/src/commands/test/smoke-test.ts
           else
             echo "No smoke tests found, skipping"
           fi

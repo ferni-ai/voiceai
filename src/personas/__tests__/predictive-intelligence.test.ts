@@ -38,17 +38,13 @@ vi.mock('../bundles/loader.js', () => ({
               friday_reflection: {
                 triggers: ['friday', 'end of week'],
                 detection: 'End of week reflection mode',
-                proactive_response: [
-                  "End of the week. How are you feeling about how things went?",
-                ],
+                proactive_response: ['End of the week. How are you feeling about how things went?'],
               },
             },
             emotional_patterns: {
               deflection_with_humor: {
                 detection: 'User deflects serious topics with jokes',
-                response: [
-                  "I notice you joke when things get real. What's underneath that?",
-                ],
+                response: ["I notice you joke when things get real. What's underneath that?"],
               },
               minimizing_success: {
                 detection: 'User downplays their achievements',
@@ -59,16 +55,14 @@ vi.mock('../bundles/loader.js', () => ({
               comparison_spiral: {
                 detection: 'User comparing self negatively to others',
                 response: [
-                  "Comparison is a tricky one. What would you say if a friend said this about themselves?",
+                  'Comparison is a tricky one. What would you say if a friend said this about themselves?',
                 ],
               },
             },
             behavioral_patterns: {
               avoidance_loop: {
                 detection: 'User keeps circling around a topic without engaging',
-                response: [
-                  "I notice we keep coming back to this. What makes it hard to dig in?",
-                ],
+                response: ['I notice we keep coming back to this. What makes it hard to dig in?'],
               },
               decision_delay: {
                 detection: 'User repeatedly postpones decision-making',
@@ -81,15 +75,11 @@ vi.mock('../bundles/loader.js', () => ({
           proactive_follow_ups: {
             after_vulnerability: {
               timing: 'next session',
-              phrases: [
-                "I've been thinking about what you shared last time.",
-              ],
+              phrases: ["I've been thinking about what you shared last time."],
             },
             after_goal_setting: {
               timing: '3-5 days',
-              phrases: [
-                "How did that goal you set go?",
-              ],
+              phrases: ['How did that goal you set go?'],
             },
           },
           anticipatory_insights: {
@@ -181,7 +171,7 @@ describe('Predictive Intelligence', () => {
       const { detectPatterns } = await import('../predictive-intelligence.js');
 
       const patterns = await detectPatterns('ferni', {
-        currentMessage: "I hate Sundays, always thinking about the week ahead",
+        currentMessage: 'I hate Sundays, always thinking about the week ahead',
         timestamp: new Date(),
         dayOfWeek: 0, // Sunday
         hour: 19, // Evening
@@ -189,7 +179,7 @@ describe('Predictive Intelligence', () => {
       });
 
       expect(patterns.length).toBeGreaterThan(0);
-      expect(patterns.some(p => p.patternId === 'sunday_anxiety')).toBe(true);
+      expect(patterns.some((p) => p.patternId === 'sunday_anxiety')).toBe(true);
     });
 
     it('should detect late night pattern', async () => {
@@ -203,7 +193,7 @@ describe('Predictive Intelligence', () => {
         sessionNumber: 5,
       });
 
-      expect(patterns.some(p => p.patternId === 'late_night')).toBe(true);
+      expect(patterns.some((p) => p.patternId === 'late_night')).toBe(true);
     });
 
     it('should detect deflection with humor pattern', async () => {
@@ -217,7 +207,7 @@ describe('Predictive Intelligence', () => {
         sessionNumber: 5,
       });
 
-      expect(patterns.some(p => p.patternType === 'emotional')).toBe(true);
+      expect(patterns.some((p) => p.patternType === 'emotional')).toBe(true);
     });
 
     it('should detect minimizing success pattern', async () => {
@@ -231,7 +221,7 @@ describe('Predictive Intelligence', () => {
         sessionNumber: 5,
       });
 
-      expect(patterns.some(p => p.patternType === 'emotional')).toBe(true);
+      expect(patterns.some((p) => p.patternType === 'emotional')).toBe(true);
     });
 
     it('should detect comparison spiral pattern', async () => {
@@ -245,7 +235,7 @@ describe('Predictive Intelligence', () => {
         sessionNumber: 5,
       });
 
-      expect(patterns.some(p => p.patternType === 'emotional')).toBe(true);
+      expect(patterns.some((p) => p.patternType === 'emotional')).toBe(true);
     });
 
     it('should detect avoidance loop pattern', async () => {
@@ -259,7 +249,7 @@ describe('Predictive Intelligence', () => {
         sessionNumber: 5,
       });
 
-      expect(patterns.some(p => p.patternType === 'behavioral')).toBe(true);
+      expect(patterns.some((p) => p.patternType === 'behavioral')).toBe(true);
     });
 
     it('should detect decision delay pattern', async () => {
@@ -273,7 +263,7 @@ describe('Predictive Intelligence', () => {
         sessionNumber: 5,
       });
 
-      expect(patterns.some(p => p.patternType === 'behavioral')).toBe(true);
+      expect(patterns.some((p) => p.patternType === 'behavioral')).toBe(true);
     });
 
     it('should limit patterns to max per session', async () => {
@@ -281,7 +271,8 @@ describe('Predictive Intelligence', () => {
 
       // Message that could trigger multiple patterns
       const patterns = await detectPatterns('ferni', {
-        currentMessage: "It's Sunday, I'm not as good as everyone else, let's talk about something else haha just kidding anyway",
+        currentMessage:
+          "It's Sunday, I'm not as good as everyone else, let's talk about something else haha just kidding anyway",
         timestamp: new Date(),
         dayOfWeek: 0,
         hour: 19,
@@ -306,8 +297,8 @@ describe('Predictive Intelligence', () => {
       });
 
       expect(concerns.length).toBeGreaterThan(0);
-      expect(concerns.some(c => c.concernId === 'hopelessness_language')).toBe(true);
-      expect(concerns.some(c => c.severity === 'high')).toBe(true);
+      expect(concerns.some((c) => c.concernId === 'hopelessness_language')).toBe(true);
+      expect(concerns.some((c) => c.severity === 'high')).toBe(true);
     });
 
     it('should detect isolation mentions', async () => {
@@ -321,14 +312,14 @@ describe('Predictive Intelligence', () => {
         sessionNumber: 1,
       });
 
-      expect(concerns.some(c => c.concernId === 'isolation_mentions')).toBe(true);
+      expect(concerns.some((c) => c.concernId === 'isolation_mentions')).toBe(true);
     });
 
     it('should not false positive on neutral messages', async () => {
       const { detectConcerns } = await import('../predictive-intelligence.js');
 
       const concerns = await detectConcerns('ferni', {
-        currentMessage: "I had a pretty good day today. Got some work done.",
+        currentMessage: 'I had a pretty good day today. Got some work done.',
         timestamp: new Date(),
         dayOfWeek: 3,
         hour: 14,
@@ -344,7 +335,7 @@ describe('Predictive Intelligence', () => {
       const { getProactiveFollowUps } = await import('../predictive-intelligence.js');
 
       const followUps = await getProactiveFollowUps('ferni', {
-        currentMessage: "Hello",
+        currentMessage: 'Hello',
         timestamp: new Date(),
         dayOfWeek: 3,
         hour: 14,
@@ -358,7 +349,7 @@ describe('Predictive Intelligence', () => {
       const { getProactiveFollowUps } = await import('../predictive-intelligence.js');
 
       const followUps = await getProactiveFollowUps('ferni', {
-        currentMessage: "Hello",
+        currentMessage: 'Hello',
         timestamp: new Date(),
         dayOfWeek: 3,
         hour: 14,
@@ -377,49 +368,49 @@ describe('Predictive Intelligence', () => {
       const { getAnticipatoryInsights } = await import('../predictive-intelligence.js');
 
       const insights = await getAnticipatoryInsights('ferni', {
-        currentMessage: "Hello",
+        currentMessage: 'Hello',
         timestamp: new Date('2024-12-25'), // Christmas
         dayOfWeek: 3,
         hour: 14,
         sessionNumber: 5,
       });
 
-      expect(insights.some(i => i.id === 'new_year')).toBe(true);
+      expect(insights.some((i) => i.id === 'new_year')).toBe(true);
     });
 
     it('should return new year insights in early January', async () => {
       const { getAnticipatoryInsights } = await import('../predictive-intelligence.js');
 
       const insights = await getAnticipatoryInsights('ferni', {
-        currentMessage: "Hello",
+        currentMessage: 'Hello',
         timestamp: new Date('2024-01-05'),
         dayOfWeek: 5,
         hour: 10,
         sessionNumber: 5,
       });
 
-      expect(insights.some(i => i.id === 'new_year')).toBe(true);
+      expect(insights.some((i) => i.id === 'new_year')).toBe(true);
     });
 
     it('should return end of year insights in November', async () => {
       const { getAnticipatoryInsights } = await import('../predictive-intelligence.js');
 
       const insights = await getAnticipatoryInsights('ferni', {
-        currentMessage: "Hello",
+        currentMessage: 'Hello',
         timestamp: new Date('2024-11-20'),
         dayOfWeek: 3,
         hour: 14,
         sessionNumber: 5,
       });
 
-      expect(insights.some(i => i.id === 'end_of_year')).toBe(true);
+      expect(insights.some((i) => i.id === 'end_of_year')).toBe(true);
     });
 
     it('should return empty for mid-year dates', async () => {
       const { getAnticipatoryInsights } = await import('../predictive-intelligence.js');
 
       const insights = await getAnticipatoryInsights('ferni', {
-        currentMessage: "Hello",
+        currentMessage: 'Hello',
         timestamp: new Date('2024-06-15'), // Mid-June
         dayOfWeek: 6,
         hour: 14,
@@ -427,8 +418,8 @@ describe('Predictive Intelligence', () => {
       });
 
       // Should not have new_year or end_of_year
-      expect(insights.some(i => i.id === 'new_year')).toBe(false);
-      expect(insights.some(i => i.id === 'end_of_year')).toBe(false);
+      expect(insights.some((i) => i.id === 'new_year')).toBe(false);
+      expect(insights.some((i) => i.id === 'end_of_year')).toBe(false);
     });
   });
 
@@ -472,5 +463,3 @@ describe('Predictive Intelligence', () => {
     });
   });
 });
-
-

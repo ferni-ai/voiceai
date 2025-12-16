@@ -201,15 +201,29 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       }
 
       // Update relationship stage from humanizing result
-      if (result.context.humanizingResult?.relationship?.stage) {
+      // Cast to access typed properties (mood/relationship are unknown to break circular deps)
+      const hrRelationship = result.context.humanizingResult?.relationship as
+        | { stage?: string }
+        | undefined;
+      if (hrRelationship?.stage) {
         sessionStateManager.setRelationshipStage(
-          result.context.humanizingResult.relationship.stage
+          hrRelationship.stage as 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor'
         );
       }
 
       // Update mood from humanizing result
-      if (result.context.humanizingResult?.mood) {
-        sessionStateManager.setMood(result.context.humanizingResult.mood.state);
+      const hrMood = result.context.humanizingResult?.mood as { state?: string } | undefined;
+      if (hrMood?.state) {
+        // Import MoodState type inline to avoid circular dependency
+        type MoodState =
+          | 'energized'
+          | 'reflective'
+          | 'playful'
+          | 'grounded'
+          | 'tired_but_present'
+          | 'philosophical'
+          | 'nostalgic';
+        sessionStateManager.setMood(hrMood.state as MoodState);
       }
 
       // Record personal themes mentioned in response
@@ -304,10 +318,13 @@ IMPORTANT:
     // Send mood update to frontend
     if (result.context.humanizingResult) {
       const hr = result.context.humanizingResult;
+      // Cast to access typed properties (mood/relationship are unknown to break circular deps)
+      const mood = hr.mood as { state?: string; energyLevel?: number } | undefined;
+      const relationship = hr.relationship as { stage?: string } | undefined;
       await sendDataMessage('mood', {
-        state: hr.mood.state,
-        energyLevel: hr.mood.energyLevel,
-        relationshipStage: hr.relationship.stage,
+        state: mood?.state,
+        energyLevel: mood?.energyLevel,
+        relationshipStage: relationship?.stage,
         hasTransition: !!hr.relationshipTransition,
       });
     }
@@ -356,6 +373,10 @@ IMPORTANT:
         const topic = topicInjection?.content.split(' ')[0] || 'general';
 
         // Build context for collective learning
+        // Cast relationship to access stage (typed as unknown to break circular deps)
+        const learningRelationship = result.context.humanizingResult?.relationship as
+          | { stage?: string }
+          | undefined;
         const learningContext: ConversationSignalContext = {
           sessionId: services.sessionId,
           userId,
@@ -363,7 +384,7 @@ IMPORTANT:
           turnNumber: userData.turnCount ?? 0,
           emotion: result.emotional.primary || 'neutral',
           topic,
-          relationshipStage: result.context.humanizingResult?.relationship?.stage || 'unknown',
+          relationshipStage: learningRelationship?.stage || 'unknown',
         };
 
         // Create a simplified emotion result for engagement analysis

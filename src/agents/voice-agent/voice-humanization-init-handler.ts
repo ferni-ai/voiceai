@@ -99,8 +99,8 @@ export function setupVoiceHumanizationInit(
   // User Analytics: Track session for DAU/WAU/MAU metrics
   const visitorId = userId || 'anonymous';
   const isSubscriber = (userProfile?.subscription?.tier ?? 'free') !== 'free';
-  void recordUserSessionStart(sessionId, visitorId, sessionPersona.id, isSubscriber).catch(
-    (err) => diag.warn('📊 User analytics session start failed', { error: String(err) })
+  void recordUserSessionStart(sessionId, visitorId, sessionPersona.id, isSubscriber).catch((err) =>
+    diag.warn('📊 User analytics session start failed', { error: String(err) })
   );
 
   // Initialize response anticipation for monitoring

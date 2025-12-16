@@ -90,4 +90,3 @@ export function resetEffectTracker(sessionId: string): void {
 export function resetAllEffectTrackers(): void {
   trackers.clear();
 }
-

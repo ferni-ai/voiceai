@@ -242,36 +242,45 @@ export interface TurnProcessorResult {
 // CACHED MODULE TYPES - For dynamic imports
 // ============================================================================
 
-// NOTE: Using explicit function signatures instead of `typeof import(...)`
-// to avoid circular dependency with intelligence/context-builders.
-// The circular chain was:
+// NOTE: Using loose function signatures with `any` to avoid circular dependency
+// with intelligence/context-builders. The circular chain was:
 // intelligence/context-builders → ... → agents/processors/types → intelligence/context-builders
+//
+// These types are for caching dynamically imported modules. The actual type
+// safety comes from the imported modules themselves at runtime.
 
-/** Function signature for buildConversationContext */
-type BuildConversationContextFn = (input: unknown) => Promise<ContextInjection[]>;
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-/** Function signature for formatContextForPrompt */
-type FormatContextForPromptFn = (
-  injections: ContextInjection[],
-  options?: {
-    maxLength?: number;
-    includeHints?: boolean;
-    highEmotionMode?: boolean;
-  }
-) => string;
+/** Function signature for buildConversationContext (accepts any context input) */
+type BuildConversationContextFn = (input: any) => Promise<any[]>;
 
-/** Function signature for shouldUseHighEmotionMode */
-type ShouldUseHighEmotionModeFn = (analysis: unknown) => boolean;
+/** Function signature for formatContextForPrompt (accepts any injections) */
+type FormatContextForPromptFn = (injections: any[], options?: any) => string;
+
+/** Function signature for shouldUseHighEmotionMode (accepts any analysis) */
+type ShouldUseHighEmotionModeFn = (analysis: any) => boolean;
+
+/**
+ * Easter egg result type (matches EasterEggResult from personas/easter-eggs.ts)
+ * NOTE: response is optional, triggered indicates if an egg was activated
+ */
+interface EasterEggResultType {
+  type: string;
+  response?: string;
+  triggered: boolean;
+}
 
 /** Function signature for checkForEasterEgg */
 type CheckForEasterEggFn = (
   message: string,
   personaId: string,
   context?: Record<string, unknown>
-) => { type: string; response: string } | null;
+) => EasterEggResultType;
 
 /** Function signature for getTaskManager */
-type GetTaskManagerFn = (options?: Record<string, unknown>) => unknown;
+type GetTaskManagerFn = (options?: Record<string, unknown>) => any;
+
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 /**
  * Cached module references for performance

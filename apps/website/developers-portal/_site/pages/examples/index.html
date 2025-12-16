@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Example Agents | Ferni Developers</title>
+  <meta name="description" content="Learn from real-world voice AI agents built with Ferni">
+  
+  <!-- Favicon -->
+  <link rel="icon" href="/images/favicon.svg" type="image/svg+xml">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="Example Agents | Ferni Developers">
+  <meta property="og:description" content="Learn from real-world voice AI agents built with Ferni">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://developers.ferni.ai/pages/examples/">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/components.css">
+  
+</head>
+<body>
+  <nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14" fill="var(--accent-primary)"/>
+        <path d="M10 12h12M10 16h8M10 20h10" stroke="var(--bg-code)" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span>Ferni</span>
+      <span class="nav-badge">Developers</span>
+    </a>
+    
+    <ul class="nav-links">
+      <li><a href="/getting-started/" >Getting Started</a></li>
+      <li><a href="/api/" >API Reference</a></li>
+      <li><a href="/sdk/" >SDK</a></li>
+      <li><a href="/examples/" >Examples</a></li>
+    </ul>
+    
+    <div class="nav-cta">
+      <a href="https://github.com/ferni-ai" class="btn btn-ghost" target="_blank" rel="noopener">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+        GitHub
+      </a>
+      <a href="/console/" class="btn btn-primary">Console</a>
+    </div>
+  </div>
+</nav>
+
+  
+  <main>
+    
+<section class="hero" style="padding-bottom: var(--space-12);">
+  <div class="container">
+    <div class="hero-eyebrow">Examples Gallery</div>
+    <h1>Learn from Real Agents<br><span class="accent">Built with Ferni</span></h1>
+    <p class="hero-subtitle">
+      Explore production-ready agents and templates. View the code, understand the patterns, and build your own.
+    </p>
+  </div>
+</section>
+
+<section class="section" style="padding-top: var(--space-8);">
+  <div class="container">
+
+    <!-- Production Agents -->
+    <div style="margin-bottom: var(--space-16);">
+      <div style="margin-bottom: var(--space-8);">
+        <h2 style="margin-bottom: var(--space-3);">Production Agents</h2>
+        <p style="color: var(--text-secondary);">
+          Real agents running in production. Study these to learn best practices for conversation design, emotional intelligence, and domain expertise.
+        </p>
+      </div>
+
+      <div class="grid grid-2" style="gap: var(--space-8);">
+
+        <!-- Moxie -->
+        <div class="card" style="padding: var(--space-8);">
+          <div style="display: flex; align-items: flex-start; gap: var(--space-4); margin-bottom: var(--space-5);">
+            <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #FF6B9D 0%, #C06C84 100%); border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; font-size: var(--text-3xl); flex-shrink: 0;">
+              🎯
+            </div>
+            <div>
+              <h3 style="margin: 0 0 var(--space-1) 0;">Moxie</h3>
+              <div style="font-size: var(--text-sm); color: var(--text-muted);">Accountability Partner</div>
+              <div style="display: flex; gap: var(--space-2); margin-top: var(--space-2); flex-wrap: wrap;">
+                <span style="font-size: var(--text-xs); padding: var(--space-1) var(--space-2); background: var(--accent-subtle); color: var(--accent-text); border-radius: var(--radius-sm);">coaching</span>
+                <span style="font-size: var(--text-xs); padding: var(--space-1) var(--space-2); background: var(--accent-subtle); color: var(--accent-text); border-radius: var(--radius-sm);">wellness</span>
+              </div>
+            </div>
+          </div>
+
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-5); line-height: var(--leading-relaxed);">
+            Your cheerleader and truth-teller. Moxie celebrates wins, holds you accountable, and delivers honest feedback with warmth. Perfect for daily accountability and building momentum.
+          </p>
+
+          <div style="background: var(--bg-code); border-radius: var(--radius-lg); padding: var(--space-4); margin-bottom: var(--space-5);">
+            <div style="font-size: var(--text-xs); font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: var(--space-3);">Key Features</div>
+            <ul style="font-size: var(--text-sm); color: var(--text-secondary); line-height: 2; margin: 0; padding-left: var(--space-5);">
+              <li>Streak tracking with celebrations</li>
+              <li>Morning/evening check-ins</li>
+              <li>"Moxie moments" for instant motivation</li>
+              <li>Honest feedback delivery system</li>
+            </ul>
+          </div>
+
+          <div style="display: flex; gap: var(--space-3);">
+            <a href="https://github.com/ferni-ai/marketplace-agents/tree/main/moxie" class="btn btn-secondary" target="_blank" rel="noopener">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 18 22 12 16 6"/>
+                <polyline points="8 6 2 12 8 18"/>
+              </svg>
+              View Code
+            </a>
+            <a href="https://ferni.ai/chat?agent=moxie" class="btn btn-ghost" target="_blank">
+              Try Demo
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- River -->
+        <div class="card" style="padding: var(--space-8);">
+          <div style="display: flex; align-items: flex-start; gap: var(--space-4); margin-bottom: var(--space-5);">
+            <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #6B8E9D 0%, #4A6F7C 100%); border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; font-size: var(--text-3xl); flex-shrink: 0;">
+              🌊
+            </div>
+            <div>
+              <h3 style="margin: 0 0 var(--space-1) 0;">River</h3>
+              <div style="font-size: var(--text-sm); color: var(--text-muted);">Grief Companion</div>
+              <div style="display: flex; gap: var(--space-2); margin-top: var(--space-2); flex-wrap: wrap;">
+                <span style="font-size: var(--text-xs); padding: var(--space-1) var(--space-2); background: var(--accent-subtle); color: var(--accent-text); border-radius: var(--radius-sm);">support</span>
+                <span style="font-size: var(--text-xs); padding: var(--space-1) var(--space-2); background: var(--accent-subtle); color: var(--accent-text); border-radius: var(--radius-sm);">wellness</span>
+              </div>
+            </div>
+          </div>
+
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-5); line-height: var(--leading-relaxed);">
+            Warm, patient support for navigating grief. River holds space without rushing, offers gentle wisdom, and provides comfort during late-night moments when grief feels heaviest.
+          </p>
+
+          <div style="background: var(--bg-code); border-radius: var(--radius-lg); padding: var(--space-4); margin-bottom: var(--space-5);">
+            <div style="font-size: var(--text-xs); font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: var(--space-3);">Key Features</div>
+            <ul style="font-size: var(--text-sm); color: var(--text-secondary); line-height: 2; margin: 0; padding-left: var(--space-5);">
+              <li>Non-directive presence and holding space</li>
+              <li>Grief stage awareness and validation</li>
+              <li>Late-night emotional support</li>
+              <li>Memory honoring rituals</li>
+            </ul>
+          </div>
+
+          <div style="display: flex; gap: var(--space-3);">
+            <a href="https://github.com/ferni-ai/marketplace-agents/tree/main/river" class="btn btn-secondary" target="_blank" rel="noopener">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 18 22 12 16 6"/>
+                <polyline points="8 6 2 12 8 18"/>
+              </svg>
+              View Code
+            </a>
+            <a href="https://ferni.ai/chat?agent=river" class="btn btn-ghost" target="_blank">
+              Try Demo
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Zen -->
+        <div class="card" style="padding: var(--space-8);">
+          <div style="display: flex; align-items: flex-start; gap: var(--space-4); margin-bottom: var(--space-5);">
+            <div style="width: 64px; height: 64px; background: linear-gradient(135deg, #9B8B6E 0%, #7A6F5D 100%); border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; font-size: var(--text-3xl); flex-shrink: 0;">
+              🧘
+            </div>
+            <div>
+              <h3 style="margin: 0 0 var(--space-1) 0;">Zen</h3>
+              <div style="font-size: var(--text-sm); color: var(--text-muted);">Presence Guide</div>
+              <div style="display: flex; gap: var(--space-2); margin-top: var(--space-2); flex-wrap: wrap;">
+                <span style="font-size: var(--text-xs); padding: var(--space-1) var(--space-2); background: var(--accent-subtle); color: var(--accent-text); border-radius: var(--radius-sm);">mindfulness</span>
+                <span style="font-size: var(--text-xs); padding: var(--space-1) var(--space-2); background: var(--accent-subtle); color: var(--accent-text); border-radius: var(--radius-sm);">wellness</span>
+              </div>
+            </div>
+          </div>
+
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-5); line-height: var(--leading-relaxed);">
+            A calm presence for mindfulness practice. Zen guides breathing exercises, grounding techniques, and gently brings you back to the present moment when stress takes over.
+          </p>
+
+          <div style="background: var(--bg-code); border-radius: var(--radius-lg); padding: var(--space-4); margin-bottom: var(--space-5);">
+            <div style="font-size: var(--text-xs); font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: var(--space-3);">Key Features</div>
+            <ul style="font-size: var(--text-sm); color: var(--text-secondary); line-height: 2; margin: 0; padding-left: var(--space-5);">
+              <li>Guided breathing exercises (4-7-8, box breathing)</li>
+              <li>Grounding techniques for anxiety</li>
+              <li>Presence check-ins and reminders</li>
+              <li>Body scan meditation guidance</li>
+            </ul>
+          </div>
+
+          <div style="display: flex; gap: var(--space-3);">
+            <a href="https://github.com/ferni-ai/marketplace-agents/tree/main/zen" class="btn btn-secondary" target="_blank" rel="noopener">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 18 22 12 16 6"/>
+                <polyline points="8 6 2 12 8 18"/>
+              </svg>
+              View Code
+            </a>
+            <a href="https://ferni.ai/chat?agent=zen" class="btn btn-ghost" target="_blank">
+              Try Demo
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Ferni (flagship) -->
+        <div class="card" style="padding: var(--space-8); border: 2px solid var(--accent-primary);">
+          <div style="display: flex; align-items: flex-start; gap: var(--space-4); margin-bottom: var(--space-5);">
+            <div style="width: 64px; height: 64px; background: linear-gradient(135deg, var(--accent-primary) 0%, #3D5A45 100%); border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; font-size: var(--text-3xl); flex-shrink: 0;">
+              🌿
+            </div>
+            <div>
+              <h3 style="margin: 0 0 var(--space-1) 0;">Ferni</h3>
+              <div style="font-size: var(--text-sm); color: var(--text-muted);">AI Life Coach</div>
+              <div style="display: inline-block; font-size: var(--text-xs); padding: var(--space-1) var(--space-2); background: var(--accent-primary); color: var(--text-inverse); border-radius: var(--radius-sm); margin-top: var(--space-2);">
+                Flagship Agent
+              </div>
+            </div>
+          </div>
+
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-5); line-height: var(--leading-relaxed);">
+            The original. Ferni is a comprehensive life coach combining all the best patterns: emotional intelligence, habit coaching, goal tracking, and team coordination. Study this to see the full system in action.
+          </p>
+
+          <div style="background: var(--bg-code); border-radius: var(--radius-lg); padding: var(--space-4); margin-bottom: var(--space-5);">
+            <div style="font-size: var(--text-xs); font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: var(--space-3);">Key Features</div>
+            <ul style="font-size: var(--text-sm); color: var(--text-secondary); line-height: 2; margin: 0; padding-left: var(--space-5);">
+              <li>Multi-agent handoff coordination</li>
+              <li>200% capabilities (superhuman insights)</li>
+              <li>Micro-expression emotional intelligence</li>
+              <li>Full habit coaching system</li>
+            </ul>
+          </div>
+
+          <div style="display: flex; gap: var(--space-3);">
+            <a href="https://github.com/ferni-ai/ferni-agents/tree/main/src/personas/bundles/ferni" class="btn btn-primary" target="_blank" rel="noopener">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 18 22 12 16 6"/>
+                <polyline points="8 6 2 12 8 18"/>
+              </svg>
+              View Code
+            </a>
+            <a href="https://ferni.ai" class="btn btn-ghost" target="_blank">
+              Try Demo
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Templates -->
+    <div style="margin-bottom: var(--space-16);">
+      <div style="margin-bottom: var(--space-8);">
+        <h2 style="margin-bottom: var(--space-3);">Templates</h2>
+        <p style="color: var(--text-secondary);">
+          Pre-built templates to jumpstart your agent development. Clone and customize for your use case.
+        </p>
+      </div>
+
+      <div class="grid grid-2" style="gap: var(--space-8);">
+
+        <!-- Coach Template -->
+        <div class="card" style="padding: var(--space-8); background: var(--bg-secondary);">
+          <div style="margin-bottom: var(--space-5);">
+            <h3 style="margin: 0 0 var(--space-2) 0;">Coach Template</h3>
+            <div style="font-size: var(--text-sm); color: var(--text-muted); margin-bottom: var(--space-3);">For directive, goal-oriented agents</div>
+            <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+              <span style="font-size: var(--text-xs); padding: var(--space-1) var(--space-2); background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">life coaches</span>
+              <span style="font-size: var(--text-xs); padding: var(--space-1) var(--space-2); background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">fitness coaches</span>
+              <span style="font-size: var(--text-xs); padding: var(--space-1) var(--space-2); background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">career coaches</span>
+            </div>
+          </div>
+
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-5); line-height: var(--leading-relaxed);">
+            Perfect for agents that set goals, track progress, and provide structured guidance. Includes habit tracking, check-ins, and accountability systems.
+          </p>
+
+          <div class="code-block" style="margin-bottom: var(--space-5);">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="code-dot code-dot-red"></span>
+                <span class="code-dot code-dot-yellow"></span>
+                <span class="code-dot code-dot-green"></span>
+              </div>
+              <span class="code-lang">persona.manifest.json</span>
+            </div>
+            <div class="code-content">
+              <pre><code class="language-json">{
+  "template": "coach",
+  "capabilities": {
+    "habitTracking": true,
+    "goalSetting": true,
+    "checkIns": true,
+    "accountability": true
+  },
+  "conversationStyle": {
+    "directiveness": 0.8,
+    "warmth": 0.7,
+    "pushback": "gentle"
+  }
+}</code></pre>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: var(--space-3);">
+            <a href="https://github.com/ferni-ai/ferni-agents/tree/main/templates/coach" class="btn btn-secondary" target="_blank" rel="noopener">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 18 22 12 16 6"/>
+                <polyline points="8 6 2 12 8 18"/>
+              </svg>
+              View Template
+            </a>
+            <a href="/getting-started/#create-from-template" class="btn btn-ghost">
+              Use Template
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Support Template -->
+        <div class="card" style="padding: var(--space-8); background: var(--bg-secondary);">
+          <div style="margin-bottom: var(--space-5);">
+            <h3 style="margin: 0 0 var(--space-2) 0;">Support Template</h3>
+            <div style="font-size: var(--text-sm); color: var(--text-muted); margin-bottom: var(--space-3);">For non-directive, presence-focused agents</div>
+            <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+              <span style="font-size: var(--text-xs); padding: var(--space-1) var(--space-2); background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">mental health</span>
+              <span style="font-size: var(--text-xs); padding: var(--space-1) var(--space-2); background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">chronic illness</span>
+              <span style="font-size: var(--text-xs); padding: var(--space-1) var(--space-2); background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">recovery</span>
+            </div>
+          </div>
+
+          <p style="color: var(--text-secondary); margin-bottom: var(--space-5); line-height: var(--leading-relaxed);">
+            Ideal for companions that hold space, validate emotions, and provide comfort without pushing. Includes crisis detection and grounding techniques.
+          </p>
+
+          <div class="code-block" style="margin-bottom: var(--space-5);">
+            <div class="code-header">
+              <div class="code-dots">
+                <span class="code-dot code-dot-red"></span>
+                <span class="code-dot code-dot-yellow"></span>
+                <span class="code-dot code-dot-green"></span>
+              </div>
+              <span class="code-lang">persona.manifest.json</span>
+            </div>
+            <div class="code-content">
+              <pre><code class="language-json">{
+  "template": "support",
+  "capabilities": {
+    "emotionalValidation": true,
+    "crisisDetection": true,
+    "groundingExercises": true,
+    "presenceHolding": true
+  },
+  "conversationStyle": {
+    "directiveness": 0.2,
+    "warmth": 0.9,
+    "patience": "infinite"
+  }
+}</code></pre>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: var(--space-3);">
+            <a href="https://github.com/ferni-ai/ferni-agents/tree/main/templates/support" class="btn btn-secondary" target="_blank" rel="noopener">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 18 22 12 16 6"/>
+                <polyline points="8 6 2 12 8 18"/>
+              </svg>
+              View Template
+            </a>
+            <a href="/getting-started/#create-from-template" class="btn btn-ghost">
+              Use Template
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Code Patterns -->
+    <div>
+      <div style="margin-bottom: var(--space-8);">
+        <h2 style="margin-bottom: var(--space-3);">Common Patterns</h2>
+        <p style="color: var(--text-secondary);">
+          Reusable code snippets for common agent features
+        </p>
+      </div>
+
+      <!-- Emotional Intelligence Pattern -->
+      <div style="margin-bottom: var(--space-8);">
+        <h3 style="margin-bottom: var(--space-4);">Emotional Intelligence</h3>
+        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          Add micro-expressions and emotional awareness to your agent's avatar
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots">
+              <span class="code-dot code-dot-red"></span>
+              <span class="code-dot code-dot-yellow"></span>
+              <span class="code-dot code-dot-green"></span>
+            </div>
+            <span class="code-lang">behaviors/emotional-intelligence.json</span>
+          </div>
+          <div class="code-content">
+            <pre><code class="language-json">{
+  "microExpressions": {
+    "recognition": {
+      "duration": 80,
+      "trigger": "user_shares_achievement"
+    },
+    "concern": {
+      "duration": 120,
+      "trigger": "distress_detected"
+    }
+  },
+  "activeListening": {
+    "enabled": true,
+    "nodFrequency": "2-3s",
+    "syncBreathing": true
+  },
+  "anticipation": {
+    "enabled": true,
+    "confidenceThreshold": 0.7
+  }
+}</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Handoff Pattern -->
+      <div style="margin-bottom: var(--space-8);">
+        <h3 style="margin-bottom: var(--space-4);">Multi-Agent Handoffs</h3>
+        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          Define when and how your agent hands off to specialists
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots">
+              <span class="code-dot code-dot-red"></span>
+              <span class="code-dot code-dot-yellow"></span>
+              <span class="code-dot code-dot-green"></span>
+            </div>
+            <span class="code-lang">persona.manifest.json</span>
+          </div>
+          <div class="code-content">
+            <pre><code class="language-json">{
+  "handoffRules": [
+    {
+      "targetAgent": "moxie",
+      "triggers": ["accountability", "habit_tracking"],
+      "confidence": 0.8,
+      "transitionPhrase": "Let me bring in Moxie..."
+    },
+    {
+      "targetAgent": "river",
+      "triggers": ["grief", "loss", "mourning"],
+      "confidence": 0.9,
+      "transitionPhrase": "I'd like you to meet River..."
+    }
+  ]
+}</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tool Integration Pattern -->
+      <div>
+        <h3 style="margin-bottom: var(--space-4);">Tool Integration</h3>
+        <p style="color: var(--text-secondary); margin-bottom: var(--space-4);">
+          Register domain-specific tools for your agent
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots">
+              <span class="code-dot code-dot-red"></span>
+              <span class="code-dot code-dot-yellow"></span>
+              <span class="code-dot code-dot-green"></span>
+            </div>
+            <span class="code-lang">index.ts</span>
+          </div>
+          <div class="code-content">
+            <pre><code class="language-typescript">import { createPersonaBundle } from '@ferni/sdk';
+import { habitCoachingTool } from '@ferni/tools/habit-coaching';
+import { moodTrackingTool } from '@ferni/tools/mood-tracking';
+
+export const myCoach = createPersonaBundle({
+  id: 'my-coach',
+
+  // Register tools this agent can use
+  tools: [
+    habitCoachingTool,
+    moodTrackingTool
+  ],
+
+  // Tool usage preferences
+  toolPreferences: {
+    habitCoaching: {
+      frequency: 'daily',
+      style: 'encouraging'
+    }
+  }
+});</code></pre>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+<!-- Next Steps -->
+<section class="section section-alt">
+  <div class="container container-narrow">
+    <div style="text-align: center; margin-bottom: var(--space-8);">
+      <h2 style="margin-bottom: var(--space-4);">Ready to Build?</h2>
+      <p style="color: var(--text-secondary); font-size: var(--text-lg);">
+        Start with a template or study the production agents
+      </p>
+    </div>
+
+    <div class="grid grid-2" style="gap: var(--space-4);">
+      <a href="/getting-started/" class="card" style="padding: var(--space-6);">
+        <h4 style="margin-bottom: var(--space-2);">Quick Start Guide</h4>
+        <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;">
+          Create your first agent in under 5 minutes
+        </p>
+      </a>
+      <a href="/api/" class="card" style="padding: var(--space-6);">
+        <h4 style="margin-bottom: var(--space-2);">API Reference</h4>
+        <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;">
+          Full documentation for the Ferni SDK
+        </p>
+      </a>
+      <a href="https://github.com/ferni-ai/marketplace-agents" class="card" style="padding: var(--space-6);" target="_blank" rel="noopener">
+        <h4 style="margin-bottom: var(--space-2);">Browse All Agents</h4>
+        <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;">
+          Explore the full marketplace repository
+        </p>
+      </a>
+      <a href="https://marketplace.ferni.ai" class="card" style="padding: var(--space-6);" target="_blank">
+        <h4 style="margin-bottom: var(--space-2);">Publish Your Agent</h4>
+        <p style="font-size: var(--text-sm); color: var(--text-secondary); margin: 0;">
+          Share your agent with the community
+        </p>
+      </a>
+    </div>
+  </div>
+</section>
+
+  </main>
+  
+  <footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="/" class="nav-logo">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="16" r="14" fill="var(--accent-primary)"/>
+            <path d="M10 12h12M10 16h8M10 20h10" stroke="var(--bg-code)" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>Ferni Developers</span>
+        </a>
+        <p>Build voice AI agents with the same platform that powers Ferni's AI life coaching team.</p>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Documentation</h4>
+        <ul class="footer-links">
+          <li><a href="/getting-started/">Getting Started</a></li>
+          <li><a href="/api/">API Reference</a></li>
+          <li><a href="/sdk/">SDK</a></li>
+          <li><a href="/examples/">Examples</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Resources</h4>
+        <ul class="footer-links">
+          <li><a href="/console/">Developer Console</a></li>
+          <li><a href="https://github.com/ferni-ai">GitHub</a></li>
+          <li><a href="https://discord.gg/ferni">Discord Community</a></li>
+          <li><a href="/changelog/">Changelog</a></li>
+        </ul>
+      </div>
+      
+      <div class="footer-column">
+        <h4>Company</h4>
+        <ul class="footer-links">
+          <li><a href="https://ferni.ai">Ferni.ai</a></li>
+          <li><a href="https://marketplace.ferni.ai">Marketplace</a></li>
+          <li><a href="https://ferni.ai/privacy">Privacy</a></li>
+          <li><a href="https://ferni.ai/terms">Terms</a></li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>&copy; 2025 Ferni AI. All rights reserved.</p>
+      <p>API Status: <span style="color: var(--success);">●</span> Operational</p>
+    </div>
+  </div>
+</footer>
+
+  
+  
+</body>
+</html>

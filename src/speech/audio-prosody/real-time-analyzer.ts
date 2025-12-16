@@ -143,10 +143,7 @@ export class RealTimeAudioAnalyzer {
     for (let i = 0; i < samples.length; i++) {
       this.ringBuffer[this.writeIndex] = samples[i];
       this.writeIndex = (this.writeIndex + 1) % this.config.bufferSizeSamples;
-      this.samplesInBuffer = Math.min(
-        this.samplesInBuffer + 1,
-        this.config.bufferSizeSamples
-      );
+      this.samplesInBuffer = Math.min(this.samplesInBuffer + 1, this.config.bufferSizeSamples);
     }
 
     this.totalSamplesProcessed += samples.length;
@@ -201,9 +198,7 @@ export class RealTimeAudioAnalyzer {
 
     // Calculate other features
     const durationMs = (this.totalSamplesProcessed / this.config.sampleRate) * 1000;
-    const speechDurationMs = this.isInSpeech
-      ? Date.now() - this.speechStartTimestamp
-      : 0;
+    const speechDurationMs = this.isInSpeech ? Date.now() - this.speechStartTimestamp : 0;
     const speakingRatio = speechDurationMs / Math.max(durationMs, 1);
 
     return {
@@ -229,9 +224,8 @@ export class RealTimeAudioAnalyzer {
    * Get current analyzer state
    */
   getState(): AnalyzerState {
-    const timeSinceLastSpeech = this.lastSpeechTimestamp > 0
-      ? Date.now() - this.lastSpeechTimestamp
-      : 0;
+    const timeSinceLastSpeech =
+      this.lastSpeechTimestamp > 0 ? Date.now() - this.lastSpeechTimestamp : 0;
 
     return {
       totalSamplesProcessed: this.totalSamplesProcessed,
@@ -318,8 +312,8 @@ export class RealTimeAudioAnalyzer {
     const currentSilenceMs = isSpeech
       ? 0
       : this.lastSpeechTimestamp > 0
-      ? now - this.lastSpeechTimestamp
-      : 0;
+        ? now - this.lastSpeechTimestamp
+        : 0;
 
     return {
       pitchEstimate: pitchResult.pitch,

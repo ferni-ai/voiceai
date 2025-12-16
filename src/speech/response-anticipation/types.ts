@@ -88,4 +88,3 @@ export interface PrefetchContext {
   /** Suggested persona mode */
   suggestedMode: string;
 }
-

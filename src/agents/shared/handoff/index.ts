@@ -14,6 +14,7 @@ export * from './types.js';
 export {
   HANDOFF_TIMEOUT_MS,
   MAX_PENDING_HANDOFFS,
+  PROGRESS_HEARTBEAT_MS,
   getHandoffSessionState,
   clearHandoffSessionState,
   isHandoffInProgress,
@@ -26,6 +27,13 @@ export {
   clearPendingHandoffs,
   getHandoffStateSummary,
   getActiveHandoffSessions,
+  // Progress heartbeat
+  startProgressHeartbeat,
+  stopProgressHeartbeat,
+  getHandoffPersonaInfo,
+  type HandoffProgressInfo,
+  // Message sequencing
+  getNextMessageSeq,
 } from './session-state.js';
 
 // Cached module accessors

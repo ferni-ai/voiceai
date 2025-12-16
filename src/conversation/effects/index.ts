@@ -51,11 +51,7 @@ export {
   resetAllEffectCoordinators,
 } from './effect-coordinator.js';
 
-export {
-  getEffectTracker,
-  resetEffectTracker,
-  resetAllEffectTrackers,
-} from './effect-tracker.js';
+export { getEffectTracker, resetEffectTracker, resetAllEffectTrackers } from './effect-tracker.js';
 
 // Effect factories
 export { createBreathSoundEffect } from './presence/breath-sound.effect.js';
@@ -133,10 +129,7 @@ const EFFECT_FACTORIES: Array<(personaId: string) => HumanizationEffect> = [
 /**
  * Register all default effects with a coordinator
  */
-export function registerDefaultEffects(
-  coordinator: EffectCoordinator,
-  personaId: string
-): void {
+export function registerDefaultEffects(coordinator: EffectCoordinator, personaId: string): void {
   for (const factory of EFFECT_FACTORIES) {
     const effect = factory(personaId);
     coordinator.registerEffect(effect);
@@ -219,4 +212,3 @@ export function buildEffectContext(
     sessionData: input.sessionData,
   };
 }
-

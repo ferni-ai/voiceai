@@ -55,10 +55,7 @@ export {
   type SectionEmphasis,
 } from './layout-optimizer.js';
 
-export {
-  generateChatGreeting,
-  type ChatGreetingContext,
-} from './chat-greeter.js';
+export { generateChatGreeting, type ChatGreetingContext } from './chat-greeter.js';
 
 export {
   optimizeLandingPage,
@@ -103,4 +100,3 @@ export {
   type AgentReport,
   type AutomationConfig,
 } from './optimization-agent.js';
-

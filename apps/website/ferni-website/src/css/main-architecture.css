@@ -1,0 +1,78 @@
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * FERNI WEBSITE - CLEAN ARCHITECTURE CSS
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * 
+ * A world-class, Apple-level design system following strict clean architecture.
+ * Every decision aligns with FERNI-BRAND-GUIDELINES.md
+ * 
+ * ARCHITECTURE LAYERS:
+ * ─────────────────────────────────────────────────────────────────────────────
+ * 1. TOKENS      → Design system variables (single source of truth)
+ * 2. BASE        → Reset, typography, global styles
+ * 3. LAYOUT      → Grid, container, sections
+ * 4. COMPONENTS  → Reusable UI elements (buttons, cards, forms)
+ * 5. SECTIONS    → Page-specific sections (hero, testimonials, footer)
+ * 6. UTILITIES   → Helper classes (accessibility, animations)
+ * 7. OVERRIDES   → Page-specific overrides (should be minimal)
+ * 
+ * IMPORT ORDER MATTERS - Do not reorder!
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LAYER 1: DESIGN TOKENS (Single Source of Truth)
+   Generated from design-system/tokens/*.json
+   ═══════════════════════════════════════════════════════════════════════════ */
+@import './_tokens.css';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LAYER 2: BASE STYLES
+   Normalize, typography, global element styles
+   ═══════════════════════════════════════════════════════════════════════════ */
+@import './base/reset.css';
+@import './base/typography.css';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LAYER 3: LAYOUT
+   Container, grid, section patterns
+   ═══════════════════════════════════════════════════════════════════════════ */
+@import './base/layout.css';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LAYER 4: COMPONENTS (Reusable UI)
+   Buttons, cards, forms, navigation
+   ═══════════════════════════════════════════════════════════════════════════ */
+@import './components/buttons.css';
+@import './components/cards.css';
+@import './components/forms.css';
+@import './components/nav.css';
+@import './components/avatar.css';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LAYER 5: SECTIONS (Page Sections)
+   Hero, testimonials, team, footer, etc.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@import './sections/hero.css';
+@import './sections/testimonials.css';
+@import './sections/team.css';
+@import './sections/features.css';
+@import './sections/faq.css';
+@import './sections/cta.css';
+@import './sections/footer.css';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LAYER 6: UTILITIES
+   Accessibility, animations, helpers
+   ═══════════════════════════════════════════════════════════════════════════ */
+@import './utils/accessibility.css';
+@import './utils/animations.css';
+@import './utils/helpers.css';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LAYER 7: FEATURE-SPECIFIC
+   Complex features that need their own styles
+   ═══════════════════════════════════════════════════════════════════════════ */
+@import './sections/persona-quiz.css';
+@import './landing-intelligence.css';
+

@@ -79,9 +79,8 @@ describe('FirestoreVectorStore', () => {
 
   describe('Singleton management', () => {
     it('should return same instance via getFirestoreVectorStore', async () => {
-      const { getFirestoreVectorStore, resetFirestoreVectorStore } = await import(
-        '../firestore-vector-store.js'
-      );
+      const { getFirestoreVectorStore, resetFirestoreVectorStore } =
+        await import('../firestore-vector-store.js');
 
       resetFirestoreVectorStore();
       const store1 = getFirestoreVectorStore();
@@ -91,9 +90,8 @@ describe('FirestoreVectorStore', () => {
     });
 
     it('should create new instance after reset', async () => {
-      const { getFirestoreVectorStore, resetFirestoreVectorStore } = await import(
-        '../firestore-vector-store.js'
-      );
+      const { getFirestoreVectorStore, resetFirestoreVectorStore } =
+        await import('../firestore-vector-store.js');
 
       const store1 = getFirestoreVectorStore();
       resetFirestoreVectorStore();
@@ -295,4 +293,3 @@ describe('FirestoreVectorStore', () => {
     });
   });
 });
-

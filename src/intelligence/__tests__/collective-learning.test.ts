@@ -25,7 +25,7 @@ describe('Collective Learning Integration', () => {
     });
 
     it('should detect empathy responses', () => {
-      const response = "I understand how difficult that must be. That sounds really hard.";
+      const response = 'I understand how difficult that must be. That sounds really hard.';
       expect(analyzeResponseType(response)).toBe('empathy');
     });
 
@@ -96,7 +96,11 @@ describe('Collective Learning Integration', () => {
 
     it('should increase engagement for questions', () => {
       const noQuestion = analyzeUserEngagement('I understand.', null, baseEmotion);
-      const withQuestion = analyzeUserEngagement('I understand. What do you think?', null, baseEmotion);
+      const withQuestion = analyzeUserEngagement(
+        'I understand. What do you think?',
+        null,
+        baseEmotion
+      );
 
       expect(withQuestion.engagementScore).toBeGreaterThan(noQuestion.engagementScore);
       expect(withQuestion.askedFollowUp).toBe(true);
@@ -125,7 +129,11 @@ describe('Collective Learning Integration', () => {
         valence: 'positive',
       };
 
-      const engagement = analyzeUserEngagement('I feel better now!', previousEmotion, currentEmotion);
+      const engagement = analyzeUserEngagement(
+        'I feel better now!',
+        previousEmotion,
+        currentEmotion
+      );
 
       expect(engagement.emotionalShift).toBe('positive');
     });
@@ -147,4 +155,3 @@ describe('Collective Learning Integration', () => {
     });
   });
 });
-

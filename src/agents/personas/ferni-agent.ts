@@ -64,6 +64,9 @@ import {
 // Entertainment tools - music playback (lazy loaded)
 import { createMusicTools } from '../../tools/music.js';
 
+// Information tools - weather, news, sports, search
+import { definitions as informationToolDefs } from '../../tools/domains/information/index.js';
+
 // ============================================================================
 // TOOL BUILDING HELPERS
 // ============================================================================
@@ -77,7 +80,9 @@ function buildMemoryTools(agentId: string): ToolSet {
   // Services will be available via session context at runtime
   const minimalServiceRegistry = {
     has: () => false,
-    get: () => { throw new Error('Services not available in this context'); },
+    get: () => {
+      throw new Error('Services not available in this context');
+    },
     getOptional: () => undefined,
   };
 
@@ -122,6 +127,34 @@ function buildEntertainmentTools(): ToolSet {
 }
 
 /**
+ * Build information tools from the information domain.
+ * Includes: weather, news, sports, web search.
+ */
+function buildInformationTools(agentId: string): ToolSet {
+  const minimalServiceRegistry = {
+    has: () => false,
+    get: () => {
+      throw new Error('Services not available in this context');
+    },
+    getOptional: () => undefined,
+  };
+
+  const ctx: ToolContext = {
+    agentId,
+    agentDisplayName: 'Ferni',
+    userId: 'default',
+    services: minimalServiceRegistry as ToolContext['services'],
+  };
+
+  const tools: Record<string, unknown> = {};
+  for (const def of informationToolDefs) {
+    tools[def.id] = def.create(ctx);
+  }
+
+  return tools as ToolSet;
+}
+
+/**
  * Build handoff tools for team member switching.
  * These follow the clean LiveKit 1.0 pattern.
  */
@@ -148,7 +181,8 @@ function buildHandoffTools(): ToolSet {
         const { AlexAgent } = await import('./alex-agent.js');
         return llm.handoff({
           agent: new AlexAgent(ctx.session.chatCtx),
-          returns: 'Connecting you with Alex - they handle calendar and communications like nobody else.',
+          returns:
+            'Connecting you with Alex - they handle calendar and communications like nobody else.',
         });
       },
     }),
@@ -215,12 +249,14 @@ export class FerniAgent extends voice.Agent<FerniSessionData> {
     // Build all tools from domain imports
     const memoryTools = buildMemoryTools('ferni');
     const entertainmentTools = buildEntertainmentTools();
+    const informationTools = buildInformationTools('ferni');
     const handoffTools = buildHandoffTools();
 
     // Merge all tools
     const allTools = {
       ...memoryTools,
       ...entertainmentTools,
+      ...informationTools,
       ...handoffTools,
     } as ToolSet;
 
@@ -237,6 +273,7 @@ export class FerniAgent extends voice.Agent<FerniSessionData> {
         totalTools: Object.keys(allTools).length,
         memoryTools: Object.keys(memoryTools).length,
         entertainmentTools: Object.keys(entertainmentTools).length,
+        informationTools: Object.keys(informationTools).length,
         handoffTools: Object.keys(handoffTools).length,
         skipGreeting: this.skipGreeting,
       },
@@ -263,7 +300,8 @@ export class FerniAgent extends voice.Agent<FerniSessionData> {
     if (isReturning && userName) {
       greetingInstructions = `Welcome back ${userName} warmly. Reference that you remember them. Keep it natural.`;
     } else if (isReturning) {
-      greetingInstructions = 'Welcome them back warmly - acknowledge that you remember them. Keep it natural.';
+      greetingInstructions =
+        'Welcome them back warmly - acknowledge that you remember them. Keep it natural.';
     }
 
     this.session.generateReply({
@@ -287,9 +325,6 @@ export class FerniAgent extends voice.Agent<FerniSessionData> {
 /**
  * Create a Ferni agent with the given system prompt.
  */
-export function createFerniAgent(
-  systemPrompt: string,
-  options?: FerniAgentOptions
-): FerniAgent {
+export function createFerniAgent(systemPrompt: string, options?: FerniAgentOptions): FerniAgent {
   return new FerniAgent(systemPrompt, options);
 }

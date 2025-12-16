@@ -215,4 +215,3 @@ export const TECHNICAL_TERM_PATTERNS = [
   // Words with numbers (likely technical)
   /\b([A-Za-z]+\d+[A-Za-z]*)\b/g,
 ];
-

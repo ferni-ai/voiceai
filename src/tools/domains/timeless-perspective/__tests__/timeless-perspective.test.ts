@@ -182,7 +182,7 @@ describe('Timeless Perspective Domain Tools', () => {
       });
 
       expect(result).toContain('This Too Shall Pass');
-      expect(result).toContain("worried this is permanent");
+      expect(result).toContain('worried this is permanent');
       expect(result).toContain("It isn't");
       expect(result).toContain('everything passes');
     });
@@ -397,4 +397,3 @@ describe('Timeless Perspective Domain Tools', () => {
     });
   });
 });
-

@@ -211,7 +211,10 @@ export async function handleMarketplaceAdminRoutes(
         body.reviewerName || admin.adminName
       );
 
-      log.info({ itemId, reviewerId: body.reviewerId, adminId: admin.adminId }, 'Reviewer assigned');
+      log.info(
+        { itemId, reviewerId: body.reviewerId, adminId: admin.adminId },
+        'Reviewer assigned'
+      );
 
       sendJson(res, 200, { submission });
       return true;
@@ -242,12 +245,7 @@ export async function handleMarketplaceAdminRoutes(
         return true;
       }
 
-      const submission = await submitReview(
-        itemId,
-        admin.adminId,
-        body.decision,
-        body.feedback
-      );
+      const submission = await submitReview(itemId, admin.adminId, body.decision, body.feedback);
 
       log.info({ itemId, decision: body.decision, adminId: admin.adminId }, 'Review submitted');
 

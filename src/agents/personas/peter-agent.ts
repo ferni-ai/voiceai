@@ -136,8 +136,7 @@ function buildHandoffTools(): ToolSet {
     }),
 
     handoffToMaya: llm.tool({
-      description:
-        'Transfer to Maya for budgeting and financial wellness routines.',
+      description: 'Transfer to Maya for budgeting and financial wellness routines.',
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { MayaAgent } = await import('./maya-agent.js');
@@ -149,8 +148,7 @@ function buildHandoffTools(): ToolSet {
     }),
 
     handoffToAlex: llm.tool({
-      description:
-        'Transfer to Alex for scheduling, calendar management, or communication tasks.',
+      description: 'Transfer to Alex for scheduling, calendar management, or communication tasks.',
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { AlexAgent } = await import('./alex-agent.js');
@@ -162,8 +160,7 @@ function buildHandoffTools(): ToolSet {
     }),
 
     handoffToJordan: llm.tool({
-      description:
-        'Transfer to Jordan for life milestones, goal setting, or celebration planning.',
+      description: 'Transfer to Jordan for life milestones, goal setting, or celebration planning.',
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { JordanAgent } = await import('./jordan-agent.js');
@@ -229,9 +226,7 @@ Keep responses thoughtful but enthusiastic. You love this stuff and it shows.`;
       tools: allTools,
     });
 
-    process.stderr.write(
-      `[PeterAgent] Initialized with ${Object.keys(allTools).length} tools\n`
-    );
+    process.stderr.write(`[PeterAgent] Initialized with ${Object.keys(allTools).length} tools\n`);
   }
 
   async onEnter(): Promise<void> {

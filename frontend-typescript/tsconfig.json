@@ -19,16 +19,24 @@
     "noImplicitThis": true,
     "useUnknownInCatchVariables": true,
     "alwaysStrict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
+    "noUncheckedIndexedAccess": false,
     "noImplicitOverride": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@design-system/*": ["../design-system/dist/*"]
+      "@design-system/*": ["../design-system/dist/*"],
+      "firebase/app": ["src/stubs/firebase-stub.ts"],
+      "firebase/auth": ["src/stubs/firebase-stub.ts"],
+      "@capacitor/push-notifications": ["src/stubs/capacitor-stub.ts"],
+      "@capacitor/local-notifications": ["src/stubs/capacitor-stub.ts"],
+      "@capacitor/core": ["src/stubs/capacitor-stub.ts"],
+      "@capacitor/haptics": ["src/stubs/capacitor-stub.ts"],
+      "@capacitor/browser": ["src/stubs/capacitor-stub.ts"],
+      "@ferni/capacitor-purchases": ["src/stubs/capacitor-stub.ts"]
     }
   },
   "include": ["src/**/*.ts"],

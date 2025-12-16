@@ -35,7 +35,7 @@ const SYNC_CONFIGS = [
   },
   {
     name: 'Frontend App',
-    localeDir: 'frontend-typescript/src/i18n/locales',
+    localeDir: 'apps/web/src/i18n/locales',
     sourceLocale: 'en-US.json',
   },
   {

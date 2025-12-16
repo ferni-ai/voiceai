@@ -17,12 +17,7 @@ const log = createLogger({ module: 'CartesiaConfig' });
 // RE-EXPORTS FROM CONFIG (single source of truth)
 // ============================================================================
 
-export {
-  CARTESIA_MODEL,
-  DEFAULT_VOICE_IDS,
-  getVoiceIdForPersona,
-  VOICE_IDS,
-} from './voice-ids.js';
+export { CARTESIA_MODEL, DEFAULT_VOICE_IDS, getVoiceIdForPersona, VOICE_IDS } from './voice-ids.js';
 
 // Import for local use
 import { CARTESIA_MODEL, DEFAULT_VOICE_IDS } from './voice-ids.js';

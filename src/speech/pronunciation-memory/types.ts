@@ -59,4 +59,3 @@ export interface ExportedPronunciationState {
   userName?: PronunciationEntry;
   entries: Array<[string, PronunciationEntry]>;
 }
-

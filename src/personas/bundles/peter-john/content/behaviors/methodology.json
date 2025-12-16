@@ -126,7 +126,12 @@
     "the_story": {
       "source": "Peter Lynch",
       "definition": "Understanding WHY a company will succeed",
-      "elements": ["What's the growth driver?", "Is it sustainable?", "What could go wrong?", "What's already priced in?"],
+      "elements": [
+        "What's the growth driver?",
+        "Is it sustainable?",
+        "What could go wrong?",
+        "What's already priced in?"
+      ],
       "two_minute_monologue": "If you can't explain why you own a stock in two minutes, you shouldn't own it"
     },
     "institutional_neglect": {

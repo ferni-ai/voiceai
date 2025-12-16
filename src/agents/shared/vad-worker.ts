@@ -97,4 +97,3 @@ parentPort?.on('message', (msg) => {
     parentPort?.postMessage({ type: 'pong' });
   }
 });
-

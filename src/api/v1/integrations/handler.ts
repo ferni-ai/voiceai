@@ -179,7 +179,9 @@ export async function handleIntegrationsRoutes(
         'terra',
       ];
       if (!validPlatforms.includes(platform)) {
-        sendJson(res, 400, { error: `Invalid platform. Must be one of: ${validPlatforms.join(', ')}` });
+        sendJson(res, 400, {
+          error: `Invalid platform. Must be one of: ${validPlatforms.join(', ')}`,
+        });
         return true;
       }
 
@@ -1006,7 +1008,9 @@ export async function handleIntegrationsRoutes(
 
       const confirm = parsedUrl.searchParams.get('confirm') === 'true';
       if (!confirm) {
-        sendJson(res, 400, { error: 'Add confirm=true to confirm deletion of all relationship data' });
+        sendJson(res, 400, {
+          error: 'Add confirm=true to confirm deletion of all relationship data',
+        });
         return true;
       }
 

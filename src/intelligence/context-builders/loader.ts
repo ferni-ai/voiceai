@@ -77,6 +77,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'conversation-recap', // KEPT: Session recap is unique
     'cross-session-reflection', // KEPT: Reflection prompts are unique
     'cross-session-threading', // KEPT: Threading context is unique
+    'thinking-of-you', // NEW: Proactive callbacks and "I was thinking about you" moments
   ],
 
   // PERSONA - Character and identity
@@ -128,6 +129,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'storytelling',
     'music',
     'music-emotion-offers',
+    'daily-rituals', // NEW: Morning Sky Check, Habit Heartbeat, etc.
   ],
 
   // TEAM - Multi-persona coordination
@@ -138,6 +140,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'role-boundaries',
     'cameo-opportunities',
     'cameo-unlock', // Natural team member introductions
+    'team-gossip', // NEW: Cross-persona references and banter
   ],
 
   // CONTEXT - Situational awareness

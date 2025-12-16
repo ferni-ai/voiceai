@@ -175,8 +175,8 @@ describe('Habit Persistence Domain Tools', () => {
       });
 
       expect(result).toContain('slipped');
-      expect(result).toContain("slip is not a slide");
-      expect(result).toContain("picking back up");
+      expect(result).toContain('slip is not a slide');
+      expect(result).toContain('picking back up');
     });
 
     it('should address abandoned habits without judgment', async () => {
@@ -418,4 +418,3 @@ describe('Habit Persistence Domain Tools', () => {
     });
   });
 });
-

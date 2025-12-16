@@ -216,7 +216,10 @@ export interface ExtractedSignals {
  */
 export interface IHumanSignalExtractor {
   extractSignals(turns: ConversationTurn[], context: ExtractionContext): Promise<ExtractedSignals>;
-  mergeWithExisting(existing: Partial<HumanMemory>, extracted: ExtractedSignals): Partial<HumanMemory>;
+  mergeWithExisting(
+    existing: Partial<HumanMemory>,
+    extracted: ExtractedSignals
+  ): Partial<HumanMemory>;
 }
 
 // ============================================================================
@@ -244,7 +247,11 @@ export interface BondState {
  * Unified emotional memory interface
  */
 export interface IEmotionalMemory {
-  recordUserEmotion(emotion: string, topic: string, intensity: 'mild' | 'moderate' | 'strong'): void;
+  recordUserEmotion(
+    emotion: string,
+    topic: string,
+    intensity: 'mild' | 'moderate' | 'strong'
+  ): void;
   recordBondEvent(event: string, context?: Record<string, unknown>): void;
   getState(): { user: EmotionalState; bond: BondState };
   formatForPrompt(turnCount: number): string;
@@ -331,7 +338,10 @@ export interface TriggeredMemory {
  * Associative memory - models human-like memory triggers
  */
 export interface IAssociativeMemory {
-  registerTrigger(memoryId: string, triggers: Omit<AssociativeTrigger, 'triggerId' | 'createdAt' | 'lastFired' | 'fireCount'>[]): Promise<void>;
+  registerTrigger(
+    memoryId: string,
+    triggers: Omit<AssociativeTrigger, 'triggerId' | 'createdAt' | 'lastFired' | 'fireCount'>[]
+  ): Promise<void>;
   getTriggeredMemories(userText: string, context: RetrievalContext): Promise<TriggeredMemory[]>;
   recordTriggerFired(triggerId: string): Promise<void>;
   getStrongestTriggers(memoryId: string): Promise<AssociativeTrigger[]>;
@@ -371,10 +381,13 @@ export interface ApproachGuidance {
   /** Overall suggested approach */
   approach: 'supportive' | 'direct' | 'curious' | 'playful' | 'gentle' | 'energetic';
   /** Specific dimension guidance */
-  dimensions: Record<PreferenceDimension, {
-    suggestion: string;
-    confidence: number;
-  }>;
+  dimensions: Record<
+    PreferenceDimension,
+    {
+      suggestion: string;
+      confidence: number;
+    }
+  >;
   /** Things to avoid based on past negative responses */
   avoid: string[];
   /** Things that have worked well */
@@ -393,7 +406,10 @@ export interface ICommunicationPreferences {
     situation: string;
   }): Promise<void>;
   getPreferences(userId: string): Promise<InteractionPreference[]>;
-  getApproachGuidance(userId: string, context: { emotion?: string; topic?: string }): Promise<ApproachGuidance>;
+  getApproachGuidance(
+    userId: string,
+    context: { emotion?: string; topic?: string }
+  ): Promise<ApproachGuidance>;
 }
 
 // ============================================================================
@@ -432,9 +448,15 @@ export interface BehavioralPattern {
  * Detects behavioral patterns across conversations
  */
 export interface IBehavioralPatternDetector {
-  analyzeForPatterns(turns: ConversationTurn[], existingPatterns: BehavioralPattern[]): Promise<BehavioralPattern[]>;
+  analyzeForPatterns(
+    turns: ConversationTurn[],
+    existingPatterns: BehavioralPattern[]
+  ): Promise<BehavioralPattern[]>;
   getPatterns(userId: string): Promise<BehavioralPattern[]>;
-  getActivePatternGuidance(userId: string, currentContext: string): Promise<{
+  getActivePatternGuidance(
+    userId: string,
+    currentContext: string
+  ): Promise<{
     activePattern: BehavioralPattern | null;
     guidance: string;
   }>;
@@ -603,4 +625,3 @@ export interface MemoryContainerConfig {
   usePersistentStore?: boolean;
   decayConfig?: Partial<DecayConfig>;
 }
-

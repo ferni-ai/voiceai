@@ -193,8 +193,8 @@ class GroupCoachingUI {
         '/api/group/sessions'
       );
 
-      if (response.success) {
-        this.sessions = response.sessions;
+      if (response.data?.success) {
+        this.sessions = response.data.sessions;
         this.renderList();
       } else {
         this.renderError('Unable to load sessions');
@@ -495,11 +495,11 @@ class GroupCoachingUI {
         { type }
       );
 
-      if (response.success) {
-        this.activeSession = response.session;
-        this.callbacks.onSessionCreated?.(response.session);
+      if (response.data?.success) {
+        this.activeSession = response.data.session;
+        this.callbacks.onSessionCreated?.(response.data.session);
         this.view = 'session';
-        this.renderSession(response.session, response.joinLink);
+        this.renderSession(response.data.session, response.data.joinLink);
       }
     } catch (error) {
       console.error('Failed to create session:', error);
@@ -514,11 +514,11 @@ class GroupCoachingUI {
         { displayName }
       );
 
-      if (response.success && response.session) {
-        this.activeSession = response.session;
-        this.callbacks.onSessionJoined?.(response.session);
+      if (response.data?.success && response.data.session) {
+        this.activeSession = response.data.session;
+        this.callbacks.onSessionJoined?.(response.data.session);
         this.view = 'session';
-        this.renderSession(response.session);
+        this.renderSession(response.data.session);
       }
     } catch (error) {
       console.error('Failed to join session:', error);
@@ -532,9 +532,9 @@ class GroupCoachingUI {
         {}
       );
 
-      if (response.success) {
-        this.activeSession = response.session;
-        this.renderSession(response.session);
+      if (response.data?.success) {
+        this.activeSession = response.data.session;
+        this.renderSession(response.data.session);
       }
     } catch (error) {
       console.error('Failed to start session:', error);

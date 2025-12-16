@@ -87,13 +87,32 @@ const PRE_GOODBYE_PATTERNS = [
  * Detect emotionally heavy conversations that deserve special acknowledgment.
  */
 const HEAVY_CONVERSATION_MARKERS = [
-  'death', 'dying', 'passed away', 'funeral', 'grief', 'loss',
-  'divorce', 'breakup', 'separation',
-  'fired', 'laid off', 'job loss',
-  'diagnosis', 'cancer', 'illness', 'hospital',
-  'anxiety', 'depression', 'therapy', 'mental health',
-  'trauma', 'abuse', 'assault',
-  'bankruptcy', 'debt', 'financial ruin',
+  'death',
+  'dying',
+  'passed away',
+  'funeral',
+  'grief',
+  'loss',
+  'divorce',
+  'breakup',
+  'separation',
+  'fired',
+  'laid off',
+  'job loss',
+  'diagnosis',
+  'cancer',
+  'illness',
+  'hospital',
+  'anxiety',
+  'depression',
+  'therapy',
+  'mental health',
+  'trauma',
+  'abuse',
+  'assault',
+  'bankruptcy',
+  'debt',
+  'financial ruin',
 ];
 
 /**
@@ -103,13 +122,13 @@ function detectWindingDown(userText: string, turnCount: number): boolean {
   // Short responses after turn 5+ often signal winding down
   if (turnCount > 5 && userText.length < 30) {
     // Check for closing phrases
-    if (PRE_GOODBYE_PATTERNS.some(p => p.test(userText))) {
+    if (PRE_GOODBYE_PATTERNS.some((p) => p.test(userText))) {
       return true;
     }
   }
 
   // Any pre-goodbye pattern is a signal
-  return PRE_GOODBYE_PATTERNS.some(p => p.test(userText));
+  return PRE_GOODBYE_PATTERNS.some((p) => p.test(userText));
 }
 
 /**
@@ -161,7 +180,7 @@ function detectHeavyConversation(conversationHistory: string[]): {
   topics: string[];
 } {
   const allText = conversationHistory.join(' ').toLowerCase();
-  const heavyTopics = HEAVY_CONVERSATION_MARKERS.filter(marker =>
+  const heavyTopics = HEAVY_CONVERSATION_MARKERS.filter((marker) =>
     allText.includes(marker.toLowerCase())
   );
 
@@ -339,7 +358,9 @@ Consider: "Is there anything else on your mind, or shall we call it for now?"]`
   // 🌟 SUPERHUMAN: GET CONVERSATION CONTEXT FOR GOODBYE
   // -----------------------------------------------
   const conversationHistory: string[] = [];
-  const historyTracker = input.services?.historyTracker as { getSimpleTurns?: () => Array<{ role: string; content: string }> } | undefined;
+  const historyTracker = input.services?.historyTracker as
+    | { getSimpleTurns?: () => Array<{ role: string; content: string }> }
+    | undefined;
   if (historyTracker?.getSimpleTurns) {
     const turns = historyTracker.getSimpleTurns();
     conversationHistory.push(...turns.map((t: { content: string }) => t.content));

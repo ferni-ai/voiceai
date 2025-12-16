@@ -213,8 +213,12 @@ describe('Marketplace Registry', () => {
     });
 
     it('should list tools by category', () => {
-      registerTool(createMockToolManifest({ id: 'tool1', metadata: { category: 'test', tags: [] } }));
-      registerTool(createMockToolManifest({ id: 'tool2', metadata: { category: 'other', tags: [] } }));
+      registerTool(
+        createMockToolManifest({ id: 'tool1', metadata: { category: 'test', tags: [] } })
+      );
+      registerTool(
+        createMockToolManifest({ id: 'tool2', metadata: { category: 'other', tags: [] } })
+      );
 
       const testTools = listTools({ category: 'test' });
       expect(testTools).toHaveLength(1);
@@ -222,8 +226,12 @@ describe('Marketplace Registry', () => {
     });
 
     it('should list tools by tags', () => {
-      registerTool(createMockToolManifest({ id: 'tool1', metadata: { category: 'test', tags: ['weather'] } }));
-      registerTool(createMockToolManifest({ id: 'tool2', metadata: { category: 'test', tags: ['finance'] } }));
+      registerTool(
+        createMockToolManifest({ id: 'tool1', metadata: { category: 'test', tags: ['weather'] } })
+      );
+      registerTool(
+        createMockToolManifest({ id: 'tool2', metadata: { category: 'test', tags: ['finance'] } })
+      );
 
       const weatherTools = listTools({ tags: ['weather'] });
       expect(weatherTools).toHaveLength(1);
@@ -250,8 +258,18 @@ describe('Marketplace Registry', () => {
     });
 
     it('should filter agents by trust level', () => {
-      registerAgent(createMockAgentManifest({ id: 'agent1', verification: { trustLevel: 'verified', verified: true } }));
-      registerAgent(createMockAgentManifest({ id: 'agent2', verification: { trustLevel: 'community', verified: false } }));
+      registerAgent(
+        createMockAgentManifest({
+          id: 'agent1',
+          verification: { trustLevel: 'verified', verified: true },
+        })
+      );
+      registerAgent(
+        createMockAgentManifest({
+          id: 'agent2',
+          verification: { trustLevel: 'community', verified: false },
+        })
+      );
 
       const verifiedAgents = listAgents({ trustLevel: 'verified' });
       expect(verifiedAgents).toHaveLength(1);
@@ -450,8 +468,20 @@ describe('Marketplace Registry', () => {
     });
 
     it('should search listings by query', () => {
-      registerTool(createMockToolManifest({ id: 'weather-tool', name: 'Weather Tool', description: { short: 'Get weather', long: '' } }));
-      registerTool(createMockToolManifest({ id: 'finance-tool', name: 'Finance Tool', description: { short: 'Track money', long: '' } }));
+      registerTool(
+        createMockToolManifest({
+          id: 'weather-tool',
+          name: 'Weather Tool',
+          description: { short: 'Get weather', long: '' },
+        })
+      );
+      registerTool(
+        createMockToolManifest({
+          id: 'finance-tool',
+          name: 'Finance Tool',
+          description: { short: 'Track money', long: '' },
+        })
+      );
 
       const results = searchListings('weather');
       expect(results).toHaveLength(1);

@@ -109,11 +109,12 @@ const PREBUILT_DEMOS: Record<string, DemoConversation> = {
       },
       {
         role: 'user',
-        message: "I forgot I even said that...",
+        message: 'I forgot I even said that...',
       },
       {
         role: 'ferni',
-        message: "I didn't. I remember everything you've shared with me. It's how I can see the growth you can't.",
+        message:
+          "I didn't. I remember everything you've shared with me. It's how I can see the growth you can't.",
       },
     ],
     generatedAt: new Date(),
@@ -131,7 +132,7 @@ const PREBUILT_DEMOS: Record<string, DemoConversation> = {
         role: 'ferni',
         message: "...You don't have to know. I'm just here.",
         superpower: 'presence',
-        annotation: "Knows when NOT to give advice",
+        annotation: 'Knows when NOT to give advice',
       },
       {
         role: 'user',
@@ -151,14 +152,14 @@ const PREBUILT_DEMOS: Record<string, DemoConversation> = {
     messages: [
       {
         role: 'user',
-        message: 'I finally made the decision. I\'m leaving my job.',
+        message: "I finally made the decision. I'm leaving my job.",
       },
       {
         role: 'ferni',
         message:
           "That took courage. Hey—tomorrow you might wake up second-guessing this. That's normal. It doesn't mean you were wrong.",
         superpower: 'emotional-forecasting',
-        annotation: 'Predicts how you\'ll feel',
+        annotation: "Predicts how you'll feel",
       },
       {
         role: 'user',
@@ -186,11 +187,11 @@ const PREBUILT_DEMOS: Record<string, DemoConversation> = {
         message:
           "I hear your frustration. And I'm in your corner, always. But can I gently ask—is there any part of this where you might have contributed? I'm not blaming you. I'm asking because growth sometimes hides in uncomfortable places.",
         superpower: 'gentle-challenge',
-        annotation: "Honest with love",
+        annotation: 'Honest with love',
       },
       {
         role: 'user',
-        message: "...Maybe I could have communicated better.",
+        message: '...Maybe I could have communicated better.',
       },
       {
         role: 'ferni',
@@ -329,11 +330,16 @@ export async function generateUseCaseDemo(
   useCase: 'career' | 'anxiety' | 'habits' | 'relationships' | 'decisions'
 ): Promise<DemoConversation> {
   const useCasePrompts: Record<string, string> = {
-    career: 'Show Ferni helping someone navigate a career crossroads, demonstrating pattern recognition and gentle challenge.',
-    anxiety: 'Show Ferni helping someone at 2am with anxiety, demonstrating presence mode and emotional forecasting.',
-    habits: 'Show Ferni celebrating small wins and remembering past habit attempts, demonstrating memory and micro-celebrations.',
-    relationships: 'Show Ferni helping process a difficult relationship situation, demonstrating reading between lines.',
-    decisions: 'Show Ferni helping with a big life decision, demonstrating quote callback from past values discussions.',
+    career:
+      'Show Ferni helping someone navigate a career crossroads, demonstrating pattern recognition and gentle challenge.',
+    anxiety:
+      'Show Ferni helping someone at 2am with anxiety, demonstrating presence mode and emotional forecasting.',
+    habits:
+      'Show Ferni celebrating small wins and remembering past habit attempts, demonstrating memory and micro-celebrations.',
+    relationships:
+      'Show Ferni helping process a difficult relationship situation, demonstrating reading between lines.',
+    decisions:
+      'Show Ferni helping with a big life decision, demonstrating quote callback from past values discussions.',
   };
 
   const prompt = `${DEMO_GENERATION_PROMPT}
@@ -363,4 +369,3 @@ Make it feel REAL—messy human emotions, not scripted perfection.`;
   // Fallback
   return PREBUILT_DEMOS['reading-between-lines'];
 }
-

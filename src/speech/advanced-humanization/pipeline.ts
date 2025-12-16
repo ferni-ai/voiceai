@@ -89,4 +89,3 @@ export function humanizeText(text: string, options: Partial<HumanizationOptions>
 
   return result;
 }
-

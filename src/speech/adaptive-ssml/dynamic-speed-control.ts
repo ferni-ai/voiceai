@@ -91,9 +91,9 @@ export const DEFAULT_SPEED_CONFIG: SpeedControlConfig = {
 
 // Topic weight adjustments
 const TOPIC_SPEED_ADJUSTMENTS: Record<string, number> = {
-  light: 0.05,    // Slightly faster for light topics
-  medium: 0,      // No adjustment
-  heavy: -0.1,    // Slower for heavy topics
+  light: 0.05, // Slightly faster for light topics
+  medium: 0, // No adjustment
+  heavy: -0.1, // Slower for heavy topics
 };
 
 // ============================================================================
@@ -161,9 +161,10 @@ export function calculateDynamicSpeed(
   // ═══════════════════════════════════════════════════════════════════════════
 
   // Complexity has asymmetric effect: high complexity slows more than low speeds up
-  const complexityFactor = contentComplexity > 0.5
-    ? -(contentComplexity - 0.5) * 2  // High complexity: negative (slow down)
-    : (0.5 - contentComplexity) * 0.5; // Low complexity: slight positive
+  const complexityFactor =
+    contentComplexity > 0.5
+      ? -(contentComplexity - 0.5) * 2 // High complexity: negative (slow down)
+      : (0.5 - contentComplexity) * 0.5; // Low complexity: slight positive
 
   const complexityAdjust = complexityFactor * config.complexityWeight * 0.2;
   speedAdjustment += complexityAdjust;
@@ -181,9 +182,10 @@ export function calculateDynamicSpeed(
   // ═══════════════════════════════════════════════════════════════════════════
 
   // Emotional content almost always benefits from slower pace
-  const emotionFactor = emotionalIntensity > 0.5
-    ? -(emotionalIntensity - 0.5) * 2  // High emotion: slow down
-    : 0; // Low emotion: no change
+  const emotionFactor =
+    emotionalIntensity > 0.5
+      ? -(emotionalIntensity - 0.5) * 2 // High emotion: slow down
+      : 0; // Low emotion: no change
 
   const emotionAdjust = emotionFactor * config.emotionWeight * 0.2;
   speedAdjustment += emotionAdjust;
@@ -248,10 +250,8 @@ export function calculateDynamicSpeed(
   finalSpeed = Math.max(config.minSpeed, Math.min(config.maxSpeed, finalSpeed));
 
   // Determine if extra pauses should be added
-  const addExtraPauses = 
-    contentComplexity > 0.6 || 
-    emotionalIntensity > 0.6 || 
-    topicWeight === 'heavy';
+  const addExtraPauses =
+    contentComplexity > 0.6 || emotionalIntensity > 0.6 || topicWeight === 'heavy';
 
   // Calculate pause multiplier
   let pauseMultiplier = 1.0;
@@ -300,10 +300,7 @@ export function calculateDynamicSpeed(
  * @param result - The speed control result
  * @returns SSML-wrapped text
  */
-export function applyDynamicSpeedSsml(
-  text: string,
-  result: SpeedControlResult
-): string {
+export function applyDynamicSpeedSsml(text: string, result: SpeedControlResult): string {
   let ssml = text;
 
   // Apply speed wrapper if significantly different from 1.0

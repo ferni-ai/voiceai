@@ -87,7 +87,13 @@ const TURN_THRESHOLDS = {
 /**
  * Detect time-of-day context for anticipatory presence
  */
-function getTimeContext(): 'late_night' | 'early_morning' | 'monday_stress' | 'friday_energy' | 'weekend' | null {
+function getTimeContext():
+  | 'late_night'
+  | 'early_morning'
+  | 'monday_stress'
+  | 'friday_energy'
+  | 'weekend'
+  | null {
   const now = new Date();
   const hour = now.getHours();
   const day = now.getDay();
@@ -125,7 +131,13 @@ function getTimeContext(): 'late_night' | 'early_morning' | 'monday_stress' | 'f
  */
 function detectSelfCriticism(
   text: string
-): 'harsh_judgment' | 'catastrophizing' | 'minimizing_success' | 'imposter_syndrome' | 'perfectionism' | null {
+):
+  | 'harsh_judgment'
+  | 'catastrophizing'
+  | 'minimizing_success'
+  | 'imposter_syndrome'
+  | 'perfectionism'
+  | null {
   const lowerText = text.toLowerCase();
 
   // Harsh self-judgment
@@ -223,10 +235,7 @@ function getEmotionalBondType(
   const lowerText = text.toLowerCase();
 
   // Concern for distressed user
-  if (
-    intensity > 0.7 &&
-    (emotion === 'sad' || emotion === 'anxious' || emotion === 'frustrated')
-  ) {
+  if (intensity > 0.7 && (emotion === 'sad' || emotion === 'anxious' || emotion === 'frustrated')) {
     return 'concern';
   }
 
@@ -236,10 +245,7 @@ function getEmotionalBondType(
   }
 
   // Admiration for achievements
-  if (
-    /\b(i (did|made|achieved|accomplished))\b/.test(lowerText) ||
-    emotion === 'proud'
-  ) {
+  if (/\b(i (did|made|achieved|accomplished))\b/.test(lowerText) || emotion === 'proud') {
     return 'admiration';
   }
 
@@ -267,9 +273,7 @@ function getEmotionalBondType(
 /**
  * Build Better Than Human direct content injections
  */
-async function buildBetterThanHumanDirect(
-  input: ContextBuilderInput
-): Promise<ContextInjection[]> {
+async function buildBetterThanHumanDirect(input: ContextBuilderInput): Promise<ContextInjection[]> {
   const { userText, analysis, userData, persona, services } = input;
   const injections: ContextInjection[] = [];
 
@@ -500,4 +504,3 @@ export {
   getTimeContext,
   SURFACE_PROBABILITY,
 };
-

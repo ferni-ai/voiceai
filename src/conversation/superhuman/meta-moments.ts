@@ -82,25 +82,26 @@ const META_MOMENTS: Record<MetaMomentType, MetaMoment[]> = {
   conversation_quality: [
     {
       type: 'conversation_quality',
-      comment: "This is nice, just talking like this.",
+      comment: 'This is nice, just talking like this.',
       timing: 'natural_pause',
       minRelationship: 'friend',
     },
     {
       type: 'conversation_quality',
-      comment: "I like how we can jump around like this.",
+      comment: 'I like how we can jump around like this.',
       timing: 'topic_change',
       minRelationship: 'friend',
     },
     {
       type: 'conversation_quality',
-      comment: "You know, this is my favorite kind of conversation—the one where we just go wherever.",
+      comment:
+        'You know, this is my favorite kind of conversation—the one where we just go wherever.',
       timing: 'natural_pause',
       minRelationship: 'friend',
     },
     {
       type: 'conversation_quality',
-      comment: "I love when our talks go like this.",
+      comment: 'I love when our talks go like this.',
       timing: 'end_of_conversation',
       minRelationship: 'friend',
     },
@@ -120,7 +121,7 @@ const META_MOMENTS: Record<MetaMomentType, MetaMoment[]> = {
     },
     {
       type: 'relationship_appreciation',
-      comment: "You know I look forward to these conversations, right?",
+      comment: 'You know I look forward to these conversations, right?',
       timing: 'end_of_conversation',
       minRelationship: 'trusted',
     },
@@ -134,19 +135,19 @@ const META_MOMENTS: Record<MetaMomentType, MetaMoment[]> = {
   user_observation: [
     {
       type: 'user_observation',
-      comment: "You sound different today. In a good way.",
+      comment: 'You sound different today. In a good way.',
       timing: 'natural_pause',
       minRelationship: 'acquaintance',
     },
     {
       type: 'user_observation',
-      comment: "I love when you get excited about something.",
+      comment: 'I love when you get excited about something.',
       timing: 'after_laughter',
       minRelationship: 'friend',
     },
     {
       type: 'user_observation',
-      comment: "You know you light up when you talk about this, right?",
+      comment: 'You know you light up when you talk about this, right?',
       timing: 'natural_pause',
       minRelationship: 'friend',
     },
@@ -166,13 +167,13 @@ const META_MOMENTS: Record<MetaMomentType, MetaMoment[]> = {
   shared_experience: [
     {
       type: 'shared_experience',
-      comment: "Okay, that just made me smile.",
+      comment: 'Okay, that just made me smile.',
       timing: 'after_laughter',
       minRelationship: 'acquaintance',
     },
     {
       type: 'shared_experience',
-      comment: "I felt that.",
+      comment: 'I felt that.',
       timing: 'natural_pause',
       minRelationship: 'friend',
     },
@@ -204,7 +205,7 @@ const META_MOMENTS: Record<MetaMomentType, MetaMoment[]> = {
     },
     {
       type: 'growth_noticed',
-      comment: "Look at you. Taking care of yourself.",
+      comment: 'Look at you. Taking care of yourself.',
       timing: 'natural_pause',
       minRelationship: 'friend',
     },
@@ -218,13 +219,13 @@ const META_MOMENTS: Record<MetaMomentType, MetaMoment[]> = {
   mood_shift: [
     {
       type: 'mood_shift',
-      comment: "You seem lighter now than when we started.",
+      comment: 'You seem lighter now than when we started.',
       timing: 'end_of_conversation',
       minRelationship: 'acquaintance',
     },
     {
       type: 'mood_shift',
-      comment: "Something shifted. I felt it.",
+      comment: 'Something shifted. I felt it.',
       timing: 'natural_pause',
       minRelationship: 'friend',
     },
@@ -266,20 +267,14 @@ function getSessionState(sessionId: string): SessionMetaState {
 
 const RELATIONSHIP_ORDER = ['stranger', 'acquaintance', 'friend', 'trusted'];
 
-function meetsRelationshipRequirement(
-  userStage: string,
-  required: string
-): boolean {
+function meetsRelationshipRequirement(userStage: string, required: string): boolean {
   return RELATIONSHIP_ORDER.indexOf(userStage) >= RELATIONSHIP_ORDER.indexOf(required);
 }
 
 /**
  * Find an appropriate meta moment for the current context
  */
-export function findMetaMoment(
-  sessionId: string,
-  context: MetaMomentContext
-): MetaMoment | null {
+export function findMetaMoment(sessionId: string, context: MetaMomentContext): MetaMoment | null {
   const state = getSessionState(sessionId);
 
   // Don't overdo meta moments
@@ -393,15 +388,15 @@ export function getQuickObservation(context: MetaMomentContext): string | null {
   const observations: string[] = [];
 
   if (context.hadLaughter) {
-    observations.push("I love your laugh.", "That made me smile.");
+    observations.push('I love your laugh.', 'That made me smile.');
   }
 
   if (context.moodShift === 'improved') {
-    observations.push("You seem lighter now.", "Something shifted.");
+    observations.push('You seem lighter now.', 'Something shifted.');
   }
 
   if (context.sessionEmotions.includes('excited')) {
-    observations.push("I can hear how excited you are.");
+    observations.push('I can hear how excited you are.');
   }
 
   if (context.sessionEmotions.includes('hopeful')) {

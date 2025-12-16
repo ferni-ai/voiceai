@@ -76,7 +76,9 @@ describe('Feature Flags', () => {
     });
 
     it('should return false when disabled via override', () => {
-      setFeatureFlagsForTesting({ humanization: { enabled: false } as FeatureFlags['humanization'] });
+      setFeatureFlagsForTesting({
+        humanization: { enabled: false } as FeatureFlags['humanization'],
+      });
       expect(isHumanizationEnabled()).toBe(false);
     });
   });
@@ -315,4 +317,3 @@ describe('Feature Flags', () => {
     });
   });
 });
-

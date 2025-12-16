@@ -18,7 +18,10 @@ import {
   markPayoutComplete,
 } from '../../marketplace/billing/index.js';
 import { listTools, listAgents, listInstallations } from '../../marketplace/index.js';
-import { createPublisherPayout, isStripeConfigured } from '../../marketplace/billing/stripe-webhooks.js';
+import {
+  createPublisherPayout,
+  isStripeConfigured,
+} from '../../marketplace/billing/stripe-webhooks.js';
 import type { UserId, MarketplaceId } from '../../marketplace/schema/types.js';
 
 const log = getLogger().child({ module: 'marketplace-billing-jobs' });
@@ -236,10 +239,7 @@ export async function runMonthlyRevenueCalculation(): Promise<MonthlyPayoutResul
         }
 
         // Calculate total payout
-        const totalPayoutCents = periodPayouts.reduce(
-          (sum, p) => sum + p.publisherShareCents,
-          0
-        );
+        const totalPayoutCents = periodPayouts.reduce((sum, p) => sum + p.publisherShareCents, 0);
 
         // Minimum payout threshold: $10
         const MIN_PAYOUT_CENTS = 1000;

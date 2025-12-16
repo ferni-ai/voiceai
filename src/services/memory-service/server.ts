@@ -106,24 +106,27 @@ app.post('/ferni.memory.v1.MemoryService/Recall', async (req, res) => {
     const results = await vectorStore!.search(request.query, searchOptions);
 
     const response: RecallResponse = {
-      memories: results.map(r => ({
+      memories: results.map((r) => ({
         content: r.document.text,
         relevance: r.score,
-        timestamp: r.document.metadata?.timestamp instanceof Date
-          ? r.document.metadata.timestamp.getTime()
-          : Date.now(),
+        timestamp:
+          r.document.metadata?.timestamp instanceof Date
+            ? r.document.metadata.timestamp.getTime()
+            : Date.now(),
         category: r.document.metadata?.category as string | undefined,
       })),
     };
 
-    log.info({
-      userId: request.userId,
-      resultCount: response.memories.length,
-      durationMs: Date.now() - startTime,
-    }, 'Memories recalled');
+    log.info(
+      {
+        userId: request.userId,
+        resultCount: response.memories.length,
+        durationMs: Date.now() - startTime,
+      },
+      'Memories recalled'
+    );
 
     res.json(response);
-
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     log.error({ userId: request.userId, error: err.message }, 'Failed to recall memories');
@@ -163,14 +166,16 @@ app.post('/ferni.memory.v1.MemoryService/Store', async (req, res) => {
       success: true,
     };
 
-    log.info({
-      userId: request.userId,
-      memoryId: id,
-      durationMs: Date.now() - startTime,
-    }, 'Memory stored');
+    log.info(
+      {
+        userId: request.userId,
+        memoryId: id,
+        durationMs: Date.now() - startTime,
+      },
+      'Memory stored'
+    );
 
     res.json(response);
-
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     log.error({ userId: request.userId, error: err.message }, 'Failed to store memory');
@@ -202,18 +207,18 @@ app.post('/ferni.memory.v1.MemoryService/Search', async (req, res) => {
     const results = await vectorStore!.search(request.query, searchOptions);
 
     res.json({
-      results: results.map(r => ({
+      results: results.map((r) => ({
         id: r.document.id,
         content: r.document.text,
         score: r.score,
         metadata: r.document.metadata,
-        timestamp: r.document.metadata?.timestamp instanceof Date
-          ? r.document.metadata.timestamp.getTime()
-          : undefined,
+        timestamp:
+          r.document.metadata?.timestamp instanceof Date
+            ? r.document.metadata.timestamp.getTime()
+            : undefined,
       })),
       totalCount: results.length,
     });
-
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     log.error({ userId: request.userId, error: err.message }, 'Failed to search memories');
@@ -239,7 +244,6 @@ app.post('/ferni.memory.v1.MemoryService/Delete', async (req, res) => {
     }
 
     res.json({ success: true, deletedCount });
-
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     log.error({ userId, error: err.message }, 'Failed to delete memories');
@@ -264,7 +268,6 @@ app.post('/ferni.memory.v1.MemoryService/GetStats', async (req, res) => {
       byCategory: stats.byCategory || {},
       lastUpdated: new Date().toISOString(),
     });
-
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     log.error({ userId, error: err.message }, 'Failed to get stats');

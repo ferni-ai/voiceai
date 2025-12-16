@@ -1,0 +1,75 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ title }}{% if title %} | {% endif %}{{ site.name }}</title>
+<meta name="description" content="{{ description or site.tagline }}">
+
+<!-- Canonical URL -->
+<link rel="canonical" href="{{ site.url }}{{ page.url }}">
+
+<!-- Hreflang Tags for International SEO -->
+{% for localeItem in locales %}
+{% if localeItem.default %}
+<link rel="alternate" hreflang="{{ localeItem.code }}" href="{{ site.url }}{{ page.url }}">
+<link rel="alternate" hreflang="x-default" href="{{ site.url }}{{ page.url }}">
+{% else %}
+<link rel="alternate" hreflang="{{ localeItem.code }}" href="{{ site.url }}/{{ localeItem.code }}{{ page.url }}">
+{% endif %}
+{% endfor %}
+
+<!-- Open Graph -->
+<meta property="og:title" content="{{ title or site.name }}">
+<meta property="og:description" content="{{ description or site.tagline }}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ site.url }}{{ page.url }}">
+<meta property="og:site_name" content="{{ site.name }}">
+<meta property="og:locale" content="{{ (locale or 'en') | replace('-', '_') }}">
+{% if ogImage %}
+<meta property="og:image" content="{{ site.url }}{{ ogImage }}">
+{% else %}
+<meta property="og:image" content="{{ site.url }}/images/og-default.png">
+{% endif %}
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ferniAI">
+<meta name="twitter:title" content="{{ title or site.name }}">
+<meta name="twitter:description" content="{{ description or site.tagline }}">
+{% if ogImage %}
+<meta name="twitter:image" content="{{ site.url }}{{ ogImage }}">
+{% else %}
+<meta name="twitter:image" content="{{ site.url }}/images/og-default.png">
+{% endif %}
+
+<!-- Additional SEO -->
+<meta name="robots" content="index, follow">
+<meta name="author" content="Ferni">
+<meta name="theme-color" content="#4a6741">
+<link rel="manifest" href="/manifest.json">
+
+<!-- Favicon - Animated Breathing Eye Stone -->
+<link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+
+<!-- Fonts - Preconnect and optimized loading -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</noscript>
+
+<!-- Design Tokens -->
+<link rel="stylesheet" href="/css/design-tokens.css">
+
+<!-- Google Analytics (graceful failure) -->
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){try{dataLayer.push(arguments)}catch(e){}}
+  gtag('js', new Date());
+  gtag('config', '{{ site.analytics.gaId }}', { 'send_page_view': true });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ site.analytics.gaId }}" 
+        onerror="console.log('Analytics blocked')"></script>

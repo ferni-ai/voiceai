@@ -173,8 +173,8 @@ class WearableSettingsUI {
     try {
       const response = await apiGet<{ success: boolean } & WearableStatus>('/api/wearable/status');
 
-      if (response.success) {
-        this.status = response;
+      if (response.data?.success) {
+        this.status = response.data;
         this.renderContent();
       } else {
         this.renderError(t('wearableSettings.errors.loadFailed'));
@@ -352,8 +352,8 @@ class WearableSettingsUI {
         { provider }
       );
 
-      if (response.success && response.authUrl) {
-        window.location.href = response.authUrl as string;
+      if (response.data?.success && response.data.authUrl) {
+        window.location.href = response.data.authUrl;
       }
     } catch (error) {
       console.error('Failed to connect provider:', error);

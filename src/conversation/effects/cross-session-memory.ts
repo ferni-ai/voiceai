@@ -108,11 +108,7 @@ class CrossSessionEffectMemory {
   /**
    * Record user's response to an effect
    */
-  recordEffectResponse(
-    userId: string,
-    personaId: string,
-    response: EffectResponse
-  ): void {
+  recordEffectResponse(userId: string, personaId: string, response: EffectResponse): void {
     const profile = this.getProfile(userId, personaId);
     const { effectId, engagement, signal } = response;
 
@@ -150,9 +146,7 @@ class CrossSessionEffectMemory {
         if (!profile.dislikedEffects.includes(effectId)) {
           profile.dislikedEffects.push(effectId);
           // Remove from preferred if it was there
-          profile.preferredEffects = profile.preferredEffects.filter(
-            (e) => e !== effectId
-          );
+          profile.preferredEffects = profile.preferredEffects.filter((e) => e !== effectId);
           log.info({ userId, effectId }, 'Effect added to disliked list');
         }
       }
@@ -172,11 +166,7 @@ class CrossSessionEffectMemory {
   /**
    * Get probability modifier for an effect based on user history
    */
-  getEffectProbabilityModifier(
-    userId: string,
-    personaId: string,
-    effectId: string
-  ): number {
+  getEffectProbabilityModifier(userId: string, personaId: string, effectId: string): number {
     const profile = this.getProfile(userId, personaId);
 
     // Disliked effects get 0 modifier (skip)
@@ -210,11 +200,7 @@ class CrossSessionEffectMemory {
   /**
    * Update user's overall humanization preference
    */
-  setHumanizationPreference(
-    userId: string,
-    personaId: string,
-    preference: number
-  ): void {
+  setHumanizationPreference(userId: string, personaId: string, preference: number): void {
     const profile = this.getProfile(userId, personaId);
     profile.humanizationPreference = Math.max(0, Math.min(1, preference));
     profile.lastUpdated = new Date();
@@ -297,4 +283,3 @@ export const effectMemory = {
   setPreference: (userId: string, personaId: string, preference: number) =>
     getEffectMemory().setHumanizationPreference(userId, personaId, preference),
 };
-

@@ -96,18 +96,18 @@
 
   "energy_variations": {
     "high_energy": {
-      "speed_range": [1.05, 1.20],
-      "volume_range": [1.05, 1.20],
+      "speed_range": [1.05, 1.2],
+      "volume_range": [1.05, 1.2],
       "emotions": ["excited", "enthusiastic", "happy"]
     },
     "low_energy": {
-      "speed_range": [0.80, 0.90],
-      "volume_range": [0.75, 0.90],
+      "speed_range": [0.8, 0.9],
+      "volume_range": [0.75, 0.9],
       "emotions": ["calm", "contemplative", "peaceful"]
     },
     "intimate": {
-      "speed_range": [0.80, 0.90],
-      "volume_range": [0.60, 0.75],
+      "speed_range": [0.8, 0.9],
+      "volume_range": [0.6, 0.75],
       "emotions": ["affectionate", "calm", "sympathetic"]
     }
   },

@@ -184,7 +184,17 @@ export async function processResponse(
   }
 
   // ============================================================
-  // 8. EMOTIONAL ARC ADJUSTMENTS
+  // 8. INFORMATION DENSITY DETECTION & PACING
+  // Add strategic breaks for data-heavy responses (news, weather, sports, etc.)
+  // ============================================================
+  const densityResult = applyInformationDensityPacing(processedText);
+  if (densityResult.wasApplied) {
+    processedText = densityResult.text;
+    appliedFeatures.push('information_density_pacing');
+  }
+
+  // ============================================================
+  // 9. EMOTIONAL ARC ADJUSTMENTS
   // ============================================================
   const arcResult = applyEmotionalArcAdjustments(processedText);
   if (arcResult.wasApplied) {
@@ -193,7 +203,7 @@ export async function processResponse(
   }
 
   // ============================================================
-  // 9. DYNAMIC SPEED CONTROL
+  // 10. DYNAMIC SPEED CONTROL
   // ============================================================
   if (sessionId && userData) {
     const speedResult = await applyDynamicSpeedControl(processedText, sessionId, persona, userData);
@@ -204,7 +214,7 @@ export async function processResponse(
   }
 
   // ============================================================
-  // 10. VOICE HUMANIZATION (laughter, contagion, rhythm, breathing)
+  // 11. VOICE HUMANIZATION (laughter, contagion, rhythm, breathing)
   // ============================================================
   if (sessionId) {
     const voiceHumanResult = await applyVoiceHumanization(processedText, sessionId, userData);
@@ -215,13 +225,13 @@ export async function processResponse(
   }
 
   // ============================================================
-  // 11. TRACK RESPONSE FOR DYNAMICS
+  // 12. TRACK RESPONSE FOR DYNAMICS
   // ============================================================
   const responseDynamics = getResponseDynamicsEngine();
   responseDynamics.recordMessage('agent', ctx.rawText);
 
   // ============================================================
-  // 12. DETECT FAREWELL - Signal auto-disconnect
+  // 13. DETECT FAREWELL - Signal auto-disconnect
   // ============================================================
   if (detectAgentFarewell(ctx.rawText)) {
     diag.info('🌅 Agent farewell detected - signaling auto-disconnect');
@@ -229,7 +239,7 @@ export async function processResponse(
   }
 
   // ============================================================
-  // 13. FINAL SANITIZATION (safety net)
+  // 14. FINAL SANITIZATION (safety net)
   // Catch any stage directions that slipped through humanization
   // ============================================================
   try {
@@ -439,7 +449,7 @@ async function applySsmlTagging(
 
   // Record turn and track humor/story
   if (services && typeof services.addTurn === 'function') {
-  services.addTurn('assistant', rawText);
+    services.addTurn('assistant', rawText);
   }
 
   if (userData) {
@@ -616,6 +626,62 @@ function applySesameEnhancement(
     diag.debug('Sesame enhancement failed (non-fatal)', { error: String(error) });
     return { text, wasApplied: false, features: [] };
   }
+}
+
+/**
+ * Apply information density pacing
+ * Adds strategic breaks for data-heavy responses (news, weather, sports, statistics, lists)
+ * to help listeners process information more naturally
+ */
+function applyInformationDensityPacing(text: string): { text: string; wasApplied: boolean } {
+  // Patterns that indicate high information density
+  const highDensityPatterns = [
+    // Numbers and statistics
+    /\d+(?:\.\d+)?%/g, // percentages
+    /\$[\d,]+(?:\.\d{2})?/g, // currency
+    /\d{1,2}:\d{2}/g, // times
+    // Lists of items (3+ items with commas)
+    /(?:[^,]+,\s*){2,}[^,]+(?:\s+and|\s+or)/gi,
+    // Multiple data points in one sentence
+    /(?:degrees|miles|points|percent)/gi,
+  ];
+
+  // Check if text has high information density
+  let densityScore = 0;
+  for (const pattern of highDensityPatterns) {
+    const matches = text.match(pattern);
+    if (matches) {
+      densityScore += matches.length;
+    }
+  }
+
+  // Only apply pacing if density is high enough
+  if (densityScore < 2) {
+    return { text, wasApplied: false };
+  }
+
+  let processedText = text;
+
+  // Add micro-pauses after important data points
+  // After percentages: "up 5%" -> "up 5%<break time="150ms"/>"
+  processedText = processedText.replace(/(\d+(?:\.\d+)?%)/g, '$1<break time="150ms"/>');
+
+  // After currency amounts
+  processedText = processedText.replace(/(\$[\d,]+(?:\.\d{2})?)/g, '$1<break time="150ms"/>');
+
+  // Add slightly longer pause before "and" or "or" in lists
+  processedText = processedText.replace(/,\s*(and|or)\s+/gi, ', <break time="200ms"/> $1 ');
+
+  // Add pause after colons introducing lists or explanations
+  processedText = processedText.replace(/:\s+/g, ': <break time="250ms"/>');
+
+  // Don't add break if one already exists nearby
+  processedText = processedText.replace(/<break[^>]+>\s*<break/g, '<break');
+
+  return {
+    text: processedText,
+    wasApplied: processedText !== text,
+  };
 }
 
 /**

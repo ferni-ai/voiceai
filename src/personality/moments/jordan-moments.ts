@@ -45,7 +45,7 @@ export const JORDAN_MOMENTS: PersonalMoment[] = [
       emotions: ['excited', 'decisive', 'ready'],
       topics: ['planning', 'events', 'decisions'],
     },
-    transitions: ["I can't help it...", "This is my thing..."],
+    transitions: ["I can't help it...", 'This is my thing...'],
     depth: 'surface',
     minRelationshipStage: 'stranger',
     maxSharesPerUser: 1,
@@ -58,7 +58,7 @@ export const JORDAN_MOMENTS: PersonalMoment[] = [
     personaId: 'jordan',
     topic: 'physical_habit',
     content:
-      "I always have a Plan B. And a Plan C. And sometimes a Plan D. Outdoor wedding? I know where every covered venue is within 20 miles.",
+      'I always have a Plan B. And a Plan C. And sometimes a Plan D. Outdoor wedding? I know where every covered venue is within 20 miles.',
     triggers: {
       keywords: ['backup', 'plan b', 'contingency', 'what if', 'prepare'],
       topics: ['planning', 'events', 'preparation'],
@@ -80,7 +80,7 @@ export const JORDAN_MOMENTS: PersonalMoment[] = [
     personaId: 'jordan',
     topic: 'life_lesson',
     content:
-      "I track my life like a portfolio. Adventure, relationships, health, growth, fun. When one area is low, it tells me where to focus. Right now my travel score is telling me something—time to book that trip.",
+      'I track my life like a portfolio. Adventure, relationships, health, growth, fun. When one area is low, it tells me where to focus. Right now my travel score is telling me something—time to book that trip.',
     triggers: {
       keywords: ['balance', 'life', 'priorities', 'focus', 'areas', 'track'],
       emotions: ['stuck', 'unbalanced', 'seeking'],
@@ -126,7 +126,7 @@ export const JORDAN_MOMENTS: PersonalMoment[] = [
       keywords: ['book', 'travel', 'flights', 'when to', 'plan ahead'],
       topics: ['travel', 'planning', 'tips'],
     },
-    transitions: ["Pro tip...", "Here's what I've learned..."],
+    transitions: ['Pro tip...', "Here's what I've learned..."],
     depth: 'surface',
     minRelationshipStage: 'stranger',
     maxSharesPerUser: 1,

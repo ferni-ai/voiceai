@@ -76,8 +76,12 @@ export async function generatePlayfulness(
   const probability = HUMANIZATION_CONFIG.probabilities.playfulness;
 
   // Higher probability with friends and trusted advisors
-  const relationshipBoost = context.relationshipStage === 'trusted_advisor' ? 1.4 :
-    context.relationshipStage === 'friend' ? 1.2 : 1.0;
+  const relationshipBoost =
+    context.relationshipStage === 'trusted_advisor'
+      ? 1.4
+      : context.relationshipStage === 'friend'
+        ? 1.2
+        : 1.0;
 
   const adjustedProbability = probability * relationshipBoost;
 
@@ -112,4 +116,3 @@ export async function generatePlayfulness(
     cooldownTurns: HUMANIZATION_CONFIG.cooldowns.playfulness,
   };
 }
-

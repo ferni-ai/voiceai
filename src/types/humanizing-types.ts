@@ -57,6 +57,28 @@ export interface BaseContextInjection {
 }
 
 /**
+ * Mood state shape for humanizing result
+ * Used for type narrowing when accessing HumanizingResultBase.mood
+ */
+export interface HumanizingMood {
+  /** Current mood state (e.g., 'energized', 'reflective') */
+  state: MoodState | string;
+  /** Energy level 0-1 */
+  energyLevel?: number;
+}
+
+/**
+ * Relationship state shape for humanizing result
+ * Used for type narrowing when accessing HumanizingResultBase.relationship
+ */
+export interface HumanizingRelationship {
+  /** Relationship stage with user */
+  stage: RelationshipStage | string;
+  /** Behaviors based on relationship level */
+  behaviors?: string[];
+}
+
+/**
  * Base humanizing result interface.
  *
  * This defines the shape that agents/processors needs to know about
@@ -65,6 +87,10 @@ export interface BaseContextInjection {
  *
  * The full HumanizingResult in intelligence/context-builders/humanizing.ts
  * provides more specific types for the optional properties.
+ *
+ * NOTE: mood and relationship are typed as unknown to break circular
+ * dependencies. Use type assertions or HumanizingMood/HumanizingRelationship
+ * for type-safe access.
  */
 export interface HumanizingResultBase {
   /** All context injections to add to the prompt */
@@ -79,10 +105,10 @@ export interface HumanizingResultBase {
   /** Spontaneous share if selected (full type in context-builders) */
   spontaneousShare?: unknown;
 
-  /** Current persona mood (full type in context-builders) */
+  /** Current persona mood (cast to HumanizingMood for access) */
   mood: unknown;
 
-  /** Relationship behaviors (full type in context-builders) */
+  /** Relationship behaviors (cast to HumanizingRelationship for access) */
   relationship: unknown;
 
   /** Whether there's a relationship transition to announce */

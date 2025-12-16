@@ -329,10 +329,23 @@ export class UnifiedAnalyzer {
     const signals = this.detectBehavioralSignals(input.message, emotion, intent);
 
     // Build response guidance
-    const guidance = this.buildResponseGuidance(emotion, intent, context, mismatch, signals, DISTRESS);
+    const guidance = this.buildResponseGuidance(
+      emotion,
+      intent,
+      context,
+      mismatch,
+      signals,
+      DISTRESS
+    );
 
     // Build context for prompt
-    const contextForPrompt = this.buildContextForPrompt(emotion, intent, context, mismatch, guidance);
+    const contextForPrompt = this.buildContextForPrompt(
+      emotion,
+      intent,
+      context,
+      mismatch,
+      guidance
+    );
 
     const processingTimeMs = Date.now() - startTime;
 
@@ -381,7 +394,8 @@ export class UnifiedAnalyzer {
         primary: textEmotion.primary,
         secondary: textEmotion.secondary,
         confidence: textEmotion.confidence,
-        valence: textEmotion.valence === 'positive' ? 0.5 : textEmotion.valence === 'negative' ? -0.5 : 0,
+        valence:
+          textEmotion.valence === 'positive' ? 0.5 : textEmotion.valence === 'negative' ? -0.5 : 0,
         intensity: textEmotion.intensity,
         distressLevel: textEmotion.distressLevel,
         suggestedTone: this.mapTone(textEmotion.suggestedTone),
@@ -403,9 +417,11 @@ export class UnifiedAnalyzer {
         textWeight +
       voiceEmotion.valence * voiceWeight;
 
-    const combinedIntensity = textEmotion.intensity * textWeight + voiceEmotion.arousal * voiceWeight;
+    const combinedIntensity =
+      textEmotion.intensity * textWeight + voiceEmotion.arousal * voiceWeight;
     const combinedDistress = Math.max(textEmotion.distressLevel, voiceEmotion.stressLevel || 0);
-    const combinedConfidence = textEmotion.confidence * textWeight + voiceEmotion.confidence * voiceWeight;
+    const combinedConfidence =
+      textEmotion.confidence * textWeight + voiceEmotion.confidence * voiceWeight;
 
     // Determine primary emotion - use voice if higher confidence
     let primary = textEmotion.primary;
@@ -506,7 +522,8 @@ export class UnifiedAnalyzer {
       isTopicShift: rawTopics.isTopicShift || false,
       turnCount: state.turnCount,
       topicsToCircleBack: state.topicsToCircleBack,
-      relationshipStage: (userProfile?.relationshipStage as ContextSignal['relationshipStage']) || 'stranger',
+      relationshipStage:
+        (userProfile?.relationshipStage as ContextSignal['relationshipStage']) || 'stranger',
     };
   }
 
@@ -537,9 +554,19 @@ export class UnifiedAnalyzer {
 
     // Common masking phrases
     const maskingPhrases = [
-      "i'm fine", "i'm okay", "i'm good", "i'm alright", "it's fine",
-      "no big deal", "doesn't matter", "whatever", "it is what it is",
-      "can't complain", "could be worse", "just tired", "just stressed",
+      "i'm fine",
+      "i'm okay",
+      "i'm good",
+      "i'm alright",
+      "it's fine",
+      'no big deal',
+      "doesn't matter",
+      'whatever',
+      'it is what it is',
+      "can't complain",
+      'could be worse',
+      'just tired',
+      'just stressed',
     ];
 
     const textLower = userText.toLowerCase();
@@ -548,8 +575,10 @@ export class UnifiedAnalyzer {
     const positiveEmotions = ['happy', 'excited', 'joy', 'grateful', 'trust', 'anticipation'];
     const negativeEmotions = ['sad', 'angry', 'fearful', 'anxious', 'distressed', 'frustrated'];
 
-    const textIsPositive = textEmotion.valence === 'positive' || positiveEmotions.includes(textEmotion.primary);
-    const textIsNegative = textEmotion.valence === 'negative' || negativeEmotions.includes(textEmotion.primary);
+    const textIsPositive =
+      textEmotion.valence === 'positive' || positiveEmotions.includes(textEmotion.primary);
+    const textIsNegative =
+      textEmotion.valence === 'negative' || negativeEmotions.includes(textEmotion.primary);
     const voiceIsPositive = voiceEmotion.valence > 0.2;
     const voiceIsNegative = voiceEmotion.valence < -0.2 || (voiceEmotion.stressLevel || 0) > 0.5;
 
@@ -630,7 +659,7 @@ export class UnifiedAnalyzer {
       masking_negative: [
         "I hear you saying you're okay, but... I'm here if there's more you want to share.",
         "You don't have to be 'fine' with me. What's really going on?",
-        "Something in your voice tells me there might be more to the story.",
+        'Something in your voice tells me there might be more to the story.',
       ],
       contradicting: [
         "I'm picking up on some mixed feelings. Want to talk about what's underneath?",
@@ -661,7 +690,8 @@ export class UnifiedAnalyzer {
     // Pattern detection
     const rushPatterns = /\b(gotta go|quick question|running late|no time|hurry|briefly)\b/;
     const relaxedPatterns = /\b(anyway|so tell me|just wanted to|wondering|been thinking)\b/;
-    const personalPatterns = /\b(my (wife|husband|kid|mom|dad|family)|i feel|makes me|i'm worried)\b/;
+    const personalPatterns =
+      /\b(my (wife|husband|kid|mom|dad|family)|i feel|makes me|i'm worried)\b/;
     const advicePatterns = /\b(what should|how should|advice|recommend|suggest|opinion)\b/;
     const ventingPatterns = /\b(just need to|had to tell|so frustrating|can't stand|ugh)\b/;
     const decisionPatterns = /\b(i've decided|going to|made up my mind|i will)\b/;
@@ -747,7 +777,8 @@ export class UnifiedAnalyzer {
     // Determine priority focus
     let priorityFocus = 'Listen and respond naturally';
     if (mismatch.detected && mismatch.type === 'masking_negative') {
-      priorityFocus = 'Notice the mismatch - words say fine, voice says otherwise. Check in gently.';
+      priorityFocus =
+        'Notice the mismatch - words say fine, voice says otherwise. Check in gently.';
     } else if (signals.needsSupport) {
       priorityFocus = 'Provide emotional support - acknowledge feelings first';
     } else if (signals.isVenting) {
@@ -786,10 +817,10 @@ export class UnifiedAnalyzer {
     if (mismatch.detected) {
       sections.push(
         `🎯 [VOICE INSIGHT - PRIORITY] ${mismatch.interpretation}\n` +
-        `Approach: ${mismatch.approach}\n` +
-        (mismatch.shouldSurface && mismatch.surfacePhrase
-          ? `Consider: "${mismatch.surfacePhrase}"`
-          : '')
+          `Approach: ${mismatch.approach}\n` +
+          (mismatch.shouldSurface && mismatch.surfacePhrase
+            ? `Consider: "${mismatch.surfacePhrase}"`
+            : '')
       );
     }
 
@@ -834,4 +865,3 @@ export async function analyzeUnified(input: UnifiedAnalysisInput): Promise<Unifi
 }
 
 export default UnifiedAnalyzer;
-

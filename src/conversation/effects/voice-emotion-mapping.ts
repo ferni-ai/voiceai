@@ -95,7 +95,11 @@ const EMOTION_MAPPINGS: Record<VoiceEmotion, EmotionEffectMapping> = {
   excited: {
     priorityCapabilities: ['reactions', 'presence'],
     recommendations: [
-      { effectId: 'excitement_interruption', probabilityMultiplier: 1.5, reason: 'Share their excitement' },
+      {
+        effectId: 'excitement_interruption',
+        probabilityMultiplier: 1.5,
+        reason: 'Share their excitement',
+      },
       { effectId: 'live_reaction', probabilityMultiplier: 1.4, reason: 'Match their energy' },
     ],
     intensityModifier: 1.2,
@@ -109,7 +113,11 @@ const EMOTION_MAPPINGS: Record<VoiceEmotion, EmotionEffectMapping> = {
       { effectId: 'breath_sound', probabilityMultiplier: 1.3, reason: 'Show presence' },
       { effectId: 'physical_presence', probabilityMultiplier: 1.4, reason: 'Be there with them' },
       { effectId: 'playfulness', probabilityMultiplier: 0.1, reason: 'Not appropriate now' },
-      { effectId: 'excitement_interruption', probabilityMultiplier: 0.1, reason: 'Not appropriate now' },
+      {
+        effectId: 'excitement_interruption',
+        probabilityMultiplier: 0.1,
+        reason: 'Not appropriate now',
+      },
     ],
     intensityModifier: 0.8, // Less humanization noise
     shouldSlowDown: true,
@@ -119,7 +127,11 @@ const EMOTION_MAPPINGS: Record<VoiceEmotion, EmotionEffectMapping> = {
   angry: {
     priorityCapabilities: ['attunement', 'presence'],
     recommendations: [
-      { effectId: 'first_turn_notice', probabilityMultiplier: 1.5, reason: 'Acknowledge their frustration' },
+      {
+        effectId: 'first_turn_notice',
+        probabilityMultiplier: 1.5,
+        reason: 'Acknowledge their frustration',
+      },
       { effectId: 'playfulness', probabilityMultiplier: 0, reason: 'Absolutely not appropriate' },
       { effectId: 'speech_filler', probabilityMultiplier: 0.5, reason: 'Be more direct' },
     ],
@@ -145,7 +157,11 @@ const EMOTION_MAPPINGS: Record<VoiceEmotion, EmotionEffectMapping> = {
     recommendations: [
       { effectId: 'breath_sound', probabilityMultiplier: 1.5, reason: 'Model calm breathing' },
       { effectId: 'physical_presence', probabilityMultiplier: 1.3, reason: 'Steady presence' },
-      { effectId: 'spontaneous_thought', probabilityMultiplier: 0.3, reason: 'Don not add to their load' },
+      {
+        effectId: 'spontaneous_thought',
+        probabilityMultiplier: 0.3,
+        reason: 'Don not add to their load',
+      },
     ],
     intensityModifier: 0.7,
     shouldSlowDown: true,
@@ -178,9 +194,17 @@ const EMOTION_MAPPINGS: Record<VoiceEmotion, EmotionEffectMapping> = {
   hesitant: {
     priorityCapabilities: ['attunement', 'presence', 'silence'],
     recommendations: [
-      { effectId: 'first_turn_notice', probabilityMultiplier: 1.6, reason: 'Notice their hesitation' },
+      {
+        effectId: 'first_turn_notice',
+        probabilityMultiplier: 1.6,
+        reason: 'Notice their hesitation',
+      },
       { effectId: 'breath_sound', probabilityMultiplier: 1.2, reason: 'Create space' },
-      { effectId: 'excitement_interruption', probabilityMultiplier: 0.3, reason: 'Don not overwhelm' },
+      {
+        effectId: 'excitement_interruption',
+        probabilityMultiplier: 0.3,
+        reason: 'Don not overwhelm',
+      },
     ],
     intensityModifier: 0.8,
     shouldSlowDown: true,
@@ -192,7 +216,11 @@ const EMOTION_MAPPINGS: Record<VoiceEmotion, EmotionEffectMapping> = {
     recommendations: [
       { effectId: 'breath_sound', probabilityMultiplier: 1.3, reason: 'Gentle presence' },
       { effectId: 'physical_presence', probabilityMultiplier: 1.2, reason: 'Calm energy' },
-      { effectId: 'excitement_interruption', probabilityMultiplier: 0.2, reason: 'Match their energy' },
+      {
+        effectId: 'excitement_interruption',
+        probabilityMultiplier: 0.2,
+        reason: 'Match their energy',
+      },
       { effectId: 'playfulness', probabilityMultiplier: 0.5, reason: 'They are tired' },
     ],
     intensityModifier: 0.7,
@@ -239,7 +267,11 @@ const EMOTION_MAPPINGS: Record<VoiceEmotion, EmotionEffectMapping> = {
     priorityCapabilities: ['reactions', 'presence'],
     recommendations: [
       { effectId: 'live_reaction', probabilityMultiplier: 1.5, reason: 'Share the moment' },
-      { effectId: 'excitement_interruption', probabilityMultiplier: 1.3, reason: 'React genuinely' },
+      {
+        effectId: 'excitement_interruption',
+        probabilityMultiplier: 1.3,
+        reason: 'React genuinely',
+      },
     ],
     intensityModifier: 1.1,
     shouldSlowDown: false,
@@ -261,10 +293,7 @@ export function getEffectMappingForEmotion(emotion: VoiceEmotion): EmotionEffect
 /**
  * Get effect probability modifier for a specific effect based on voice emotion
  */
-export function getEffectModifierForEmotion(
-  effectId: string,
-  emotion: VoiceEmotion
-): number {
+export function getEffectModifierForEmotion(effectId: string, emotion: VoiceEmotion): number {
   const mapping = getEffectMappingForEmotion(emotion);
 
   // Check specific recommendations
@@ -280,9 +309,7 @@ export function getEffectModifierForEmotion(
 /**
  * Process voice emotion signal and return effect configuration
  */
-export function processVoiceEmotionForEffects(
-  signal: VoiceEmotionSignal
-): {
+export function processVoiceEmotionForEffects(signal: VoiceEmotionSignal): {
   mapping: EmotionEffectMapping;
   /** Additional adjustments based on voice quality */
   voiceQualityAdjustments: Record<string, number>;
@@ -341,4 +368,3 @@ export const voiceEmotionEffects = {
   getModifier: getEffectModifierForEmotion,
   process: processVoiceEmotionForEffects,
 };
-

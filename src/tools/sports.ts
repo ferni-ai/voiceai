@@ -7,7 +7,8 @@
  * APIs used:
  * - ESPN API (free, no key required)
  *
- * Jack loves his Phillies! But we support all teams.
+ * Note: Returns clean data. Persona personality comes from system prompts,
+ * not hardcoded in tools. See tool-humanization context builder.
  */
 
 import { llm, log } from '@livekit/agents';
@@ -172,20 +173,7 @@ export async function getTeamScore(teamName: string): Promise<string> {
       const formatted = formatGame(game);
 
       if (formatted) {
-        // Add Jack's personal touch for Philly teams
-        if (teamName.toLowerCase().includes('phillies')) {
-          return `${formatted} You know I love my Phillies!`;
-        } else if (teamName.toLowerCase().includes('eagles')) {
-          return `${formatted} Go Birds!`;
-        } else if (
-          teamName.toLowerCase().includes('76ers') ||
-          teamName.toLowerCase().includes('sixers')
-        ) {
-          return `${formatted} Trust the Process!`;
-        } else if (teamName.toLowerCase().includes('flyers')) {
-          return `${formatted} Broad Street Bullies!`;
-        }
-
+        // Return clean data - let the persona's system prompt handle personality
         return formatted;
       }
     }
@@ -195,23 +183,23 @@ export async function getTeamScore(teamName: string): Promise<string> {
 }
 
 /**
- * Get Phillies score specifically (Jack's favorite!)
+ * Get Phillies score specifically
  */
 export async function getPhilliesScore(): Promise<string> {
   const data = await getSportScoreboard('mlb');
 
   if (!data) {
-    return "I couldn't check on the Phillies right now. I hope they're doing better than usual!";
+    return "Couldn't check on the Phillies right now.";
   }
 
   const games = findTeamGames(data, 'phillies');
 
   if (games.length > 0) {
     const formatted = formatGame(games[0]);
-    return `${formatted} You know I love my Phillies!`;
+    return formatted;
   }
 
-  return "The Phillies don't have a game right now. Baseball season keeps an old man's heart young, you know.";
+  return "The Phillies don't have a game right now.";
 }
 
 /**
@@ -221,17 +209,17 @@ export async function getEaglesScore(): Promise<string> {
   const data = await getSportScoreboard('nfl');
 
   if (!data) {
-    return "I couldn't check on the Eagles right now.";
+    return "Couldn't check on the Eagles right now.";
   }
 
   const games = findTeamGames(data, 'eagles');
 
   if (games.length > 0) {
     const formatted = formatGame(games[0]);
-    return `${formatted} Go Birds!`;
+    return formatted;
   }
 
-  return "No Eagles game right now. But there's always next Sunday!";
+  return 'No Eagles game right now.';
 }
 
 // ============================================================================
@@ -271,7 +259,7 @@ export function createSportsTools() {
     }),
 
     getPhilliesScore: llm.tool({
-      description: "Get the Philadelphia Phillies score - Jack's favorite team!",
+      description: 'Get the Philadelphia Phillies score.',
       parameters: z.object({}),
       execute: async () => {
         getLogger().info('Getting Phillies score');

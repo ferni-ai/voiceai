@@ -1,0 +1,249 @@
+---
+layout: layouts/base.njk
+title: Your Personal AI Life Coach
+description: Six AI specialists. One conversation. Just talk—they'll handle the rest.
+ogImage: /images/og-image.jpg
+extraCss: /css/styles.css
+---
+
+{# Override header with landing page specific version #}
+{% block header %}{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-eyebrow">
+      <span></span> Free to use
+    </div>
+    <h1>Your personal<br><span class="accent">AI life coach.</span></h1>
+    <p class="hero-subtitle">
+      Six AI specialists. One conversation. Just talk—they'll handle the rest.
+    </p>
+    <div class="hero-ctas">
+      <a href="{{ site.appUrl }}" class="btn btn-primary btn-large">
+        Start Talking 
+      </a>
+      <a href="tel:{{ site.phone | replace(' ', '') | replace('(', '') | replace(')', '') | replace('-', '') }}" class="btn btn-secondary btn-large">
+        Or call {{ site.phone }}
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section id="features">
+  <div class="container">
+    <div class="section-header">
+      <span class="eyebrow">Why Ferni</span>
+      <h2>Everything you need, nothing you don't.</h2>
+      <p>Simple, powerful AI coaching that fits your life.</p>
+    </div>
+    
+    <div class="grid grid-3">
+      <div class="card">
+        <div class="card-icon"></div>
+        <h3>Six Specialists</h3>
+        <p>From career advice to habit building, each AI is an expert in their domain.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon"></div>
+        <h3>Natural Conversation</h3>
+        <p>Talk like you would with a friend. No scripts, no menus, just conversation.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon"></div>
+        <h3>Always Available</h3>
+        <p>2am thoughts? Early morning motivation? Your team is ready 24/7.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon"></div>
+        <h3>Private & Secure</h3>
+        <p>Your conversations stay yours. We never sell your data.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon"></div>
+        <h3>Web or Phone</h3>
+        <p>Use the web app or call directly—same great experience.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon"></div>
+        <h3>Free to Start</h3>
+        <p>No credit card required. Just open the app and start talking.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Meet the Team Section -->
+<section class="alt-bg" id="team">
+  <div class="container">
+    <div class="section-header">
+      <span class="eyebrow">Meet Your Team</span>
+      <h2>Six specialists. One conversation.</h2>
+      <p>They work together seamlessly, so you don't have to think about who to ask.</p>
+    </div>
+    
+    <div class="grid grid-3">
+      <div class="card" style="--card-accent: var(--color-ferni);">
+        <h3>Ferni</h3>
+        <p class="text-accent">Life Coach</p>
+        <p>Your main guide. Helps you navigate life's big questions and connects you with the right specialist.</p>
+      </div>
+      <div class="card" style="--card-accent: var(--color-jack);">
+        <h3>Jack</h3>
+        <p class="text-accent">Investment Sage</p>
+        <p>Decades of wisdom on building wealth. Simple, timeless advice about money and investing.</p>
+      </div>
+      <div class="card" style="--card-accent: var(--color-maya);">
+        <h3>Maya</h3>
+        <p class="text-accent">Habits & Routines</p>
+        <p>Your accountability partner for building better habits and breaking the ones holding you back.</p>
+      </div>
+      <div class="card" style="--card-accent: var(--color-alex);">
+        <h3>Alex</h3>
+        <p class="text-accent">Communications</p>
+        <p>Draft emails, prepare for tough conversations, or practice that important presentation.</p>
+      </div>
+      <div class="card" style="--card-accent: var(--color-peter);">
+        <h3>Peter</h3>
+        <p class="text-accent">Research</p>
+        <p>Digs deep into topics. Whether it's stocks, health, or career moves—thorough analysis awaits.</p>
+      </div>
+      <div class="card" style="--card-accent: var(--color-jordan);">
+        <h3>Jordan</h3>
+        <p class="text-accent">Planning & Events</p>
+        <p>From vacations to life transitions, Jordan helps you plan and celebrate every milestone.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How It Works Section -->
+<section id="connect">
+  <div class="container">
+    <div class="section-header">
+      <span class="eyebrow">Connect Anywhere</span>
+      <h2>Two ways to talk.</h2>
+      <p>Same AI team. Same great experience. Your choice.</p>
+    </div>
+    
+    <div class="grid grid-2">
+      <div class="card text-center">
+        <div class="card-icon" style="margin: 0 auto var(--space-4);"></div>
+        <h3>Web App</h3>
+        <p>Open app.ferni.ai on any device. No download required.</p>
+        <a href="{{ site.appUrl }}" class="btn btn-primary mt-6">Open App </a>
+      </div>
+      <div class="card text-center">
+        <div class="card-icon" style="margin: 0 auto var(--space-4);"></div>
+        <h3>Phone Call</h3>
+        <p>Prefer to call? Dial Ferni directly.</p>
+        <a href="tel:{{ site.phone | replace(' ', '') | replace('(', '') | replace(')', '') | replace('-', '') }}" class="btn btn-secondary mt-6">{{ site.phone }}</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Testimonials Section -->
+<section class="alt-bg" id="testimonials">
+  <div class="container">
+    <div class="section-header">
+      <span class="eyebrow">What People Say</span>
+      <h2>Real conversations. Real impact.</h2>
+    </div>
+    
+    <div class="grid grid-3">
+      <div class="card">
+        <p>"I was skeptical about AI coaching, but Ferni feels different. It's like having a wise friend who's always available."</p>
+        <p class="text-muted mt-4">— Sarah M., Marketing Director</p>
+      </div>
+      <div class="card">
+        <p>"Jack's investment advice helped me finally understand what to do with my 401k. No jargon, just clarity."</p>
+        <p class="text-muted mt-4">— Marcus T., Software Engineer</p>
+      </div>
+      <div class="card">
+        <p>"Maya helped me build a morning routine that actually stuck. It's been 3 months and I haven't missed a day."</p>
+        <p class="text-muted mt-4">— Jennifer L., Entrepreneur</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ Section -->
+<section id="faq">
+  <div class="container container-narrow">
+    <div class="section-header">
+      <span class="eyebrow">Questions & Answers</span>
+      <h2>Frequently asked questions.</h2>
+    </div>
+    
+    <div class="faq-list">
+      <details class="faq-item">
+        <summary>Is Ferni really free?</summary>
+        <p>Yes! Ferni is completely free to use. We believe everyone deserves access to quality life coaching. Premium features are coming soon, but the core experience will always be free.</p>
+      </details>
+      
+      <details class="faq-item">
+        <summary>How does the phone calling work?</summary>
+        <p>Just dial our number and start talking. Ferni answers immediately—no menus, no hold times. It's a real conversation with AI.</p>
+      </details>
+      
+      <details class="faq-item">
+        <summary>Is my data private?</summary>
+        <p>Absolutely. Your conversations are encrypted and never sold. We take privacy seriously. Check our <a href="/privacy/">Privacy Policy</a> for details.</p>
+      </details>
+      
+      <details class="faq-item">
+        <summary>Can Ferni replace a therapist?</summary>
+        <p>Ferni is a life coach, not a therapist. We're great for goal-setting, accountability, and everyday guidance. For mental health concerns, please consult a licensed professional.</p>
+      </details>
+      
+      <details class="faq-item">
+        <summary>How do the specialists work together?</summary>
+        <p>Just talk naturally. If you mention investments, Ferni might bring in Jack. Talking about habits? Maya joins the conversation. It's seamless—you don't need to do anything special.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- Final CTA Section -->
+<section class="hero">
+  <div class="container text-center">
+    <h2>Ready to meet your AI team?</h2>
+    <p class="hero-subtitle">Start a conversation today. It's free.</p>
+    <div class="hero-ctas">
+      <a href="{{ site.appUrl }}" class="btn btn-primary btn-large">
+        Start Talking 
+      </a>
+      <a href="tel:{{ site.phone | replace(' ', '') | replace('(', '') | replace(')', '') | replace('-', '') }}" class="btn btn-secondary btn-large">
+        Call {{ site.phone }}
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block head %}
+<!-- Additional page-specific meta -->
+<meta name="theme-color" content="#faf8f5">
+<link rel="canonical" href="{{ site.url }}/">
+
+<!-- Structured Data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "{{ site.name }}",
+  "applicationCategory": "LifestyleApplication",
+  "operatingSystem": "Web",
+  "description": "{{ description }}",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  }
+}
+</script>
+{% endblock %}
+

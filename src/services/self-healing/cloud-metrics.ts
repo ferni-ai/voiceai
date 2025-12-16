@@ -90,10 +90,7 @@ const STATE_VALUES: Record<CircuitState, number> = {
 let monitoringClient: MonitoringClient | null = null;
 
 interface MonitoringClient {
-  createTimeSeries: (request: {
-    name: string;
-    timeSeries: TimeSeriesData[];
-  }) => Promise<void>;
+  createTimeSeries: (request: { name: string; timeSeries: TimeSeriesData[] }) => Promise<void>;
 }
 
 interface TimeSeriesData {
@@ -285,14 +282,13 @@ export async function flushMetrics(): Promise<number> {
       const nanos = (endTime.getTime() % 1000) * 1000000;
 
       // Aggregate value (sum for counters, latest for gauges)
-      const isCounter = lastPoint.name.includes('/requests') || 
-                       lastPoint.name.includes('/failures') ||
-                       lastPoint.name.includes('/retries') ||
-                       lastPoint.name.includes('/state_changes');
-      
-      const value = isCounter 
-        ? points.reduce((sum, p) => sum + p.value, 0)
-        : lastPoint.value;
+      const isCounter =
+        lastPoint.name.includes('/requests') ||
+        lastPoint.name.includes('/failures') ||
+        lastPoint.name.includes('/retries') ||
+        lastPoint.name.includes('/state_changes');
+
+      const value = isCounter ? points.reduce((sum, p) => sum + p.value, 0) : lastPoint.value;
 
       timeSeries.push({
         metric: {
@@ -308,9 +304,7 @@ export async function flushMetrics(): Promise<number> {
         points: [
           {
             interval: { endTime: { seconds, nanos } },
-            value: Number.isInteger(value) 
-              ? { int64Value: String(value) }
-              : { doubleValue: value },
+            value: Number.isInteger(value) ? { int64Value: String(value) } : { doubleValue: value },
           },
         ],
       });
@@ -326,7 +320,10 @@ export async function flushMetrics(): Promise<number> {
 
     return pointsToExport.length;
   } catch (error) {
-    log.warn({ error: String(error), pointCount: pointsToExport.length }, 'Failed to export metrics');
+    log.warn(
+      { error: String(error), pointCount: pointsToExport.length },
+      'Failed to export metrics'
+    );
     // Re-add points to buffer for retry (limited)
     if (metricBuffer.points.length < 500) {
       metricBuffer.points.push(...pointsToExport.slice(0, 100));
@@ -344,13 +341,13 @@ export async function flushMetrics(): Promise<number> {
  */
 export function configureMetrics(newConfig: Partial<MetricsConfig>): void {
   config = { ...config, ...newConfig };
-  
+
   if (config.enabled && !exportInterval) {
     startMetricsExport();
   } else if (!config.enabled && exportInterval) {
     stopMetricsExport();
   }
-  
+
   log.info({ enabled: config.enabled, projectId: config.projectId }, 'Metrics configured');
 }
 
@@ -431,4 +428,3 @@ export function createMetricsCallbacks(): {
 if (process.env.NODE_ENV === 'production' && config.projectId) {
   startMetricsExport();
 }
-

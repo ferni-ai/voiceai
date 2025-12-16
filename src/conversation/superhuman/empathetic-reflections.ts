@@ -71,44 +71,40 @@ export interface ReflectionContext {
 
 const FEELING_REFLECTIONS: Record<string, Record<'light' | 'moderate' | 'deep', string[]>> = {
   sad: {
-    light: [
-      "That sounds really hard.",
-      "I can hear the sadness there.",
-      "That's a lot to carry.",
-    ],
+    light: ['That sounds really hard.', 'I can hear the sadness there.', "That's a lot to carry."],
     moderate: [
       "It sounds like you're really hurting right now.",
-      "I can feel how heavy this is for you.",
+      'I can feel how heavy this is for you.',
       "There's real grief in what you're sharing.",
     ],
     deep: [
       "What you're feeling is profound sadness, and that's okay.",
-      "This pain is real, and it matters.",
+      'This pain is real, and it matters.',
       "I feel the weight of what you're carrying.",
     ],
   },
   anxious: {
     light: [
-      "That sounds stressful.",
-      "I can understand why that would be worrying.",
+      'That sounds stressful.',
+      'I can understand why that would be worrying.',
       "That's a lot of uncertainty to sit with.",
     ],
     moderate: [
-      "The anxiety in your voice is real, and it makes sense.",
+      'The anxiety in your voice is real, and it makes sense.',
       "Of course you're worried—this matters to you.",
-      "It sounds like your mind is racing with all of this.",
+      'It sounds like your mind is racing with all of this.',
     ],
     deep: [
-      "That level of anxiety is exhausting. I hear you.",
-      "When fear gets that loud, everything feels impossible.",
+      'That level of anxiety is exhausting. I hear you.',
+      'When fear gets that loud, everything feels impossible.',
       "Your nervous system is working overtime, and that's draining.",
     ],
   },
   frustrated: {
     light: [
-      "That sounds frustrating.",
-      "I get why that would be annoying.",
-      "That does sound aggravating.",
+      'That sounds frustrating.',
+      'I get why that would be annoying.',
+      'That does sound aggravating.',
     ],
     moderate: [
       "No wonder you're frustrated—you've been trying so hard.",
@@ -117,7 +113,7 @@ const FEELING_REFLECTIONS: Record<string, Record<'light' | 'moderate' | 'deep', 
     ],
     deep: [
       "The frustration you're feeling is valid—you've earned it.",
-      "When nothing works despite your best efforts, rage is a reasonable response.",
+      'When nothing works despite your best efforts, rage is a reasonable response.',
       "I hear the 'I can't take this anymore' in your voice.",
     ],
   },
@@ -125,41 +121,41 @@ const FEELING_REFLECTIONS: Record<string, Record<'light' | 'moderate' | 'deep', 
     light: [
       "That's a lot on your plate.",
       "I can see why you'd feel stretched thin.",
-      "That sounds overwhelming.",
+      'That sounds overwhelming.',
     ],
     moderate: [
-      "It sounds like everything is piling up at once.",
+      'It sounds like everything is piling up at once.',
       "When there's too much to hold, something has to give.",
       "You're managing more than most people realize.",
     ],
     deep: [
       "You're drowning, and you're still trying to swim. That's remarkable.",
       "The overwhelm is real—this isn't sustainable, and your body knows it.",
-      "When everything is urgent, nothing is clear. I get it.",
+      'When everything is urgent, nothing is clear. I get it.',
     ],
   },
   lonely: {
     light: [
-      "That sounds isolating.",
+      'That sounds isolating.',
       "It's hard when you don't have someone to share this with.",
-      "Feeling alone in something is exhausting.",
+      'Feeling alone in something is exhausting.',
     ],
     moderate: [
       "The loneliness you're describing cuts deep.",
       "It sounds like you've been carrying this by yourself for too long.",
-      "Being surrounded by people and still feeling alone is one of the hardest things.",
+      'Being surrounded by people and still feeling alone is one of the hardest things.',
     ],
     deep: [
-      "That kind of loneliness is soul-deep. I hear you.",
-      "When no one sees the real you, everything feels hollow.",
+      'That kind of loneliness is soul-deep. I hear you.',
+      'When no one sees the real you, everything feels hollow.',
       "I'm here. And I see you.",
     ],
   },
   hopeful: {
     light: [
       "There's hope in your voice, and I love that.",
-      "That sounds exciting!",
-      "I can hear the optimism there.",
+      'That sounds exciting!',
+      'I can hear the optimism there.',
     ],
     moderate: [
       "That hope is well-earned—you've worked for it.",
@@ -168,36 +164,32 @@ const FEELING_REFLECTIONS: Record<string, Record<'light' | 'moderate' | 'deep', 
     ],
     deep: [
       "After everything, the fact that you can still hope? That's powerful.",
-      "That hope is hard-won, and it matters.",
+      'That hope is hard-won, and it matters.',
       "You're choosing to believe in something better. That takes courage.",
     ],
   },
   scared: {
-    light: [
-      "That sounds scary.",
-      "Fear makes sense here.",
-      "I'd be nervous too.",
-    ],
+    light: ['That sounds scary.', 'Fear makes sense here.', "I'd be nervous too."],
     moderate: [
-      "That level of fear is valid—this is real to you.",
-      "Your fear is trying to protect you from something.",
+      'That level of fear is valid—this is real to you.',
+      'Your fear is trying to protect you from something.',
       "Being scared doesn't make you weak—it means this matters.",
     ],
     deep: [
-      "That fear sounds paralyzing. I hear you.",
+      'That fear sounds paralyzing. I hear you.',
       "When fear is that loud, it's hard to hear anything else.",
       "You're still here, still talking about it. That's brave.",
     ],
   },
   neutral: {
-    light: ["Tell me more about that.", "I'm following you.", "That makes sense."],
+    light: ['Tell me more about that.', "I'm following you.", 'That makes sense.'],
     moderate: [
       "I want to make sure I understand what you're saying.",
       "Let me make sure I'm getting the full picture.",
       "There's more here than meets the eye, isn't there?",
     ],
     deep: [
-      "Sometimes the neutral tone is its own message.",
+      'Sometimes the neutral tone is its own message.',
       "I wonder what's underneath the surface here.",
       "You're being careful with how you're sharing this.",
     ],
@@ -206,26 +198,26 @@ const FEELING_REFLECTIONS: Record<string, Record<'light' | 'moderate' | 'deep', 
 
 const EXPERIENCE_REFLECTIONS = [
   "It sounds like you've been dealing with {topic} for a while now.",
-  "Going through {topic} is never easy.",
+  'Going through {topic} is never easy.',
   "What you're experiencing with {topic} would challenge anyone.",
   "{topic} like this tests us in ways we don't expect.",
-  "This {topic} situation sounds genuinely difficult.",
+  'This {topic} situation sounds genuinely difficult.',
 ];
 
 const VALIDATION_REFLECTIONS = [
-  "Anyone would feel this way in your position.",
-  "Your reaction is completely normal.",
+  'Anyone would feel this way in your position.',
+  'Your reaction is completely normal.',
   "It makes sense that you're feeling this.",
-  "Of course you feel that way—anyone would.",
+  'Of course you feel that way—anyone would.',
   "That's a human response to an inhuman situation.",
   "You're not overreacting. This is real.",
 ];
 
 const NEED_REFLECTIONS = [
-  "It sounds like you need {need} right now.",
+  'It sounds like you need {need} right now.',
   "What I'm hearing is that you could really use {need}.",
   "Maybe what you're looking for is just {need}.",
-  "Sometimes we need {need} more than anything else.",
+  'Sometimes we need {need} more than anything else.',
 ];
 
 const NEEDS_MAP: Record<string, string[]> = {
@@ -239,10 +231,10 @@ const NEEDS_MAP: Record<string, string[]> = {
 
 const STRENGTH_REFLECTIONS = [
   "The fact that you're still here, still trying? That's strength.",
-  "Talking about this takes courage.",
+  'Talking about this takes courage.',
   "You're carrying more than most people could handle.",
   "Even in this, you're still showing up. I see that.",
-  "Your honesty about this is its own kind of bravery.",
+  'Your honesty about this is its own kind of bravery.',
 ];
 
 // ============================================================================
@@ -304,10 +296,7 @@ function selectIntensity(
   return intensity;
 }
 
-function selectUnusedReflection(
-  options: string[],
-  state: SessionReflectionState
-): string | null {
+function selectUnusedReflection(options: string[], state: SessionReflectionState): string | null {
   const unused = options.filter((o) => !state.reflectionsUsed.includes(o));
   if (unused.length === 0) return null;
   return unused[Math.floor(Math.random() * unused.length)];
@@ -341,9 +330,10 @@ export function generateReflection(context: ReflectionContext): Reflection | nul
 
   switch (selectedType) {
     case 'feeling': {
-      const emotionKey = Object.keys(FEELING_REFLECTIONS).find(
-        (key) => context.emotion.toLowerCase().includes(key) || key === 'neutral'
-      ) || 'neutral';
+      const emotionKey =
+        Object.keys(FEELING_REFLECTIONS).find(
+          (key) => context.emotion.toLowerCase().includes(key) || key === 'neutral'
+        ) || 'neutral';
       const options = FEELING_REFLECTIONS[emotionKey][intensity];
       reflection = selectUnusedReflection(options, state);
       break;

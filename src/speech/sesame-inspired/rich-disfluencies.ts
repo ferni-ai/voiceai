@@ -49,7 +49,7 @@ export const DISFLUENCY_PATTERNS: Record<DisfluencyType, DisfluencyPattern> = {
       'Actually, let me start over.',
       'Wait, let me rephrase that.',
       'No, that came out wrong.',
-      "Okay, let me try that again.",
+      'Okay, let me try that again.',
       "Hold on, I'm not saying this right.",
     ],
     ssmlPatterns: [
@@ -68,8 +68,8 @@ export const DISFLUENCY_PATTERNS: Record<DisfluencyType, DisfluencyPattern> = {
       'Wait— no.',
       'Actually— hold on.',
       "No, that's not right.",
-      "Wait, I mean—",
-      "Well— actually—",
+      'Wait, I mean—',
+      'Well— actually—',
     ],
     ssmlPatterns: [
       '<break time="50ms"/>Wait—<break time="100ms"/><speed ratio="0.95"/>no.<break time="150ms"/>',
@@ -89,7 +89,7 @@ export const DISFLUENCY_PATTERNS: Record<DisfluencyType, DisfluencyPattern> = {
       'I just...',
       'It makes me think...',
       'Sometimes I wonder...',
-      "You know...",
+      'You know...',
     ],
     ssmlPatterns: [
       '<speed ratio="0.85"/><volume ratio="0.85"/>And then...<break time="300ms"/>',
@@ -106,9 +106,9 @@ export const DISFLUENCY_PATTERNS: Record<DisfluencyType, DisfluencyPattern> = {
     type: 'false_start',
     patterns: [
       'So— wait, before that—',
-      "I was going to say— no, different thought.",
-      "The thing is— actually, first—",
-      "What I mean— hold on—",
+      'I was going to say— no, different thought.',
+      'The thing is— actually, first—',
+      'What I mean— hold on—',
     ],
     ssmlPatterns: [
       '<break time="50ms"/>So—<break time="100ms"/>wait, before that—<break time="150ms"/>',
@@ -123,9 +123,9 @@ export const DISFLUENCY_PATTERNS: Record<DisfluencyType, DisfluencyPattern> = {
     type: 'word_search',
     patterns: [
       "What's the word...",
-      "How do I put this...",
+      'How do I put this...',
       "It's like...",
-      "The feeling is...",
+      'The feeling is...',
       "There's a word for this...",
     ],
     ssmlPatterns: [
@@ -140,15 +140,7 @@ export const DISFLUENCY_PATTERNS: Record<DisfluencyType, DisfluencyPattern> = {
 
   hedge: {
     type: 'hedge',
-    patterns: [
-      'kind of',
-      'sort of',
-      'maybe',
-      'I think',
-      'probably',
-      'in a way',
-      'I guess',
-    ],
+    patterns: ['kind of', 'sort of', 'maybe', 'I think', 'probably', 'in a way', 'I guess'],
     ssmlPatterns: [
       '<speed ratio="0.95"/>kind of<break time="50ms"/>',
       '<speed ratio="0.95"/>sort of<break time="50ms"/>',
@@ -166,8 +158,8 @@ export const DISFLUENCY_PATTERNS: Record<DisfluencyType, DisfluencyPattern> = {
       'Let me think...',
       'Give me a second...',
       "I'm trying to...",
-      "Okay, so...",
-      "Right, so...",
+      'Okay, so...',
+      'Right, so...',
     ],
     ssmlPatterns: [
       '<speed ratio="0.9"/><emotion value="contemplative"/>Let me think...<break time="400ms"/>',
@@ -201,20 +193,14 @@ export const DISFLUENCY_PATTERNS: Record<DisfluencyType, DisfluencyPattern> = {
 /**
  * Get disfluencies appropriate for an emotional context
  */
-export function getDisfluenciesForEmotion(
-  emotion: CartesiaEmotion
-): DisfluencyPattern[] {
-  return Object.values(DISFLUENCY_PATTERNS).filter((p) =>
-    p.emotionalContexts.includes(emotion)
-  );
+export function getDisfluenciesForEmotion(emotion: CartesiaEmotion): DisfluencyPattern[] {
+  return Object.values(DISFLUENCY_PATTERNS).filter((p) => p.emotionalContexts.includes(emotion));
 }
 
 /**
  * Select a random disfluency based on weights
  */
-export function selectWeightedDisfluency(
-  patterns: DisfluencyPattern[]
-): DisfluencyPattern | null {
+export function selectWeightedDisfluency(patterns: DisfluencyPattern[]): DisfluencyPattern | null {
   if (patterns.length === 0) return null;
 
   const totalWeight = patterns.reduce((sum, p) => sum + p.weight, 0);
@@ -250,7 +236,9 @@ const CLAUSE_BOUNDARIES = /([,;:])\s+/g;
 /**
  * Find natural injection points in text
  */
-export function findInjectionPoints(text: string): { position: number; type: 'sentence' | 'clause' | 'start' }[] {
+export function findInjectionPoints(
+  text: string
+): { position: number; type: 'sentence' | 'clause' | 'start' }[] {
   const points: { position: number; type: 'sentence' | 'clause' | 'start' }[] = [];
 
   // Start of text is always a valid point
@@ -313,10 +301,7 @@ export function injectDisfluency(
     // Inject before the last sentence
     selectedPoint = points.length > 1 ? points[points.length - 2] : points[0];
     position = 'end';
-  } else if (
-    pattern.type === 'self_correction' ||
-    pattern.type === 'false_start'
-  ) {
+  } else if (pattern.type === 'self_correction' || pattern.type === 'false_start') {
     // Inject at a mid-point clause boundary
     const midPoints = points.filter((p) => p.type === 'clause');
     if (midPoints.length > 0) {

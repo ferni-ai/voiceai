@@ -67,7 +67,7 @@ const STORAGE_KEYS = {
 // STATE
 // ============================================================================
 
-let claimState: DemoClaimState = {
+const claimState: DemoClaimState = {
   claimed: false,
   claimToken: null,
   conversation: null,

@@ -15,11 +15,7 @@
 export * from './session-state.js';
 
 // Export proxy functions but NOT UserData type (to avoid conflict with shared/types.ts)
-export {
-  createUserDataProxy,
-  isUserDataProxy,
-  getStateManager,
-} from './user-data-proxy.js';
+export { createUserDataProxy, isUserDataProxy, getStateManager } from './user-data-proxy.js';
 
 // Event cleanup registry for tracking and cleaning up event handlers
 export {

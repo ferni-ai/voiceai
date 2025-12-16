@@ -224,8 +224,7 @@ class SpeechMetricsCollector {
     }
 
     // Update average duration
-    op.avgDurationMs =
-      (op.avgDurationMs * (op.invocations - 1) + durationMs) / op.invocations;
+    op.avgDurationMs = (op.avgDurationMs * (op.invocations - 1) + durationMs) / op.invocations;
     op.lastInvoked = Date.now();
   }
 
@@ -280,8 +279,7 @@ class SpeechMetricsCollector {
 
     const turnPredictionAccuracy =
       this.turnPredictionResults.length > 0
-        ? this.turnPredictionResults.filter(Boolean).length /
-          this.turnPredictionResults.length
+        ? this.turnPredictionResults.filter(Boolean).length / this.turnPredictionResults.length
         : 0;
 
     return {
@@ -302,8 +300,7 @@ class SpeechMetricsCollector {
         ? this.sessionDurations.reduce((a, b) => a + b, 0) / this.sessionDurations.length
         : 0;
 
-    const maxDuration =
-      this.sessionDurations.length > 0 ? Math.max(...this.sessionDurations) : 0;
+    const maxDuration = this.sessionDurations.length > 0 ? Math.max(...this.sessionDurations) : 0;
 
     return {
       activeSessionCount: this.sessionStarts.size,
@@ -487,10 +484,7 @@ export function resetSpeechMetrics(): void {
  * });
  * ```
  */
-export async function withTiming<T>(
-  operationName: string,
-  fn: () => Promise<T>
-): Promise<T> {
+export async function withTiming<T>(operationName: string, fn: () => Promise<T>): Promise<T> {
   const start = performance.now();
   try {
     const result = await fn();

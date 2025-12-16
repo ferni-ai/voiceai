@@ -42,13 +42,7 @@ const EXCITEMENT_REACTIONS = {
     'You just said something huge.',
     'Hold that thought—',
   ],
-  surprise: [
-    'What?! No way!',
-    'Wait, seriously?!',
-    'Oh my gosh!',
-    'That is unexpected!',
-    'Whoa!',
-  ],
+  surprise: ['What?! No way!', 'Wait, seriously?!', 'Oh my gosh!', 'That is unexpected!', 'Whoa!'],
 };
 
 // ============================================================================
@@ -64,8 +58,7 @@ export async function generateExcitementInterruption(
   signals: HumanizationSignals
 ): Promise<GeneratorResult> {
   // Only fire if there is something to be excited about
-  const isBreakthrough = signals.isBreakthroughMoment ||
-    detectBreakthrough(context.userMessage);
+  const isBreakthrough = signals.isBreakthroughMoment || detectBreakthrough(context.userMessage);
   const hasHighEnergy = mood.energy > 0.6 && mood.engagement > 0.6;
 
   if (!isBreakthrough && !signals.userTriggeredSurprise) {
@@ -91,8 +84,7 @@ export async function generateExcitementInterruption(
 
   if (isBreakthrough) {
     // Is it a realization or a success?
-    const isRealization = /realized|figured|understand|see now|get it/i
-      .test(context.userMessage);
+    const isRealization = /realized|figured|understand|see now|get it/i.test(context.userMessage);
     reactions = isRealization
       ? EXCITEMENT_REACTIONS.realization
       : EXCITEMENT_REACTIONS.breakthrough;
@@ -112,4 +104,3 @@ export async function generateExcitementInterruption(
     cooldownTurns: HUMANIZATION_CONFIG.cooldowns.excitementInterruption,
   };
 }
-

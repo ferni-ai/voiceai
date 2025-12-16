@@ -3,8 +3,8 @@ triple:          'arm64-apple-darwin'
 binary-path:     '/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice'
 relocations:
   - { offset: 0x136A01, size: 0x8, addend: 0x0, symName: '_$s10FerniVoice0aB3AppV11appDelegateAA0cE0Cvg', symObjAddr: 0x0, symBinAddr: 0x100001590, symSize: 0xC0 }
-  - { offset: 0x136A25, size: 0x8, addend: 0x0, symName: '_$s10FerniVoice8personasSayAA7PersonaVGvp', symObjAddr: 0x5C1D0, symBinAddr: 0x10002E6D0, symSize: 0x0 }
-  - { offset: 0x136AF4, size: 0x8, addend: 0x0, symName: '_$sSo18NSNotificationNamea10FerniVoiceE17voiceStateChangedABvpZ', symObjAddr: 0x5C1D8, symBinAddr: 0x10002E6D8, symSize: 0x0 }
+  - { offset: 0x136A25, size: 0x8, addend: 0x0, symName: '_$s10FerniVoice8personasSayAA7PersonaVGvp', symObjAddr: 0x5C1F0, symBinAddr: 0x10002E6D0, symSize: 0x0 }
+  - { offset: 0x136AF4, size: 0x8, addend: 0x0, symName: '_$sSo18NSNotificationNamea10FerniVoiceE17voiceStateChangedABvpZ', symObjAddr: 0x5C1F8, symBinAddr: 0x10002E6D8, symSize: 0x0 }
   - { offset: 0x136FA8, size: 0x8, addend: 0x0, symName: ___swift_instantiateConcreteTypeFromMangledNameV2, symObjAddr: 0xC0, symBinAddr: 0x100001650, symSize: 0x68 }
   - { offset: 0x136FBC, size: 0x8, addend: 0x0, symName: '_$s10FerniVoice0aB3AppV12_appDelegate33_B91C0E560F096BF8B722CD21AA2B3F3BLL7SwiftUI013NSApplicationE7AdaptorVyAA0cE0CGvpfi', symObjAddr: 0x128, symBinAddr: 0x1000016B8, symSize: 0x34 }
   - { offset: 0x136FD4, size: 0x8, addend: 0x0, symName: '_$s10FerniVoice11AppDelegateCMa', symObjAddr: 0x15C, symBinAddr: 0x1000016EC, symSize: 0x24 }

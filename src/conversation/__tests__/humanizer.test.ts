@@ -293,16 +293,13 @@ describe('ConversationHumanizer', () => {
     });
 
     it('should include session intelligence insights', async () => {
-      const response = await humanizer.humanizeResponseAsync(
-        'I understand how you feel.',
-        {
-          personaId: testPersonaId,
-          turnNumber: 10,
-          userMessage: "I'm really struggling with this situation.",
-          userEmotion: 'distressed',
-          wasPersonalSharing: true,
-        }
-      );
+      const response = await humanizer.humanizeResponseAsync('I understand how you feel.', {
+        personaId: testPersonaId,
+        turnNumber: 10,
+        userMessage: "I'm really struggling with this situation.",
+        userEmotion: 'distressed',
+        wasPersonalSharing: true,
+      });
 
       // Should have processed and potentially added features
       expect(response.appliedFeatures.length).toBeGreaterThanOrEqual(1);

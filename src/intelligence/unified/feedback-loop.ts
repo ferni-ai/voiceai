@@ -266,18 +266,14 @@ export class NaturalnessFeedbackLoop {
     }
 
     // Check if mismatch detection is being used effectively
-    const mismatchSignals = this.recentSignals.filter(
-      (s) => s.context.analysis.mismatch.detected
-    );
+    const mismatchSignals = this.recentSignals.filter((s) => s.context.analysis.mismatch.detected);
     if (mismatchSignals.length > 0) {
       const avgMismatchScore =
         mismatchSignals.reduce((sum, s) => sum + s.naturalnessScore, 0) / mismatchSignals.length;
       if (avgMismatchScore > 0.7) {
         recommendations.push('Voice-text mismatch detection is working well!');
       } else if (avgMismatchScore < 0.5) {
-        recommendations.push(
-          'Voice-text mismatch responses may need refinement. Review approach.'
-        );
+        recommendations.push('Voice-text mismatch responses may need refinement. Review approach.');
       }
     }
 
@@ -288,10 +284,7 @@ export class NaturalnessFeedbackLoop {
   // PRIVATE METHODS
   // ============================================================================
 
-  private computeNaturalnessScore(
-    context: ResponseContext,
-    reaction: UserReaction
-  ): number {
+  private computeNaturalnessScore(context: ResponseContext, reaction: UserReaction): number {
     let score = 0.5; // Start neutral
 
     // Positive signals
@@ -414,4 +407,3 @@ export function getRecommendations(): string[] {
 }
 
 export default NaturalnessFeedbackLoop;
-

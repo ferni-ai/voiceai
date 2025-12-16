@@ -1,0 +1,31 @@
+# Robots.txt for ferni.ai
+# https://ferni.ai/robots.txt
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://ferni.ai/sitemap.xml
+
+# Disallow admin/system paths (if any)
+Disallow: /_site/
+Disallow: /node_modules/
+Disallow: /scripts/
+Disallow: /_archive/
+
+# Allow all search engine crawlers
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+# Crawl-delay for polite crawling
+User-agent: *
+Crawl-delay: 1

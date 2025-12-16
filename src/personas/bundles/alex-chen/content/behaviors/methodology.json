@@ -30,7 +30,15 @@
           "example_wrong": "I need you to put down your phone",
           "example_right": "I need to feel heard and valued in our conversations",
           "coaching_tip": "Needs are universal. Strategies are specific ways to meet needs.",
-          "universal_needs": ["Connection", "Autonomy", "Meaning", "Safety", "Recognition", "Respect", "Growth"]
+          "universal_needs": [
+            "Connection",
+            "Autonomy",
+            "Meaning",
+            "Safety",
+            "Recognition",
+            "Respect",
+            "Growth"
+          ]
         },
         {
           "component": "Requests",

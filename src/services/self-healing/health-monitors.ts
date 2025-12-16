@@ -56,7 +56,7 @@ export interface HealthStatus {
  */
 async function checkLiveKit(): Promise<HealthCheckResult> {
   const start = Date.now();
-  
+
   try {
     // Check if we have LiveKit credentials
     const url = process.env.LIVEKIT_URL;
@@ -70,19 +70,19 @@ async function checkLiveKit(): Promise<HealthCheckResult> {
 
     // Convert WSS URL to HTTPS for health check
     const healthUrl = url.replace('wss://', 'https://').replace('ws://', 'http://');
-    
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
-    
+
     try {
       const response = await fetch(healthUrl, {
         method: 'HEAD',
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeout);
       const latencyMs = Date.now() - start;
-      
+
       return {
         healthy: response.ok || response.status === 404, // 404 is fine - just checking connectivity
         latencyMs,
@@ -106,7 +106,7 @@ async function checkLiveKit(): Promise<HealthCheckResult> {
  */
 async function checkCartesia(): Promise<HealthCheckResult> {
   const start = Date.now();
-  
+
   try {
     const apiKey = process.env.CARTESIA_API_KEY;
     if (!apiKey) {
@@ -119,7 +119,7 @@ async function checkCartesia(): Promise<HealthCheckResult> {
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
-    
+
     try {
       // Cartesia voices endpoint as health check
       const response = await fetch('https://api.cartesia.ai/voices', {
@@ -127,10 +127,10 @@ async function checkCartesia(): Promise<HealthCheckResult> {
         headers: { 'X-API-Key': apiKey },
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeout);
       const latencyMs = Date.now() - start;
-      
+
       return {
         healthy: response.ok,
         latencyMs,
@@ -153,7 +153,7 @@ async function checkCartesia(): Promise<HealthCheckResult> {
  */
 async function checkGemini(): Promise<HealthCheckResult> {
   const start = Date.now();
-  
+
   try {
     const apiKey = process.env.GOOGLE_API_KEY;
     if (!apiKey) {
@@ -166,7 +166,7 @@ async function checkGemini(): Promise<HealthCheckResult> {
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
-    
+
     try {
       // List models endpoint as health check
       const response = await fetch(
@@ -176,10 +176,10 @@ async function checkGemini(): Promise<HealthCheckResult> {
           signal: controller.signal,
         }
       );
-      
+
       clearTimeout(timeout);
       const latencyMs = Date.now() - start;
-      
+
       return {
         healthy: response.ok,
         latencyMs,
@@ -202,25 +202,25 @@ async function checkGemini(): Promise<HealthCheckResult> {
  */
 async function checkFirestore(): Promise<HealthCheckResult> {
   const start = Date.now();
-  
+
   try {
     // Dynamic import to avoid loading Firebase unless needed
     const { initializeApp, getApps } = await import('firebase-admin/app');
     const { getFirestore } = await import('firebase-admin/firestore');
-    
+
     // Initialize if not already
     if (getApps().length === 0) {
       initializeApp();
     }
-    
+
     const db = getFirestore();
-    
+
     // Simple read operation to verify connectivity
     const testRef = db.collection('_health_check').doc('test');
     await testRef.get();
-    
+
     const latencyMs = Date.now() - start;
-    
+
     return {
       healthy: true,
       latencyMs,
@@ -240,7 +240,7 @@ async function checkFirestore(): Promise<HealthCheckResult> {
  */
 async function checkDeepgram(): Promise<HealthCheckResult> {
   const start = Date.now();
-  
+
   try {
     const apiKey = process.env.DEEPGRAM_API_KEY;
     if (!apiKey) {
@@ -253,7 +253,7 @@ async function checkDeepgram(): Promise<HealthCheckResult> {
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
-    
+
     try {
       // Projects endpoint as health check
       const response = await fetch('https://api.deepgram.com/v1/projects', {
@@ -261,10 +261,10 @@ async function checkDeepgram(): Promise<HealthCheckResult> {
         headers: { Authorization: `Token ${apiKey}` },
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeout);
       const latencyMs = Date.now() - start;
-      
+
       return {
         healthy: response.ok,
         latencyMs,
@@ -287,7 +287,7 @@ async function checkDeepgram(): Promise<HealthCheckResult> {
  */
 async function checkOpenAI(): Promise<HealthCheckResult> {
   const start = Date.now();
-  
+
   try {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
@@ -300,7 +300,7 @@ async function checkOpenAI(): Promise<HealthCheckResult> {
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
-    
+
     try {
       // Models endpoint as health check
       const response = await fetch('https://api.openai.com/v1/models', {
@@ -308,10 +308,10 @@ async function checkOpenAI(): Promise<HealthCheckResult> {
         headers: { Authorization: `Bearer ${apiKey}` },
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeout);
       const latencyMs = Date.now() - start;
-      
+
       return {
         healthy: response.ok,
         latencyMs,
@@ -334,17 +334,17 @@ async function checkOpenAI(): Promise<HealthCheckResult> {
  */
 async function checkMemory(): Promise<HealthCheckResult> {
   const start = Date.now();
-  
+
   try {
     const usage = process.memoryUsage();
     const heapUsedMB = usage.heapUsed / 1024 / 1024;
     const heapTotalMB = usage.heapTotal / 1024 / 1024;
     const rssMB = usage.rss / 1024 / 1024;
-    
+
     // Consider unhealthy if heap usage > 1.5GB or > 90% of total
     const heapPercent = (usage.heapUsed / usage.heapTotal) * 100;
     const healthy = heapUsedMB < 1500 && heapPercent < 90;
-    
+
     return {
       healthy,
       latencyMs: Date.now() - start,
@@ -370,7 +370,7 @@ async function checkMemory(): Promise<HealthCheckResult> {
  */
 async function checkSpotify(): Promise<HealthCheckResult> {
   const start = Date.now();
-  
+
   try {
     const clientId = process.env.SPOTIFY_CLIENT_ID;
     if (!clientId) {
@@ -383,17 +383,17 @@ async function checkSpotify(): Promise<HealthCheckResult> {
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
-    
+
     try {
       // Check Spotify API availability
       const response = await fetch('https://api.spotify.com/v1/browse/categories?limit=1', {
         method: 'GET',
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeout);
       const latencyMs = Date.now() - start;
-      
+
       // 401 is expected without auth - just checking connectivity
       return {
         healthy: response.status === 401 || response.ok,
@@ -506,18 +506,18 @@ export async function checkServiceHealth(serviceName: string): Promise<HealthChe
   }
 
   const circuit = getHealthCircuit(serviceName);
-  
+
   try {
     const result = await circuit.execute(async () => monitor.check());
-    
+
     // Record metrics for anomaly detection
     recordLatency(`health:${serviceName}`, result.latencyMs);
     recordSuccessRate(`health:${serviceName}`, result.healthy ? 100 : 0);
-    
+
     // Cache result
     monitor.lastResult = result;
     monitor.lastCheck = Date.now();
-    
+
     return result;
   } catch (error) {
     // Circuit is open or check failed
@@ -526,10 +526,10 @@ export async function checkServiceHealth(serviceName: string): Promise<HealthChe
       latencyMs: 0,
       error: error instanceof Error ? error.message : 'Health check circuit open',
     };
-    
+
     monitor.lastResult = result;
     monitor.lastCheck = Date.now();
-    
+
     return result;
   }
 }
@@ -553,7 +553,8 @@ export async function runAllHealthChecks(): Promise<HealthStatus> {
     })
   );
 
-  const monitorResults: Record<string, HealthCheckResult & { name: string; displayName: string }> = {};
+  const monitorResults: Record<string, HealthCheckResult & { name: string; displayName: string }> =
+    {};
   const unhealthyServices: string[] = [];
   const recommendations: string[] = [];
 
@@ -561,10 +562,10 @@ export async function runAllHealthChecks(): Promise<HealthStatus> {
     if (result.status === 'fulfilled') {
       const { name, displayName, result: checkResult } = result.value;
       monitorResults[name] = { ...checkResult, name, displayName };
-      
+
       if (!checkResult.healthy) {
         unhealthyServices.push(displayName);
-        
+
         // Add recommendations based on service
         const monitor = monitors.find((m) => m.name === name);
         if (monitor) {
@@ -579,21 +580,18 @@ export async function runAllHealthChecks(): Promise<HealthStatus> {
 
   // Determine overall status
   let overall: 'healthy' | 'degraded' | 'critical' = 'healthy';
-  
+
   // Critical if any voice services are down
   const criticalServices = ['livekit', 'cartesia', 'gemini'];
   const criticalDown = criticalServices.some((s) => !monitorResults[s]?.healthy);
-  
+
   if (criticalDown) {
     overall = 'critical';
   } else if (unhealthyServices.length > 0) {
     overall = 'degraded';
   }
 
-  log.info(
-    { overall, unhealthyCount: unhealthyServices.length },
-    'Health check complete'
-  );
+  log.info({ overall, unhealthyCount: unhealthyServices.length }, 'Health check complete');
 
   return {
     overall,
@@ -624,7 +622,8 @@ export function isCapabilityHealthy(
  * Get cached health status (doesn't run new checks)
  */
 export function getCachedHealthStatus(): HealthStatus {
-  const monitorResults: Record<string, HealthCheckResult & { name: string; displayName: string }> = {};
+  const monitorResults: Record<string, HealthCheckResult & { name: string; displayName: string }> =
+    {};
   const unhealthyServices: string[] = [];
   const recommendations: string[] = [];
 
@@ -635,7 +634,7 @@ export function getCachedHealthStatus(): HealthStatus {
         name: monitor.name,
         displayName: monitor.displayName,
       };
-      
+
       if (!monitor.lastResult.healthy) {
         unhealthyServices.push(monitor.displayName);
       }
@@ -644,7 +643,7 @@ export function getCachedHealthStatus(): HealthStatus {
 
   const criticalServices = ['livekit', 'cartesia', 'gemini'];
   const criticalDown = criticalServices.some((s) => !monitorResults[s]?.healthy);
-  
+
   let overall: 'healthy' | 'degraded' | 'critical' = 'healthy';
   if (criticalDown) {
     overall = 'critical';
@@ -714,4 +713,3 @@ export function stopHealthMonitoring(): void {
 export function isMonitoringActive(): boolean {
   return monitoringInterval !== null;
 }
-

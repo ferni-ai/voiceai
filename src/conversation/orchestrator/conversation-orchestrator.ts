@@ -666,7 +666,13 @@ export class ConversationOrchestrator {
     // 6b. NEW: Composable Effects System (opt-in via config.features.composableEffects)
     // This is the new architecture that will eventually replace deep humanization
     if (this.config.features.composableEffects) {
-      const effectsResult = await this.applyComposableEffects(text, ssml, input, analysis, intelligence);
+      const effectsResult = await this.applyComposableEffects(
+        text,
+        ssml,
+        input,
+        analysis,
+        intelligence
+      );
       text = effectsResult.text;
       ssml = effectsResult.ssml;
       appliedFeatures.push(...effectsResult.features);
@@ -799,7 +805,12 @@ export class ConversationOrchestrator {
     input: OrchestratorInput,
     analysis: AnalysisPhaseResult,
     intelligence: IntelligencePhaseResult
-  ): Promise<{ text: string; ssml: string; features: AppliedFeature[]; skipped: SkippedFeature[] }> {
+  ): Promise<{
+    text: string;
+    ssml: string;
+    features: AppliedFeature[];
+    skipped: SkippedFeature[];
+  }> {
     const features: AppliedFeature[] = [];
     const skipped: SkippedFeature[] = [];
 

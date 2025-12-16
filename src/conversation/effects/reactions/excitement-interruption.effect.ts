@@ -86,7 +86,10 @@ export function createExcitementInterruptionEffect(personaId: string): Humanizat
       return {
         content: phrase,
         ssml: `<break time="100ms"/><prosody rate="105%">${phrase}</prosody><break time="200ms"/>`,
-        metadata: { category: categoryRoll < 0.4 ? 'excitement' : categoryRoll < 0.7 ? 'capture' : 'agreement' },
+        metadata: {
+          category:
+            categoryRoll < 0.4 ? 'excitement' : categoryRoll < 0.7 ? 'capture' : 'agreement',
+        },
       };
     },
   };
@@ -104,4 +107,3 @@ function simpleHash(str: string): number {
   }
   return hash;
 }
-

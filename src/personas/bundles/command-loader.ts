@@ -72,8 +72,10 @@ function parseFrontmatter(content: string): {
     let value = line.slice(colonIndex + 1).trim();
 
     // Remove quotes if present
-    if ((value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"))) {
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
       value = value.slice(1, -1);
     }
 
@@ -223,10 +225,7 @@ export async function loadBundleCommands(bundlePath: string): Promise<BundleComm
 /**
  * Render a command's prompt with argument substitution
  */
-export function renderCommandPrompt(
-  command: BundleCommand,
-  args: Record<string, string>
-): string {
+export function renderCommandPrompt(command: BundleCommand, args: Record<string, string>): string {
   let prompt = command.prompt;
 
   // Substitute {{arg}} placeholders

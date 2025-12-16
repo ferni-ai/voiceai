@@ -1,0 +1,27 @@
+<section class="testimonials" id="testimonials">
+  <div class="container">
+    <div class="section-header reveal">
+      <p class="eyebrow">What People Are Saying</p>
+      <h2 class="headline-lg">Real conversations.<br>Real results.</h2>
+    </div>
+
+    <div class="testimonials-grid">
+      {% for testimonial in site.testimonials %}
+      <div class="testimonial-card{% if testimonial.featured %} featured{% endif %} reveal" style="--card-delay: {{ loop.index0 * 0.1 }}s">
+        {% if testimonial.featured %}
+        <div class="testimonial-badge">Featured</div>
+        {% endif %}
+        <div class="testimonial-stars">★★★★★</div>
+        <p class="testimonial-quote">"{{ testimonial.quote }}"</p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">{{ testimonial.initials }}</div>
+          <div class="testimonial-info">
+            <span class="testimonial-name">{{ testimonial.author }}</span>
+            <span class="testimonial-role">{{ testimonial.role }}</span>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>

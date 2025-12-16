@@ -1,0 +1,129 @@
+---
+layout: layouts/page.njk
+title: Persona Marketplace
+description: Discover and deploy specialized AI personas built by our community
+permalink: /marketplace/
+---
+
+<section class="marketplace-hero">
+  <div class="container">
+    <div class="marketplace-hero__content">
+      <span class="eyebrow">Marketplace</span>
+      <h1 class="headline-xl">Discover AI<br><span class="text-gradient">Personas</span></h1>
+      <p class="body-lg">Specialized AI personas built by our community. From industry experts to creative companions.</p>
+    </div>
+  </div>
+</section>
+
+<section class="marketplace-featured">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="eyebrow">Featured</span>
+      <h2 class="headline-lg">The Ferni Team</h2>
+      <p>Our core team of AI specialists, available to everyone.</p>
+    </div>
+    
+    <div class="marketplace-grid">
+      {% for member in site.team %}
+      <div class="persona-card persona-card--core reveal reveal-delay-{{ loop.index0 % 3 }}">
+        <div class="persona-card__header">
+          <div class="persona-card__avatar" style="background: {{ member.color }}">
+            {{ member.initials }}
+          </div>
+          <div class="persona-card__badges">
+            <span class="persona-card__badge persona-card__badge--verified">Core Team</span>
+          </div>
+        </div>
+        <div class="persona-card__content">
+          <h3 class="persona-card__name">{{ member.name }}</h3>
+          <p class="persona-card__role">{{ member.role }}</p>
+          <p class="persona-card__description">{{ member.bio | truncate(100) }}</p>
+        </div>
+        <div class="persona-card__footer">
+          <a href="/team/{{ member.id }}/" class="btn btn-ghost btn-sm">Learn More</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="marketplace-coming">
+  <div class="container">
+    <div class="marketplace-coming__card reveal">
+      <div class="marketplace-coming__content">
+        <span class="eyebrow">Coming Soon</span>
+        <h2 class="headline-lg">Community Personas</h2>
+        <p class="body-lg">We're building a marketplace where developers can create, share, and deploy specialized AI personas.</p>
+        
+        <div class="marketplace-coming__features">
+          <div class="marketplace-coming__feature">
+            <div class="marketplace-coming__feature-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+              </svg>
+            </div>
+            <div>
+              <h3>Browse & Deploy</h3>
+              <p>Discover personas for any use case—from mentors to creative writing coaches.</p>
+            </div>
+          </div>
+          
+          <div class="marketplace-coming__feature">
+            <div class="marketplace-coming__feature-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 18 22 12 16 6"/>
+                <polyline points="8 6 2 12 8 18"/>
+              </svg>
+            </div>
+            <div>
+              <h3>Create Your Own</h3>
+              <p>Build custom personas with unique knowledge, voice, and personality.</p>
+            </div>
+          </div>
+          
+          <div class="marketplace-coming__feature">
+            <div class="marketplace-coming__feature-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+                <line x1="9" y1="9" x2="9.01" y2="9"/>
+                <line x1="15" y1="9" x2="15.01" y2="9"/>
+              </svg>
+            </div>
+            <div>
+              <h3>Monetize</h3>
+              <p>Set your own pricing and earn revenue when others use your personas.</p>
+            </div>
+          </div>
+        </div>
+        
+        <form class="marketplace-waitlist" action="https://ferni.us11.list-manage.com/subscribe/post?u=52ffacbad9b81de1f66ebac7c&amp;id=dd755645d6&amp;f_id=00b2c7e3f0" method="POST" target="_blank">
+          <h3>Join the waitlist</h3>
+          <div class="marketplace-waitlist__form">
+            <input type="email" name="EMAIL" placeholder="your@email.com" required>
+            <input type="hidden" name="SIGNUP_TYPE" value="marketplace">
+            <div aria-hidden="true" style="position: absolute; left: -5000px">
+              <input type="text" name="b_52ffacbad9b81de1f66ebac7c_dd755645d6" tabindex="-1" value="">
+            </div>
+            <button type="submit" class="btn btn-primary">Join Waitlist</button>
+          </div>
+          <p class="marketplace-waitlist__note">We'll notify you when the marketplace launches.</p>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="marketplace-cta">
+  <div class="container container-narrow">
+    <div class="marketplace-cta__card reveal">
+      <h2>Want to build personas now?</h2>
+      <p>Our open-source agent framework is available today for developers.</p>
+      <a href="/developers/" class="btn btn-primary btn-lg">Explore Developer Docs</a>
+    </div>
+  </div>
+</section>
+

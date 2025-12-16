@@ -6,7 +6,13 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { UserProfile, KeyMoment, FamilyMember, LifeEvent, FinancialGoal } from '../../types/user-profile.js';
+import type {
+  UserProfile,
+  KeyMoment,
+  FamilyMember,
+  LifeEvent,
+  FinancialGoal,
+} from '../../types/user-profile.js';
 import type { VectorDocument } from '../vector-store.js';
 
 // Mock the logger
@@ -73,14 +79,15 @@ describe('User Memory Indexer', () => {
   });
 
   // Helper to create minimal user profile
-  const createMinimalProfile = (overrides: Partial<UserProfile> = {}): UserProfile => ({
-    id: 'test-user-123',
-    name: 'Test User',
-    email: 'test@example.com',
-    createdAt: new Date(),
-    totalConversations: 5,
-    ...overrides,
-  } as UserProfile);
+  const createMinimalProfile = (overrides: Partial<UserProfile> = {}): UserProfile =>
+    ({
+      id: 'test-user-123',
+      name: 'Test User',
+      email: 'test@example.com',
+      createdAt: new Date(),
+      totalConversations: 5,
+      ...overrides,
+    }) as UserProfile;
 
   // Helper to create key moment
   const createKeyMoment = (id: string, type: string = 'breakthrough'): KeyMoment => ({
@@ -94,12 +101,13 @@ describe('User Memory Indexer', () => {
   });
 
   // Helper to create family member
-  const createFamilyMember = (name: string): FamilyMember => ({
-    name,
-    relationship: 'friend',
-    topics: ['shared interest'],
-    sentiment: 'positive',
-  } as FamilyMember);
+  const createFamilyMember = (name: string): FamilyMember =>
+    ({
+      name,
+      relationship: 'friend',
+      topics: ['shared interest'],
+      sentiment: 'positive',
+    }) as FamilyMember;
 
   describe('indexUserMemories', () => {
     it('should handle minimal profile with missing arrays gracefully', async () => {
@@ -308,9 +316,9 @@ describe('User Memory Indexer', () => {
     it('should use provided vector store', async () => {
       const customStore = {
         addDocument: vi.fn(),
-        search: vi.fn().mockResolvedValue([
-          { document: { id: 'doc-1', text: 'test', metadata: {} }, score: 1 },
-        ]),
+        search: vi
+          .fn()
+          .mockResolvedValue([{ document: { id: 'doc-1', text: 'test', metadata: {} }, score: 1 }]),
         removeDocument: vi.fn().mockResolvedValue(undefined),
         deleteByMetadata: vi.fn(),
       };
@@ -578,4 +586,3 @@ describe('User Memory Indexer Integration', () => {
     expect(afterStats.totalDocuments).toBe(0);
   });
 });
-

@@ -23,11 +23,11 @@ const log = createLogger({ module: 'MismatchDetector' });
 // ============================================================================
 
 export type MismatchType =
-  | 'masking_negative'      // Saying fine but voice says distressed
+  | 'masking_negative' // Saying fine but voice says distressed
   | 'understating_positive' // Downplaying excitement
-  | 'suppressing'           // Trying to control emotion
-  | 'contradicting'         // Direct contradiction
-  | 'deflecting'            // Changing topic with emotional voice
+  | 'suppressing' // Trying to control emotion
+  | 'contradicting' // Direct contradiction
+  | 'deflecting' // Changing topic with emotional voice
   | 'none';
 
 export interface MismatchResult {
@@ -75,17 +75,32 @@ export interface MismatchGuidance {
 // ============================================================================
 
 const POSITIVE_EMOTIONS = new Set([
-  'happy', 'excited', 'joy', 'grateful', 'trust', 'anticipation', 'confident',
+  'happy',
+  'excited',
+  'joy',
+  'grateful',
+  'trust',
+  'anticipation',
+  'confident',
 ]);
 
 const NEGATIVE_EMOTIONS = new Set([
-  'sad', 'angry', 'fearful', 'anxious', 'distressed', 'frustrated', 'disgusted',
-  'contempt', 'sadness', 'anger', 'fear', 'anxiety', 'regret',
+  'sad',
+  'angry',
+  'fearful',
+  'anxious',
+  'distressed',
+  'frustrated',
+  'disgusted',
+  'contempt',
+  'sadness',
+  'anger',
+  'fear',
+  'anxiety',
+  'regret',
 ]);
 
-const NEUTRAL_EMOTIONS = new Set([
-  'neutral', 'curious', 'confused', 'bored',
-]);
+const NEUTRAL_EMOTIONS = new Set(['neutral', 'curious', 'confused', 'bored']);
 
 // Common phrases used to mask true feelings
 const MASKING_PHRASES = [
@@ -239,7 +254,10 @@ export class VoiceTextMismatchDetector {
     }
 
     // Type 5: Anxiety markers with "everything's fine"
-    if (voiceEmotion.anxietyMarkers && (isMaskingPhrase || this.isNeutralText(textValence, textPrimary))) {
+    if (
+      voiceEmotion.anxietyMarkers &&
+      (isMaskingPhrase || this.isNeutralText(textValence, textPrimary))
+    ) {
       const result: MismatchResult = {
         detected: true,
         confidence: voiceEmotion.confidence * 0.75,
@@ -285,7 +303,7 @@ export class VoiceTextMismatchDetector {
     lines.push(
       ``,
       `DON'T: Call out the mismatch directly ("I can tell you're not fine")`,
-      `DO: Create space and show you're present ("I'm here if there's more you want to share")`,
+      `DO: Create space and show you're present ("I'm here if there's more you want to share")`
     );
 
     return {
@@ -324,7 +342,8 @@ export class VoiceTextMismatchDetector {
     return (
       valence === 'neutral' ||
       NEUTRAL_EMOTIONS.has(primary.toLowerCase()) ||
-      (!POSITIVE_EMOTIONS.has(primary.toLowerCase()) && !NEGATIVE_EMOTIONS.has(primary.toLowerCase()))
+      (!POSITIVE_EMOTIONS.has(primary.toLowerCase()) &&
+        !NEGATIVE_EMOTIONS.has(primary.toLowerCase()))
     );
   }
 
@@ -365,7 +384,7 @@ export class VoiceTextMismatchDetector {
       ],
       deflecting: [
         "We can absolutely talk about that, but I also want to check in on how you're really doing.",
-        "Before we move on... how are you feeling about everything?",
+        'Before we move on... how are you feeling about everything?',
       ],
       none: [],
     };
@@ -393,4 +412,3 @@ export function detectMismatch(
 }
 
 export default VoiceTextMismatchDetector;
-

@@ -31,12 +31,7 @@ export type {
 // FFT CORE
 // ============================================================================
 
-export {
-  applyHanningWindow,
-  clearFFTCaches,
-  fft,
-  getMagnitudeSpectrum,
-} from './fft-core.js';
+export { applyHanningWindow, clearFFTCaches, fft, getMagnitudeSpectrum } from './fft-core.js';
 
 // ============================================================================
 // SPECTRAL ANALYSIS
@@ -66,4 +61,3 @@ export {
   getFFTAnalyzer,
   resetFFTAnalyzer,
 } from './service.js';
-

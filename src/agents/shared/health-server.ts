@@ -43,9 +43,9 @@ let persistenceMetrics:
   | typeof import('../../services/persistence-metrics.js').persistenceMetrics
   | null = null;
 let cognitiveWebSocket: typeof import('../../services/cognitive-websocket.js') | null = null;
-let sessionDataManager:
-  | ReturnType<typeof import('../../services/session-data-manager.js').getSessionDataManager>
-  | null = null;
+let sessionDataManager: ReturnType<
+  typeof import('../../services/session-data-manager.js').getSessionDataManager
+> | null = null;
 
 async function getCognitiveBroadcast() {
   if (!cognitiveBroadcast) {
@@ -202,7 +202,9 @@ async function handleMemoryAPI(url: string, res: ServerResponse): Promise<void> 
       // Current memory metrics
       const metrics = await monitor.getMetrics();
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, data: metrics, timestamp: new Date().toISOString() }));
+      res.end(
+        JSON.stringify({ success: true, data: metrics, timestamp: new Date().toISOString() })
+      );
       return;
     }
 
@@ -210,7 +212,9 @@ async function handleMemoryAPI(url: string, res: ServerResponse): Promise<void> 
       // Memory metrics history
       const history = monitor.getHistory();
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, data: history, timestamp: new Date().toISOString() }));
+      res.end(
+        JSON.stringify({ success: true, data: history, timestamp: new Date().toISOString() })
+      );
       return;
     }
 

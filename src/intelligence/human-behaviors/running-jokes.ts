@@ -62,9 +62,8 @@ export function getRunningJokeCallback(
   if (!profile || profile.totalConversations < 2) return null;
 
   // Get persona-specific jokes
-  const jokes = personaId && FALLBACK_JOKES[personaId]
-    ? FALLBACK_JOKES[personaId]
-    : FALLBACK_JOKES['ferni'];
+  const jokes =
+    personaId && FALLBACK_JOKES[personaId] ? FALLBACK_JOKES[personaId] : FALLBACK_JOKES['ferni'];
 
   // Check if we've used this joke before
   const sharedStories = profile.sharedStories || [];

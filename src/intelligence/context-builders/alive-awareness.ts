@@ -377,7 +377,8 @@ async function buildAliveAwarenessContextWrapper(
 
 registerContextBuilder({
   name: 'alive_awareness',
-  description: 'Cross-agent memory, physical state, mood drift, temporal anchoring, genuine curiosity',
+  description:
+    'Cross-agent memory, physical state, mood drift, temporal anchoring, genuine curiosity',
   priority: 50, // Run after core context builders
   build: buildAliveAwarenessContextWrapper,
 });

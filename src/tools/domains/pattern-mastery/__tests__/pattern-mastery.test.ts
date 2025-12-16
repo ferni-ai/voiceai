@@ -261,7 +261,7 @@ describe('Pattern Mastery Domain Tools', () => {
 
       const result = await tool.execute({
         dataPoint: 'Exercise frequency dropped 50% this month',
-        humanMeaning: "Life got busy, and self-care took a back seat",
+        humanMeaning: 'Life got busy, and self-care took a back seat',
         trajectory: 'declining',
       });
 
@@ -367,4 +367,3 @@ describe('Pattern Mastery Domain Tools', () => {
     });
   });
 });
-

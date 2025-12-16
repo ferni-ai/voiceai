@@ -205,10 +205,7 @@ export abstract class ScheduledJob<
     timeoutMs: number
   ): Promise<TResult> {
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(
-        () => reject(new Error(`${this.name} timed out after ${timeoutMs}ms`)),
-        timeoutMs
-      );
+      setTimeout(() => reject(new Error(`${this.name} timed out after ${timeoutMs}ms`)), timeoutMs);
     });
 
     return Promise.race([this.execute(config, ctx), timeoutPromise]);
@@ -295,7 +292,10 @@ export abstract class ScheduledJob<
 /**
  * Create a simple job runner function.
  */
-export function createJobRunner<TConfig extends BaseJobConfig, TResult extends Record<string, unknown>>(
+export function createJobRunner<
+  TConfig extends BaseJobConfig,
+  TResult extends Record<string, unknown>,
+>(
   JobClass: new () => ScheduledJob<TConfig, TResult>
 ): (config?: Partial<TConfig>) => Promise<BaseJobResult & TResult> {
   return async (config) => {
@@ -312,4 +312,3 @@ export default {
   ScheduledJob,
   createJobRunner,
 };
-

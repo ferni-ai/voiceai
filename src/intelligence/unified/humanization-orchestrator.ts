@@ -150,7 +150,13 @@ export class HumanizationOrchestrator {
     // Build spontaneous elements (only if not in focused support mode)
     const spontaneousElements = focusedSupportMode
       ? []
-      : this.buildSpontaneousElements(analysis, persona, turnNumber, sessionCount, relationshipStage);
+      : this.buildSpontaneousElements(
+          analysis,
+          persona,
+          turnNumber,
+          sessionCount,
+          relationshipStage
+        );
 
     // Build tone guidance
     const toneGuidance = this.buildToneGuidance(analysis, focusedSupportMode);
@@ -203,7 +209,7 @@ export class HumanizationOrchestrator {
     return Boolean(
       analysis.guidance.useHighEmotionMode ||
       analysis.emotion.distressLevel > 0.6 ||
-      analysis.mismatch.detected && analysis.mismatch.type === 'masking_negative' ||
+      (analysis.mismatch.detected && analysis.mismatch.type === 'masking_negative') ||
       analysis.signals.needsSupport
     );
   }
@@ -238,7 +244,8 @@ export class HumanizationOrchestrator {
     if (analysis.signals.isPersonalSharing) {
       cues.push({
         type: 'reflection',
-        content: 'Acknowledge what they shared. "What you said about..." or "The way you described..."',
+        content:
+          'Acknowledge what they shared. "What you said about..." or "The way you described..."',
         timing: 'before_response',
       });
     }
@@ -346,7 +353,10 @@ export class HumanizationOrchestrator {
     }
 
     // Persona vulnerability (2% chance, only with trusted relationships)
-    if (Math.random() < 0.02 && (relationshipStage === 'close_friend' || relationshipStage === 'trusted')) {
+    if (
+      Math.random() < 0.02 &&
+      (relationshipStage === 'close_friend' || relationshipStage === 'trusted')
+    ) {
       elements.push({
         type: 'vulnerability',
         content: 'Could share a small personal moment if relevant.',
@@ -365,9 +375,9 @@ export class HumanizationOrchestrator {
         'You know what I was thinking about earlier?',
       ],
       'nayan-patel': [
-        "You know, I was just thinking about something my father told me...",
+        'You know, I was just thinking about something my father told me...',
         "I've been re-reading some old notes and...",
-        "That reminds me of something...",
+        'That reminds me of something...',
       ],
       'peter-john': [
         'I was at the mall yesterday and noticed something interesting...',
@@ -396,7 +406,7 @@ export class HumanizationOrchestrator {
       enthusiastic: 'Energetic, excited, celebratory. Match their joy!',
       calm: 'Measured, steady, grounding. Provide stability.',
       serious: 'Thoughtful, considered, respectful. This matters.',
-      reassuring: 'Confident, supportive, hopeful. You\'re not alone.',
+      reassuring: "Confident, supportive, hopeful. You're not alone.",
     };
 
     return toneMap[analysis.emotion.suggestedTone] || toneMap.warm;
@@ -502,7 +512,9 @@ export class HumanizationOrchestrator {
     }
 
     // Length
-    sections.push(`Length: ${lengthGuidance.min}-${lengthGuidance.max} words. ${lengthGuidance.note}`);
+    sections.push(
+      `Length: ${lengthGuidance.min}-${lengthGuidance.max} words. ${lengthGuidance.note}`
+    );
 
     // Name usage
     if (nameUsage.shouldUse) {
@@ -535,4 +547,3 @@ export function humanize(input: HumanizationInput): HumanizationResult {
 }
 
 export default HumanizationOrchestrator;
-

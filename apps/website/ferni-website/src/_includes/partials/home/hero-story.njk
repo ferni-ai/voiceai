@@ -1,0 +1,325 @@
+{# ═══════════════════════════════════════════════════════════════════════════
+   HERO STORY EXPERIENCE
+   A cinematic, interactive demonstration of Ferni's magic.
+   
+   The hero is a mini-movie that:
+   1. Opens with a relatable human moment
+   2. Shows Ferni responding with genuine understanding  
+   3. Lets the user choose to dive deeper or watch more
+   
+   Philosophy: SHOW the magic, don't describe it.
+   ═══════════════════════════════════════════════════════════════════════════ #}
+
+<section class="hero-story" data-hero-story data-hero-section>
+  
+  {# Ambient particles #}
+  <div class="story-particles" aria-hidden="true">
+    {% for i in range(0, 20) %}
+    <div class="story-particle" style="
+      left: {{ range(5, 95) | random }}%;
+      animation-delay: {{ range(0, 8000) | random }}ms;
+      animation-duration: {{ range(6000, 12000) | random }}ms;
+    "></div>
+    {% endfor %}
+  </div>
+  
+  {# Main story area #}
+  <div class="story-area" data-story-area>
+    
+    {# Time display #}
+    <div class="story-time" data-time aria-live="polite"></div>
+    
+    {# User's thought (the human moment) #}
+    <p class="story-thought" data-user-thought aria-live="polite"></p>
+    
+    {# Context #}
+    <p class="story-context" data-user-context aria-live="polite"></p>
+    
+    {# The Orb - Ferni's presence #}
+    <div class="story-orb-container" data-orb-container>
+      {# Glow layers #}
+      <div class="orb-glow-outer"></div>
+      <div class="orb-glow-inner"></div>
+      
+      {# Rings #}
+      <div class="orb-ring orb-ring-1"></div>
+      <div class="orb-ring orb-ring-2"></div>
+      <div class="orb-ring orb-ring-3"></div>
+      
+      {# Main orb #}
+      <div class="story-orb orb-idle" data-hero-orb data-breathe>
+        {# FE Initials #}
+        <span class="orb-initials">FE</span>
+        
+        {# Waveform (visible when speaking) #}
+        <div class="orb-waveform waveform-container" data-waveform>
+          <span class="wave-bar"></span>
+          <span class="wave-bar"></span>
+          <span class="wave-bar"></span>
+          <span class="wave-bar"></span>
+          <span class="wave-bar"></span>
+          <span class="wave-bar"></span>
+          <span class="wave-bar"></span>
+        </div>
+      </div>
+      
+      {# Orbiting personas (subtle) #}
+      <div class="story-personas persona-orbit">
+        <div class="persona-dot persona-dot-peter" title="{{ 'personas.peter.fullName' | t }}"></div>
+        <div class="persona-dot persona-dot-maya" title="{{ 'personas.maya.fullName' | t }}"></div>
+        <div class="persona-dot persona-dot-alex" title="{{ 'personas.alex.fullName' | t }}"></div>
+        <div class="persona-dot persona-dot-jordan" title="{{ 'personas.jordan.fullName' | t }}"></div>
+      </div>
+    </div>
+    
+    {# Ferni's response card #}
+    <div class="story-response-card" data-response-card>
+      <p class="story-response" data-ferni-response></p>
+      <p class="story-followup" data-ferni-followup></p>
+      
+      {# CTA #}
+      <a href="tel:+14844813081" class="story-cta" data-story-cta>
+        {{ 'hero.cta.talkNow' | t }}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.05.39.14.76.26 1.12a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.36.12.73.21 1.12.26A2 2 0 0 1 22 16.92z"/>
+        </svg>
+      </a>
+    </div>
+    
+  </div>
+  
+  {# Next story button #}
+  <button class="story-next" data-story-next aria-label="{{ 'accessibility.nextStory' | t }}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M9 18l6-6-6-6"/>
+    </svg>
+  </button>
+  
+  {# Story selector #}
+  <div class="story-selector" data-story-selector>
+    {# Populated by JS #}
+  </div>
+  
+  {# Scroll indicator #}
+  <div class="story-scroll-hint">
+    <span>{{ 'common.scrollToExplore' | t }}</span>
+    <div class="scroll-line"></div>
+  </div>
+  
+</section>
+
+{# Orb-specific inline styles #}
+<style>
+  /* Story orb styling */
+  .story-orb-container {
+    position: relative;
+    width: clamp(140px, 22vw, 200px);
+    height: clamp(140px, 22vw, 200px);
+    margin: 48px 0;
+  }
+  
+  .orb-glow-outer {
+    position: absolute;
+    inset: -60%;
+    background: radial-gradient(circle, var(--color-ferni-glow, rgba(74, 103, 65, 0.25)) 0%, transparent 70%);
+    border-radius: 50%;
+    opacity: 0.5;
+    transition: opacity 0.8s var(--ease-smooth);
+  }
+  
+  .orb-glow-inner {
+    position: absolute;
+    inset: -30%;
+    background: radial-gradient(circle, var(--color-ferni-glow, rgba(74, 103, 65, 0.35)) 0%, transparent 60%);
+    border-radius: 50%;
+    animation: glowPulse 4s var(--ease-breathe, ease) infinite;
+  }
+  
+  @keyframes glowPulse {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.05); }
+  }
+  
+  .orb-ring {
+    position: absolute;
+    border: 1px solid rgba(74, 103, 65, 0.15);
+    border-radius: 50%;
+  }
+  
+  .orb-ring-1 { inset: -30%; }
+  .orb-ring-2 { inset: -20%; }
+  .orb-ring-3 { inset: -10%; }
+  
+  .story-orb {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #5a7751, #4a6741, #3d5a35);
+    box-shadow: 
+      0 15px 40px rgba(74, 103, 65, 0.4),
+      0 0 80px rgba(74, 103, 65, 0.15),
+      inset 0 -5px 20px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 
+      transform 0.6s var(--ease-spring),
+      box-shadow 0.6s var(--ease-smooth);
+  }
+  
+  .story-orb:hover {
+    transform: scale(1.05);
+    box-shadow: 
+      0 20px 50px rgba(74, 103, 65, 0.5),
+      0 0 100px rgba(74, 103, 65, 0.2),
+      inset 0 -5px 20px rgba(0, 0, 0, 0.15);
+  }
+  
+  .orb-initials {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 700;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: opacity 0.3s ease;
+  }
+  
+  .story-orb:hover .orb-initials {
+    opacity: 0;
+  }
+  
+  .orb-waveform {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .story-orb:hover .orb-waveform,
+  .story-orb.orb-aware .orb-waveform {
+    opacity: 1;
+  }
+  
+  .story-orb.orb-aware .orb-initials {
+    opacity: 0;
+  }
+  
+  .orb-waveform .wave-bar {
+    width: 4px;
+    background: white;
+    border-radius: 4px;
+    transform-origin: bottom;
+  }
+  
+  .orb-waveform .wave-bar:nth-child(1) { height: 16px; }
+  .orb-waveform .wave-bar:nth-child(2) { height: 24px; }
+  .orb-waveform .wave-bar:nth-child(3) { height: 32px; }
+  .orb-waveform .wave-bar:nth-child(4) { height: 40px; }
+  .orb-waveform .wave-bar:nth-child(5) { height: 32px; }
+  .orb-waveform .wave-bar:nth-child(6) { height: 24px; }
+  .orb-waveform .wave-bar:nth-child(7) { height: 16px; }
+  
+  /* Orbiting personas */
+  .story-personas {
+    position: absolute;
+    inset: -50%;
+    pointer-events: none;
+  }
+  
+  .persona-dot {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  .persona-dot-peter {
+    top: 5%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-peter, #3a6b73);
+  }
+  
+  .persona-dot-maya {
+    top: 50%;
+    right: 5%;
+    transform: translateY(-50%);
+    background: var(--color-maya, #a67a6a);
+  }
+  
+  .persona-dot-alex {
+    bottom: 5%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-alex, #5a6b8a);
+  }
+  
+  .persona-dot-jordan {
+    top: 50%;
+    left: 5%;
+    transform: translateY(-50%);
+    background: var(--color-jordan, #c4856a);
+  }
+  
+  /* Scroll hint */
+  .story-scroll-hint {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  
+  .scroll-line {
+    width: 1px;
+    height: 40px;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.4), transparent);
+    animation: scrollPulse 2s ease-in-out infinite;
+  }
+  
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 0.4; height: 40px; }
+    50% { opacity: 0.8; height: 50px; }
+  }
+  
+  @media (max-width: 768px) {
+    .story-scroll-hint {
+      display: none;
+    }
+  }
+</style>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

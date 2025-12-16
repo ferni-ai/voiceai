@@ -61,7 +61,7 @@ describe('PronunciationMemoryService', () => {
     it('should apply known pronunciation for difficult names', () => {
       const memory = getPronunciationMemory(sessionId);
 
-      const result = memory.processUserMessage("My name is Siobhan");
+      const result = memory.processUserMessage('My name is Siobhan');
 
       expect(result).not.toBeNull();
       expect(result!.text).toBe('Siobhan');
@@ -93,7 +93,7 @@ describe('PronunciationMemoryService', () => {
   describe('getPronunciation()', () => {
     it('should return learned pronunciation', () => {
       const memory = getPronunciationMemory(sessionId);
-      memory.processUserMessage("My name is Aoife");
+      memory.processUserMessage('My name is Aoife');
 
       const entry = memory.getPronunciation('Aoife');
 
@@ -133,7 +133,7 @@ describe('PronunciationMemoryService', () => {
   describe('getUserName()', () => {
     it('should return user name after introduction', () => {
       const memory = getPronunciationMemory(sessionId);
-      memory.processUserMessage("Call me Maya");
+      memory.processUserMessage('Call me Maya');
 
       const userName = memory.getUserName();
 
@@ -276,4 +276,3 @@ describe('analyzePronunciationNeeds()', () => {
     expect(apiCount).toBe(1);
   });
 });
-

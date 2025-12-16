@@ -401,10 +401,13 @@ Suggested experiments: ${experiments.length}`,
 async function persistReport(report: AgentReport): Promise<void> {
   try {
     const db = getFirestore();
-    await db.collection('landing_optimization_reports').doc(report.id).set({
-      ...report,
-      generatedAt: report.generatedAt,
-    });
+    await db
+      .collection('landing_optimization_reports')
+      .doc(report.id)
+      .set({
+        ...report,
+        generatedAt: report.generatedAt,
+      });
   } catch (error) {
     log.warn({ error }, 'Failed to persist optimization report');
   }
@@ -427,9 +430,7 @@ const DEFAULT_CONFIG: AutomationConfig = {
   notifyOnAlerts: true,
 };
 
-export async function runAutomatedOptimization(
-  config: AutomationConfig = DEFAULT_CONFIG
-): Promise<{
+export async function runAutomatedOptimization(config: AutomationConfig = DEFAULT_CONFIG): Promise<{
   report: AgentReport;
   actionsExecuted: string[];
 }> {
@@ -449,9 +450,7 @@ export async function runAutomatedOptimization(
 
   // Auto-approve high-impact experiments if configured
   if (config.autoApproveExperiments) {
-    const highImpactExperiments = report.experiments.filter(
-      (e) => e.estimatedImpact === 'high'
-    );
+    const highImpactExperiments = report.experiments.filter((e) => e.estimatedImpact === 'high');
 
     for (const experiment of highImpactExperiments) {
       // Create experiment in the experiments system
@@ -500,4 +499,3 @@ export async function weeklyOptimizationReport(): Promise<AgentReport> {
 // ============================================================================
 
 export { getPersonaInsights, generateExperimentSuggestions };
-

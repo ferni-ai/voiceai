@@ -145,4 +145,3 @@ export function getEmotionTransition(
     { emotion: toEmotion, breakBefore: '<break time="150ms"/>' },
   ];
 }
-

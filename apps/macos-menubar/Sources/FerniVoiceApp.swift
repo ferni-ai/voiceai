@@ -382,6 +382,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(NSMenuItem.separator())
 
+        // Cloud/Local toggle
+        let modeItem = NSMenuItem(
+            title: voiceManager.useCloudMode ? "☁️ Cloud Mode (app.ferni.ai)" : "🏠 Local Mode (localhost)",
+            action: #selector(toggleCloudMode),
+            keyEquivalent: ""
+        )
+        modeItem.target = self
+        menu.addItem(modeItem)
+
+        let toggleModeItem = NSMenuItem(
+            title: voiceManager.useCloudMode ? "Switch to Local" : "Switch to Cloud",
+            action: #selector(toggleCloudMode),
+            keyEquivalent: ""
+        )
+        toggleModeItem.target = self
+        menu.addItem(toggleModeItem)
+
+        menu.addItem(NSMenuItem.separator())
+
         let quitItem = NSMenuItem(
             title: "Quit",
             action: #selector(quitApp),
@@ -456,6 +475,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    @objc private func toggleCloudMode() {
+        voiceManager.useCloudMode.toggle()
+        // Show notification
+        let notification = NSUserNotification()
+        notification.title = "Ferni Voice"
+        notification.informativeText = voiceManager.useCloudMode
+            ? "Switched to Cloud Mode (app.ferni.ai)"
+            : "Switched to Local Mode (localhost:3001)"
+        NSUserNotificationCenter.default.deliver(notification)
+    }
+
     @objc private func quitApp() {
         voiceManager.stop()
         NSApp.terminate(nil)
@@ -498,6 +528,16 @@ class VoiceSessionManager: ObservableObject {
     @Published var state: VoiceState = .disconnected
     var currentPersona: String = "ferni"
 
+    // Cloud mode toggle - persisted
+    var useCloudMode: Bool {
+        get { UserDefaults.standard.bool(forKey: "useCloudMode") }
+        set { UserDefaults.standard.set(newValue, forKey: "useCloudMode") }
+    }
+
+    // Token server URLs
+    private let cloudTokenServer = "https://app.ferni.ai"
+    private let localTokenServer = "http://localhost:3001"
+
     private var process: Process?
     private var outputPipe: Pipe?
     private var audioPlayer: AVAudioPlayer?
@@ -534,21 +574,48 @@ class VoiceSessionManager: ObservableObject {
 
         process = Process()
 
-        // Try ferni CLI first, fall back to tsx
+        // Priority order for voice binary:
+        // 1. Bundled binary in app Resources (truly independent)
+        // 2. Global ferni CLI (/opt/homebrew/bin/ferni)
+        // 3. Development fallback (npx tsx)
+
+        let bundledBinary = Bundle.main.resourceURL?.appendingPathComponent("ferni-voice").path ?? ""
         let ferniBinary = "/opt/homebrew/bin/ferni"
-        if FileManager.default.fileExists(atPath: ferniBinary) {
+
+        if FileManager.default.fileExists(atPath: bundledBinary) {
+            // Use bundled standalone binary (independent install)
+            process?.executableURL = URL(fileURLWithPath: bundledBinary)
+            process?.arguments = ["--persona", currentPersona]
+            print("[Voice] Using bundled binary")
+        } else if FileManager.default.fileExists(atPath: ferniBinary) {
+            // Use global ferni CLI
             process?.executableURL = URL(fileURLWithPath: ferniBinary)
             process?.arguments = ["voice", "--persona", currentPersona]
+            print("[Voice] Using global ferni CLI")
         } else {
+            // Development fallback
             let projectRoot = findProjectRoot()
             process?.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-            process?.arguments = ["npx", "tsx", "scripts/cli/voice-live.ts", "--persona", currentPersona]
+            process?.arguments = ["npx", "tsx", "apps/cli/src/features/voice/voice-live.ts", "--persona", currentPersona]
             process?.currentDirectoryURL = URL(fileURLWithPath: projectRoot)
+            print("[Voice] Using development fallback (npx tsx)")
         }
 
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:" + (env["PATH"] ?? "")
         env["FERNI_SOUNDS"] = "mp3"
+
+        // Set token server based on cloud/local mode
+        let tokenServer = useCloudMode ? cloudTokenServer : localTokenServer
+        env["CLI_TOKEN_SERVER"] = tokenServer
+        print("[Voice] Token server: \(tokenServer) (\(useCloudMode ? "cloud" : "local") mode)")
+
+        // Set bundled sounds path if available
+        if let soundsPath = Bundle.main.resourceURL?.appendingPathComponent("sounds").path,
+           FileManager.default.fileExists(atPath: soundsPath) {
+            env["FERNI_SOUNDS_PATH"] = soundsPath
+        }
+
         process?.environment = env
 
         outputPipe = Pipe()
@@ -636,7 +703,7 @@ class VoiceSessionManager: ObservableObject {
         ]
 
         for path in possiblePaths {
-            if fileManager.fileExists(atPath: path + "/scripts/cli/voice-live.ts") {
+            if fileManager.fileExists(atPath: path + "/apps/cli/src/features/voice/voice-live.ts") {
                 return path
             }
         }

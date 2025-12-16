@@ -65,12 +65,15 @@ export interface HumanizedError {
  * );
  * ```
  */
-export async function withResilience<T>(
-  fn: () => Promise<T>,
-  options: RetryOptions
-): Promise<T> {
-  const { maxRetries, baseDelay, maxDelay = 30000, operationName, onRetry, onBeforeRetry } =
-    options;
+export async function withResilience<T>(fn: () => Promise<T>, options: RetryOptions): Promise<T> {
+  const {
+    maxRetries,
+    baseDelay,
+    maxDelay = 30000,
+    operationName,
+    onRetry,
+    onBeforeRetry,
+  } = options;
 
   let lastError: Error = new Error('No attempts made');
 
@@ -217,7 +220,7 @@ export function humanizeError(error: Error): HumanizedError {
 
   // Generic fallback
   return {
-    userMessage: 'Something unexpected happened, but I\'m still here with you.',
+    userMessage: "Something unexpected happened, but I'm still here with you.",
     severity: 'high',
     shouldNotifyUser: false, // Don't confuse users with vague messages
     category: 'unknown',
@@ -268,4 +271,3 @@ export class FailureTracker {
     return this.failures.filter((t) => now - t < this.windowMs).length;
   }
 }
-

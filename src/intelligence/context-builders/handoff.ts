@@ -433,7 +433,8 @@ Acknowledge the transition naturally and continue the conversation.]`;
 
     // Include memory context from trust systems (boundaries, sensitivities, rapport builders)
     try {
-      const { buildHandoffContext: buildTrustHandoff } = await import('../../services/trust-systems/handoff-context.js');
+      const { buildHandoffContext: buildTrustHandoff } =
+        await import('../../services/trust-systems/handoff-context.js');
       const userId = input.services?.userId;
       if (userId) {
         const toCanonical = getCurrentAgent();

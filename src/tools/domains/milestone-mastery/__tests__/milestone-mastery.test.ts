@@ -164,8 +164,8 @@ describe('Milestone Mastery Domain Tools', () => {
       });
 
       // The tool uses curly apostrophe: let's not skip past
-      expect(result).toContain("not skip past");
-      expect(result).toContain("not nothing");
+      expect(result).toContain('not skip past');
+      expect(result).toContain('not nothing');
     });
 
     it('should validate small but real wins', async () => {
@@ -429,4 +429,3 @@ describe('Milestone Mastery Domain Tools', () => {
     });
   });
 });
-

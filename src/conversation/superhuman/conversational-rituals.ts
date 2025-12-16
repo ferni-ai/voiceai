@@ -85,7 +85,10 @@ export interface RitualSuggestion {
 // RITUAL TEMPLATES
 // ============================================================================
 
-const DEFAULT_RITUALS: Record<RitualType, Omit<Ritual, 'id' | 'performedCount' | 'lastPerformed'>[]> = {
+const DEFAULT_RITUALS: Record<
+  RitualType,
+  Omit<Ritual, 'id' | 'performedCount' | 'lastPerformed'>[]
+> = {
   greeting: [
     {
       name: 'Energy Check',
@@ -115,7 +118,8 @@ const DEFAULT_RITUALS: Record<RitualType, Omit<Ritual, 'id' | 'performedCount' |
   check_in: [
     {
       name: 'Rose, Thorn, Bud',
-      ferniPart: "Let's do a rose (good thing), thorn (challenge), and bud (something you're looking forward to).",
+      ferniPart:
+        "Let's do a rose (good thing), thorn (challenge), and bud (something you're looking forward to).",
       userPart: 'User shares three things',
       type: 'check_in',
       engagementScore: 0.5,
@@ -291,8 +295,7 @@ export function recordRitualPerformed(
   ritual.lastPerformed = new Date();
 
   // Update engagement
-  const engagementDelta =
-    engagement === 'positive' ? 0.1 : engagement === 'negative' ? -0.15 : 0;
+  const engagementDelta = engagement === 'positive' ? 0.1 : engagement === 'negative' ? -0.15 : 0;
   ritual.engagementScore = Math.max(0, Math.min(1, ritual.engagementScore + engagementDelta));
 
   // Promote to established ritual if performed 3+ times with good engagement

@@ -530,7 +530,7 @@ export function feedbackSuccess(message?: string): void {
 
   // FIX BUG: Respect reduced motion preference
   if (prefersReducedMotion()) {
-    if (message) showStatusWhisper(message, { type: 'success' });
+    if (message) whisperStatus(message, 'success');
     return;
   }
 
@@ -575,7 +575,7 @@ export function feedbackError(message?: string): void {
 
   // FIX BUG: Respect reduced motion preference
   if (prefersReducedMotion()) {
-    if (message) showStatusWhisper(message, { type: 'error' });
+    if (message) whisperStatus(message, 'error');
     return;
   }
 
@@ -625,7 +625,7 @@ export function feedbackWarning(message?: string): void {
 
   // FIX BUG: Respect reduced motion preference
   if (prefersReducedMotion()) {
-    if (message) showStatusWhisper(message, { type: 'warning' });
+    if (message) whisperStatus(message, 'warning');
     return;
   }
 
@@ -670,7 +670,7 @@ export function feedbackInfo(message?: string): void {
 
   // FIX BUG: Respect reduced motion preference
   if (prefersReducedMotion()) {
-    if (message) showStatusWhisper(message, { type: 'info' });
+    if (message) whisperStatus(message, 'info');
     return;
   }
 

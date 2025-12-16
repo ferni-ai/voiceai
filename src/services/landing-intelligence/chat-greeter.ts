@@ -49,63 +49,55 @@ export interface ChatGreetingContext {
 // ============================================================================
 
 const SECTION_GREETINGS: Record<string, string[]> = {
-  hero: [
-    "Questions? I'm here.",
-    "Curious about something?",
-    "Want to know more?",
-  ],
+  hero: ["Questions? I'm here.", 'Curious about something?', 'Want to know more?'],
 
   'two-am': [
-    "I really am here 24/7. Want to see?",
+    'I really am here 24/7. Want to see?',
     "That's really me at 2am. Try it.",
     "Night owl? I'll be here.",
   ],
 
   showcase: [
-    "Want to see more of how I work?",
-    "Curious about that pattern recognition?",
-    "I caught that too. Want to talk?",
+    'Want to see more of how I work?',
+    'Curious about that pattern recognition?',
+    'I caught that too. Want to talk?',
   ],
 
   'memory-demo': [
-    "I really do remember everything.",
-    "Want to test my memory?",
-    "Six months is nothing. I remember years.",
+    'I really do remember everything.',
+    'Want to test my memory?',
+    'Six months is nothing. I remember years.',
   ],
 
   team: [
-    "Curious about the team? Ask away.",
-    "Each of us has a specialty.",
-    "We work together for you.",
+    'Curious about the team? Ask away.',
+    'Each of us has a specialty.',
+    'We work together for you.',
   ],
 
   pricing: [
-    "Questions about pricing?",
-    "The free tier is really free.",
-    "Want help choosing a plan?",
+    'Questions about pricing?',
+    'The free tier is really free.',
+    'Want help choosing a plan?',
   ],
 
-  faq: [
-    "Don't see your question?",
-    "I can answer that directly.",
-    "Still have questions?",
-  ],
+  faq: ["Don't see your question?", 'I can answer that directly.', 'Still have questions?'],
 
   proof: [
     "Skeptical? That's healthy.",
-    "Want to hear from real users?",
-    "I get it. Happy to address concerns.",
+    'Want to hear from real users?',
+    'I get it. Happy to address concerns.',
   ],
 
   features: [
-    "Want to dive deeper on any of these?",
-    "Curious how the memory works?",
+    'Want to dive deeper on any of these?',
+    'Curious how the memory works?',
     "These aren't just features—they're superpowers.",
   ],
 
   'final-cta': [
     "Ready? I'm here when you are.",
-    "Take your time. No pressure.",
+    'Take your time. No pressure.',
     "One conversation. That's all it takes.",
   ],
 };
@@ -113,53 +105,41 @@ const SECTION_GREETINGS: Record<string, string[]> = {
 const TIME_GREETINGS: Record<TimeMode, string[]> = {
   'late-night': [
     "Can't sleep? I'm here.",
-    "Late night thoughts? Talk to me.",
-    "2am and still up. Me too.",
+    'Late night thoughts? Talk to me.',
+    '2am and still up. Me too.',
   ],
 
   'early-morning': [
     "Early bird? Let's set some intentions.",
-    "Morning check-in?",
-    "Starting the day together?",
+    'Morning check-in?',
+    'Starting the day together?',
   ],
 
-  morning: [
-    "Good morning! Questions?",
-    "Fresh start to the day?",
-    "Morning! How can I help?",
-  ],
+  morning: ['Good morning! Questions?', 'Fresh start to the day?', 'Morning! How can I help?'],
 
-  afternoon: [
-    "Afternoon check-in?",
-    "Taking a break? I'm here.",
-    "Questions? Happy to help.",
-  ],
+  afternoon: ['Afternoon check-in?', "Taking a break? I'm here.", 'Questions? Happy to help.'],
 
-  evening: [
-    "Winding down? I'm here.",
-    "Evening reflection?",
-    "End of day thoughts?",
-  ],
+  evening: ["Winding down? I'm here.", 'Evening reflection?', 'End of day thoughts?'],
 
   night: [
-    "Night thoughts? Talk to me.",
-    "Quiet evening. Good time to chat.",
-    "Before bed check-in?",
+    'Night thoughts? Talk to me.',
+    'Quiet evening. Good time to chat.',
+    'Before bed check-in?',
   ],
 };
 
 const RETURNING_GREETINGS: string[] = [
-  "Welcome back. Still thinking it over?",
-  "Hey again. Questions I can answer?",
-  "Good to see you. Ready when you are.",
+  'Welcome back. Still thinking it over?',
+  'Hey again. Questions I can answer?',
+  'Good to see you. Ready when you are.',
   "Back for more info? I'm here.",
 ];
 
 const HESITATION_GREETINGS: string[] = [
   "Hesitating? That's okay. Want to talk about it?",
-  "No pressure. But I can answer questions.",
+  'No pressure. But I can answer questions.',
   "Take your time. I'm not going anywhere.",
-  "Still deciding? I get it. Happy to help.",
+  'Still deciding? I get it. Happy to help.',
 ];
 
 // ============================================================================
@@ -340,4 +320,3 @@ export function getGreetingTiming(context: ChatGreetingContext): GreetingTiming 
     reason: 'No trigger conditions met',
   };
 }
-

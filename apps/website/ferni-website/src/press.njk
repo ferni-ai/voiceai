@@ -1,0 +1,133 @@
+---
+layout: layouts/page.njk
+title: Press & Media Kit
+description: Press resources, logos, and information about Ferni
+permalink: /press/
+---
+
+<section class="press-hero">
+  <div class="container">
+    <div class="press-hero__content">
+      <span class="eyebrow">Press</span>
+      <h1 class="headline-xl">Media Kit</h1>
+      <p class="body-lg">Everything you need to write about Ferni.</p>
+    </div>
+  </div>
+</section>
+
+<section class="press-about">
+  <div class="container container-narrow">
+    <div class="press-section reveal">
+      <h2>About Ferni</h2>
+      <p class="body-lg">Ferni is a voice-first AI life coaching platform featuring six specialized AI personas who work together to support personal growth. Available 24/7 via web, phone, or API.</p>
+      
+      <div class="press-boilerplate">
+        <h3>Boilerplate</h3>
+        <p>Ferni is someone who remembers your whole story and shows up at 2am with the same presence as noon. With specialized personas—Ferni (life coach), Nayan (wisdom), Peter (research), Alex (communication), Maya (habits), and Jordan (planning)—you get guidance that evolves with you. Ferni remembers every conversation, responds in under 500ms, and can be reached by simply calling a phone number. Based in Park City, Utah, Ferni is on a mission to give everyone access to the kind of support that was once reserved for the privileged few.</p>
+        <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(this.previousElementSibling.innerText)">Copy</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="press-facts">
+  <div class="container">
+    <div class="press-section reveal">
+      <h2>Key Facts</h2>
+      <div class="press-facts__grid">
+        <div class="press-fact">
+          <span class="press-fact__value">6</span>
+          <span class="press-fact__label">AI Specialists</span>
+        </div>
+        <div class="press-fact">
+          <span class="press-fact__value">&lt;500ms</span>
+          <span class="press-fact__label">Response Time</span>
+        </div>
+        <div class="press-fact">
+          <span class="press-fact__value">24/7</span>
+          <span class="press-fact__label">Availability</span>
+        </div>
+        <div class="press-fact">
+          <span class="press-fact__value">Free</span>
+          <span class="press-fact__label">To Start</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="press-logos">
+  <div class="container container-narrow">
+    <div class="press-section reveal">
+      <h2>Brand Assets</h2>
+      <p>Our brand assets for press use. Please don't modify the logos or use them in misleading ways.</p>
+      
+      <div class="press-logos__grid">
+        <div class="press-logo-card">
+          <div class="press-logo-card__preview press-logo-card__preview--light">
+            <div class="press-logo-card__logo" style="background: #4a6741; border-radius: 12px; padding: 16px; color: white; font-weight: bold; font-size: 24px;">FE</div>
+          </div>
+          <div class="press-logo-card__info">
+            <h3>Logo Mark (Light BG)</h3>
+            <p>Use on light backgrounds</p>
+          </div>
+        </div>
+        
+        <div class="press-logo-card">
+          <div class="press-logo-card__preview press-logo-card__preview--dark">
+            <div class="press-logo-card__logo" style="background: #4a6741; border-radius: 12px; padding: 16px; color: white; font-weight: bold; font-size: 24px;">FE</div>
+          </div>
+          <div class="press-logo-card__info">
+            <h3>Logo Mark (Dark BG)</h3>
+            <p>Use on dark backgrounds</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="press-colors">
+        <h3>Brand Colors</h3>
+        <div class="press-colors__grid">
+          <div class="press-color">
+            <div class="press-color__swatch" style="background: #4a6741"></div>
+            <span class="press-color__name">Ferni Green</span>
+            <span class="press-color__value">#4a6741</span>
+          </div>
+          <div class="press-color">
+            <div class="press-color__swatch" style="background: #2C2520"></div>
+            <span class="press-color__name">Natural Ink</span>
+            <span class="press-color__value">#2C2520</span>
+          </div>
+          <div class="press-color">
+            <div class="press-color__swatch" style="background: #F5F1E8"></div>
+            <span class="press-color__name">Paper Cream</span>
+            <span class="press-color__value">#F5F1E8</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="press-contact">
+  <div class="container container-narrow">
+    <div class="press-section reveal">
+      <h2>Press Contact</h2>
+      <p>For press inquiries, interviews, or additional assets:</p>
+      <a href="mailto:press@ferni.ai" class="press-email">press@ferni.ai</a>
+    </div>
+  </div>
+</section>
+
+<section class="press-cta">
+  <div class="container container-narrow">
+    <div class="press-cta__card reveal">
+      <h2>Want to try Ferni yourself?</h2>
+      <p>The best way to understand Ferni is to talk to it.</p>
+      <div class="press-cta__buttons">
+        <a href="{{ site.appUrl }}?utm_source=press&utm_medium=web" class="btn btn-primary btn-lg">Try Ferni Free</a>
+        <a href="tel:{{ site.phoneRaw }}" class="btn btn-ghost btn-lg">Or call {{ site.phone }}</a>
+      </div>
+    </div>
+  </div>
+</section>
+

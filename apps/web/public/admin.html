@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Hub - Ferni</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-bg: #1a1612;
+      --color-surface: #252220;
+      --color-surface-elevated: #2e2a28;
+      --color-surface-hover: #3a3634;
+      --color-text-primary: #faf6f0;
+      --color-text-secondary: #e8e2da;
+      --color-text-muted: #b8a898;
+      --color-accent: #4a6741;
+      --color-accent-hover: #5a7751;
+      --color-border: #3a3634;
+      
+      /* Category colors */
+      --cat-observability: #4a6741;
+      --cat-config: #6b5b4d;
+      --cat-voice: #3a6b73;
+      --cat-ai: #5a6b8a;
+      --cat-debug: #a67a6a;
+      --cat-design: #8a6b8a;
+      
+      --font-display: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      --font-body: 'Inter', -apple-system, sans-serif;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* Header */
+    .header {
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      padding: 24px 32px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px);
+    }
+
+    .header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--color-accent), #3d5a35);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-icon svg {
+      width: 24px;
+      height: 24px;
+      color: white;
+    }
+
+    .logo-text {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .logo-text span {
+      color: var(--color-text-muted);
+      font-weight: 500;
+    }
+
+    .quick-links {
+      display: flex;
+      gap: 8px;
+    }
+
+    .quick-link {
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      background: var(--color-surface-elevated);
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .quick-link:hover {
+      background: var(--color-surface-hover);
+      color: var(--color-text-primary);
+    }
+
+    .quick-link svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Main content */
+    .main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 40px 32px;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--color-accent);
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: 40px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: -0.02em;
+    }
+
+    .tagline {
+      font-size: 16px;
+      color: var(--color-text-muted);
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    /* Search */
+    .search-container {
+      max-width: 480px;
+      margin: 32px auto 48px;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 14px 20px 14px 48px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-text-primary);
+      font-size: 15px;
+      transition: all 0.15s ease;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(74, 103, 65, 0.2);
+    }
+
+    .search-input::placeholder {
+      color: var(--color-text-muted);
+    }
+
+    .search-wrapper {
+      position: relative;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--color-text-muted);
+    }
+
+    .search-icon svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Category sections */
+    .category {
+      margin-bottom: 48px;
+    }
+
+    .category-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .category-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .category-icon svg {
+      width: 20px;
+      height: 20px;
+      color: white;
+    }
+
+    .category-icon.observability { background: var(--cat-observability); }
+    .category-icon.config { background: var(--cat-config); }
+    .category-icon.voice { background: var(--cat-voice); }
+    .category-icon.ai { background: var(--cat-ai); }
+    .category-icon.debug { background: var(--cat-debug); }
+    .category-icon.design { background: var(--cat-design); }
+
+    .category-title {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .category-count {
+      background: var(--color-surface-elevated);
+      padding: 2px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+
+    /* Dashboard cards */
+    .dashboards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    .dashboard-card {
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      text-decoration: none;
+      border: 1px solid var(--color-border);
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .dashboard-card:hover {
+      border-color: var(--color-accent);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .dashboard-card.hidden {
+      display: none;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+    }
+
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      background: var(--color-surface-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-text-muted);
+    }
+
+    .card-icon svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .card-badge {
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .card-badge.new {
+      background: rgba(74, 103, 65, 0.2);
+      color: var(--color-accent);
+    }
+
+    .card-badge.beta {
+      background: rgba(184, 149, 106, 0.2);
+      color: #b8956a;
+    }
+
+    .card-title {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+
+    .card-description {
+      font-size: 13px;
+      color: var(--color-text-muted);
+      line-height: 1.5;
+    }
+
+    .card-meta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px solid var(--color-border);
+    }
+
+    .card-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+
+    .card-meta-item svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Status indicator */
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--color-accent);
+    }
+
+    .status-dot.inactive {
+      background: var(--color-text-muted);
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 32px;
+      color: var(--color-text-muted);
+      font-size: 13px;
+      border-top: 1px solid var(--color-border);
+      margin-top: 48px;
+    }
+
+    .footer a {
+      color: var(--color-accent);
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 60px;
+      color: var(--color-text-muted);
+    }
+
+    @media (max-width: 768px) {
+      .header { padding: 16px 20px; }
+      .main { padding: 24px 20px; }
+      h1 { font-size: 28px; }
+      .dashboards-grid { grid-template-columns: 1fr; }
+      .quick-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        </div>
+        <div class="logo-text">Ferni <span>Admin</span></div>
+      </div>
+      <div class="quick-links">
+        <a href="/" class="quick-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          App
+        </a>
+        <a href="/observability-hub.html" class="quick-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          Observability
+        </a>
+        <a href="/feature-flags.html" class="quick-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>
+          Feature Flags
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="hero">
+      <div class="eyebrow">Command Center</div>
+      <h1>Admin Hub</h1>
+      <p class="tagline">Your central hub for monitoring, configuring, and debugging Ferni AI</p>
+    </div>
+
+    <div class="search-container">
+      <div class="search-wrapper">
+        <span class="search-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </span>
+        <input type="text" class="search-input" id="search" placeholder="Search dashboards..." oninput="filterDashboards()">
+      </div>
+    </div>
+
+    <div id="dashboards-container">
+      <!-- Observability -->
+      <section class="category" data-category="observability">
+        <div class="category-header">
+          <div class="category-icon observability">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <h2 class="category-title">Observability</h2>
+          <span class="category-count">7</span>
+        </div>
+        <div class="dashboards-grid">
+          <a href="/observability-hub.html" class="dashboard-card" data-keywords="metrics monitoring overview health">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              </div>
+            </div>
+            <div class="card-title">Observability Hub</div>
+            <div class="card-description">Central dashboard with key metrics across all systems. Quick health overview and navigation.</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot"></span> Live</span>
+              <span class="card-meta-item">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                Real-time
+              </span>
+            </div>
+          </a>
+
+          <a href="/dora-dashboard.html" class="dashboard-card" data-keywords="dora devops deployment frequency lead time mttr change failure api health uptime">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              </div>
+              <span class="card-badge new">New</span>
+            </div>
+            <div class="card-title">DORA Metrics & API Health</div>
+            <div class="card-description">DevOps excellence metrics: deployment frequency, lead time, MTTR, change failure rate. Plus API health monitoring.</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot"></span> Live</span>
+              <span class="card-meta-item">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                Real-time
+              </span>
+            </div>
+          </a>
+
+          <a href="/metrics-dashboard.html" class="dashboard-card" data-keywords="metrics performance latency requests">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+              </div>
+            </div>
+            <div class="card-title">Metrics Dashboard</div>
+            <div class="card-description">System-wide performance metrics including latency, throughput, and resource utilization.</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot"></span> Live</span>
+            </div>
+          </a>
+
+          <a href="/error-dashboard.html" class="dashboard-card" data-keywords="errors exceptions bugs crashes logs">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+              </div>
+            </div>
+            <div class="card-title">Error Dashboard</div>
+            <div class="card-description">Track errors, exceptions, and crashes. Identify patterns and debug issues quickly.</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot"></span> Live</span>
+            </div>
+          </a>
+
+          <a href="/analytics-dashboard.html" class="dashboard-card" data-keywords="analytics users sessions engagement">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>
+              </div>
+            </div>
+            <div class="card-title">Analytics Dashboard</div>
+            <div class="card-description">User engagement analytics, session data, and conversation patterns.</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot"></span> Live</span>
+            </div>
+          </a>
+
+          <a href="/connection-dashboard.html" class="dashboard-card" data-keywords="connection network latency websocket">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+              </div>
+            </div>
+            <div class="card-title">Connection Dashboard</div>
+            <div class="card-description">Monitor WebSocket connections, network quality, and real-time connectivity status.</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot"></span> Live</span>
+            </div>
+          </a>
+
+          <a href="/cost-dashboard.html" class="dashboard-card" data-keywords="cost billing tokens api usage spending">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="1" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+            </div>
+            <div class="card-title">Cost Dashboard</div>
+            <div class="card-description">Track API costs, token usage, and spending across LLM, TTS, and other services.</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot"></span> Live</span>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <!-- Voice & Speech -->
+      <section class="category" data-category="voice">
+        <div class="category-header">
+          <div class="category-icon voice">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+          </div>
+          <h2 class="category-title">Voice & Speech</h2>
+          <span class="category-count">2</span>
+        </div>
+        <div class="dashboards-grid">
+          <a href="/voice-presence-dashboard.html" class="dashboard-card" data-keywords="voice presence backchanneling endpointing tts prosody">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+              </div>
+              <span class="card-badge new">New</span>
+            </div>
+            <div class="card-title">Voice Presence Tuning</div>
+            <div class="card-description">Tune adaptive endpointing, live backchanneling, turn prediction, and TTS prosody. AI-powered auto-tuning available.</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot"></span> Live</span>
+              <span class="card-meta-item">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                Tunable
+              </span>
+            </div>
+          </a>
+
+          <a href="/ux-dashboard.html" class="dashboard-card" data-keywords="ux experience satisfaction quality">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+              </div>
+            </div>
+            <div class="card-title">UX Dashboard</div>
+            <div class="card-description">User experience metrics including satisfaction scores, conversation quality, and engagement patterns.</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot"></span> Live</span>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <!-- AI & Intelligence -->
+      <section class="category" data-category="ai">
+        <div class="category-header">
+          <div class="category-icon ai">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+          </div>
+          <h2 class="category-title">AI & Intelligence</h2>
+          <span class="category-count">5</span>
+        </div>
+        <div class="dashboards-grid">
+          <a href="/llm-dashboard.html" class="dashboard-card" data-keywords="llm gemini model inference tokens">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              </div>
+            </div>
+            <div class="card-title">LLM Dashboard</div>
+            <div class="card-description">Monitor LLM performance, token usage, latency, and model selection across conversations.</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot"></span> Live</span>
+            </div>
+          </a>
+
+          <a href="/cognitive-dashboard.html" class="dashboard-card" data-keywords="cognitive learning memory insights patterns">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 8.4c.5.38.8.97.8 1.6v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V10a2 2 0 0 1 .8-1.6l8-6a2 2 0 0 1 2.4 0l8 6Z"/><path d="m22 10-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 10"/></svg>
+              </div>
+            </div>
+            <div class="card-title">Cognitive Dashboard</div>
+            <div class="card-description">View AI learning patterns, memory formation, and cognitive insights across user interactions.</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot"></span> Live</span>
+            </div>
+          </a>
+
+          <a href="/memory-dashboard.html" class="dashboard-card" data-keywords="memory recall context long-term short-term">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" x2="12" y1="22.08" y2="12"/></svg>
+              </div>
+            </div>
+            <div class="card-title">Memory Dashboard</div>
+            <div class="card-description">Explore the memory system - long-term facts, short-term context, and recall patterns.</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot"></span> Live</span>
+            </div>
+          </a>
+
+          <a href="/tools-dashboard.html" class="dashboard-card" data-keywords="tools functions api usage success rate">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+              </div>
+            </div>
+            <div class="card-title">Tools Dashboard</div>
+            <div class="card-description">Monitor tool usage, success rates, latency, and function call patterns across personas.</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot"></span> Live</span>
+            </div>
+          </a>
+
+          <a href="/handoff-dashboard.html" class="dashboard-card" data-keywords="handoff persona transition switch agent">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
+              </div>
+            </div>
+            <div class="card-title">Handoff Dashboard</div>
+            <div class="card-description">Track persona handoffs, transition times, and multi-agent conversation flows.</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot"></span> Live</span>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <!-- Configuration -->
+      <section class="category" data-category="config">
+        <div class="category-header">
+          <div class="category-icon config">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <h2 class="category-title">Configuration</h2>
+          <span class="category-count">3</span>
+        </div>
+        <div class="dashboards-grid">
+          <a href="/feature-flags.html" class="dashboard-card" data-keywords="feature flags toggle enable disable rollout">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg>
+              </div>
+              <span class="card-badge new">New</span>
+            </div>
+            <div class="card-title">Feature Flags</div>
+            <div class="card-description">Toggle features on/off at runtime. Control rollouts, A/B tests, and experimental features without deploying.</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot"></span> Live</span>
+              <span class="card-meta-item">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                Instant Apply
+              </span>
+            </div>
+          </a>
+
+          <a href="/persona-dashboard.html" class="dashboard-card" data-keywords="persona agent character voice identity">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+            </div>
+            <div class="card-title">Persona Dashboard</div>
+            <div class="card-description">Manage AI personas - Ferni, Jack, Peter, Alex, Maya, Jordan. View usage and configure behaviors.</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot"></span> Live</span>
+            </div>
+          </a>
+
+          <a href="/experiments-dashboard.html" class="dashboard-card" data-keywords="experiments ab testing variants">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31"/><path d="M14 9.3V1.99"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/><path d="M5.52 16h12.96"/></svg>
+              </div>
+              <span class="card-badge beta">Beta</span>
+            </div>
+            <div class="card-title">Experiments Dashboard</div>
+            <div class="card-description">Run A/B tests and experiments. Compare variants, track metrics, and analyze results.</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot"></span> Live</span>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <!-- Design & Brand -->
+      <section class="category" data-category="design">
+        <div class="category-header">
+          <div class="category-icon design">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 4.9V17L12 22l-9-4.9V7z"/></svg>
+          </div>
+          <h2 class="category-title">Design & Brand</h2>
+          <span class="category-count">2</span>
+        </div>
+        <div class="dashboards-grid">
+          <a href="/design-system/preview/index.html" class="dashboard-card" data-keywords="design system tokens colors typography">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.555C21.965 6.012 17.461 2 12 2z"/></svg>
+              </div>
+            </div>
+            <div class="card-title">Design System Preview</div>
+            <div class="card-description">Preview design tokens, color palettes, typography, and component styles.</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot inactive"></span> Reference</span>
+            </div>
+          </a>
+
+          <a href="/brand/brand-book.html" class="dashboard-card" data-keywords="brand guidelines voice tone identity">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              </div>
+            </div>
+            <div class="card-title">Brand Book</div>
+            <div class="card-description">Brand guidelines, voice and tone, visual identity, and design principles.</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot inactive"></span> Reference</span>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <!-- Debug -->
+      <section class="category" data-category="debug">
+        <div class="category-header">
+          <div class="category-icon debug">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3 3 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M17.47 9c1.93-.2 3.53-1.9 3.53-4"/><path d="M18 13h4"/><path d="M21 21c0-2.1-1.7-3.9-3.8-4"/></svg>
+          </div>
+          <h2 class="category-title">Debug & Development</h2>
+          <span class="category-count">2</span>
+        </div>
+        <div class="dashboards-grid">
+          <a href="/?dev" class="dashboard-card" data-keywords="dev panel debug testing development">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              </div>
+            </div>
+            <div class="card-title">Dev Panel</div>
+            <div class="card-description">In-app developer panel for testing handoffs, expressions, tiers, and team unlocks. Keyboard: Cmd+Shift+D</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot"></span> Dev Mode</span>
+            </div>
+          </a>
+
+          <a href="/docs/developer-portal.html" class="dashboard-card" data-keywords="docs documentation api reference">
+            <div class="card-header">
+              <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              </div>
+            </div>
+            <div class="card-title">Developer Portal</div>
+            <div class="card-description">API documentation, architecture guides, and development resources.</div>
+            <div class="card-meta">
+              <span class="card-meta-item"><span class="status-dot inactive"></span> Reference</span>
+            </div>
+          </a>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>Ferni AI Admin Hub &middot; <a href="/">Back to App</a> &middot; Built with care</p>
+  </footer>
+
+  <script>
+    function filterDashboards() {
+      const query = document.getElementById('search').value.toLowerCase().trim();
+      const cards = document.querySelectorAll('.dashboard-card');
+      const categories = document.querySelectorAll('.category');
+      
+      cards.forEach(card => {
+        const title = card.querySelector('.card-title')?.textContent.toLowerCase() || '';
+        const description = card.querySelector('.card-description')?.textContent.toLowerCase() || '';
+        const keywords = card.dataset.keywords?.toLowerCase() || '';
+        
+        const matches = !query || 
+          title.includes(query) || 
+          description.includes(query) || 
+          keywords.includes(query);
+        
+        card.classList.toggle('hidden', !matches);
+      });
+
+      // Hide empty categories
+      categories.forEach(category => {
+        const visibleCards = category.querySelectorAll('.dashboard-card:not(.hidden)');
+        category.style.display = visibleCards.length === 0 ? 'none' : 'block';
+      });
+
+      // Show empty state if no results
+      const visibleCategories = document.querySelectorAll('.category:not([style*="display: none"])');
+      const container = document.getElementById('dashboards-container');
+      
+      let emptyState = document.querySelector('.empty-state');
+      if (visibleCategories.length === 0) {
+        if (!emptyState) {
+          emptyState = document.createElement('div');
+          emptyState.className = 'empty-state';
+          emptyState.innerHTML = '<p>No dashboards match your search.</p>';
+          container.appendChild(emptyState);
+        }
+      } else if (emptyState) {
+        emptyState.remove();
+      }
+    }
+
+    // Keyboard shortcut: / to focus search
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+        e.preventDefault();
+        document.getElementById('search').focus();
+      }
+      if (e.key === 'Escape') {
+        document.getElementById('search').blur();
+        document.getElementById('search').value = '';
+        filterDashboards();
+      }
+    });
+  </script>
+</body>
+</html>
+

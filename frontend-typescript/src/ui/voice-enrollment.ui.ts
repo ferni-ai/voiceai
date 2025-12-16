@@ -965,7 +965,7 @@ async function handleStartEnrollment(): Promise<void> {
 
       // Small delay between samples
       if (i < requiredSamples - 1) {
-        await new Promise((resolve) => trackedTimeout(resolve, 500));
+        await new Promise<void>((resolve) => setTimeout(resolve, 500));
       }
     }
 

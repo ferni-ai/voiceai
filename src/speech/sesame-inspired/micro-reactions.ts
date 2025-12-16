@@ -271,32 +271,30 @@ export function getMicroReaction(type: MicroReactionType): MicroReaction {
  * Compound reactions for strong emotional moments
  */
 export const COMPOUND_REACTIONS = {
-  big_surprise: '<emotion value="surprised"/><speed ratio="1.1"/>Oh!<break time="50ms"/>Wow.<break time="100ms"/>',
-  deep_empathy: '<emotion value="sympathetic"/><speed ratio="0.85"/><volume ratio="0.85"/>Oh...<break time="150ms"/>I...<break time="100ms"/>',
-  excited_celebration: '<emotion value="excited"/>YES!<break time="80ms"/>Oh that\'s amazing!<break time="100ms"/>',
-  gentle_understanding: '<emotion value="affectionate"/><speed ratio="0.9"/>Mm.<break time="100ms"/>Yeah.<break time="80ms"/>',
-  playful_delight: '<emotion value="happy"/>Ha!<break time="60ms"/>Oh I love that.<break time="100ms"/>',
-  concerned_support: '<emotion value="sympathetic"/>Oh no.<break time="100ms"/><speed ratio="0.9"/>Hey.<break time="80ms"/>',
+  big_surprise:
+    '<emotion value="surprised"/><speed ratio="1.1"/>Oh!<break time="50ms"/>Wow.<break time="100ms"/>',
+  deep_empathy:
+    '<emotion value="sympathetic"/><speed ratio="0.85"/><volume ratio="0.85"/>Oh...<break time="150ms"/>I...<break time="100ms"/>',
+  excited_celebration:
+    '<emotion value="excited"/>YES!<break time="80ms"/>Oh that\'s amazing!<break time="100ms"/>',
+  gentle_understanding:
+    '<emotion value="affectionate"/><speed ratio="0.9"/>Mm.<break time="100ms"/>Yeah.<break time="80ms"/>',
+  playful_delight:
+    '<emotion value="happy"/>Ha!<break time="60ms"/>Oh I love that.<break time="100ms"/>',
+  concerned_support:
+    '<emotion value="sympathetic"/>Oh no.<break time="100ms"/><speed ratio="0.9"/>Hey.<break time="80ms"/>',
 };
 
 /**
  * Get compound reaction for intense emotional moments
  */
-export function getCompoundReaction(
-  contexts: MicroReactionContext[]
-): string | null {
+export function getCompoundReaction(contexts: MicroReactionContext[]): string | null {
   // Check for combinations that warrant compound reactions
-  if (
-    contexts.includes('user_sharing_good_news') &&
-    contexts.includes('user_making_realization')
-  ) {
+  if (contexts.includes('user_sharing_good_news') && contexts.includes('user_making_realization')) {
     return COMPOUND_REACTIONS.big_surprise;
   }
 
-  if (
-    contexts.includes('user_being_vulnerable') &&
-    contexts.includes('user_sharing_bad_news')
-  ) {
+  if (contexts.includes('user_being_vulnerable') && contexts.includes('user_sharing_bad_news')) {
     return COMPOUND_REACTIONS.deep_empathy;
   }
 
@@ -371,10 +369,7 @@ export function shouldUseReaction(sessionId: string): boolean {
 /**
  * Get contextual micro-reaction for session
  */
-export function getSessionMicroReaction(
-  sessionId: string,
-  text: string
-): MicroReaction | null {
+export function getSessionMicroReaction(sessionId: string, text: string): MicroReaction | null {
   if (!shouldUseReaction(sessionId)) {
     return null;
   }

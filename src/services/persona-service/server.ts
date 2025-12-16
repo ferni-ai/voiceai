@@ -104,7 +104,10 @@ app.post('/ferni.personas.v1.PersonaService/GetSystemPrompt', async (req, res) =
         }
       }
     } catch (bundleError) {
-      log.warn({ personaId: request.personaId, error: String(bundleError) }, 'Bundle load failed, using defaults');
+      log.warn(
+        { personaId: request.personaId, error: String(bundleError) },
+        'Bundle load failed, using defaults'
+      );
     }
 
     const response: GetSystemPromptResponse = {
@@ -117,7 +120,6 @@ app.post('/ferni.personas.v1.PersonaService/GetSystemPrompt', async (req, res) =
     };
 
     res.json(response);
-
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     log.error({ personaId: request.personaId, error: err.message }, 'Failed to get system prompt');
@@ -146,7 +148,6 @@ app.post('/ferni.personas.v1.PersonaService/GetPersona', async (req, res) => {
     };
 
     res.json(response);
-
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     log.error({ personaId: request.personaId, error: err.message }, 'Failed to get persona');
@@ -162,7 +163,7 @@ app.post('/ferni.personas.v1.PersonaService/ListPersonas', async (req, res) => {
     const agents = await AgentRegistry.getAllAgents();
 
     const response = {
-      personas: agents.map(agent => ({
+      personas: agents.map((agent) => ({
         id: agent.id,
         name: agent.name,
         description: agent.description || '',
@@ -172,7 +173,6 @@ app.post('/ferni.personas.v1.PersonaService/ListPersonas', async (req, res) => {
     };
 
     res.json(response);
-
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     log.error({ error: err.message }, 'Failed to list personas');

@@ -74,14 +74,18 @@ function getFirestoreInstance(): Firestore | null {
 const inMemoryStore = new Map<string, VerificationCode>();
 
 // Cleanup expired codes periodically (every 5 minutes, managed by IntervalManager)
-registerInterval('verification-code-cleanup', () => {
-  const now = new Date();
-  for (const [key, code] of inMemoryStore.entries()) {
-    if (code.expiresAt < now) {
-      inMemoryStore.delete(key);
+registerInterval(
+  'verification-code-cleanup',
+  () => {
+    const now = new Date();
+    for (const [key, code] of inMemoryStore.entries()) {
+      if (code.expiresAt < now) {
+        inMemoryStore.delete(key);
+      }
     }
-  }
-}, 5 * 60 * 1000);
+  },
+  5 * 60 * 1000
+);
 
 // ============================================================================
 // CORE FUNCTIONS

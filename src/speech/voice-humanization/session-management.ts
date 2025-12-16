@@ -5,10 +5,7 @@
  * Uses the centralized SessionRegistry pattern for consistent lifecycle management.
  */
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../../utils/session-registry.js';
 import { VoiceHumanizationService } from './service.js';
 
 // ============================================================================

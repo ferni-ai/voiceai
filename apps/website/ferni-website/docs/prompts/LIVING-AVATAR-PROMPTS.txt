@@ -1,0 +1,249 @@
+============================================================
+FERNI - LIVING AVATAR ORB PROMPTS
+For Veo 3, Midjourney, Runway ML, Pika Labs
+Based on the animated orb that embodies the human spirit
+============================================================
+
+DESIGN PHILOSOPHY:
+The Living Avatar is a glowing orb with a voice waveform inside -
+representing an AI that actually listens. Each team member has their
+own color, but shares the same human, breathing quality.
+
+Key elements:
+- Circular orb with soft glow and depth
+- White waveform bars inside (voice visualization)
+- Breathing animation (subtle scale/movement)
+- Warm, organic feeling - NOT cold or robotic
+- WALL-E style presence - curious, alive, attentive
+
+============================================================
+CURRENT TEAM COLORS (Earth Tones)
+============================================================
+
+| Name   | Role                | Primary   | Meaning              |
+|--------|---------------------|-----------|----------------------|
+| Ferni  | Life Coach          | #4a6741   | Deep Sage - Grounding |
+| Peter  | Research & Markets  | #3a6b73   | Ocean Teal - Depth    |
+| Alex   | Communications      | #5a6b8a   | Soft Indigo - Clarity |
+| Maya   | Habits & Wellness   | #a67a6a   | Terracotta - Nurturing|
+| Jordan | Events & Planning   | #c4856a   | Coral - Celebration   |
+| Nayan  | Lifetime Advisor    | #b8956a   | Warm Gold - Wisdom    |
+
+============================================================
+1. LIVING AVATAR VIDEO - Ferni (Life Coach)
+============================================================
+Priority: CRITICAL
+Duration: 4-6 seconds, seamless loop
+Resolution: 4K
+Color: Deep Sage #4a6741
+
+PROMPT:
+Cinematic close-up of a glowing spherical orb floating in warm cream space. The orb is deep sage green (#4a6741) with subtle gradient from darker bottom to lighter top. Inside the orb, 9 white bars form a waveform pattern - taller in the center, shorter at edges, like a gentle voice visualization. The orb slowly breathes - subtly expanding and contracting with organic, living movement. Soft glow emanates outward in rings of translucent sage green. A highlight shimmers on the top-left like a glass sphere catching light. Warm cream (#F5F1E8) background. The feeling is alive, attentive, warmly present - like WALL-E's curiosity and soul. NOT cold or robotic. Pixar-quality rendering, soft volumetric lighting, 8K quality. Seamless breathing loop.
+
+============================================================
+2. LIVING AVATAR VIDEO - Peter (Research)
+============================================================
+Priority: HIGH
+Duration: 4-6 seconds, seamless loop
+Resolution: 4K
+Color: Ocean Teal #3a6b73
+
+PROMPT:
+Cinematic close-up of a glowing spherical orb in ocean teal (#3a6b73). Subtle gradient creates depth like looking into calm water. Inside, white waveform bars pulse gently with curiosity - slightly asymmetric, leaning forward as if listening intently. The orb breathes with a contemplative rhythm - slower, deeper, thoughtful. Soft teal glow rings emanate outward. Gentle highlight on top creates dimension. Warm cream background (#F5F1E8). The feeling is deep thought, research, discovery - like diving into interesting questions. Warm teal with green undertones, NOT cold blue. Living, attentive presence. 8K cinematic quality.
+
+============================================================
+3. LIVING AVATAR VIDEO - Alex (Communications)
+============================================================
+Priority: HIGH
+Duration: 4-6 seconds, seamless loop
+Resolution: 4K
+Color: Soft Indigo #5a6b8a
+
+PROMPT:
+Cinematic close-up of a glowing spherical orb in soft indigo slate (#5a6b8a). The color is warm indigo with subtle violet undertones - NOT cold blue. Inside, white waveform bars flow smoothly, suggesting clear communication and articulate thought. The orb breathes with confident, steady rhythm. Soft indigo glow rings pulse outward. Warm highlight creates gentle dimension. The feeling is clarity, flow, understanding - like a calm voice cutting through noise. Warm cream background (#F5F1E8). Living, present, communicative energy. 8K quality.
+
+============================================================
+4. LIVING AVATAR VIDEO - Maya (Habits & Wellness)
+============================================================
+Priority: HIGH
+Duration: 4-6 seconds, seamless loop
+Resolution: 4K
+Color: Dusty Terracotta #a67a6a
+
+PROMPT:
+Cinematic close-up of a glowing spherical orb in dusty terracotta (#a67a6a). Warm, earthy, like sun-baked clay or autumn leaves. Inside, white waveform bars pulse with gentle, nurturing rhythm - steady, patient, encouraging. The orb breathes slowly, calmly - like a yoga instructor or patient gardener. Soft terracotta glow rings emanate warmth. The feeling is growth, routine, gentle guidance without judgment. Warm cream background (#F5F1E8). Earth mother energy, grounded and supportive. 8K quality.
+
+============================================================
+5. LIVING AVATAR VIDEO - Jordan (Events & Celebration)
+============================================================
+Priority: HIGH
+Duration: 4-6 seconds, seamless loop
+Resolution: 4K
+Color: Warm Sunset Coral #c4856a
+
+PROMPT:
+Cinematic close-up of a glowing spherical orb in warm sunset coral (#c4856a). The color glows like a sunset or the warmth of a gathering. Inside, white waveform bars dance with slightly more energy - optimistic, celebratory, ready. The orb breathes with anticipation, excitement contained in warmth. Soft coral glow rings pulse with joy. The feeling is celebration, gathering, the excitement before something wonderful. NOT manic - warm excitement. Cream background (#F5F1E8). 8K quality.
+
+============================================================
+6. LIVING AVATAR VIDEO - Nayan (Lifetime Advisor)
+============================================================
+Priority: HIGH
+Duration: 4-6 seconds, seamless loop
+Resolution: 4K
+Color: Warm Gold #b8956a
+
+PROMPT:
+Cinematic close-up of a glowing spherical orb in warm gold (#b8956a). Rich, wise, like aged honey or polished wood. Inside, white waveform bars pulse with deep, knowing rhythm - the steady presence of accumulated wisdom. The orb breathes with the patience of years, unhurried, certain. Soft golden glow rings emanate timeless warmth. The feeling is lifetime perspective, trusted counsel, wisdom without ego. Warm cream background (#F5F1E8). Elder energy, deeply trustworthy. 8K quality.
+
+============================================================
+7. TEAM ASSEMBLY - All Orbs Together
+============================================================
+Priority: HIGH
+Duration: 6-8 seconds
+Resolution: 4K
+
+PROMPT:
+Six glowing orbs float in warm cream space, arranged in a gentle arc or loose circle. Each orb has its distinct color: deep sage (Ferni, center front), ocean teal (Peter), soft indigo (Alex), dusty terracotta (Maya), warm coral (Jordan), warm gold (Nayan). All orbs breathe in gentle sync, their waveforms pulsing softly. Occasionally, delicate threads of golden light connect between orbs, suggesting collaboration and handoff. The feeling is a trusted team, working in harmony, each bringing unique perspective. Warm, intimate gathering energy. NOT corporate. 8K cinematic quality.
+
+============================================================
+8. HANDOFF TRANSITION
+============================================================
+Priority: MEDIUM
+Duration: 3-4 seconds
+Resolution: 4K
+
+PROMPT:
+Two glowing orbs (any two team colors) in warm cream space. A golden thread of light gracefully arcs from one orb to another. As the connection forms, the receiving orb glows slightly brighter, its waveform becomes more active. The sending orb softens, passing attention. The thread dissolves into gentle particles. The feeling is seamless collaboration, trusted handoff, the conversation continuing with new perspective. Smooth, graceful, like a dance. 8K quality.
+
+============================================================
+9. LISTENING STATE - Single Orb
+============================================================
+Priority: MEDIUM
+Duration: 4-6 seconds loop
+Resolution: 4K
+
+PROMPT:
+Single glowing orb (deep sage #4a6741) in warm cream space. The orb is in "listening" mode - waveform bars are low, gentle, receptive. The orb tilts slightly, like WALL-E cocking his head with curiosity. Subtle glow pulses gently. The feeling is complete attention, being truly heard, someone fully present for you. Intimate, warm, attentive. 8K quality.
+
+============================================================
+10. SPEAKING STATE - Single Orb
+============================================================
+Priority: MEDIUM
+Duration: 4-6 seconds loop
+Resolution: 4K
+
+PROMPT:
+Single glowing orb (deep sage #4a6741) in warm cream space. The orb is in "speaking" mode - waveform bars dance with varied heights, expressing thought and guidance. The orb has confident, warm presence. Glow pulses with speech rhythm. The feeling is wise guidance, thoughtful response, being genuinely helped. 8K quality.
+
+============================================================
+GOOGLE AI COLOR REFINEMENT PROMPTS
+============================================================
+
+Use these prompts with Gemini/Bard to explore and refine team colors:
+
+---
+PROMPT 1: Color Psychology Analysis
+---
+I'm designing an AI life coaching app with a team of 6 AI specialists. Each needs a unique color that feels:
+- Warm (never cold or clinical)
+- Earthy (natural, organic)
+- Human (approachable, trustworthy)
+- Distinct (recognizable at a glance)
+
+Current team and colors:
+1. Ferni (Life Coach) - #4a6741 (sage green)
+2. Peter (Research/Markets) - #3a6b73 (ocean teal)
+3. Alex (Communications) - #5a6b8a (soft indigo)
+4. Maya (Habits/Wellness) - #a67a6a (terracotta)
+5. Jordan (Events/Celebration) - #c4856a (coral)
+6. Nayan (Lifetime Advisor) - #b8956a (warm gold)
+
+Can you analyze these colors for:
+- Psychological appropriateness for each role
+- Accessibility (color blindness considerations)
+- Harmony as a palette
+- Suggest refinements that better match each personality
+
+---
+PROMPT 2: Generate Alternative Palettes
+---
+Create 3 alternative color palettes for my AI coaching team that:
+- Stay within earth tones (no neon, no pure blues)
+- Feel like natural materials (stone, wood, clay, moss, sunset)
+- Work well together as a family
+- Are distinct enough to recognize individually
+- Evoke warmth and human connection
+
+Team roles:
+1. Lead Life Coach (grounding, wise)
+2. Research Expert (depth, curiosity)
+3. Communications Specialist (clarity, flow)
+4. Wellness Coach (nurturing, patient)
+5. Event Planner (celebration, warmth)
+6. Lifetime Advisor (wisdom, trust)
+
+Provide hex codes and explain the reasoning.
+
+---
+PROMPT 3: Test Color Accessibility
+---
+Please evaluate this color palette for accessibility:
+
+Background: #F5F1E8 (warm cream)
+Text: #2C2520 (natural ink)
+
+Accent colors on cream background:
+- #4a6741 (sage green)
+- #3a6b73 (ocean teal)
+- #5a6b8a (soft indigo)
+- #a67a6a (terracotta)
+- #c4856a (coral)
+- #b8956a (warm gold)
+
+For each color:
+1. Calculate contrast ratio against cream background
+2. Determine WCAG AA/AAA compliance
+3. Simulate deuteranopia, protanopia, tritanopia
+4. Suggest adjustments for better accessibility while maintaining warmth
+
+============================================================
+MOOD KEYWORDS FOR ALL AVATAR VIDEOS
+============================================================
+
+INCLUDE:
+- "Pixar quality", "WALL-E presence"
+- "Living", "breathing", "organic"
+- "Warm", "human", "attentive"
+- "Glowing orb", "waveform visualization"
+- "Soft volumetric lighting"
+- "Zen", "contemplative", "grounded"
+
+AVOID:
+- "Robot", "machine", "AI assistant"
+- "Cold", "clinical", "sterile"
+- "Neon", "cyber", "tech"
+- "Corporate", "generic"
+- "Sharp edges", "geometric" (keep organic)
+
+============================================================
+TECHNICAL SPECS
+============================================================
+
+For Veo 3:
+- Request 4K or 8K resolution
+- Specify seamless loop for avatars
+- Use "cinematic" and "8K quality" keywords
+- Describe lighting explicitly
+
+For Runway/Pika:
+- May need shorter prompts
+- Focus on key visual elements
+- Specify loop duration
+
+For Midjourney (stills):
+- Add --ar 1:1 for square avatars
+- Add --q 2 --v 6 for quality
+- Use --style raw for organic feel
+
+============================================================
+

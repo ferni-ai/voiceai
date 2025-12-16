@@ -161,4 +161,3 @@ export function resetMoodTracker(personaId: string): void {
 export function resetAllMoodTrackers(): void {
   trackers.clear();
 }
-

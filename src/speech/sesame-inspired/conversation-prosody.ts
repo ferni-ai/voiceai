@@ -130,9 +130,7 @@ const HEAVY_EMOTIONS: CartesiaEmotion[] = [
 /**
  * Calculate emotional trajectory from history
  */
-export function calculateTrajectory(
-  emotionHistory: CartesiaEmotion[]
-): EmotionalTrajectory {
+export function calculateTrajectory(emotionHistory: CartesiaEmotion[]): EmotionalTrajectory {
   if (emotionHistory.length < 2) {
     return 'stable';
   }
@@ -157,8 +155,7 @@ export function calculateTrajectory(
 
   // Calculate variance for volatility
   const mean = sumY / n;
-  const variance =
-    intensities.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / n;
+  const variance = intensities.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / n;
 
   // Check for volatility (high variance)
   if (variance > 0.1) {
@@ -178,19 +175,14 @@ export function calculateTrajectory(
 /**
  * Check if current emotions indicate a heavy topic
  */
-export function isHeavyTopic(
-  currentEmotion: CartesiaEmotion,
-  history: CartesiaEmotion[]
-): boolean {
+export function isHeavyTopic(currentEmotion: CartesiaEmotion, history: CartesiaEmotion[]): boolean {
   // Check if current emotion is heavy
   if (HEAVY_EMOTIONS.includes(currentEmotion)) {
     return true;
   }
 
   // Check if recent history has multiple heavy emotions
-  const recentHeavy = history
-    .slice(-3)
-    .filter((e) => HEAVY_EMOTIONS.includes(e));
+  const recentHeavy = history.slice(-3).filter((e) => HEAVY_EMOTIONS.includes(e));
   return recentHeavy.length >= 2;
 }
 
@@ -202,10 +194,9 @@ export function isHeavyTopic(
  * Base prosody settings for emotional states
  * Note: Not all emotions are mapped - unmapped emotions fall back to neutral
  */
-const EMOTION_PROSODY: Partial<Record<
-  CartesiaEmotion,
-  Partial<ConversationProsodyRecommendation>
->> = {
+const EMOTION_PROSODY: Partial<
+  Record<CartesiaEmotion, Partial<ConversationProsodyRecommendation>>
+> = {
   // High energy positive
   excited: { baseSpeed: 1.1, baseVolume: 1.1, pauseMultiplier: 0.8 },
   enthusiastic: { baseSpeed: 1.1, baseVolume: 1.1, pauseMultiplier: 0.85 },

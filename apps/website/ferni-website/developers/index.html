@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Developers | Build AI Voice Agents</title>
+  <meta name="description" content="Create, customize, and deploy voice AI agents in minutes. No hardcoding—just bundles that work.">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="Ferni Developers | Build AI Voice Agents">
+  <meta property="og:description" content="Create voice AI agents in minutes. The platform behind Ferni's life coaching team.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ferni.ai/developers/">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="../images/favicon.svg">
+  
+  <style>
+    /* ============================================
+       DESIGN TOKENS
+       ============================================ */
+    :root {
+      /* Colors - Background */
+      --color-bg-primary: #F5F1E8;
+      --color-bg-secondary: #E8E0D5;
+      --color-bg-elevated: #FFFDFB;
+      --color-bg-code: #2C2520;
+      --color-bg-code-light: #3a332d;
+      
+      /* Colors - Text */
+      --color-text-primary: #2C2520;
+      --color-text-secondary: #5C544A;
+      --color-text-muted: #756A5E;
+      --color-text-dimmed: #A89D90;
+      --color-text-inverse: #F5F1E8;
+      
+      /* Colors - Accent */
+      --color-accent: #3D5A45;
+      --color-accent-hover: #4a6d52;
+      --color-highlight: #C4A265;
+      --color-highlight-glow: rgba(196, 162, 101, 0.2);
+      
+      /* Colors - Borders */
+      --color-border-subtle: rgba(44, 37, 32, 0.05);
+      --color-border-medium: rgba(44, 37, 32, 0.10);
+      --color-border-strong: rgba(44, 37, 32, 0.18);
+      
+      /* Colors - Semantic */
+      --color-success: #4a7352;
+      --color-success-bg: rgba(74, 115, 82, 0.1);
+      --color-error: #a65a52;
+      --color-warning: #a6854a;
+      
+      /* Colors - Personas */
+      --color-ferni: #4a6741;
+      --color-jack: #9a7b5a;
+      --color-peter: #3a6b73;
+      --color-alex: #5a6b8a;
+      --color-maya: #a67a6a;
+      --color-jordan: #c4856a;
+      
+      /* Typography */
+      --font-display: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      --font-body: 'Inter', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+      
+      /* Spacing */
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2rem;
+      --space-2xl: 3rem;
+      --space-3xl: 4rem;
+      
+      /* Radius */
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      
+      /* Shadows */
+      --shadow-sm: 0 1px 2px rgba(44, 37, 32, 0.04);
+      --shadow-md: 0 4px 12px rgba(44, 37, 32, 0.08);
+      --shadow-lg: 0 8px 24px rgba(44, 37, 32, 0.12);
+    }
+
+    /* ============================================
+       RESET & BASE
+       ============================================ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--color-bg-primary);
+      color: var(--color-text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ============================================
+       LAYOUT
+       ============================================ */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 var(--space-lg);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-xl);
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-lg);
+    }
+
+    @media (max-width: 768px) {
+      .grid-2, .grid-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ============================================
+       HEADER
+       ============================================ */
+    .header {
+      position: sticky;
+      top: 0;
+      background: rgba(245, 241, 232, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--color-border-subtle);
+      z-index: 100;
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-md) 0;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: var(--color-text-primary);
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--color-ferni);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .logo-badge {
+      font-size: 0.625rem;
+      background: var(--color-highlight);
+      color: white;
+      padding: 0.125rem 0.5rem;
+      border-radius: 100px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .nav {
+      display: flex;
+      gap: var(--space-xl);
+    }
+
+    .nav a {
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav a:hover {
+      color: var(--color-accent);
+    }
+
+    .nav a.active {
+      color: var(--color-accent);
+    }
+
+    @media (max-width: 768px) {
+      .nav {
+        display: none;
+      }
+    }
+
+    /* ============================================
+       HERO
+       ============================================ */
+    .hero {
+      padding: var(--space-3xl) 0;
+      text-align: center;
+      background: linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      padding: var(--space-xs) var(--space-md);
+      background: var(--color-success-bg);
+      color: var(--color-success);
+      border-radius: 100px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      margin-bottom: var(--space-lg);
+    }
+
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.5rem, 5vw, 3.5rem);
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: var(--space-lg);
+      color: var(--color-text-primary);
+    }
+
+    .hero h1 span {
+      color: var(--color-accent);
+    }
+
+    .hero-subtitle {
+      font-size: 1.25rem;
+      color: var(--color-text-secondary);
+      max-width: 640px;
+      margin: 0 auto var(--space-xl);
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: var(--space-md);
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* ============================================
+       BUTTONS
+       ============================================ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-md) var(--space-xl);
+      border-radius: var(--radius-md);
+      font-family: var(--font-body);
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--color-accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--color-accent-hover);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .btn-secondary {
+      background: var(--color-bg-elevated);
+      color: var(--color-text-primary);
+      border: 1px solid var(--color-border-strong);
+    }
+
+    .btn-secondary:hover {
+      background: var(--color-bg-secondary);
+    }
+
+    /* ============================================
+       SECTIONS
+       ============================================ */
+    section {
+      padding: var(--space-3xl) 0;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: var(--space-2xl);
+    }
+
+    .section-header h2 {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: var(--space-sm);
+    }
+
+    .section-header p {
+      color: var(--color-text-secondary);
+      font-size: 1.125rem;
+    }
+
+    /* ============================================
+       CARDS
+       ============================================ */
+    .card {
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-medium);
+      border-radius: var(--radius-lg);
+      padding: var(--space-xl);
+      transition: all 0.2s;
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .card-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--color-highlight-glow);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: var(--space-md);
+    }
+
+    .card h3 {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: var(--space-sm);
+    }
+
+    .card p {
+      color: var(--color-text-secondary);
+      font-size: 0.9375rem;
+    }
+
+    /* ============================================
+       CODE BLOCKS
+       ============================================ */
+    .code-block {
+      background: var(--color-bg-code);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      overflow-x: auto;
+      margin: var(--space-lg) 0;
+    }
+
+    .code-block pre {
+      margin: 0;
+      font-family: var(--font-mono);
+      font-size: 0.875rem;
+      color: var(--color-text-inverse);
+      line-height: 1.7;
+    }
+
+    .code-block .comment { color: #756A5E; }
+    .code-block .keyword { color: #C4A265; }
+    .code-block .string { color: #7FB38F; }
+    .code-block .property { color: #8FB3D5; }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.875em;
+      background: var(--color-bg-secondary);
+      padding: 0.125em 0.375em;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ============================================
+       DOC NAVIGATION
+       ============================================ */
+    .doc-nav {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-md);
+      margin-bottom: var(--space-2xl);
+    }
+
+    @media (max-width: 768px) {
+      .doc-nav {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .doc-nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: var(--space-lg);
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-medium);
+      border-radius: var(--radius-md);
+      text-decoration: none;
+      color: var(--color-text-primary);
+      transition: all 0.2s;
+    }
+
+    .doc-nav-item:hover {
+      background: var(--color-bg-secondary);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .doc-nav-item .icon {
+      font-size: 1.5rem;
+      margin-bottom: var(--space-sm);
+    }
+
+    .doc-nav-item .label {
+      font-weight: 600;
+      font-size: 0.9375rem;
+    }
+
+    .doc-nav-item .desc {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      margin-top: var(--space-xs);
+    }
+
+    /* ============================================
+       QUICK START
+       ============================================ */
+    .quick-start {
+      background: var(--color-bg-secondary);
+    }
+
+    .step {
+      display: flex;
+      gap: var(--space-lg);
+      margin-bottom: var(--space-xl);
+    }
+
+    .step-number {
+      width: 40px;
+      height: 40px;
+      background: var(--color-accent);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .step-content h3 {
+      font-family: var(--font-display);
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: var(--space-sm);
+    }
+
+    .step-content p {
+      color: var(--color-text-secondary);
+      font-size: 0.9375rem;
+    }
+
+    /* ============================================
+       PERSONA CARDS
+       ============================================ */
+    .persona-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: var(--space-md);
+    }
+
+    .persona-card {
+      background: var(--color-bg-elevated);
+      border: 1px solid var(--color-border-medium);
+      border-radius: var(--radius-md);
+      padding: var(--space-md);
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .persona-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .persona-avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 1.125rem;
+      margin: 0 auto var(--space-sm);
+    }
+
+    .persona-card h4 {
+      font-family: var(--font-display);
+      font-weight: 600;
+      margin-bottom: var(--space-xs);
+    }
+
+    .persona-card p {
+      font-size: 0.8125rem;
+      color: var(--color-text-muted);
+    }
+
+    /* ============================================
+       STATS BAR
+       ============================================ */
+    .stats-bar {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-3xl);
+      padding: var(--space-xl) 0;
+      background: var(--color-bg-code);
+      color: var(--color-text-inverse);
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--color-highlight);
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: var(--color-text-dimmed);
+      margin-top: var(--space-xs);
+    }
+
+    @media (max-width: 768px) {
+      .stats-bar {
+        flex-direction: column;
+        gap: var(--space-lg);
+      }
+    }
+
+    /* ============================================
+       FOOTER
+       ============================================ */
+    .footer {
+      background: var(--color-bg-code);
+      color: var(--color-text-inverse);
+      padding: var(--space-2xl) 0;
+      margin-top: var(--space-3xl);
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: var(--space-xl);
+    }
+
+    .footer-links a {
+      color: var(--color-text-dimmed);
+      text-decoration: none;
+      font-size: 0.9375rem;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: var(--color-text-inverse);
+    }
+
+    /* ============================================
+       UTILITIES
+       ============================================ */
+    .text-center { text-align: center; }
+    .text-muted { color: var(--color-text-muted); }
+    .mt-lg { margin-top: var(--space-lg); }
+    .mb-lg { margin-bottom: var(--space-lg); }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="container header-inner">
+      <a href="../" class="logo">
+        <div class="logo-icon">FE</div>
+        <span>Ferni</span>
+        <span class="logo-badge">Developers</span>
+      </a>
+      <nav class="nav">
+        <a href="getting-started.html">Getting Started</a>
+        <a href="api.html">API</a>
+        <a href="testing.html">Testing</a>
+        <a href="../"> Back to Ferni</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badge">
+        <span></span> Now Open Source
+      </div>
+      <h1>Build Voice AI Agents<br><span>The Easy Way</span></h1>
+      <p class="hero-subtitle">
+        Create, customize, and deploy voice AI agents in minutes. 
+        The same platform that powers Ferni's AI life coaching team.
+      </p>
+      <div class="hero-actions">
+        <a href="getting-started.html" class="btn btn-primary">
+          Get Started 
+        </a>
+        <a href="https://github.com/ferni-ai/ferni-agents" class="btn btn-secondary">
+          View on GitHub
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Bar -->
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-value">7</div>
+      <div class="stat-label">Built-in Agents</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">&lt;5min</div>
+      <div class="stat-label">Time to First Agent</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">100%</div>
+      <div class="stat-label">TypeScript</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">MIT</div>
+      <div class="stat-label">License</div>
+    </div>
+  </div>
+
+  <!-- Doc Navigation -->
+  <section>
+    <div class="container">
+      <div class="section-header">
+        <h2>Documentation</h2>
+        <p>Everything you need to build amazing voice agents</p>
+      </div>
+      
+      <div class="doc-nav">
+        <a href="getting-started.html" class="doc-nav-item">
+          <span class="icon"></span>
+          <span class="label">Getting Started</span>
+          <span class="desc">5-min quickstart</span>
+        </a>
+        <a href="api.html" class="doc-nav-item">
+          <span class="icon"></span>
+          <span class="label">API Reference</span>
+          <span class="desc">Full endpoint docs</span>
+        </a>
+        <a href="testing.html" class="doc-nav-item">
+          <span class="icon"></span>
+          <span class="label">Testing Guide</span>
+          <span class="desc">Test your agents</span>
+        </a>
+        <a href="bundles.html" class="doc-nav-item">
+          <span class="icon"></span>
+          <span class="label">Bundle System</span>
+          <span class="desc">Agent architecture</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section>
+    <div class="container">
+      <div class="section-header">
+        <h2>Why Ferni Agents?</h2>
+        <p>A complete system for building conversational AI agents</p>
+      </div>
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-icon"></div>
+          <h3>Bundle System</h3>
+          <p>Self-contained agent packages with identity, voice, behaviors, and knowledge. Drop in a folder, restart, done.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon"></div>
+          <h3>CLI Tools</h3>
+          <p>Create agents from templates, validate bundles, and manage your team roster from the command line.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon"></div>
+          <h3>Voice Integration</h3>
+          <p>Seamless Cartesia voice synthesis with per-agent voice IDs, speech characteristics, and emotional expression.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon"></div>
+          <h3>Smart Handoffs</h3>
+          <p>Agents automatically hand off to each other based on triggers. Define keywords, the system does the rest.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon"></div>
+          <h3>Lazy Loading</h3>
+          <p>Content loaded on demand. Stories, knowledge, and behaviors only fetched when needed.</p>
+        </div>
+        <div class="card">
+          <div class="card-icon"></div>
+          <h3>Full TypeScript</h3>
+          <p>100% TypeScript with strict typing, excellent IDE support, and runtime validation with Zod.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Meet the Team -->
+  <section style="background: var(--color-bg-secondary);">
+    <div class="container">
+      <div class="section-header">
+        <h2>Built-in Agent Examples</h2>
+        <p>Seven production-ready agents you can customize or use as templates</p>
+      </div>
+      <div class="persona-grid">
+        <div class="persona-card">
+          <div class="persona-avatar" style="background: linear-gradient(135deg, #3d5a35, #4a6741);">FE</div>
+          <h4>Ferni</h4>
+          <p>Coordinator</p>
+        </div>
+        <div class="persona-card">
+          <div class="persona-avatar" style="background: linear-gradient(135deg, #7d6348, #9a7b5a);">JB</div>
+          <h4>Jack</h4>
+          <p>Sage Template</p>
+        </div>
+        <div class="persona-card">
+          <div class="persona-avatar" style="background: linear-gradient(135deg, #2d5359, #3a6b73);">PL</div>
+          <h4>Peter</h4>
+          <p>Specialist</p>
+        </div>
+        <div class="persona-card">
+          <div class="persona-avatar" style="background: linear-gradient(135deg, #4a5a73, #5a6b8a);">AC</div>
+          <h4>Alex</h4>
+          <p>Communications</p>
+        </div>
+        <div class="persona-card">
+          <div class="persona-avatar" style="background: linear-gradient(135deg, #8a635a, #a67a6a);">MS</div>
+          <h4>Maya</h4>
+          <p>Coach Template</p>
+        </div>
+        <div class="persona-card">
+          <div class="persona-avatar" style="background: linear-gradient(135deg, #a86d55, #c4856a);">JD</div>
+          <h4>Jordan</h4>
+          <p>Planner</p>
+        </div>
+        <div class="persona-card">
+          <div class="persona-avatar" style="background: linear-gradient(135deg, #9a7a52, #b8956a);">JV</div>
+          <h4>Jaggi</h4>
+          <p>Wisdom Sage</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Start Preview -->
+  <section id="quickstart" class="quick-start">
+    <div class="container">
+      <div class="section-header">
+        <h2>Quick Start</h2>
+        <p>Add a new agent to your team in under 5 minutes</p>
+      </div>
+      
+      <div class="step">
+        <div class="step-number">1</div>
+        <div class="step-content">
+          <h3>Clone the repository</h3>
+          <p>Get the Ferni Agents framework</p>
+          <div class="code-block">
+            <pre><span class="keyword">git clone</span> https://github.com/ferni-ai/ferni-agents.git
+<span class="keyword">cd</span> ferni-agents
+<span class="keyword">npm install</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-content">
+          <h3>Create your first agent</h3>
+          <p>Use the CLI to scaffold a new agent from a template</p>
+          <div class="code-block">
+            <pre><span class="comment"># Create a sage-style advisor</span>
+<span class="keyword">npm run</span> agents create my-advisor <span class="keyword">--template</span> sage
+
+<span class="comment"># Or a specialist for a specific domain</span>
+<span class="keyword">npm run</span> agents create tax-expert <span class="keyword">--template</span> specialist</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-content">
+          <h3>Start talking</h3>
+          <p>Run the development server and connect</p>
+          <div class="code-block">
+            <pre><span class="comment"># Start with your new agent</span>
+<span class="keyword">PERSONA_ID=</span>my-advisor <span class="keyword">npm run</span> dev
+
+<span class="comment"># Open the client</span>
+<span class="keyword">open</span> http://localhost:3000</pre>
+          </div>
+        </div>
+      </div>
+      
+      <div class="text-center mt-lg">
+        <a href="getting-started.html" class="btn btn-primary">Full Getting Started Guide </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section>
+    <div class="container text-center">
+      <h2 style="font-family: var(--font-display); font-size: 2rem; margin-bottom: var(--space-md);">Ready to build?</h2>
+      <p class="text-muted mb-lg">Join developers building the next generation of voice AI.</p>
+      <div class="hero-actions">
+        <a href="getting-started.html" class="btn btn-primary">Get Started </a>
+        <a href="https://github.com/ferni-ai/ferni-agents" class="btn btn-secondary">Star on GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <a href="../" class="logo" style="color: var(--color-text-inverse);">
+        <div class="logo-icon">FE</div>
+        <span>Ferni</span>
+      </a>
+      <div class="footer-links">
+        <a href="getting-started.html">Getting Started</a>
+        <a href="api.html">API Reference</a>
+        <a href="https://github.com/ferni-ai/ferni-agents">GitHub</a>
+        <a href="../">Back to Ferni.ai</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
+

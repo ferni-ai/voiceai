@@ -143,10 +143,7 @@ export class DockerRuntime {
   /**
    * Execute a tool in a Docker container
    */
-  async execute(
-    image: string,
-    options: DockerExecutionOptions
-  ): Promise<DockerExecutionResult> {
+  async execute(image: string, options: DockerExecutionOptions): Promise<DockerExecutionResult> {
     const startTime = Date.now();
 
     if (!this.initialized) {

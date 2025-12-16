@@ -362,7 +362,8 @@ describe('Unified Conversation Integration', () => {
       // Sharing concern
       const turn2 = await session.processTurn({
         userMessage: "I've been really stressed about work lately",
-        rawResponse: 'I hear you. Work stress can be really overwhelming. Tell me more about what is happening.',
+        rawResponse:
+          'I hear you. Work stress can be really overwhelming. Tell me more about what is happening.',
         userEmotion: 'stressed',
         topic: 'work',
         wasPersonalSharing: true,
@@ -372,7 +373,8 @@ describe('Unified Conversation Integration', () => {
       // Going deeper
       const turn3 = await session.processTurn({
         userMessage: "My boss keeps piling on more work and I don't know how to say no",
-        rawResponse: 'That sounds really challenging. Setting boundaries at work is hard, especially when you want to do well. Have you had a chance to talk with your boss about your workload?',
+        rawResponse:
+          'That sounds really challenging. Setting boundaries at work is hard, especially when you want to do well. Have you had a chance to talk with your boss about your workload?',
         userEmotion: 'frustrated',
         topic: 'work',
         wasPersonalSharing: true,
@@ -382,8 +384,9 @@ describe('Unified Conversation Integration', () => {
 
       // Resolution
       const turn4 = await session.processTurn({
-        userMessage: "Actually, talking this through helped. I think I know what I need to do.",
-        rawResponse: "I'm so glad our conversation helped! You have great insight into your situation. What do you think your next step will be?",
+        userMessage: 'Actually, talking this through helped. I think I know what I need to do.',
+        rawResponse:
+          "I'm so glad our conversation helped! You have great insight into your situation. What do you think your next step will be?",
         userEmotion: 'hopeful',
         topic: 'work',
       });
@@ -432,4 +435,3 @@ describe('Unified Conversation Integration', () => {
     });
   });
 });
-

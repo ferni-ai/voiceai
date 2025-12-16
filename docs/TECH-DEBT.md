@@ -73,10 +73,10 @@ Run `npm run debt` to regenerate this report.
 - 📦 `src/personas/bundles/runtime.ts:1679` - Use SessionBundleRuntimeManager for session isolation
 - 📦 `src/services/voice-call.ts:104` - Use generatePersonaVoice(text, 'alex-chen') instead
 - 📦 `src/services/voice-call.ts:348` - Use callWithPersonaVoice(phone, message, 'alex-chen', option
-- 📦 `scripts/audit-legacy.ts:63` - ') && lowerLine.includes('file')) {
-- 📦 `scripts/audit-legacy.ts:68` - ')) {
-- 📦 `scripts/audit-legacy.ts:105` - // Scan for @deprecated
-- 📦 `scripts/audit-legacy.ts:106` - ');
+- 📦 `apps/cli/src/commands/quality/audit-legacy.ts:63` - ') && lowerLine.includes('file')) {
+- 📦 `apps/cli/src/commands/quality/audit-legacy.ts:68` - ')) {
+- 📦 `apps/cli/src/commands/quality/audit-legacy.ts:105` - // Scan for @deprecated
+- 📦 `apps/cli/src/commands/quality/audit-legacy.ts:106` - ');
 - 📦 `frontend-typescript/src/ui/celebrations.ui.ts:248` - Use warmthGlow() instead - confetti is not aligned with zen 
 - 📦 `frontend-typescript/src/ui/celebrations.ui.ts:261` - Use warmthGlow() instead - sparkles replaced with warmth
 - 📦 `frontend-typescript/src/ui/celebrations.ui.ts:274` - Use connectionWarmth() instead

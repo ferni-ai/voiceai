@@ -209,12 +209,15 @@ async function performSync(state: PeriodicSyncState): Promise<void> {
 
   const duration = Date.now() - startTime;
 
-  log.debug({
-    sessionId: state.sessionId,
-    userId: state.userId,
-    syncCount: state.syncCount,
-    durationMs: duration,
-  }, '✅ Periodic sync complete');
+  log.debug(
+    {
+      sessionId: state.sessionId,
+      userId: state.userId,
+      syncCount: state.syncCount,
+      durationMs: duration,
+    },
+    '✅ Periodic sync complete'
+  );
 
   // Log every 3rd sync for visibility
   if (state.syncCount % 3 === 0) {
@@ -236,4 +239,3 @@ export default {
   getSyncStatus,
   stopAllPeriodicSyncs,
 };
-

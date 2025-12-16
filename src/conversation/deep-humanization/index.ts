@@ -63,11 +63,7 @@ import {
 } from '../utils/detection.js';
 import { HUMANIZATION_CONFIG } from '../humanization-tuning.js';
 
-import type {
-  HumanizationContext,
-  HumanizationInjection,
-  HumanizationSignals,
-} from './types.js';
+import type { HumanizationContext, HumanizationInjection, HumanizationSignals } from './types.js';
 
 // Re-export types
 export type {
@@ -110,8 +106,11 @@ export async function applyDeepHumanization(
   moodTracker.update({
     userEmotion: userEnergy === 'subdued' ? 'subdued' : undefined,
     topicWeight,
-    userEngagement: detectHighEngagement(context.userMessage) ? 'high' :
-      detectDisengagement(context.userMessage) ? 'low' : 'medium',
+    userEngagement: detectHighEngagement(context.userMessage)
+      ? 'high'
+      : detectDisengagement(context.userMessage)
+        ? 'low'
+        : 'medium',
     turnCount: context.turnCount,
   });
 
@@ -173,12 +172,15 @@ export async function applyDeepHumanization(
   // Apply injections to response
   const humanizedText = applyInjections(response, injections);
 
-  log.debug({
-    personaId: context.personaId,
-    turnCount: context.turnCount,
-    appliedEffects,
-    mood: { energy: mood.energy, engagement: mood.engagement },
-  }, 'Deep humanization applied');
+  log.debug(
+    {
+      personaId: context.personaId,
+      turnCount: context.turnCount,
+      appliedEffects,
+      mood: { energy: mood.energy, engagement: mood.engagement },
+    },
+    'Deep humanization applied'
+  );
 
   return { text: humanizedText, appliedEffects };
 }
@@ -190,10 +192,7 @@ export async function applyDeepHumanization(
 /**
  * Apply injections to a response based on their placement
  */
-function applyInjections(
-  response: string,
-  injections: HumanizationInjection[]
-): string {
+function applyInjections(response: string, injections: HumanizationInjection[]): string {
   let result = response;
 
   // Sort by placement priority
@@ -213,7 +212,8 @@ function applyInjections(
     const interruptText = interrupts.map((i) => i.content).join(' ');
     const firstSentenceEnd = result.search(/[.!?]\s/);
     if (firstSentenceEnd > 0) {
-      result = result.slice(0, firstSentenceEnd + 1) +
+      result =
+        result.slice(0, firstSentenceEnd + 1) +
         ` ${interruptText} ` +
         result.slice(firstSentenceEnd + 2);
     } else {
@@ -266,4 +266,3 @@ export default {
   resetAllDeepHumanization,
   getMoodTracker,
 };
-

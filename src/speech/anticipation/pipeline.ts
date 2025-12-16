@@ -112,7 +112,9 @@ export class AnticipationPipeline {
       volumeMultiplier: emotionPrediction.volumeMultiplier,
       pauseMultiplier: emotionPrediction.pauseMultiplier,
       emotion: emotionPrediction.anticipatedEmotion,
-      microReactionSsml: this.options.enableMicroReactions ? emotionPrediction.microReactionSsml : null,
+      microReactionSsml: this.options.enableMicroReactions
+        ? emotionPrediction.microReactionSsml
+        : null,
     };
 
     // Adjust prosody based on intent context
@@ -188,7 +190,10 @@ export class AnticipationPipeline {
     if (!this.lastResult || !this.lastResult.isActionable) return false;
 
     // Only use micro-reactions for high-confidence emotional trajectories
-    return this.lastResult.emotion.confidence >= 0.6 && this.lastResult.prosody.microReactionSsml !== null;
+    return (
+      this.lastResult.emotion.confidence >= 0.6 &&
+      this.lastResult.prosody.microReactionSsml !== null
+    );
   }
 
   /**
@@ -301,4 +306,3 @@ export function resetAllAnticipationPipelines(): void {
 export function getActiveAnticipationPipelineCount(): number {
   return pipelines.size;
 }
-

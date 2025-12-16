@@ -455,7 +455,7 @@ ferni debug voice --interactive
 
 ```bash
 # Build standalone macOS binary (67MB)
-npx tsx scripts/build-cli-binary.ts --release
+npx tsx apps/cli/src/commands/build/build-cli-binary.ts --release
 
 # Install globally
 sudo cp dist/ferni /usr/local/bin/

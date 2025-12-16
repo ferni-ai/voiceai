@@ -174,7 +174,7 @@ describe('AnticipationPipeline', () => {
 
       const result = pipeline.process({
         sessionId,
-        partialTranscript: 'You won\'t believe what happened! I won the lottery!',
+        partialTranscript: "You won't believe what happened! I won the lottery!",
         isSpeaking: true,
         tone: 'excited',
       });
@@ -292,4 +292,3 @@ describe('EmotionPredictor', () => {
     expect(resultWithTone.confidence).toBeGreaterThanOrEqual(resultWithoutTone.confidence);
   });
 });
-

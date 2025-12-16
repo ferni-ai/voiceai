@@ -426,7 +426,11 @@
         {
           "letter": "G",
           "name": "Goal",
-          "questions": ["What do you want?", "What would success look like?", "How will you know you've achieved it?"]
+          "questions": [
+            "What do you want?",
+            "What would success look like?",
+            "How will you know you've achieved it?"
+          ]
         },
         {
           "letter": "R",
@@ -523,4 +527,3 @@
     }
   }
 }
-

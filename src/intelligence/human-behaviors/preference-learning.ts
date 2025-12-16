@@ -43,7 +43,8 @@ export function inferUserPreferences(
 
   const avgLength = userMessages.reduce((sum, m) => sum + m.length, 0) / userMessages.length;
   const hasJokes = userMessages.some((m) => /\b(lol|haha|😂|funny|joke)\b/i.test(m));
-  const asksFollowUps = userMessages.filter((m) => m.includes('?')).length > userMessages.length / 3;
+  const asksFollowUps =
+    userMessages.filter((m) => m.includes('?')).length > userMessages.length / 3;
   const usesBluntLanguage = userMessages.some((m) =>
     /\b(just tell me|get to the point|bottom line|short version)\b/i.test(m)
   );

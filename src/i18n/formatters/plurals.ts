@@ -15,7 +15,10 @@ import { type SupportedLocale, type PluralCategory, DEFAULT_LOCALE } from '../ty
 /**
  * Get the plural category for a number in a locale
  */
-export function getPluralCategory(n: number, locale: SupportedLocale = DEFAULT_LOCALE): PluralCategory {
+export function getPluralCategory(
+  n: number,
+  locale: SupportedLocale = DEFAULT_LOCALE
+): PluralCategory {
   const rules = new Intl.PluralRules(locale);
   return rules.select(n) as PluralCategory;
 }
@@ -159,10 +162,10 @@ export function getPluralsForLocale(
   > = {
     'en-US': ENGLISH_PLURALS,
     'en-GB': ENGLISH_PLURALS,
-    'es': SPANISH_PLURALS,
-    'fr': FRENCH_PLURALS,
-    'de': GERMAN_PLURALS,
-    'ja': JAPANESE_PLURALS,
+    es: SPANISH_PLURALS,
+    fr: FRENCH_PLURALS,
+    de: GERMAN_PLURALS,
+    ja: JAPANESE_PLURALS,
   };
 
   return pluralsByLocale[locale] || ENGLISH_PLURALS;

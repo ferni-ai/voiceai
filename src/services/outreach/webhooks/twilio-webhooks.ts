@@ -248,7 +248,8 @@ export async function handleSMSStatusWebhook(
   url?: string
 ): Promise<{ success: boolean; twiml?: string }> {
   // ALWAYS validate Twilio signature (skip only in test environment with explicit flag)
-  const skipValidation = process.env.SKIP_TWILIO_VALIDATION === 'true' && process.env.NODE_ENV === 'test';
+  const skipValidation =
+    process.env.SKIP_TWILIO_VALIDATION === 'true' && process.env.NODE_ENV === 'test';
   if (!skipValidation) {
     if (!signature || !url) {
       log.warn({ messageSid: payload.MessageSid }, 'Missing Twilio signature or URL');
@@ -306,7 +307,8 @@ export async function handleInboundSMSWebhook(
   url?: string
 ): Promise<{ success: boolean; twiml?: string }> {
   // ALWAYS validate Twilio signature (skip only in test environment with explicit flag)
-  const skipValidation = process.env.SKIP_TWILIO_VALIDATION === 'true' && process.env.NODE_ENV === 'test';
+  const skipValidation =
+    process.env.SKIP_TWILIO_VALIDATION === 'true' && process.env.NODE_ENV === 'test';
   if (!skipValidation) {
     if (!signature || !url) {
       log.warn({ messageSid: payload.MessageSid }, 'Missing Twilio signature or URL');
@@ -484,7 +486,8 @@ export async function handleCallStatusWebhook(
   url?: string
 ): Promise<{ success: boolean; twiml?: string }> {
   // ALWAYS validate Twilio signature (skip only in test environment with explicit flag)
-  const skipValidation = process.env.SKIP_TWILIO_VALIDATION === 'true' && process.env.NODE_ENV === 'test';
+  const skipValidation =
+    process.env.SKIP_TWILIO_VALIDATION === 'true' && process.env.NODE_ENV === 'test';
   if (!skipValidation) {
     if (!signature || !url) {
       log.warn({ callSid: payload.CallSid }, 'Missing Twilio signature or URL');

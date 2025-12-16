@@ -120,10 +120,7 @@ export async function executeHook(
       },
     });
 
-    log.info(
-      { event, personaId: ctx.personaId, success: result.success },
-      'Hook executed'
-    );
+    log.info({ event, personaId: ctx.personaId, success: result.success }, 'Hook executed');
 
     return result;
   } catch (error) {
@@ -165,10 +162,7 @@ export async function getHookPrompt(
 /**
  * Check if a persona has a specific hook enabled
  */
-export async function hasHook(
-  event: HookEventType,
-  personaId: string
-): Promise<boolean> {
+export async function hasHook(event: HookEventType, personaId: string): Promise<boolean> {
   try {
     const bundle = await getBundle(personaId);
     if (!bundle?.getHooks) {
@@ -260,10 +254,7 @@ export async function executeLocalTool(
 /**
  * Check if a tool name is a local tool for this persona
  */
-export async function isLocalTool(
-  personaId: string,
-  toolName: string
-): Promise<boolean> {
+export async function isLocalTool(personaId: string, toolName: string): Promise<boolean> {
   try {
     const bundle = await getBundle(personaId);
     if (!bundle?.getLocalTools) {
@@ -375,10 +366,7 @@ export async function getAssets(personaId: string): Promise<BundleAssets | null>
 /**
  * Get theme CSS variables for a persona
  */
-export async function getThemeCSS(
-  personaId: string,
-  prefix = 'agent'
-): Promise<string | null> {
+export async function getThemeCSS(personaId: string, prefix = 'agent'): Promise<string | null> {
   try {
     const assets = await getAssets(personaId);
     if (!assets?.theme) {

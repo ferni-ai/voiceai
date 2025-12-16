@@ -14,10 +14,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { VoiceEmotionResult as AudioProsodyVoiceEmotionResult } from '../../speech/audio-prosody/types.js';
-import {
-  VoiceTextMismatchDetector,
-  type MismatchResult,
-} from '../unified/mismatch-detector.js';
+import { VoiceTextMismatchDetector, type MismatchResult } from '../unified/mismatch-detector.js';
 import type { ContextBuilder, ContextBuilderInput, ContextInjection } from './index.js';
 import { createCriticalInjection, createHighInjection, registerContextBuilder } from './index.js';
 import { BuilderCategory } from './categories.js';
@@ -46,11 +43,15 @@ export const voiceMismatchCriticalBuilder: ContextBuilder = {
     // Detect mismatch using the unified detector
     // Cast through unknown for type compatibility (VoiceEmotionResult types differ between modules)
     const detector = VoiceTextMismatchDetector.getInstance();
-    const mismatch = detector.detect(userText, voiceEmotion as unknown as AudioProsodyVoiceEmotionResult, {
-      primary: analysis.emotion.primary,
-      confidence: analysis.emotion.confidence ?? 0.5,
-      valence: analysis.emotion.valence,
-    });
+    const mismatch = detector.detect(
+      userText,
+      voiceEmotion as unknown as AudioProsodyVoiceEmotionResult,
+      {
+        primary: analysis.emotion.primary,
+        confidence: analysis.emotion.confidence ?? 0.5,
+        valence: analysis.emotion.valence,
+      }
+    );
 
     if (!mismatch.detected) {
       return injections;
@@ -103,4 +104,3 @@ registerContextBuilder(voiceMismatchCriticalBuilder);
 export { type MismatchResult };
 
 export default voiceMismatchCriticalBuilder;
-

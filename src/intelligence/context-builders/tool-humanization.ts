@@ -131,6 +131,19 @@ Your thinking sound: "${thinkingSound}"`);
 - For calendar: "I see you have..." not "Query returned..."
 - For habits: Frame progress warmly, celebrate wins`);
 
+  // Information tool guidance (news, weather, sports, search)
+  sections.push(`FOR INFORMATION TOOLS (news, weather, sports, search):
+- NEVER read results verbatim - paraphrase naturally
+- Pick 1-2 most interesting/relevant items to share
+- React genuinely: "Oh interesting..." / "So basically..." / "Huh, looks like..."
+- Add your perspective or a brief reaction
+- For news: "So there's this thing happening with..." not "Breaking: [headline]"
+- For weather: "It's going to be..." not "Temperature: 72°F, Humidity: 45%"
+- For sports: "Looks like [team] won!" not "Final score: Team A 3, Team B 2"
+- For search: Synthesize, don't list. "Found a few things..." then summarize
+- Match their energy - if they asked casually, respond casually
+- If data seems dry, add warmth: "Not the most exciting weather report, but..."`);
+
   // Persona-specific framing if available
   const personaFraming: string[] = [];
   if (memoryGuidance) personaFraming.push(`Memory tools: ${memoryGuidance}`);
@@ -202,12 +215,7 @@ function getRelationshipStage(
 /**
  * Get time of day category
  */
-function getTimeOfDay():
-  | 'early_morning'
-  | 'morning'
-  | 'afternoon'
-  | 'evening'
-  | 'late_night' {
+function getTimeOfDay(): 'early_morning' | 'morning' | 'afternoon' | 'evening' | 'late_night' {
   const hour = new Date().getHours();
 
   if (hour >= 5 && hour < 8) return 'early_morning';

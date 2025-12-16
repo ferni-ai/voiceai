@@ -411,7 +411,8 @@ const DEFAULT_PROFILE: PersonaSpeedProfile = {
  * Get base speed for a persona
  * Different personas naturally speak at different paces
  */
-export function getPersonaBaseSpeed(personaId: string): number {
+export function getPersonaBaseSpeed(personaId: string | undefined): number {
+  if (!personaId) return DEFAULT_PROFILE.baseSpeed;
   const profile = PERSONA_SPEED_PROFILES[personaId.toLowerCase()];
   return profile?.baseSpeed ?? DEFAULT_PROFILE.baseSpeed;
 }
@@ -419,7 +420,8 @@ export function getPersonaBaseSpeed(personaId: string): number {
 /**
  * Get full speed profile for a persona
  */
-export function getPersonaSpeedProfile(personaId: string): PersonaSpeedProfile {
+export function getPersonaSpeedProfile(personaId: string | undefined): PersonaSpeedProfile {
+  if (!personaId) return DEFAULT_PROFILE;
   return PERSONA_SPEED_PROFILES[personaId.toLowerCase()] ?? DEFAULT_PROFILE;
 }
 
@@ -433,7 +435,7 @@ export function getPersonaSpeedProfile(personaId: string): PersonaSpeedProfile {
  * - Context (topic weight, turn number)
  */
 export function calculatePersonaAdjustedSpeed(
-  personaId: string,
+  personaId: string | undefined,
   context: {
     emotionalIntensity: number;
     contentComplexity: number;
@@ -498,7 +500,7 @@ export function calculatePersonaAdjustedSpeed(
   return {
     speed,
     addPause,
-    reason: reasons.length > 0 ? reasons.join(', ') : `${personaId} baseline`,
+    reason: reasons.length > 0 ? reasons.join(', ') : `${personaId ?? 'default'} baseline`,
   };
 }
 

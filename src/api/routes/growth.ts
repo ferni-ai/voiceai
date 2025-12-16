@@ -63,16 +63,12 @@ async function handleGetInsights(
 
     // Filter by type if requested
     const typeFilter = parsedUrl.searchParams.get('type') as GrowthType | null;
-    const filteredInsights = typeFilter
-      ? insights.filter((i) => i.type === typeFilter)
-      : insights;
+    const filteredInsights = typeFilter ? insights.filter((i) => i.type === typeFilter) : insights;
 
     // Sort by confidence and recency
     const sortedInsights = filteredInsights.sort((a, b) => {
       if (b.confidence !== a.confidence) return b.confidence - a.confidence;
-      return (
-        new Date(b.timespan.end).getTime() - new Date(a.timespan.end).getTime()
-      );
+      return new Date(b.timespan.end).getTime() - new Date(a.timespan.end).getTime();
     });
 
     // Limit results
@@ -129,18 +125,13 @@ async function handleGetSummary(
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const recentInsights = insights
       .filter((i) => new Date(i.timespan.end).getTime() > thirtyDaysAgo)
-      .sort(
-        (a, b) =>
-          new Date(b.timespan.end).getTime() -
-          new Date(a.timespan.end).getTime()
-      )
+      .sort((a, b) => new Date(b.timespan.end).getTime() - new Date(a.timespan.end).getTime())
       .slice(0, 5);
 
     // Calculate growth score (0-100)
     // Based on: number of insights, resonance rate, variety of growth types
     const typeVariety = Object.keys(stats.byType).length;
-    const resonanceRate =
-      stats.surfaced > 0 ? stats.resonated / stats.surfaced : 0;
+    const resonanceRate = stats.surfaced > 0 ? stats.resonated / stats.surfaced : 0;
     const insightDensity = Math.min(stats.totalInsights / 10, 1); // Cap at 10 insights
 
     const growthScore = Math.round(
@@ -247,11 +238,7 @@ async function handleRecordReaction(
     }
 
     if (!['resonated', 'neutral', 'dismissed'].includes(reaction)) {
-      sendJSON(
-        res,
-        { error: 'reaction must be resonated, neutral, or dismissed' },
-        400
-      );
+      sendJSON(res, { error: 'reaction must be resonated, neutral, or dismissed' }, 400);
       return;
     }
 
@@ -304,7 +291,7 @@ function handleGetTypes(_req: IncomingMessage, res: ServerResponse): void {
   const types = {
     capability_growth: {
       name: 'Capability Growth',
-      description: 'Skills and abilities you couldn\'t do before',
+      description: "Skills and abilities you couldn't do before",
       icon: '🌱',
     },
     topic_comfort: {
@@ -314,7 +301,7 @@ function handleGetTypes(_req: IncomingMessage, res: ServerResponse): void {
     },
     pattern_break: {
       name: 'Pattern Break',
-      description: 'Old habits you\'ve moved past',
+      description: "Old habits you've moved past",
       icon: '🔓',
     },
     consistency_improvement: {

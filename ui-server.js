@@ -157,6 +157,9 @@ import { handleLandingOptimizationRoutes } from './dist/api/landing-optimization
 import { handleCameoAnalyticsRoutes } from './dist/api/cameo-analytics-routes.js';
 import { handleGardenRoutes } from './dist/api/garden-routes.js';
 
+// Roadmap routes (What's Growing - feature voting, suggestions, seed economy)
+import { handleRoadmapRoutes } from './dist/api/roadmap-routes.js';
+
 // Marketplace routes (publisher portal, browse, install, billing)
 import { handleMarketplaceRoutes } from './dist/api/marketplace-routes.js';
 
@@ -1197,6 +1200,12 @@ const server = http.createServer(async (req, res) => {
     // Garden routes (Seed Fund community contribution system)
     if (pathname.startsWith('/api/garden')) {
       const handled = await handleGardenRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Roadmap routes (What's Growing - feature voting, suggestions, seed economy)
+    if (pathname.startsWith('/api/roadmap')) {
+      const handled = await handleRoadmapRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
 

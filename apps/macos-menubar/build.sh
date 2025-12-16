@@ -4,13 +4,25 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BUILD_DIR="$SCRIPT_DIR/.build"
 APP_NAME="Ferni Voice"
 BUNDLE_ID="com.ferni.voice"
 
 echo "Building $APP_NAME..."
 
-# Build the Swift executable
+# Step 1: Build standalone voice binary with bun
+echo "→ Building standalone voice binary..."
+cd "$PROJECT_ROOT"
+if command -v bun &> /dev/null; then
+    bun build apps/cli/src/features/voice/voice-live.ts --compile --outfile dist/ferni-voice-standalone
+    echo "  ✓ Voice binary built ($(du -h dist/ferni-voice-standalone | cut -f1))"
+else
+    echo "  ⚠ bun not found - using existing binary or ferni CLI fallback"
+fi
+
+# Step 2: Build the Swift executable
+echo "→ Building Swift app..."
 cd "$SCRIPT_DIR"
 swift build -c release
 
@@ -26,6 +38,23 @@ mkdir -p "$RESOURCES_DIR"
 
 # Copy the executable
 cp "$BUILD_DIR/release/FerniVoice" "$MACOS_DIR/FerniVoice"
+
+# Copy the standalone voice binary if it exists
+if [ -f "$PROJECT_ROOT/dist/ferni-voice-standalone" ]; then
+    echo "→ Bundling standalone voice binary..."
+    cp "$PROJECT_ROOT/dist/ferni-voice-standalone" "$RESOURCES_DIR/ferni-voice"
+    chmod +x "$RESOURCES_DIR/ferni-voice"
+    echo "  ✓ Voice binary bundled"
+fi
+
+# Copy sounds
+SOUNDS_DIR="$PROJECT_ROOT/design-system/assets/sounds"
+if [ -d "$SOUNDS_DIR" ]; then
+    echo "→ Bundling sound effects..."
+    mkdir -p "$RESOURCES_DIR/sounds"
+    cp "$SOUNDS_DIR"/*.mp3 "$RESOURCES_DIR/sounds/" 2>/dev/null || true
+    echo "  ✓ Sounds bundled"
+fi
 
 # Create Info.plist
 cat > "$CONTENTS_DIR/Info.plist" << EOF

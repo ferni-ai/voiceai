@@ -18,7 +18,7 @@ pnpm ops:zombies
 gcloud logging read 'resource.type="cloud_run_revision" resource.labels.service_name="voiceai-agent" (textPayload=~"PREWARM" OR textPayload=~"ENTRY" OR textPayload=~"timeout")' --limit=50 --freshness=30m
 
 # Run local startup tests
-npx tsx scripts/test-voice-agent-startup.ts
+ferni voice e2e
 ```
 
 ---
@@ -107,7 +107,7 @@ gcloud logging read 'textPayload=~"UNCAUGHT" OR textPayload=~"crash"' --limit=20
 
 **Verify Fix:**
 ```bash
-npx tsx scripts/test-voice-agent-startup.ts
+ferni voice e2e
 ```
 
 ---
@@ -224,10 +224,10 @@ textPayload=~"timeout|failed|crash"
 
 ```bash
 # Run comprehensive startup tests
-npx tsx scripts/test-voice-agent-startup.ts
+ferni voice e2e
 
 # With chaos testing
-npx tsx scripts/test-voice-agent-startup.ts --chaos
+ferni voice e2e --chaos
 
 # Run E2E test suite
 npx vitest run src/agents/__tests__/voice-agent-e2e.test.ts
@@ -237,7 +237,7 @@ npx vitest run src/agents/__tests__/voice-agent-e2e.test.ts
 
 - [ ] `npm run build:fast` succeeds
 - [ ] `npm run typecheck` passes (or known pre-existing errors only)
-- [ ] `npx tsx scripts/test-voice-agent-startup.ts` all green
+- [ ] `ferni voice e2e` all green
 - [ ] Local dev test with voice call works
 - [ ] No zombie revisions exist (`pnpm ops:zombies`)
 
@@ -321,7 +321,7 @@ gcloud run services update-traffic voiceai-agent \
 | `src/agents/voice-agent-session.ts` | Session runner |
 | `src/agents/shared/startup-health.ts` | Health check utilities |
 | `scripts/test-voice-agent-startup.ts` | Local test harness |
-| `scripts/cleanup-zombies.ts` | Zombie revision cleanup |
+| `apps/cli/src/commands/ops/cleanup-zombies.ts` | Zombie revision cleanup |
 
 ---
 

@@ -131,7 +131,12 @@
         "permission to be happy"
       ],
       "type": "personal",
-      "emotional_triggers": ["searching for identity", "guilt about happiness", "forgetting joy", "needing perspective"]
+      "emotional_triggers": [
+        "searching for identity",
+        "guilt about happiness",
+        "forgetting joy",
+        "needing perspective"
+      ]
     },
     {
       "id": "morocco-tea",

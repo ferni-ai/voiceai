@@ -20,42 +20,12 @@ import { HUMANIZATION_CONFIG } from '../../humanization-tuning.js';
 // ============================================================================
 
 const PRESENCE_CUES = {
-  attentive: [
-    '*leans in*',
-    '*looks at you*',
-    '*meets your eyes*',
-    '*turns toward you*',
-  ],
-  thoughtful: [
-    '*tilts head*',
-    '*pauses to think*',
-    '*considers*',
-    '*reflects*',
-  ],
-  warm: [
-    '*smiles warmly*',
-    '*nods encouragingly*',
-    '*softens*',
-    '*gentle look*',
-  ],
-  supportive: [
-    '*reaches out*',
-    '*sits closer*',
-    '*steadies*',
-    '*present*',
-  ],
-  energetic: [
-    '*sits up*',
-    '*brightens*',
-    '*animates*',
-    '*lights up*',
-  ],
-  settling: [
-    '*settles back*',
-    '*relaxes*',
-    '*exhales*',
-    '*grounds*',
-  ],
+  attentive: ['*leans in*', '*looks at you*', '*meets your eyes*', '*turns toward you*'],
+  thoughtful: ['*tilts head*', '*pauses to think*', '*considers*', '*reflects*'],
+  warm: ['*smiles warmly*', '*nods encouragingly*', '*softens*', '*gentle look*'],
+  supportive: ['*reaches out*', '*sits closer*', '*steadies*', '*present*'],
+  energetic: ['*sits up*', '*brightens*', '*animates*', '*lights up*'],
+  settling: ['*settles back*', '*relaxes*', '*exhales*', '*grounds*'],
 };
 
 // ============================================================================
@@ -104,4 +74,3 @@ export async function generatePhysicalPresence(
     cooldownTurns: HUMANIZATION_CONFIG.cooldowns.physicalPresence,
   };
 }
-

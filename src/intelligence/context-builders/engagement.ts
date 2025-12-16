@@ -82,14 +82,13 @@ function buildEngagementContext(input: ContextBuilderInput): ContextInjection[] 
   // "Better Than Human" - Keep conversations moving forward
   // More frequent curiosity to show genuine investment
   // -----------------------------------------------
-  const shouldShowCuriosity = (
-    turnCount > 2 && 
+  const shouldShowCuriosity =
+    turnCount > 2 &&
     (turnCount % 3 === 0 || // Every 3 turns (was 4)
-     analysis.intent.primary === 'confiding' ||
-     analysis.intent.primary === 'sharing_news' ||
-     analysis.emotion.intensity > 0.5) // Also when emotional content
-  );
-  
+      analysis.intent.primary === 'confiding' ||
+      analysis.intent.primary === 'sharing_news' ||
+      analysis.emotion.intensity > 0.5); // Also when emotional content
+
   if (shouldShowCuriosity) {
     const topics = analysis.topics.detected;
     if (topics.length > 0) {

@@ -93,7 +93,7 @@ jobs:
       - name: Run smoke tests
         run: |
           echo "Running pre-rollout smoke tests..."
-          npx tsx scripts/smoke-test.ts --url=${{ env.API_URL }}
+          npx tsx apps/cli/src/commands/test/smoke-test.ts --url=${{ env.API_URL }}
 
       - name: Check current system health
         run: |

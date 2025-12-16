@@ -33,25 +33,39 @@ export interface MarketplaceStore {
   // Tool operations
   saveTool(manifest: ToolManifest): Promise<void>;
   getTool(id: MarketplaceId): Promise<ToolManifest | null>;
-  listTools(options?: { category?: string; trustLevel?: TrustLevel; tags?: string[] }): Promise<ToolManifest[]>;
+  listTools(options?: {
+    category?: string;
+    trustLevel?: TrustLevel;
+    tags?: string[];
+  }): Promise<ToolManifest[]>;
   deleteTool(id: MarketplaceId): Promise<void>;
 
   // Agent operations
   saveAgent(manifest: AgentManifest): Promise<void>;
   getAgent(id: MarketplaceId): Promise<AgentManifest | null>;
-  listAgents(options?: { category?: string; trustLevel?: TrustLevel; tags?: string[] }): Promise<AgentManifest[]>;
+  listAgents(options?: {
+    category?: string;
+    trustLevel?: TrustLevel;
+    tags?: string[];
+  }): Promise<AgentManifest[]>;
   deleteAgent(id: MarketplaceId): Promise<void>;
 
   // Installation operations
   saveInstallation(installation: Installation): Promise<void>;
   getInstallation(id: string): Promise<Installation | null>;
   getInstallationByUserItem(userId: UserId, itemId: MarketplaceId): Promise<Installation | null>;
-  listInstallations(userId: UserId, options?: { itemType?: 'agent' | 'tool' }): Promise<Installation[]>;
+  listInstallations(
+    userId: UserId,
+    options?: { itemType?: 'agent' | 'tool' }
+  ): Promise<Installation[]>;
   updateInstallation(id: string, updates: Partial<Installation>): Promise<void>;
 
   // Execution tracking
   saveExecution(execution: ToolExecution): Promise<void>;
-  listExecutions(userId: UserId, options?: { toolId?: MarketplaceId; limit?: number; since?: string }): Promise<ToolExecution[]>;
+  listExecutions(
+    userId: UserId,
+    options?: { toolId?: MarketplaceId; limit?: number; since?: string }
+  ): Promise<ToolExecution[]>;
 
   // Initialization
   initialize(): Promise<void>;
@@ -103,10 +117,13 @@ class FirestoreMarketplaceStore implements MarketplaceStore {
   async saveTool(manifest: ToolManifest): Promise<void> {
     if (!this.db) throw new Error('Firestore not initialized');
 
-    await this.db.collection(COLLECTIONS.TOOLS).doc(manifest.id).set({
-      ...manifest,
-      _updatedAt: new Date(),
-    });
+    await this.db
+      .collection(COLLECTIONS.TOOLS)
+      .doc(manifest.id)
+      .set({
+        ...manifest,
+        _updatedAt: new Date(),
+      });
     log.debug({ toolId: manifest.id }, 'Tool saved to Firestore');
   }
 
@@ -166,10 +183,13 @@ class FirestoreMarketplaceStore implements MarketplaceStore {
   async saveAgent(manifest: AgentManifest): Promise<void> {
     if (!this.db) throw new Error('Firestore not initialized');
 
-    await this.db.collection(COLLECTIONS.AGENTS).doc(manifest.id).set({
-      ...manifest,
-      _updatedAt: new Date(),
-    });
+    await this.db
+      .collection(COLLECTIONS.AGENTS)
+      .doc(manifest.id)
+      .set({
+        ...manifest,
+        _updatedAt: new Date(),
+      });
     log.debug({ agentId: manifest.id }, 'Agent saved to Firestore');
   }
 
@@ -227,10 +247,13 @@ class FirestoreMarketplaceStore implements MarketplaceStore {
   async saveInstallation(installation: Installation): Promise<void> {
     if (!this.db) throw new Error('Firestore not initialized');
 
-    await this.db.collection(COLLECTIONS.INSTALLATIONS).doc(installation.id).set({
-      ...installation,
-      _updatedAt: new Date(),
-    });
+    await this.db
+      .collection(COLLECTIONS.INSTALLATIONS)
+      .doc(installation.id)
+      .set({
+        ...installation,
+        _updatedAt: new Date(),
+      });
     log.debug({ installationId: installation.id }, 'Installation saved to Firestore');
   }
 
@@ -247,7 +270,10 @@ class FirestoreMarketplaceStore implements MarketplaceStore {
     return installation as Installation;
   }
 
-  async getInstallationByUserItem(userId: UserId, itemId: MarketplaceId): Promise<Installation | null> {
+  async getInstallationByUserItem(
+    userId: UserId,
+    itemId: MarketplaceId
+  ): Promise<Installation | null> {
     if (!this.db) throw new Error('Firestore not initialized');
 
     const snapshot = await this.db
@@ -265,7 +291,10 @@ class FirestoreMarketplaceStore implements MarketplaceStore {
     return installation as Installation;
   }
 
-  async listInstallations(userId: UserId, options?: { itemType?: 'agent' | 'tool' }): Promise<Installation[]> {
+  async listInstallations(
+    userId: UserId,
+    options?: { itemType?: 'agent' | 'tool' }
+  ): Promise<Installation[]> {
     if (!this.db) throw new Error('Firestore not initialized');
 
     let query: FirebaseFirestore.Query = this.db
@@ -287,10 +316,13 @@ class FirestoreMarketplaceStore implements MarketplaceStore {
   async updateInstallation(id: string, updates: Partial<Installation>): Promise<void> {
     if (!this.db) throw new Error('Firestore not initialized');
 
-    await this.db.collection(COLLECTIONS.INSTALLATIONS).doc(id).update({
-      ...updates,
-      _updatedAt: new Date(),
-    });
+    await this.db
+      .collection(COLLECTIONS.INSTALLATIONS)
+      .doc(id)
+      .update({
+        ...updates,
+        _updatedAt: new Date(),
+      });
     log.debug({ installationId: id }, 'Installation updated in Firestore');
   }
 
@@ -299,10 +331,13 @@ class FirestoreMarketplaceStore implements MarketplaceStore {
   async saveExecution(execution: ToolExecution): Promise<void> {
     if (!this.db) throw new Error('Firestore not initialized');
 
-    await this.db.collection(COLLECTIONS.EXECUTIONS).doc(execution.id).set({
-      ...execution,
-      _createdAt: new Date(),
-    });
+    await this.db
+      .collection(COLLECTIONS.EXECUTIONS)
+      .doc(execution.id)
+      .set({
+        ...execution,
+        _createdAt: new Date(),
+      });
   }
 
   async listExecutions(
@@ -433,7 +468,10 @@ class InMemoryMarketplaceStore implements MarketplaceStore {
     return this.installations.get(id) || null;
   }
 
-  async getInstallationByUserItem(userId: UserId, itemId: MarketplaceId): Promise<Installation | null> {
+  async getInstallationByUserItem(
+    userId: UserId,
+    itemId: MarketplaceId
+  ): Promise<Installation | null> {
     return (
       Array.from(this.installations.values()).find(
         (i) => i.userId === userId && i.itemId === itemId && i.status === 'active'
@@ -441,7 +479,10 @@ class InMemoryMarketplaceStore implements MarketplaceStore {
     );
   }
 
-  async listInstallations(userId: UserId, options?: { itemType?: 'agent' | 'tool' }): Promise<Installation[]> {
+  async listInstallations(
+    userId: UserId,
+    options?: { itemType?: 'agent' | 'tool' }
+  ): Promise<Installation[]> {
     let installations = Array.from(this.installations.values()).filter(
       (i) => i.userId === userId && i.status === 'active'
     );

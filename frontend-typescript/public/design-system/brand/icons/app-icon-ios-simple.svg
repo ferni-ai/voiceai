@@ -1,0 +1,23 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ferni iOS App Icon - Simple version -->
+  <defs>
+    <linearGradient id="iosGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#325038"/>
+      <stop offset="100%" stop-color="#4a6d52"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="#F5F1E8"/>
+  
+  <!-- Main shape -->
+  <rect x="112" y="112" width="800" height="800" rx="180" fill="url(#iosGradient)"/>
+  
+  <!-- FE Monogram -->
+  <text x="512" y="580" 
+        font-family="'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif" 
+        font-size="380" 
+        font-weight="800" 
+        fill="white" 
+        text-anchor="middle">FE</text>
+</svg>

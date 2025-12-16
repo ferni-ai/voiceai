@@ -215,11 +215,41 @@ describe('VolumeDynamicsTracker', () => {
 
     it('detects getting quieter across utterances', () => {
       // Start loud, get progressively quieter
-      tracker.recordObservation({ averageDb: -15, peakDb: -10, startDb: -15, endDb: -15, variance: 5 });
-      tracker.recordObservation({ averageDb: -20, peakDb: -15, startDb: -20, endDb: -20, variance: 5 });
-      tracker.recordObservation({ averageDb: -25, peakDb: -20, startDb: -25, endDb: -25, variance: 5 });
-      tracker.recordObservation({ averageDb: -30, peakDb: -25, startDb: -30, endDb: -30, variance: 5 });
-      tracker.recordObservation({ averageDb: -35, peakDb: -30, startDb: -35, endDb: -35, variance: 5 });
+      tracker.recordObservation({
+        averageDb: -15,
+        peakDb: -10,
+        startDb: -15,
+        endDb: -15,
+        variance: 5,
+      });
+      tracker.recordObservation({
+        averageDb: -20,
+        peakDb: -15,
+        startDb: -20,
+        endDb: -20,
+        variance: 5,
+      });
+      tracker.recordObservation({
+        averageDb: -25,
+        peakDb: -20,
+        startDb: -25,
+        endDb: -25,
+        variance: 5,
+      });
+      tracker.recordObservation({
+        averageDb: -30,
+        peakDb: -25,
+        startDb: -30,
+        endDb: -30,
+        variance: 5,
+      });
+      tracker.recordObservation({
+        averageDb: -35,
+        peakDb: -30,
+        startDb: -35,
+        endDb: -35,
+        variance: 5,
+      });
 
       const state = tracker.getCurrentState();
       expect(state.acrossUtterancesTrend).toBe('getting_quieter');
@@ -227,11 +257,41 @@ describe('VolumeDynamicsTracker', () => {
 
     it('detects getting louder across utterances', () => {
       // Start quiet, get progressively louder
-      tracker.recordObservation({ averageDb: -35, peakDb: -30, startDb: -35, endDb: -35, variance: 5 });
-      tracker.recordObservation({ averageDb: -30, peakDb: -25, startDb: -30, endDb: -30, variance: 5 });
-      tracker.recordObservation({ averageDb: -25, peakDb: -20, startDb: -25, endDb: -25, variance: 5 });
-      tracker.recordObservation({ averageDb: -20, peakDb: -15, startDb: -20, endDb: -20, variance: 5 });
-      tracker.recordObservation({ averageDb: -15, peakDb: -10, startDb: -15, endDb: -15, variance: 5 });
+      tracker.recordObservation({
+        averageDb: -35,
+        peakDb: -30,
+        startDb: -35,
+        endDb: -35,
+        variance: 5,
+      });
+      tracker.recordObservation({
+        averageDb: -30,
+        peakDb: -25,
+        startDb: -30,
+        endDb: -30,
+        variance: 5,
+      });
+      tracker.recordObservation({
+        averageDb: -25,
+        peakDb: -20,
+        startDb: -25,
+        endDb: -25,
+        variance: 5,
+      });
+      tracker.recordObservation({
+        averageDb: -20,
+        peakDb: -15,
+        startDb: -20,
+        endDb: -20,
+        variance: 5,
+      });
+      tracker.recordObservation({
+        averageDb: -15,
+        peakDb: -10,
+        startDb: -15,
+        endDb: -15,
+        variance: 5,
+      });
 
       const state = tracker.getCurrentState();
       expect(state.acrossUtterancesTrend).toBe('getting_louder');
@@ -242,13 +302,37 @@ describe('VolumeDynamicsTracker', () => {
     it('detects sensitive topic when volume drops significantly', () => {
       // Establish baseline with normal volume
       for (let i = 0; i < 5; i++) {
-        tracker.recordObservation({ averageDb: -20, peakDb: -15, startDb: -20, endDb: -20, variance: 5 });
+        tracker.recordObservation({
+          averageDb: -20,
+          peakDb: -15,
+          startDb: -20,
+          endDb: -20,
+          variance: 5,
+        });
       }
 
       // Then drop volume significantly
-      tracker.recordObservation({ averageDb: -40, peakDb: -35, startDb: -40, endDb: -45, variance: 5 });
-      tracker.recordObservation({ averageDb: -42, peakDb: -37, startDb: -42, endDb: -47, variance: 5 });
-      tracker.recordObservation({ averageDb: -44, peakDb: -39, startDb: -44, endDb: -49, variance: 5 });
+      tracker.recordObservation({
+        averageDb: -40,
+        peakDb: -35,
+        startDb: -40,
+        endDb: -45,
+        variance: 5,
+      });
+      tracker.recordObservation({
+        averageDb: -42,
+        peakDb: -37,
+        startDb: -42,
+        endDb: -47,
+        variance: 5,
+      });
+      tracker.recordObservation({
+        averageDb: -44,
+        peakDb: -39,
+        startDb: -44,
+        endDb: -49,
+        variance: 5,
+      });
 
       const state = tracker.getCurrentState();
       // The detection may show as fluctuating due to the large change from baseline
@@ -259,7 +343,13 @@ describe('VolumeDynamicsTracker', () => {
 
     it('does not flag normal volume as sensitive', () => {
       for (let i = 0; i < 5; i++) {
-        tracker.recordObservation({ averageDb: -25, peakDb: -15, startDb: -25, endDb: -25, variance: 5 });
+        tracker.recordObservation({
+          averageDb: -25,
+          peakDb: -15,
+          startDb: -25,
+          endDb: -25,
+          variance: 5,
+        });
       }
 
       const state = tracker.getCurrentState();
@@ -271,13 +361,37 @@ describe('VolumeDynamicsTracker', () => {
     it('detects intensity increasing', () => {
       // Establish baseline with normal volume
       for (let i = 0; i < 5; i++) {
-        tracker.recordObservation({ averageDb: -30, peakDb: -25, startDb: -30, endDb: -30, variance: 5 });
+        tracker.recordObservation({
+          averageDb: -30,
+          peakDb: -25,
+          startDb: -30,
+          endDb: -30,
+          variance: 5,
+        });
       }
 
       // Then increase volume significantly
-      tracker.recordObservation({ averageDb: -15, peakDb: -10, startDb: -14, endDb: -13, variance: 5 });
-      tracker.recordObservation({ averageDb: -13, peakDb: -8, startDb: -12, endDb: -11, variance: 5 });
-      tracker.recordObservation({ averageDb: -11, peakDb: -6, startDb: -10, endDb: -9, variance: 5 });
+      tracker.recordObservation({
+        averageDb: -15,
+        peakDb: -10,
+        startDb: -14,
+        endDb: -13,
+        variance: 5,
+      });
+      tracker.recordObservation({
+        averageDb: -13,
+        peakDb: -8,
+        startDb: -12,
+        endDb: -11,
+        variance: 5,
+      });
+      tracker.recordObservation({
+        averageDb: -11,
+        peakDb: -6,
+        startDb: -10,
+        endDb: -9,
+        variance: 5,
+      });
 
       const state = tracker.getCurrentState();
       // The detection may show as fluctuating due to the large change from baseline
@@ -291,7 +405,13 @@ describe('VolumeDynamicsTracker', () => {
     it('suggests softer volume for sensitive topics', () => {
       // Set up for sensitive topic detection
       for (let i = 0; i < 5; i++) {
-        tracker.recordObservation({ averageDb: -20, peakDb: -15, startDb: -20, endDb: -20, variance: 5 });
+        tracker.recordObservation({
+          averageDb: -20,
+          peakDb: -15,
+          startDb: -20,
+          endDb: -20,
+          variance: 5,
+        });
       }
       // Drop to whisper
       const state = tracker.recordObservation({
@@ -358,7 +478,13 @@ describe('VolumeDynamicsTracker', () => {
 
   describe('pattern detection', () => {
     it('detects normal pattern with stable volume', () => {
-      tracker.recordObservation({ averageDb: -25, peakDb: -15, startDb: -25, endDb: -25, variance: 10 });
+      tracker.recordObservation({
+        averageDb: -25,
+        peakDb: -15,
+        startDb: -25,
+        endDb: -25,
+        variance: 10,
+      });
 
       const patterns = tracker.detectPatterns();
       expect(patterns.some((p) => p.type === 'normal')).toBe(true);
@@ -367,12 +493,36 @@ describe('VolumeDynamicsTracker', () => {
     it('detects vulnerability drop pattern', () => {
       // Establish loud baseline
       for (let i = 0; i < 5; i++) {
-        tracker.recordObservation({ averageDb: -15, peakDb: -10, startDb: -15, endDb: -15, variance: 5 });
+        tracker.recordObservation({
+          averageDb: -15,
+          peakDb: -10,
+          startDb: -15,
+          endDb: -15,
+          variance: 5,
+        });
       }
       // Drop significantly
-      tracker.recordObservation({ averageDb: -40, peakDb: -35, startDb: -40, endDb: -45, variance: 5 });
-      tracker.recordObservation({ averageDb: -42, peakDb: -37, startDb: -42, endDb: -45, variance: 5 });
-      tracker.recordObservation({ averageDb: -44, peakDb: -39, startDb: -44, endDb: -45, variance: 5 });
+      tracker.recordObservation({
+        averageDb: -40,
+        peakDb: -35,
+        startDb: -40,
+        endDb: -45,
+        variance: 5,
+      });
+      tracker.recordObservation({
+        averageDb: -42,
+        peakDb: -37,
+        startDb: -42,
+        endDb: -45,
+        variance: 5,
+      });
+      tracker.recordObservation({
+        averageDb: -44,
+        peakDb: -39,
+        startDb: -44,
+        endDb: -45,
+        variance: 5,
+      });
 
       const patterns = tracker.detectPatterns();
       const hasVulnerability = patterns.some((p) => p.type === 'vulnerability_drop');
@@ -382,9 +532,27 @@ describe('VolumeDynamicsTracker', () => {
 
     it('detects fade out pattern', () => {
       // Utterances that fade at the end
-      tracker.recordObservation({ averageDb: -25, peakDb: -15, startDb: -20, endDb: -30, variance: 10 });
-      tracker.recordObservation({ averageDb: -25, peakDb: -15, startDb: -20, endDb: -32, variance: 10 });
-      tracker.recordObservation({ averageDb: -25, peakDb: -15, startDb: -20, endDb: -35, variance: 10 });
+      tracker.recordObservation({
+        averageDb: -25,
+        peakDb: -15,
+        startDb: -20,
+        endDb: -30,
+        variance: 10,
+      });
+      tracker.recordObservation({
+        averageDb: -25,
+        peakDb: -15,
+        startDb: -20,
+        endDb: -32,
+        variance: 10,
+      });
+      tracker.recordObservation({
+        averageDb: -25,
+        peakDb: -15,
+        startDb: -20,
+        endDb: -35,
+        variance: 10,
+      });
 
       const patterns = tracker.detectPatterns();
       const hasFadeOut = patterns.some((p) => p.type === 'fade_out');

@@ -102,7 +102,13 @@ export {
   createPredictiveMonitor,
   createAlertingAnomalyHandler,
 } from './anomaly-detection.js';
-export type { MetricWindow, AnomalyConfig, Anomaly, TrendAnalysis, AnomalyHistoryPoint } from './anomaly-detection.js';
+export type {
+  MetricWindow,
+  AnomalyConfig,
+  Anomaly,
+  TrendAnalysis,
+  AnomalyHistoryPoint,
+} from './anomaly-detection.js';
 
 // Health Monitors - Proactive service health checking
 export {

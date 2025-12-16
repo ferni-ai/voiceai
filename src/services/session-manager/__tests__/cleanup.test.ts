@@ -31,10 +31,7 @@ import type { SessionServices } from '../../types.js';
 describe('Session Cleanup Module', () => {
   let mockSessions: Map<string, SessionServices>;
 
-  const createMockServices = (
-    sessionId: string,
-    startTimeOffset: number = 0
-  ): SessionServices => {
+  const createMockServices = (sessionId: string, startTimeOffset: number = 0): SessionServices => {
     return {
       sessionId,
       userId: `user-${sessionId}`,
@@ -269,4 +266,3 @@ describe('Session Cleanup Edge Cases', () => {
     expect(result).toBe(0);
   });
 });
-

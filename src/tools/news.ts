@@ -51,9 +51,8 @@ export async function getFinancialNews(
       const topStories = news
         .slice(0, 3)
         .map((n) => n.headline)
-        .filter(Boolean)
-        .join('; ');
-      return `Here's what's in the financial news: ${topStories}. But remember—news is noise. Stay focused on your long-term plan.`;
+        .filter(Boolean);
+      return `Financial news headlines: ${topStories.join('. ')}`;
     }
 
     return 'The financial news is quiet today. Sometimes no news is good news for investors!';
@@ -93,9 +92,8 @@ export async function getStockNews(symbol: string): Promise<string> {
       const topStories = news
         .slice(0, 3)
         .map((n) => n.headline)
-        .filter(Boolean)
-        .join('; ');
-      return `Recent news about ${symbol}: ${topStories}`;
+        .filter(Boolean);
+      return `Recent ${symbol} news: ${topStories.join('. ')}`;
     }
 
     return `No recent news for ${symbol}. Sometimes that's a good thing!`;
@@ -135,7 +133,7 @@ export async function getGeneralNews(): Promise<string> {
           const headlines = extractRSSHeadlines(xml, 5);
 
           if (headlines.length > 0) {
-            return `Here's what's happening in the world (via ${source.name}): ${headlines.join('. ')}`;
+            return `Top news from ${source.name}: ${headlines.join('. ')}`;
           }
         }
       } catch (error) {

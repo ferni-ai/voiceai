@@ -25,7 +25,7 @@ import type { HumanMemory, ImportantDate } from '../../../types/human-memory.js'
 
 describe('Date Utilities', () => {
   describe('isToday', () => {
-    it('should return true for today\'s date', () => {
+    it("should return true for today's date", () => {
       const today = new Date();
       const date: ImportantDate = {
         id: 'test',
@@ -487,4 +487,3 @@ describe('buildIdentityContext', () => {
     expect(result?.content).not.toContain('Mars');
   });
 });
-

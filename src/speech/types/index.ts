@@ -35,10 +35,7 @@ import type {
   ProsodyContinuityHints,
   UtteranceEmotionalState,
 } from '../emotional-contagion.js';
-import type {
-  PhraseBoundaryResult,
-  TurnPredictionResult,
-} from '../enhanced-turn-prediction.js';
+import type { PhraseBoundaryResult, TurnPredictionResult } from '../enhanced-turn-prediction.js';
 
 /**
  * Type guard for ProsodyFeatures
@@ -522,10 +519,7 @@ export type {
 // ENHANCED TURN PREDICTION TYPES
 // ============================================================================
 
-export type {
-  PhraseBoundaryResult,
-  TurnPredictionResult,
-} from '../enhanced-turn-prediction.js';
+export type { PhraseBoundaryResult, TurnPredictionResult } from '../enhanced-turn-prediction.js';
 
 // ============================================================================
 // UNIFIED BACKCHANNELING TYPES

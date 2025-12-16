@@ -849,7 +849,7 @@ class SettingsMenuUI {
     const pinnedItemsHtml = [...this.pinnedItems]
       .filter((action) => menuItems[action] && !this.isFeatureLocked(action))
       .map((action) => {
-        const item = menuItems[action]!;
+        const item = menuItems[action];
         return `
           <button class="settings-menu__item settings-menu__item--pinned" data-action="${action}" data-pinnable="true">
             <span class="settings-menu__icon">${item.icon}</span>

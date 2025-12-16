@@ -20,6 +20,12 @@ import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
 import { createHandoffTools, executeHandoff, getCurrentAgent } from '../../tools/handoff/index.js';
 import type { UserData } from '../shared/types.js';
+import {
+  isHandoffInProgress,
+  completeHandoff,
+  getNextMessageSeq,
+  getHandoffPersonaInfo,
+} from '../shared/handoff/session-state.js';
 
 // ============================================================================
 // TYPES
@@ -118,6 +124,10 @@ export function setupDataChannelHandler(ctx: DataChannelContext): DataChannelRes
 
       if (message.type === 'claude_narration') {
         await handleClaudeNarration(message, ctx);
+      }
+
+      if (message.type === 'handoff_cancel') {
+        await handleHandoffCancel(message, ctx);
       }
     } catch {
       // Not JSON or not a valid request - this is expected for non-data-channel uses
@@ -526,6 +536,95 @@ async function handleVoicePackChange(
     getLogger().info({ packId: message.packId }, '🎤 Voice pack updated successfully');
   } catch (voicePackErr) {
     getLogger().warn({ error: String(voicePackErr) }, 'Voice pack change failed');
+  }
+}
+
+/**
+ * Handle handoff_cancel messages - user cancelled an in-progress handoff
+ *
+ * This is sent by the frontend when the user taps to cancel a handoff
+ * that's currently transitioning. We clean up backend state and send
+ * handoff_cancelled back to confirm.
+ */
+async function handleHandoffCancel(
+  message: { targetPersona?: string; reason?: string },
+  ctx: DataChannelContext
+): Promise<void> {
+  const { room, sessionId } = ctx;
+  const { targetPersona, reason } = message;
+
+  getLogger().info({ targetPersona, reason }, '🚫 User requested handoff cancellation');
+  diag.entry(`🚫 Handoff cancellation requested: ${targetPersona || 'unknown'}`);
+
+  // Check if there's actually a handoff in progress
+  if (!isHandoffInProgress(sessionId)) {
+    getLogger().warn('No handoff in progress to cancel');
+
+    // Send cancelled anyway to ensure frontend state is synced
+    const cancelledMessage = JSON.stringify({
+      type: 'handoff_cancelled',
+      targetPersona: targetPersona || 'unknown',
+      reason: 'No handoff in progress',
+      seq: getNextMessageSeq(sessionId),
+      timestamp: Date.now(),
+    });
+    await room.localParticipant?.publishData(new TextEncoder().encode(cancelledMessage), {
+      reliable: true,
+    });
+    return;
+  }
+
+  try {
+    // Get info about the in-progress handoff before clearing
+    const handoffInfo = getHandoffPersonaInfo(sessionId);
+
+    // Complete/clear the handoff state
+    const { durationMs } = completeHandoff(sessionId);
+
+    getLogger().info(
+      {
+        targetPersona: handoffInfo.targetPersonaId,
+        previousPersona: handoffInfo.previousPersonaId,
+        durationMs,
+      },
+      '🚫 Handoff state cleared due to cancellation'
+    );
+
+    // Send handoff_cancelled message to frontend
+    const cancelledMessage = JSON.stringify({
+      type: 'handoff_cancelled',
+      targetPersona: handoffInfo.targetPersonaId || targetPersona || 'unknown',
+      previousPersona: handoffInfo.previousPersonaId,
+      reason: reason || 'Cancelled by user',
+      durationMs,
+      seq: getNextMessageSeq(sessionId),
+      timestamp: Date.now(),
+    });
+    await room.localParticipant?.publishData(new TextEncoder().encode(cancelledMessage), {
+      reliable: true,
+    });
+
+    diag.entry(`🚫 Handoff cancelled after ${durationMs}ms`);
+    getLogger().info({ targetPersona, durationMs }, '✅ Handoff cancellation complete');
+  } catch (cancelErr) {
+    getLogger().error({ error: String(cancelErr) }, '❌ Handoff cancellation failed');
+
+    // Try to send failure response
+    try {
+      const errorMessage = JSON.stringify({
+        type: 'handoff_cancelled',
+        targetPersona: targetPersona || 'unknown',
+        reason: `Cancellation error: ${cancelErr}`,
+        error: String(cancelErr),
+        seq: getNextMessageSeq(sessionId),
+        timestamp: Date.now(),
+      });
+      await room.localParticipant?.publishData(new TextEncoder().encode(errorMessage), {
+        reliable: true,
+      });
+    } catch (sendErr) {
+      getLogger().debug({ error: String(sendErr) }, 'Failed to send cancellation error');
+    }
   }
 }
 

@@ -168,9 +168,10 @@ function detectTrend(window: MetricWindow): TrendAnalysis {
   // For latency/error metrics, higher is worse (degrading)
   // For success rate, lower is worse (degrading)
   const isHigherBetter = window.name.includes('success_rate');
-  
+
   let direction: TrendAnalysis['direction'] = 'stable';
-  if (Math.abs(changePercent) > 10) { // >10% change threshold
+  if (Math.abs(changePercent) > 10) {
+    // >10% change threshold
     if (isHigherBetter) {
       direction = changePercent > 0 ? 'improving' : 'degrading';
     } else {
@@ -198,7 +199,7 @@ function createAnomaly(
 ): Anomaly {
   const isHigherBetter = window.name.includes('success_rate');
   const isSpike = type === 'spike' || (type !== 'drop' && zScore > 0);
-  
+
   // Determine severity based on z-score
   const severity: Anomaly['severity'] = Math.abs(zScore) > 4 ? 'critical' : 'warning';
 
@@ -209,9 +210,13 @@ function createAnomaly(
     message = `${window.name} is ${trend.direction} (${trend.changePercent.toFixed(1)}% change)`;
   } else {
     const direction = isSpike ? 'spike' : 'drop';
-    const impact = isHigherBetter 
-      ? (isSpike ? 'unusually high (good)' : 'unusually low (concerning)')
-      : (isSpike ? 'unusually high (concerning)' : 'unusually low (good)');
+    const impact = isHigherBetter
+      ? isSpike
+        ? 'unusually high (good)'
+        : 'unusually low (concerning)'
+      : isSpike
+        ? 'unusually high (concerning)'
+        : 'unusually low (good)';
     message = `${window.name} ${direction} detected: ${value.toFixed(2)} (${impact}). Expected: ${window.mean.toFixed(2)} ± ${(window.stdDev * 2).toFixed(2)}`;
   }
 
@@ -260,12 +265,12 @@ export function recordAndDetect(
 
   // Check for anomaly
   const zScore = calculateZScore(value, window.mean, window.stdDev);
-  
+
   if (Math.abs(zScore) > config.zScoreThreshold) {
     // Anomaly detected!
     if (!isInCooldown(window)) {
       window.lastAnomalyTime = now;
-      
+
       const type: Anomaly['type'] = zScore > 0 ? 'spike' : 'drop';
       const anomaly = createAnomaly(window, value, zScore, type);
 
@@ -294,14 +299,14 @@ export function recordAndDetect(
   // Check for trends (less frequently)
   if (config.enableTrendDetection && window.values.length >= 50) {
     const trend = detectTrend(window);
-    
+
     if (trend.direction === 'degrading' && trend.strength > 0.5) {
       // Degrading trend detected
       if (!isInCooldown(window)) {
         window.lastAnomalyTime = now;
-        
+
         const anomaly = createAnomaly(window, value, trend.changePercent / 20, 'trend');
-        
+
         recentAnomalies.push(anomaly);
         if (recentAnomalies.length > MAX_ANOMALY_HISTORY) {
           recentAnomalies.shift();
@@ -363,11 +368,11 @@ export function recordRequestVolume(serviceName: string, requestCount: number): 
 export function configureAnomalyDetection(newConfig: Partial<AnomalyConfig>): void {
   config = { ...config, ...newConfig };
   log.info(
-    { 
-      windowSize: config.windowSize, 
+    {
+      windowSize: config.windowSize,
       zScoreThreshold: config.zScoreThreshold,
       trendDetection: config.enableTrendDetection,
-    }, 
+    },
     'Anomaly detection configured'
   );
 }
@@ -457,9 +462,7 @@ export function getAnomalyHistory(windowMinutes = 60): AnomalyHistoryPoint[] {
  * Get anomalies for a specific metric
  */
 export function getMetricAnomalies(metricName: string, limit = 50): Anomaly[] {
-  return recentAnomalies
-    .filter((a) => a.metricName === metricName)
-    .slice(-limit);
+  return recentAnomalies.filter((a) => a.metricName === metricName).slice(-limit);
 }
 
 /**
@@ -519,7 +522,9 @@ export function createPredictiveMonitor(serviceName: string): {
       if (latencyStats && latencyStats.values.length >= config.minSamples) {
         const recentLatency = latencyStats.values[latencyStats.values.length - 1];
         if (recentLatency > latencyStats.mean + 2 * latencyStats.stdDev) {
-          warnings.push(`Elevated latency: ${recentLatency.toFixed(0)}ms (avg: ${latencyStats.mean.toFixed(0)}ms)`);
+          warnings.push(
+            `Elevated latency: ${recentLatency.toFixed(0)}ms (avg: ${latencyStats.mean.toFixed(0)}ms)`
+          );
         }
       }
 
@@ -527,7 +532,8 @@ export function createPredictiveMonitor(serviceName: string): {
       const errorStats = getMetricStats(`${serviceName}/error_rate`);
       if (errorStats && errorStats.values.length >= config.minSamples) {
         const recentErrorRate = errorStats.values[errorStats.values.length - 1];
-        if (recentErrorRate > 10) { // >10% error rate
+        if (recentErrorRate > 10) {
+          // >10% error rate
           warnings.push(`High error rate: ${recentErrorRate.toFixed(1)}%`);
           healthy = false;
         } else if (recentErrorRate > 5) {
@@ -563,4 +569,3 @@ export function createAlertingAnomalyHandler(): (anomaly: Anomaly) => void {
     }
   };
 }
-

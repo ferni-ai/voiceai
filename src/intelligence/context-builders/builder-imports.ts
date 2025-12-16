@@ -39,6 +39,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'cross-session-reflection': () => import('./cross-session-reflection.js'),
   'cross-session-threading': () => import('./cross-session-threading.js'),
   'unified-memory-orchestrator': () => import('./unified-memory-orchestrator.js'), // Coordinates all memory systems
+  'thinking-of-you': () => import('./thinking-of-you.js'), // Proactive callbacks and follow-ups
 
   // PERSONA
   'persona-identity': () => import('./persona-identity.js'),
@@ -82,6 +83,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   storytelling: () => import('./storytelling.js'),
   music: () => import('./music.js'),
   'music-emotion-offers': () => import('./music-emotion-offers.js'),
+  'daily-rituals': () => import('./daily-rituals.js'), // Morning Sky Check, Habit Heartbeat, etc.
 
   // TEAM
   'team-availability': () => import('./team-availability.js'),
@@ -90,6 +92,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'role-boundaries': () => import('./role-boundaries.js'),
   'cameo-opportunities': () => import('./cameo-opportunities.js'),
   'cameo-unlock': () => import('./cameo-unlock.js'), // Natural team member introductions
+  'team-gossip': () => import('./team-gossip.js'), // Cross-persona references and banter
 
   // CONTEXT
   'tool-capabilities': () => import('./tool-capabilities.js'),

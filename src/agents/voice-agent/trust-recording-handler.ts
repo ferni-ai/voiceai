@@ -45,9 +45,10 @@ export interface TurnResult {
   };
   context: {
     humanizingResult?: {
-      mood?: {
-        state?: string;
-      };
+      // mood and relationship are typed as unknown in HumanizingResultBase
+      // to break circular dependencies. Cast when accessing.
+      mood?: unknown;
+      relationship?: unknown;
     };
   };
 }
@@ -117,7 +118,9 @@ export async function recordTrustSystemsData(ctx: TrustRecordingContext): Promis
     recordLearningSignals(userId, userText);
 
     // Phase 28: Record topic data for insights
-    const topic = result.context?.humanizingResult?.mood?.state;
+    // Cast mood to access state (typed as unknown to break circular deps)
+    const moodData = result.context?.humanizingResult?.mood as { state?: string } | undefined;
+    const topic = moodData?.state;
     if (topic) {
       const sentiment =
         result.emotional?.primary === 'joy' || result.emotional?.primary === 'trust'

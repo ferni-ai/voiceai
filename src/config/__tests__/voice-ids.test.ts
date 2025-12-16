@@ -7,11 +7,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  getVoiceIdForPersona,
-  isValidVoiceId,
-  VOICE_IDS,
-} from '../voice-ids.js';
+import { getVoiceIdForPersona, isValidVoiceId, VOICE_IDS } from '../voice-ids.js';
 
 describe('Voice IDs', () => {
   // Store original env vars to restore after each test
@@ -260,9 +256,7 @@ describe('Voice IDs', () => {
     // Ensure all team members have distinct voices
 
     it('Ferni and Peter John should have different voices', () => {
-      expect(getVoiceIdForPersona('ferni')).not.toBe(
-        getVoiceIdForPersona('peter-john')
-      );
+      expect(getVoiceIdForPersona('ferni')).not.toBe(getVoiceIdForPersona('peter-john'));
     });
 
     it('each team member should have unique voice', () => {
@@ -280,4 +274,3 @@ describe('Voice IDs', () => {
     });
   });
 });
-

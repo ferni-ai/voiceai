@@ -70,8 +70,11 @@ describe('SessionPrimer', () => {
       };
 
       // Use internal method to extract follow-ups
-      const followUps = (primer as unknown as { extractFollowUps: (profile: unknown) => unknown[] }).extractFollowUps?.(mockProfile) || mockProfile.pendingFollowUps;
-      
+      const followUps =
+        (
+          primer as unknown as { extractFollowUps: (profile: unknown) => unknown[] }
+        ).extractFollowUps?.(mockProfile) || mockProfile.pendingFollowUps;
+
       expect(followUps.length).toBe(2);
     });
   });
@@ -187,23 +190,22 @@ describe('SessionPrimer', () => {
   describe('Singleton management', () => {
     it('should return same instance via getSessionPrimer', async () => {
       const { getSessionPrimer, resetSessionPrimer } = await import('../session-priming.js');
-      
+
       resetSessionPrimer();
       const primer1 = getSessionPrimer();
       const primer2 = getSessionPrimer();
-      
+
       expect(primer1).toBe(primer2);
     });
 
     it('should create new instance after reset', async () => {
       const { getSessionPrimer, resetSessionPrimer } = await import('../session-priming.js');
-      
+
       const primer1 = getSessionPrimer();
       resetSessionPrimer();
       const primer2 = getSessionPrimer();
-      
+
       expect(primer1).not.toBe(primer2);
     });
   });
 });
-

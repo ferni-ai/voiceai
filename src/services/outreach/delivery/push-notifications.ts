@@ -433,17 +433,14 @@ async function sendToToken(
   };
 
   const response = await fcmCircuitBreaker.execute(() =>
-    fetch(
-      `https://fcm.googleapis.com/v1/projects/${config!.firebaseProjectId}/messages:send`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(message),
-      }
-    )
+    fetch(`https://fcm.googleapis.com/v1/projects/${config!.firebaseProjectId}/messages:send`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(message),
+    })
   );
 
   if (!response.ok) {

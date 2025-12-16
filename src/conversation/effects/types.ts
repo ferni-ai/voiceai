@@ -271,4 +271,3 @@ export interface EffectRegistry {
   create(id: string, personaId: string): HumanizationEffect | null;
   createAll(personaId: string): HumanizationEffect[];
 }
-

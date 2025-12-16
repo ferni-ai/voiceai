@@ -135,6 +135,14 @@ export interface HandoffSessionState {
   timeoutTimer: ReturnType<typeof setTimeout> | null;
   /** When current handoff started */
   handoffStartTime: number | null;
+  /** Progress heartbeat interval */
+  progressInterval: ReturnType<typeof setInterval> | null;
+  /** Target persona ID (for rollback info in handoff_failed) */
+  targetPersonaId: string | null;
+  /** Previous persona ID (for rollback) */
+  previousPersonaId: string | null;
+  /** Message sequence number for ordering detection */
+  messageSeq: number;
 }
 
 // ============================================================================

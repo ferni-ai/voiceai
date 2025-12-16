@@ -574,6 +574,9 @@ class CameoService {
    * If backend gets out of sync, the next handoff/cameo will reset state.
    */
   private forceCleanup(): void {
+    const orphanedPersonaId = this.state.currentPersonaId;
+    const orphanedPersonaName = this.state.currentPersonaName;
+
     log.warn(
       '🎬 Forcing cameo cleanup (frontend timeout - backend voice may still be cameo persona)'
     );
@@ -591,6 +594,17 @@ class CameoService {
     document.documentElement.style.removeProperty('--cameo-persona-glow');
     document.body.removeAttribute('data-cameo-active');
     document.body.removeAttribute('data-cameo-persona');
+
+    // FIX: Dispatch event for UI to show recovery message
+    document.dispatchEvent(
+      new CustomEvent('ferni:cameo-timeout', {
+        detail: {
+          personaId: orphanedPersonaId,
+          personaName: orphanedPersonaName,
+          maxDuration: CAMEO_SAFETY_CONFIG.MAX_CAMEO_DURATION,
+        },
+      })
+    );
 
     // Notify end callbacks
     for (const callback of this.endCallbacks) {
@@ -624,6 +638,7 @@ class CameoService {
   /**
    * Play the cameo arrival sound
    * Tries: cameo-arrive → dramatic-entrance → connect
+   * FIX: Now dispatches event if all sounds fail for visual fallback
    */
   private async playArrivalSound(): Promise<void> {
     const soundsToTry: SoundEffect[] = [
@@ -643,6 +658,16 @@ class CameoService {
       }
     }
     log.warn('No cameo arrival sound available');
+
+    // FIX: Dispatch event for UI to show visual fallback
+    document.dispatchEvent(
+      new CustomEvent('ferni:sound-fallback', {
+        detail: {
+          type: 'cameo-arrival',
+          personaId: this.state.currentPersonaId,
+        },
+      })
+    );
   }
 
   /**
@@ -663,6 +688,7 @@ class CameoService {
   /**
    * Play the cameo return sound
    * Tries: cameo-return → connect
+   * FIX: Now dispatches event if all sounds fail for visual fallback
    */
   private async playReturnSound(): Promise<void> {
     const soundsToTry: SoundEffect[] = [
@@ -682,6 +708,15 @@ class CameoService {
       }
     }
     log.warn('No cameo return sound available');
+
+    // FIX: Dispatch event for UI to show visual fallback
+    document.dispatchEvent(
+      new CustomEvent('ferni:sound-fallback', {
+        detail: {
+          type: 'cameo-return',
+        },
+      })
+    );
   }
 }
 

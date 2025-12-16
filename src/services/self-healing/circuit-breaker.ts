@@ -20,20 +20,24 @@ import { createLogger } from '../../utils/safe-logger.js';
 const log = createLogger({ module: 'circuit-breaker' });
 
 // Lazy imports to avoid circular dependencies
-let alertingHandler: ((name: string, oldState: CircuitState, newState: CircuitState, stats?: CircuitStats) => void) | null = null;
-let metricsHandler: ((name: string, oldState: CircuitState, newState: CircuitState) => void) | null = null;
+let alertingHandler:
+  | ((name: string, oldState: CircuitState, newState: CircuitState, stats?: CircuitStats) => void)
+  | null = null;
+let metricsHandler:
+  | ((name: string, oldState: CircuitState, newState: CircuitState) => void)
+  | null = null;
 
 // Initialize integrations lazily
 async function initializeIntegrations(): Promise<void> {
   if (alertingHandler && metricsHandler) return;
-  
+
   try {
     // Load alerting
     const { handleCircuitStateChange } = await import('./circuit-alerting.js');
     alertingHandler = (name, oldState, newState, stats) => {
       handleCircuitStateChange(name, oldState, newState, {
         failures: stats?.failures,
-        successRate: stats?.totalRequests 
+        successRate: stats?.totalRequests
           ? `${((stats.totalSuccesses / stats.totalRequests) * 100).toFixed(1)}%`
           : undefined,
       });
@@ -229,7 +233,7 @@ export class CircuitBreaker {
 
     // Auto-wired integrations (non-blocking)
     const stats = this.stats;
-    
+
     // Send alerts for significant state changes
     if (alertingHandler) {
       try {
@@ -290,12 +294,12 @@ export function createCircuitBreaker(
     recoveryTimeout: options.recoveryTimeout ?? 30000,
     successThreshold: options.successThreshold ?? 2,
     failureWindow: options.failureWindow ?? 60000,
-    onStateChange: options.onStateChange ?? ((n, o, s) => {
-      // Default: log to e2e diagnostics if available
-      process.stderr.write(
-        `[circuit-breaker] ${n}: ${o} → ${s}\n`
-      );
-    }),
+    onStateChange:
+      options.onStateChange ??
+      ((n, o, s) => {
+        // Default: log to e2e diagnostics if available
+        process.stderr.write(`[circuit-breaker] ${n}: ${o} → ${s}\n`);
+      }),
   });
 
   circuits.set(name, circuit);
@@ -308,4 +312,3 @@ export function createCircuitBreaker(
 export function getAllCircuitStats(): Array<CircuitStats & { name: string }> {
   return Array.from(circuits.values()).map((c) => c.getStats());
 }
-

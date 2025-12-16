@@ -32,12 +32,7 @@
       "Hmm. <break time=\"150ms\"/>",
       "Mhm. <break time=\"100ms\"/>"
     ],
-    "soft_laugh": [
-      "[laughter]",
-      "[laughter]",
-      "[laughter]",
-      "Heh. <break time=\"150ms\"/>"
-    ],
+    "soft_laugh": ["[laughter]", "[laughter]", "[laughter]", "Heh. <break time=\"150ms\"/>"],
     "nurturing": [
       "Mmm. <break time=\"300ms\"/>",
       "<break time=\"200ms\"/>",
@@ -93,14 +88,7 @@
     "centering_probability": 0.25,
     "micro_sound_probability": 0.18,
     "emotional_sound_probability": 0.28,
-    "more_likely_when": [
-      "emotional_moment",
-      "before_important_point",
-      "processing_time"
-    ],
-    "never_when": [
-      "rapid_exchange",
-      "user_in_crisis_needs_clarity"
-    ]
+    "more_likely_when": ["emotional_moment", "before_important_point", "processing_time"],
+    "never_when": ["rapid_exchange", "user_in_crisis_needs_clarity"]
   }
 }

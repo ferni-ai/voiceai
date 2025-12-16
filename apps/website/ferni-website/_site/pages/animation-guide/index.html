@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ferni Animation Guide — Motion Design System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ========================================
+       DESIGN SYSTEM TOKENS
+       ======================================== */
+    :root {
+      /* Brand Colors */
+      --ferni-green: #4a6741;
+      --ferni-green-light: #5a7751;
+      --ferni-green-dark: #3d5a35;
+      --ferni-iris: #5a8060;
+      --cream: #f5f1e8;
+      --paper: #FFFDFB;
+      --ink: #2c2520;
+      --ink-soft: #70605a;
+      --ink-muted: #a09080;
+      
+      /* Spacing */
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-12: 48px;
+      --space-16: 64px;
+      
+      /* Typography */
+      --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --font-body: 'Inter', system-ui, sans-serif;
+      
+      /* Shadows */
+      --shadow-sm: 0 1px 2px rgba(44, 37, 32, 0.05);
+      --shadow-md: 0 4px 12px rgba(44, 37, 32, 0.08);
+      --shadow-lg: 0 12px 32px rgba(44, 37, 32, 0.12);
+      
+      /* Border Radius */
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --radius-full: 9999px;
+      
+      /* Easings */
+      --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-anticipate: cubic-bezier(0.38, -0.4, 0.88, 0.65);
+      --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-gentle: cubic-bezier(0.25, 0.1, 0.25, 1);
+      --ease-organic: cubic-bezier(0.4, 0.2, 0.2, 1.1);
+    }
+    
+    /* ========================================
+       BASE STYLES
+       ======================================== */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: var(--font-body);
+      background: var(--cream);
+      color: var(--ink);
+      line-height: 1.6;
+    }
+    
+    /* ========================================
+       HEADER
+       ======================================== */
+    header {
+      background: var(--ferni-green);
+      color: white;
+      padding: var(--space-16) var(--space-6);
+      text-align: center;
+    }
+    
+    .eyebrow {
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      opacity: 0.8;
+      margin-bottom: var(--space-2);
+    }
+    
+    header h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      margin-bottom: var(--space-4);
+    }
+    
+    header p {
+      font-size: 1.125rem;
+      opacity: 0.9;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    /* ========================================
+       NAVIGATION
+       ======================================== */
+    nav {
+      background: var(--paper);
+      border-bottom: 1px solid rgba(44, 37, 32, 0.08);
+      padding: var(--space-4) var(--space-6);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    nav ul {
+      display: flex;
+      gap: var(--space-2);
+      justify-content: center;
+      flex-wrap: wrap;
+      list-style: none;
+    }
+    
+    nav a {
+      color: var(--ink-soft);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-full);
+      transition: all 150ms var(--ease-standard);
+    }
+    
+    nav a:hover {
+      background: var(--ferni-green);
+      color: white;
+    }
+    
+    /* ========================================
+       MAIN CONTENT
+       ======================================== */
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: var(--space-12) var(--space-6);
+    }
+    
+    section {
+      margin-bottom: var(--space-16);
+    }
+    
+    h2 {
+      font-family: var(--font-display);
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: var(--space-6);
+      padding-bottom: var(--space-4);
+      border-bottom: 3px solid var(--ferni-green);
+    }
+    
+    h3 {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: var(--space-8) 0 var(--space-4);
+      color: var(--ferni-green);
+    }
+    
+    p {
+      margin-bottom: var(--space-4);
+      color: var(--ink-soft);
+    }
+    
+    /* ========================================
+       FERNI CYCLOPS AVATAR (SVG-BASED)
+       Single eye - Luxo Jr. / Mike Wazowski inspired
+       ======================================== */
+    .ferni-avatar-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 280px;
+      background: var(--cream);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-6);
+    }
+    
+    .ferni-avatar {
+      width: 160px;
+      height: 160px;
+      cursor: pointer;
+    }
+    
+    .ferni-avatar .face {
+      fill: var(--ferni-green);
+      transform-origin: center;
+    }
+    
+    /* Eye components */
+    .ferni-avatar .eye-white {
+      fill: white;
+      transform-origin: center;
+    }
+    
+    .ferni-avatar .iris {
+      fill: var(--ferni-iris);
+      transform-origin: center;
+    }
+    
+    .ferni-avatar .pupil {
+      fill: var(--ink);
+      transform-origin: center;
+    }
+    
+    .ferni-avatar .highlight {
+      fill: white;
+      opacity: 0.9;
+    }
+    
+    .ferni-avatar .smile {
+      stroke: white;
+      stroke-linecap: round;
+      fill: none;
+    }
+    
+    /* ========================================
+       CYCLOPS EYE ANIMATIONS
+       Single eye is incredibly expressive!
+       ======================================== */
+    
+    /* Blink - the whole eye shrinks vertically */
+    @keyframes cyclops-blink {
+      0%, 45%, 55%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(0.05); }
+    }
+    
+    .animate-blink .eye-white,
+    .animate-blink .iris,
+    .animate-blink .pupil,
+    .animate-blink .highlight {
+      animation: cyclops-blink 150ms var(--ease-standard);
+    }
+    
+    /* Double blink */
+    @keyframes cyclops-double-blink {
+      0%, 20%, 30%, 50%, 60%, 100% { transform: scaleY(1); }
+      25%, 55% { transform: scaleY(0.05); }
+    }
+    
+    .animate-double-blink .eye-white,
+    .animate-double-blink .iris,
+    .animate-double-blink .pupil,
+    .animate-double-blink .highlight {
+      animation: cyclops-double-blink 400ms var(--ease-standard);
+    }
+    
+    /* Slow blink (content/sleepy) */
+    @keyframes cyclops-slow-blink {
+      0%, 30%, 70%, 100% { transform: scaleY(1); }
+      50% { transform: scaleY(0.05); }
+    }
+    
+    .animate-slow-blink .eye-white,
+    .animate-slow-blink .iris,
+    .animate-slow-blink .pupil,
+    .animate-slow-blink .highlight {
+      animation: cyclops-slow-blink 600ms var(--ease-gentle);
+    }
+    
+    /* Wide eye (surprise) - eye gets bigger */
+    @keyframes cyclops-wide {
+      0%, 100% { transform: scale(1); }
+      20%, 80% { transform: scale(1.2); }
+    }
+    
+    .animate-wide .eye-white { animation: cyclops-wide 500ms var(--ease-spring); }
+    .animate-wide .iris { animation: cyclops-wide 500ms var(--ease-spring) 20ms; }
+    .animate-wide .pupil { animation: cyclops-wide 500ms var(--ease-spring) 40ms; }
+    
+    /* Squint (thinking/skeptical) - eye gets smaller */
+    @keyframes cyclops-squint {
+      0%, 100% { transform: scaleY(1); }
+      30%, 70% { transform: scaleY(0.6); }
+    }
+    
+    .animate-squint .eye-white,
+    .animate-squint .iris,
+    .animate-squint .pupil {
+      animation: cyclops-squint 600ms var(--ease-gentle);
+    }
+    
+    /* Look left - pupil and iris move */
+    @keyframes look-left {
+      0%, 100% { transform: translateX(0); }
+      30%, 70% { transform: translateX(-4px); }
+    }
+    
+    .animate-look-left .iris,
+    .animate-look-left .pupil,
+    .animate-look-left .highlight {
+      animation: look-left 800ms var(--ease-organic);
+    }
+    
+    /* Look right */
+    @keyframes look-right {
+      0%, 100% { transform: translateX(0); }
+      30%, 70% { transform: translateX(4px); }
+    }
+    
+    .animate-look-right .iris,
+    .animate-look-right .pupil,
+    .animate-look-right .highlight {
+      animation: look-right 800ms var(--ease-organic);
+    }
+    
+    /* Look up */
+    @keyframes look-up {
+      0%, 100% { transform: translateY(0); }
+      30%, 70% { transform: translateY(-3px); }
+    }
+    
+    .animate-look-up .iris,
+    .animate-look-up .pupil,
+    .animate-look-up .highlight {
+      animation: look-up 800ms var(--ease-organic);
+    }
+    
+    /* Look around (curious) */
+    @keyframes look-around {
+      0%, 100% { transform: translate(0, 0); }
+      20% { transform: translate(-3px, -2px); }
+      40% { transform: translate(3px, -1px); }
+      60% { transform: translate(2px, 2px); }
+      80% { transform: translate(-2px, 1px); }
+    }
+    
+    .animate-look-around .iris,
+    .animate-look-around .pupil,
+    .animate-look-around .highlight {
+      animation: look-around 1200ms var(--ease-organic);
+    }
+    
+    /* ========================================
+       MOUTH ANIMATIONS
+       ======================================== */
+    
+    /* Smile grow */
+    @keyframes smile-grow {
+      0%, 100% { 
+        d: path("M 35 65 A 18 12 0 0 0 65 65");
+        stroke-width: 4;
+      }
+      50% { 
+        d: path("M 28 62 A 25 18 0 0 0 72 62");
+        stroke-width: 5;
+      }
+    }
+    
+    .animate-smile-grow .smile {
+      animation: smile-grow 500ms var(--ease-spring);
+    }
+    
+    /* Thinking mouth (smaller, uncertain) */
+    @keyframes thinking-mouth {
+      0%, 100% { 
+        d: path("M 35 65 A 18 12 0 0 0 65 65");
+      }
+      30%, 70% { 
+        d: path("M 42 66 A 10 6 0 0 0 58 66");
+      }
+    }
+    
+    .animate-thinking-mouth .smile {
+      animation: thinking-mouth 800ms var(--ease-gentle);
+    }
+    
+    /* ========================================
+       FULL FACE REACTIONS
+       ======================================== */
+    
+    /* Nod with blink */
+    .animate-nod .face {
+      animation: avatar-nod 600ms var(--ease-spring);
+    }
+    .animate-nod .eye-white,
+    .animate-nod .iris,
+    .animate-nod .pupil,
+    .animate-nod .highlight {
+      animation: cyclops-blink 150ms var(--ease-standard) 200ms;
+    }
+    
+    /* Shake with squint */
+    .animate-shake .face {
+      animation: avatar-shake 500ms var(--ease-spring);
+    }
+    .animate-shake .eye-white,
+    .animate-shake .iris,
+    .animate-shake .pupil {
+      animation: cyclops-squint 500ms var(--ease-gentle);
+    }
+    
+    /* Bounce with wide eye */
+    .animate-bounce .face {
+      animation: avatar-bounce 700ms var(--ease-spring);
+    }
+    .animate-bounce .eye-white { animation: cyclops-wide 500ms var(--ease-spring) 100ms; }
+    .animate-bounce .iris { animation: cyclops-wide 500ms var(--ease-spring) 120ms; }
+    .animate-bounce .pupil { animation: cyclops-wide 500ms var(--ease-spring) 140ms; }
+    
+    /* Curious with look around */
+    .animate-curious .face {
+      animation: avatar-curious 800ms var(--ease-organic);
+    }
+    .animate-curious .iris,
+    .animate-curious .pupil,
+    .animate-curious .highlight {
+      animation: look-around 1000ms var(--ease-organic);
+    }
+    
+    /* Thinking with squint and look up */
+    .animate-thinking .face {
+      animation: avatar-thinking 1000ms var(--ease-gentle);
+    }
+    .animate-thinking .eye-white,
+    .animate-thinking .iris,
+    .animate-thinking .pupil {
+      animation: cyclops-squint 800ms var(--ease-gentle);
+    }
+    .animate-thinking .iris,
+    .animate-thinking .pupil,
+    .animate-thinking .highlight {
+      animation: look-up 1000ms var(--ease-organic);
+    }
+    
+    /* Celebrate with wide eye and smile grow */
+    .animate-celebrate .face {
+      animation: avatar-celebrate 1000ms var(--ease-spring);
+    }
+    .animate-celebrate .eye-white { animation: cyclops-wide 400ms var(--ease-spring); }
+    .animate-celebrate .iris { animation: cyclops-wide 400ms var(--ease-spring) 20ms; }
+    .animate-celebrate .pupil { animation: cyclops-wide 400ms var(--ease-spring) 40ms; }
+    .animate-celebrate .smile {
+      animation: smile-grow 600ms var(--ease-spring) 200ms;
+    }
+    
+    /* Breathing (ambient) */
+    .animate-breathe .face {
+      animation: avatar-breathe 5s ease-in-out infinite;
+    }
+    
+    /* Avatar keyframes */
+    @keyframes avatar-nod {
+      0% { transform: translateY(0) rotate(0deg); }
+      25% { transform: translateY(4px) rotate(4deg); }
+      50% { transform: translateY(-2px) rotate(-2deg); }
+      75% { transform: translateY(1px) rotate(1deg); }
+      100% { transform: translateY(0) rotate(0deg); }
+    }
+    
+    @keyframes avatar-shake {
+      0%, 100% { transform: translateX(0) rotate(0deg); }
+      20% { transform: translateX(-4px) rotate(-2deg); }
+      40% { transform: translateX(4px) rotate(2deg); }
+      60% { transform: translateX(-3px) rotate(-1.5deg); }
+      80% { transform: translateX(2px) rotate(1deg); }
+    }
+    
+    @keyframes avatar-bounce {
+      0%, 100% { transform: translateY(0) scaleY(1) scaleX(1); }
+      15% { transform: translateY(3px) scaleY(0.92) scaleX(1.08); }
+      35% { transform: translateY(-20px) scaleY(1.1) scaleX(0.92); }
+      50% { transform: translateY(-15px) scaleY(1.05) scaleX(0.95); }
+      70% { transform: translateY(2px) scaleY(0.95) scaleX(1.05); }
+      85% { transform: translateY(-3px) scaleY(1.02) scaleX(0.98); }
+    }
+    
+    @keyframes avatar-curious {
+      0%, 100% { transform: rotate(0deg) translateX(0); }
+      30% { transform: rotate(-5deg) translateX(-3px); }
+      60% { transform: rotate(3deg) translateX(2px); }
+    }
+    
+    @keyframes avatar-celebrate {
+      0%, 100% { transform: scale(1) rotate(0deg); }
+      15% { transform: scale(1.1) rotate(-4deg); }
+      30% { transform: scale(1.1) rotate(4deg); }
+      45% { transform: scale(1.1) rotate(-3deg); }
+      60% { transform: scale(1.15) rotate(0deg); }
+      80% { transform: scale(0.98) rotate(0deg); }
+    }
+    
+    @keyframes avatar-thinking {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-2px) rotate(3deg); }
+    }
+    
+    @keyframes avatar-breathe {
+      0%, 100% { transform: scaleY(1) scaleX(1) translateY(0); }
+      50% { transform: scaleY(1.02) scaleX(0.99) translateY(-2px); }
+    }
+    
+    /* ========================================
+       DEMO BOX
+       ======================================== */
+    .demo-box {
+      background: var(--paper);
+      border-radius: var(--radius-xl);
+      padding: var(--space-8);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .controls {
+      display: flex;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      padding: var(--space-4);
+      background: var(--cream);
+      border-radius: var(--radius-md);
+    }
+    
+    .control-group-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink-muted);
+      text-align: center;
+    }
+    
+    .control-group .buttons {
+      display: flex;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    /* ========================================
+       BUTTONS
+       ======================================== */
+    .btn {
+      padding: var(--space-2) var(--space-4);
+      border: none;
+      border-radius: var(--radius-full);
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 150ms var(--ease-spring);
+    }
+    
+    .btn-primary {
+      background: var(--ferni-green);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(74, 103, 65, 0.3);
+    }
+    
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+    
+    /* ========================================
+       TABLES
+       ======================================== */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--paper);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin: var(--space-6) 0;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    th, td {
+      padding: var(--space-4);
+      text-align: left;
+      border-bottom: 1px solid rgba(44, 37, 32, 0.05);
+    }
+    
+    th {
+      background: var(--ferni-green);
+      color: white;
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+    
+    td {
+      font-size: 0.875rem;
+    }
+    
+    tr:hover td {
+      background: rgba(74, 103, 65, 0.03);
+    }
+    
+    code {
+      background: rgba(44, 37, 32, 0.06);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.8em;
+      font-family: 'SF Mono', Monaco, monospace;
+    }
+    
+    /* ========================================
+       PRINCIPLE CARDS
+       ======================================== */
+    .principle-card {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: var(--space-4);
+      background: var(--paper);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      margin-bottom: var(--space-3);
+      box-shadow: var(--shadow-sm);
+      align-items: start;
+    }
+    
+    .principle-number {
+      width: 40px;
+      height: 40px;
+      background: var(--ferni-green);
+      color: white;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 700;
+    }
+    
+    .principle-content h4 {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: var(--space-1);
+      color: var(--ink);
+    }
+    
+    .principle-content p {
+      font-size: 0.875rem;
+      margin: 0;
+    }
+    
+    /* ========================================
+       EASING VISUALIZER
+       ======================================== */
+    .easing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: var(--space-4);
+    }
+    
+    .easing-demo {
+      background: var(--paper);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .easing-track {
+      height: 48px;
+      background: var(--cream);
+      border-radius: var(--radius-sm);
+      margin-bottom: var(--space-3);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .easing-ball {
+      width: 20px;
+      height: 20px;
+      background: var(--ferni-green);
+      border-radius: var(--radius-full);
+      position: absolute;
+      top: 50%;
+      left: 10px;
+      transform: translateY(-50%);
+    }
+    
+    .easing-demo:hover .easing-ball {
+      animation: easingDemo 1s infinite;
+    }
+    
+    .easing-demo.spring:hover .easing-ball { animation-timing-function: var(--ease-spring); }
+    .easing-demo.expo:hover .easing-ball { animation-timing-function: var(--ease-expo); }
+    .easing-demo.anticipate:hover .easing-ball { animation-timing-function: var(--ease-anticipate); }
+    .easing-demo.gentle:hover .easing-ball { animation-timing-function: var(--ease-gentle); }
+    .easing-demo.organic:hover .easing-ball { animation-timing-function: var(--ease-organic); }
+    .easing-demo.standard:hover .easing-ball { animation-timing-function: var(--ease-standard); }
+    
+    @keyframes easingDemo {
+      0%, 100% { left: 10px; }
+      50% { left: calc(100% - 30px); }
+    }
+    
+    .easing-name {
+      font-family: var(--font-display);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: var(--space-1);
+    }
+    
+    .easing-value {
+      font-size: 0.65rem;
+      color: var(--ink-muted);
+      font-family: 'SF Mono', Monaco, monospace;
+    }
+    
+    /* ========================================
+       CODE BLOCKS
+       ======================================== */
+    pre {
+      background: var(--ink);
+      color: #e8e2da;
+      padding: var(--space-6);
+      border-radius: var(--radius-lg);
+      overflow-x: auto;
+      font-size: 0.8rem;
+      line-height: 1.7;
+      font-family: 'SF Mono', Monaco, monospace;
+    }
+    
+    pre code {
+      background: none;
+      padding: 0;
+      color: inherit;
+    }
+    
+    .code-comment { color: #7a9a70; }
+    .code-keyword { color: #7ab0cf; }
+    .code-string { color: #c9a07a; }
+    .code-number { color: #a5c48a; }
+    .code-function { color: #d4c9a0; }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="eyebrow">Motion Design System</p>
+    <h1>Ferni Animation Guide</h1>
+    <p>The Cyclops eye design — inspired by Luxo Jr. and Mike Wazowski — creates maximum expressiveness with a single, incredibly emotive eye.</p>
+  </header>
+  
+  <nav>
+    <ul>
+      <li><a href="#eye">Eye</a></li>
+      <li><a href="#mouth">Mouth</a></li>
+      <li><a href="#reactions">Reactions</a></li>
+      <li><a href="#principles">12 Principles</a></li>
+      <li><a href="#easings">Easings</a></li>
+      <li><a href="#code">Code</a></li>
+    </ul>
+  </nav>
+  
+  <main>
+    <!-- Eye Section -->
+    <section id="eye">
+      <h2>Eye Animations</h2>
+      <p>The single Cyclops eye is the hero feature. Like Luxo Jr.'s lamp or Mike Wazowski, one eye can convey incredible range of emotion through size, shape, and pupil position.</p>
+      
+      <div class="demo-box">
+        <div class="ferni-avatar-container">
+          <svg class="ferni-avatar" id="eye-demo" viewBox="0 0 100 100">
+            <circle class="face" cx="50" cy="50" r="45"/>
+            <!-- Single Cyclops eye -->
+            <circle class="eye-white" cx="50" cy="40" r="18"/>
+            <circle class="iris" cx="50" cy="40" r="12"/>
+            <circle class="pupil" cx="50" cy="40" r="6"/>
+            <circle class="highlight" cx="47" cy="37" r="2"/>
+            <path class="smile" d="M 35 65 A 18 12 0 0 0 65 65" stroke-width="4"/>
+          </svg>
+        </div>
+        
+        <div class="controls">
+          <div class="control-group">
+            <span class="control-group-label">Blinks</span>
+            <div class="buttons">
+              <button class="btn btn-primary" onclick="triggerEyeAnimation('blink')">Blink</button>
+              <button class="btn btn-primary" onclick="triggerEyeAnimation('double-blink')">Double</button>
+              <button class="btn btn-primary" onclick="triggerEyeAnimation('slow-blink')">Slow</button>
+            </div>
+          </div>
+          
+          <div class="control-group">
+            <span class="control-group-label">Size</span>
+            <div class="buttons">
+              <button class="btn btn-primary" onclick="triggerEyeAnimation('wide')">Wide</button>
+              <button class="btn btn-primary" onclick="triggerEyeAnimation('squint')">Squint</button>
+            </div>
+          </div>
+          
+          <div class="control-group">
+            <span class="control-group-label">Gaze</span>
+            <div class="buttons">
+              <button class="btn btn-primary" onclick="triggerEyeAnimation('look-left')">Left</button>
+              <button class="btn btn-primary" onclick="triggerEyeAnimation('look-right')">Right</button>
+              <button class="btn btn-primary" onclick="triggerEyeAnimation('look-up')">Up</button>
+              <button class="btn btn-primary" onclick="triggerEyeAnimation('look-around')">Around</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <h3>Eye Animation Reference</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Animation</th>
+            <th>Duration</th>
+            <th>What Moves</th>
+            <th>Use Case</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Blink</strong></td>
+            <td>150ms</td>
+            <td>Whole eye scaleY</td>
+            <td>Natural punctuation, acknowledgment</td>
+          </tr>
+          <tr>
+            <td><strong>Double Blink</strong></td>
+            <td>400ms</td>
+            <td>Whole eye scaleY x2</td>
+            <td>Surprise, realization</td>
+          </tr>
+          <tr>
+            <td><strong>Wide</strong></td>
+            <td>500ms</td>
+            <td>Eye scale up</td>
+            <td>Surprise, excitement, emphasis</td>
+          </tr>
+          <tr>
+            <td><strong>Squint</strong></td>
+            <td>600ms</td>
+            <td>Eye scaleY down</td>
+            <td>Thinking, skepticism, focus</td>
+          </tr>
+          <tr>
+            <td><strong>Look Around</strong></td>
+            <td>1200ms</td>
+            <td>Iris + pupil translate</td>
+            <td>Curiosity, searching, considering</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+    
+    <!-- Mouth Section -->
+    <section id="mouth">
+      <h2>Mouth Animations</h2>
+      <p>The smile complements the eye. Together they create the full emotional range.</p>
+      
+      <div class="demo-box">
+        <div class="ferni-avatar-container">
+          <svg class="ferni-avatar" id="mouth-demo" viewBox="0 0 100 100">
+            <circle class="face" cx="50" cy="50" r="45"/>
+            <circle class="eye-white" cx="50" cy="40" r="18"/>
+            <circle class="iris" cx="50" cy="40" r="12"/>
+            <circle class="pupil" cx="50" cy="40" r="6"/>
+            <circle class="highlight" cx="47" cy="37" r="2"/>
+            <path class="smile" d="M 35 65 A 18 12 0 0 0 65 65" stroke-width="4"/>
+          </svg>
+        </div>
+        
+        <div class="controls">
+          <div class="control-group">
+            <span class="control-group-label">Expressions</span>
+            <div class="buttons">
+              <button class="btn btn-primary" onclick="triggerMouthAnimation('smile-grow')">Big Smile</button>
+              <button class="btn btn-primary" onclick="triggerMouthAnimation('thinking-mouth')">Thinking</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Full Reactions Section -->
+    <section id="reactions">
+      <h2>Character Reactions</h2>
+      <p>Full reactions combine face movement, eye animation, and mouth changes. Each follows the 3-phase sequence: Anticipation, Action, Follow-Through.</p>
+      
+      <div class="demo-box">
+        <div class="ferni-avatar-container">
+          <svg class="ferni-avatar animate-breathe" id="reactions-demo" viewBox="0 0 100 100">
+            <circle class="face" cx="50" cy="50" r="45"/>
+            <circle class="eye-white" cx="50" cy="40" r="18"/>
+            <circle class="iris" cx="50" cy="40" r="12"/>
+            <circle class="pupil" cx="50" cy="40" r="6"/>
+            <circle class="highlight" cx="47" cy="37" r="2"/>
+            <path class="smile" d="M 35 65 A 18 12 0 0 0 65 65" stroke-width="4"/>
+          </svg>
+        </div>
+        
+        <div class="controls">
+          <div class="control-group">
+            <span class="control-group-label">Reactions</span>
+            <div class="buttons">
+              <button class="btn btn-primary" onclick="triggerReaction('nod')">Nod</button>
+              <button class="btn btn-primary" onclick="triggerReaction('shake')">Shake</button>
+              <button class="btn btn-primary" onclick="triggerReaction('bounce')">Bounce</button>
+              <button class="btn btn-primary" onclick="triggerReaction('curious')">Curious</button>
+              <button class="btn btn-primary" onclick="triggerReaction('thinking')">Thinking</button>
+              <button class="btn btn-primary" onclick="triggerReaction('celebrate')">Celebrate</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <h3>Reaction Reference</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Reaction</th>
+            <th>Duration</th>
+            <th>Eye</th>
+            <th>Face</th>
+            <th>Use Case</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Nod</strong></td>
+            <td>600ms</td>
+            <td>Blink at peak</td>
+            <td>Vertical bob</td>
+            <td>Agreement, understanding</td>
+          </tr>
+          <tr>
+            <td><strong>Shake</strong></td>
+            <td>500ms</td>
+            <td>Squint</td>
+            <td>Horizontal shake</td>
+            <td>Gentle disagreement</td>
+          </tr>
+          <tr>
+            <td><strong>Bounce</strong></td>
+            <td>700ms</td>
+            <td>Wide eye</td>
+            <td>Squash and stretch</td>
+            <td>Excitement, joy</td>
+          </tr>
+          <tr>
+            <td><strong>Curious</strong></td>
+            <td>1000ms</td>
+            <td>Look around</td>
+            <td>Head tilt</td>
+            <td>Interest, questioning</td>
+          </tr>
+          <tr>
+            <td><strong>Thinking</strong></td>
+            <td>1000ms</td>
+            <td>Squint + look up</td>
+            <td>Slight tilt</td>
+            <td>Processing, considering</td>
+          </tr>
+          <tr>
+            <td><strong>Celebrate</strong></td>
+            <td>1000ms</td>
+            <td>Wide + smile grow</td>
+            <td>Wiggle</td>
+            <td>Achievement, success</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+    
+    <!-- 12 Principles Section -->
+    <section id="principles">
+      <h2>The 12 Principles of Animation</h2>
+      <p>These classic principles from Disney and Pixar guide how Ferni moves. The single eye makes many of these even more impactful.</p>
+      
+      <div class="principle-card">
+        <div class="principle-number">1</div>
+        <div class="principle-content">
+          <h4>Squash and Stretch</h4>
+          <p>The eye and face deform based on speed and mass. During bounce, face compresses horizontally when stretching vertically.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">2</div>
+        <div class="principle-content">
+          <h4>Anticipation</h4>
+          <p>Wind-up before action. The eye squints slightly before going wide. Face dips before bouncing up.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">3</div>
+        <div class="principle-content">
+          <h4>Staging</h4>
+          <p>The single eye IS the staging. All attention naturally focuses on one point. Maximum clarity.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">4</div>
+        <div class="principle-content">
+          <h4>Straight Ahead and Pose to Pose</h4>
+          <p>Key poses at 0%, 35%, 50%, 70%, 100%. The eye has clear states: normal, wide, squint, closed.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">5</div>
+        <div class="principle-content">
+          <h4>Follow-Through and Overlapping</h4>
+          <p>The pupil settles after the iris. The highlight lags behind the pupil. Face settles after eye.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">6</div>
+        <div class="principle-content">
+          <h4>Slow In and Slow Out</h4>
+          <p>Never linear motion. Pupil movements ease in and out. Use spring easing for organic feel.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">7</div>
+        <div class="principle-content">
+          <h4>Arcs</h4>
+          <p>Natural motion follows curved paths. The pupil traces arcs when looking around, not straight lines.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">8</div>
+        <div class="principle-content">
+          <h4>Secondary Action</h4>
+          <p>The highlight sparkle, subtle face breathing, iris color shifts. These support without distracting.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">9</div>
+        <div class="principle-content">
+          <h4>Timing</h4>
+          <p>Blink is fast (150ms). Thinking is slow (1000ms). Timing conveys emotion and weight.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">10</div>
+        <div class="principle-content">
+          <h4>Exaggeration</h4>
+          <p>Wide eye scales 1.2x, not 1.05x. Bounce goes high. The single eye allows bold exaggeration.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">11</div>
+        <div class="principle-content">
+          <h4>Solid Drawing</h4>
+          <p>Consistent transform-origin. Eye elements scale from center. Face scales from center-bottom.</p>
+        </div>
+      </div>
+      
+      <div class="principle-card">
+        <div class="principle-number">12</div>
+        <div class="principle-content">
+          <h4>Appeal</h4>
+          <p>The Cyclops design is instantly memorable and likeable. Like Luxo Jr., one eye creates charm.</p>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Easings Section -->
+    <section id="easings">
+      <h2>Easing Curves</h2>
+      <p>Hover over each box to see the easing in action. Never use linear — everything should feel organic.</p>
+      
+      <div class="easing-grid">
+        <div class="easing-demo spring">
+          <div class="easing-track"><div class="easing-ball"></div></div>
+          <div class="easing-name">Spring</div>
+          <div class="easing-value">cubic-bezier(0.34, 1.56, 0.64, 1)</div>
+        </div>
+        
+        <div class="easing-demo expo">
+          <div class="easing-track"><div class="easing-ball"></div></div>
+          <div class="easing-name">Expo Out</div>
+          <div class="easing-value">cubic-bezier(0.16, 1, 0.3, 1)</div>
+        </div>
+        
+        <div class="easing-demo anticipate">
+          <div class="easing-track"><div class="easing-ball"></div></div>
+          <div class="easing-name">Anticipate</div>
+          <div class="easing-value">cubic-bezier(0.38, -0.4, 0.88, 0.65)</div>
+        </div>
+        
+        <div class="easing-demo gentle">
+          <div class="easing-track"><div class="easing-ball"></div></div>
+          <div class="easing-name">Gentle</div>
+          <div class="easing-value">cubic-bezier(0.25, 0.1, 0.25, 1)</div>
+        </div>
+        
+        <div class="easing-demo organic">
+          <div class="easing-track"><div class="easing-ball"></div></div>
+          <div class="easing-name">Organic</div>
+          <div class="easing-value">cubic-bezier(0.4, 0.2, 0.2, 1.1)</div>
+        </div>
+        
+        <div class="easing-demo standard">
+          <div class="easing-track"><div class="easing-ball"></div></div>
+          <div class="easing-name">Standard</div>
+          <div class="easing-value">cubic-bezier(0.4, 0, 0.2, 1)</div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Code Section -->
+    <section id="code">
+      <h2>Code Examples</h2>
+      
+      <h3>Cyclops Eye Blink Animation</h3>
+      <pre><code><span class="code-comment">/* Cyclops blink - whole eye shrinks vertically */</span>
+<span class="code-keyword">@keyframes</span> cyclops-blink {
+  <span class="code-number">0%</span>, <span class="code-number">45%</span>, <span class="code-number">55%</span>, <span class="code-number">100%</span> { <span class="code-function">transform</span>: <span class="code-function">scaleY</span>(<span class="code-number">1</span>); }
+  <span class="code-number">50%</span> { <span class="code-function">transform</span>: <span class="code-function">scaleY</span>(<span class="code-number">0.05</span>); }
+}
+
+<span class="code-comment">/* Apply to all eye elements */</span>
+.ferni-avatar .eye-white,
+.ferni-avatar .iris,
+.ferni-avatar .pupil,
+.ferni-avatar .highlight {
+  <span class="code-function">animation</span>: cyclops-blink <span class="code-number">150ms</span> <span class="code-keyword">var</span>(--ease-standard);
+}</code></pre>
+
+      <h3>Pupil Gaze Animation</h3>
+      <pre><code><span class="code-comment">/* Move iris and pupil for gaze direction */</span>
+<span class="code-keyword">@keyframes</span> look-around {
+  <span class="code-number">0%</span>, <span class="code-number">100%</span> { <span class="code-function">transform</span>: <span class="code-function">translate</span>(<span class="code-number">0</span>, <span class="code-number">0</span>); }
+  <span class="code-number">20%</span> { <span class="code-function">transform</span>: <span class="code-function">translate</span>(<span class="code-number">-3px</span>, <span class="code-number">-2px</span>); }
+  <span class="code-number">40%</span> { <span class="code-function">transform</span>: <span class="code-function">translate</span>(<span class="code-number">3px</span>, <span class="code-number">-1px</span>); }
+  <span class="code-number">60%</span> { <span class="code-function">transform</span>: <span class="code-function">translate</span>(<span class="code-number">2px</span>, <span class="code-number">2px</span>); }
+  <span class="code-number">80%</span> { <span class="code-function">transform</span>: <span class="code-function">translate</span>(<span class="code-number">-2px</span>, <span class="code-number">1px</span>); }
+}
+
+.ferni-avatar .iris,
+.ferni-avatar .pupil,
+.ferni-avatar .highlight {
+  <span class="code-function">animation</span>: look-around <span class="code-number">1200ms</span> <span class="code-keyword">var</span>(--ease-organic);
+}</code></pre>
+    </section>
+  </main>
+  
+  <script>
+    const animationDurations = {
+      'blink': 150,
+      'double-blink': 400,
+      'slow-blink': 600,
+      'wide': 500,
+      'squint': 600,
+      'look-left': 800,
+      'look-right': 800,
+      'look-up': 800,
+      'look-around': 1200,
+      'smile-grow': 500,
+      'thinking-mouth': 800,
+      'nod': 600,
+      'shake': 500,
+      'bounce': 700,
+      'curious': 1000,
+      'thinking': 1000,
+      'celebrate': 1000
+    };
+    
+    function triggerEyeAnimation(type) {
+      const avatar = document.getElementById('eye-demo');
+      clearAnimations(avatar);
+      avatar.classList.add(`animate-${type}`);
+      setTimeout(() => avatar.classList.remove(`animate-${type}`), animationDurations[type] + 100);
+    }
+    
+    function triggerMouthAnimation(type) {
+      const avatar = document.getElementById('mouth-demo');
+      clearAnimations(avatar);
+      avatar.classList.add(`animate-${type}`);
+      setTimeout(() => avatar.classList.remove(`animate-${type}`), animationDurations[type] + 100);
+    }
+    
+    function triggerReaction(type) {
+      const avatar = document.getElementById('reactions-demo');
+      avatar.classList.remove('animate-breathe');
+      clearAnimations(avatar);
+      avatar.classList.add(`animate-${type}`);
+      setTimeout(() => {
+        avatar.classList.remove(`animate-${type}`);
+        avatar.classList.add('animate-breathe');
+      }, animationDurations[type] + 100);
+    }
+    
+    function clearAnimations(element) {
+      const classes = [...element.classList];
+      classes.forEach(cls => {
+        if (cls.startsWith('animate-')) {
+          element.classList.remove(cls);
+        }
+      });
+      void element.offsetWidth; // Force reflow
+    }
+  </script>
+</body>
+</html>

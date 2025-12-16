@@ -59,10 +59,10 @@ describe('EffectCoordinator', () => {
       const coordinator = getEffectCoordinator('test-session', 'ferni');
       registerDefaultEffects(coordinator, 'ferni');
       const countBefore = coordinator.getEffects().length;
-      
+
       registerDefaultEffects(coordinator, 'ferni');
       const countAfter = coordinator.getEffects().length;
-      
+
       expect(countAfter).toBe(countBefore);
     });
   });
@@ -110,4 +110,3 @@ describe('effectFlags', () => {
     expect(typeof config.rolloutPercentage).toBe('number');
   });
 });
-

@@ -31,6 +31,8 @@ import {
 import { cameoService } from '../services/cameo.service.js';
 import { conversationTracker } from '../services/conversation-tracker.service.js';
 import { delightService } from '../services/delight.service.js';
+// 🌱 Smart Vote Prompts - Track user mentions for feature recommendations
+import { smartPromptTracker } from '../services/roadmap.service.js';
 import { engagementService, handoffService, moodService } from '../services/index.js';
 import { setWrappingUp } from '../state/app.state.js';
 import { avatarFeedback } from '../ui/avatar-feedback.ui.js';
@@ -178,7 +180,7 @@ export function handleDataMessage(message: DataMessage): void {
     case 'cameo_unlock':
       // 🎭 CAMEO UNLOCK: Ferni just introduced a new team member!
       // This is triggered when Ferni uses the introduceMember tool
-      handleCameoUnlock(message as CameoUnlockMessage);
+      handleCameoUnlock(message as unknown as CameoUnlockMessage);
       break;
 
     case 'transcript':
@@ -206,6 +208,10 @@ export function handleDataMessage(message: DataMessage): void {
           tone: microParams.tone,
           intensity: microParams.intensity,
         });
+
+        // 🌱 Smart Vote Prompts: Analyze user text for feature recommendations
+        // This tracks mentions of keywords related to upcoming features
+        smartPromptTracker.analyzeText(message['text']);
       }
       break;
 
@@ -1032,12 +1038,13 @@ export function handleWrapUp(event: WrapUpEvent): void {
  * This is the "cameo unlock" moment - a celebration!
  */
 interface CameoUnlockMessage {
-  type: 'cameo_unlock';
-  memberId: string;
-  displayName: string;
-  role: string;
-  spokenIntro: string;
-  timestamp: number;
+  readonly type: 'cameo_unlock';
+  readonly memberId: string;
+  readonly displayName: string;
+  readonly role: string;
+  readonly spokenIntro: string;
+  readonly timestamp: number;
+  readonly [key: string]: unknown;
 }
 
 /**
@@ -1078,8 +1085,8 @@ export function handleCameoUnlock(event: CameoUnlockMessage): void {
     return;
   }
 
-  // 1. Celebrate! Play unlock sound
-  soundUI.play('unlock');
+  // 1. Celebrate! Play team unlock sound
+  soundUI.play('teamUnlock');
 
   // 2. Show warm expression - Ferni is introducing a friend!
   ferniExpressions.delight();
@@ -1094,14 +1101,15 @@ export function handleCameoUnlock(event: CameoUnlockMessage): void {
     log.warn('Failed to add member to roster:', err);
   }
 
-  // 4. Brief delay to let Ferni's spoken intro finish, then show the modal
-  // The voice agent sends this message after Ferni speaks, but we add
-  // a small buffer for the TTS to complete
+  // 4. Show the intro modal after a brief moment for sound/expression to register
+  // NOTE: The backend now handles speech timing - it waits for Ferni's TTS
+  // to finish before sending this message. So we just need a tiny buffer
+  // for the celebration sound and expression to play before the modal.
   setTimeout(() => {
     // Show the beautiful 3-screen intro modal
     personaIntro.show(event.memberId);
     log.info('🎭 Showing persona intro modal for:', event.memberId);
-  }, 1500); // 1.5s buffer after Ferni's intro
+  }, 300); // 300ms - just enough for sound/expression to register
 
   // 5. Dispatch event for other UI components (e.g., team roster refresh)
   window.dispatchEvent(

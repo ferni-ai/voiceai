@@ -23,7 +23,7 @@ export const CAMEO_TIMING = {
   // ========================================
 
   /** Delay before voice switch after cameo announced (ms) - allows sound + visual */
-  ARRIVAL_DELAY: 400,
+  ARRIVAL_DELAY: 500, // 500ms gives better timing margin for sound/visual sync
 
   /** Delay before returning to Ferni after cameo ends (ms) */
   RETURN_DELAY: 300,

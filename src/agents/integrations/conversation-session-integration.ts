@@ -264,7 +264,9 @@ export function getComfortLevel(sessionId: string): number {
 /**
  * Get the full session state
  */
-export function getSessionState(sessionId: string): ReturnType<ConversationSession['getState']> | null {
+export function getSessionState(
+  sessionId: string
+): ReturnType<ConversationSession['getState']> | null {
   const session = getConversationSession(sessionId);
   return session?.getState() ?? null;
 }
@@ -319,4 +321,3 @@ export async function humanizeWithFallback(
     timing: { total: 0, analysis: 0, intelligence: 0, humanization: 0 },
   };
 }
-

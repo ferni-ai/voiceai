@@ -52,7 +52,10 @@ describe('Turn Processor Utility Functions', () => {
         },
       };
 
-      injectTurnContext(mockChatContext as unknown as Parameters<typeof injectTurnContext>[0], mockResult);
+      injectTurnContext(
+        mockChatContext as unknown as Parameters<typeof injectTurnContext>[0],
+        mockResult
+      );
 
       expect(mockChatContext.addMessage).toHaveBeenCalledTimes(1);
       expect(mockChatContext.addMessage).toHaveBeenCalledWith({
@@ -97,7 +100,10 @@ describe('Turn Processor Utility Functions', () => {
         },
       };
 
-      injectTurnContext(mockChatContext as unknown as Parameters<typeof injectTurnContext>[0], mockResult);
+      injectTurnContext(
+        mockChatContext as unknown as Parameters<typeof injectTurnContext>[0],
+        mockResult
+      );
 
       expect(mockChatContext.addMessage).not.toHaveBeenCalled();
     });
@@ -138,7 +144,10 @@ describe('Turn Processor Utility Functions', () => {
         },
       };
 
-      injectTurnContext(mockChatContext as unknown as Parameters<typeof injectTurnContext>[0], mockResult);
+      injectTurnContext(
+        mockChatContext as unknown as Parameters<typeof injectTurnContext>[0],
+        mockResult
+      );
 
       const callArg = mockChatContext.addMessage.mock.calls[0][0];
       expect(callArg.content).toContain('First injection');
@@ -180,7 +189,10 @@ describe('Turn Processor Utility Functions', () => {
         },
       };
 
-      injectTurnContext(mockChatContext as unknown as Parameters<typeof injectTurnContext>[0], mockResult);
+      injectTurnContext(
+        mockChatContext as unknown as Parameters<typeof injectTurnContext>[0],
+        mockResult
+      );
 
       const callArg = mockChatContext.addMessage.mock.calls[0][0];
       expect(callArg.content).toBe('Only one injection');
@@ -309,7 +321,9 @@ describe('Turn Processor Utility Functions', () => {
           topicChanged: false,
         },
         context: {
-          injections: [{ category: 'aha_moment', content: 'User had a realization!', priority: 10 }],
+          injections: [
+            { category: 'aha_moment', content: 'User had a realization!', priority: 10 },
+          ],
           elapsedMs: 10,
         },
         emotional: {

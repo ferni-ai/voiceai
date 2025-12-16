@@ -1,12 +1,12 @@
 /**
  * Trust Signal Emitter
- * 
+ *
  * Bridges backend trust systems to frontend UI via LiveKit data messages.
- * 
+ *
  * When trust systems detect meaningful moments (growth, boundaries respected,
  * small wins, callbacks, etc.), this emitter packages them as signals that
  * can be sent to the frontend for display.
- * 
+ *
  * SIGNAL TYPES (matching frontend trust-signals.ui.ts):
  * - growth: User showed growth ("I noticed you handled that differently...")
  * - boundary: Ferni respected a boundary ("I remember you said...")
@@ -14,7 +14,7 @@
  * - small_win: Celebrating effort ("You actually did it!")
  * - thinking_of_you: Proactive care (proactive outreach moments)
  * - reading_lines: Noticed unspoken emotion ("I sense...")
- * 
+ *
  * @module TrustSignalEmitter
  */
 
@@ -36,13 +36,13 @@ const log = createLogger({ module: 'TrustSignalEmitter' });
 /**
  * Signal types that match the frontend UI
  */
-export type TrustSignalType = 
-  | 'growth'           // Noticed personal growth
-  | 'boundary'         // Respecting a boundary
-  | 'callback'         // Shared history reference
-  | 'small_win'        // Celebrating effort
-  | 'thinking_of_you'  // Proactive care
-  | 'reading_lines';   // Noticed unspoken emotion
+export type TrustSignalType =
+  | 'growth' // Noticed personal growth
+  | 'boundary' // Respecting a boundary
+  | 'callback' // Shared history reference
+  | 'small_win' // Celebrating effort
+  | 'thinking_of_you' // Proactive care
+  | 'reading_lines'; // Noticed unspoken emotion
 
 /**
  * A trust signal ready to be sent to the frontend
@@ -104,18 +104,18 @@ export function emitTrustSignal(signal: TrustSignalPayload): void {
     log.debug('No emitter set, signal not sent:', signal.type);
     return;
   }
-  
+
   // Deduplicate - don't send same signal type too frequently
   const dedupeKey = `${signal.type}:${signal.title.slice(0, 20)}`;
   const lastSent = recentSignals.get(dedupeKey);
-  
+
   if (lastSent && Date.now() - lastSent < SIGNAL_COOLDOWN_MS) {
     log.debug('Signal deduped (sent recently):', signal.type);
     return;
   }
-  
+
   recentSignals.set(dedupeKey, Date.now());
-  
+
   // Clean up old entries periodically
   if (recentSignals.size > 50) {
     const cutoff = Date.now() - SIGNAL_COOLDOWN_MS;
@@ -125,7 +125,7 @@ export function emitTrustSignal(signal: TrustSignalPayload): void {
       }
     }
   }
-  
+
   emitCallback(signal);
   log.info({ type: signal.type, title: signal.title }, '💚 Trust signal emitted');
 }
@@ -137,10 +137,7 @@ export function emitTrustSignal(signal: TrustSignalPayload): void {
 /**
  * Generate a growth signal from a growth reflection.
  */
-export function emitGrowthSignal(
-  reflection: GrowthReflection,
-  personaId?: string
-): void {
+export function emitGrowthSignal(reflection: GrowthReflection, personaId?: string): void {
   const signal: TrustSignalPayload = {
     type: 'growth',
     title: 'Something different',
@@ -152,34 +149,31 @@ export function emitGrowthSignal(
       confidence: reflection.pattern.confidence,
     },
   };
-  
+
   emitTrustSignal(signal);
 }
 
 /**
  * Generate a small win signal from a celebration opportunity.
  */
-export function emitSmallWinSignal(
-  celebration: CelebrationOpportunity,
-  personaId?: string
-): void {
+export function emitSmallWinSignal(celebration: CelebrationOpportunity, personaId?: string): void {
   // Map win type to friendly title
   const titles: Record<SmallWin['type'], string> = {
-    followed_through: "You did it",
-    courage_moment: "That took courage",
-    self_care: "Taking care of you",
-    boundary_held: "Standing your ground",
-    hard_conversation: "The hard talk",
-    showed_up: "You showed up",
-    tried_new_thing: "Something new",
-    asked_for_help: "Reaching out",
-    let_it_go: "Letting go",
-    effort_made: "The effort counts",
+    followed_through: 'You did it',
+    courage_moment: 'That took courage',
+    self_care: 'Taking care of you',
+    boundary_held: 'Standing your ground',
+    hard_conversation: 'The hard talk',
+    showed_up: 'You showed up',
+    tried_new_thing: 'Something new',
+    asked_for_help: 'Reaching out',
+    let_it_go: 'Letting go',
+    effort_made: 'The effort counts',
   };
-  
+
   const signal: TrustSignalPayload = {
     type: 'small_win',
-    title: titles[celebration.win.type] || "Look at you",
+    title: titles[celebration.win.type] || 'Look at you',
     message: truncateMessage(celebration.celebration),
     personaId,
     timing: 'immediate',
@@ -188,17 +182,14 @@ export function emitSmallWinSignal(
       intensity: celebration.intensity,
     },
   };
-  
+
   emitTrustSignal(signal);
 }
 
 /**
  * Generate a callback signal from a callback opportunity.
  */
-export function emitCallbackSignal(
-  callback: CallbackOpportunity,
-  personaId?: string
-): void {
+export function emitCallbackSignal(callback: CallbackOpportunity, personaId?: string): void {
   const signal: TrustSignalPayload = {
     type: 'callback',
     title: 'Remember when',
@@ -210,7 +201,7 @@ export function emitCallbackSignal(
       relevance: callback.relevance,
     },
   };
-  
+
   emitTrustSignal(signal);
 }
 
@@ -225,7 +216,7 @@ export function emitBoundaryRespectedSignal(
   if (!boundaryCheck.crossesBoundary || !boundaryCheck.boundary) {
     return;
   }
-  
+
   // Only emit for meaningful boundary respect (not routine avoidance)
   if (boundaryCheck.boundary.strength === 'absolute') {
     const signal: TrustSignalPayload = {
@@ -239,7 +230,7 @@ export function emitBoundaryRespectedSignal(
         strength: boundaryCheck.boundary.strength,
       },
     };
-    
+
     emitTrustSignal(signal);
   }
 }
@@ -247,36 +238,33 @@ export function emitBoundaryRespectedSignal(
 /**
  * Generate a signal for reading between the lines.
  */
-export function emitReadingLinesSignal(
-  unsaidSignal: UnsaidSignal,
-  personaId?: string
-): void {
+export function emitReadingLinesSignal(unsaidSignal: UnsaidSignal, personaId?: string): void {
   // Only emit for high-confidence, meaningful detections
   if (unsaidSignal.confidence < 0.7) {
     return;
   }
-  
+
   // Don't overwhelm - only certain types
   const emittableTypes: UnsaidSignal['type'][] = [
     'emotional_mismatch',
     'permission_seeking',
     'minimizing_pain',
   ];
-  
+
   if (!emittableTypes.includes(unsaidSignal.type)) {
     return;
   }
-  
+
   const titles: Record<UnsaidSignal['type'], string> = {
     emotional_mismatch: "What I'm hearing",
-    topic_avoidance: "I noticed",
-    deflection: "Just checking",
-    permission_seeking: "Go ahead",
+    topic_avoidance: 'I noticed',
+    deflection: 'Just checking',
+    permission_seeking: 'Go ahead',
     unfinished_thought: "There's more",
-    minimizing_pain: "That matters",
-    false_closure: "Are you sure?",
+    minimizing_pain: 'That matters',
+    false_closure: 'Are you sure?',
   };
-  
+
   const signal: TrustSignalPayload = {
     type: 'reading_lines',
     title: titles[unsaidSignal.type] || 'I sense',
@@ -289,17 +277,14 @@ export function emitReadingLinesSignal(
       approach: unsaidSignal.approach,
     },
   };
-  
+
   emitTrustSignal(signal);
 }
 
 /**
  * Generate a thinking-of-you signal for proactive outreach.
  */
-export function emitThinkingOfYouSignal(
-  moment: ThinkingOfYouMoment,
-  personaId?: string
-): void {
+export function emitThinkingOfYouSignal(moment: ThinkingOfYouMoment, personaId?: string): void {
   const signal: TrustSignalPayload = {
     type: 'thinking_of_you',
     title: 'Just thinking',
@@ -311,7 +296,7 @@ export function emitThinkingOfYouSignal(
       triggerId: moment.trigger?.type,
     },
   };
-  
+
   emitTrustSignal(signal);
 }
 
@@ -323,34 +308,31 @@ export function emitThinkingOfYouSignal(
  * Process a TrustContext and emit any relevant signals.
  * Call this after building trust context for a conversation turn.
  */
-export function processContextForSignals(
-  trustContext: TrustContext,
-  personaId?: string
-): void {
+export function processContextForSignals(trustContext: TrustContext, personaId?: string): void {
   // 1. Growth reflection - highest priority
   if (trustContext.growthReflection) {
     emitGrowthSignal(trustContext.growthReflection, personaId);
   }
-  
+
   // 2. Celebration opportunity
   if (trustContext.celebrationOpportunity) {
     emitSmallWinSignal(trustContext.celebrationOpportunity, personaId);
   }
-  
+
   // 3. Callback opportunity (only if no growth/celebration to avoid overwhelming)
   if (!trustContext.growthReflection && !trustContext.celebrationOpportunity) {
     if (trustContext.callbackOpportunity && trustContext.callbackOpportunity.relevance > 0.7) {
       emitCallbackSignal(trustContext.callbackOpportunity, personaId);
     }
   }
-  
+
   // 4. Boundary respect (subtle, end of turn)
   if (trustContext.boundaryCheck?.crossesBoundary) {
     emitBoundaryRespectedSignal(trustContext.boundaryCheck, personaId);
   }
-  
+
   // 5. Reading between lines (only highest confidence)
-  const highConfidenceUnsaid = trustContext.unsaidSignals.filter(s => s.confidence >= 0.8);
+  const highConfidenceUnsaid = trustContext.unsaidSignals.filter((s) => s.confidence >= 0.8);
   if (highConfidenceUnsaid.length > 0) {
     // Only emit one - pick the highest confidence
     const best = highConfidenceUnsaid.sort((a, b) => b.confidence - a.confidence)[0];
@@ -371,17 +353,17 @@ function truncateMessage(message: string, maxLength: number = 150): string {
   if (message.length <= maxLength) {
     return message;
   }
-  
+
   // Try to truncate at a sentence boundary
   const truncated = message.slice(0, maxLength);
   const lastSentence = truncated.lastIndexOf('.');
   const lastQuestion = truncated.lastIndexOf('?');
   const cutPoint = Math.max(lastSentence, lastQuestion);
-  
+
   if (cutPoint > maxLength * 0.5) {
     return truncated.slice(0, cutPoint + 1);
   }
-  
+
   return truncated.trim() + '...';
 }
 
@@ -403,4 +385,3 @@ export const trustSignalEmitter = {
 };
 
 export default trustSignalEmitter;
-

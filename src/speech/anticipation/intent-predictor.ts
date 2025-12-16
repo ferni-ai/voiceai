@@ -103,7 +103,10 @@ const INTENT_PATTERNS: IntentPattern[] = [
   },
   {
     intent: 'affirmation',
-    patterns: [/^(yes|yeah|yep|sure|okay|ok|right|correct|exactly)\b/i, /\b(that's right|you got it)\b/i],
+    patterns: [
+      /^(yes|yeah|yep|sure|okay|ok|right|correct|exactly)\b/i,
+      /\b(that's right|you got it)\b/i,
+    ],
     contextHint: 'User affirming - continue or expand',
     minLength: 2,
   },
@@ -245,4 +248,3 @@ export class IntentPredictor {
     };
   }
 }
-

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="{{ locale or 'en' }}" dir="{{ 'rtl' if (locale == 'ar' or locale == 'he') else 'ltr' }}">
+<head>
+  {% include "partials/head.njk" %}
+  
+  <!-- Main Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+  
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Ferni",
+    "url": "https://ferni.ai",
+    "logo": "https://ferni.ai/images/logo.png",
+    "description": "AI life coaching that remembers your whole story. Six specialists, one conversation.",
+    "telephone": "+1-484-481-3081",
+    "sameAs": [
+      "https://twitter.com/ferniAI"
+    ]
+  }
+  </script>
+  {% if structuredData %}
+  <script type="application/ld+json">
+  {{ structuredData | safe }}
+  </script>
+  {% endif %}
+  
+  {% block head %}{% endblock %}
+</head>
+<body{% if bodyClass %} class="{{ bodyClass }}"{% endif %}>
+  <!-- Skip Link for Accessibility -->
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-ferni focus:text-white focus:rounded-lg focus:shadow-lg">
+    Skip to main content
+  </a>
+  
+  {% block header %}
+  {% include "partials/header.njk" %}
+  {% endblock %}
+  
+  <main id="main-content" role="main" tabindex="-1">
+    {% block content %}{{ content | safe }}{% endblock %}
+  </main>
+  
+  {% block footer %}
+  {% include "partials/footer.njk" %}
+  {% endblock %}
+  
+  <!-- Scripts -->
+  <script src="/js/better-than-human.js"></script>
+  <script src="/js/ferni-awakens.js"></script>
+  <script src="/js/apple-interactions.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
+

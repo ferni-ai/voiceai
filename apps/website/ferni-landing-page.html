@@ -1,0 +1,1640 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ferni — Your Personal AI Life Coach</title>
+    <meta
+      name="description"
+      content="Six AI specialists. One conversation. Just talk—they'll handle the rest."
+    />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* ========================================================================
+       CSS VARIABLES
+       ======================================================================== */
+      :root {
+        --color-bg: #08080c;
+        --color-bg-elevated: #0f0f14;
+        --color-bg-card: #16161d;
+        --color-bg-glass: rgba(255, 255, 255, 0.03);
+
+        --color-text: #fafafa;
+        --color-text-secondary: #9ca3af;
+        --color-text-muted: #6b7280;
+
+        --color-accent: #8b5cf6;
+        --color-accent-light: #a78bfa;
+        --color-accent-glow: rgba(139, 92, 246, 0.4);
+
+        --color-border: rgba(255, 255, 255, 0.06);
+        --color-border-light: rgba(255, 255, 255, 0.1);
+
+        --font-display: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+        --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+        --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+        --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+      }
+
+      /* ========================================================================
+       RESET & BASE
+       ======================================================================== */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        font-size: 16px;
+        scroll-behavior: smooth;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      body {
+        font-family: var(--font-body);
+        background: var(--color-bg);
+        color: var(--color-text);
+        line-height: 1.6;
+        overflow-x: hidden;
+      }
+
+      ::selection {
+        background: var(--color-accent);
+        color: white;
+      }
+
+      img {
+        max-width: 100%;
+        height: auto;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      /* ========================================================================
+       UTILITY CLASSES
+       ======================================================================== */
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      .container-narrow {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      .text-center {
+        text-align: center;
+      }
+      .text-gradient {
+        background: linear-gradient(135deg, var(--color-accent) 0%, #d946ef 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      /* ========================================================================
+       TYPOGRAPHY
+       ======================================================================== */
+      .eyebrow {
+        font-family: var(--font-body);
+        font-size: 17px;
+        font-weight: 600;
+        color: var(--color-accent);
+        margin-bottom: 16px;
+      }
+
+      .headline-xl {
+        font-family: var(--font-display);
+        font-size: clamp(48px, 8vw, 80px);
+        font-weight: 800;
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+        color: var(--color-text);
+      }
+
+      .headline-lg {
+        font-family: var(--font-display);
+        font-size: clamp(36px, 5vw, 56px);
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: -0.025em;
+        color: var(--color-text);
+      }
+
+      .headline-md {
+        font-family: var(--font-display);
+        font-size: clamp(28px, 4vw, 40px);
+        font-weight: 700;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        color: var(--color-text);
+      }
+
+      .body-lg {
+        font-size: 20px;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+        line-height: 1.6;
+      }
+
+      .body-md {
+        font-size: 17px;
+        font-weight: 500;
+        color: var(--color-text-secondary);
+        line-height: 1.6;
+      }
+
+      /* ========================================================================
+       BUTTONS
+       ======================================================================== */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 16px 32px;
+        border: none;
+        border-radius: 100px;
+        font-family: var(--font-display);
+        font-size: 17px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s var(--ease-out-quart);
+        text-decoration: none;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        color: white;
+        box-shadow:
+          0 4px 20px rgba(139, 92, 246, 0.4),
+          0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow:
+          0 8px 40px rgba(139, 92, 246, 0.5),
+          0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+      }
+
+      .btn-secondary {
+        background: var(--color-bg-glass);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+        backdrop-filter: blur(12px);
+      }
+
+      .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: var(--color-border-light);
+        transform: translateY(-1px);
+      }
+
+      .btn-outline {
+        background: transparent;
+        color: var(--color-accent-light);
+        border: 1px solid var(--color-accent);
+        padding: 14px 28px;
+      }
+
+      .btn-outline:hover {
+        background: rgba(139, 92, 246, 0.1);
+        transform: translateY(-1px);
+      }
+
+      .btn-icon {
+        width: 20px;
+        height: 20px;
+      }
+
+      /* ========================================================================
+       NAVIGATION
+       ======================================================================== */
+      .nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        padding: 16px 0;
+        background: transparent;
+        transition: all 0.3s var(--ease-out-quart);
+      }
+
+      .nav.scrolled {
+        background: rgba(8, 8, 12, 0.85);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+
+      .nav-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--color-text);
+      }
+
+      .nav-logo-icon {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 700;
+        color: white;
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 32px;
+        list-style: none;
+      }
+
+      .nav-link {
+        font-size: 14px;
+        font-weight: 400;
+        color: rgba(255, 255, 255, 0.8);
+        transition: color 0.2s;
+      }
+
+      .nav-link:hover {
+        color: var(--color-text);
+      }
+
+      .nav-cta {
+        padding: 10px 20px;
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      /* ========================================================================
+       HERO SECTION
+       ======================================================================== */
+      .hero {
+        position: relative;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        overflow: hidden;
+      }
+
+      /* Ambient background effects */
+      .hero-bg {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+      }
+
+      .hero-orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(100px);
+        opacity: 0.5;
+      }
+
+      .hero-orb-1 {
+        width: 600px;
+        height: 600px;
+        background: radial-gradient(circle, var(--color-accent-glow) 0%, transparent 70%);
+        top: -200px;
+        right: -100px;
+        animation: float 15s ease-in-out infinite;
+      }
+
+      .hero-orb-2 {
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(217, 70, 239, 0.3) 0%, transparent 70%);
+        bottom: -100px;
+        left: 10%;
+        animation: float 20s ease-in-out infinite reverse;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translate(0, 0) scale(1);
+        }
+        50% {
+          transform: translate(30px, -40px) scale(1.05);
+        }
+      }
+
+      /* Grid overlay */
+      .hero-grid {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(139, 92, 246, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(139, 92, 246, 0.03) 1px, transparent 1px);
+        background-size: 60px 60px;
+        mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 0%, transparent 70%);
+        -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 0%, transparent 70%);
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 0 24px;
+      }
+
+      .hero-text {
+        max-width: 900px;
+      }
+
+      .hero-headline {
+        margin-bottom: 20px;
+      }
+
+      .hero-description {
+        margin-bottom: 32px;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .hero-buttons {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-bottom: 80px;
+      }
+
+      /* Hero visual - Voice orb */
+      .hero-visual {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 400px;
+        width: 100%;
+      }
+
+      .voice-orb-container {
+        position: relative;
+        width: 280px;
+        height: 280px;
+      }
+
+      .voice-orb {
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(145deg, #6366f1 0%, #8b5cf6 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow:
+          0 0 80px rgba(139, 92, 246, 0.5),
+          0 0 160px rgba(139, 92, 246, 0.3),
+          inset 0 0 60px rgba(255, 255, 255, 0.1);
+        animation: orbPulse 4s ease-in-out infinite;
+      }
+
+      @keyframes orbPulse {
+        0%,
+        100% {
+          transform: scale(1);
+          box-shadow:
+            0 0 80px rgba(139, 92, 246, 0.5),
+            0 0 160px rgba(139, 92, 246, 0.3);
+        }
+        50% {
+          transform: scale(1.02);
+          box-shadow:
+            0 0 100px rgba(139, 92, 246, 0.6),
+            0 0 200px rgba(139, 92, 246, 0.4);
+        }
+      }
+
+      .voice-orb::before {
+        content: '';
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        border: 2px solid rgba(139, 92, 246, 0.3);
+      }
+
+      .voice-orb::after {
+        content: '';
+        position: absolute;
+        inset: -20px;
+        border-radius: 50%;
+        border: 1px solid rgba(139, 92, 246, 0.15);
+      }
+
+      /* Waveform inside orb */
+      .waveform {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        height: 80px;
+      }
+
+      .wave-bar {
+        width: 6px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 3px;
+        animation: wave 1.2s ease-in-out infinite;
+      }
+
+      .wave-bar:nth-child(1) {
+        height: 24px;
+        animation-delay: 0s;
+      }
+      .wave-bar:nth-child(2) {
+        height: 40px;
+        animation-delay: 0.1s;
+      }
+      .wave-bar:nth-child(3) {
+        height: 56px;
+        animation-delay: 0.2s;
+      }
+      .wave-bar:nth-child(4) {
+        height: 72px;
+        animation-delay: 0.3s;
+      }
+      .wave-bar:nth-child(5) {
+        height: 80px;
+        animation-delay: 0.4s;
+      }
+      .wave-bar:nth-child(6) {
+        height: 72px;
+        animation-delay: 0.5s;
+      }
+      .wave-bar:nth-child(7) {
+        height: 56px;
+        animation-delay: 0.6s;
+      }
+      .wave-bar:nth-child(8) {
+        height: 40px;
+        animation-delay: 0.7s;
+      }
+      .wave-bar:nth-child(9) {
+        height: 24px;
+        animation-delay: 0.8s;
+      }
+
+      @keyframes wave {
+        0%,
+        100% {
+          transform: scaleY(1);
+        }
+        50% {
+          transform: scaleY(0.5);
+        }
+      }
+
+      /* Persona orbit */
+      .persona-orbit {
+        position: absolute;
+        width: 420px;
+        height: 420px;
+        border: 1px dashed rgba(139, 92, 246, 0.2);
+        border-radius: 50%;
+        animation: orbitSpin 40s linear infinite;
+      }
+
+      @keyframes orbitSpin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .persona-avatar {
+        position: absolute;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: 700;
+        color: white;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        animation: orbitSpin 40s linear infinite reverse;
+      }
+
+      .persona-ferni {
+        background: linear-gradient(135deg, #8b5cf6, #6366f1);
+        top: -28px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      .persona-jack {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        top: 15%;
+        right: -28px;
+      }
+      .persona-peter {
+        background: linear-gradient(135deg, #10b981, #059669);
+        top: 50%;
+        right: -28px;
+        transform: translateY(-50%);
+      }
+      .persona-alex {
+        background: linear-gradient(135deg, #06b6d4, #0891b2);
+        bottom: 15%;
+        right: -28px;
+      }
+      .persona-maya {
+        background: linear-gradient(135deg, #a78bfa, #7c3aed);
+        bottom: -28px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      .persona-jordan {
+        background: linear-gradient(135deg, #ec4899, #db2777);
+        top: 50%;
+        left: -28px;
+        transform: translateY(-50%);
+      }
+
+      /* ========================================================================
+       SOCIAL PROOF
+       ======================================================================== */
+      .social-proof {
+        padding: 60px 0;
+        border-top: 1px solid var(--color-border);
+        border-bottom: 1px solid var(--color-border);
+      }
+
+      .social-proof-inner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 60px;
+        flex-wrap: wrap;
+      }
+
+      .social-proof-item {
+        text-align: center;
+      }
+
+      .social-proof-number {
+        font-family: var(--font-display);
+        font-size: 48px;
+        font-weight: 800;
+        color: var(--color-text);
+        line-height: 1;
+      }
+
+      .social-proof-label {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--color-text-muted);
+        margin-top: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      /* ========================================================================
+       FEATURES SECTION
+       ======================================================================== */
+      .features {
+        padding: 160px 0;
+      }
+
+      .features-header {
+        text-align: center;
+        max-width: 700px;
+        margin: 0 auto 80px;
+      }
+
+      .features-header .eyebrow {
+        margin-bottom: 20px;
+      }
+
+      .features-header .headline-lg {
+        margin-bottom: 24px;
+      }
+
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+      }
+
+      .feature-card {
+        background: var(--color-bg-elevated);
+        border: 1px solid var(--color-border);
+        border-radius: 24px;
+        padding: 40px;
+        transition: all 0.4s var(--ease-out-expo);
+      }
+
+      .feature-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--color-border-light);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      }
+
+      .feature-title {
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--color-text);
+        margin-bottom: 12px;
+      }
+
+      .feature-description {
+        font-size: 16px;
+        color: var(--color-text-secondary);
+        line-height: 1.6;
+      }
+
+      /* ========================================================================
+       TEAM SECTION - Meet Your AI Team
+       ======================================================================== */
+      .team {
+        padding: 160px 0;
+        background: var(--color-bg-elevated);
+      }
+
+      .team-header {
+        text-align: center;
+        max-width: 700px;
+        margin: 0 auto 80px;
+      }
+
+      .team-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+      }
+
+      .team-card {
+        background: var(--color-bg);
+        border: 1px solid var(--color-border);
+        border-radius: 24px;
+        padding: 48px 32px;
+        text-align: center;
+        transition: all 0.4s var(--ease-out-expo);
+      }
+
+      .team-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--team-color, var(--color-accent));
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      }
+
+      .team-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-display);
+        font-size: 24px;
+        font-weight: 700;
+        color: white;
+        margin: 0 auto 24px;
+        box-shadow: 0 8px 30px var(--team-glow, rgba(139, 92, 246, 0.3));
+      }
+
+      .team-name {
+        font-family: var(--font-display);
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--color-text);
+        margin-bottom: 4px;
+      }
+
+      .team-role {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--team-color, var(--color-accent));
+        margin-bottom: 16px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .team-description {
+        font-size: 15px;
+        color: var(--color-text-secondary);
+        line-height: 1.6;
+      }
+
+      /* Team colors */
+      .team-card-ferni {
+        --team-color: #8b5cf6;
+        --team-glow: rgba(139, 92, 246, 0.3);
+      }
+      .team-card-jack {
+        --team-color: #ef4444;
+        --team-glow: rgba(239, 68, 68, 0.3);
+      }
+      .team-card-peter {
+        --team-color: #10b981;
+        --team-glow: rgba(16, 185, 129, 0.3);
+      }
+      .team-card-alex {
+        --team-color: #06b6d4;
+        --team-glow: rgba(6, 182, 212, 0.3);
+      }
+      .team-card-maya {
+        --team-color: #a78bfa;
+        --team-glow: rgba(167, 139, 250, 0.3);
+      }
+      .team-card-jordan {
+        --team-color: #ec4899;
+        --team-glow: rgba(236, 72, 153, 0.3);
+      }
+
+      /* ========================================================================
+       HOW IT WORKS
+       ======================================================================== */
+      .how-it-works {
+        padding: 160px 0;
+      }
+
+      .how-it-works-header {
+        text-align: center;
+        max-width: 700px;
+        margin: 0 auto 80px;
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 48px;
+      }
+
+      .step {
+        text-align: center;
+        position: relative;
+      }
+
+      .step:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        top: 40px;
+        left: calc(50% + 60px);
+        width: calc(100% - 80px);
+        height: 2px;
+        background: linear-gradient(90deg, var(--color-accent), transparent);
+        opacity: 0.3;
+      }
+
+      .step-number {
+        width: 80px;
+        height: 80px;
+        background: var(--color-bg-glass);
+        border: 2px solid var(--color-accent);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-display);
+        font-size: 32px;
+        font-weight: 800;
+        color: var(--color-accent);
+        margin: 0 auto 24px;
+      }
+
+      .step-title {
+        font-family: var(--font-display);
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--color-text);
+        margin-bottom: 12px;
+      }
+
+      .step-description {
+        font-size: 16px;
+        color: var(--color-text-secondary);
+        line-height: 1.6;
+        max-width: 280px;
+        margin: 0 auto;
+      }
+
+      /* ========================================================================
+       TESTIMONIALS
+       ======================================================================== */
+      .testimonials {
+        padding: 160px 0;
+        background: var(--color-bg-elevated);
+      }
+
+      .testimonials-header {
+        text-align: center;
+        max-width: 700px;
+        margin: 0 auto 80px;
+      }
+
+      .testimonials-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+      }
+
+      .testimonial-card {
+        background: var(--color-bg);
+        border: 1px solid var(--color-border);
+        border-radius: 24px;
+        padding: 40px;
+      }
+
+      .testimonial-stars {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 20px;
+      }
+
+      .testimonial-star {
+        width: 16px;
+        height: 16px;
+        background: #fbbf24;
+        clip-path: polygon(
+          50% 0%,
+          61% 35%,
+          98% 35%,
+          68% 57%,
+          79% 91%,
+          50% 70%,
+          21% 91%,
+          32% 57%,
+          2% 35%,
+          39% 35%
+        );
+      }
+
+      .testimonial-quote {
+        font-size: 17px;
+        color: var(--color-text);
+        line-height: 1.7;
+        margin-bottom: 24px;
+      }
+
+      .testimonial-author {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .testimonial-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--color-accent), #d946ef);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-display);
+        font-weight: 700;
+        color: white;
+      }
+
+      .testimonial-name {
+        font-family: var(--font-display);
+        font-weight: 600;
+        color: var(--color-text);
+      }
+
+      .testimonial-title {
+        font-size: 14px;
+        color: var(--color-text-muted);
+      }
+
+      /* ========================================================================
+       CTA SECTION
+       ======================================================================== */
+      .cta {
+        padding: 160px 0;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .cta-bg {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 80% 50% at 50% 50%,
+          var(--color-accent-glow) 0%,
+          transparent 70%
+        );
+        opacity: 0.3;
+      }
+
+      .cta-content {
+        position: relative;
+        text-align: center;
+        max-width: 700px;
+        margin: 0 auto;
+      }
+
+      .cta-headline {
+        margin-bottom: 24px;
+      }
+
+      .cta-description {
+        margin-bottom: 40px;
+      }
+
+      .cta-buttons {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      /* ========================================================================
+       FOOTER
+       ======================================================================== */
+      .footer {
+        padding: 60px 0;
+        border-top: 1px solid var(--color-border);
+      }
+
+      .footer-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 24px;
+      }
+
+      .footer-logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: var(--font-display);
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .footer-logo-icon {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 700;
+        color: white;
+      }
+
+      .footer-links {
+        display: flex;
+        gap: 32px;
+        list-style: none;
+      }
+
+      .footer-link {
+        font-size: 14px;
+        color: var(--color-text-muted);
+        transition: color 0.2s;
+      }
+
+      .footer-link:hover {
+        color: var(--color-text);
+      }
+
+      .footer-copyright {
+        font-size: 14px;
+        color: var(--color-text-muted);
+      }
+
+      /* ========================================================================
+       ANIMATIONS ON SCROLL
+       ======================================================================== */
+      .fade-up {
+        opacity: 0;
+        transform: translateY(40px);
+        transition: all 0.8s var(--ease-out-expo);
+      }
+
+      .fade-up.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* Stagger children */
+      .stagger-children .fade-up:nth-child(1) {
+        transition-delay: 0s;
+      }
+      .stagger-children .fade-up:nth-child(2) {
+        transition-delay: 0.1s;
+      }
+      .stagger-children .fade-up:nth-child(3) {
+        transition-delay: 0.2s;
+      }
+      .stagger-children .fade-up:nth-child(4) {
+        transition-delay: 0.3s;
+      }
+      .stagger-children .fade-up:nth-child(5) {
+        transition-delay: 0.4s;
+      }
+      .stagger-children .fade-up:nth-child(6) {
+        transition-delay: 0.5s;
+      }
+
+      /* ========================================================================
+       RESPONSIVE
+       ======================================================================== */
+      @media (max-width: 1024px) {
+        .hero-content {
+          grid-template-columns: 1fr;
+          text-align: center;
+          gap: 60px;
+        }
+
+        .hero-text {
+          max-width: 100%;
+        }
+
+        .hero-description {
+          max-width: 100%;
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        .hero-buttons {
+          justify-content: center;
+        }
+
+        .features-grid,
+        .team-grid,
+        .testimonials-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        .steps {
+          grid-template-columns: 1fr;
+          gap: 60px;
+        }
+
+        .step::after {
+          display: none;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .nav-links {
+          display: none;
+        }
+
+        .hero {
+          padding: 100px 0 60px;
+        }
+
+        .hero-visual {
+          height: 400px;
+        }
+
+        .voice-orb-container {
+          width: 200px;
+          height: 200px;
+        }
+
+        .persona-orbit {
+          width: 320px;
+          height: 320px;
+        }
+
+        .persona-avatar {
+          width: 44px;
+          height: 44px;
+          font-size: 14px;
+        }
+
+        .features-grid,
+        .team-grid,
+        .testimonials-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .features,
+        .team,
+        .how-it-works,
+        .testimonials,
+        .cta {
+          padding: 100px 0;
+        }
+
+        .social-proof-inner {
+          gap: 40px;
+        }
+
+        .footer-inner {
+          flex-direction: column;
+          text-align: center;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .btn {
+          width: 100%;
+          justify-content: center;
+        }
+
+        .hero-buttons {
+          flex-direction: column;
+        }
+
+        .cta-buttons {
+          flex-direction: column;
+          align-items: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navigation -->
+    <nav class="nav" id="nav">
+      <div class="container">
+        <div class="nav-inner">
+          <a href="#" class="nav-logo">
+            <span class="nav-logo-icon">FE</span>
+            Ferni
+          </a>
+          <ul class="nav-links">
+            <li><a href="#features" class="nav-link">Features</a></li>
+            <li><a href="#team" class="nav-link">Meet the Team</a></li>
+            <li><a href="#how-it-works" class="nav-link">How It Works</a></li>
+          </ul>
+          <a href="https://app.ferni.ai" class="btn btn-primary nav-cta">Try Ferni Free</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-bg">
+        <div class="hero-grid"></div>
+        <div class="hero-orb hero-orb-1"></div>
+        <div class="hero-orb hero-orb-2"></div>
+      </div>
+
+      <div class="hero-content">
+        <div class="hero-text">
+          <p class="eyebrow">Introducing Ferni</p>
+          <h1 class="headline-xl hero-headline">
+            Your personal<br />
+            <span class="text-gradient">AI life coach.</span>
+          </h1>
+          <p class="body-lg hero-description">
+            Six AI specialists. One seamless conversation. Just talk—they'll handle the rest.
+          </p>
+          <div class="hero-buttons">
+            <a href="https://app.ferni.ai" class="btn btn-primary">Try Ferni</a>
+            <a href="#how-it-works" class="btn btn-outline">Learn more</a>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="persona-orbit">
+            <div class="persona-avatar persona-ferni">FE</div>
+            <div class="persona-avatar persona-jack">JB</div>
+            <div class="persona-avatar persona-peter">PL</div>
+            <div class="persona-avatar persona-alex">AX</div>
+            <div class="persona-avatar persona-maya">MY</div>
+            <div class="persona-avatar persona-jordan">JD</div>
+          </div>
+          <div class="voice-orb-container">
+            <div class="voice-orb">
+              <div class="waveform">
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Social Proof -->
+    <section class="social-proof">
+      <div class="container">
+        <div class="social-proof-inner">
+          <div class="social-proof-item">
+            <div class="social-proof-number">10K+</div>
+            <div class="social-proof-label">Conversations</div>
+          </div>
+          <div class="social-proof-item">
+            <div class="social-proof-number">500ms</div>
+            <div class="social-proof-label">Response Time</div>
+          </div>
+          <div class="social-proof-item">
+            <div class="social-proof-number">6</div>
+            <div class="social-proof-label">AI Specialists</div>
+          </div>
+          <div class="social-proof-item">
+            <div class="social-proof-number">24/7</div>
+            <div class="social-proof-label">Always Available</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+      <div class="container">
+        <div class="features-header">
+          <p class="eyebrow">Why Ferni</p>
+          <h2 class="headline-lg">Everything you need.<br />Nothing you don't.</h2>
+          <p class="body-lg">
+            No apps to download. No buttons to press. Just speak naturally and let your AI team take
+            care of the rest.
+          </p>
+        </div>
+
+        <div class="features-grid stagger-children">
+          <div class="feature-card fade-up">
+            <h3 class="feature-title">Natural Conversation</h3>
+            <p class="feature-description">
+              Speak like you would to a friend. No commands, no keywords—just real conversation that
+              flows naturally.
+            </p>
+          </div>
+
+          <div class="feature-card fade-up">
+            <h3 class="feature-title">Remembers Everything</h3>
+            <p class="feature-description">
+              Your AI team learns your preferences, remembers your goals, and gets smarter with
+              every conversation.
+            </p>
+          </div>
+
+          <div class="feature-card fade-up">
+            <h3 class="feature-title">Instant Response</h3>
+            <p class="feature-description">
+              Sub-500ms latency means conversations feel natural. No awkward pauses or robotic
+              delays.
+            </p>
+          </div>
+
+          <div class="feature-card fade-up">
+            <h3 class="feature-title">Private & Secure</h3>
+            <p class="feature-description">
+              Your conversations are encrypted and never shared. Your personal data stays personal.
+            </p>
+          </div>
+
+          <div class="feature-card fade-up">
+            <h3 class="feature-title">Always Available</h3>
+            <p class="feature-description">
+              Whether it's 3am or during your lunch break, your AI team is ready when you are.
+            </p>
+          </div>
+
+          <div class="feature-card fade-up">
+            <h3 class="feature-title">Specialized Expertise</h3>
+            <p class="feature-description">
+              Six AI specialists, each with deep expertise in their domain. The right expert for
+              every question.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Meet the Team -->
+    <section class="team" id="team">
+      <div class="container">
+        <div class="team-header">
+          <p class="eyebrow">Meet Your AI Team</p>
+          <h2 class="headline-lg">Six specialists.<br />One conversation.</h2>
+          <p class="body-lg">
+            Each member of your AI team brings unique expertise. Talk to one, and they'll seamlessly
+            bring in others when needed.
+          </p>
+        </div>
+
+        <div class="team-grid stagger-children">
+          <div class="team-card team-card-ferni fade-up">
+            <div class="team-avatar" style="background: linear-gradient(135deg, #8b5cf6, #6366f1)">
+              FE
+            </div>
+            <h3 class="team-name">Ferni</h3>
+            <p class="team-role">Life Coach</p>
+            <p class="team-description">
+              Your main point of contact. Ferni coordinates the team and helps you navigate life's
+              big questions.
+            </p>
+          </div>
+
+          <div class="team-card team-card-jack fade-up">
+            <div class="team-avatar" style="background: linear-gradient(135deg, #ef4444, #dc2626)">
+              JB
+            </div>
+            <h3 class="team-name">Jack</h3>
+            <p class="team-role">Sage and Personal Mentor</p>
+            <p class="team-description">
+              A steady voice when life feels chaotic. Jack helps you see the bigger picture and stay
+              focused on what matters.
+            </p>
+          </div>
+
+          <div class="team-card team-card-peter fade-up">
+            <div class="team-avatar" style="background: linear-gradient(135deg, #10b981, #059669)">
+              PL
+            </div>
+            <h3 class="team-name">Peter</h3>
+            <p class="team-role">Research & Discovery</p>
+            <p class="team-description">
+              Curious and thorough. Peter helps you dig deeper into decisions and discover
+              opportunities you might have missed.
+            </p>
+          </div>
+
+          <div class="team-card team-card-alex fade-up">
+            <div class="team-avatar" style="background: linear-gradient(135deg, #06b6d4, #0891b2)">
+              AX
+            </div>
+            <h3 class="team-name">Alex</h3>
+            <p class="team-role">Communications</p>
+            <p class="team-description">
+              Handles your emails, calendar, and scheduling. Alex keeps your communication running
+              smoothly.
+            </p>
+          </div>
+
+          <div class="team-card team-card-maya fade-up">
+            <div class="team-avatar" style="background: linear-gradient(135deg, #a78bfa, #7c3aed)">
+              MY
+            </div>
+            <h3 class="team-name">Maya</h3>
+            <p class="team-role">Habits & Routines</p>
+            <p class="team-description">
+              No judgment, just guidance. Maya helps you understand your patterns and build better
+              daily habits.
+            </p>
+          </div>
+
+          <div class="team-card team-card-jordan fade-up">
+            <div class="team-avatar" style="background: linear-gradient(135deg, #ec4899, #db2777)">
+              JD
+            </div>
+            <h3 class="team-name">Jordan</h3>
+            <p class="team-role">Event Planner</p>
+            <p class="team-description">
+              Big purchases, vacations, life milestones. Jordan helps you plan and celebrate life's
+              moments.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works" id="how-it-works">
+      <div class="container">
+        <div class="how-it-works-header">
+          <p class="eyebrow">How It Works</p>
+          <h2 class="headline-lg">Start talking in seconds.</h2>
+          <p class="body-lg">
+            No downloads. No sign-up forms. Just open the app and start a conversation.
+          </p>
+        </div>
+
+        <div class="steps stagger-children">
+          <div class="step fade-up">
+            <div class="step-number">1</div>
+            <h3 class="step-title">Open the App</h3>
+            <p class="step-description">
+              Visit app.ferni.ai on any device. Works on desktop, tablet, or phone.
+            </p>
+          </div>
+
+          <div class="step fade-up">
+            <div class="step-number">2</div>
+            <h3 class="step-title">Hit Connect</h3>
+            <p class="step-description">
+              One tap to connect. Your AI team is ready and waiting to help.
+            </p>
+          </div>
+
+          <div class="step fade-up">
+            <div class="step-number">3</div>
+            <h3 class="step-title">Just Talk</h3>
+            <p class="step-description">
+              Speak naturally about whatever's on your mind. They'll handle the rest.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="testimonials">
+      <div class="container">
+        <div class="testimonials-header">
+          <p class="eyebrow">What People Say</p>
+          <h2 class="headline-lg">Loved by early users.</h2>
+        </div>
+
+        <div class="testimonials-grid stagger-children">
+          <div class="testimonial-card fade-up">
+            <div class="testimonial-stars">
+              <div class="testimonial-star"></div>
+              <div class="testimonial-star"></div>
+              <div class="testimonial-star"></div>
+              <div class="testimonial-star"></div>
+              <div class="testimonial-star"></div>
+            </div>
+            <p class="testimonial-quote">
+              "I've tried a dozen AI assistants. Ferni is the first one that actually feels like
+              talking to someone who gets me."
+            </p>
+            <div class="testimonial-author">
+              <div class="testimonial-avatar">SK</div>
+              <div>
+                <div class="testimonial-name">Sarah K.</div>
+                <div class="testimonial-title">Product Manager</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="testimonial-card fade-up">
+            <div class="testimonial-stars">
+              <div class="testimonial-star"></div>
+              <div class="testimonial-star"></div>
+              <div class="testimonial-star"></div>
+              <div class="testimonial-star"></div>
+              <div class="testimonial-star"></div>
+            </div>
+            <p class="testimonial-quote">
+              "Jack helped me step back and see my career from a completely new angle. It's like
+              having a wise mentor available whenever I need one."
+            </p>
+            <div class="testimonial-author">
+              <div class="testimonial-avatar">MR</div>
+              <div>
+                <div class="testimonial-name">Michael R.</div>
+                <div class="testimonial-title">Software Engineer</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="testimonial-card fade-up">
+            <div class="testimonial-stars">
+              <div class="testimonial-star"></div>
+              <div class="testimonial-star"></div>
+              <div class="testimonial-star"></div>
+              <div class="testimonial-star"></div>
+              <div class="testimonial-star"></div>
+            </div>
+            <p class="testimonial-quote">
+              "Maya helped me finally understand my daily habits. No judgment, just helpful
+              insights. Total game changer for my routine."
+            </p>
+            <div class="testimonial-author">
+              <div class="testimonial-avatar">JL</div>
+              <div>
+                <div class="testimonial-name">Jennifer L.</div>
+                <div class="testimonial-title">Marketing Director</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+      <div class="cta-bg"></div>
+      <div class="container">
+        <div class="cta-content">
+          <h2 class="headline-lg cta-headline">Ready to meet your AI team?</h2>
+          <p class="body-lg cta-description">
+            Start a conversation today. It's free, it's instant, and your team is waiting.
+          </p>
+          <div class="cta-buttons">
+            <a href="https://app.ferni.ai" class="btn btn-primary">
+              Try Ferni Free
+              <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 7l5 5m0 0l-5 5m5-5H6"
+                />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-inner">
+          <div class="footer-logo">
+            <span class="footer-logo-icon">FE</span>
+            Ferni
+          </div>
+          <ul class="footer-links">
+            <li><a href="#" class="footer-link">Privacy</a></li>
+            <li><a href="#" class="footer-link">Terms</a></li>
+            <li><a href="#" class="footer-link">Contact</a></li>
+          </ul>
+          <p class="footer-copyright">© 2024 Ferni. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+
+    <!-- JavaScript for scroll animations -->
+    <script>
+      // Nav scroll effect
+      const nav = document.getElementById('nav');
+      window.addEventListener('scroll', () => {
+        if (window.scrollY > 50) {
+          nav.classList.add('scrolled');
+        } else {
+          nav.classList.remove('scrolled');
+        }
+      });
+
+      // Intersection Observer for fade-up animations
+      const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px',
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      }, observerOptions);
+
+      document.querySelectorAll('.fade-up').forEach((el) => {
+        observer.observe(el);
+      });
+
+      // Smooth scroll for anchor links
+      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute('href'));
+          if (target) {
+            target.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start',
+            });
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -435,7 +435,7 @@ describe('Voice Agent Integration Tests', () => {
 
     it('should handle abrupt disconnection', () => {
       const manager = createSessionStateManager('test-session-disconnect', 'ferni');
-      
+
       // Simulate some turns before disconnection
       manager.incrementTurn();
       manager.incrementTurn();
@@ -722,9 +722,9 @@ describe('Voice Agent Integration Tests', () => {
     it('should detect user distress', () => {
       const distressMessages = [
         "I'm so stressed about this deadline",
-        "I feel really anxious lately",
+        'I feel really anxious lately',
         "I'm worried about my job",
-        "I feel overwhelmed with everything",
+        'I feel overwhelmed with everything',
       ];
 
       for (const msg of distressMessages) {
@@ -736,10 +736,10 @@ describe('Voice Agent Integration Tests', () => {
 
     it('should detect user happiness', () => {
       const happyMessages = [
-        "I had a great day today!",
+        'I had a great day today!',
         "I'm so excited about this opportunity",
-        "This is wonderful news!",
-        "I love how things are going",
+        'This is wonderful news!',
+        'I love how things are going',
       ];
 
       for (const msg of happyMessages) {
@@ -762,7 +762,7 @@ describe('Voice Agent Integration Tests', () => {
             tone: 'supportive',
             pace: 'slower',
             includesPause: true,
-            message: "I hear you. That sounds really hard.",
+            message: 'I hear you. That sounds really hard.',
           };
         }
         return {
@@ -813,8 +813,18 @@ describe('Voice Agent Integration Tests', () => {
     // Mock memory store
     const mockMemoryStore = {
       conversations: [
-        { id: '1', summary: 'Discussed retirement planning', date: '2024-01-15', topics: ['investing', 'retirement'] },
-        { id: '2', summary: 'Talked about work stress', date: '2024-01-20', topics: ['work', 'stress'] },
+        {
+          id: '1',
+          summary: 'Discussed retirement planning',
+          date: '2024-01-15',
+          topics: ['investing', 'retirement'],
+        },
+        {
+          id: '2',
+          summary: 'Talked about work stress',
+          date: '2024-01-20',
+          topics: ['work', 'stress'],
+        },
       ],
       preferences: {
         communicationStyle: 'direct',
@@ -823,15 +833,24 @@ describe('Voice Agent Integration Tests', () => {
       },
       relationships: {
         spouse: { name: 'Sarah', mentioned: 5 },
-        children: [{ name: 'Emma', age: 12 }, { name: 'Jake', age: 9 }],
+        children: [
+          { name: 'Emma', age: 12 },
+          { name: 'Jake', age: 9 },
+        ],
       },
       keyMoments: [
-        { date: '2024-01-15', description: 'First conversation about retirement goals', emotion: 'hopeful' },
-        { date: '2024-01-20', description: 'Opened up about work challenges', emotion: 'vulnerable' },
+        {
+          date: '2024-01-15',
+          description: 'First conversation about retirement goals',
+          emotion: 'hopeful',
+        },
+        {
+          date: '2024-01-20',
+          description: 'Opened up about work challenges',
+          emotion: 'vulnerable',
+        },
       ],
-      openThreads: [
-        { topic: 'Check back on retirement fund research', dueBy: '2024-02-01' },
-      ],
+      openThreads: [{ topic: 'Check back on retirement fund research', dueBy: '2024-02-01' }],
     };
 
     it('should retrieve relevant past conversations', () => {
@@ -891,7 +910,7 @@ describe('Voice Agent Integration Tests', () => {
     it('should read between the lines', () => {
       // Detect implied meaning, not just literal text
       const analyzeSubtext = (text: string) => {
-        const deflectionPhrases = ["I'm fine", "It's whatever", "No big deal"];
+        const deflectionPhrases = ["I'm fine", "It's whatever", 'No big deal'];
         const hasDeflection = deflectionPhrases.some((p) =>
           text.toLowerCase().includes(p.toLowerCase())
         );
@@ -948,9 +967,7 @@ describe('Voice Agent Integration Tests', () => {
         return {
           isWin: hasWin,
           celebrationLevel: hasWin ? 'acknowledge' : 'none',
-          suggestedResponse: hasWin
-            ? "That's a real accomplishment! How does it feel?"
-            : null,
+          suggestedResponse: hasWin ? "That's a real accomplishment! How does it feel?" : null,
         };
       };
 
@@ -961,18 +978,20 @@ describe('Voice Agent Integration Tests', () => {
 
     it('should detect and use inside jokes', () => {
       const insideJokes = [
-        { trigger: 'spreadsheet', response: 'Not another one! 😄', context: 'User loves/hates spreadsheets' },
+        {
+          trigger: 'spreadsheet',
+          response: 'Not another one! 😄',
+          context: 'User loves/hates spreadsheets',
+        },
         { trigger: 'coffee', response: 'Your third cup?', context: 'User drinks too much coffee' },
       ];
 
       const checkForInsideJoke = (text: string) => {
-        const joke = insideJokes.find((j) =>
-          text.toLowerCase().includes(j.trigger)
-        );
+        const joke = insideJokes.find((j) => text.toLowerCase().includes(j.trigger));
         return joke || null;
       };
 
-      const result = checkForInsideJoke("I spent all day on that spreadsheet");
+      const result = checkForInsideJoke('I spent all day on that spreadsheet');
       expect(result).not.toBeNull();
       expect(result?.trigger).toBe('spreadsheet');
     });
@@ -989,8 +1008,7 @@ describe('Voice Agent Integration Tests', () => {
       const generateGrowthReflection = (progress: typeof userProgress) => {
         const achievementRate = progress.goalsAchieved.length / progress.goalsSet.length;
         const emotionalImprovement =
-          progress.emotionalTrend[progress.emotionalTrend.length - 1] -
-          progress.emotionalTrend[0];
+          progress.emotionalTrend[progress.emotionalTrend.length - 1] - progress.emotionalTrend[0];
 
         return {
           hasGrowth: emotionalImprovement > 0.1 || achievementRate > 0.3,

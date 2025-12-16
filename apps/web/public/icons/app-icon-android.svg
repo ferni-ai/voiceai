@@ -1,0 +1,23 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ferni Android Adaptive Icon - Foreground -->
+  <defs>
+    <linearGradient id="androidGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#325038"/>
+      <stop offset="100%" stop-color="#4a6d52"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Transparent background for adaptive icon -->
+  <rect width="512" height="512" fill="transparent"/>
+  
+  <!-- Icon shape (centered for safe zone) -->
+  <rect x="72" y="72" width="368" height="368" rx="80" fill="url(#androidGradient)"/>
+  
+  <!-- FE Monogram -->
+  <text x="256" y="300" 
+        font-family="'Plus Jakarta Sans', 'Roboto', sans-serif" 
+        font-size="180" 
+        font-weight="800" 
+        fill="white" 
+        text-anchor="middle">FE</text>
+</svg>

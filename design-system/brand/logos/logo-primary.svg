@@ -1,0 +1,58 @@
+<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradient matching avatar (145deg from secondary to primary) -->
+    <linearGradient id="orbGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+    
+    <!-- Glow filter -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    
+    <!-- Inner shadow for depth -->
+    <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feOffset dx="0" dy="2"/>
+      <feGaussianBlur stdDeviation="2"/>
+      <feComposite operator="out" in="SourceGraphic"/>
+      <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.15 0"/>
+      <feBlend in="SourceGraphic"/>
+    </filter>
+    
+    <!-- Shine gradient -->
+    <linearGradient id="shine" x1="30%" y1="0%" x2="70%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.3)"/>
+      <stop offset="50%" stop-color="rgba(255,255,255,0)"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Outer glow ring -->
+  <circle cx="60" cy="60" r="54" fill="none" stroke="url(#orbGradient)" stroke-width="1.5" opacity="0.25"/>
+  
+  <!-- Main orb with glow -->
+  <circle cx="60" cy="60" r="46" fill="url(#orbGradient)" filter="url(#glow)"/>
+  
+  <!-- Shine highlight -->
+  <ellipse cx="48" cy="42" rx="22" ry="16" fill="url(#shine)" opacity="0.7"/>
+  
+  <!-- Sound wave mark - representing voice -->
+  <g fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Center dot -->
+    <circle cx="60" cy="60" r="5" fill="white"/>
+    
+    <!-- Inner wave -->
+    <path d="M 50 60 Q 50 52, 60 52 Q 70 52, 70 60" stroke-width="2.5" opacity="0.95"/>
+    <path d="M 50 60 Q 50 68, 60 68 Q 70 68, 70 60" stroke-width="2.5" opacity="0.95"/>
+    
+    <!-- Middle wave -->
+    <path d="M 44 60 Q 44 48, 60 48 Q 76 48, 76 60" stroke-width="2" opacity="0.7"/>
+    <path d="M 44 60 Q 44 72, 60 72 Q 76 72, 76 60" stroke-width="2" opacity="0.7"/>
+    
+    <!-- Outer wave -->
+    <path d="M 38 60 Q 38 44, 60 44 Q 82 44, 82 60" stroke-width="1.5" opacity="0.4"/>
+    <path d="M 38 60 Q 38 76, 60 76 Q 82 76, 82 60" stroke-width="1.5" opacity="0.4"/>
+  </g>
+</svg>
+

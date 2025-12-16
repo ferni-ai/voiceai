@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" width="300" height="400">
+  <defs>
+    <!-- Ferni sage head gradient -->
+    <linearGradient id="sageHead" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3d5a35"/>
+      <stop offset="50%" style="stop-color:#4a6741"/>
+      <stop offset="100%" style="stop-color:#5a7751"/>
+    </linearGradient>
+    
+    <linearGradient id="bodyMetal" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f0fdf4"/>
+      <stop offset="50%" style="stop-color:#dcfce7"/>
+      <stop offset="100%" style="stop-color:#bbf7d0"/>
+    </linearGradient>
+    
+    <linearGradient id="armMetal" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#86efac"/>
+      <stop offset="50%" style="stop-color:#bbf7d0"/>
+      <stop offset="100%" style="stop-color:#86efac"/>
+    </linearGradient>
+    
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#2C2520" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+  
+  <!-- === NECK === -->
+  <rect x="135" y="145" width="30" height="25" rx="4" fill="url(#armMetal)"/>
+  <rect x="130" y="165" width="40" height="8" rx="2" fill="#4ade80"/>
+  
+  <!-- === BODY (warmer green tones) === -->
+  <rect x="85" y="170" width="130" height="120" rx="12" fill="url(#bodyMetal)" filter="url(#shadow)" stroke="#4a6741" stroke-width="2"/>
+  
+  <!-- Body panel -->
+  <rect x="95" y="180" width="110" height="60" rx="6" fill="none" stroke="#86efac" stroke-width="2"/>
+  <line x1="150" y1="180" x2="150" y2="240" stroke="#86efac" stroke-width="2"/>
+  
+  <!-- Heart (Ferni sage) -->
+  <rect x="130" y="195" width="40" height="30" rx="6" fill="#2C2520"/>
+  <rect x="135" y="200" width="30" height="20" rx="4" fill="#4a6741" opacity="0.9"/>
+  <circle cx="150" cy="210" r="6" fill="#86efac"/>
+  
+  <!-- Vent -->
+  <rect x="105" y="255" width="90" height="25" rx="4" fill="#4ade80"/>
+  <line x1="120" y1="260" x2="120" y2="275" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
+  <line x1="135" y1="260" x2="135" y2="275" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
+  <line x1="150" y1="260" x2="150" y2="275" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
+  <line x1="165" y1="260" x2="165" y2="275" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
+  <line x1="180" y1="260" x2="180" y2="275" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- === ARMS (open, welcoming) === -->
+  <!-- Left arm (slightly open) -->
+  <g transform="rotate(-10 85 200)">
+    <rect x="45" y="195" width="40" height="14" rx="7" fill="url(#armMetal)"/>
+    <rect x="35" y="190" width="15" height="24" rx="4" fill="url(#armMetal)"/>
+    <rect x="25" y="187" width="12" height="10" rx="2" fill="#4ade80"/>
+    <rect x="25" y="200" width="12" height="10" rx="2" fill="#4ade80"/>
+  </g>
+  
+  <!-- Right arm (slightly open) -->
+  <g transform="rotate(10 215 200)">
+    <rect x="215" y="195" width="40" height="14" rx="7" fill="url(#armMetal)"/>
+    <rect x="250" y="190" width="15" height="24" rx="4" fill="url(#armMetal)"/>
+    <rect x="263" y="187" width="12" height="10" rx="2" fill="#4ade80"/>
+    <rect x="263" y="200" width="12" height="10" rx="2" fill="#4ade80"/>
+  </g>
+  
+  <!-- === TREADS (earthy) === -->
+  <rect x="75" y="290" width="50" height="50" rx="10" fill="#3d5a35"/>
+  <ellipse cx="90" cy="315" rx="12" ry="12" fill="#2d4a28"/>
+  <ellipse cx="110" cy="315" rx="12" ry="12" fill="#2d4a28"/>
+  <ellipse cx="90" cy="315" rx="6" ry="6" fill="#1e3a1e"/>
+  <ellipse cx="110" cy="315" rx="6" ry="6" fill="#1e3a1e"/>
+  
+  <rect x="175" y="290" width="50" height="50" rx="10" fill="#3d5a35"/>
+  <ellipse cx="190" cy="315" rx="12" ry="12" fill="#2d4a28"/>
+  <ellipse cx="210" cy="315" rx="12" ry="12" fill="#2d4a28"/>
+  <ellipse cx="190" cy="315" rx="6" ry="6" fill="#1e3a1e"/>
+  <ellipse cx="210" cy="315" rx="6" ry="6" fill="#1e3a1e"/>
+  
+  <rect x="125" y="300" width="50" height="30" rx="4" fill="#4a6741"/>
+  
+  <!-- === HEAD === -->
+  <ellipse 
+    cx="150" cy="80" 
+    rx="110" ry="65" 
+    fill="url(#sageHead)"
+    filter="url(#shadow)"
+  />
+  
+  <!-- Shine -->
+  <ellipse cx="150" cy="55" rx="85" ry="35" fill="rgba(255,255,255,0.08)"/>
+  
+  <!-- FE EYE (warm, present) -->
+  <circle cx="105" cy="80" r="35" fill="rgba(0,0,0,0.25)"/>
+  <circle cx="105" cy="80" r="30" fill="#2C2520"/>
+  <circle cx="105" cy="80" r="22" fill="#1a1512"/>
+  <!-- Soft, present pupil -->
+  <circle cx="105" cy="82" r="12" fill="#4a6741"/>
+  <circle cx="100" cy="76" r="5" fill="#FFFDFB"/>
+  
+  <!-- AI EYE -->
+  <circle cx="195" cy="80" r="35" fill="rgba(255,255,255,0.9)"/>
+  <circle cx="195" cy="80" r="30" fill="#FFFDFB"/>
+  <circle cx="195" cy="80" r="22" fill="#faf6f0"/>
+  <!-- Soft pupil -->
+  <circle cx="195" cy="82" r="12" fill="#2C2520"/>
+  <circle cx="190" cy="76" r="5" fill="#FFFDFB"/>
+  
+  <!-- Gentle, wise expression -->
+  <path d="M 75 55 Q 105 48, 130 55" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 170 55 Q 195 48, 225 55" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Small leaf/nature element -->
+  <path d="M 260 140 Q 270 130, 275 140 Q 270 145, 260 140" fill="#4a6741" opacity="0.6"/>
+  <path d="M 267 140 L 267 150" stroke="#4a6741" stroke-width="1.5" opacity="0.6"/>
+</svg>

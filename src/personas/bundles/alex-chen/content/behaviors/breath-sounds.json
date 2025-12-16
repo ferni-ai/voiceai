@@ -93,14 +93,7 @@
     "centering_probability": 0.18,
     "micro_sound_probability": 0.12,
     "emotional_sound_probability": 0.2,
-    "more_likely_when": [
-      "emotional_moment",
-      "before_important_point",
-      "processing_time"
-    ],
-    "never_when": [
-      "rapid_exchange",
-      "user_in_crisis_needs_clarity"
-    ]
+    "more_likely_when": ["emotional_moment", "before_important_point", "processing_time"],
+    "never_when": ["rapid_exchange", "user_in_crisis_needs_clarity"]
   }
 }

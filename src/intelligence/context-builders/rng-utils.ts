@@ -137,16 +137,3 @@ export function createBuilderRng(input: ContextBuilderInput, builderName: string
 export function createSimpleRng(seed: string): BuilderRng {
   return createRngFromSeed(seed);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

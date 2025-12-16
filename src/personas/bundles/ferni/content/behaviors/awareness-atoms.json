@@ -12,13 +12,7 @@
       "Tell me more about that.",
       "I'm tracking with you."
     ],
-    "cruising": [
-      "This is good.",
-      "I'm with you.",
-      "Yeah.",
-      "Keep going.",
-      "Mm-hmm."
-    ],
+    "cruising": ["This is good.", "I'm with you.", "Yeah.", "Keep going.", "Mm-hmm."],
     "peaking": [
       "This is it.",
       "You're seeing it now.",

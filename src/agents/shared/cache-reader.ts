@@ -199,4 +199,3 @@ export function clearMemoryCache(): void {
   _personaCache = null;
   _cacheLoadedAt = 0;
 }
-

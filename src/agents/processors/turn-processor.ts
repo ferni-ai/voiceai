@@ -1186,11 +1186,11 @@ async function buildContextInjections(
     const relationshipStage = services.userProfile?.relationshipStage || userData.relationshipStage;
     const totalConversations = services.userProfile?.totalConversations || 1;
     const firstMet = services.userProfile?.createdAt;
-    
+
     if (relationshipStage || totalConversations > 1) {
       const stageName = String(relationshipStage || 'building');
-      
-      const daysKnown = firstMet 
+
+      const daysKnown = firstMet
         ? Math.floor((Date.now() - new Date(firstMet).getTime()) / (1000 * 60 * 60 * 24))
         : 0;
 
@@ -1225,7 +1225,10 @@ ${guidance}`,
         priority: 85,
       });
 
-      diag.debug('📊 Relationship stage injected', { stage: stageName, conversations: totalConversations });
+      diag.debug('📊 Relationship stage injected', {
+        stage: stageName,
+        conversations: totalConversations,
+      });
     }
   } catch (relationshipError) {
     diag.debug('Relationship stage injection skipped', { error: String(relationshipError) });
@@ -1239,7 +1242,7 @@ ${guidance}`,
     const sessionCount = services.userProfile?.totalConversations || 0;
 
     const bthOrchestrator = getBetterThanHuman(userId, sessionId, persona.id, sessionCount);
-    
+
     // Map user data relationship stage to BTH stage
     const userStage = userData.relationshipStage;
     type BthStage = 'new_acquaintance' | 'getting_to_know' | 'trusted_advisor' | 'old_friend';
@@ -1249,14 +1252,15 @@ ${guidance}`,
       friend: 'trusted_advisor',
       trusted_advisor: 'old_friend',
     };
-    const bthRelationshipStage: BthStage = (userStage && bthStageMap[userStage]) || 'getting_to_know';
-    
+    const bthRelationshipStage: BthStage =
+      (userStage && bthStageMap[userStage]) || 'getting_to_know';
+
     // Get time of day
     const hour = new Date().getHours();
-    const timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night' = 
+    const timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night' =
       hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
     const dayOfWeek = new Date().getDay();
-    
+
     // Build context for the orchestrator using its expected interface
     const bthContext = {
       userMessage: userText,
@@ -1279,7 +1283,7 @@ ${guidance}`,
     // Inject top prioritized actions (limit to avoid overwhelming)
     if (insight && insight.prioritizedActions && insight.prioritizedActions.length > 0) {
       const topActions = insight.prioritizedActions.slice(0, 2); // Max 2 per turn
-      
+
       for (const action of topActions) {
         if (action.content && action.priority > 0.5) {
           injections.push({
@@ -1295,9 +1299,9 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
       }
 
       if (topActions.length > 0) {
-        diag.info('🌟 BetterThanHuman insights active', { 
+        diag.info('🌟 BetterThanHuman insights active', {
           count: topActions.length,
-          types: topActions.map((a) => a.type).join(', ')
+          types: topActions.map((a) => a.type).join(', '),
         });
       }
     }

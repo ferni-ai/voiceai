@@ -38,7 +38,15 @@ interface JobTrace {
   entryStartedAt?: number;
   sessionConnectedAt?: number;
   completedAt?: number;
-  status: 'received' | 'accepted' | 'assigned' | 'spawned' | 'entry' | 'connected' | 'completed' | 'failed';
+  status:
+    | 'received'
+    | 'accepted'
+    | 'assigned'
+    | 'spawned'
+    | 'entry'
+    | 'connected'
+    | 'completed'
+    | 'failed';
   error?: string;
   timings: TimingEntry[];
 }
@@ -69,13 +77,18 @@ function formatTimestamp(): string {
   return new Date().toISOString();
 }
 
-function log(level: 'INFO' | 'WARN' | 'ERROR' | 'DEBUG', category: string, message: string, data?: Record<string, unknown>): void {
+function log(
+  level: 'INFO' | 'WARN' | 'ERROR' | 'DEBUG',
+  category: string,
+  message: string,
+  data?: Record<string, unknown>
+): void {
   const timestamp = formatTimestamp();
   const prefix = `[${timestamp}] [${level}] [${processLabel}] [${category}]`;
-  
+
   // Format data if present
   const dataStr = data ? ` ${JSON.stringify(data)}` : '';
-  
+
   // Use stderr for visibility in Cloud Run logs
   process.stderr.write(`${prefix} ${message}${dataStr}\n`);
 }
@@ -93,7 +106,7 @@ export const e2e = {
   // ---------------------------------------------------------------------------
   // STARTUP
   // ---------------------------------------------------------------------------
-  
+
   workerStarting(): void {
     logSection('VOICE AGENT STARTING');
     log('INFO', 'STARTUP', 'Worker process initializing', {
@@ -136,10 +149,12 @@ export const e2e = {
       roomName,
       receivedAt: Date.now(),
       status: 'received',
-      timings: [{
-        label: 'job_received',
-        startTime: Date.now(),
-      }],
+      timings: [
+        {
+          label: 'job_received',
+          startTime: Date.now(),
+        },
+      ],
     };
     activeJobs.set(jobId, trace);
 
@@ -168,7 +183,7 @@ export const e2e = {
     if (trace) {
       trace.acceptedAt = Date.now();
       trace.status = 'accepted';
-      const timing = trace.timings.find(t => t.label === 'accept_start');
+      const timing = trace.timings.find((t) => t.label === 'accept_start');
       if (timing) {
         timing.endTime = Date.now();
         timing.durationMs = durationMs;
@@ -318,7 +333,12 @@ export const e2e = {
     });
   },
 
-  sessionConnected(sessionId: string, roomName: string, participantId: string, durationMs: number): void {
+  sessionConnected(
+    sessionId: string,
+    roomName: string,
+    participantId: string,
+    durationMs: number
+  ): void {
     log('INFO', 'SESSION', '✅ Connected to room', {
       sessionId,
       roomName,
@@ -415,7 +435,8 @@ export const e2e = {
     // Uses fire-and-forget pattern to avoid blocking
     void (async () => {
       try {
-        const { getAllCircuitStats } = await import('../../services/self-healing/circuit-breaker.js');
+        const { getAllCircuitStats } =
+          await import('../../services/self-healing/circuit-breaker.js');
         const circuits = getAllCircuitStats();
         if (circuits.length > 0) {
           log('INFO', 'CIRCUITS', 'Circuit breaker states', {
@@ -508,4 +529,3 @@ export function stopHealthLogging(): void {
 // ============================================================================
 
 export default e2e;
-

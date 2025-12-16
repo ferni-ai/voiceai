@@ -1,0 +1,413 @@
+/**
+ * Hero Section
+ * The dominating, interactive, competition-crushing hero
+ */
+
+/* ============================================
+   HERO CONTAINER
+   ============================================ */
+
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--color-bg-primary);
+}
+
+/* ============================================
+   AMBIENT BACKGROUND
+   Subtle, not distracting - supports the message
+   ============================================ */
+
+.hero-ambient {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Soft gradient backdrop */
+.hero-ambient::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 80% 60% at 50% 40%,
+    var(--color-ferni-glow) 0%,
+    transparent 70%
+  );
+  opacity: 0.4;
+}
+
+/* Animated orbs (subtle) */
+.hero-ambient .orb {
+  position: absolute;
+  border-radius: var(--radius-full);
+  filter: blur(60px);
+  opacity: 0.15;
+  animation: floatOrb 20s var(--ease-smooth) infinite;
+}
+
+.hero-ambient .orb-1 {
+  width: 400px;
+  height: 400px;
+  background: var(--color-ferni);
+  top: 10%;
+  left: -10%;
+  animation-delay: 0s;
+}
+
+.hero-ambient .orb-2 {
+  width: 300px;
+  height: 300px;
+  background: var(--color-maya);
+  bottom: 20%;
+  right: -5%;
+  animation-delay: -7s;
+}
+
+.hero-ambient .orb-3 {
+  width: 200px;
+  height: 200px;
+  background: var(--color-peter);
+  top: 50%;
+  right: 20%;
+  animation-delay: -14s;
+}
+
+@keyframes floatOrb {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(30px, -20px) scale(1.05);
+  }
+  50% {
+    transform: translate(-20px, 30px) scale(0.95);
+  }
+  75% {
+    transform: translate(10px, 10px) scale(1.02);
+  }
+}
+
+/* ============================================
+   HERO CONTENT
+   ============================================ */
+
+.hero-content {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  padding: var(--space-32) var(--space-6) var(--space-20);
+  max-width: 900px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .hero-content {
+    padding: var(--space-24) var(--space-6) var(--space-16);
+  }
+}
+
+/* ============================================
+   HERO AVATAR (The Living Orb)
+   ============================================ */
+
+.hero-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: var(--space-10);
+}
+
+.hero-avatar .avatar-orb {
+  width: 140px;
+  height: 140px;
+}
+
+@media (min-width: 768px) {
+  .hero-avatar .avatar-orb {
+    width: 180px;
+    height: 180px;
+  }
+}
+
+/* ============================================
+   HERO HEADLINE
+   ============================================ */
+
+.hero-headline {
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 12vw, 7rem);
+  font-weight: var(--font-weight-extrabold);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-6);
+}
+
+.hero-headline .hero-accent {
+  display: block;
+  background: linear-gradient(
+    135deg,
+    var(--color-ferni) 0%,
+    var(--color-ferni-secondary) 50%,
+    var(--color-peter) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% auto;
+  animation: gradientShift 8s var(--ease-smooth) infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% center; }
+  50% { background-position: 100% center; }
+}
+
+/* ============================================
+   HERO SUBHEAD
+   ============================================ */
+
+.hero-subhead {
+  font-family: var(--font-body);
+  font-size: clamp(var(--text-lg), 3vw, var(--text-2xl));
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-secondary);
+  max-width: 600px;
+  margin: 0 auto var(--space-10);
+  line-height: 1.5;
+}
+
+/* ============================================
+   HERO DEMO (Interactive Input)
+   ============================================ */
+
+.hero-demo {
+  margin-bottom: var(--space-10);
+}
+
+/* ============================================
+   HERO ACTIONS (CTAs)
+   ============================================ */
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-12);
+}
+
+@media (max-width: 480px) {
+  .hero-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .hero-actions .btn-primary,
+  .hero-actions .btn-phone {
+    width: 100%;
+    max-width: 300px;
+    justify-content: center;
+  }
+}
+
+/* ============================================
+   HERO PROOF (Stats)
+   ============================================ */
+
+.hero-proof {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+  padding: var(--space-6) 0;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+@media (max-width: 640px) {
+  .hero-proof {
+    gap: var(--space-6);
+  }
+}
+
+.hero-proof .proof-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hero-proof .proof-number {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-proof .proof-label {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.hero-proof .proof-divider {
+  width: 1px;
+  height: 32px;
+  background: var(--color-border-subtle);
+}
+
+@media (max-width: 480px) {
+  .hero-proof .proof-divider {
+    display: none;
+  }
+  
+  .hero-proof {
+    justify-content: space-around;
+  }
+}
+
+/* ============================================
+   SCROLL INDICATOR
+   ============================================ */
+
+.scroll-indicator {
+  position: absolute;
+  bottom: var(--space-8);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  animation: scrollBounce 2s var(--ease-ease-in-out) infinite;
+}
+
+.scroll-indicator .scroll-text {
+  font-family: var(--font-display);
+  font-size: var(--text-2xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.scroll-indicator .scroll-arrow {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--color-text-dimmed);
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+@keyframes scrollBounce {
+  0%, 100% {
+    opacity: 0.5;
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(8px);
+  }
+}
+
+@media (max-width: 768px) {
+  .scroll-indicator {
+    display: none;
+  }
+}
+
+/* ============================================
+   HERO RESPONSE PREVIEW
+   Shows when user types/speaks
+   ============================================ */
+
+.hero-response {
+  max-width: 500px;
+  margin: var(--space-6) auto 0;
+  padding: var(--space-5);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: 
+    opacity var(--duration-slow) var(--ease-ease-out),
+    transform var(--duration-slow) var(--ease-ease-out);
+}
+
+.hero-response.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.hero-response-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.hero-response-header .avatar-orb {
+  width: 32px;
+  height: 32px;
+}
+
+.hero-response-header .response-name {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.hero-response-text {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+/* Typing indicator */
+.hero-response .typing-indicator {
+  display: flex;
+  gap: 4px;
+  padding: var(--space-2) 0;
+}
+
+.hero-response .typing-indicator span {
+  width: 8px;
+  height: 8px;
+  background: var(--color-ferni);
+  border-radius: var(--radius-full);
+  animation: typingBounce 1.4s var(--ease-smooth) infinite;
+}
+
+.hero-response .typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.hero-response .typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typingBounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-8px);
+    opacity: 1;
+  }
+}
+

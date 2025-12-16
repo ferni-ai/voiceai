@@ -77,19 +77,20 @@ export async function loadPersonaLocally(personaId: string): Promise<PersonaConf
 
 /**
  * Load the rich system prompt from the persona bundle.
- * 
+ *
  * Uses the prompt assembler to combine:
  * - Core identity (system-prompt.md)
  * - Director's notes
  * - Biography summary
- * 
+ *
  * Falls back to direct file load if assembler unavailable.
  */
 async function loadRichSystemPrompt(personaId: string): Promise<string> {
   // Try the new prompt assembler first (includes director's notes + biography)
   try {
-    const { getStaticPrompt, hasAssemblyConfig } = await import('../../../personas/bundles/prompt-assembler.js');
-    
+    const { getStaticPrompt, hasAssemblyConfig } =
+      await import('../../../personas/bundles/prompt-assembler.js');
+
     if (await hasAssemblyConfig(personaId)) {
       const assembledPrompt = await getStaticPrompt(personaId);
       process.stderr.write(
@@ -138,8 +139,11 @@ export async function loadPersonaPhase(ctx: JobContext): Promise<PersonaPhaseRes
   const personaId = parsePersonaId(ctx);
   process.stderr.write(`[load-persona] Resolved personaId: ${personaId}\n`);
 
-  const { usePrewarmed, persona: cachedPersona, systemPrompt: cachedPrompt } =
-    await getPrewarmedResources(personaId);
+  const {
+    usePrewarmed,
+    persona: cachedPersona,
+    systemPrompt: cachedPrompt,
+  } = await getPrewarmedResources(personaId);
 
   let persona = cachedPersona;
 

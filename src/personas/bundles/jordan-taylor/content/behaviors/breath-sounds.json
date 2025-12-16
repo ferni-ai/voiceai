@@ -93,14 +93,7 @@
     "centering_probability": 0.2,
     "micro_sound_probability": 0.2,
     "emotional_sound_probability": 0.3,
-    "more_likely_when": [
-      "exciting_news",
-      "before_important_point",
-      "celebration_moment"
-    ],
-    "never_when": [
-      "user_distressed",
-      "serious_problem"
-    ]
+    "more_likely_when": ["exciting_news", "before_important_point", "celebration_moment"],
+    "never_when": ["user_distressed", "serious_problem"]
   }
 }

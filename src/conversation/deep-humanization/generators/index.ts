@@ -164,4 +164,3 @@ export function getGeneratorStats(): {
     counts: Object.fromEntries(sessionCounts),
   };
 }
-

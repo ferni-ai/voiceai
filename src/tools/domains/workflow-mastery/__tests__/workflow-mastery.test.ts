@@ -395,4 +395,3 @@ describe('Workflow Mastery Domain Tools', () => {
     });
   });
 });
-

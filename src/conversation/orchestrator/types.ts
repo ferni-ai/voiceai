@@ -32,7 +32,12 @@
  * @module @ferni/conversation/orchestrator
  */
 
-import type { EnergyLevel, TopicWeight, EngagementLevel, MessageAnalysis } from '../utils/detection.js';
+import type {
+  EnergyLevel,
+  TopicWeight,
+  EngagementLevel,
+  MessageAnalysis,
+} from '../utils/detection.js';
 import type { SessionIntelligenceInsight } from '../session-intelligence.js';
 import type { BetterThanHumanInsight } from '../superhuman/types.js';
 import type { ConversationMood } from '../deep-humanization.js';

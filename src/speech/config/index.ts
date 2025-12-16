@@ -5,4 +5,3 @@
  */
 
 export * from './speech-config.js';
-

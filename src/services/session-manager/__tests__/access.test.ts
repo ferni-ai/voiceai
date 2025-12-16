@@ -194,9 +194,7 @@ describe('Session Access Module', () => {
     it('should clear map even if some sessions fail to end', async () => {
       const services1 = createMockServices('session-1');
       const services2 = createMockServices('session-2');
-      (services1.endSession as ReturnType<typeof vi.fn>).mockRejectedValue(
-        new Error('Failed')
-      );
+      (services1.endSession as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('Failed'));
       mockSessions.set('session-1', services1);
       mockSessions.set('session-2', services2);
 
@@ -222,4 +220,3 @@ describe('Session Access Edge Cases', () => {
     expect(getActiveSessionIds()).toBeDefined();
   });
 });
-

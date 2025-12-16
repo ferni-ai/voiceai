@@ -42,10 +42,7 @@ import {
   type EmotionContext,
 } from '../advanced-humanization.js';
 
-import {
-  cleanupSpeechSession,
-  registerSpeechSession,
-} from '../session-cleanup.js';
+import { cleanupSpeechSession, registerSpeechSession } from '../session-cleanup.js';
 
 import type { ProsodyFeatures } from '../audio-prosody.js';
 
@@ -60,26 +57,26 @@ const BENCHMARK_CONFIG = {
   // Performance targets (in milliseconds)
   targets: {
     // Human listening pipeline
-    humanListeningFull: 100,    // Full analysis should be < 100ms
-    humanListeningQuick: 10,    // Quick analysis should be < 10ms
+    humanListeningFull: 100, // Full analysis should be < 100ms
+    humanListeningQuick: 10, // Quick analysis should be < 10ms
 
     // Dynamic speed calculation
-    dynamicSpeedCalc: 1,        // Should be < 1ms
+    dynamicSpeedCalc: 1, // Should be < 1ms
 
     // Phrase boundary detection
-    phraseBoundary: 0.5,        // Should be < 0.5ms
+    phraseBoundary: 0.5, // Should be < 0.5ms
 
     // Syntactic completeness
-    syntacticCheck: 0.5,        // Should be < 0.5ms
+    syntacticCheck: 0.5, // Should be < 0.5ms
 
     // Text humanization
-    textHumanize: 5,            // Should be < 5ms
+    textHumanize: 5, // Should be < 5ms
 
     // Real-time audio chunk processing
-    audioChunkProcess: 5,       // Should be < 5ms per chunk
+    audioChunkProcess: 5, // Should be < 5ms per chunk
 
     // Session cleanup
-    sessionCleanup: 50,         // Should be < 50ms
+    sessionCleanup: 50, // Should be < 50ms
   },
 };
 
@@ -412,9 +409,24 @@ describe('Performance Benchmarks', () => {
 
     it('should map emotions within target', () => {
       const contexts: EmotionContext[] = [
-        { agentIntent: 'comforting', userEmotion: 'sad', topicWeight: 'heavy', relationshipStage: 'friend' },
-        { agentIntent: 'celebrating', userEmotion: 'happy', topicWeight: 'light', relationshipStage: 'friend' },
-        { agentIntent: 'supportive', userEmotion: 'anxious', topicWeight: 'medium', relationshipStage: 'friend' },
+        {
+          agentIntent: 'comforting',
+          userEmotion: 'sad',
+          topicWeight: 'heavy',
+          relationshipStage: 'friend',
+        },
+        {
+          agentIntent: 'celebrating',
+          userEmotion: 'happy',
+          topicWeight: 'light',
+          relationshipStage: 'friend',
+        },
+        {
+          agentIntent: 'supportive',
+          userEmotion: 'anxious',
+          topicWeight: 'medium',
+          relationshipStage: 'friend',
+        },
       ];
 
       const result = runBenchmark(

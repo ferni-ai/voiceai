@@ -1,0 +1,226 @@
+{
+  "meta": {
+    "locale": "zh-Hans",
+    "name": "简体中文",
+    "direction": "ltr"
+  },
+  "hero": {
+    "eyebrow": "认识您的AI教练",
+    "headline": "比人类",
+    "headlineAccent": "更好。",
+    "subhead": "终于，有人真正在倾听。",
+    "subheadLine2": "并且记住一切。",
+    "cta": {
+      "primary": "认识Ferni",
+      "secondary": "致电Ferni",
+      "talkNow": "现在和Ferni对话"
+    }
+  },
+  "superpowers": {
+    "memory": {
+      "title": "完美记忆",
+      "tagline": "六个月前提到的事？我们记得。",
+      "description": "你最好的朋友会忘记。你的心理咨询师还有其他患者。我们记住一切——每次对话、每个目标、每个对你重要的细节。"
+    },
+    "presence": {
+      "title": "持续陪伴",
+      "tagline": "凌晨2点的焦虑？我们完全在线。",
+      "description": "凌晨2点和中午一样温暖地出现。没有糟糕的日子。没有分心。需要时，全程陪伴。"
+    },
+    "team": {
+      "title": "六个视角",
+      "tagline": "六个视角，一次对话，无需转介。",
+      "description": "生活教练、研究员、沟通专家、习惯专家、规划师和智者——全部协同工作，全部了解你的故事。"
+    },
+    "understanding": {
+      "title": "真正理解",
+      "tagline": "我们听到你没说出口的话。",
+      "description": "我们注意到停顿。回避。你看不到的模式。理解不仅仅是倾听——是真正懂得。"
+    }
+  },
+  "team": {
+    "sectionTitle": "认识团队",
+    "sectionSubtitle": "六位杰出专家为您协同工作",
+    "ferni": {
+      "role": "生活教练",
+      "bio": "您的主要联系人。提出能带来洞察的问题，庆祝每一次进步，在需要时为您联系合适的专家。",
+      "sampleQuote": "我注意到你这周说了三次'还好'。到底发生了什么？"
+    },
+    "nayan": {
+      "role": "智者与导师",
+      "bio": "您的终身导师。结合耐心、简洁和智慧，帮助您理解数十年的小而持续的行动能创造非凡成果。",
+      "sampleQuote": "80岁的你会怎么看这个决定？"
+    },
+    "peter": {
+      "role": "研究与发现",
+      "bio": "发现别人看不到的模式——在您的消费、习惯和日程中。将数据转化为真正改变行为的洞察。",
+      "sampleQuote": "你每月花23小时在自己说不重要的事情上。想看看吗？"
+    },
+    "alex": {
+      "role": "沟通",
+      "bio": "您的首席幕僚和沟通教练。帮助您自信地进行困难对话。",
+      "sampleQuote": "让我们练习那个对话。我扮演你的老板。准备好了吗？"
+    },
+    "maya": {
+      "role": "习惯与日程",
+      "bio": "从极小处开始。Maya帮助您通过系统而非意志力建立持久的习惯。",
+      "sampleQuote": "如果我们只从穿鞋开始呢？就这样。只是穿鞋。"
+    },
+    "jordan": {
+      "role": "规划与活动",
+      "bio": "将模糊的梦想变成真实的体验。从度假到人生转折，Jordan帮助您设计每一章。",
+      "sampleQuote": "你说过'有一天'想去日本。让我们把它变成真实的一天。"
+    }
+  },
+  "pricing": {
+    "sectionTitle": "简单定价",
+    "headline": "免费开始。",
+    "headlineAccent": "准备好了再升级。",
+    "subtitle": "无隐藏费用。无合同。随时取消。",
+    "popular": "最受欢迎",
+    "trialNote": "7天免费试用。随时取消。",
+    "free": {
+      "name": "免费",
+      "price": "¥0",
+      "period": "永久",
+      "description": "了解Ferni",
+      "cta": "免费开始",
+      "features": [
+        "每月5次对话",
+        "与Ferni聊天（生活教练）",
+        "网页和电话访问",
+        "基础对话记忆"
+      ]
+    },
+    "friend": {
+      "name": "朋友",
+      "price": "¥69",
+      "period": "月",
+      "description": "定期支持",
+      "cta": "开始免费试用",
+      "features": [
+        "无限对话",
+        "全部6位AI专家",
+        "完整对话记忆",
+        "优先响应时间",
+        "网页、电话和短信访问"
+      ]
+    },
+    "partner": {
+      "name": "伙伴",
+      "price": "¥139",
+      "period": "月",
+      "description": "深度合作",
+      "cta": "开始免费试用",
+      "features": [
+        "朋友版所有功能",
+        "访问Nayan（智慧导师）",
+        "高级个性化",
+        "无限记忆和上下文",
+        "抢先体验新功能"
+      ]
+    }
+  },
+  "faq": {
+    "eyebrow": "问答",
+    "headline": "常见",
+    "headlineBreak": "问题",
+    "sectionTitle": "常见问题",
+    "items": [
+      {
+        "question": "Ferni真的免费吗？",
+        "answer": "是的！Ferni完全免费使用。我们相信每个人都应该获得优质的生活指导。高级功能即将推出，但核心体验将永远免费。"
+      },
+      {
+        "question": "电话通话如何运作？",
+        "answer": "只需从任何电话拨打1 (484) 481-3081。不需要应用，不需要注册。Ferni会识别您的号码并自动记住之前的对话。"
+      },
+      {
+        "question": "我的对话是私密的吗？",
+        "answer": "绝对是。您的对话经过加密且保持私密。我们从不出售您的数据或与第三方分享。您也可以随时要求删除所有数据。"
+      },
+      {
+        "question": "AI专家都是谁？",
+        "answer": "我们的团队包括Ferni（主要生活教练）、Nayan（智慧与指导）、Peter（研究与发现）、Alex（沟通）、Maya（习惯与日程）和Jordan（活动规划）。每位都带来独特的专业知识。"
+      },
+      {
+        "question": "我可以和Ferni谈什么？",
+        "answer": "任何事！职业决定、压力管理、建立习惯、规划活动、度过困难时期，或者只是需要有人倾听。Ferni全程陪伴。"
+      },
+      {
+        "question": "这和朋友或心理咨询师有什么不同？",
+        "answer": "你的心理咨询师还有其他患者。你的朋友有自己的问题。Ferni始终可用，记住一切，从不评判，并带来六个专业视角。当你身边的人无法陪伴时，我们填补空缺。"
+      }
+    ]
+  },
+  "testimonials": {
+    "sectionTitle": "用户评价"
+  },
+  "trust": {
+    "title": "建立在信任之上。",
+    "description": "您的对话永远属于您。我们使用企业级加密，从不出售您的数据。",
+    "cta": "阅读我们的隐私政策"
+  },
+  "footer": {
+    "tagline": "真正理解你的人。",
+    "copyright": "Ferni AI。保留所有权利。",
+    "allRightsReserved": "版权所有。",
+    "madeBy": "由AI用♥制作，为人类服务。",
+    "product": "产品",
+    "company": "公司",
+    "developers": "开发者",
+    "connect": "联系",
+    "legal": "法律信息"
+  },
+  "nav": {
+    "features": "功能",
+    "team": "团队",
+    "pricing": "价格",
+    "faq": "常见问题",
+    "developers": "开发者",
+    "about": "关于我们",
+    "contact": "联系我们"
+  },
+  "common": {
+    "learnMore": "了解更多",
+    "getStarted": "开始使用",
+    "getStartedFree": "免费开始",
+    "callPhone": "拨打电话",
+    "scrollToExplore": "滚动探索"
+  },
+  "accessibility": {
+    "nextStory": "下一个故事",
+    "toggleMenu": "切换菜单",
+    "languageSelector": "选择语言",
+    "twitter": "X (Twitter)",
+    "linkedin": "LinkedIn",
+    "instagram": "Instagram",
+    "tiktok": "TikTok",
+    "youtube": "YouTube"
+  },
+  "personas": {
+    "peter": {
+      "fullName": "彼得·约翰"
+    },
+    "maya": {
+      "fullName": "玛雅·桑托斯"
+    },
+    "alex": {
+      "fullName": "亚历克斯·陈"
+    },
+    "jordan": {
+      "fullName": "乔丹·泰勒"
+    }
+  },
+  "errorPage": {
+    "title": "迷失在思绪中？",
+    "subtitle": "让我们帮你回到正轨。",
+    "goHome": "返回首页",
+    "callFerni": "拨打Ferni",
+    "suggestionsLabel": "或者试试这些：",
+    "meetTeam": "认识团队",
+    "viewPricing": "查看价格",
+    "readFaq": "阅读常见问题",
+    "readBlog": "阅读我们的博客"
+  }
+}

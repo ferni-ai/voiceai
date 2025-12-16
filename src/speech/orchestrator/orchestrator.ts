@@ -17,17 +17,17 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getBackchannelEngine, signalNewTurn } from '../backchanneling/index.js';
 import { canAddFeedback, recordFeedback, type FeedbackType } from '../feedback-coordinator.js';
 import { getHumanListeningPipeline } from '../human-listening-pipeline.js';
-import type { HumanListeningResult, QuickAnalysisResult } from '../human-listening-pipeline/types.js';
+import type {
+  HumanListeningResult,
+  QuickAnalysisResult,
+} from '../human-listening-pipeline/types.js';
 import {
   getAcknowledgmentPrefix,
   getCatchphraseWithSsml,
   getThinkingFiller,
   normalizePersonaId,
 } from '../persona-phrases.js';
-import {
-  hasVoiceDataLoaded,
-  loadPersonaVoiceData,
-} from '../persona-voice-loader.js';
+import { hasVoiceDataLoaded, loadPersonaVoiceData } from '../persona-voice-loader.js';
 import {
   processPartialTranscript as sesameProcessPartial,
   getPreparedResponse,
@@ -97,7 +97,10 @@ export class SpeechOrchestrator {
       await loadPersonaVoiceData(this.personaId);
     }
     this.voiceDataLoaded = true;
-    log.debug({ sessionId: this.sessionId, personaId: this.personaId }, 'SpeechOrchestrator initialized');
+    log.debug(
+      { sessionId: this.sessionId, personaId: this.personaId },
+      'SpeechOrchestrator initialized'
+    );
   }
 
   /**
@@ -288,7 +291,10 @@ export class SpeechOrchestrator {
     return this.mapQuickResult(result, processingTimeMs);
   }
 
-  private mapFullResult(result: HumanListeningResult, processingTimeMs: number): ListeningAnalysisResult {
+  private mapFullResult(
+    result: HumanListeningResult,
+    processingTimeMs: number
+  ): ListeningAnalysisResult {
     return {
       emotionalUndercurrent: {
         primary: result.emotionalUndercurrent?.primary ?? 'neutral',
@@ -325,7 +331,10 @@ export class SpeechOrchestrator {
     };
   }
 
-  private mapQuickResult(result: QuickAnalysisResult, processingTimeMs: number): ListeningAnalysisResult {
+  private mapQuickResult(
+    result: QuickAnalysisResult,
+    processingTimeMs: number
+  ): ListeningAnalysisResult {
     return {
       emotionalUndercurrent: {
         primary: 'neutral',
@@ -450,7 +459,9 @@ export class SpeechOrchestrator {
 
   private shouldAddAcknowledgment(context: SpeechOrchestratorContext): boolean {
     // Check feedback budget
-    if (!canAddFeedback(this.sessionId, FEEDBACK_TYPE_MAP.acknowledgmentPrefix, context.turnNumber)) {
+    if (
+      !canAddFeedback(this.sessionId, FEEDBACK_TYPE_MAP.acknowledgmentPrefix, context.turnNumber)
+    ) {
       return false;
     }
 
@@ -513,7 +524,10 @@ export class SpeechOrchestrator {
       return 'engaged';
     }
 
-    if (context.recentUserContent && /\?|what do you think|should I/i.test(context.recentUserContent)) {
+    if (
+      context.recentUserContent &&
+      /\?|what do you think|should I/i.test(context.recentUserContent)
+    ) {
       return 'thoughtful';
     }
 

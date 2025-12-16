@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240" width="400" height="240">
+  <defs>
+    <!-- Vibrant gradient on dark -->
+    <linearGradient id="vibrantGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#10b981"/>
+      <stop offset="30%" style="stop-color:#06b6d4"/>
+      <stop offset="60%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#f472b6"/>
+    </linearGradient>
+    
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Dark background -->
+  <rect width="400" height="240" fill="#1a1a1a" rx="24"/>
+  
+  <!-- Main ellipse with glow -->
+  <ellipse 
+    cx="200" 
+    cy="120" 
+    rx="170" 
+    ry="90" 
+    fill="url(#vibrantGradient)"
+    filter="url(#glow)"
+  />
+  
+  <!-- FE circle -->
+  <circle cx="130" cy="120" r="42" fill="rgba(0,0,0,0.35)"/>
+  <text 
+    x="130" 
+    y="128" 
+    font-family="Inter, -apple-system, sans-serif" 
+    font-size="22" 
+    font-weight="700"
+    fill="#FFFDFB" 
+    text-anchor="middle"
+  >FE</text>
+  
+  <!-- AI circle -->
+  <circle cx="270" cy="120" r="42" fill="rgba(255,255,255,0.95)"/>
+  <text 
+    x="270" 
+    y="128" 
+    font-family="Inter, -apple-system, sans-serif" 
+    font-size="22" 
+    font-weight="700"
+    fill="#1a1a1a" 
+    text-anchor="middle"
+  >AI</text>
+</svg>

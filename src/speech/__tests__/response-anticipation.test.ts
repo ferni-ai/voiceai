@@ -324,33 +324,32 @@ describe('Response Anticipation', () => {
   describe('Performance', () => {
     it('should predict intent quickly (< 5ms)', () => {
       const start = performance.now();
-      
+
       for (let i = 0; i < 100; i++) {
         predictIntent('hello there');
         predictIntent('thanks for your help');
         predictIntent('i feel overwhelmed');
       }
-      
+
       const elapsed = performance.now() - start;
       const avgMs = elapsed / 300;
-      
+
       expect(avgMs).toBeLessThan(5);
     });
 
     it('should anticipate response quickly (< 10ms)', () => {
       const service = getResponseAnticipationService(TEST_SESSION_ID);
       const start = performance.now();
-      
+
       for (let i = 0; i < 100; i++) {
         service.anticipate('hello');
         service.clearAnticipation();
       }
-      
+
       const elapsed = performance.now() - start;
       const avgMs = elapsed / 100;
-      
+
       expect(avgMs).toBeLessThan(10);
     });
   });
 });
-

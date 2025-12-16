@@ -38,12 +38,8 @@ describe('Handoff Timing', () => {
 
       it('should have delays in logical order', () => {
         // User-initiated should be fastest
-        expect(HANDOFF_TIMING.USER_INITIATED).toBeLessThan(
-          HANDOFF_TIMING.RETURNING_TO_COACH
-        );
-        expect(HANDOFF_TIMING.RETURNING_TO_COACH).toBeLessThan(
-          HANDOFF_TIMING.FIRST_MEETING
-        );
+        expect(HANDOFF_TIMING.USER_INITIATED).toBeLessThan(HANDOFF_TIMING.RETURNING_TO_COACH);
+        expect(HANDOFF_TIMING.RETURNING_TO_COACH).toBeLessThan(HANDOFF_TIMING.FIRST_MEETING);
       });
     });
 
@@ -131,9 +127,7 @@ describe('Handoff Timing', () => {
       const standardDelay = getTransitionDelay('standard', false, false, false);
       const dramaticDelay = getTransitionDelay('dramatic', false, false, false);
 
-      expect(dramaticDelay).toBe(
-        Math.round(standardDelay * TRANSITION_MULTIPLIERS.dramatic)
-      );
+      expect(dramaticDelay).toBe(Math.round(standardDelay * TRANSITION_MULTIPLIERS.dramatic));
     });
 
     it('should apply dramatic multiplier to first meeting', () => {
@@ -178,9 +172,7 @@ describe('Handoff Timing', () => {
       const standardPause = getPostSoundPause('standard');
       const dramaticPause = getPostSoundPause('dramatic');
 
-      expect(dramaticPause).toBe(
-        standardPause + HANDOFF_TIMING.POST_SOUND_PAUSE_DRAMATIC_BONUS
-      );
+      expect(dramaticPause).toBe(standardPause + HANDOFF_TIMING.POST_SOUND_PAUSE_DRAMATIC_BONUS);
     });
 
     it('should stack first meeting and dramatic bonuses', () => {
@@ -271,4 +263,3 @@ describe('Handoff Timing', () => {
     });
   });
 });
-

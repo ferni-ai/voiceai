@@ -192,7 +192,7 @@ describe('classifyTopicWeight', () => {
 describe('detectEmotionalContent', () => {
   it('should detect sympathetic content', () => {
     expect(detectEmotionalContent("I'm sorry you're going through this")).toBe(true);
-    expect(detectEmotionalContent("That sounds really hard")).toBe(true);
+    expect(detectEmotionalContent('That sounds really hard')).toBe(true);
   });
 
   it('should detect supportive content', () => {
@@ -351,7 +351,9 @@ describe('detectHighEngagement', () => {
   it('should detect enthusiasm combined with deep sharing', () => {
     // Enthusiasm + deep sharing also triggers high engagement
     expect(
-      detectHighEngagement("I feel like this is so interesting! I've been struggling with this topic and honestly I'm excited to explore it more!")
+      detectHighEngagement(
+        "I feel like this is so interesting! I've been struggling with this topic and honestly I'm excited to explore it more!"
+      )
     ).toBe(true);
   });
 
@@ -428,13 +430,13 @@ describe('detectEngagementLevel', () => {
 
   it('should return medium for substantial responses over 30 words', () => {
     const substantial =
-      "I think that makes sense to me. Let me explain my perspective on this matter and see what you think about it. I have been considering various options and want to understand better.";
+      'I think that makes sense to me. Let me explain my perspective on this matter and see what you think about it. I have been considering various options and want to understand better.';
     const result = detectEngagementLevel(substantial);
     expect(['medium', 'high']).toContain(result.value);
   });
 
   it('should return low for short non-disengaged responses', () => {
-    const shortNeutral = "That makes sense to me.";
+    const shortNeutral = 'That makes sense to me.';
     const result = detectEngagementLevel(shortNeutral);
     expect(result.value).toBe('low');
   });
@@ -485,4 +487,3 @@ describe('analyzeMessage', () => {
     expect(analysis.hasHesitation).toBe(true);
   });
 });
-

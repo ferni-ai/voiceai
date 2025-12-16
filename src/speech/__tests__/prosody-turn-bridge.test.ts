@@ -286,7 +286,7 @@ describe('Prosody-Turn Bridge', () => {
       const result = voiceSuggestsTurnComplete(voiceEmotion);
 
       // Should suggest completion - falling pitch is a strong signal
-      // The reason may be "Falling pitch" (first match) or "Slow deliberate" 
+      // The reason may be "Falling pitch" (first match) or "Slow deliberate"
       // depending on condition order in the function
       expect(result.suggests).toBe(true);
       expect(result.confidence).toBeGreaterThan(0.5);

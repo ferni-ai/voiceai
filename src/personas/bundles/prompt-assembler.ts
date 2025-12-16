@@ -138,9 +138,11 @@ async function loadAssemblyConfig(personaId: string): Promise<CachedAssembly | n
     const assembly = JSON.parse(assemblyJson) as BundlePromptAssembly;
 
     // Load core modules (these are always included)
-    const corePrompt = await loadBundleFile(personaId, assembly.prompt_modules.core_identity) || '';
-    const directorsNotes = await loadBundleFile(personaId, assembly.prompt_modules.directors_notes) || '';
-    const biography = await loadBundleFile(personaId, assembly.prompt_modules.biography) || '';
+    const corePrompt =
+      (await loadBundleFile(personaId, assembly.prompt_modules.core_identity)) || '';
+    const directorsNotes =
+      (await loadBundleFile(personaId, assembly.prompt_modules.directors_notes)) || '';
+    const biography = (await loadBundleFile(personaId, assembly.prompt_modules.biography)) || '';
 
     const cachedAssembly: CachedAssembly = {
       assembly,
@@ -163,20 +165,22 @@ async function loadAssemblyConfig(personaId: string): Promise<CachedAssembly | n
 /**
  * Generate dynamic context injection based on runtime state
  */
-function generateDynamicContext(
-  assembly: BundlePromptAssembly,
-  context: AssemblyContext
-): string {
+function generateDynamicContext(assembly: BundlePromptAssembly, context: AssemblyContext): string {
   const sections: string[] = [];
 
   // Relationship context
   if (context.relationshipStage) {
     const stage = context.relationshipStage;
-    const warmth = stage === 'stranger' ? 0.6 
-      : stage === 'acquaintance' ? 0.7 
-      : stage === 'friend' ? 0.85 
-      : stage === 'deep' ? 0.95 
-      : 0.75;
+    const warmth =
+      stage === 'stranger'
+        ? 0.6
+        : stage === 'acquaintance'
+          ? 0.7
+          : stage === 'friend'
+            ? 0.85
+            : stage === 'deep'
+              ? 0.95
+              : 0.75;
 
     sections.push(`[RELATIONSHIP: ${stage}]
 - Warmth level: ${warmth}
@@ -198,8 +202,8 @@ ${trajectory ? `- Trajectory: ${trajectory}` : ''}
   if (context.timeOfDay) {
     const timeAcknowledgments: Record<string, string> = {
       early_morning: 'Early riser. Quiet energy. Maybe contemplative.',
-      morning: 'Fresh day ahead. Could be energized or anxious about what\'s coming.',
-      afternoon: 'Day in progress. Check how it\'s going.',
+      morning: "Fresh day ahead. Could be energized or anxious about what's coming.",
+      afternoon: "Day in progress. Check how it's going.",
       evening: 'Winding down. Reflective time.',
       late_night: 'Late night. Something might be on their mind. Extra presence.',
     };
@@ -217,7 +221,9 @@ ${timeAcknowledgments[context.timeOfDay] || ''}`);
       memoryParts.push(`- Last session: ${context.lastSessionSummary.slice(0, 200)}`);
     }
     if (context.openThreads?.length) {
-      memoryParts.push(`- Open threads to follow up: ${context.openThreads.slice(0, 3).join('; ')}`);
+      memoryParts.push(
+        `- Open threads to follow up: ${context.openThreads.slice(0, 3).join('; ')}`
+      );
     }
     sections.push(memoryParts.join('\n'));
   }
@@ -268,8 +274,15 @@ async function getConditionalModules(
   }
 
   // Returning after long break
-  if (context.daysSinceLastConversation && context.daysSinceLastConversation > 7 && conditionals.returning_after_long_break) {
-    const content = await loadBundleFile(personaId, conditionals.returning_after_long_break.include);
+  if (
+    context.daysSinceLastConversation &&
+    context.daysSinceLastConversation > 7 &&
+    conditionals.returning_after_long_break
+  ) {
+    const content = await loadBundleFile(
+      personaId,
+      conditionals.returning_after_long_break.include
+    );
     if (content) modules.push(content);
   }
 
@@ -297,7 +310,7 @@ export async function assemblePrompt(
 
   // Load assembly config
   const cached = await loadAssemblyConfig(personaId);
-  
+
   if (!cached) {
     // Fallback to direct system prompt load
     const corePrompt = await loadBundleFile(personaId, 'identity/system-prompt.md');
@@ -314,7 +327,7 @@ export async function assemblePrompt(
   }
 
   const { assembly, corePrompt, directorsNotes, biography } = cached;
-  
+
   // Default token budget if not specified
   const tokenBudget = assembly.token_budget || {
     total_max: 8000,
@@ -349,7 +362,7 @@ export async function assemblePrompt(
   if (directorsNotes && currentTokens < tokenBudget.total_max - 1000) {
     const notesTokens = estimateTokens(directorsNotes);
     if (currentTokens + notesTokens <= tokenBudget.total_max) {
-      sections.push('\n---\n\n## Director\'s Notes\n\n' + directorsNotes);
+      sections.push("\n---\n\n## Director's Notes\n\n" + directorsNotes);
       currentTokens += notesTokens;
       includedModules.push('directors_notes');
     } else {
@@ -361,7 +374,10 @@ export async function assemblePrompt(
   const dynamicContext = generateDynamicContext(assembly, context);
   if (dynamicContext) {
     const dynamicTokens = estimateTokens(dynamicContext);
-    if (dynamicTokens <= tokenBudget.dynamic_context_max && currentTokens + dynamicTokens <= tokenBudget.total_max) {
+    if (
+      dynamicTokens <= tokenBudget.dynamic_context_max &&
+      currentTokens + dynamicTokens <= tokenBudget.total_max
+    ) {
       sections.push('\n---\n\n## Current Context\n\n' + dynamicContext);
       currentTokens += dynamicTokens;
       includedModules.push('dynamic_context');
@@ -400,12 +416,15 @@ export async function assemblePrompt(
 
   const finalPrompt = sections.join('\n');
 
-  log.debug({
-    personaId,
-    tokens: currentTokens,
-    modules: includedModules.length,
-    skipped: skippedModules.length,
-  }, 'Assembled prompt');
+  log.debug(
+    {
+      personaId,
+      tokens: currentTokens,
+      modules: includedModules.length,
+      skipped: skippedModules.length,
+    },
+    'Assembled prompt'
+  );
 
   return {
     prompt: finalPrompt,
@@ -423,7 +442,7 @@ export async function assemblePrompt(
  */
 export async function getStaticPrompt(personaId: string): Promise<string> {
   const cached = await loadAssemblyConfig(personaId);
-  
+
   if (!cached) {
     // Fallback
     const corePrompt = await loadBundleFile(personaId, 'identity/system-prompt.md');
@@ -432,11 +451,11 @@ export async function getStaticPrompt(personaId: string): Promise<string> {
 
   const { corePrompt, directorsNotes, biography } = cached;
   const parts = [corePrompt];
-  
+
   if (directorsNotes) {
-    parts.push('\n---\n\n## Director\'s Notes\n\n' + directorsNotes);
+    parts.push("\n---\n\n## Director's Notes\n\n" + directorsNotes);
   }
-  
+
   if (biography) {
     // Include abbreviated biography
     const bioPreview = biography.slice(0, 4000);
@@ -467,4 +486,3 @@ export default {
   clearAssemblyCache,
   hasAssemblyConfig,
 };
-

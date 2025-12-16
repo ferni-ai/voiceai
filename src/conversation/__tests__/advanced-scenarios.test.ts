@@ -34,7 +34,9 @@ describe('Advanced Conversation Scenarios', () => {
     sessionIds.length = 0;
   });
 
-  function createTestSession(overrides: Partial<Parameters<typeof createConversationSession>[0]> = {}): ConversationSession {
+  function createTestSession(
+    overrides: Partial<Parameters<typeof createConversationSession>[0]> = {}
+  ): ConversationSession {
     const sessionId = `test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     sessionIds.push(sessionId);
 
@@ -291,8 +293,10 @@ describe('Advanced Conversation Scenarios', () => {
       const session = createTestSession();
 
       const result = await session.processTurn({
-        userMessage: 'I feel completely overwhelmed and I do not know what to do anymore. Everything feels hopeless.',
-        rawResponse: 'I hear you, and I want you to know that you are not alone. Let us take this one step at a time together.',
+        userMessage:
+          'I feel completely overwhelmed and I do not know what to do anymore. Everything feels hopeless.',
+        rawResponse:
+          'I hear you, and I want you to know that you are not alone. Let us take this one step at a time together.',
         userEmotion: 'overwhelmed',
         wasPersonalSharing: true,
         isSeriousContext: true,
@@ -463,4 +467,3 @@ This is line 3.`,
     });
   });
 });
-

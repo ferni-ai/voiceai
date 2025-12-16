@@ -75,7 +75,11 @@ export class MockRoom extends EventEmitter {
   }
 
   // Simulate a remote participant joining
-  simulateParticipantJoin(identity: string, name: string, metadata?: string): MockRemoteParticipant {
+  simulateParticipantJoin(
+    identity: string,
+    name: string,
+    metadata?: string
+  ): MockRemoteParticipant {
     const participant = new MockRemoteParticipant(identity, name, metadata);
     this.remoteParticipants.set(identity, participant);
     this.emit('participantConnected', participant);
@@ -253,7 +257,7 @@ export interface MockLLMResponse {
 export class MockLLM {
   private responses: Map<string, MockLLMResponse> = new Map();
   private defaultResponse: MockLLMResponse = {
-    content: "I understand. Tell me more about that.",
+    content: 'I understand. Tell me more about that.',
   };
   public callCount = 0;
   public lastPrompt: string | null = null;
@@ -366,11 +370,13 @@ export class MockVAD extends EventEmitter {
 /**
  * Create a complete mock environment for voice agent testing
  */
-export function createMockVoiceEnvironment(options: {
-  roomName?: string;
-  userId?: string;
-  userName?: string;
-} = {}): {
+export function createMockVoiceEnvironment(
+  options: {
+    roomName?: string;
+    userId?: string;
+    userName?: string;
+  } = {}
+): {
   room: MockRoom;
   assistant: MockVoiceAssistant;
   llm: MockLLM;
@@ -485,5 +491,3 @@ export default {
   waitForEvent,
   simulateConversation,
 };
-
-

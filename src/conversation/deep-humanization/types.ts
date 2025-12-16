@@ -156,4 +156,3 @@ export type BehaviorContent = Record<string, unknown>;
  * Cache for loaded behavior content
  */
 export type BehaviorCache = Map<string, BehaviorContent>;
-

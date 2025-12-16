@@ -69,8 +69,7 @@ class EffectCoordinatorImpl implements EffectCoordinator {
       // Check cooldown and max per session
       if (!tracker.canFire(effect.id, context.turnNumber, effect.config)) {
         const usageCount = tracker.getUsageCount(effect.id);
-        const reason =
-          usageCount >= effect.config.maxPerSession ? 'max_reached' : 'cooldown';
+        const reason = usageCount >= effect.config.maxPerSession ? 'max_reached' : 'cooldown';
         this.lastSkipped.push({ effectId: effect.id, reason });
         continue;
       }
@@ -275,4 +274,3 @@ export function resetEffectCoordinator(sessionId: string, personaId: string): vo
 export function resetAllEffectCoordinators(): void {
   coordinators.clear();
 }
-

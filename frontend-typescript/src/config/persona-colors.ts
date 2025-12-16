@@ -14,9 +14,9 @@
  * 3. Colors automatically flow to CSS variables and TypeScript
  */
 
-import { generateColorForAgent, getOrGenerateColor } from './color-generator.js';
-import type { PersonaColorConfig, ApiColorData, PersonalityForColors } from '../types/colors.js';
-import { GENERATED_PERSONA_COLORS } from './persona-colors.generated.js';
+import { generateColorForAgent, getOrGenerateColor } from './color-generator.ts';
+import type { PersonaColorConfig, ApiColorData, PersonalityForColors } from '../types/colors.ts';
+import { GENERATED_PERSONA_COLORS } from './persona-colors.generated.ts';
 
 // Re-export types for backwards compatibility
 export type { PersonaColorConfig, ApiColorData, PersonalityForColors };

@@ -369,7 +369,7 @@ export function getPhasePersonality(phase: NarrativePhase): PhasePersonality {
 
 /**
  * Check if we should surface inner world content
- * 
+ *
  * HUMANIZATION FIX: Increased probabilities to surface more sensory memories
  * and personal content. The rich inner world content was rarely surfacing
  * due to overly conservative probability gates.
@@ -411,11 +411,15 @@ export function shouldSurfaceInnerWorld(
 
   // Bonus for acquaintance+ relationships (they're ready for more)
   const relationshipBonus =
-    relationshipStage === 'acquaintance' ? 0.05 :
-    relationshipStage === 'friend' ? 0.1 :
-    relationshipStage === 'trusted_advisor' ? 0.15 : 0;
+    relationshipStage === 'acquaintance'
+      ? 0.05
+      : relationshipStage === 'friend'
+        ? 0.1
+        : relationshipStage === 'trusted_advisor'
+          ? 0.15
+          : 0;
 
-  return Math.random() < (probability + relationshipBonus);
+  return Math.random() < probability + relationshipBonus;
 }
 
 /**

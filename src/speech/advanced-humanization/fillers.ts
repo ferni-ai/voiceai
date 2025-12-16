@@ -180,4 +180,3 @@ export function injectNaturalFillers(
 
   return result;
 }
-

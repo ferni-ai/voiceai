@@ -133,22 +133,22 @@ const PRESENCE_OPENERS: Record<PresenceLevel, string[]> = {
   gentle: [
     "I'm here.",
     "I'm listening.",
-    "Take your time.",
+    'Take your time.',
     "I've got nowhere else to be.",
-    "Go on.",
+    'Go on.',
   ],
   holding: [
     "I'm here with you.",
     "You don't have to say anything.",
     "I'm not going anywhere.",
-    "...",
-    "Take all the time you need.",
+    '...',
+    'Take all the time you need.',
   ],
   silent: [
-    "...",
-    "*just here*",
-    "", // Pure silence
-    "*listening*",
+    '...',
+    '*just here*',
+    '', // Pure silence
+    '*listening*',
   ],
 };
 

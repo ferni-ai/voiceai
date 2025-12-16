@@ -95,7 +95,9 @@ async function updateGardenStats(params: {
         totalAmount: admin.firestore.FieldValue.increment(amountDollars),
         totalSeeds: admin.firestore.FieldValue.increment(amountDollars),
         uniqueContributors: admin.firestore.FieldValue.increment(1), // May double-count, but that's OK
-        monthlySubscribers: isMonthly ? admin.firestore.FieldValue.increment(1) : admin.firestore.FieldValue.increment(0),
+        monthlySubscribers: isMonthly
+          ? admin.firestore.FieldValue.increment(1)
+          : admin.firestore.FieldValue.increment(0),
         lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
       },
       { merge: true }

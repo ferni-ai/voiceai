@@ -152,9 +152,7 @@ class EffectMetricsCollector {
     // Latency calculations
     const latencies = applied.map((e) => e.latencyMs).sort((a, b) => a - b);
     const avgLatencyMs =
-      latencies.length > 0
-        ? latencies.reduce((a, b) => a + b, 0) / latencies.length
-        : 0;
+      latencies.length > 0 ? latencies.reduce((a, b) => a + b, 0) / latencies.length : 0;
     const p95Index = Math.floor(latencies.length * 0.95);
     const p95LatencyMs = latencies[p95Index] || 0;
 
@@ -271,4 +269,3 @@ export const effectMetrics = {
 
   toPrometheus: () => getEffectMetrics().toPrometheusFormat(),
 };
-

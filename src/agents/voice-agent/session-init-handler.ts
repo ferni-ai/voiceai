@@ -121,16 +121,18 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
   if (room) {
     try {
       const data = new TextEncoder().encode(
-          JSON.stringify({
-            type: 'state_reset',
-            activePersona: 'ferni',
-            timestamp: Date.now(),
-          })
+        JSON.stringify({
+          type: 'state_reset',
+          activePersona: 'ferni',
+          timestamp: Date.now(),
+        })
       );
-      
+
       // Try adapter-style first (publishData on room), then raw Room style
       if (typeof (room as { publishData?: unknown }).publishData === 'function') {
-        await (room as { publishData: (d: Uint8Array, o: { reliable: boolean }) => Promise<void> }).publishData(data, { reliable: true });
+        await (
+          room as { publishData: (d: Uint8Array, o: { reliable: boolean }) => Promise<void> }
+        ).publishData(data, { reliable: true });
         logger.debug('Notified frontend of state reset (adapter)');
       } else if (room.localParticipant && typeof room.localParticipant.publishData === 'function') {
         await room.localParticipant.publishData(data, { reliable: true });
@@ -172,7 +174,9 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
       await loadDeepUnderstandingProfiles(userId);
       diag.session('Deep understanding profiles loaded for user', { userId });
     } catch (deepErr) {
-      diag.warn('Failed to load deep understanding profiles (non-fatal)', { error: String(deepErr) });
+      diag.warn('Failed to load deep understanding profiles (non-fatal)', {
+        error: String(deepErr),
+      });
     }
 
     try {

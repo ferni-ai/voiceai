@@ -1,0 +1,62 @@
+<section class="hero-scroll-container" id="heroScrollContainer">
+  {# Video Background for Zen Garden Animation #}
+  <video 
+    id="heroVideo" 
+    class="hero-video" 
+    autoplay 
+    muted 
+    loop 
+    playsinline
+    poster="/images/hero-fallback.jpg"
+  >
+    <source src="/videos/hero-golden-hour.webm" type="video/webm">
+    <source src="/videos/Wide_shot_golden_202512040652.mp4" type="video/mp4">
+  </video>
+
+  {# Hero Content Layer - Floats on top #}
+  <div class="hero-content-wrapper" id="heroContentWrapper">
+    <div class="hero-content">
+      <div class="hero-text">
+        <p class="eyebrow reveal">{{ site.hero.eyebrow }}</p>
+        <h1 class="headline-xl hero-headline reveal reveal-delay-1">
+          {{ site.hero.headline }}<br>
+          <span class="text-gradient">{{ site.hero.headlineAccent }}</span>
+        </h1>
+        <p class="body-lg hero-description reveal reveal-delay-2">
+          {{ site.hero.subhead }}<br>
+          {{ site.hero.subheadLine2 }}
+        </p>
+        <div class="hero-buttons reveal reveal-delay-3">
+          <a 
+            href="{{ site.hero.cta.primary.url }}" 
+            class="btn btn-primary btn-glow"
+            onclick="trackEvent('CTA', 'click', 'hero-start-free')"
+          >
+            <span>{{ site.hero.cta.primary.text }}</span>
+            <svg class="btn-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </a>
+          <a href="{{ site.hero.cta.secondary.url }}" class="btn btn-ghost">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            <span>{{ site.hero.cta.secondary.text }}</span>
+          </a>
+        </div>
+
+        <div class="hero-channels reveal reveal-delay-4">
+          <span class="channels-label">Talk anywhere</span>
+          <div class="channels-divider"></div>
+          <a href="{{ site.appUrl }}?utm_source=ferni_website&utm_medium=web&utm_campaign=homepage" class="channel-link">Web App</a>
+          <div class="channels-divider"></div>
+          <a href="tel:{{ site.phoneRaw }}" class="channel-link channel-phone">{{ site.phone }}</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="scroll-indicator">
+      <div class="scroll-line"></div>
+    </div>
+  </div>
+</section>

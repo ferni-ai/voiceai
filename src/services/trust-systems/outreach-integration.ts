@@ -90,19 +90,23 @@ const sentToday = new Map<string, number>();
 const sentThisWeek = new Map<string, number>();
 
 // Reset counters (managed by IntervalManager for proper shutdown)
-registerInterval('outreach-counter-reset', () => {
-  // Reset daily counters at midnight
-  const now = new Date();
-  if (now.getHours() === 0 && now.getMinutes() === 0) {
-    sentToday.clear();
-    log.debug('Daily outreach counters reset');
-  }
-  // Reset weekly on Sunday midnight
-  if (now.getDay() === 0 && now.getHours() === 0 && now.getMinutes() === 0) {
-    sentThisWeek.clear();
-    log.debug('Weekly outreach counters reset');
-  }
-}, 60000);
+registerInterval(
+  'outreach-counter-reset',
+  () => {
+    // Reset daily counters at midnight
+    const now = new Date();
+    if (now.getHours() === 0 && now.getMinutes() === 0) {
+      sentToday.clear();
+      log.debug('Daily outreach counters reset');
+    }
+    // Reset weekly on Sunday midnight
+    if (now.getDay() === 0 && now.getHours() === 0 && now.getMinutes() === 0) {
+      sentThisWeek.clear();
+      log.debug('Weekly outreach counters reset');
+    }
+  },
+  60000
+);
 
 // Default preferences
 const DEFAULT_PREFERENCES: OutreachPreferences = {

@@ -39,6 +39,8 @@ import {
   spotifyService,
 } from './services/index.js';
 import { detectAndSyncTimezone } from './services/timezone.service.js';
+// 🌱 Roadmap/Seed Economy - For streak rewards
+import { roadmapService } from './services/roadmap.service.js';
 
 // Core UI Components
 import { coachUI, initCoachUI } from './ui/coach.ui.js';
@@ -2393,6 +2395,15 @@ class VoiceAIApp {
         celebrationsUI.warmthGlow({ intensity: streak.count >= 30 ? 'intense' : 'warm' });
         delightService.haptic(streak.count >= 7 ? 'heavy' : 'medium');
         presenceUI.bounce();
+
+        // 🌱 Check for seed rewards at streak milestones (7-day: 5 seeds, 30-day: 15 seeds)
+        void roadmapService.checkStreakReward(streak.count).then((result) => {
+          if (result.awarded && result.seedsAwarded) {
+            // Show seed reward notification
+            const msg = result.message || `You earned ${result.seedsAwarded} seeds!`;
+            messageUI.show(`🌱 ${msg}`, 'success', 4000);
+          }
+        });
       },
     });
   }

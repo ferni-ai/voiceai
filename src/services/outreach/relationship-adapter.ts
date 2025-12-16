@@ -174,7 +174,10 @@ export function getRelationshipProfile(userId: string): RelationshipProfile {
 
     // Async load from Firestore (fire and forget)
     loadRelationshipProfileFromFirestore(userId).catch((err) => {
-      log.warn({ userId, error: String(err) }, 'Failed to load relationship profile from Firestore');
+      log.warn(
+        { userId, error: String(err) },
+        'Failed to load relationship profile from Firestore'
+      );
     });
   }
   return profile;

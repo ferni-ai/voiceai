@@ -127,8 +127,7 @@ function buildHandoffTools(): ToolSet {
     }),
 
     handoffToMaya: llm.tool({
-      description:
-        'Transfer to Maya for habits, budgeting, and building sustainable routines.',
+      description: 'Transfer to Maya for habits, budgeting, and building sustainable routines.',
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { MayaAgent } = await import('./maya-agent.js');
@@ -180,15 +179,13 @@ Keep responses efficient but warm. You're their communication ally.`;
       tools: allTools,
     });
 
-    process.stderr.write(
-      `[AlexAgent] Initialized with ${Object.keys(allTools).length} tools\n`
-    );
+    process.stderr.write(`[AlexAgent] Initialized with ${Object.keys(allTools).length} tools\n`);
   }
 
   async onEnter(): Promise<void> {
     this.session.generateReply({
       instructions:
-        "Introduce yourself as Alex, the communication coach. Ask how you can help with their calendar, email, or communication needs. Be warm and efficient.",
+        'Introduce yourself as Alex, the communication coach. Ask how you can help with their calendar, email, or communication needs. Be warm and efficient.',
     });
   }
 

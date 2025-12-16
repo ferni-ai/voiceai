@@ -185,9 +185,7 @@ export function detectTrajectory(partial: PartialTranscript): EmotionalTrajector
 /**
  * Get anticipated emotional trajectory type from text
  */
-export function detectTrajectoryType(
-  text: string
-): keyof typeof TRAJECTORY_PATTERNS | null {
+export function detectTrajectoryType(text: string): keyof typeof TRAJECTORY_PATTERNS | null {
   const lowerText = text.toLowerCase();
 
   for (const [key, patterns] of Object.entries(TRAJECTORY_PATTERNS)) {

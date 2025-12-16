@@ -264,12 +264,7 @@ export function enhanceResponseWithSesame(
   }
 
   // 4. Inject disfluency (natural speech patterns) - probabilistic
-  const disfluency = smartInjectDisfluency(
-    sessionId,
-    enhanced,
-    detectedEmotion,
-    turnNumber
-  );
+  const disfluency = smartInjectDisfluency(sessionId, enhanced, detectedEmotion, turnNumber);
   if (disfluency) {
     enhanced = disfluency.enhanced;
     features.push(`disfluency_${disfluency.type}`);
@@ -307,11 +302,7 @@ export function enhanceResponseWithSesame(
  *
  * Use this when you don't need full disfluency injection
  */
-export function quickEnhance(
-  sessionId: string,
-  text: string,
-  emotion: CartesiaEmotion
-): string {
+export function quickEnhance(sessionId: string, text: string, emotion: CartesiaEmotion): string {
   const prepared = getPreparedResponse(sessionId);
 
   let enhanced = text;

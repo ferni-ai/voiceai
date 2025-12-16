@@ -1,0 +1,21 @@
+/**
+ * Team Section
+ */
+
+.section-team {
+  background: var(--color-bg-secondary);
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-6);
+}
+
+/* Team card hover glow based on persona */
+.card-team:hover {
+  box-shadow: 
+    var(--shadow-lg),
+    0 0 30px var(--team-color, var(--color-ferni-glow));
+}
+

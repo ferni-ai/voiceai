@@ -93,4 +93,3 @@ export function applyRhythmVariations(variations: RhythmVariation[]): string {
 export function hasSignificantVariation(variations: RhythmVariation[]): boolean {
   return variations.some((v) => v.speedRatio !== 1.0);
 }
-

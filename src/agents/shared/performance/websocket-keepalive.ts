@@ -312,7 +312,10 @@ export class WebSocketKeepAlive {
         void this.attemptReconnect();
       }
     } catch (error) {
-      log.warn({ error: String(error), attempt: this.reconnectAttempts }, 'Reconnection attempt failed');
+      log.warn(
+        { error: String(error), attempt: this.reconnectAttempts },
+        'Reconnection attempt failed'
+      );
       // Try again
       void this.attemptReconnect();
     }
@@ -398,4 +401,3 @@ export function getAllSessionHealth(): Map<string, boolean> {
   }
   return health;
 }
-

@@ -176,4 +176,3 @@ export function analyzeSpectrum(samples: Int16Array, sampleRate = 16000): Spectr
     bandEnergies,
   };
 }
-

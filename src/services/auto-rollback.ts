@@ -337,7 +337,7 @@ async function triggerRollback(reason: string, metrics: QualitySnapshot): Promis
     try {
       // Execute rollback via ferni CLI
       log.info('Executing rollback command...');
-      execSync('npx tsx scripts/ferni.ts deploy gce --rollback', {
+      execSync('npx tsx apps/cli/src/index.ts deploy gce --rollback', {
         cwd: process.cwd(),
         stdio: 'inherit',
         timeout: 5 * 60 * 1000, // 5 minute timeout

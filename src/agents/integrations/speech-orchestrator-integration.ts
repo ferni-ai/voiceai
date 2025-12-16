@@ -14,7 +14,10 @@ import {
   type HumanizedResponse,
   type SpeechOrchestratorContext,
 } from '../../speech/orchestrator/index.js';
-import { getAnticipationPipeline, resetAnticipationPipeline } from '../../speech/anticipation/index.js';
+import {
+  getAnticipationPipeline,
+  resetAnticipationPipeline,
+} from '../../speech/anticipation/index.js';
 import type { EmotionResult } from '../../intelligence/emotion-detector.js';
 
 const log = createLogger({ module: 'SpeechOrchestratorIntegration' });
@@ -259,6 +262,3 @@ export default {
   getBackchannelDecision,
   signalNewTurn,
 };
-
-
-

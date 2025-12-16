@@ -427,7 +427,14 @@ export async function warmCommonCaches(): Promise<void> {
 
   try {
     // Warm persona bundle cache for core personas
-    const corePersonas = ['ferni', 'peter-john', 'maya-santos', 'alex-chen', 'jordan-taylor', 'nayan-patel'];
+    const corePersonas = [
+      'ferni',
+      'peter-john',
+      'maya-santos',
+      'alex-chen',
+      'jordan-taylor',
+      'nayan-patel',
+    ];
 
     for (const personaId of corePersonas) {
       try {
@@ -446,4 +453,3 @@ export async function warmCommonCaches(): Promise<void> {
     log.warn({ error: String(error) }, 'Cache warming failed (non-fatal)');
   }
 }
-

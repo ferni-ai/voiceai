@@ -42,7 +42,7 @@ const ERROR_HUMANIZATIONS: Array<{
     pattern: /socket hang up|ECONNRESET/i,
     humanize: () => ({
       userMessage:
-        "Oops, our connection hiccuped for a second there. All good now - what were you saying?",
+        'Oops, our connection hiccuped for a second there. All good now - what were you saying?',
       technicalSummary: 'Network connection reset unexpectedly',
       severity: 'minor',
       shouldNotifyUser: false,
@@ -64,7 +64,7 @@ const ERROR_HUMANIZATIONS: Array<{
     pattern: /out of memory|heap/i,
     humanize: () => ({
       userMessage:
-        "I was thinking about a lot of things at once and got a bit overwhelmed. Took a quick mental reset - feeling better now!",
+        'I was thinking about a lot of things at once and got a bit overwhelmed. Took a quick mental reset - feeling better now!',
       technicalSummary: 'Memory pressure or OOM condition',
       severity: 'major',
       shouldNotifyUser: true,
@@ -75,7 +75,7 @@ const ERROR_HUMANIZATIONS: Array<{
     pattern: /VAD|voice activity/i,
     humanize: () => ({
       userMessage:
-        "I had trouble hearing for a second there - almost like when you have water in your ear. Can you say that again?",
+        'I had trouble hearing for a second there - almost like when you have water in your ear. Can you say that again?',
       technicalSummary: 'Voice Activity Detection failure',
       severity: 'moderate',
       shouldNotifyUser: true,
@@ -85,7 +85,7 @@ const ERROR_HUMANIZATIONS: Array<{
     pattern: /TTS|text.to.speech|cartesia/i,
     humanize: () => ({
       userMessage:
-        "I had trouble finding my voice for a moment - like when you wake up and your voice is all scratchy. All good now!",
+        'I had trouble finding my voice for a moment - like when you wake up and your voice is all scratchy. All good now!',
       technicalSummary: 'Text-to-Speech service failure',
       severity: 'moderate',
       shouldNotifyUser: true,
@@ -107,7 +107,7 @@ const ERROR_HUMANIZATIONS: Array<{
     pattern: /initialization.*failed|init.*timeout/i,
     humanize: () => ({
       userMessage:
-        "I needed an extra moment to get ready - kind of like when you need a second to collect your thoughts. Ready now!",
+        'I needed an extra moment to get ready - kind of like when you need a second to collect your thoughts. Ready now!',
       technicalSummary: 'Service initialization failure',
       severity: 'minor',
       shouldNotifyUser: false,
@@ -119,7 +119,7 @@ const ERROR_HUMANIZATIONS: Array<{
     pattern: /IPC|channel.*closed/i,
     humanize: () => ({
       userMessage:
-        "I had a small internal mix-up - like when you forget what you were about to say. All sorted now!",
+        'I had a small internal mix-up - like when you forget what you were about to say. All sorted now!',
       technicalSummary: 'Inter-process communication failure',
       severity: 'moderate',
       shouldNotifyUser: false,
@@ -131,8 +131,7 @@ const ERROR_HUMANIZATIONS: Array<{
   {
     pattern: /.*/,
     humanize: () => ({
-      userMessage:
-        "I had a small technical hiccup, but I'm back now. What's on your mind?",
+      userMessage: "I had a small technical hiccup, but I'm back now. What's on your mind?",
       technicalSummary: 'Unknown error type',
       severity: 'minor',
       shouldNotifyUser: false,
@@ -180,4 +179,3 @@ export function getRecoveryMessage(context: {
 
   return "Hey there! I'm ready whenever you are.";
 }
-

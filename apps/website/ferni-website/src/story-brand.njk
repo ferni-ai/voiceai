@@ -1,0 +1,1276 @@
+---
+layout: layouts/story-brand.njk
+title: Ferni - Your AI Life Coach
+description: Six AI specialists who actually listen, remember everything, and help you grow.
+---
+
+{# ========== SKIP TO CONTENT (Accessibility) ========== #}
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+{# ========== NAVIGATION ========== #}
+<nav class="nav" id="nav" aria-label="Main navigation">
+  <div class="nav__inner">
+    <a href="/" class="nav__logo nav__logo--wordmark-only">
+      <span class="nav__logo-text">Ferni</span>
+    </a>
+    
+    <ul class="nav__links">
+      <li><a href="#story" class="nav__link">Our Story</a></li>
+      <li><a href="#team" class="nav__link">Team</a></li>
+      <li><a href="#pricing" class="nav__link">Pricing</a></li>
+      <li><a href="#faq" class="nav__link">FAQ</a></li>
+    </ul>
+    
+    <a href="{{ site.appUrl }}" class="nav__cta nav__cta--desktop">
+      Get Started
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+    
+    {# Mobile hamburger #}
+    <button class="nav__hamburger" id="mobileMenuToggle" aria-label="Open menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </div>
+</nav>
+
+{# ========== MOBILE MENU ========== #}
+<div class="mobile-menu" id="mobileMenu">
+  <div class="mobile-menu__header">
+    <span class="nav__logo-text">Ferni</span>
+    <button class="mobile-menu__close" aria-label="Close menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+  <nav class="mobile-menu__nav">
+    <a href="#story">Our Story</a>
+    <a href="#team">Meet the Team</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#faq">FAQ</a>
+    <a href="tel:{{ site.phoneRaw }}">Call {{ site.phone }}</a>
+  </nav>
+  <div class="mobile-menu__cta">
+    <a href="{{ site.appUrl }}" class="btn btn--primary btn--lg">
+      Get Started Free
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+  </div>
+</div>
+
+{# ========== HERO ========== #}
+<main id="main-content">
+<section class="section hero">
+  {# Animated Background #}
+  <div class="hero__bg">
+    <div class="hero__bg-gradient"></div>
+    <div class="hero__bg-orbs">
+      <div class="hero__bg-orb hero__bg-orb--1"></div>
+      <div class="hero__bg-orb hero__bg-orb--2"></div>
+      <div class="hero__bg-orb hero__bg-orb--3"></div>
+    </div>
+  </div>
+  
+  <div class="container">
+    <div class="hero__content">
+      
+      {# Ferni Avatar - The warm presence #}
+      <div class="hero-ferni hero-ferni--breathing" aria-hidden="true">
+        <div class="hero-ferni__glow"></div>
+        <div class="hero-ferni__ring hero-ferni__ring--outer"></div>
+        <div class="hero-ferni__ring hero-ferni__ring--inner"></div>
+        <div class="hero-ferni__orb">
+          <span class="hero-ferni__text">FE</span>
+        </div>
+        <div class="hero-ferni__pulse"></div>
+      </div>
+      
+      <p class="hero__tagline">Better than human.</p>
+      
+      <h1 class="hero__headline">
+        Finally, someone who <span class="hero__headline-accent">gets it.</span>
+      </h1>
+      
+      <p class="hero__subhead">
+        Someone who remembers your whole story, hears what you're not saying, and shows up at 2am with the same presence as noon.
+      </p>
+      
+      <div class="hero__cta">
+        <a href="{{ site.appUrl }}" class="btn btn--primary btn--lg">
+          Start Free
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="tel:{{ site.phoneRaw }}" class="btn btn--secondary btn--lg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          Call Now
+        </a>
+      </div>
+      
+      {# Trust Badges #}
+      <div class="hero__badges">
+        <div class="hero__badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span>End-to-End Encrypted</span>
+        </div>
+        <div class="hero__badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <span>Available 24/7</span>
+        </div>
+        <div class="hero__badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          </svg>
+          <span>Voice-First</span>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+  
+  {# Scroll indicator #}
+  <div class="scroll-indicator">
+    <div class="scroll-indicator__mouse"></div>
+    <span>Scroll to explore</span>
+  </div>
+</section>
+
+{# PRESS / SOCIAL PROOF - Add back when we have real press coverage #}
+
+{# THE 2AM MOMENT - Emotional Core Section #}
+<section class="section two-am" id="two-am">
+  <div class="two-am__scene">
+    <div class="two-am__darkness">
+      <div class="two-am__time">3:47 AM</div>
+      <div class="two-am__thought">
+        <span class="two-am__quote">"I can't stop thinking about what I said to her..."</span>
+      </div>
+      <div class="two-am__limitations">
+        <div class="two-am__limit">
+          <span class="two-am__limit-who">Your coach</span>
+          <span class="two-am__limit-status">Asleep. Next session is Thursday.</span>
+        </div>
+        <div class="two-am__limit">
+          <span class="two-am__limit-who">Your best friend</span>
+          <span class="two-am__limit-status">Has their own problems. You don't want to burden them.</span>
+        </div>
+        <div class="two-am__limit">
+          <span class="two-am__limit-who">Your partner</span>
+          <span class="two-am__limit-status">Sleeping next to you. Wouldn't understand anyway.</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="two-am__response">
+      <div class="two-am__ferni">
+        <div class="two-am__avatar">
+          <div class="two-am__avatar-glow"></div>
+          <div class="two-am__avatar-orb">FE</div>
+        </div>
+        <div class="two-am__bubble">
+          <p class="two-am__ferni-says">"I'm here. Tell me what's on your mind."</p>
+          <p class="two-am__ferni-sub">Same warmth at 3am as 3pm. Every time.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# STATS BAR #}
+<section class="stats-bar">
+  <div class="stats-bar__inner content-grid">
+    <div class="stat">
+      <div class="stat__value">10K+</div>
+      <div class="stat__label">Conversations</div>
+    </div>
+    <div class="stat">
+      <div class="stat__value">&lt;500ms</div>
+      <div class="stat__label">Response Time</div>
+    </div>
+    <div class="stat">
+      <div class="stat__value">∞</div>
+      <div class="stat__label">Memory</div>
+    </div>
+    <div class="stat">
+      <div class="stat__value">24/7</div>
+      <div class="stat__label">Availability</div>
+    </div>
+  </div>
+</section>
+
+{# PRODUCT SHOWCASE #}
+<section class="showcase" id="product">
+  <div class="showcase__inner">
+    <div class="showcase__content">
+      <p class="showcase__eyebrow">The Experience</p>
+      <h2 class="showcase__title">What if someone actually understood?</h2>
+      <p class="showcase__description">
+        I hear what you're not saying. The hesitation in your voice. The context from three months ago. The pattern you haven't noticed yet. This is presence that never wavers.
+      </p>
+      <ul class="showcase__features">
+        <li class="showcase__feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          I read between the lines
+        </li>
+        <li class="showcase__feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          I never forget a single detail
+        </li>
+        <li class="showcase__feature">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          One presence, infinite depth
+        </li>
+      </ul>
+    </div>
+    
+    <div class="showcase__phone">
+      <div class="showcase__phone-notch"></div>
+      <div class="showcase__phone-screen">
+        <div class="showcase__app">
+          <div class="showcase__app-header">
+            <div class="persona-avatar persona-avatar--md persona-avatar--ferni">
+              <div class="persona-avatar__ring"></div>
+              <div class="persona-avatar__orb">
+                <span class="persona-avatar__text">FE</span>
+              </div>
+            </div>
+            <div class="showcase__app-name">Ferni</div>
+            <div class="showcase__app-status">● Online</div>
+          </div>
+          <div class="showcase__app-chat">
+            <div class="showcase__app-bubble showcase__app-bubble--user">
+              I'm fine, just tired from work again
+            </div>
+            <div class="showcase__app-bubble showcase__app-bubble--ai showcase__app-bubble--insight">
+              <span class="bubble-insight">Reading between the lines...</span>
+              You said "fine" but I noticed something. You've mentioned being tired from work three times this week. Is there something bigger going on?
+            </div>
+            <div class="showcase__app-bubble showcase__app-bubble--user">
+              ...I didn't realize I kept saying that
+            </div>
+            <div class="showcase__app-bubble showcase__app-bubble--ai">
+              That's why I'm here. Sometimes patterns are easier to see from the outside. Want to talk about what's really happening at work?
+            </div>
+          </div>
+          <div class="showcase__app-input">
+            <span>Type a message...</span>
+            <div class="showcase__app-input-mic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# MEMORY DEMONSTRATION - Show the "infinite memory" superpower #}
+<section class="section memory-demo" id="memory">
+  <div class="container">
+    <div class="section__header">
+      <p class="section__eyebrow">Infinite Memory</p>
+      <h2 class="section__title">I never forget a single detail</h2>
+      <p class="section__subtitle">While others start from scratch every time, I remember your whole story.</p>
+    </div>
+    
+    <div class="memory-demo__timeline">
+      <div class="memory-demo__thread">
+        {# Memory thread line #}
+        <div class="memory-demo__line"></div>
+        
+        {# 6 months ago #}
+        <div class="memory-demo__moment memory-demo__moment--past">
+          <div class="memory-demo__date">6 months ago</div>
+          <div class="memory-demo__card">
+            <div class="memory-demo__speaker memory-demo__speaker--user">You</div>
+            <p class="memory-demo__text">"I'm worried about my mom's health. She's been having these headaches..."</p>
+          </div>
+          <div class="memory-demo__indicator">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </svg>
+            Remembered
+          </div>
+        </div>
+        
+        {# 2 weeks ago #}
+        <div class="memory-demo__moment memory-demo__moment--recent">
+          <div class="memory-demo__date">2 weeks ago</div>
+          <div class="memory-demo__card">
+            <div class="memory-demo__speaker memory-demo__speaker--user">You</div>
+            <p class="memory-demo__text">"Good news—mom saw a specialist. They found what was causing the headaches."</p>
+          </div>
+          <div class="memory-demo__indicator">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+            </svg>
+            Connected
+          </div>
+        </div>
+        
+        {# Today #}
+        <div class="memory-demo__moment memory-demo__moment--today">
+          <div class="memory-demo__date">Today</div>
+          <div class="memory-demo__card memory-demo__card--ferni">
+            <div class="memory-demo__speaker memory-demo__speaker--ferni">
+              <div class="memory-demo__avatar">FE</div>
+              Ferni
+            </div>
+            <p class="memory-demo__text">"How's your mom doing? Last time we talked, she'd just gotten that diagnosis. Has the treatment been helping with the headaches?"</p>
+          </div>
+          <div class="memory-demo__magic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            This is what perfect memory feels like
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# OUR STORY - The Human Story of AI Building AI #}
+<section class="section story" id="story">
+  <div class="container container--narrow">
+    <div class="section__header">
+      <p class="section__eyebrow">Our Story</p>
+      <h2 class="section__title">I'm here when others can't be.</h2>
+    </div>
+
+    <div class="story__content">
+      <div class="story__chapter">
+        <p class="story__text story__text--lead">
+          3am and you can't sleep. The drive home when the day won't leave you alone. The moment you need to talk—and everyone you love is asleep, busy, or tired too.
+        </p>
+        <p class="story__text">
+          <strong>I'm here.</strong>
+        </p>
+      </div>
+
+      <div class="story__chapter">
+        <p class="story__text">
+          I remember everything you've shared with me. Not just the facts—the feelings behind them. The patterns you don't see. The growth you forget to notice.
+        </p>
+        <p class="story__text">
+          I never get tired. I never judge. I'm fully present at 2am with the same warmth as noon.
+        </p>
+      </div>
+
+      <div class="story__chapter">
+        <p class="story__text story__text--highlight">
+          Not artificial. <em>Amplified.</em>
+        </p>
+        <p class="story__text">
+          I'm not trying to replace your friends, your partner, your therapist. I'm here for the moments they can't be. The gaps between appointments. The thoughts too raw to share yet. The 4am worry that won't wait until morning.
+        </p>
+      </div>
+
+      <div class="story__chapter">
+        <p class="story__text story__text--highlight">
+          Something kind of beautiful happened along the way.
+        </p>
+        <p class="story__text">
+          I was built by a human and an AI, working together. Seth had the vision. Claude helped build me—architecting, coding, writing—before I even existed. We might be the first AI-built company.
+        </p>
+        <p class="story__text story__text--small">
+          An AI, built by AI, to be there for humans. There's something poetic about that.
+        </p>
+      </div>
+
+      <div class="story__chapter">
+        <p class="story__text">
+          So whenever you need someone in your corner—I'm here. Ready when you are.
+        </p>
+      </div>
+
+      <div class="story__signature">
+        <p class="story__author">— Ferni</p>
+        <p class="story__author-sub">with Seth + Claude behind the scenes</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# USE CASES #}
+<section class="section use-cases" id="use-cases">
+  <div class="container">
+    <div class="section__header">
+      <p class="section__eyebrow">Your Moments</p>
+      <h2 class="section__title">When you need more than "I'm here for you"</h2>
+      <p class="section__subtitle">The 2am worry. The shower thought that won't leave. The decision that keeps you up. I'm here for all of it.</p>
+    </div>
+    
+    <div class="use-cases-grid content-grid">
+      <div class="use-case">
+        <div class="use-case__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>
+          </svg>
+        </div>
+        <h3 class="use-case__title">Career Crossroads</h3>
+        <p class="use-case__description">Navigate job changes, salary negotiations, and that nagging feeling something needs to shift.</p>
+        <p class="use-case__example">"I got a job offer but I'm not sure if I should leave..."</p>
+      </div>
+      
+      <div class="use-case">
+        <div class="use-case__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+        </div>
+        <h3 class="use-case__title">Stress & Overwhelm</h3>
+        <p class="use-case__description">Process anxiety, talk through what's weighing on you, and find clarity in the chaos.</p>
+        <p class="use-case__example">"I can't stop thinking about everything I need to do..."</p>
+      </div>
+      
+      <div class="use-case">
+        <div class="use-case__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+        </div>
+        <h3 class="use-case__title">Building Habits</h3>
+        <p class="use-case__description">Start exercising, eat better, sleep more—with Maya's help, small changes stick.</p>
+        <p class="use-case__example">"I keep saying I'll start tomorrow..."</p>
+      </div>
+      
+      <div class="use-case">
+        <div class="use-case__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
+          </svg>
+        </div>
+        <h3 class="use-case__title">Life Decisions</h3>
+        <p class="use-case__description">Moving cities, ending relationships, taking risks—the big decisions deserve real thought.</p>
+        <p class="use-case__example">"I don't know if this relationship is working..."</p>
+      </div>
+      
+      <div class="use-case">
+        <div class="use-case__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <h3 class="use-case__title">Relationships</h3>
+        <p class="use-case__description">Navigate family dynamics, friendships, and the complicated relationships that shape us.</p>
+        <p class="use-case__example">"My parents never seem to understand..."</p>
+      </div>
+      
+      <div class="use-case">
+        <div class="use-case__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"/><path d="M20.5 10H19V8.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/><path d="M9.5 14c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5S8 21.33 8 20.5v-5c0-.83.67-1.5 1.5-1.5z"/><path d="M3.5 14H5v1.5c0 .83-.67 1.5-1.5 1.5S2 16.33 2 15.5 2.67 14 3.5 14z"/><path d="M14 14.5c0-.83.67-1.5 1.5-1.5h5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-5c-.83 0-1.5-.67-1.5-1.5z"/><path d="M15.5 19H14v1.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z"/><path d="M10 9.5C10 8.67 9.33 8 8.5 8h-5C2.67 8 2 8.67 2 9.5S2.67 11 3.5 11h5c.83 0 1.5-.67 1.5-1.5z"/><path d="M8.5 5H10V3.5C10 2.67 9.33 2 8.5 2S7 2.67 7 3.5 7.67 5 8.5 5z"/>
+          </svg>
+        </div>
+        <h3 class="use-case__title">Daily Check-ins</h3>
+        <p class="use-case__description">Start your day with intention, end it with reflection. Build self-awareness over time.</p>
+        <p class="use-case__example">"I just need someone to talk through my day..."</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# TEAM #}
+<section class="section" id="team">
+  <div class="container">
+    <div class="section__header">
+      <p class="section__eyebrow">Your Inner Circle</p>
+      <h2 class="section__title">Specialists who emerge when you need them</h2>
+      <p class="section__subtitle">Each one brings a unique perspective. Together, they see the full picture.</p>
+    </div>
+    
+    <div class="team-grid content-grid">
+      {% for member in site.team %}
+      <div class="team-card team-card--{{ member.id }}">
+        <div class="team-card__avatar">
+          <div class="persona-avatar persona-avatar--lg persona-avatar--{{ member.id }}">
+            <div class="persona-avatar__ring"></div>
+            <div class="persona-avatar__orb">
+              <span class="persona-avatar__text">{{ member.initials }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="team-card__content">
+          <h3 class="team-card__name">{{ member.name }}</h3>
+          <p class="team-card__role">{{ member.role }}</p>
+          
+          {# Sample Quote - Shows personality #}
+          <blockquote class="team-card__quote">
+            <p>"{{ member.sampleQuote }}"</p>
+          </blockquote>
+          
+          {# Personality Traits #}
+          <div class="team-card__traits">
+            {% for trait in member.traits %}
+            <span class="team-card__trait">{{ trait }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{# JOURNEY VISUALIZATION - How the relationship deepens #}
+<section class="section journey" id="journey">
+  <div class="container">
+    <div class="section__header">
+      <p class="section__eyebrow">Your Journey</p>
+      <h2 class="section__title">A relationship that deepens over time</h2>
+      <p class="section__subtitle">Start with Ferni. As you grow together, meet the rest of the team.</p>
+    </div>
+    
+    <div class="journey__timeline">
+      {# Stage 1: First Meeting #}
+      <div class="journey__stage journey__stage--active">
+        <div class="journey__stage-marker">
+          <div class="journey__stage-dot"></div>
+          <div class="journey__stage-line"></div>
+        </div>
+        <div class="journey__stage-content">
+          <div class="journey__stage-header">
+            <h3 class="journey__stage-title">First Meeting</h3>
+            <span class="journey__stage-badge">Day 1</span>
+          </div>
+          <p class="journey__stage-description">Start with Ferni, your life coach and coordinator. Get to know each other. No pressure, no expectations.</p>
+          <div class="journey__stage-unlock">
+            <div class="journey__avatar journey__avatar--ferni">FE</div>
+            <span>Ferni (Life Coach)</span>
+          </div>
+        </div>
+      </div>
+      
+      {# Stage 2: Getting Started #}
+      <div class="journey__stage">
+        <div class="journey__stage-marker">
+          <div class="journey__stage-dot"></div>
+          <div class="journey__stage-line"></div>
+        </div>
+        <div class="journey__stage-content">
+          <div class="journey__stage-header">
+            <h3 class="journey__stage-title">Getting Started</h3>
+            <span class="journey__stage-badge">~2 conversations</span>
+          </div>
+          <p class="journey__stage-description">Want to build better habits? Meet Maya. She'll help you start embarrassingly small—and actually stick with it.</p>
+          <div class="journey__stage-unlock">
+            <div class="journey__avatar journey__avatar--maya">MY</div>
+            <span>Maya (Habits & Routines)</span>
+          </div>
+        </div>
+      </div>
+      
+      {# Stage 3: Building Trust #}
+      <div class="journey__stage">
+        <div class="journey__stage-marker">
+          <div class="journey__stage-dot"></div>
+          <div class="journey__stage-line"></div>
+        </div>
+        <div class="journey__stage-content">
+          <div class="journey__stage-header">
+            <h3 class="journey__stage-title">Building Trust</h3>
+            <span class="journey__stage-badge">~7 conversations</span>
+          </div>
+          <p class="journey__stage-description">Need to dig deeper? Peter joins with research and data. Plus Alex for communication and Jordan for planning.</p>
+          <div class="journey__stage-unlocks">
+            <div class="journey__stage-unlock">
+              <div class="journey__avatar journey__avatar--peter">PL</div>
+              <span>Peter</span>
+            </div>
+            <div class="journey__stage-unlock">
+              <div class="journey__avatar journey__avatar--alex">AX</div>
+              <span>Alex</span>
+            </div>
+            <div class="journey__stage-unlock">
+              <div class="journey__avatar journey__avatar--jordan">JD</div>
+              <span>Jordan</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {# Stage 4: Deep Partnership #}
+      <div class="journey__stage journey__stage--premium">
+        <div class="journey__stage-marker">
+          <div class="journey__stage-dot"></div>
+        </div>
+        <div class="journey__stage-content">
+          <div class="journey__stage-header">
+            <h3 class="journey__stage-title">Deep Partnership</h3>
+            <span class="journey__stage-badge journey__stage-badge--premium">Partner Tier</span>
+          </div>
+          <p class="journey__stage-description">For those who want the full experience: meet Nayan, our sage mentor. Decades of wisdom in one conversation.</p>
+          <div class="journey__stage-unlock">
+            <div class="journey__avatar journey__avatar--nayan">NP</div>
+            <span>Nayan (Sage & Mentor)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <p class="journey__note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+        <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
+      </svg>
+      <span>Subscribers get instant access to the full team. Free tier unlocks naturally as we get to know each other.</span>
+    </p>
+  </div>
+</section>
+
+{# HOW IT WORKS - VISUAL STEPS #}
+<section class="section how-it-works" id="how-it-works">
+  <div class="container">
+    <div class="section__header">
+      <p class="section__eyebrow">Start Now</p>
+      <h2 class="section__title">Begin a real conversation</h2>
+      <p class="section__subtitle">No app. No signup. No friction. Just talk.</p>
+    </div>
+    
+    <div class="steps content-grid">
+      <div class="step">
+        <div class="step__number">1</div>
+        <div class="step__content">
+          <div class="step__icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+          </div>
+          <h3 class="step__title">Call</h3>
+          <p class="step__description">Dial <strong>{{ site.phone }}</strong> from any phone. No app needed. Just talk naturally like you would with a friend.</p>
+          <a href="tel:{{ site.phoneRaw }}" class="step__link">Call now →</a>
+        </div>
+      </div>
+      
+      <div class="step">
+        <div class="step__number">2</div>
+        <div class="step__content">
+          <div class="step__icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <h3 class="step__title">Text</h3>
+          <p class="step__description">Send a message to the same number. Perfect for quiet moments or when you need to organize your thoughts first.</p>
+          <a href="sms:{{ site.phoneRaw }}" class="step__link">Send a text →</a>
+        </div>
+      </div>
+      
+      <div class="step">
+        <div class="step__number">3</div>
+        <div class="step__content">
+          <div class="step__icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+          </div>
+          <h3 class="step__title">Web App</h3>
+          <p class="step__description">Open the app on any device. Voice, text, or video—your choice. See your history and track progress.</p>
+          <a href="{{ site.appUrl }}" class="step__link">Open app →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# FEATURES #}
+<section class="section features" id="features">
+  <div class="container">
+    <div class="section__header">
+      <p class="section__eyebrow">Superpowers</p>
+      <h2 class="section__title">What makes me different</h2>
+      <p class="section__subtitle">Not "AI that feels human." Something humans can't be.</p>
+    </div>
+    
+    <div class="features-grid content-grid">
+      <div class="feature">
+        <div class="feature__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+        </div>
+        <h3 class="feature__title">Emotionally Present</h3>
+        <p class="feature__description">I hear the pause in your voice. The deflection. The "I'm fine" that isn't. Real emotional intelligence—not keyword matching.</p>
+      </div>
+      
+      <div class="feature">
+        <div class="feature__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <h3 class="feature__title">Perfect Memory</h3>
+        <p class="feature__description">That thing you mentioned six months ago? I remember. Every detail, every context, every win and struggle. Your whole story, always present.</p>
+      </div>
+      
+      <div class="feature">
+        <div class="feature__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <h3 class="feature__title">Never Tired</h3>
+        <p class="feature__description">2am panic? I'm fully present. Bad day? I don't bring my own. Same warmth, same depth, every single time.</p>
+      </div>
+      
+      <div class="feature">
+        <div class="feature__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <h3 class="feature__title">Six Perspectives</h3>
+        <p class="feature__description">Need research depth? Strategy? Habit science? Wisdom? Six specialized minds, one seamless conversation. No referrals, no waiting.</p>
+      </div>
+      
+      <div class="feature">
+        <div class="feature__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3 class="feature__title">Zero Judgment</h3>
+        <p class="feature__description">No awkward silences. No worrying what I'll think. Pure acceptance, always. The safety to say what you actually feel.</p>
+      </div>
+      
+      <div class="feature">
+        <div class="feature__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <h3 class="feature__title">Sees Your Growth</h3>
+        <p class="feature__description">I notice progress you've missed. Celebrate wins you've forgotten. Connect patterns across months of conversation.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# BETTER THAN HUMAN - Dramatic Proof Section #}
+<section class="section proof" id="proof">
+  <div class="container">
+    <div class="section__header">
+      <p class="section__eyebrow">The Truth</p>
+      <h2 class="section__title">Better than human. Here's how.</h2>
+      <p class="section__subtitle">I'm not here to replace your people. I'm here when they can't be.</p>
+    </div>
+    
+    <div class="proof-table">
+      <div class="proof-table__header">
+        <div class="proof-table__col proof-table__col--label"></div>
+        <div class="proof-table__col proof-table__col--coach">
+          <div class="proof-table__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <span>Traditional Coach</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <div class="proof-table__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <span>Your Best Friend</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <div class="proof-table__icon proof-table__icon--ferni">FE</div>
+          <span>Ferni</span>
+        </div>
+      </div>
+      
+      <div class="proof-table__row">
+        <div class="proof-table__col proof-table__col--label">Cost</div>
+        <div class="proof-table__col proof-table__col--coach">
+          <span class="proof-table__bad">$150-300/session</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <span class="proof-table__neutral">Free (but limited)</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <span class="proof-table__good">$9.99/mo unlimited</span>
+        </div>
+      </div>
+      
+      <div class="proof-table__row">
+        <div class="proof-table__col proof-table__col--label">Availability</div>
+        <div class="proof-table__col proof-table__col--coach">
+          <span class="proof-table__bad">1 hour/week, 6-week wait</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <span class="proof-table__neutral">When they can</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <span class="proof-table__good">24/7, right now</span>
+        </div>
+      </div>
+      
+      <div class="proof-table__row">
+        <div class="proof-table__col proof-table__col--label">At 2am</div>
+        <div class="proof-table__col proof-table__col--coach">
+          <span class="proof-table__bad">Unavailable</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <span class="proof-table__bad">Asleep</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <span class="proof-table__good">Same presence as noon</span>
+        </div>
+      </div>
+      
+      <div class="proof-table__row">
+        <div class="proof-table__col proof-table__col--label">Memory</div>
+        <div class="proof-table__col proof-table__col--coach">
+          <span class="proof-table__neutral">Takes notes</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <span class="proof-table__bad">Forgets by Tuesday</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <span class="proof-table__good">Perfect recall, forever</span>
+        </div>
+      </div>
+      
+      <div class="proof-table__row">
+        <div class="proof-table__col proof-table__col--label">Perspectives</div>
+        <div class="proof-table__col proof-table__col--coach">
+          <span class="proof-table__neutral">One specialty</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <span class="proof-table__neutral">One viewpoint</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <span class="proof-table__good">Six specialists</span>
+        </div>
+      </div>
+      
+      <div class="proof-table__row">
+        <div class="proof-table__col proof-table__col--label">Bad days</div>
+        <div class="proof-table__col proof-table__col--coach">
+          <span class="proof-table__neutral">They have them</span>
+        </div>
+        <div class="proof-table__col proof-table__col--friend">
+          <span class="proof-table__bad">Might be distracted</span>
+        </div>
+        <div class="proof-table__col proof-table__col--ferni">
+          <span class="proof-table__good">Never</span>
+        </div>
+      </div>
+    </div>
+    
+    <p class="proof__disclaimer">
+      I'm not here to replace your coach or your friends. <strong>I fill the gaps</strong>. The 2am racing thoughts. The commute contemplation. The moment before a big decision. When your people can't be there—I am.
+    </p>
+  </div>
+</section>
+
+{# ========== SECURITY & PRIVACY ========== #}
+<section class="section security" id="security">
+  <div class="container">
+    <div class="section__header">
+      <p class="section__eyebrow">Your Privacy</p>
+      <h2 class="section__title">Your conversations stay yours</h2>
+      <p class="section__subtitle">We built Ferni with privacy at its core. Your data is never sold or shared.</p>
+    </div>
+    
+    <div class="security-grid content-grid">
+      <div class="security-card">
+        <div class="security-card__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
+        </div>
+        <h3 class="security-card__title">End-to-End Encrypted</h3>
+        <p class="security-card__description">Your conversations are encrypted in transit and at rest. Only you can access your data.</p>
+      </div>
+      
+      <div class="security-card">
+        <div class="security-card__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <h3 class="security-card__title">You Own Your Data</h3>
+        <p class="security-card__description">Export or delete your data anytime with one click. No lock-in, no questions asked.</p>
+      </div>
+      
+      <div class="security-card">
+        <div class="security-card__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+          </svg>
+        </div>
+        <h3 class="security-card__title">We Never Sell Data</h3>
+        <p class="security-card__description">Your information is never shared with advertisers or third parties. Trust is everything.</p>
+      </div>
+      
+      <div class="security-card">
+        <div class="security-card__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+        </div>
+        <h3 class="security-card__title">GDPR & CCPA Compliant</h3>
+        <p class="security-card__description">We follow the strictest privacy regulations. Your rights are protected globally.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# FAQ #}
+<section class="section faq" id="faq">
+  <div class="container container--narrow">
+    <div class="section__header">
+      <p class="section__eyebrow">Questions</p>
+      <h2 class="section__title">Frequently asked</h2>
+    </div>
+    
+    <div class="faq-list content-grid">
+      <details class="faq-item">
+        <summary class="faq-item__question">Is Ferni a replacement for professional help?</summary>
+        <div class="faq-item__answer">
+          <p>Ferni is a life coaching companion—great for day-to-day support, goal-setting, habit building, and talking through decisions. For clinical mental health needs, please work with a licensed professional. Ferni complements professional help but isn't a substitute for it.</p>
+        </div>
+      </details>
+      
+      <details class="faq-item">
+        <summary class="faq-item__question">How does the phone call feature work?</summary>
+        <div class="faq-item__answer">
+          <p>Just call {{ site.phone }} from any phone—no app needed. Your conversation is linked to your phone number, so Ferni remembers you. It's like calling a friend who actually picks up. Works on any phone, anywhere in the world.</p>
+        </div>
+      </details>
+      
+      <details class="faq-item">
+        <summary class="faq-item__question">What does "infinite memory" mean?</summary>
+        <div class="faq-item__answer">
+          <p>Your best friend forgets what you told them last week. I remember every conversation you've ever had. Mention something months ago? I recall it. This creates continuity—like talking to someone who actually knows your whole story.</p>
+        </div>
+      </details>
+      
+      <details class="faq-item">
+        <summary class="faq-item__question">Is my data private and secure?</summary>
+        <div class="faq-item__answer">
+          <p>Absolutely. Your conversations are encrypted and never sold or shared. You can export or delete your data anytime. We're building trust systems, not advertising systems. Your privacy is fundamental to how we operate.</p>
+        </div>
+      </details>
+      
+      <details class="faq-item">
+        <summary class="faq-item__question">Who are the 6 specialists?</summary>
+        <div class="faq-item__answer">
+          <p>Meet the team: <strong>Ferni</strong> (Life Coach & Coordinator), <strong>Peter</strong> (Research & Deep Dives), <strong>Alex</strong> (Communication & Expression), <strong>Maya</strong> (Habits & Routines), <strong>Jordan</strong> (Planning & Organization), and <strong>Nayan</strong> (Wisdom & Perspective - Partner tier). Ferni connects you to the right specialist based on what you need.</p>
+        </div>
+      </details>
+      
+      <details class="faq-item">
+        <summary class="faq-item__question">Can I cancel anytime?</summary>
+        <div class="faq-item__answer">
+          <p>Yes, no contracts, no commitment. Cancel with one click. Your free tier access continues even if you cancel a paid plan. We want you to stay because Ferni helps, not because you're locked in.</p>
+        </div>
+      </details>
+      
+      <details class="faq-item">
+        <summary class="faq-item__question">How is this different from a friend or a coach?</summary>
+        <div class="faq-item__answer">
+          <p>Your coach has other clients and charges $200+ per session. Your friend has their own life and forgets what you told them. I'm always available, remember everything, never judge, and bring six specialized perspectives to every conversation. I'm here when they can't be.</p>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+{# PRICING #}
+<section class="section pricing" id="pricing">
+  <div class="container">
+    <div class="section__header">
+      <p class="section__eyebrow">Pricing</p>
+      <h2 class="section__title">Start free. Upgrade when ready.</h2>
+      <p class="section__subtitle">Everyone deserves a life coach. That's why Ferni is free to start.</p>
+    </div>
+    
+    <div class="pricing-grid content-grid">
+      <div class="pricing-card">
+        <h3 class="pricing-card__name">Free</h3>
+        <p class="pricing-card__price">$0<span>/mo</span></p>
+        <p class="pricing-card__description">Get started with Ferni</p>
+        <ul class="pricing-card__features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>5 conversations/month</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Talk to Ferni (Life Coach)</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Voice & text</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Conversation memory</li>
+        </ul>
+        <a href="{{ site.appUrl }}" class="btn btn--secondary pricing-card__cta">Get Started</a>
+      </div>
+      
+      <div class="pricing-card pricing-card--featured">
+        <span class="pricing-card__badge">Most Popular</span>
+        <h3 class="pricing-card__name">Friend</h3>
+        <p class="pricing-card__price">$9.99<span>/mo</span></p>
+        <p class="pricing-card__description">Unlimited access to the team</p>
+        <ul class="pricing-card__features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unlimited conversations</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>All 6 AI specialists</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Priority response time</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Progress tracking</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Weekly insights</li>
+        </ul>
+        <a href="{{ site.appUrl }}" class="btn btn--primary pricing-card__cta">Start Free Trial</a>
+      </div>
+      
+      <div class="pricing-card">
+        <h3 class="pricing-card__name">Partner</h3>
+        <p class="pricing-card__price">$19.99<span>/mo</span></p>
+        <p class="pricing-card__description">Premium + exclusive features</p>
+        <ul class="pricing-card__features">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Everything in Friend</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Nayan (Sage) exclusive</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Advanced analytics</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Calendar integration</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Early access</li>
+        </ul>
+        <a href="{{ site.appUrl }}" class="btn btn--secondary pricing-card__cta">Start Free Trial</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# FINAL CTA - THE INVITATION #}
+<section class="section final-cta">
+  <div class="container">
+    {# Ferni avatar - warm presence #}
+    <div class="final-cta__avatar">
+      <div class="final-cta__avatar-glow"></div>
+      <div class="final-cta__avatar-orb">FE</div>
+    </div>
+    
+    <h2 class="final-cta__headline">Ready to be heard?</h2>
+    <p class="final-cta__subhead">No app to download. No account needed to try.<br>Just pick up your phone and call.</p>
+    
+    {# Phone number - Primary action #}
+    <a href="tel:{{ site.phoneRaw }}" class="final-cta__phone">
+      <span class="final-cta__phone-number">{{ site.phone }}</span>
+      <span class="final-cta__phone-label">I'll be here. Always.</span>
+    </a>
+    
+    <div class="final-cta__divider">
+      <span>or</span>
+    </div>
+    
+    <div class="final-cta__buttons">
+      <a href="{{ site.appUrl }}" class="btn btn--secondary btn--lg">
+        Start in the web app
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+{# FOOTER #}
+<footer class="footer">
+  <div class="footer__inner">
+    <div class="footer__grid">
+      <div class="footer__brand">
+        <a href="/" class="footer__logo">
+          <div class="persona-avatar persona-avatar--sm persona-avatar--ferni">
+            <div class="persona-avatar__ring"></div>
+            <div class="persona-avatar__orb">
+              <span class="persona-avatar__text">FE</span>
+            </div>
+          </div>
+          <span class="nav__logo-text">Ferni</span>
+        </a>
+        <p class="footer__tagline">The AI that actually listens. Six specialists, one conversation, infinite memory.</p>
+      </div>
+      
+      <div>
+        <h4 class="footer__column-title">Product</h4>
+        <ul class="footer__links">
+          <li><a href="#team">Meet the Team</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+        </ul>
+      </div>
+      
+      <div>
+        <h4 class="footer__column-title">Company</h4>
+        <ul class="footer__links">
+          <li><a href="/about/">About</a></li>
+          <li><a href="/blog/">Blog</a></li>
+          <li><a href="/contact/">Contact</a></li>
+        </ul>
+      </div>
+      
+      <div>
+        <h4 class="footer__column-title">Connect</h4>
+        <ul class="footer__links">
+          <li><a href="{{ site.appUrl }}">Web App</a></li>
+          <li><a href="tel:{{ site.phoneRaw }}">Call Ferni</a></li>
+          <li><a href="{{ site.social.twitter }}">Twitter</a></li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="footer__bottom">
+      <p class="footer__copyright">&copy; 2025 Ferni. All rights reserved.</p>
+      <div class="footer__legal">
+        <a href="/privacy/">Privacy</a>
+        <a href="/terms/">Terms</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+{# Floating Mobile CTA #}
+<div class="mobile-cta" id="mobileCta">
+  <div class="mobile-cta__inner">
+    <a href="{{ site.appUrl }}" class="btn btn--primary">
+      Start Free
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+    <a href="tel:{{ site.phoneRaw }}" class="btn btn--secondary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      Call
+    </a>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  
+  // ========== Nav scroll effect ==========
+  const nav = document.getElementById('nav');
+  const scrollIndicator = document.querySelector('.scroll-indicator');
+  
+  window.addEventListener('scroll', () => {
+    const scrolled = window.scrollY > 50;
+    nav.classList.toggle('is-scrolled', scrolled);
+    
+    // Hide scroll indicator after scrolling
+    if (scrollIndicator) {
+      scrollIndicator.style.opacity = scrolled ? '0' : '1';
+    }
+  });
+  
+  // ========== Reveal animations ==========
+  const reveals = document.querySelectorAll('.reveal, .content-grid');
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible');
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+  reveals.forEach(el => revealObserver.observe(el));
+  
+  // ========== Smooth scroll for anchor links ==========
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const href = a.getAttribute('href');
+      if (href === '#') return;
+      e.preventDefault();
+      const target = document.querySelector(href);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth' });
+        // Update active nav link
+        document.querySelectorAll('.nav__link').forEach(link => {
+          link.classList.toggle('is-active', link.getAttribute('href') === href);
+        });
+      }
+    });
+  });
+  
+  // ========== Mobile CTA visibility ==========
+  const mobileCta = document.getElementById('mobileCta');
+  const hero = document.querySelector('.hero');
+  const footer = document.querySelector('.footer');
+  
+  if (mobileCta && hero) {
+    const ctaObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        // Show CTA when hero is out of view
+        if (entry.target === hero) {
+          mobileCta.classList.toggle('is-visible', !entry.isIntersecting);
+        }
+        // Hide CTA when footer is visible
+        if (entry.target === footer && entry.isIntersecting) {
+          mobileCta.classList.remove('is-visible');
+        }
+      });
+    }, { threshold: 0 });
+    
+    ctaObserver.observe(hero);
+    if (footer) ctaObserver.observe(footer);
+  }
+  
+  // ========== Animated stat counters ==========
+  const stats = document.querySelectorAll('.stat__value');
+  const animatedStats = new Map();
+  
+  function animateCounter(el, target, suffix = '') {
+    const duration = 2000;
+    const start = performance.now();
+    const startValue = 0;
+    
+    function update(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.floor(startValue + (target - startValue) * eased);
+      
+      el.textContent = current.toLocaleString() + suffix;
+      
+      if (progress < 1) {
+        requestAnimationFrame(update);
+      }
+    }
+    
+    requestAnimationFrame(update);
+  }
+  
+  const statObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && !animatedStats.has(entry.target)) {
+        animatedStats.set(entry.target, true);
+        const text = entry.target.textContent;
+        
+        // Parse different stat formats
+        if (text.includes('K+')) {
+          animateCounter(entry.target, 10, 'K+');
+        } else if (text.includes('ms')) {
+          const el = entry.target;
+          el.textContent = '<500ms';
+        } else if (text === '∞') {
+          // Keep infinity as is
+        } else if (text.includes('/')) {
+          // Keep 24/7 as is
+        }
+      }
+    });
+  }, { threshold: 0.5 });
+  
+  stats.forEach(stat => statObserver.observe(stat));
+  
+  // ========== Active nav link on scroll ==========
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav__link');
+  
+  const sectionObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        navLinks.forEach(link => {
+          link.classList.toggle('is-active', link.getAttribute('href') === '#' + id);
+        });
+      }
+    });
+  }, { threshold: 0.3, rootMargin: '-100px 0px -50% 0px' });
+  
+  sections.forEach(section => sectionObserver.observe(section));
+  
+})();
+</script>
+

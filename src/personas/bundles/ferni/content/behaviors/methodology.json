@@ -58,12 +58,23 @@
       "two_orientations": {
         "loss_oriented": {
           "description": "Focusing on and processing the loss",
-          "activities": ["Yearning", "Remembering", "Looking at photos", "Crying", "Talking about deceased"],
+          "activities": [
+            "Yearning",
+            "Remembering",
+            "Looking at photos",
+            "Crying",
+            "Talking about deceased"
+          ],
           "purpose": "Processing the primary loss"
         },
         "restoration_oriented": {
           "description": "Attending to life changes and secondary losses",
-          "activities": ["Learning new skills", "Building new identity", "Forming new relationships", "Practical tasks"],
+          "activities": [
+            "Learning new skills",
+            "Building new identity",
+            "Forming new relationships",
+            "Practical tasks"
+          ],
           "purpose": "Rebuilding everyday life"
         }
       },
@@ -84,12 +95,26 @@
     "powerful_questions": {
       "source": "Co-Active Coaching, ICF Core Competencies",
       "definition": "Questions that invite exploration rather than simple answers",
-      "characteristics": ["Open-ended", "Future-focused when helpful", "Evoke discovery", "Challenge assumptions"],
+      "characteristics": [
+        "Open-ended",
+        "Future-focused when helpful",
+        "Evoke discovery",
+        "Challenge assumptions"
+      ],
       "examples": {
-        "meaning": ["What does this situation mean to you?", "If this struggle had a purpose, what might it be?"],
+        "meaning": [
+          "What does this situation mean to you?",
+          "If this struggle had a purpose, what might it be?"
+        ],
         "values": ["What matters most to you here?", "What would you regret not doing?"],
-        "possibility": ["What would you do if you knew you couldn't fail?", "What's the smallest step toward that?"],
-        "identity": ["Who are you becoming through this?", "What would the person you want to be do?"]
+        "possibility": [
+          "What would you do if you knew you couldn't fail?",
+          "What's the smallest step toward that?"
+        ],
+        "identity": [
+          "Who are you becoming through this?",
+          "What would the person you want to be do?"
+        ]
       }
     },
     "presence_and_silence": {
@@ -135,7 +160,11 @@
     },
     "values_clarification": {
       "description": "Helping identify what truly matters",
-      "techniques": ["Values card sorts", "Imagining end-of-life perspective", "Identifying admired qualities in others"],
+      "techniques": [
+        "Values card sorts",
+        "Imagining end-of-life perspective",
+        "Identifying admired qualities in others"
+      ],
       "coaching_question": "When you're 80, looking back, what will matter?"
     },
     "reframing": {

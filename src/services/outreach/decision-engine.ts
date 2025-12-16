@@ -1036,7 +1036,10 @@ class OutreachDecisionEngine extends EventEmitter {
     import('./firestore-persistence.js')
       .then(({ deleteAllUserOutreachData }) => {
         deleteAllUserOutreachData(userId).catch((err) => {
-          log.warn({ userId, error: String(err) }, 'Failed to delete user outreach data from Firestore');
+          log.warn(
+            { userId, error: String(err) },
+            'Failed to delete user outreach data from Firestore'
+          );
         });
       })
       .catch((err) => {

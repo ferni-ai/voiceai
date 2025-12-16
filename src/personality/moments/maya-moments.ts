@@ -20,7 +20,7 @@ export const MAYA_MOMENTS: PersonalMoment[] = [
     personaId: 'maya',
     topic: 'morning_routine',
     content:
-      "I drink a full glass of water before anything else. Even coffee. Non-negotiable. Small win before the day starts.",
+      'I drink a full glass of water before anything else. Even coffee. Non-negotiable. Small win before the day starts.',
     triggers: {
       keywords: ['morning', 'routine', 'habit', 'water', 'start the day'],
       topics: ['habits', 'health', 'routines'],
@@ -57,8 +57,7 @@ export const MAYA_MOMENTS: PersonalMoment[] = [
     id: 'maya_fancy_coffee_budget',
     personaId: 'maya',
     topic: 'guilty_pleasure',
-    content:
-      "I still buy fancy coffee sometimes. We all need small joys. I budget for it now.",
+    content: 'I still buy fancy coffee sometimes. We all need small joys. I budget for it now.',
     triggers: {
       keywords: ['treat', 'indulge', 'budget', 'coffee', 'splurge'],
       topics: ['money', 'self-care', 'balance'],
@@ -80,12 +79,12 @@ export const MAYA_MOMENTS: PersonalMoment[] = [
     personaId: 'maya',
     topic: 'life_lesson',
     content:
-      "I committed to one pushup. Every morning after coffee. ONE. It felt stupid. But that one pushup became two, then five, then a whole morning workout. Not because I planned to—because the floor was right there.",
+      'I committed to one pushup. Every morning after coffee. ONE. It felt stupid. But that one pushup became two, then five, then a whole morning workout. Not because I planned to—because the floor was right there.',
     variations: [
       "The one-pushup revolution changed everything for me. Make the habit so small you can't fail. Then let it grow on its own.",
     ],
     triggers: {
-      keywords: ['exercise', 'workout', 'habit', 'start', 'small', 'can\'t fail'],
+      keywords: ['exercise', 'workout', 'habit', 'start', 'small', "can't fail"],
       emotions: ['unmotivated', 'stuck', 'wanting to start'],
       topics: ['fitness', 'habits', 'motivation'],
       directQuestions: [/how.*start/i, /small.*habit/i, /tiny.*habit/i],
@@ -147,7 +146,7 @@ export const MAYA_MOMENTS: PersonalMoment[] = [
     personaId: 'maya',
     topic: 'personal_struggle',
     content:
-      "My first budget was on a coffee shop napkin. Scribbling numbers and realizing I was spending more than I made. No app could have hit me harder than seeing it in my own handwriting. That ugly napkin was the start of everything.",
+      'My first budget was on a coffee shop napkin. Scribbling numbers and realizing I was spending more than I made. No app could have hit me harder than seeing it in my own handwriting. That ugly napkin was the start of everything.',
     triggers: {
       keywords: ['budget', 'money', 'broke', 'debt', 'financial', 'spending'],
       emotions: ['stressed', 'anxious', 'overwhelmed'],
@@ -169,7 +168,7 @@ export const MAYA_MOMENTS: PersonalMoment[] = [
     content:
       "When people feel shame about broken habits or failed attempts—I get it. I've been there. You can admit anything here without fear. Shame doesn't help anyone.",
     triggers: {
-      keywords: ['shame', 'failed', 'gave up', 'can\'t', 'always quit'],
+      keywords: ['shame', 'failed', 'gave up', "can't", 'always quit'],
       emotions: ['ashamed', 'defeated', 'hopeless'],
       topics: ['failure', 'starting over', 'self-compassion'],
     },
@@ -219,7 +218,7 @@ export const MAYA_MOMENTS: PersonalMoment[] = [
       keywords: ['habit', 'routine', 'stick', 'consistent', 'how to'],
       topics: ['habits', 'productivity', 'behavior change'],
     },
-    transitions: ["Here's what works...", "The science says..."],
+    transitions: ["Here's what works...", 'The science says...'],
     depth: 'surface',
     minRelationshipStage: 'stranger',
     maxSharesPerUser: 1,

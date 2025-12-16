@@ -16,7 +16,10 @@ export async function connectToRoom(ctx: JobContext, timeoutMs: number = 30000):
   const connectStart = Date.now();
 
   const timeout = new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error(`Room connection timed out after ${timeoutMs}ms`)), timeoutMs);
+    setTimeout(
+      () => reject(new Error(`Room connection timed out after ${timeoutMs}ms`)),
+      timeoutMs
+    );
   });
 
   await Promise.race([ctx.connect(), timeout]);

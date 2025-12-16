@@ -168,8 +168,8 @@ class CalendarSettingsUI {
         '/api/calendar/status'
       );
 
-      if (response.success) {
-        this.status = response.status;
+      if (response.data?.success) {
+        this.status = response.data.status;
         this.renderContent();
       } else {
         this.renderError('Unable to load calendar status');

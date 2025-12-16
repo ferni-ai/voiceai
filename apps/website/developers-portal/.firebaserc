@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "johnb-app"
+  },
+  "targets": {
+    "johnb-app": {
+      "hosting": {
+        "ferni-developers": [
+          "ferni-developers"
+        ]
+      }
+    }
+  }
+}

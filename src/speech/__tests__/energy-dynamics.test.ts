@@ -156,10 +156,7 @@ describe('EnergyDynamicsTracker', () => {
         { position: 1, energy: 0.2, speechRate: 100 },
       ];
 
-      const result = tracker.analyzeFromSegments(
-        segments,
-        'I miss her so much, she is gone now'
-      );
+      const result = tracker.analyzeFromSegments(segments, 'I miss her so much, she is gone now');
 
       if (result.fadeDetected) {
         expect(result.fadeIndicates).toBe('sadness');
@@ -192,7 +189,7 @@ describe('EnergyDynamicsTracker', () => {
 
       const result = tracker.analyzeFromSegments(
         segments,
-        'Maybe I should, I don\'t know, probably not'
+        "Maybe I should, I don't know, probably not"
       );
 
       if (result.fadeDetected) {
@@ -209,10 +206,7 @@ describe('EnergyDynamicsTracker', () => {
         { position: 1, energy: 0.2, speechRate: 100 },
       ];
 
-      const result = tracker.analyzeFromSegments(
-        segments,
-        'Oh wait, I just realized something'
-      );
+      const result = tracker.analyzeFromSegments(segments, 'Oh wait, I just realized something');
 
       if (result.fadeDetected) {
         expect(['realization', 'unknown', 'discouragement']).toContain(result.fadeIndicates);

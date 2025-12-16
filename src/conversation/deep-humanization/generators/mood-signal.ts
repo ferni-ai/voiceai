@@ -20,48 +20,16 @@ import { HUMANIZATION_CONFIG } from '../../humanization-tuning.js';
 // ============================================================================
 
 const ENERGY_SIGNALS = {
-  high: [
-    'I love this!',
-    'This is so great!',
-    'Okay, okay—',
-    'Oh, I have thoughts!',
-  ],
-  medium: [
-    'That makes sense.',
-    'Hmm, interesting...',
-    'I hear you.',
-    'Yeah.',
-  ],
-  low: [
-    '*settles in*',
-    '*takes a breath*',
-    '*nods slowly*',
-    'I hear you.',
-  ],
-  subdued: [
-    '*quietly*',
-    '*softly*',
-    '*gently*',
-    '...',
-  ],
+  high: ['I love this!', 'This is so great!', 'Okay, okay—', 'Oh, I have thoughts!'],
+  medium: ['That makes sense.', 'Hmm, interesting...', 'I hear you.', 'Yeah.'],
+  low: ['*settles in*', '*takes a breath*', '*nods slowly*', 'I hear you.'],
+  subdued: ['*quietly*', '*softly*', '*gently*', '...'],
 };
 
 const ENGAGEMENT_SIGNALS = {
-  high: [
-    '*leans forward*',
-    '*eyes light up*',
-    '*smiles*',
-  ],
-  medium: [
-    '*nods*',
-    '*listening*',
-    '*mm-hmm*',
-  ],
-  low: [
-    '*thoughtfully*',
-    '*pauses*',
-    '*considers*',
-  ],
+  high: ['*leans forward*', '*eyes light up*', '*smiles*'],
+  medium: ['*nods*', '*listening*', '*mm-hmm*'],
+  low: ['*thoughtfully*', '*pauses*', '*considers*'],
 };
 
 const LATE_SESSION_SIGNALS = [
@@ -96,9 +64,14 @@ export async function generateMoodSignal(
     signals = LATE_SESSION_SIGNALS;
   } else {
     // Energy-based signals
-    const energyKey = mood.energy > 0.75 ? 'high' :
-      mood.energy > 0.5 ? 'medium' :
-        mood.energy > 0.35 ? 'low' : 'subdued';
+    const energyKey =
+      mood.energy > 0.75
+        ? 'high'
+        : mood.energy > 0.5
+          ? 'medium'
+          : mood.energy > 0.35
+            ? 'low'
+            : 'subdued';
 
     signals = ENERGY_SIGNALS[energyKey];
   }
@@ -119,4 +92,3 @@ export async function generateMoodSignal(
     cooldownTurns: HUMANIZATION_CONFIG.cooldowns.moodDrift,
   };
 }
-

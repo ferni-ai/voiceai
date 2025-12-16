@@ -17,21 +17,29 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
 
 // Declare browser globals for TypeScript (not available in Node.js)
-declare const window: {
-  location: { search: string; pathname: string };
-} | undefined;
-declare const navigator: {
-  languages?: readonly string[];
-  language?: string;
-} | undefined;
-declare const localStorage: {
-  getItem(key: string): string | null;
-  setItem(key: string, value: string): void;
-  removeItem(key: string): void;
-} | undefined;
-declare const document: {
-  cookie: string;
-} | undefined;
+declare const window:
+  | {
+      location: { search: string; pathname: string };
+    }
+  | undefined;
+declare const navigator:
+  | {
+      languages?: readonly string[];
+      language?: string;
+    }
+  | undefined;
+declare const localStorage:
+  | {
+      getItem(key: string): string | null;
+      setItem(key: string, value: string): void;
+      removeItem(key: string): void;
+    }
+  | undefined;
+declare const document:
+  | {
+      cookie: string;
+    }
+  | undefined;
 
 import { type SupportedLocale, DEFAULT_LOCALE, LOCALE_METADATA } from '../types.js';
 
@@ -49,7 +57,7 @@ const LOCALE_URL_PARAM = 'lang';
  */
 const LANGUAGE_MAP: Record<string, SupportedLocale> = {
   // English
-  'en': 'en-US',
+  en: 'en-US',
   'en-us': 'en-US',
   'en-gb': 'en-GB',
   'en-au': 'en-GB',
@@ -58,7 +66,7 @@ const LANGUAGE_MAP: Record<string, SupportedLocale> = {
   'en-za': 'en-GB',
 
   // Spanish
-  'es': 'es',
+  es: 'es',
   'es-es': 'es',
   'es-mx': 'es',
   'es-ar': 'es',
@@ -66,28 +74,28 @@ const LANGUAGE_MAP: Record<string, SupportedLocale> = {
   'es-cl': 'es',
 
   // French
-  'fr': 'fr',
+  fr: 'fr',
   'fr-fr': 'fr',
   'fr-ca': 'fr',
   'fr-be': 'fr',
   'fr-ch': 'fr',
 
   // German
-  'de': 'de',
+  de: 'de',
   'de-de': 'de',
   'de-at': 'de',
   'de-ch': 'de',
 
   // Japanese
-  'ja': 'ja',
+  ja: 'ja',
   'ja-jp': 'ja',
 
   // Korean
-  'ko': 'ko',
+  ko: 'ko',
   'ko-kr': 'ko',
 
   // Chinese
-  'zh': 'zh-Hans',
+  zh: 'zh-Hans',
   'zh-cn': 'zh-Hans',
   'zh-hans': 'zh-Hans',
   'zh-tw': 'zh-Hant',
@@ -95,15 +103,15 @@ const LANGUAGE_MAP: Record<string, SupportedLocale> = {
   'zh-hant': 'zh-Hant',
 
   // Arabic
-  'ar': 'ar',
+  ar: 'ar',
   'ar-sa': 'ar',
   'ar-ae': 'ar',
   'ar-eg': 'ar',
 
   // Hebrew
-  'he': 'he',
+  he: 'he',
   'he-il': 'he',
-  'iw': 'he', // Legacy code
+  iw: 'he', // Legacy code
 };
 
 // ============================================================================
@@ -310,9 +318,7 @@ export function clearPersistedLocale(): void {
  * parseAcceptLanguage('en-US,en;q=0.9,es;q=0.8')
  * // [{ locale: 'en-US', quality: 1 }, { locale: 'en', quality: 0.9 }, ...]
  */
-export function parseAcceptLanguage(
-  header: string
-): Array<{ locale: string; quality: number }> {
+export function parseAcceptLanguage(header: string): Array<{ locale: string; quality: number }> {
   if (!header) return [];
 
   return header

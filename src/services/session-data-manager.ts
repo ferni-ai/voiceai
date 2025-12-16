@@ -13,6 +13,7 @@
  * @module SessionDataManager
  */
 
+import * as v8 from 'v8';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'SessionDataManager' });
@@ -287,9 +288,11 @@ class SessionDataManagerImpl {
     freedMB?: number;
   }> {
     const memUsage = process.memoryUsage();
+    const heapStats = v8.getHeapStatistics();
     const heapUsedMB = memUsage.heapUsed / (1024 * 1024);
-    const heapTotalMB = memUsage.heapTotal / (1024 * 1024);
-    const percentUsed = (heapUsedMB / heapTotalMB) * 100;
+    // Use heap_size_limit (actual max) instead of heapTotal (current allocation)
+    const heapMaxMB = heapStats.heap_size_limit / (1024 * 1024);
+    const percentUsed = (heapUsedMB / heapMaxMB) * 100;
 
     // Determine cleanup level based on heap percentage
     let level = 0;
@@ -312,7 +315,7 @@ class SessionDataManagerImpl {
       {
         level,
         heapUsedMB: Math.round(heapUsedMB),
-        heapTotalMB: Math.round(heapTotalMB),
+        heapMaxMB: Math.round(heapMaxMB),
         percentUsed: Math.round(percentUsed),
         sessions: this.sessions.size,
       },
@@ -415,7 +418,7 @@ class SessionDataManagerImpl {
     services: Record<string, { users: number; entries: number; sizeEstimate?: number }>;
     memory: {
       heapUsedMB: number;
-      heapTotalMB: number;
+      heapMaxMB: number;
       percentUsed: number;
       rss: number;
     };
@@ -443,16 +446,17 @@ class SessionDataManagerImpl {
       }
     }
 
+    const heapStats = v8.getHeapStatistics();
     const heapUsedMB = memUsage.heapUsed / (1024 * 1024);
-    const heapTotalMB = memUsage.heapTotal / (1024 * 1024);
+    const heapMaxMB = heapStats.heap_size_limit / (1024 * 1024);
 
     return {
       activeSessions: this.sessions.size,
       services: serviceStats,
       memory: {
         heapUsedMB: Math.round(heapUsedMB),
-        heapTotalMB: Math.round(heapTotalMB),
-        percentUsed: Math.round((heapUsedMB / heapTotalMB) * 100),
+        heapMaxMB: Math.round(heapMaxMB),
+        percentUsed: Math.round((heapUsedMB / heapMaxMB) * 100),
         rss: Math.round(memUsage.rss / (1024 * 1024)),
       },
       oldestSessionAge,

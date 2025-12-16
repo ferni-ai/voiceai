@@ -151,11 +151,14 @@ async function persistSession(session: VisitorSession): Promise<void> {
   });
 
   // Also store the session itself
-  await db.collection('landing_sessions').doc(session.sessionId).set({
-    ...session,
-    startTime: session.startTime,
-    endTime: session.endTime || new Date(),
-  });
+  await db
+    .collection('landing_sessions')
+    .doc(session.sessionId)
+    .set({
+      ...session,
+      startTime: session.startTime,
+      endTime: session.endTime || new Date(),
+    });
 }
 
 function calculateSessionDuration(session: VisitorSession): number {
@@ -271,7 +274,10 @@ export async function getReturningVisitorExperience(
   });
 
   if (result) {
-    log.info({ visitorId: context.visitorId, visitCount: context.visitCount }, 'AI experience generated');
+    log.info(
+      { visitorId: context.visitorId, visitCount: context.visitCount },
+      'AI experience generated'
+    );
     return result;
   }
 
@@ -353,4 +359,3 @@ export function generateVisitorId(): string {
   const random = Math.random().toString(36).substring(2, 10);
   return `fv_${timestamp}_${random}`;
 }
-

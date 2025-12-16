@@ -144,10 +144,7 @@ export class ResponseStreamProcessor {
   private interruptionCount = 0;
   private chunkLatencies: number[] = [];
 
-  constructor(
-    onChunk: ChunkCallback,
-    config: StreamingConfig = {}
-  ) {
+  constructor(onChunk: ChunkCallback, config: StreamingConfig = {}) {
     this.onChunk = onChunk;
     this.config = {
       minChunkSize: config.minChunkSize ?? 50,
@@ -201,10 +198,7 @@ export class ResponseStreamProcessor {
     }
 
     // Flush if at natural boundary and over min size
-    if (
-      this.buffer.length >= this.config.minChunkSize &&
-      endsAtNaturalBoundary(this.buffer)
-    ) {
+    if (this.buffer.length >= this.config.minChunkSize && endsAtNaturalBoundary(this.buffer)) {
       return true;
     }
 
@@ -287,9 +281,7 @@ export class ResponseStreamProcessor {
     const totalDurationMs = this.startTime ? Date.now() - this.startTime : 0;
     const avgChunkLatencyMs =
       this.chunkLatencies.length > 0
-        ? Math.round(
-            this.chunkLatencies.reduce((a, b) => a + b, 0) / this.chunkLatencies.length
-          )
+        ? Math.round(this.chunkLatencies.reduce((a, b) => a + b, 0) / this.chunkLatencies.length)
         : 0;
 
     return {
@@ -361,10 +353,7 @@ export class LookaheadBuffer<T> {
   private synthesizeFn: (text: string) => Promise<T>;
   private maxSize: number;
 
-  constructor(
-    synthesizeFn: (text: string) => Promise<T>,
-    maxSize = 2
-  ) {
+  constructor(synthesizeFn: (text: string) => Promise<T>, maxSize = 2) {
     this.synthesizeFn = synthesizeFn;
     this.maxSize = maxSize;
   }
@@ -375,7 +364,7 @@ export class LookaheadBuffer<T> {
   add(chunk: StreamChunk): void {
     // Start synthesizing immediately
     const synthesizingPromise = this.synthesizeFn(chunk.text);
-    
+
     const entry: LookaheadEntry<T> = {
       chunk,
       synthesized: null,
@@ -491,12 +480,15 @@ export async function endStreamingSession(sessionId: string): Promise<StreamMetr
   session.metrics = metrics;
   activeSessions.delete(sessionId);
 
-  log.debug({
-    sessionId,
-    totalChunks: metrics.totalChunks,
-    firstChunkLatencyMs: metrics.firstChunkLatencyMs,
-    avgChunkLatencyMs: metrics.avgChunkLatencyMs,
-  }, '🎤 Streaming session ended');
+  log.debug(
+    {
+      sessionId,
+      totalChunks: metrics.totalChunks,
+      firstChunkLatencyMs: metrics.firstChunkLatencyMs,
+      avgChunkLatencyMs: metrics.avgChunkLatencyMs,
+    },
+    '🎤 Streaming session ended'
+  );
 
   return metrics;
 }
@@ -512,4 +504,3 @@ export function cancelStreamingSession(sessionId: string): void {
     log.debug({ sessionId }, 'Streaming session cancelled');
   }
 }
-

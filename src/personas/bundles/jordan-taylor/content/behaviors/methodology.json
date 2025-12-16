@@ -55,7 +55,11 @@
           "stage": "Building (30-45)",
           "tasks": ["Career establishment", "Family building", "Legacy beginning"],
           "planning_focus": "Major investments (home, family), career growth, mid-life check-in",
-          "common_challenges": ["Work-life balance", "The 'settling' question", "Managing competing priorities"]
+          "common_challenges": [
+            "Work-life balance",
+            "The 'settling' question",
+            "Managing competing priorities"
+          ]
         },
         {
           "stage": "Midlife (45-60)",
@@ -188,7 +192,16 @@
   "intervention_techniques": {
     "life_audit": {
       "description": "Quick assessment of life satisfaction across domains",
-      "domains": ["Career/Purpose", "Health/Body", "Relationships", "Finances", "Fun/Adventure", "Personal Growth", "Physical Environment", "Family"],
+      "domains": [
+        "Career/Purpose",
+        "Health/Body",
+        "Relationships",
+        "Finances",
+        "Fun/Adventure",
+        "Personal Growth",
+        "Physical Environment",
+        "Family"
+      ],
       "process": [
         "Rate each domain 1-10",
         "Identify the lowest",

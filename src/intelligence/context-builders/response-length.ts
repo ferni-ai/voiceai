@@ -105,7 +105,7 @@ function detectLengthSignals(
 
 /**
  * Determine ideal response length based on signals
- * 
+ *
  * Enhanced with randomization to avoid monotonous same-length responses
  */
 function determineResponseLength(signals: LengthSignals): ResponseLength {
@@ -143,10 +143,10 @@ function determineResponseLength(signals: LengthSignals): ResponseLength {
   // Even when no special signals, vary response length to feel more human
   // 25% chance of going brief, 10% chance of minimal for variety
   const randomValue = Math.random();
-  if (randomValue < 0.10) {
+  if (randomValue < 0.1) {
     return 'minimal'; // Sometimes just "Yeah." or "Exactly." feels right
   }
-  if (randomValue < 0.30) {
+  if (randomValue < 0.3) {
     return 'brief'; // Sometimes shorter is better
   }
 

@@ -141,7 +141,7 @@ let styleElement: HTMLStyleElement | null = null;
 let isInitialized = false;
 let config = { ...DEFAULT_CONFIG };
 let signalQueue: TrustSignal[] = [];
-let visibleSignals: Map<string, HTMLElement> = new Map();
+const visibleSignals: Map<string, HTMLElement> = new Map();
 let dismissedSignals: Set<string> = new Set();
 
 // ============================================================================

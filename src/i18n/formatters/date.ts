@@ -187,10 +187,7 @@ export function formatTimeAgo(
 /**
  * Format a duration in milliseconds to a human-readable string
  */
-export function formatDuration(
-  ms: number,
-  locale: SupportedLocale = DEFAULT_LOCALE
-): string {
+export function formatDuration(ms: number, locale: SupportedLocale = DEFAULT_LOCALE): string {
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
@@ -262,7 +259,9 @@ export function getMonthName(
 /**
  * Get the time of day period (morning, afternoon, evening, night)
  */
-export function getTimeOfDay(date: Date = new Date()): 'morning' | 'afternoon' | 'evening' | 'night' {
+export function getTimeOfDay(
+  date: Date = new Date()
+): 'morning' | 'afternoon' | 'evening' | 'night' {
   const hour = date.getHours();
 
   if (hour >= 5 && hour < 12) {

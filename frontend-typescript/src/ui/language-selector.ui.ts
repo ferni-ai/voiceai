@@ -90,7 +90,7 @@ export function createLanguageSelector(): HTMLElement {
 function setupEventHandlers(container: HTMLElement): void {
   const trigger = container.querySelector('.lang-selector-trigger') as HTMLButtonElement;
   const dropdown = container.querySelector('.lang-dropdown') as HTMLUListElement;
-  const options = container.querySelectorAll('.lang-option') as NodeListOf<HTMLButtonElement>;
+  const options = container.querySelectorAll<HTMLButtonElement>('.lang-option');
 
   // Toggle dropdown
   trigger.addEventListener('click', (e) => {
@@ -99,7 +99,7 @@ function setupEventHandlers(container: HTMLElement): void {
   });
 
   // Handle option selection
-  options.forEach((option) => {
+  options.forEach((option: HTMLButtonElement) => {
     option.addEventListener('click', async (e) => {
       e.stopPropagation();
       const locale = option.dataset.locale as SupportedLocale;
@@ -138,7 +138,7 @@ function setupEventHandlers(container: HTMLElement): void {
         nextIndex = currentIndex > 0 ? currentIndex - 1 : optionsList.length - 1;
       }
 
-      optionsList[nextIndex].focus();
+      optionsList[nextIndex]?.focus();
     }
   });
 

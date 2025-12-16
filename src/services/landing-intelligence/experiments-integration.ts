@@ -42,7 +42,8 @@ export const LANDING_EXPERIMENTS: LandingExperiment[] = [
   {
     id: 'superpowers_tab_order',
     name: 'Superpowers Tab Order',
-    description: 'Test whether leading with Quote Callback (memory) converts better than Reading Between Lines',
+    description:
+      'Test whether leading with Quote Callback (memory) converts better than Reading Between Lines',
     section: 'superpowers',
     variants: [
       {
@@ -50,7 +51,8 @@ export const LANDING_EXPERIMENTS: LandingExperiment[] = [
         name: 'Current Order',
         weight: 50,
         changes: {
-          tabOrder: 'reading-between-lines,quote-callback,presence-mode,emotional-forecasting,gentle-challenge',
+          tabOrder:
+            'reading-between-lines,quote-callback,presence-mode,emotional-forecasting,gentle-challenge',
         },
       },
       {
@@ -58,7 +60,8 @@ export const LANDING_EXPERIMENTS: LandingExperiment[] = [
         name: 'Memory First',
         weight: 50,
         changes: {
-          tabOrder: 'quote-callback,reading-between-lines,presence-mode,emotional-forecasting,gentle-challenge',
+          tabOrder:
+            'quote-callback,reading-between-lines,presence-mode,emotional-forecasting,gentle-challenge',
         },
       },
     ],
@@ -247,10 +250,7 @@ export const LANDING_EXPERIMENTS: LandingExperiment[] = [
 // EXPERIMENT ASSIGNMENT
 // ============================================================================
 
-export function assignVariant(
-  experiment: LandingExperiment,
-  visitorId: string
-): ExperimentVariant {
+export function assignVariant(experiment: LandingExperiment, visitorId: string): ExperimentVariant {
   // Use visitor ID for deterministic assignment
   const hash = hashString(`${experiment.id}_${visitorId}`);
   const bucket = hash % 100;
@@ -367,4 +367,3 @@ export function stopExperiment(id: string): boolean {
   log.info({ experimentId: id }, 'Experiment stopped');
   return true;
 }
-

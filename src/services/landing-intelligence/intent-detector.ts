@@ -182,7 +182,9 @@ ANALYZE and return JSON:
 
 Content IDs available: "two-am-demo", "memory-showcase", "team-intro", "pricing-friendly", "proof-table", "use-case-career", "use-case-anxiety", "use-case-habits", "use-case-relationships", "presence-mode", "faq-expanded"`;
 
-export async function detectVisitorIntent(signals: BehaviorSignals): Promise<IntentDetectionResult> {
+export async function detectVisitorIntent(
+  signals: BehaviorSignals
+): Promise<IntentDetectionResult> {
   const startTime = Date.now();
 
   // First, get heuristic baseline
@@ -299,4 +301,3 @@ export function aggregateIntentData(results: IntentDetectionResult[]): Aggregate
     topRecommendedContent: sortedContent,
   };
 }
-

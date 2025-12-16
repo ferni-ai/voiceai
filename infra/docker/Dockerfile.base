@@ -1,0 +1,72 @@
+# syntax=docker/dockerfile:1.4
+# ============================================================================
+# FERNI BASE IMAGE (Pre-built with node_modules)
+# ============================================================================
+# This base image has node_modules pre-installed for faster Docker builds.
+# Rebuild this weekly or when dependencies change significantly.
+#
+# Build:
+#   docker build -f docker/Dockerfile.base -t gcr.io/johnb-2025/ferni-base:latest .
+#   docker push gcr.io/johnb-2025/ferni-base:latest
+#
+# Usage in other Dockerfiles:
+#   FROM gcr.io/johnb-2025/ferni-base:latest AS base
+#   COPY src/ ./src/
+#   RUN pnpm build:fast
+# ============================================================================
+
+ARG NODE_VERSION=20
+
+FROM node:${NODE_VERSION}-slim AS base
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    git \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/* \
+    && corepack enable && corepack prepare pnpm@latest --activate
+
+# Copy package files
+COPY package.json pnpm-lock.yaml* ./
+COPY .npmrc .pnpmrc* ./
+
+# Copy tsconfig for build
+COPY tsconfig.json tsconfig.build.json ./
+
+# Install ALL dependencies (production + dev for building)
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --prefer-offline
+
+# Patch LiveKit agents library (timeout fix)
+RUN node -e " \
+  const fs = require('fs'); \
+  const path = require('path'); \
+  const workerPath = path.join(__dirname, 'node_modules/@livekit/agents/dist/worker.js'); \
+  if (!fs.existsSync(workerPath)) { console.log('worker.js not found, skipping patch'); process.exit(0); } \
+  let content = fs.readFileSync(workerPath, 'utf8'); \
+  const p1 = 'initializeTimeout: 3e4'; \
+  const p1r = 'initializeTimeout: 3e5 /* PATCHED 5min */'; \
+  const p2 = 'initializeProcessTimeout = 10 * 1e3'; \
+  const p2r = 'initializeProcessTimeout = 300 * 1e3 /* PATCHED 5min */'; \
+  if (content.includes(p1)) { content = content.replace(p1, p1r); console.log('Patched InferenceProcExecutor timeout'); } \
+  if (content.includes(p2)) { content = content.replace(p2, p2r); console.log('Patched initializeProcessTimeout'); } \
+  fs.writeFileSync(workerPath, content); \
+  console.log('[patch-livekit-timeout] Patch complete'); \
+"
+
+# Copy build script for fast builds
+COPY scripts/build-fast.ts ./scripts/
+
+# Labels
+LABEL org.opencontainers.image.source="https://github.com/sethdford/voiceai"
+LABEL org.opencontainers.image.description="Ferni base image with pre-installed dependencies"
+
+# Set environment
+ENV NODE_ENV=production
+ENV PNPM_HOME=/root/.local/share/pnpm
+
+EXPOSE 8080

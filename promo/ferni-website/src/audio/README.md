@@ -62,7 +62,7 @@ The `voice-samples.js` module on the landing page:
 
 To update the voice samples:
 
-1. Edit responses in `scripts/ferni.ts` → `handleVoices` → `generate-samples`
+1. Edit responses in `apps/cli/src/index.ts` → `handleVoices` → `generate-samples`
 2. Regenerate: `ferni voices generate-samples`
 3. Deploy: `npm run deploy:landing`
 

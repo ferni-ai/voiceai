@@ -20,26 +20,10 @@ import { HUMANIZATION_CONFIG } from '../../humanization-tuning.js';
 // ============================================================================
 
 const BREATH_SOUNDS = {
-  thinking: [
-    '*inhales*',
-    '*takes a breath*',
-    '*breathes*',
-  ],
-  emotional: [
-    '*exhales slowly*',
-    '*takes a deep breath*',
-    '*sighs softly*',
-  ],
-  transition: [
-    '*takes a breath*',
-    '*inhales*',
-    '*breathes*',
-  ],
-  relieved: [
-    '*exhales*',
-    '*breathes out*',
-    '*sighs with relief*',
-  ],
+  thinking: ['*inhales*', '*takes a breath*', '*breathes*'],
+  emotional: ['*exhales slowly*', '*takes a deep breath*', '*sighs softly*'],
+  transition: ['*takes a breath*', '*inhales*', '*breathes*'],
+  relieved: ['*exhales*', '*breathes out*', '*sighs with relief*'],
 };
 
 // ============================================================================
@@ -85,4 +69,3 @@ export async function generateBreathSound(
     cooldownTurns: HUMANIZATION_CONFIG.cooldowns.breathSound,
   };
 }
-

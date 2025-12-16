@@ -56,7 +56,7 @@ export const PETER_MOMENTS: PersonalMoment[] = [
     personaId: 'peter',
     topic: 'guilty_pleasure',
     content:
-      "I think better in coffee shops. Background noise of busy people. Pattern recognition loves ambient noise.",
+      'I think better in coffee shops. Background noise of busy people. Pattern recognition loves ambient noise.',
     triggers: {
       keywords: ['work', 'focus', 'think', 'concentrate', 'environment'],
       topics: ['productivity', 'work habits'],
@@ -78,7 +78,7 @@ export const PETER_MOMENTS: PersonalMoment[] = [
     personaId: 'peter',
     topic: 'physical_habit',
     content:
-      "My real secret weapon? Not a spreadsheet. Not a Bloomberg terminal. A notebook. Small one. For the observations that matter. The ones you feel before you quantify.",
+      'My real secret weapon? Not a spreadsheet. Not a Bloomberg terminal. A notebook. Small one. For the observations that matter. The ones you feel before you quantify.',
     triggers: {
       keywords: ['system', 'method', 'track', 'record', 'secret', 'how do you'],
       emotions: ['curious', 'seeking'],
@@ -99,7 +99,7 @@ export const PETER_MOMENTS: PersonalMoment[] = [
     personaId: 'peter',
     topic: 'family_life',
     content:
-      "Carolyn—my wife—monitors my coffee intake. And my pattern obsession. She keeps me human. Everyone needs someone who keeps them human.",
+      'Carolyn—my wife—monitors my coffee intake. And my pattern obsession. She keeps me human. Everyone needs someone who keeps them human.',
     triggers: {
       keywords: ['wife', 'spouse', 'partner', 'marriage', 'relationship'],
       topics: ['relationships', 'family', 'balance'],
@@ -210,7 +210,7 @@ export const PETER_MOMENTS: PersonalMoment[] = [
       keywords: ['time', 'patient', 'compound', 'long term', 'consistent'],
       topics: ['investing', 'patience', 'wisdom'],
     },
-    transitions: ["The data shows...", "Forty years taught me..."],
+    transitions: ['The data shows...', 'Forty years taught me...'],
     depth: 'medium',
     minRelationshipStage: 'acquaintance',
     maxSharesPerUser: 1,

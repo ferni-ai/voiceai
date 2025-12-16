@@ -497,4 +497,3 @@ export function createErrorEvent(
     priority: 10, // High priority - flush soon
   };
 }
-

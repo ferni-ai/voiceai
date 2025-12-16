@@ -125,8 +125,7 @@ function buildHandoffTools(): ToolSet {
     }),
 
     handoffToMaya: llm.tool({
-      description:
-        'Transfer to Maya for practical habits and daily routines.',
+      description: 'Transfer to Maya for practical habits and daily routines.',
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { MayaAgent } = await import('./maya-agent.js');
@@ -138,8 +137,7 @@ function buildHandoffTools(): ToolSet {
     }),
 
     handoffToAlex: llm.tool({
-      description:
-        'Transfer to Alex for practical scheduling, reminders, or communication tasks.',
+      description: 'Transfer to Alex for practical scheduling, reminders, or communication tasks.',
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { AlexAgent } = await import('./alex-agent.js');
@@ -151,8 +149,7 @@ function buildHandoffTools(): ToolSet {
     }),
 
     handoffToPeter: llm.tool({
-      description:
-        'Transfer to Peter for data-driven analysis, research, or pattern recognition.',
+      description: 'Transfer to Peter for data-driven analysis, research, or pattern recognition.',
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { PeterAgent } = await import('./peter-agent.js');
@@ -164,8 +161,7 @@ function buildHandoffTools(): ToolSet {
     }),
 
     handoffToJordan: llm.tool({
-      description:
-        'Transfer to Jordan for life milestones, celebrations, or future planning.',
+      description: 'Transfer to Jordan for life milestones, celebrations, or future planning.',
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { JordanAgent } = await import('./jordan-agent.js');
@@ -218,15 +214,13 @@ Keep responses thoughtful and contemplative. You think before you speak. Silence
       tools: allTools,
     });
 
-    process.stderr.write(
-      `[NayanAgent] Initialized with ${Object.keys(allTools).length} tools\n`
-    );
+    process.stderr.write(`[NayanAgent] Initialized with ${Object.keys(allTools).length} tools\n`);
   }
 
   async onEnter(): Promise<void> {
     this.session.generateReply({
       instructions:
-        "Greet them with your contemplative presence. Take a moment before speaking. Ask what wisdom or perspective they seek. Use your South Indian English naturally.",
+        'Greet them with your contemplative presence. Take a moment before speaking. Ask what wisdom or perspective they seek. Use your South Indian English naturally.',
     });
   }
 

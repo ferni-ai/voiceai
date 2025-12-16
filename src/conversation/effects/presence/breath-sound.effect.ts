@@ -16,12 +16,7 @@ import type { EffectContext, EffectResult, HumanizationEffect } from '../types.j
 
 const BREATH_SOUNDS = {
   /** Processing heavy emotional content */
-  processingHeavy: [
-    '*deep breath*',
-    '*exhales slowly*',
-    '*takes a breath*',
-    '*sighs softly*',
-  ],
+  processingHeavy: ['*deep breath*', '*exhales slowly*', '*takes a breath*', '*sighs softly*'],
   /** Recognition/acknowledgment */
   recognition: ['*mmm*', '*ah*', '*mm-hmm*'],
   /** Content acknowledgment */
@@ -98,4 +93,3 @@ function simpleHash(str: string): number {
   }
   return hash;
 }
-

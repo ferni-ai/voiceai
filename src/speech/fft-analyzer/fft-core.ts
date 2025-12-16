@@ -193,4 +193,3 @@ export function getMagnitudeSpectrum(fftResult: Complex[]): Float32Array {
 
   return magnitudes;
 }
-

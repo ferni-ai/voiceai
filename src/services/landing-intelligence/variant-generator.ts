@@ -139,7 +139,10 @@ export async function generateHeadlineVariant(
   const contextStr = formatContext(context);
   const patternsStr = formatPatterns(context.winningPatterns || []);
 
-  const prompt = HEADLINE_PROMPT.replace('{context}', contextStr).replace('{patterns}', patternsStr);
+  const prompt = HEADLINE_PROMPT.replace('{context}', contextStr).replace(
+    '{patterns}',
+    patternsStr
+  );
 
   const result = await generateJSON<{
     tagline: string;
@@ -384,7 +387,8 @@ function formatPatterns(patterns: ExperimentPattern[]): string {
   }
 
   return patterns
-    .map((p) => `- ${p.attribute} = "${p.winningValue}" (${(p.confidence * 100).toFixed(0)}% win rate)`)
+    .map(
+      (p) => `- ${p.attribute} = "${p.winningValue}" (${(p.confidence * 100).toFixed(0)}% win rate)`
+    )
     .join('\n');
 }
-

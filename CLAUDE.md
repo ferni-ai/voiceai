@@ -130,7 +130,7 @@ Traffic is **never shifted** until LiveKit workers signal they're ready:
 | `ferni deploy frontend` | Firebase Hosting | ✅ Yes (preview channel) |
 | `ferni deploy landing` | Landing page | ✅ Yes (preview channel) |
 
-**Key files:** `scripts/deploy.ts`, `cloudbuild.yaml`, `cloudbuild-ui.yaml`
+**Key files:** `apps/cli/src/commands/deploy/deploy.ts`, `cloudbuild.yaml`, `cloudbuild-ui.yaml`
 
 ### 🧟 Zombie Revision Prevention (for Cloud Run services)
 
@@ -148,7 +148,7 @@ pnpm ops:zombies
 pnpm ops:zombies:fix
 ```
 
-**Key files:** `scripts/cleanup-zombies.ts`, `scripts/deploy.ts`
+**Key files:** `apps/cli/src/commands/ops/cleanup-zombies.ts`, `apps/cli/src/commands/deploy/deploy.ts`
 
 ## 🖥️ GCE Voice Agent Deployment (PRIMARY)
 
@@ -197,7 +197,7 @@ ferni deploy gce --dry-run
 **Voice Agent → Always use GCE** (`ferni deploy gce`)
 **UI/API backends → Use Cloud Run** (`ferni deploy ui`)
 
-**Key files:** `scripts/deploy-gce.ts`, `scripts/deploy.ts`
+**Key files:** `apps/cli/src/commands/deploy/deploy-gce.ts`, `apps/cli/src/commands/deploy/deploy.ts`
 
 ### 💽 GCE Disk Management (Auto-Cleanup)
 
@@ -229,7 +229,7 @@ ferni disk setup-cron         # or: pnpm ops:disk:setup-cron
 - Docker build cache (keeps 2GB)
 - Truncates container logs
 
-**Key files:** `scripts/cleanup-gce.ts`, `scripts/deploy-gce.ts`
+**Key files:** `apps/cli/src/commands/ops/cleanup-gce.ts`, `apps/cli/src/commands/deploy/deploy-gce.ts`
 
 ## ⚡ Build Optimization (pnpm + esbuild)
 

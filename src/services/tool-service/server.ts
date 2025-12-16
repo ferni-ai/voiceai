@@ -107,7 +107,9 @@ app.post('/ferni.tools.v1.ToolService/Execute', async (req, res) => {
       agentDisplayName: request.context.agentDisplayName,
       services: {
         has: () => false,
-        get: () => { throw new Error('Service not available'); },
+        get: () => {
+          throw new Error('Service not available');
+        },
         getOptional: () => undefined,
       },
     };
@@ -132,9 +134,11 @@ app.post('/ferni.tools.v1.ToolService/Execute', async (req, res) => {
       },
     };
 
-    log.info({ toolId: request.toolId, durationMs: Date.now() - startTime }, 'Tool executed successfully');
+    log.info(
+      { toolId: request.toolId, durationMs: Date.now() - startTime },
+      'Tool executed successfully'
+    );
     res.json(response);
-
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     log.error({ toolId: request.toolId, error: err.message }, 'Tool execution failed');
@@ -175,11 +179,11 @@ app.post('/ferni.tools.v1.ToolService/ListTools', async (req, res) => {
 
     // Filter by tags if provided
     if (tags && tags.length > 0) {
-      tools = tools.filter(t => t.tags?.some(tag => tags.includes(tag)));
+      tools = tools.filter((t) => t.tags?.some((tag) => tags.includes(tag)));
     }
 
     const response = {
-      tools: tools.map(t => ({
+      tools: tools.map((t) => ({
         id: t.id,
         name: t.name,
         description: t.description || '',
@@ -192,7 +196,6 @@ app.post('/ferni.tools.v1.ToolService/ListTools', async (req, res) => {
     };
 
     res.json(response);
-
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     log.error({ error: err.message }, 'Failed to list tools');
@@ -224,7 +227,6 @@ app.post('/ferni.tools.v1.ToolService/GetTool', async (req, res) => {
         version: '1.0.0',
       },
     });
-
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     log.error({ error: err.message }, 'Failed to get tool');

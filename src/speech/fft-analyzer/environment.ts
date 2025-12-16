@@ -77,4 +77,3 @@ export function classifyEnvironment(spectrum: SpectralAnalysis): SpectralEnviron
     snrEstimate: Math.max(-20, Math.min(60, snrEstimate)), // Clamp to reasonable range
   };
 }
-

@@ -10,8 +10,16 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { COMMON_DIFFICULT_NAMES, INTRODUCTION_PATTERNS, TECHNICAL_TERM_PATTERNS } from './constants.js';
-import type { ExportedPronunciationState, PronunciationEntry, PronunciationMemoryState } from './types.js';
+import {
+  COMMON_DIFFICULT_NAMES,
+  INTRODUCTION_PATTERNS,
+  TECHNICAL_TERM_PATTERNS,
+} from './constants.js';
+import type {
+  ExportedPronunciationState,
+  PronunciationEntry,
+  PronunciationMemoryState,
+} from './types.js';
 
 const log = getLogger();
 
@@ -85,7 +93,10 @@ export class PronunciationMemoryService {
       this.state.userName = entry;
       this.state.entries.set(lowerName, entry);
 
-      log.info({ name, phonetic: knownPronunciation }, '🗣️ Applied known pronunciation for difficult name');
+      log.info(
+        { name, phonetic: knownPronunciation },
+        '🗣️ Applied known pronunciation for difficult name'
+      );
 
       return entry;
     }
@@ -143,7 +154,10 @@ export class PronunciationMemoryService {
           this.state.userName = entry;
         }
 
-        log.info({ name, phonetic, source: 'user_correction' }, '🗣️ Learned pronunciation from user correction!');
+        log.info(
+          { name, phonetic, source: 'user_correction' },
+          '🗣️ Learned pronunciation from user correction!'
+        );
 
         return entry;
       }
@@ -330,4 +344,3 @@ export function analyzePronunciationNeeds(text: string): string[] {
 
   return [...new Set(potentialTerms)];
 }
-

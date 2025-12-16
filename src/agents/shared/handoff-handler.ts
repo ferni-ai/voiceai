@@ -80,6 +80,9 @@ import {
 import {
   HANDOFF_TIMEOUT_MS,
   getHandoffSessionState,
+  startProgressHeartbeat,
+  stopProgressHeartbeat,
+  getNextMessageSeq,
 } from './handoff/session-state.js';
 
 // ============================================================================
@@ -231,6 +234,9 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
       // ============================================================
       // DELIGHTFUL HANDOFF FLOW
       // ============================================================
+      // Heartbeat cleanup function - declared here so catch block can access it
+      let stopHeartbeat: (() => void) | null = null;
+
       try {
         // STEP 1: Send handoff_started - frontend shows "departing" state
         // FIX BUG: Ensure localParticipant exists and add retry logic
@@ -247,6 +253,7 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           // WARM HANDOFF: Include banter text for UI display
           softOpenBanter: softOpenBanter || undefined,
           arrivingBanter: arrivingBanter || undefined,
+          seq: getNextMessageSeq(sessionId),
           timestamp: Date.now(),
         });
 
@@ -266,6 +273,30 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         }
 
         // ============================================================================
+        // PROGRESS HEARTBEAT: Send periodic updates to UI during handoff
+        // ============================================================================
+        stopHeartbeat = startProgressHeartbeat(sessionId, (progressInfo) => {
+          // Send progress message to frontend
+          const progressMessage = JSON.stringify({
+            type: 'handoff_progress',
+            newAgent: persona.id,
+            previousAgent: prevPersona.id,
+            elapsedMs: progressInfo.elapsedMs,
+            timeoutMs: progressInfo.timeoutMs,
+            seq: getNextMessageSeq(sessionId),
+            timestamp: Date.now(),
+          });
+
+          ctx.room.localParticipant
+            ?.publishData(new TextEncoder().encode(progressMessage), {
+              reliable: false, // Use unreliable for heartbeat (less latency)
+            })
+            .catch((err) => {
+              logger.debug({ error: String(err) }, 'Progress heartbeat send failed');
+            });
+        });
+
+        // ============================================================================
         // WARM HANDOFF: Soft Open (departing persona's warm sendoff)
         // Spoken BEFORE voice switch in the CURRENT persona's voice
         // ============================================================================
@@ -282,6 +313,7 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
               type: 'soft_open_complete',
               newAgent: persona.id,
               previousAgent: prevPersona.id,
+              seq: getNextMessageSeq(sessionId),
               timestamp: Date.now(),
             });
             await ctx.room.localParticipant?.publishData(
@@ -356,6 +388,7 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
               type: 'soft_open_complete',
               newAgent: persona.id,
               previousAgent: prevPersona.id,
+              seq: getNextMessageSeq(sessionId),
               timestamp: Date.now(),
             });
             await ctx.room.localParticipant?.publishData(
@@ -454,6 +487,9 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           }
         }
 
+        // Stop progress heartbeat before completing
+        stopHeartbeat?.();
+
         // STEP 5: Send handoff_complete
         // FIX BUG: Add error handling and retry logic for handoff_complete
         const completeMessage = JSON.stringify({
@@ -461,6 +497,7 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           newAgent: persona.id,
           previousAgent: prevPersona.id,
           greeting,
+          seq: getNextMessageSeq(sessionId),
           timestamp: Date.now(),
         });
 
@@ -794,12 +831,18 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         // ============================================================
         logger.error({ error: String(voiceSwitchErr) }, 'Voice switch FAILED');
 
+        // Stop progress heartbeat on failure
+        stopHeartbeat?.();
+
         try {
           const failureMessage = JSON.stringify({
             type: 'handoff_failed',
             newAgent: persona.id,
             previousAgent: prevPersona.id,
+            // FIX: Include rollback info so UI knows which persona to restore
+            rollbackTo: prevPersona.id,
             error: String(voiceSwitchErr),
+            seq: getNextMessageSeq(sessionId),
             timestamp: Date.now(),
           });
 
@@ -834,12 +877,19 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
       );
       diag.error(`Handoff handler crashed: ${topLevelErr}`);
 
+      // Stop any progress heartbeat
+      stopProgressHeartbeat(sessionId);
+
       // Try to notify frontend of the failure
+      // Include rollbackTo so UI knows which persona to restore
+      const rollbackTo = services.handoffState.currentAgent;
       try {
         const crashMessage = JSON.stringify({
           type: 'handoff_failed',
           newAgent: targetPersonaId,
+          rollbackTo: rollbackTo || undefined,
           error: `Handoff handler error: ${topLevelErr}`,
+          seq: getNextMessageSeq(sessionId),
           timestamp: Date.now(),
         });
         await ctx.room.localParticipant?.publishData(new TextEncoder().encode(crashMessage), {
@@ -945,12 +995,18 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         state.handoffStartTime = null;
         state.timeoutTimer = null;
 
-        // Try to notify frontend
+        // Stop any progress heartbeat
+        stopProgressHeartbeat(sessionId);
+
+        // Try to notify frontend with rollback info
+        const currentAgent = services.handoffState.currentAgent;
         try {
           const timeoutMessage = JSON.stringify({
             type: 'handoff_failed',
             newAgent: targetId,
+            rollbackTo: currentAgent || undefined,
             error: 'Handoff timed out',
+            seq: getNextMessageSeq(sessionId),
             timestamp: Date.now(),
           });
           void ctx.room.localParticipant?.publishData(new TextEncoder().encode(timeoutMessage), {

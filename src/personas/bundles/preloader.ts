@@ -13,14 +13,7 @@ import { loadBundleById } from './loader.js';
 const log = getLogger();
 
 // All persona IDs that should be preloaded
-const PERSONA_IDS = [
-  'ferni',
-  'peter',
-  'alex',
-  'maya',
-  'jordan',
-  'nayan',
-] as const;
+const PERSONA_IDS = ['ferni', 'peter', 'alex', 'maya', 'jordan', 'nayan'] as const;
 
 // Track preload status
 let preloadPromise: Promise<void> | null = null;
@@ -105,4 +98,3 @@ export function resetPreloadStatus(): void {
   preloadPromise = null;
   preloadComplete = false;
 }
-

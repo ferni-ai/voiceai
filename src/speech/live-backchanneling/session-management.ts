@@ -5,10 +5,7 @@
  * Uses the centralized SessionRegistry pattern for consistent lifecycle management.
  */
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../../utils/session-registry.js';
 import { BreathPauseDetector } from './breath-pause.js';
 import { LiveBackchannelingService } from './service.js';
 
@@ -31,14 +28,11 @@ const serviceRegistry = createSessionRegistry(
 /**
  * Session registry for breath pause detectors.
  */
-const detectorRegistry = createSessionRegistry(
-  (sessionId: string) => new BreathPauseDetector(),
-  {
-    name: 'BreathPauseDetector',
-    cleanup: (detector) => detector.reset(),
-    verbose: false,
-  }
-);
+const detectorRegistry = createSessionRegistry((sessionId: string) => new BreathPauseDetector(), {
+  name: 'BreathPauseDetector',
+  cleanup: (detector) => detector.reset(),
+  verbose: false,
+});
 
 // Register globally for coordinated session cleanup
 registerGlobalRegistry(serviceRegistry);
@@ -103,5 +97,5 @@ export function hasLiveBackchanneling(sessionId: string): boolean {
  * Get all active session IDs (for monitoring)
  */
 export function getActiveLiveBackchannelSessionIds(): string[] {
-  return serviceRegistry.getActiveSessionIds().filter(id => id !== '__global__');
+  return serviceRegistry.getActiveSessionIds().filter((id) => id !== '__global__');
 }

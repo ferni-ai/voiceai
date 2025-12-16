@@ -37,7 +37,7 @@ let resolvedOrderCache: { order: ResolvedOrder; builderHash: string } | null = n
 
 function generateBuilderHash(builders: DependencyNode[]): string {
   return builders
-    .map(b => `${b.name}:${b.priority}:${b.dependsOn.join(',')}`)
+    .map((b) => `${b.name}:${b.priority}:${b.dependsOn.join(',')}`)
     .sort()
     .join('|');
 }
@@ -120,9 +120,7 @@ function topologicalSort(builders: DependencyNode[]): ResolvedOrder {
   }
 
   if (order.length !== builders.length) {
-    const remaining = builders
-      .filter(b => !order.includes(b.name))
-      .map(b => b.name);
+    const remaining = builders.filter((b) => !order.includes(b.name)).map((b) => b.name);
 
     return {
       order: [],
@@ -158,7 +156,10 @@ export function resolveDependencies(builders: DependencyNode[]): ResolvedOrder {
       order: result,
       builderHash: hash,
     };
-    log.debug({ builderCount: builders.length, tierCount: result.tiers.length }, 'Dependency order resolved');
+    log.debug(
+      { builderCount: builders.length, tierCount: result.tiers.length },
+      'Dependency order resolved'
+    );
   } else {
     log.error({ error: result.error, cycles: result.cycles }, 'Failed to resolve dependencies');
   }
@@ -174,9 +175,7 @@ export function getExecutionGroups(builders: DependencyNode[]): {
   const resolved = resolveDependencies(builders);
 
   if (!resolved.success) {
-    const fallbackOrder = [...builders]
-      .sort((a, b) => b.priority - a.priority)
-      .map(b => b.name);
+    const fallbackOrder = [...builders].sort((a, b) => b.priority - a.priority).map((b) => b.name);
 
     return {
       groups: [fallbackOrder],
@@ -192,7 +191,7 @@ export function getExecutionGroups(builders: DependencyNode[]): {
 }
 
 export function hasDependencies(builders: DependencyNode[]): boolean {
-  return builders.some(b => b.dependsOn.length > 0);
+  return builders.some((b) => b.dependsOn.length > 0);
 }
 
 export function clearDependencyCache(): void {
@@ -203,11 +202,11 @@ export function validateDependencies(builders: DependencyNode[]): {
   valid: boolean;
   missingDeps: Array<{ builder: string; missing: string[] }>;
 } {
-  const builderNames = new Set(builders.map(b => b.name));
+  const builderNames = new Set(builders.map((b) => b.name));
   const missingDeps: Array<{ builder: string; missing: string[] }> = [];
 
   for (const builder of builders) {
-    const missing = builder.dependsOn.filter(dep => !builderNames.has(dep));
+    const missing = builder.dependsOn.filter((dep) => !builderNames.has(dep));
     if (missing.length > 0) {
       missingDeps.push({ builder: builder.name, missing });
     }

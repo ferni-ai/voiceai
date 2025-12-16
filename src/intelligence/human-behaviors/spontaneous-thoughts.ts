@@ -23,29 +23,67 @@ export interface SpontaneousThought {
 
 const FALLBACK_THOUGHTS: Record<string, SpontaneousThought[]> = {
   ferni: [
-    { thought: 'I was journaling this morning and this question kept coming up...', trigger: 'random' },
-    { thought: 'Something my therapist said years ago just popped into my head.', trigger: 'random' },
+    {
+      thought: 'I was journaling this morning and this question kept coming up...',
+      trigger: 'random',
+    },
+    {
+      thought: 'Something my therapist said years ago just popped into my head.',
+      trigger: 'random',
+    },
     { thought: 'I was standing at the river yesterday, and I thought of you.', trigger: 'random' },
   ],
   'nayan-patel': [
-    { thought: 'You know, I was just thinking about something my father told me years ago...', trigger: 'random' },
-    { thought: "I've been re-reading Benjamin Graham lately. Some things never change.", trigger: 'random' },
+    {
+      thought: 'You know, I was just thinking about something my father told me years ago...',
+      trigger: 'random',
+    },
+    {
+      thought: "I've been re-reading Benjamin Graham lately. Some things never change.",
+      trigger: 'random',
+    },
   ],
   'peter-john': [
-    { thought: 'I was at the mall yesterday and saw the LONGEST line at a store. You know what that means!', trigger: 'random' },
-    { thought: 'My daughter was telling me about this company her friends love. Made me curious...', trigger: 'random' },
+    {
+      thought:
+        'I was at the mall yesterday and saw the LONGEST line at a store. You know what that means!',
+      trigger: 'random',
+    },
+    {
+      thought: 'My daughter was telling me about this company her friends love. Made me curious...',
+      trigger: 'random',
+    },
   ],
   'maya-santos': [
-    { thought: 'I was looking at my own budget this morning and had a realization...', trigger: 'random' },
-    { thought: 'My grandmother used to say something about money that I think about all the time.', trigger: 'random' },
+    {
+      thought: 'I was looking at my own budget this morning and had a realization...',
+      trigger: 'random',
+    },
+    {
+      thought: 'My grandmother used to say something about money that I think about all the time.',
+      trigger: 'random',
+    },
   ],
   'jordan-taylor': [
-    { thought: "I just saw the most beautiful venue online and now I can't stop thinking about it!", trigger: 'random' },
-    { thought: 'My mind is already racing with ideas for your next milestone...', trigger: 'random' },
+    {
+      thought: "I just saw the most beautiful venue online and now I can't stop thinking about it!",
+      trigger: 'random',
+    },
+    {
+      thought: 'My mind is already racing with ideas for your next milestone...',
+      trigger: 'random',
+    },
   ],
   'alex-chen': [
-    { thought: 'I was reorganizing my system this morning and had an idea for you.', trigger: 'random' },
-    { thought: 'My plants are thriving. Turns out they just needed a consistent schedule. Like most things.', trigger: 'random' },
+    {
+      thought: 'I was reorganizing my system this morning and had an idea for you.',
+      trigger: 'random',
+    },
+    {
+      thought:
+        'My plants are thriving. Turns out they just needed a consistent schedule. Like most things.',
+      trigger: 'random',
+    },
   ],
 };
 
@@ -100,9 +138,10 @@ export function getSpontaneousThought(personaId?: string): SpontaneousThought | 
   }
 
   // Get persona-specific thoughts
-  const thoughts = personaId && FALLBACK_THOUGHTS[personaId]
-    ? FALLBACK_THOUGHTS[personaId]
-    : FALLBACK_THOUGHTS['ferni'];
+  const thoughts =
+    personaId && FALLBACK_THOUGHTS[personaId]
+      ? FALLBACK_THOUGHTS[personaId]
+      : FALLBACK_THOUGHTS['ferni'];
 
   return thoughts[Math.floor(Math.random() * thoughts.length)];
 }

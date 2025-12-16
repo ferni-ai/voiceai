@@ -91,4 +91,4 @@ swift run
 ./build.sh
 ```
 
-The app spawns the voice CLI (`scripts/cli/voice-live.ts`) as a subprocess and monitors its output to detect connection state.
+The app spawns the voice CLI (`apps/cli/src/features/voice/voice-live.ts`) as a subprocess and monitors its output to detect connection state.

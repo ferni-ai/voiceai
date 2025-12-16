@@ -344,4 +344,3 @@ describe('Proxy Integration', () => {
     });
   });
 });
-

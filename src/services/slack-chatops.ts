@@ -206,7 +206,7 @@ async function handleDeploy(args: string[], context: CommandContext): Promise<Sl
   setTimeout(() => {
     try {
       log.info({ target, user: context.userName }, 'ChatOps deploy triggered');
-      execSync(`npx tsx scripts/ferni.ts deploy ${target}`, {
+      execSync(`npx tsx apps/cli/src/index.ts deploy ${target}`, {
         cwd: process.cwd(),
         timeout: 10 * 60 * 1000, // 10 minute timeout
       });
@@ -238,7 +238,7 @@ async function handleRollback(_args: string[], context: CommandContext): Promise
   setTimeout(() => {
     try {
       log.info({ user: context.userName }, 'ChatOps rollback triggered');
-      execSync(`npx tsx scripts/ferni.ts deploy gce --rollback`, {
+      execSync(`npx tsx apps/cli/src/index.ts deploy gce --rollback`, {
         cwd: process.cwd(),
         timeout: 10 * 60 * 1000,
       });

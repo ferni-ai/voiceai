@@ -94,18 +94,14 @@ export function createFirstTurnNoticingEffect(personaId: string): HumanizationEf
 
       // Be more aggressive on turn 1 - this is our shot
       const isTurnOne = context.turnNumber === 1;
-      return (
-        hasHesitation ||
-        (isVeryShort && lacksEnthusiasm) ||
-        (isTurnOne && hasLowEnergy)
-      );
+      return hasHesitation || (isVeryShort && lacksEnthusiasm) || (isTurnOne && hasLowEnergy);
     },
 
     generate(context: EffectContext): EffectResult | null {
       // Boost probability on turn 1
       const isTurnOne = context.turnNumber === 1;
       const effectiveProbability = isTurnOne
-        ? Math.min(0.70, config.probability + config.turnOneBoost)
+        ? Math.min(0.7, config.probability + config.turnOneBoost)
         : config.probability;
 
       // Deterministic selection
@@ -113,7 +109,7 @@ export function createFirstTurnNoticingEffect(personaId: string): HumanizationEf
       const hash = simpleHash(seed);
 
       // Additional probability check (coordinator already did one, but we have turn-based boost)
-      if ((hash / 0xffffffff) > effectiveProbability && !isTurnOne) {
+      if (hash / 0xffffffff > effectiveProbability && !isTurnOne) {
         return null;
       }
 
@@ -144,4 +140,3 @@ function simpleHash(str: string): number {
   }
   return hash;
 }
-

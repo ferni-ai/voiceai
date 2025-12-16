@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" width="300" height="400">
+  <defs>
+    <!-- Sunset head gradient -->
+    <linearGradient id="sunsetHead" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316"/>
+      <stop offset="35%" style="stop-color:#ec4899"/>
+      <stop offset="70%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#3b82f6"/>
+    </linearGradient>
+    
+    <linearGradient id="bodyMetal" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#e2e8f0"/>
+      <stop offset="50%" style="stop-color:#cbd5e1"/>
+      <stop offset="100%" style="stop-color:#94a3b8"/>
+    </linearGradient>
+    
+    <linearGradient id="armMetal" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#94a3b8"/>
+      <stop offset="50%" style="stop-color:#cbd5e1"/>
+      <stop offset="100%" style="stop-color:#94a3b8"/>
+    </linearGradient>
+    
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#1e293b" flood-opacity="0.2"/>
+    </filter>
+    
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Sparkles! -->
+  <circle cx="45" cy="50" r="4" fill="#fbbf24" filter="url(#glow)"/>
+  <circle cx="255" cy="40" r="5" fill="#f472b6" filter="url(#glow)"/>
+  <circle cx="30" cy="120" r="3" fill="#f97316" filter="url(#glow)"/>
+  <circle cx="270" cy="100" r="3" fill="#8b5cf6" filter="url(#glow)"/>
+  
+  <!-- === NECK === -->
+  <rect x="135" y="145" width="30" height="25" rx="4" fill="url(#armMetal)"/>
+  <rect x="130" y="165" width="40" height="8" rx="2" fill="#64748b"/>
+  
+  <!-- === BODY === -->
+  <rect x="85" y="170" width="130" height="120" rx="12" fill="url(#bodyMetal)" filter="url(#shadow)"/>
+  
+  <!-- Body panel -->
+  <rect x="95" y="180" width="110" height="60" rx="6" fill="none" stroke="#94a3b8" stroke-width="2"/>
+  <line x1="150" y1="180" x2="150" y2="240" stroke="#94a3b8" stroke-width="2"/>
+  
+  <!-- Heart (glowing happy!) -->
+  <rect x="130" y="195" width="40" height="30" rx="6" fill="#1e293b"/>
+  <rect x="135" y="200" width="30" height="20" rx="4" fill="#f472b6" opacity="0.9" filter="url(#glow)"/>
+  
+  <!-- Vent -->
+  <rect x="105" y="255" width="90" height="25" rx="4" fill="#64748b"/>
+  <line x1="120" y1="260" x2="120" y2="275" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
+  <line x1="135" y1="260" x2="135" y2="275" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
+  <line x1="150" y1="260" x2="150" y2="275" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
+  <line x1="165" y1="260" x2="165" y2="275" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
+  <line x1="180" y1="260" x2="180" y2="275" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- === ARMS (both up celebrating!) === -->
+  <!-- Left arm UP -->
+  <g transform="rotate(-45 85 190)">
+    <rect x="45" y="185" width="40" height="14" rx="7" fill="url(#armMetal)"/>
+    <rect x="35" y="180" width="15" height="24" rx="4" fill="url(#armMetal)"/>
+    <rect x="25" y="180" width="12" height="8" rx="2" fill="#64748b"/>
+    <rect x="25" y="191" width="12" height="8" rx="2" fill="#64748b"/>
+  </g>
+  
+  <!-- Right arm UP -->
+  <g transform="rotate(45 215 190)">
+    <rect x="215" y="185" width="40" height="14" rx="7" fill="url(#armMetal)"/>
+    <rect x="250" y="180" width="15" height="24" rx="4" fill="url(#armMetal)"/>
+    <rect x="263" y="180" width="12" height="8" rx="2" fill="#64748b"/>
+    <rect x="263" y="191" width="12" height="8" rx="2" fill="#64748b"/>
+  </g>
+  
+  <!-- === TREADS (bouncing!) === -->
+  <g transform="translate(0, -5)">
+    <rect x="75" y="290" width="50" height="50" rx="10" fill="#475569"/>
+    <ellipse cx="90" cy="315" rx="12" ry="12" fill="#334155"/>
+    <ellipse cx="110" cy="315" rx="12" ry="12" fill="#334155"/>
+    <ellipse cx="90" cy="315" rx="6" ry="6" fill="#1e293b"/>
+    <ellipse cx="110" cy="315" rx="6" ry="6" fill="#1e293b"/>
+    
+    <rect x="175" y="290" width="50" height="50" rx="10" fill="#475569"/>
+    <ellipse cx="190" cy="315" rx="12" ry="12" fill="#334155"/>
+    <ellipse cx="210" cy="315" rx="12" ry="12" fill="#334155"/>
+    <ellipse cx="190" cy="315" rx="6" ry="6" fill="#1e293b"/>
+    <ellipse cx="210" cy="315" rx="6" ry="6" fill="#1e293b"/>
+    
+    <rect x="125" y="300" width="50" height="30" rx="4" fill="#64748b"/>
+  </g>
+  
+  <!-- === HEAD === -->
+  <ellipse 
+    cx="150" cy="80" 
+    rx="110" ry="65" 
+    fill="url(#sunsetHead)"
+    filter="url(#shadow)"
+  />
+  
+  <!-- Shine -->
+  <ellipse cx="150" cy="55" rx="85" ry="35" fill="rgba(255,255,255,0.1)"/>
+  
+  <!-- FE EYE (happy squint!) -->
+  <circle cx="105" cy="80" r="35" fill="rgba(0,0,0,0.3)"/>
+  <circle cx="105" cy="80" r="30" fill="#1e293b"/>
+  <!-- Happy arc instead of circle -->
+  <path d="M 82 80 Q 105 65, 128 80" fill="none" stroke="#FFFDFB" stroke-width="6" stroke-linecap="round"/>
+  
+  <!-- AI EYE (happy squint!) -->
+  <circle cx="195" cy="80" r="35" fill="rgba(255,255,255,0.95)"/>
+  <circle cx="195" cy="80" r="30" fill="#f8fafc"/>
+  <!-- Happy arc -->
+  <path d="M 172 80 Q 195 65, 218 80" fill="none" stroke="#1e293b" stroke-width="6" stroke-linecap="round"/>
+  
+  <!-- Rosy cheeks! -->
+  <ellipse cx="70" cy="95" rx="12" ry="8" fill="#fda4af" opacity="0.6"/>
+  <ellipse cx="230" cy="95" rx="12" ry="8" fill="#fda4af" opacity="0.6"/>
+  
+  <!-- Happy eyebrows -->
+  <path d="M 70 55 Q 105 45, 130 55" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 170 55 Q 195 45, 230 55" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="4" stroke-linecap="round"/>
+</svg>

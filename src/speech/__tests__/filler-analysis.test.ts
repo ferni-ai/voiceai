@@ -104,7 +104,7 @@ describe('FillerAnalyzer', () => {
     });
 
     it('detects stalling position', () => {
-      const result = analyzer.analyze('Well, um, uh, I don\'t know');
+      const result = analyzer.analyze("Well, um, uh, I don't know");
       const hasStalling = result.instances.some((i) => i.position === 'stalling');
       // Multiple fillers in sequence suggests stalling
       expect(result.instances.length).toBeGreaterThanOrEqual(2);
@@ -185,15 +185,13 @@ describe('FillerAnalyzer', () => {
 
       // Elevated usage
       const result = analyzer.analyze(
-        'Um, uh, well, um, I, uh, just, um, I don\'t know, um, uh, it\'s hard'
+        "Um, uh, well, um, I, uh, just, um, I don't know, um, uh, it's hard"
       );
       expect(result.emotionalProcessing).toBe(true);
     });
 
     it('detects articulation difficulty', () => {
-      const result = analyzer.analyze(
-        'I was, uh, trying to, uh, explain the, uh, situation'
-      );
+      const result = analyzer.analyze('I was, uh, trying to, uh, explain the, uh, situation');
       // Multiple word-finding or stalling indicators
       // Detection depends on regex matching and may need more context
       // At minimum we should detect multiple uh fillers
@@ -219,18 +217,14 @@ describe('FillerAnalyzer', () => {
       for (let i = 0; i < 5; i++) {
         analyzer.analyze('Normal sentence without fillers');
       }
-      const result = analyzer.analyze(
-        'Um, uh, um, well, um, I, uh, um, it\'s just, um, hard'
-      );
+      const result = analyzer.analyze("Um, uh, um, well, um, I, uh, um, it's just, um, hard");
       if (result.emotionalProcessing) {
         expect(result.guidance).toContain('patient');
       }
     });
 
     it('provides articulation difficulty guidance', () => {
-      const result = analyzer.analyze(
-        'I was, uh, trying, uh, to explain, uh, what, uh, happened'
-      );
+      const result = analyzer.analyze('I was, uh, trying, uh, to explain, uh, what, uh, happened');
       if (result.articulationDifficulty) {
         expect(result.guidance).toContain('rush');
       }

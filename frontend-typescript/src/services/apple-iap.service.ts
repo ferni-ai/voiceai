@@ -103,7 +103,9 @@ export function isStoreKitAvailable(): boolean {
 // ============================================================================
 
 // StoreKit plugin interface (will be provided by Capacitor plugin)
+// Note: Method names match the actual @ferni/capacitor-purchases plugin
 interface StoreKitPlugin {
+  initialize?(): Promise<{ success: boolean; error?: string }>;
   getProducts(options: { productIds: string[] }): Promise<{ products: AppleProduct[] }>;
   purchase(options: { productId: string }): Promise<PurchaseResult>;
   restorePurchases(): Promise<{
@@ -128,7 +130,6 @@ export async function initStoreKit(): Promise<boolean> {
 
   try {
     // Dynamic import of Capacitor plugin
-    // @ts-expect-error - Dynamic import
     const { FerniPurchases } = await import('@ferni/capacitor-purchases');
     storeKitPlugin = FerniPurchases;
 
@@ -426,7 +427,6 @@ export async function openSubscriptionManagement(): Promise<void> {
     // On native iOS, open the subscription management URL
     const url = 'https://apps.apple.com/account/subscriptions';
 
-    // @ts-expect-error - Capacitor Browser plugin
     const { Browser } = await import('@capacitor/browser');
     await Browser.open({ url });
   } else if (isIOS()) {

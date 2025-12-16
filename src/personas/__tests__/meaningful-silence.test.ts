@@ -25,7 +25,7 @@ vi.mock('../../audio/index.js', () => ({
 
 vi.mock('../../services/dj-service.js', () => ({
   getMusicConversationStarter: vi.fn(() => null),
-  getSpontaneousMusicOffer: vi.fn(() => "Want me to put on some music while you think?"),
+  getSpontaneousMusicOffer: vi.fn(() => 'Want me to put on some music while you think?'),
 }));
 
 vi.mock('../voice-registry.js', () => ({
@@ -240,9 +240,7 @@ describe('Meaningful Silence System', () => {
     it('should extract life events', async () => {
       const { extractMemorableMoments } = await import('../meaningful-silence.js');
 
-      const moments = extractMemorableMoments(
-        "We're getting married next summer!"
-      );
+      const moments = extractMemorableMoments("We're getting married next summer!");
 
       expect(moments).toContain('getting married');
     });
@@ -250,9 +248,7 @@ describe('Meaningful Silence System', () => {
     it('should extract pregnancy/baby mentions', async () => {
       const { extractMemorableMoments } = await import('../meaningful-silence.js');
 
-      const moments = extractMemorableMoments(
-        "We're expecting a baby in March"
-      );
+      const moments = extractMemorableMoments("We're expecting a baby in March");
 
       expect(moments).toContain('the baby');
     });
@@ -260,9 +256,7 @@ describe('Meaningful Silence System', () => {
     it('should extract retirement mentions', async () => {
       const { extractMemorableMoments } = await import('../meaningful-silence.js');
 
-      const moments = extractMemorableMoments(
-        "I'm thinking about retiring early"
-      );
+      const moments = extractMemorableMoments("I'm thinking about retiring early");
 
       expect(moments).toContain('retirement');
     });
@@ -270,9 +264,7 @@ describe('Meaningful Silence System', () => {
     it('should extract job/career changes', async () => {
       const { extractMemorableMoments } = await import('../meaningful-silence.js');
 
-      const moments = extractMemorableMoments(
-        "I just started a new job at a tech company"
-      );
+      const moments = extractMemorableMoments('I just started a new job at a tech company');
 
       expect(moments).toContain('the new job');
     });
@@ -280,9 +272,7 @@ describe('Meaningful Silence System', () => {
     it('should extract loss mentions sensitively', async () => {
       const { extractMemorableMoments } = await import('../meaningful-silence.js');
 
-      const moments = extractMemorableMoments(
-        "My father passed away last year"
-      );
+      const moments = extractMemorableMoments('My father passed away last year');
 
       expect(moments).toContain('your loss');
     });
@@ -290,9 +280,7 @@ describe('Meaningful Silence System', () => {
     it('should extract milestone mentions', async () => {
       const { extractMemorableMoments } = await import('../meaningful-silence.js');
 
-      const moments = extractMemorableMoments(
-        "This is my first home purchase"
-      );
+      const moments = extractMemorableMoments('This is my first home purchase');
 
       expect(moments).toContain('your first home');
     });
@@ -301,7 +289,7 @@ describe('Meaningful Silence System', () => {
       const { extractMemorableMoments } = await import('../meaningful-silence.js');
 
       const moments = extractMemorableMoments(
-        "My wife and I are getting married, expecting a baby, starting a new job, and buying our first home"
+        'My wife and I are getting married, expecting a baby, starting a new job, and buying our first home'
       );
 
       expect(moments.length).toBeLessThanOrEqual(3);
@@ -311,20 +299,18 @@ describe('Meaningful Silence System', () => {
       const { extractMemorableMoments } = await import('../meaningful-silence.js');
 
       const moments = extractMemorableMoments(
-        "My wife loves it when my wife and I go hiking together"
+        'My wife loves it when my wife and I go hiking together'
       );
 
       // Should only have one instance of 'your wife'
-      const wifeCount = moments.filter(m => m === 'your wife').length;
+      const wifeCount = moments.filter((m) => m === 'your wife').length;
       expect(wifeCount).toBeLessThanOrEqual(1);
     });
 
     it('should return empty array for no memorable content', async () => {
       const { extractMemorableMoments } = await import('../meaningful-silence.js');
 
-      const moments = extractMemorableMoments(
-        "What's the weather like today?"
-      );
+      const moments = extractMemorableMoments("What's the weather like today?");
 
       expect(moments).toEqual([]);
     });
@@ -374,7 +360,7 @@ describe('Meaningful Silence System', () => {
 
       const merged = mergeMemorableMoments(existing, newMoments);
 
-      const wifeCount = merged.filter(m => m === 'your wife').length;
+      const wifeCount = merged.filter((m) => m === 'your wife').length;
       expect(wifeCount).toBe(1);
     });
   });
@@ -523,5 +509,3 @@ describe('Meaningful Silence System', () => {
     });
   });
 });
-
-

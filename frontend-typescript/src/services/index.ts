@@ -32,8 +32,33 @@ export * from './voice-auth.service.js';
 // 🌱 PROGRESSIVE RELATIONSHIP FEATURES
 // ============================================================================
 
-export * from './growth-journey.service.js';
-export * from './progressive-features.service.js';
+// Exclude celebrateMilestone (conflicts with brand-system) and recordConversation (conflicts with progressive-features)
+export {
+  type JourneyMilestone,
+  type Season,
+  type JourneyProgress,
+  init as initGrowthJourney,
+  getCurrentSeason,
+  getProgress,
+  isSeasonActive,
+  getDaysRemaining,
+  recordGoalAchieved,
+  getAllMilestonesWithStatus,
+  getReadyMilestones,
+  becomeCompanion,
+  isCompanion,
+  getCompanionPrice,
+  onProgressChange,
+  growthJourneyService,
+} from './growth-journey.service.js';
+// Exclude recordConversation (conflicts with growth-journey's function of same name)
+export {
+  initProgressiveFeatures,
+  isProgressiveFeaturesInitialized,
+  triggerTrustSignal,
+  getRelationshipInfo,
+  progressiveFeatures,
+} from './progressive-features.service.js';
 export * from './team-unlock.service.js';
 
 // ============================================================================

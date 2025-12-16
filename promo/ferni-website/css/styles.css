@@ -30,6 +30,7 @@
   --color-tea: #c4a77d;
   --color-ferni: #4a6741;
   --color-ferni-secondary: #3d5a35;
+  --color-ferni-light: #5c7a52;
   --color-ferni-glow: rgba(74, 103, 65, 0.28);
   --color-border: rgba(44, 37, 32, 0.08);
   --color-border-medium: rgba(44, 37, 32, 0.12);
@@ -2192,7 +2193,7 @@ button {
   border-color: var(--color-accent);
 }
 .developer-card--featured {
-  background: linear-gradient(135deg, #4a6741 0, #5c7a52 100%);
+  background: linear-gradient(135deg, var(--color-ferni) 0%, var(--color-ferni-light) 100%);
   border: none;
   color: #fff;
 }

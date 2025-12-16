@@ -59,7 +59,14 @@ const DEFAULT_CONFIG: EffectFeatureConfig = {
   },
 
   rolloutPercentage: 100, // 100% rollout
-  enabledPersonas: ['ferni', 'peter-john', 'maya-santos', 'alex-chen', 'jordan-taylor', 'nayan-patel'],
+  enabledPersonas: [
+    'ferni',
+    'peter-john',
+    'maya-santos',
+    'alex-chen',
+    'jordan-taylor',
+    'nayan-patel',
+  ],
   experimentUserIds: [], // Empty = everyone
 };
 
@@ -88,7 +95,7 @@ class EffectFeatureFlags {
     if (!this.config.composableEffectsEnabled) return false;
 
     const normalizedId = effectId.replace(/_/g, '') as keyof typeof this.config.effects;
-    
+
     // Map effect IDs to config keys
     const effectMap: Record<string, keyof typeof this.config.effects> = {
       breath_sound: 'breathSound',
@@ -139,11 +146,7 @@ class EffectFeatureFlags {
   /**
    * Full check: is the effect system enabled for this context?
    */
-  shouldApplyEffects(context: {
-    userId?: string;
-    personaId: string;
-    sessionId: string;
-  }): boolean {
+  shouldApplyEffects(context: { userId?: string; personaId: string; sessionId: string }): boolean {
     if (!this.isEnabled()) return false;
 
     // Check persona
@@ -219,10 +222,10 @@ export const effectFlags = {
   isEnabled: () => getEffectFeatureFlags().isEnabled(),
   isEffectEnabled: (effectId: string) => getEffectFeatureFlags().isEffectEnabled(effectId),
   isEnabledForUser: (userId: string) => getEffectFeatureFlags().isEnabledForUser(userId),
-  isEnabledForPersona: (personaId: string) => getEffectFeatureFlags().isEnabledForPersona(personaId),
+  isEnabledForPersona: (personaId: string) =>
+    getEffectFeatureFlags().isEnabledForPersona(personaId),
   shouldApplyEffects: (context: { userId?: string; personaId: string; sessionId: string }) =>
     getEffectFeatureFlags().shouldApplyEffects(context),
   configure: (config: Partial<EffectFeatureConfig>) => configureEffectFeatureFlags(config),
   getConfig: () => getEffectFeatureFlags().getConfig(),
 };
-

@@ -77,12 +77,7 @@ import {
   type ToolCtxWithUserData,
 } from '../persistence.js';
 
-import {
-  trackToolUsage,
-  getToolMetrics,
-  clearAnalytics,
-  hasHighErrorRate,
-} from '../analytics.js';
+import { trackToolUsage, getToolMetrics, clearAnalytics, hasHighErrorRate } from '../analytics.js';
 
 import {
   isLifeCoachDomainEnabled,
@@ -405,7 +400,11 @@ describe('Shared Domain Utilities', () => {
 
       it('should return false for disabled domains', () => {
         // Cast to test invalid domain handling
-        expect(isLifeCoachDomainEnabled('disabled-domain' as unknown as Parameters<typeof isLifeCoachDomainEnabled>[0])).toBe(false);
+        expect(
+          isLifeCoachDomainEnabled(
+            'disabled-domain' as unknown as Parameters<typeof isLifeCoachDomainEnabled>[0]
+          )
+        ).toBe(false);
       });
     });
 
@@ -426,4 +425,3 @@ describe('Shared Domain Utilities', () => {
     });
   });
 });
-

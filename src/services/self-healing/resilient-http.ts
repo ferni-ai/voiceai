@@ -212,10 +212,7 @@ function isRetryableError(error: Error, statusCode?: number): boolean {
 // ERROR CLASSIFICATION
 // ============================================================================
 
-function classifyError(
-  error: Error,
-  statusCode?: number
-): ResilientError['code'] {
+function classifyError(error: Error, statusCode?: number): ResilientError['code'] {
   if (error instanceof CircuitBreakerError) {
     return 'CIRCUIT_OPEN';
   }
@@ -246,10 +243,7 @@ function classifyError(
   return 'UNKNOWN';
 }
 
-function createResilientError(
-  error: Error,
-  statusCode?: number
-): ResilientError {
+function createResilientError(error: Error, statusCode?: number): ResilientError {
   return {
     message: error.message,
     code: classifyError(error, statusCode),
@@ -262,7 +256,12 @@ function createResilientError(
 // CLIENT FACTORY
 // ============================================================================
 
-const DEFAULT_OPTIONS: Required<Omit<ResilientClientOptions, 'onCircuitStateChange' | 'onRequest' | 'onResponse' | 'defaultHeaders' | 'shouldRetry'>> = {
+const DEFAULT_OPTIONS: Required<
+  Omit<
+    ResilientClientOptions,
+    'onCircuitStateChange' | 'onRequest' | 'onResponse' | 'defaultHeaders' | 'shouldRetry'
+  >
+> = {
   failureThreshold: 5,
   recoveryTimeout: 30000,
   maxRetries: 3,
@@ -630,4 +629,3 @@ export function getSmartThingsClient(): ResilientClient {
   }
   return _smartThingsClient;
 }
-

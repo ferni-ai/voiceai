@@ -48,9 +48,8 @@ let anomalyMonitor: {
 async function initAnomalyDetection(): Promise<void> {
   if (anomalyMonitor) return;
   try {
-    const { recordLatency, recordSuccessRate } = await import(
-      '../../services/self-healing/anomaly-detection.js'
-    );
+    const { recordLatency, recordSuccessRate } =
+      await import('../../services/self-healing/anomaly-detection.js');
     anomalyMonitor = { recordLatency, recordSuccessRate };
   } catch {
     // Anomaly detection not available
@@ -263,38 +262,34 @@ export function wrapToolExecute(
 
       // Execute the original tool - with or without resilience
       let result: unknown;
-      
+
       if (opts.enableResilience) {
         // Wrap execution with self-healing retry logic
-        result = await withResilience(
-          () => originalExecute(params, execContext),
-          {
-            maxRetries: opts.maxRetries ?? 2,
-            baseDelay: 500, // Tools should retry quickly
-            maxDelay: 3000,
-            operationName: `tool:${toolId}`,
-            shouldRetry: (error) => {
-              // Use custom retry logic if provided, else use default
-              const shouldRetryFn = opts.shouldRetry ?? isDefaultRetryable;
-              return shouldRetryFn(error);
-            },
-            onRetry: (attempt, error, delay) => {
-              log.debug(
-                { toolId, domain, attempt, error: error.message, delay },
-                'Tool execution retry'
-              );
-            },
-          }
-        );
+        result = await withResilience(() => originalExecute(params, execContext), {
+          maxRetries: opts.maxRetries ?? 2,
+          baseDelay: 500, // Tools should retry quickly
+          maxDelay: 3000,
+          operationName: `tool:${toolId}`,
+          shouldRetry: (error) => {
+            // Use custom retry logic if provided, else use default
+            const shouldRetryFn = opts.shouldRetry ?? isDefaultRetryable;
+            return shouldRetryFn(error);
+          },
+          onRetry: (attempt, error, delay) => {
+            log.debug(
+              { toolId, domain, attempt, error: error.message, delay },
+              'Tool execution retry'
+            );
+          },
+        });
       } else {
         result = await originalExecute(params, execContext);
       }
 
       // Execute after_tool_call hook (non-blocking, fire-and-forget)
       try {
-        const { onAfterToolCall } = await import(
-          '../../personas/bundles/extensibility-integration.js'
-        );
+        const { onAfterToolCall } =
+          await import('../../personas/bundles/extensibility-integration.js');
         // Don't await - hooks shouldn't slow down tool execution
         void onAfterToolCall({
           personaId: ctx.agentId,
@@ -344,24 +339,22 @@ export function wrapToolExecute(
       recordToolExecution(toolId, false, executionTimeMs);
 
       log.error(
-        { 
-          toolId, 
-          domain, 
-          error: errorMessage, 
+        {
+          toolId,
+          domain,
+          error: errorMessage,
           executionTimeMs,
           severity: humanized.severity,
           technicalSummary: humanized.technicalSummary,
-        }, 
+        },
         'Tool execution error'
       );
       tracker?.error(err);
 
       if (opts.enableErrorHandling) {
         // Use humanized message for user-facing errors when appropriate
-        const userMessage = humanized.shouldNotifyUser 
-          ? humanized.userMessage 
-          : errorMessage;
-        
+        const userMessage = humanized.shouldNotifyUser ? humanized.userMessage : errorMessage;
+
         return failure(userMessage, 'EXECUTION_ERROR', {
           executionTimeMs,
           toolId,

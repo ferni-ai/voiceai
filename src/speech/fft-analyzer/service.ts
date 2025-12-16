@@ -7,10 +7,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../../utils/session-registry.js';
 import { classifyEnvironment } from './environment.js';
 import { analyzeLaughterSpectral } from './laughter.js';
 import { analyzeSpectrum } from './spectral-analysis.js';
@@ -155,4 +152,3 @@ export function resetFFTAnalyzer(sessionId: string): void {
 export function getActiveFFTAnalyzerCount(): number {
   return fftAnalyzerRegistry.getActiveCount();
 }
-

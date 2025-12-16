@@ -116,7 +116,10 @@ export function getSessionState(sessionId: string): HandoffSessionState {
 
     state = createSessionState(sessionId);
     sessionStates.set(sessionId, state);
-    getLogger().debug({ sessionId, totalSessions: sessionStates.size }, 'Created new session state');
+    getLogger().debug(
+      { sessionId, totalSessions: sessionStates.size },
+      'Created new session state'
+    );
   }
 
   return state;
@@ -418,10 +421,3 @@ export function getSessionAnalytics(state: HandoffSessionState): {
     avgDuration: durationCount > 0 ? totalDuration / durationCount : 0,
   };
 }
-
-
-
-
-
-
-

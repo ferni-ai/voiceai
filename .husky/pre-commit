@@ -43,11 +43,11 @@ echo ""
 echo "🚀 Deployment safety check..."
 
 # Check for unsafe deployment patterns
-npx tsx scripts/check-deploy-safety.ts 2>/dev/null || {
+npx tsx apps/cli/src/commands/quality/check-deploy-safety.ts 2>/dev/null || {
   echo ""
   echo "  ❌ UNSAFE DEPLOYMENT PATTERN DETECTED - COMMIT BLOCKED"
   echo ""
-  echo "  Run 'npx tsx scripts/check-deploy-safety.ts' for details"
+  echo "  Run 'npx tsx apps/cli/src/commands/quality/check-deploy-safety.ts' for details"
   echo "  Use 'ferni deploy' instead of direct gcloud/firebase commands"
   echo ""
   exit 1
@@ -62,7 +62,7 @@ echo ""
 echo "📊 Running code quality audit..."
 
 # Run quality check but don't block on warnings
-npx tsx scripts/code-quality-check.ts 2>/dev/null || {
+npx tsx apps/cli/src/commands/quality/code-quality-check.ts 2>/dev/null || {
   echo ""
   echo "  ⚠ Quality check found issues (non-blocking)"
   echo "  Run 'npm run audit quality' for details"
@@ -124,7 +124,7 @@ echo ""
 echo "🌿 Brand compliance check..."
 
 # Run brand check on staged files - warns but doesn't block
-npx tsx scripts/check-brand-compliance.ts --staged 2>/dev/null || {
+npx tsx apps/cli/src/commands/quality/check-brand-compliance.ts --staged 2>/dev/null || {
   echo ""
   echo "  ⚠ Brand check found issues (review recommended)"
   echo "  Run 'npm run brand:check' for details"

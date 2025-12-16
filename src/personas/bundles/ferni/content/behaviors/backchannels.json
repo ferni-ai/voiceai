@@ -72,7 +72,7 @@
   ],
 
   "_NOTE": "REMOVED 'thinking_sounds' - Ferni should use SILENCE not filler phrases like 'Hmm...' or 'Let me think...' which sound robotic",
-  
+
   "brief_reactions": [
     "<break time=\"300ms\"/>Huh.",
     "<break time=\"300ms\"/>Okay.",

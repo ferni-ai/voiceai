@@ -29,11 +29,11 @@ export type SemVer = string;
 // ============================================================================
 
 export type LicenseType =
-  | 'free'           // Free forever
-  | 'freemium'       // Free tier + paid features
-  | 'premium'        // Paid only
-  | 'enterprise'     // Custom enterprise pricing
-  | 'open-source';   // OSS license (MIT, Apache, etc.)
+  | 'free' // Free forever
+  | 'freemium' // Free tier + paid features
+  | 'premium' // Paid only
+  | 'enterprise' // Custom enterprise pricing
+  | 'open-source'; // OSS license (MIT, Apache, etc.)
 
 export interface Pricing {
   /** Pricing model */
@@ -61,10 +61,10 @@ export interface Pricing {
 // ============================================================================
 
 export type TrustLevel =
-  | 'platform'       // Built by Ferni team, full trust
-  | 'verified'       // Third-party, code-reviewed & signed
-  | 'community'      // Community submitted, basic checks
-  | 'unverified';    // No verification, sandbox-only
+  | 'platform' // Built by Ferni team, full trust
+  | 'verified' // Third-party, code-reviewed & signed
+  | 'community' // Community submitted, basic checks
+  | 'unverified'; // No verification, sandbox-only
 
 export interface VerificationInfo {
   /** Trust level determines execution environment */
@@ -102,42 +102,42 @@ export interface VerificationInfo {
  */
 export type PermissionScope =
   // User data access
-  | 'user:profile:read'        // Read user profile (name, preferences)
-  | 'user:profile:write'       // Update user profile
-  | 'user:memory:read'         // Read user memories
-  | 'user:memory:write'        // Create/update memories
-  | 'user:memory:delete'       // Delete memories
-  | 'user:calendar:read'       // Read calendar events
-  | 'user:calendar:write'      // Create/update calendar events
-  | 'user:contacts:read'       // Read contacts
-  | 'user:contacts:write'      // Create/update contacts
-  | 'user:habits:read'         // Read habit data
-  | 'user:habits:write'        // Create/update habits
-  | 'user:finance:read'        // Read financial data (linked accounts)
-  | 'user:finance:write'       // Transactions, budgets
-  | 'user:health:read'         // Read health metrics
-  | 'user:health:write'        // Write health data
+  | 'user:profile:read' // Read user profile (name, preferences)
+  | 'user:profile:write' // Update user profile
+  | 'user:memory:read' // Read user memories
+  | 'user:memory:write' // Create/update memories
+  | 'user:memory:delete' // Delete memories
+  | 'user:calendar:read' // Read calendar events
+  | 'user:calendar:write' // Create/update calendar events
+  | 'user:contacts:read' // Read contacts
+  | 'user:contacts:write' // Create/update contacts
+  | 'user:habits:read' // Read habit data
+  | 'user:habits:write' // Create/update habits
+  | 'user:finance:read' // Read financial data (linked accounts)
+  | 'user:finance:write' // Transactions, budgets
+  | 'user:health:read' // Read health metrics
+  | 'user:health:write' // Write health data
 
   // Communication
   | 'communication:email:send' // Send emails on behalf of user
-  | 'communication:sms:send'   // Send SMS messages
-  | 'communication:notify'     // Push notifications
+  | 'communication:sms:send' // Send SMS messages
+  | 'communication:notify' // Push notifications
 
   // External services
-  | 'external:http:read'       // Make HTTP GET requests
-  | 'external:http:write'      // Make HTTP POST/PUT/DELETE
+  | 'external:http:read' // Make HTTP GET requests
+  | 'external:http:write' // Make HTTP POST/PUT/DELETE
   | 'external:webhook:receive' // Receive webhooks
 
   // Platform features
-  | 'platform:tools:invoke'    // Invoke other tools
-  | 'platform:agents:handoff'  // Hand off to other agents
-  | 'platform:billing:read'    // Read billing/subscription info
+  | 'platform:tools:invoke' // Invoke other tools
+  | 'platform:agents:handoff' // Hand off to other agents
+  | 'platform:billing:read' // Read billing/subscription info
 
   // Storage
-  | 'storage:files:read'       // Read user files
-  | 'storage:files:write'      // Write user files
-  | 'storage:blob:read'        // Read blob storage
-  | 'storage:blob:write';      // Write blob storage
+  | 'storage:files:read' // Read user files
+  | 'storage:files:write' // Write user files
+  | 'storage:blob:read' // Read blob storage
+  | 'storage:blob:write'; // Write blob storage
 
 export interface PermissionRequest {
   /** The scope being requested */
@@ -196,8 +196,8 @@ export interface ToolManifest {
 
   /** Tool description for marketplace */
   description: {
-    short: string;  // Max 120 chars
-    long: string;   // Markdown supported
+    short: string; // Max 120 chars
+    long: string; // Markdown supported
     changelog?: string;
   };
 
@@ -215,7 +215,7 @@ export interface ToolManifest {
   /** License and pricing */
   licensing: {
     type: LicenseType;
-    spdxId?: string;  // For OSS (e.g., "MIT", "Apache-2.0")
+    spdxId?: string; // For OSS (e.g., "MIT", "Apache-2.0")
     pricing?: Pricing;
   };
 
@@ -402,9 +402,9 @@ export interface AgentManifest {
 
     /** Personality traits */
     personality: {
-      warmth: number;       // 0-1
-      humorLevel: number;   // 0-1
-      formality: number;    // 0-1
+      warmth: number; // 0-1
+      humorLevel: number; // 0-1
+      formality: number; // 0-1
       traits: string[];
     };
 
@@ -430,7 +430,7 @@ export interface AgentManifest {
     /** Marketplace tools (by ID) */
     marketplace: Array<{
       id: MarketplaceId;
-      version?: string;  // Semver range
+      version?: string; // Semver range
       required: boolean;
     }>;
 
@@ -580,7 +580,7 @@ export interface ToolExecution {
 
   /** For debugging (redacted in production) */
   debug?: {
-    parametersHash: string;  // Hash, not actual values
+    parametersHash: string; // Hash, not actual values
     responseHash: string;
     traceId?: string;
   };

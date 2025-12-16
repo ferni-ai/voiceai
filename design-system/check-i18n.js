@@ -45,12 +45,12 @@ const CONFIG = {
   },
   // Frontend app i18n
   frontend: {
-    localeDir: 'frontend-typescript/src/i18n/locales',
+    localeDir: 'apps/web/src/i18n/locales',
     sourceLocale: 'en-US.json',
     sourcePatterns: [
-      'frontend-typescript/src/ui/**/*.ts',
-      'frontend-typescript/src/app.ts',
-      'frontend-typescript/src/services/**/*.ts',
+      'apps/web/src/ui/**/*.ts',
+      'apps/web/src/app.ts',
+      'apps/web/src/services/**/*.ts',
     ],
     // Regex patterns to extract translation keys
     // Using word boundary to ensure 't' is a standalone function, not part of another word

@@ -1,20 +1,20 @@
 /**
  * Async Event System
- * 
+ *
  * Fire-and-forget event publishing for non-critical operations.
  * Events can be processed locally (in-process) or sent to Pub/Sub
  * for background worker processing.
- * 
+ *
  * This enables:
  * - Zero-latency event dispatch (doesn't block voice agent)
  * - Background processing of analytics, learning, trust updates
  * - Future migration to microservices via Pub/Sub
- * 
+ *
  * Usage:
  * ```ts
  * // Fire-and-forget (doesn't block)
  * AsyncEvents.emit('conversation:end', { userId, sessionData });
- * 
+ *
  * // Subscribe to events (for local processing)
  * AsyncEvents.on('conversation:end', async (data) => {
  *   await updateTrustMetrics(data);
@@ -35,22 +35,22 @@ export type EventType =
   | 'conversation:start'
   | 'conversation:end'
   | 'conversation:turn'
-  
+
   // Trust & relationship
   | 'trust:update'
   | 'trust:milestone'
   | 'relationship:stage-change'
-  
+
   // Learning & analytics
   | 'analytics:interaction'
   | 'analytics:emotion-detected'
   | 'learning:pattern-detected'
   | 'learning:community-insight'
-  
+
   // User events
   | 'user:profile-update'
   | 'user:preference-change'
-  
+
   // Outreach
   | 'outreach:trigger'
   | 'outreach:scheduled';
@@ -77,7 +77,7 @@ class AsyncEventBus {
   private usePubSub = false;
   private pubsubClient: unknown = null;
   private topicName = 'ferni-events';
-  
+
   // Stats
   private stats = {
     emitted: 0,
@@ -85,16 +85,20 @@ class AsyncEventBus {
     errors: 0,
     queueHighWater: 0,
   };
-  
+
   /**
    * Emit an event (fire-and-forget).
    * Returns immediately - processing happens async.
    */
-  emit(type: EventType, data: Record<string, unknown>, context?: {
-    sessionId?: string;
-    userId?: string;
-    personaId?: string;
-  }): void {
+  emit(
+    type: EventType,
+    data: Record<string, unknown>,
+    context?: {
+      sessionId?: string;
+      userId?: string;
+      personaId?: string;
+    }
+  ): void {
     const payload: EventPayload = {
       type,
       timestamp: Date.now(),
@@ -103,19 +107,19 @@ class AsyncEventBus {
       personaId: context?.personaId,
       data,
     };
-    
+
     this.stats.emitted++;
-    
+
     // Add to queue for processing
     this.queue.push(payload);
     this.stats.queueHighWater = Math.max(this.stats.queueHighWater, this.queue.length);
-    
+
     // Start processing if not already
     if (!this.processing) {
       this.processQueue();
     }
   }
-  
+
   /**
    * Subscribe to an event type.
    */
@@ -126,13 +130,13 @@ class AsyncEventBus {
       this.handlers.set(type, handlers);
     }
     handlers.add(handler);
-    
+
     // Return unsubscribe function
     return () => {
       handlers?.delete(handler);
     };
   }
-  
+
   /**
    * Subscribe to all events.
    */
@@ -140,25 +144,33 @@ class AsyncEventBus {
     // Subscribe to all known event types
     const unsubscribes: Array<() => void> = [];
     const types: EventType[] = [
-      'conversation:start', 'conversation:end', 'conversation:turn',
-      'trust:update', 'trust:milestone', 'relationship:stage-change',
-      'analytics:interaction', 'analytics:emotion-detected',
-      'learning:pattern-detected', 'learning:community-insight',
-      'user:profile-update', 'user:preference-change',
-      'outreach:trigger', 'outreach:scheduled',
+      'conversation:start',
+      'conversation:end',
+      'conversation:turn',
+      'trust:update',
+      'trust:milestone',
+      'relationship:stage-change',
+      'analytics:interaction',
+      'analytics:emotion-detected',
+      'learning:pattern-detected',
+      'learning:community-insight',
+      'user:profile-update',
+      'user:preference-change',
+      'outreach:trigger',
+      'outreach:scheduled',
     ];
-    
+
     for (const type of types) {
       unsubscribes.push(this.on(type, handler));
     }
-    
+
     return () => {
       for (const unsub of unsubscribes) {
         unsub();
       }
     };
   }
-  
+
   /**
    * Enable Pub/Sub publishing for background workers.
    * Events will be sent to GCP Pub/Sub in addition to local handlers.
@@ -169,7 +181,9 @@ class AsyncEventBus {
       // Using Function constructor to avoid TypeScript module resolution
       const moduleName = '@google-cloud/pubsub';
       const importFn = new Function('m', 'return import(m)') as (m: string) => Promise<unknown>;
-      const pubsubModule = await importFn(moduleName).catch(() => null) as { PubSub?: new (opts: { projectId: string }) => unknown } | null;
+      const pubsubModule = (await importFn(moduleName).catch(() => null)) as {
+        PubSub?: new (opts: { projectId: string }) => unknown;
+      } | null;
       if (!pubsubModule?.PubSub) {
         log.warn('Pub/Sub module not available');
         return;
@@ -183,7 +197,7 @@ class AsyncEventBus {
       log.warn({ error: String(error) }, 'Failed to enable Pub/Sub - continuing without');
     }
   }
-  
+
   /**
    * Get event stats.
    */
@@ -192,14 +206,14 @@ class AsyncEventBus {
     for (const handlers of this.handlers.values()) {
       handlerCount += handlers.size;
     }
-    
+
     return {
       ...this.stats,
       queueLength: this.queue.length,
       handlerCount,
     };
   }
-  
+
   /**
    * Flush remaining events (call during shutdown).
    */
@@ -209,15 +223,15 @@ class AsyncEventBus {
       await this.processNext();
     }
   }
-  
+
   // ============================================================================
   // PRIVATE
   // ============================================================================
-  
+
   private async processQueue(): Promise<void> {
     if (this.processing) return;
     this.processing = true;
-    
+
     try {
       while (this.queue.length > 0) {
         await this.processNext();
@@ -226,51 +240,54 @@ class AsyncEventBus {
       this.processing = false;
     }
   }
-  
+
   private async processNext(): Promise<void> {
     const payload = this.queue.shift();
     if (!payload) return;
-    
+
     try {
       // Call local handlers
       const handlers = this.handlers.get(payload.type);
       if (handlers) {
-        const promises = Array.from(handlers).map(handler => 
-          Promise.resolve(handler(payload)).catch(err => {
+        const promises = Array.from(handlers).map((handler) =>
+          Promise.resolve(handler(payload)).catch((err) => {
             log.warn({ type: payload.type, error: String(err) }, 'Event handler error');
             this.stats.errors++;
           })
         );
-        
+
         // Don't await - fire and forget (individual errors already logged above)
         void Promise.all(promises);
       }
-      
+
       // Publish to Pub/Sub if enabled
       if (this.usePubSub && this.pubsubClient) {
-        this.publishToPubSub(payload).catch(err => {
+        this.publishToPubSub(payload).catch((err) => {
           log.warn({ type: payload.type, error: String(err) }, 'Pub/Sub publish error');
         });
       }
-      
+
       this.stats.processed++;
     } catch (error) {
       log.warn({ type: payload.type, error: String(error) }, 'Event processing error');
       this.stats.errors++;
     }
   }
-  
+
   private async publishToPubSub(payload: EventPayload): Promise<void> {
     if (!this.pubsubClient) return;
-    
+
     // Use type assertion to avoid importing types
-    const client = this.pubsubClient as { 
-      topic: (name: string) => { 
-        publishMessage: (msg: { json: unknown; attributes: Record<string, string> }) => Promise<string> 
-      } 
+    const client = this.pubsubClient as {
+      topic: (name: string) => {
+        publishMessage: (msg: {
+          json: unknown;
+          attributes: Record<string, string>;
+        }) => Promise<string>;
+      };
     };
     const topic = client.topic(this.topicName);
-    
+
     await topic.publishMessage({
       json: payload,
       attributes: {
@@ -298,9 +315,13 @@ export function emitConversationStart(context: {
   personaId: string;
   isReturning: boolean;
 }): void {
-  AsyncEvents.emit('conversation:start', {
-    isReturning: context.isReturning,
-  }, context);
+  AsyncEvents.emit(
+    'conversation:start',
+    {
+      isReturning: context.isReturning,
+    },
+    context
+  );
 }
 
 /**
@@ -314,11 +335,15 @@ export function emitConversationEnd(context: {
   durationMs: number;
   emotionalHighlight?: string;
 }): void {
-  AsyncEvents.emit('conversation:end', {
-    turnCount: context.turnCount,
-    durationMs: context.durationMs,
-    emotionalHighlight: context.emotionalHighlight,
-  }, context);
+  AsyncEvents.emit(
+    'conversation:end',
+    {
+      turnCount: context.turnCount,
+      durationMs: context.durationMs,
+      emotionalHighlight: context.emotionalHighlight,
+    },
+    context
+  );
 }
 
 /**
@@ -331,10 +356,14 @@ export function emitTrustUpdate(context: {
   trustDelta: number;
   reason: string;
 }): void {
-  AsyncEvents.emit('trust:update', {
-    trustDelta: context.trustDelta,
-    reason: context.reason,
-  }, context);
+  AsyncEvents.emit(
+    'trust:update',
+    {
+      trustDelta: context.trustDelta,
+      reason: context.reason,
+    },
+    context
+  );
 }
 
 /**
@@ -347,11 +376,14 @@ export function emitAnalyticsInteraction(context: {
   interactionType: string;
   metadata?: Record<string, unknown>;
 }): void {
-  AsyncEvents.emit('analytics:interaction', {
-    interactionType: context.interactionType,
-    metadata: context.metadata || {},
-  }, context);
+  AsyncEvents.emit(
+    'analytics:interaction',
+    {
+      interactionType: context.interactionType,
+      metadata: context.metadata || {},
+    },
+    context
+  );
 }
 
 export default AsyncEvents;
-

@@ -64,9 +64,8 @@ export async function handleSlashCommand(ctx: SlashCommandContext): Promise<Slas
     const argsString = match[2] || '';
 
     // Execute the command via extensibility integration
-    const { executeCommand, getCommands } = await import(
-      '../../personas/bundles/extensibility-integration.js'
-    );
+    const { executeCommand, getCommands } =
+      await import('../../personas/bundles/extensibility-integration.js');
 
     // Check if this persona has this command
     const commands = await getCommands(personaId);

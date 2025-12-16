@@ -442,16 +442,16 @@ IMPORTANT: This is "better than human" listening. A friend might miss this signa
 
       const outreachContext =
         dueoutreach.type === 'genuine_check_in'
-          ? "You had something on your mind to check in about."
+          ? 'You had something on your mind to check in about.'
           : dueoutreach.type === 'thought_of_you'
-            ? "Something made you think of them."
+            ? 'Something made you think of them.'
             : dueoutreach.type === 'following_thread'
               ? "There's something they shared that you wanted to follow up on."
               : dueoutreach.type === 'celebrating_quietly'
-                ? "Something good might have happened for them."
+                ? 'Something good might have happened for them.'
                 : dueoutreach.type === 'holding_space'
-                  ? "Something difficult might be happening for them."
-                  : "You just wanted to connect.";
+                  ? 'Something difficult might be happening for them.'
+                  : 'You just wanted to connect.';
 
       injections.push({
         category: 'proactive_outreach',
@@ -1130,12 +1130,12 @@ export function buildAmbientAwarenessInjections(userData: UserData): ContextInje
 
   // Map environment to natural language
   const environmentDescriptions: Record<string, string> = {
-    office: "an office (background conversations, typing)",
-    coffee_shop: "a coffee shop (ambient chatter, music)",
-    outdoors: "outside (wind, traffic sounds)",
-    car: "a car (road noise, engine)",
-    public_transit: "public transit (announcements, crowd)",
-    noisy: "somewhere noisy",
+    office: 'an office (background conversations, typing)',
+    coffee_shop: 'a coffee shop (ambient chatter, music)',
+    outdoors: 'outside (wind, traffic sounds)',
+    car: 'a car (road noise, engine)',
+    public_transit: 'public transit (announcements, crowd)',
+    noisy: 'somewhere noisy',
   };
 
   const envDescription = environmentDescriptions[environment] || 'a busy environment';
@@ -1215,9 +1215,8 @@ export async function buildBoundaryCheckInjections(
   const injections: ContextInjection[] = [];
 
   try {
-    const { checkBoundary, getActiveBoundaries, getProbingDepth } = await import(
-      '../../services/trust-systems/boundary-memory.js'
-    );
+    const { checkBoundary, getActiveBoundaries, getProbingDepth } =
+      await import('../../services/trust-systems/boundary-memory.js');
 
     // Get active boundaries for this user
     const boundaries = getActiveBoundaries(ctx.userId);
@@ -1301,14 +1300,16 @@ export async function buildHealthAwarenessInjections(): Promise<ContextInjection
   const injections: ContextInjection[] = [];
 
   try {
-    const { getHealthContext, getSystemPromptInjection } = await import(
-      '../../services/self-healing/conversation-health.js'
-    );
+    const { getHealthContext, getSystemPromptInjection } =
+      await import('../../services/self-healing/conversation-health.js');
 
     const healthContext = getHealthContext();
 
     // Only inject if there's something relevant
-    if (healthContext.degradedServices.length === 0 && healthContext.recoveryMessages.length === 0) {
+    if (
+      healthContext.degradedServices.length === 0 &&
+      healthContext.recoveryMessages.length === 0
+    ) {
       return injections;
     }
 

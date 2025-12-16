@@ -282,7 +282,7 @@ export const DEMO_TEAM_HUDDLES: TeamHuddleData[] = [
 export function getDemoTeamHuddle(type: 'weekly' | 'milestone' | 'special' = 'weekly'): TeamHuddleData {
   const huddle = DEMO_TEAM_HUDDLES.find(h => h.type === type) ?? DEMO_TEAM_HUDDLES[0];
   // Assert non-null since we have a fallback
-  const baseHuddle = huddle as TeamHuddleData;
+  const baseHuddle = huddle;
   return {
     id: baseHuddle.id,
     title: baseHuddle.title,

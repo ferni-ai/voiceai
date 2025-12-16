@@ -8,10 +8,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import {
-  getAmbientAwarenessService,
-  resetAmbientAwareness,
-} from '../ambient-awareness.js';
+import { getAmbientAwarenessService, resetAmbientAwareness } from '../ambient-awareness.js';
 
 // ============================================================================
 // TEST SETUP
@@ -132,7 +129,7 @@ describe('Ambient Awareness', () => {
       for (let i = 0; i < samples.length; i++) {
         samples[i] = Math.floor(Math.sin(i * 0.1) * 1000);
       }
-      
+
       for (let i = 0; i < 5; i++) {
         service.processFrame(samples, 16000, false);
       }
@@ -149,7 +146,7 @@ describe('Ambient Awareness', () => {
       for (let i = 0; i < samples.length; i++) {
         samples[i] = Math.floor(Math.sin(i * 0.02) * 5000);
       }
-      
+
       for (let i = 0; i < 20; i++) {
         service.processFrame(samples, 16000, i % 3 === 0);
       }
@@ -182,7 +179,7 @@ describe('Ambient Awareness', () => {
 
     it('should get analysis quickly (< 5ms)', () => {
       const service = getAmbientAwarenessService(TEST_SESSION_ID);
-      
+
       // Prime with some data
       const samples = new Int16Array(1024);
       for (let i = 0; i < 10; i++) {

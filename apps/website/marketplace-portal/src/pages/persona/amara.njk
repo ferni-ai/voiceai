@@ -1,0 +1,345 @@
+---
+layout: layouts/base.njk
+title: Amara - Chronic Illness Ally
+description: Amara gets it. Living with chronic illness is more than managing symptoms—it's grieving, adapting, and finding joy anyway. Amara is here for all of it.
+personaColor: "#7B6BA8"
+personaSecondary: "#5A4D80"
+---
+
+{% from "partials/icons.njk" import play, plus, starFilled, star, verified, check %}
+
+<!-- Hero -->
+<section class="persona-detail-hero" style="--persona-color: #7B6BA8; --persona-secondary: #5A4D80;">
+  <div class="container">
+    <div class="persona-detail-content">
+      <div class="persona-detail-avatar">
+        <span style="font-family: var(--font-display); font-size: 3.5rem; font-weight: 800; color: white;">A</span>
+      </div>
+      <div class="persona-detail-info">
+        <h1>Amara</h1>
+        <p class="persona-detail-tagline">Chronic Illness Ally</p>
+        <div class="persona-detail-meta">
+          <span style="display: inline-flex; align-items: center; gap: var(--space-1); color: var(--warning);">
+            {{ starFilled(16) }}{{ starFilled(16) }}{{ starFilled(16) }}{{ starFilled(16) }}{{ starFilled(16) }}
+          </span>
+          <span>4.92 (689 reviews)</span>
+          <span style="opacity: 0.7;">|</span>
+          <span>9,800+ users</span>
+          <span style="opacity: 0.7;">|</span>
+          <span>by Spoonie Tech Co</span>
+        </div>
+        <div class="persona-detail-actions">
+          <button class="btn btn-add-team btn-lg">
+            {{ plus(20) }}
+            Add to Team - $9.99/mo
+          </button>
+          <button class="btn btn-preview-voice">
+            {{ play(20) }}
+            Preview Voice
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Main Content -->
+<section class="section">
+  <div class="container">
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-8); align-items: start;">
+
+      <!-- Left Column -->
+      <div>
+        <!-- Description -->
+        <div style="margin-bottom: var(--space-12);">
+          <h2 style="margin-bottom: var(--space-4);">About Amara</h2>
+          <p style="color: var(--text-secondary); font-size: var(--text-lg); line-height: var(--leading-relaxed);">
+            Amara gets it. Living with chronic illness is more than managing symptoms—it's grieving,
+            adapting, and finding joy anyway. Amara is here for all of it.
+          </p>
+          <p style="color: var(--text-secondary); line-height: var(--leading-relaxed); margin-top: var(--space-4);">
+            When you're living with chronic illness, you need someone who understands that some days
+            are about surviving, not thriving. Amara knows about pacing, the grief of lost abilities,
+            the frustration of invisible illness, and the small victories that matter most. She's
+            here without toxic positivity—just genuine understanding and practical support.
+          </p>
+        </div>
+
+        <!-- What Amara Helps With -->
+        <div style="margin-bottom: var(--space-12);">
+          <h2 style="margin-bottom: var(--space-4);">What I Help With</h2>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-4);">
+            <div style="background: var(--bg-elevated); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle);">
+              <h4 style="margin-bottom: var(--space-2);">Symptom Management</h4>
+              <p style="font-size: var(--text-sm); color: var(--text-muted);">
+                Strategies for tracking, communicating about, and adapting to symptoms
+              </p>
+            </div>
+            <div style="background: var(--bg-elevated); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle);">
+              <h4 style="margin-bottom: var(--space-2);">Pacing & Energy</h4>
+              <p style="font-size: var(--text-sm); color: var(--text-muted);">
+                Spoon theory in practice—making the most of limited energy
+              </p>
+            </div>
+            <div style="background: var(--bg-elevated); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle);">
+              <h4 style="margin-bottom: var(--space-2);">Advocating with Doctors</h4>
+              <p style="font-size: var(--text-sm); color: var(--text-muted);">
+                Preparing for appointments and getting your concerns heard
+              </p>
+            </div>
+            <div style="background: var(--bg-elevated); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle);">
+              <h4 style="margin-bottom: var(--space-2);">Grief & Acceptance</h4>
+              <p style="font-size: var(--text-sm); color: var(--text-muted);">
+                Processing the losses that come with chronic illness
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Voice Sample -->
+        <div style="margin-bottom: var(--space-12);">
+          <h2 style="margin-bottom: var(--space-4);">Voice Sample</h2>
+          <div class="voice-player">
+            <button class="voice-play-btn">
+              {{ play(24) }}
+            </button>
+            <div class="voice-waveform">
+              <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 200 40">
+                <path d="M0 20 Q10 5 20 20 Q30 35 40 20 Q50 5 60 20 Q70 35 80 20 Q90 5 100 20 Q110 35 120 20 Q130 5 140 20 Q150 35 160 20 Q170 5 180 20 Q190 35 200 20"
+                      stroke="#7B6BA8" stroke-width="2" fill="none" opacity="0.5"/>
+              </svg>
+            </div>
+            <span class="voice-duration">0:30</span>
+          </div>
+          <p style="font-size: var(--text-sm); color: var(--text-muted); margin-top: var(--space-3); font-style: italic;">
+            "I hear you. Today is a low-spoon day, and that's okay. We're not going to push through
+            anything. Let's just talk about what you absolutely need to get through, and let the
+            rest go. You're allowed to have limits."
+          </p>
+        </div>
+
+        <!-- Reviews -->
+        <div class="reviews-section">
+          <div class="reviews-header">
+            <div class="reviews-summary">
+              <span class="reviews-rating-big">4.92</span>
+              <div class="reviews-rating-info">
+                <span class="reviews-stars" style="color: var(--warning);">
+                  {{ starFilled(18) }}{{ starFilled(18) }}{{ starFilled(18) }}{{ starFilled(18) }}{{ starFilled(18) }}
+                </span>
+                <span class="reviews-count">689 reviews</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="review-card">
+            <div class="review-header">
+              <div class="review-avatar" style="background: linear-gradient(135deg, #7B6BA8, #5A4D80); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">K</div>
+              <div>
+                <div class="review-author">Kelly R.</div>
+                <div class="review-date">1 week ago</div>
+              </div>
+              <span class="review-stars" style="color: var(--warning);">
+                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
+              </span>
+            </div>
+            <p class="review-content">
+              Finally, someone who doesn't tell me to "think positive" or suggest I just haven't
+              tried hard enough. Amara understands what it's like to have an invisible illness
+              and the emotional weight that comes with it. Life-changing.
+            </p>
+          </div>
+
+          <div class="review-card">
+            <div class="review-header">
+              <div class="review-avatar" style="background: linear-gradient(135deg, #D4A373, #A67B5B); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">C</div>
+              <div>
+                <div class="review-author">Chris M.</div>
+                <div class="review-date">2 weeks ago</div>
+              </div>
+              <span class="review-stars" style="color: var(--warning);">
+                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
+              </span>
+            </div>
+            <p class="review-content">
+              Amara helped me prepare for a difficult conversation with my specialist. She helped
+              me organize my symptoms, prioritize what to discuss, and practice advocating for
+              myself. I finally got the referral I needed.
+            </p>
+          </div>
+
+          <div class="review-card">
+            <div class="review-header">
+              <div class="review-avatar" style="background: linear-gradient(135deg, #2D5A4A, #1E3D32); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">P</div>
+              <div>
+                <div class="review-author">Priya S.</div>
+                <div class="review-date">1 month ago</div>
+              </div>
+              <span class="review-stars" style="color: var(--warning);">
+                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
+              </span>
+            </div>
+            <p class="review-content">
+              The pacing strategies have been incredible. Amara taught me about the "boom and bust"
+              cycle and how to actually rest before I crash. My flares have decreased significantly
+              since I started working with her.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div>
+        <!-- Personality Traits -->
+        <div class="trait-radar" style="margin-bottom: var(--space-6);">
+          <h3 class="trait-radar-title">Personality Profile</h3>
+          <div class="trait-list">
+            <div class="trait-item">
+              <span class="trait-dot" style="background: #7B6BA8;"></span>
+              <span class="trait-name">Warmth</span>
+              <span class="trait-value">92%</span>
+            </div>
+            <div class="trait-item">
+              <span class="trait-dot" style="background: #5A4D80;"></span>
+              <span class="trait-name">Patience</span>
+              <span class="trait-value">98%</span>
+            </div>
+            <div class="trait-item">
+              <span class="trait-dot" style="background: #8B7BB8;"></span>
+              <span class="trait-name">Energy</span>
+              <span class="trait-value">40%</span>
+            </div>
+            <div class="trait-item">
+              <span class="trait-dot" style="background: #6B5B98;"></span>
+              <span class="trait-name">Structure</span>
+              <span class="trait-value">50%</span>
+            </div>
+            <div class="trait-item">
+              <span class="trait-dot" style="background: #4A3D70;"></span>
+              <span class="trait-name">Humor</span>
+              <span class="trait-value">50%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tags -->
+        <div style="background: var(--bg-elevated); border-radius: var(--radius-2xl); padding: var(--space-6); box-shadow: var(--shadow-card); margin-bottom: var(--space-6);">
+          <h3 style="font-size: var(--text-lg); margin-bottom: var(--space-4);">Tags</h3>
+          <div style="display: flex; flex-wrap: wrap; gap: var(--space-2);">
+            <span class="persona-tag">Chronic Illness</span>
+            <span class="persona-tag">Disability</span>
+            <span class="persona-tag">Pain Management</span>
+            <span class="persona-tag">Mental Health</span>
+            <span class="persona-tag">Pacing</span>
+            <span class="persona-tag">Spoonies</span>
+          </div>
+        </div>
+
+        <!-- Publisher -->
+        <div style="background: var(--bg-elevated); border-radius: var(--radius-2xl); padding: var(--space-6); box-shadow: var(--shadow-card); margin-bottom: var(--space-6);">
+          <h3 style="font-size: var(--text-lg); margin-bottom: var(--space-4);">Publisher</h3>
+          <div style="display: flex; align-items: center; gap: var(--space-3);">
+            <div style="width: 48px; height: 48px; background: #7B6BA8; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">S</div>
+            <div>
+              <div style="font-weight: 600;">Spoonie Tech Co</div>
+              <div style="font-size: var(--text-sm); color: var(--success); display: flex; align-items: center; gap: var(--space-1);">
+                {{ verified(14) }}
+                Verified Publisher
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CTA -->
+        <div style="background: linear-gradient(135deg, #7B6BA8, #5A4D80); border-radius: var(--radius-2xl); padding: var(--space-6); color: white; text-align: center;">
+          <h3 style="margin-bottom: var(--space-2); color: white;">Ready to get started?</h3>
+          <p style="font-size: var(--text-sm); opacity: 0.9; margin-bottom: var(--space-4);">
+            Someone who truly gets it
+          </p>
+          <button class="btn" style="background: white; color: #7B6BA8; width: 100%;">
+            Add to Team - $9.99/mo
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Related Personas -->
+<section class="section section-alt">
+  <div class="container">
+    <div class="section-header">
+      <h2>You Might Also Like</h2>
+      <p>Similar personas that could help you</p>
+    </div>
+
+    <div class="persona-grid" style="max-width: 900px; margin: 0 auto;">
+      <a href="/persona/kenji/" class="persona-card" style="--persona-color: #2C3E50; --persona-secondary: #1A252F;">
+        <div class="persona-header">
+          <div class="persona-avatar">
+            <span class="persona-initial">K</span>
+          </div>
+          <div class="persona-name">Kenji</div>
+          <div class="persona-tagline">Sleep Guide</div>
+        </div>
+        <div class="persona-body">
+          <p class="persona-description">Reclaim your nights with evidence-based sleep coaching.</p>
+          <div class="persona-footer">
+            <div class="persona-rating">
+              <span class="persona-stars" style="color: var(--warning);">
+                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ star(14) }}
+              </span>
+              <span class="persona-rating-count">4.7</span>
+            </div>
+            <span class="persona-price free">Free+</span>
+          </div>
+        </div>
+      </a>
+
+      <a href="/persona/marcus/" class="persona-card" style="--persona-color: #2D5A4A; --persona-secondary: #1E3D32;">
+        <div class="persona-header">
+          <div class="persona-avatar">
+            <span class="persona-initial">M</span>
+          </div>
+          <div class="persona-name">Marcus</div>
+          <div class="persona-tagline">Sobriety Companion</div>
+        </div>
+        <div class="persona-body">
+          <p class="persona-description">Non-judgmental support for your recovery journey.</p>
+          <div class="persona-footer">
+            <div class="persona-rating">
+              <span class="persona-stars" style="color: var(--warning);">
+                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
+              </span>
+              <span class="persona-rating-count">4.95</span>
+            </div>
+            <span class="persona-price">$14.99/mo</span>
+          </div>
+        </div>
+      </a>
+
+      <a href="/persona/eli/" class="persona-card" style="--persona-color: #6B5B95; --persona-secondary: #4A4063;">
+        <div class="persona-header">
+          <div class="persona-avatar">
+            <span class="persona-initial">E</span>
+          </div>
+          <div class="persona-name">Eli</div>
+          <div class="persona-tagline">ADHD Coach</div>
+        </div>
+        <div class="persona-body">
+          <p class="persona-description">Strategies that work with how your ADHD brain operates.</p>
+          <div class="persona-footer">
+            <div class="persona-rating">
+              <span class="persona-stars" style="color: var(--warning);">
+                {{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}{{ starFilled(14) }}
+              </span>
+              <span class="persona-rating-count">4.9</span>
+            </div>
+            <span class="persona-price">$9.99/mo</span>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>

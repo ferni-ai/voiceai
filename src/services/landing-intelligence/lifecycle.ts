@@ -124,4 +124,3 @@ export function getLandingIntelligenceFlags(): LandingIntelligenceFlags {
 export function isFeatureEnabled(feature: keyof LandingIntelligenceFlags): boolean {
   return activeFlags[feature];
 }
-

@@ -726,7 +726,7 @@
           <div class="status-dot" id="optimizer-status"></div>
           <span id="optimizer-label">Optimizer</span>
         </div>
-        <button class="refresh-btn" onclick="loadData()">
+        <button class="refresh-btn" aria-label="Refresh data" onclick="loadData()">
           <!-- Lucide refresh-cw icon -->
           <svg class="icon icon-sm" viewBox="0 0 24 24">
             <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
@@ -1166,7 +1166,7 @@
             </div>
           </div>
         </div>
-      `).join('') || '<div class="empty-state"><div class="empty-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>No slow tools!</div>';
+      `).join('') || '<div class="empty-state"><div class="empty-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>No slow tools!</div>';
 
       // Error tools
       document.getElementById('error-tools').innerHTML = data.errorTools.map(tool => `
@@ -1176,7 +1176,7 @@
             <div class="tool-latency" style="color: var(--color-semantic-error)">${(tool.errorRate * 100).toFixed(1)}%</div>
           </div>
         </div>
-      `).join('') || '<div class="empty-state"><div class="empty-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>No errors!</div>';
+      `).join('') || '<div class="empty-state"><div class="empty-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>No errors!</div>';
 
       // Co-occurrences
       document.getElementById('co-occurrences').innerHTML = data.patterns.coOccurrences.map(co => `
@@ -1258,7 +1258,7 @@
             <div class="tool-latency" style="color: var(--color-semantic-error)">${(t.negativeRate * 100).toFixed(0)}% negative</div>
           </div>
         </div>
-      `).join('') || '<div class="empty-state"><div class="empty-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>No problematic tools!</div>';
+      `).join('') || '<div class="empty-state"><div class="empty-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>No problematic tools!</div>';
     }
 
     // Load on page load

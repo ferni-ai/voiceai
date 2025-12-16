@@ -3,74 +3,59 @@ client:
   file-system: device-agnostic
 tools: {}
 targets:
-  "FerniVoice-arm64-apple-macosx15.0-debug.exe": ["<FerniVoice-arm64-apple-macosx15.0-debug.exe>"]
-  "FerniVoice-arm64-apple-macosx15.0-debug.module": ["<FerniVoice-arm64-apple-macosx15.0-debug.module>"]
+  "FerniVoice-arm64-apple-macosx15.0-release.exe": ["<FerniVoice-arm64-apple-macosx15.0-release.exe>"]
+  "FerniVoice-arm64-apple-macosx15.0-release.module": ["<FerniVoice-arm64-apple-macosx15.0-release.module>"]
   "PackageStructure": ["<PackageStructure>"]
-  "main": ["<FerniVoice-arm64-apple-macosx15.0-debug.exe>","<FerniVoice-arm64-apple-macosx15.0-debug.module>"]
-  "test": ["<FerniVoice-arm64-apple-macosx15.0-debug.exe>","<FerniVoice-arm64-apple-macosx15.0-debug.module>"]
+  "main": ["<FerniVoice-arm64-apple-macosx15.0-release.exe>","<FerniVoice-arm64-apple-macosx15.0-release.module>"]
+  "test": ["<FerniVoice-arm64-apple-macosx15.0-release.exe>","<FerniVoice-arm64-apple-macosx15.0-release.module>"]
 default: "main"
 nodes:
   "/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/":
     is-directory-structure: true
     content-exclusion-patterns: [".git",".build"]
-  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice":
-    is-mutated: true
 commands:
-  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice-entitlement.plist":
-    tool: write-auxiliary-file
-    inputs: ["<entitlement-plist>","<com.apple.security.get-task-allow>"]
-    outputs: ["/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice-entitlement.plist"]
-    description: "Write auxiliary file /Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice-entitlement.plist"
-
-  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/sources":
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.build/sources":
     tool: write-auxiliary-file
     inputs: ["<sources-file-list>","/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/FerniVoiceApp.swift"]
-    outputs: ["/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/sources"]
-    description: "Write auxiliary file /Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/sources"
+    outputs: ["/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.build/sources"]
+    description: "Write auxiliary file /Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.build/sources"
 
-  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.product/Objects.LinkFileList":
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.product/Objects.LinkFileList":
     tool: write-auxiliary-file
-    inputs: ["<link-file-list>","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/FerniVoiceApp.swift.o"]
-    outputs: ["/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.product/Objects.LinkFileList"]
-    description: "Write auxiliary file /Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.product/Objects.LinkFileList"
+    inputs: ["<link-file-list>","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.build/FerniVoiceApp.swift.o"]
+    outputs: ["/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.product/Objects.LinkFileList"]
+    description: "Write auxiliary file /Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.product/Objects.LinkFileList"
 
-  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt":
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt":
     tool: write-auxiliary-file
     inputs: ["<swift-get-version>","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"]
-    outputs: ["/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"]
+    outputs: ["/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"]
     always-out-of-date: "true"
-    description: "Write auxiliary file /Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+    description: "Write auxiliary file /Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"
 
-  "<FerniVoice-arm64-apple-macosx15.0-debug.exe>":
+  "<FerniVoice-arm64-apple-macosx15.0-release.exe>":
     tool: phony
-    inputs: ["<FerniVoice-arm64-apple-macosx15.0-debug.exe-CodeSigning>"]
-    outputs: ["<FerniVoice-arm64-apple-macosx15.0-debug.exe>"]
+    inputs: ["/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice"]
+    outputs: ["<FerniVoice-arm64-apple-macosx15.0-release.exe>"]
 
-  "<FerniVoice-arm64-apple-macosx15.0-debug.module>":
+  "<FerniVoice-arm64-apple-macosx15.0-release.module>":
     tool: phony
-    inputs: ["/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/FerniVoiceApp.swift.o","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/Modules/FerniVoice.swiftmodule"]
-    outputs: ["<FerniVoice-arm64-apple-macosx15.0-debug.module>"]
+    inputs: ["/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.build/FerniVoiceApp.swift.o","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Modules/FerniVoice.swiftmodule"]
+    outputs: ["<FerniVoice-arm64-apple-macosx15.0-release.module>"]
 
-  "C.FerniVoice-arm64-apple-macosx15.0-debug.exe":
+  "C.FerniVoice-arm64-apple-macosx15.0-release.exe":
     tool: shell
-    inputs: ["/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/FerniVoiceApp.swift.o","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.product/Objects.LinkFileList"]
-    outputs: ["/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice"]
-    description: "Linking ./.build/arm64-apple-macosx/debug/FerniVoice"
-    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-L","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug","-o","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice","-module-name","FerniVoice","-Xlinker","-no_warn_duplicate_libraries","-emit-executable","-Xlinker","-alias","-Xlinker","_FerniVoice_main","-Xlinker","_main","-Xlinker","-rpath","-Xlinker","@loader_path","@/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.product/Objects.LinkFileList","-Xlinker","-rpath","-Xlinker","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-6.2/macosx","-target","arm64-apple-macosx13.0","-Xlinker","-add_ast_path","-Xlinker","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/Modules/FerniVoice.swiftmodule","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g"]
+    inputs: ["/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.build/FerniVoiceApp.swift.o","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.product/Objects.LinkFileList"]
+    outputs: ["/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice"]
+    description: "Linking ./.build/arm64-apple-macosx/release/FerniVoice"
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-L","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release","-o","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice","-module-name","FerniVoice","-Xlinker","-no_warn_duplicate_libraries","-emit-executable","-Xlinker","-dead_strip","-Xlinker","-alias","-Xlinker","_FerniVoice_main","-Xlinker","_main","-Xlinker","-rpath","-Xlinker","@loader_path","@/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.product/Objects.LinkFileList","-Xlinker","-rpath","-Xlinker","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-6.2/macosx","-target","arm64-apple-macosx13.0","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g"]
 
-  "C.FerniVoice-arm64-apple-macosx15.0-debug.exe-entitlements":
+  "C.FerniVoice-arm64-apple-macosx15.0-release.module":
     tool: shell
-    inputs: ["/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice-entitlement.plist"]
-    outputs: ["<FerniVoice-arm64-apple-macosx15.0-debug.exe-CodeSigning>"]
-    description: "Applying debug entitlements to ./.build/arm64-apple-macosx/debug/FerniVoice"
-    args: ["codesign","--force","--sign","-","--entitlements","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice-entitlement.plist","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice"]
-
-  "C.FerniVoice-arm64-apple-macosx15.0-debug.module":
-    tool: shell
-    inputs: ["/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/FerniVoiceApp.swift","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/sources"]
-    outputs: ["/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/FerniVoiceApp.swift.o","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/Modules/FerniVoice.swiftmodule"]
+    inputs: ["/Users/sethford/Documents/voiceai/apps/macos-menubar/Sources/FerniVoiceApp.swift","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.build/sources"]
+    outputs: ["/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.build/FerniVoiceApp.swift.o","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Modules/FerniVoice.swiftmodule"]
     description: "Compiling Swift Module 'FerniVoice' (1 sources)"
-    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-module-name","FerniVoice","-emit-dependencies","-emit-module","-emit-module-path","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/Modules/FerniVoice.swiftmodule","-output-file-map","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/output-file-map.json","-incremental","-c","@/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/FerniVoice.build/sources","-I","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/Modules","-target","arm64-apple-macosx13.0","-incremental","-enable-batch-mode","-serialize-diagnostics","-index-store-path","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/index/store","-Onone","-enable-testing","-j14","-DSWIFT_PACKAGE","-DDEBUG","-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE","-module-cache-path","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/debug/ModuleCache","-parseable-output","-Xfrontend","-entry-point-function-name","-Xfrontend","FerniVoice_main","-parse-as-library","-swift-version","5","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g","-Xcc","-isysroot","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-Xcc","-fPIC","-Xcc","-g","-package-name","macos_menubar"]
+    args: ["/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc","-module-name","FerniVoice","-emit-dependencies","-emit-module","-emit-module-path","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Modules/FerniVoice.swiftmodule","-output-file-map","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.build/output-file-map.json","-whole-module-optimization","-num-threads","14","-c","@/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/FerniVoice.build/sources","-I","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Modules","-target","arm64-apple-macosx13.0","-whole-module-optimization","-num-threads","14","-serialize-diagnostics","-O","-j14","-DSWIFT_PACKAGE","-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE","-module-cache-path","/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/ModuleCache","-parseable-output","-Xfrontend","-entry-point-function-name","-Xfrontend","FerniVoice_main","-parse-as-library","-swift-version","5","-plugin-path","/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing","-sdk","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-F","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-I","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-L","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib","-g","-Xcc","-isysroot","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks","-Xcc","-F","-Xcc","/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks","-Xcc","-fPIC","-Xcc","-g","-package-name","macos_menubar"]
 
   "PackageStructure":
     tool: package-structure-tool

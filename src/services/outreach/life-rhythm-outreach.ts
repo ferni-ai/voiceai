@@ -15,7 +15,10 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { predictUserState, type RhythmPrediction } from '../../intelligence/life-rhythm-prediction.js';
+import {
+  predictUserState,
+  type RhythmPrediction,
+} from '../../intelligence/life-rhythm-prediction.js';
 import { getOutreachDecisionEngine } from './decision-engine.js';
 import type { AgentId } from '../agent-bus.js';
 
@@ -227,14 +230,20 @@ export function generateLifeRhythmMessage(prediction: RhythmPrediction): string 
   }
 
   if (primaryReason.toLowerCase().includes('sunday')) {
-    return "Sunday evening check-in! I noticed these times can feel a bit heavy. How are you feeling about the week ahead? 💚";
+    return 'Sunday evening check-in! I noticed these times can feel a bit heavy. How are you feeling about the week ahead? 💚';
   }
 
-  if (primaryReason.toLowerCase().includes('end of month') || primaryReason.toLowerCase().includes('month end')) {
+  if (
+    primaryReason.toLowerCase().includes('end of month') ||
+    primaryReason.toLowerCase().includes('month end')
+  ) {
     return "End of month energy! I know this time can bring some stress. Just wanted to reach out and see how you're holding up. 💚";
   }
 
-  if (primaryReason.toLowerCase().includes('winter') || primaryReason.toLowerCase().includes('seasonal')) {
+  if (
+    primaryReason.toLowerCase().includes('winter') ||
+    primaryReason.toLowerCase().includes('seasonal')
+  ) {
     return "Hey there! With the shorter days, I wanted to check in. How's your energy been lately? I'm here if you need someone to talk to. 💚";
   }
 
@@ -284,10 +293,7 @@ export async function runDailyLifeRhythmOutreach(
     }
   }
 
-  log.info(
-    { processed, triggered },
-    '🌊 Daily life rhythm outreach completed'
-  );
+  log.info({ processed, triggered }, '🌊 Daily life rhythm outreach completed');
 
   return { processed, triggered };
 }
@@ -302,4 +308,3 @@ export default {
   generateLifeRhythmMessage,
   runDailyLifeRhythmOutreach,
 };
-

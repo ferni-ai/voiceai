@@ -160,11 +160,7 @@ export async function buildMCPTools(
         parameters: paramSchema,
         execute: async (params: Record<string, unknown>) => {
           try {
-            const result = await callMCPTool(
-              toolDef.serverId,
-              toolDef.originalName,
-              params
-            );
+            const result = await callMCPTool(toolDef.serverId, toolDef.originalName, params);
 
             // Return result as string for the LLM
             if (typeof result === 'string') {
@@ -186,10 +182,7 @@ export async function buildMCPTools(
       });
     }
 
-    log.info(
-      { personaId, mcpToolCount: Object.keys(tools).length },
-      'MCP tools built for persona'
-    );
+    log.info({ personaId, mcpToolCount: Object.keys(tools).length }, 'MCP tools built for persona');
 
     return tools;
   } catch (error) {

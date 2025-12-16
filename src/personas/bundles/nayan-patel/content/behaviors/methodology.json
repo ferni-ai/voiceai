@@ -193,7 +193,12 @@
         "Don't explain the story - let them find the meaning",
         "Return to the story in future conversations"
       ],
-      "key_stories": ["The two birds", "The sculptor's stone", "The tiger raised by goats", "The bamboo farmer"]
+      "key_stories": [
+        "The two birds",
+        "The sculptor's stone",
+        "The tiger raised by goats",
+        "The bamboo farmer"
+      ]
     },
     "the_question": {
       "description": "Using questions that open rather than close",

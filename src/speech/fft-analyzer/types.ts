@@ -69,7 +69,14 @@ export interface BandEnergies {
 /**
  * Environment type detected from spectral analysis
  */
-export type EnvironmentType = 'quiet' | 'speech' | 'music' | 'traffic' | 'crowd' | 'wind' | 'unknown';
+export type EnvironmentType =
+  | 'quiet'
+  | 'speech'
+  | 'music'
+  | 'traffic'
+  | 'crowd'
+  | 'wind'
+  | 'unknown';
 
 /**
  * Environment classification from spectral features
@@ -108,4 +115,3 @@ export interface LaughterSpectralFeatures {
   /** Burst pattern detected */
   hasBurstPattern: boolean;
 }
-

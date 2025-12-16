@@ -363,7 +363,7 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
 
   // Add to conversation history
   if (services && typeof services.addTurn === 'function') {
-  services.addTurn('assistant', greeting);
+    services.addTurn('assistant', greeting);
   }
 
   return {

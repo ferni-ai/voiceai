@@ -134,7 +134,7 @@ export const RECOVERY_PHRASES = {
 
   // Longer recovery (1-5 seconds)
   noticeableDelay: [
-    "Sorry about that pause - had a small technical moment. What were you saying?",
+    'Sorry about that pause - had a small technical moment. What were you saying?',
     "Okay, I'm back! Had a little brain freeze there. Where were we?",
     "That took a second - my brain needed a quick reset. I'm all ears now!",
   ],
@@ -157,10 +157,7 @@ export const RECOVERY_PHRASES = {
 /**
  * Get a random phrase from a category
  */
-export function getRecoveryPhrase(
-  category: keyof typeof RECOVERY_PHRASES
-): string {
+export function getRecoveryPhrase(category: keyof typeof RECOVERY_PHRASES): string {
   const phrases = RECOVERY_PHRASES[category];
   return phrases[Math.floor(Math.random() * phrases.length)];
 }
-

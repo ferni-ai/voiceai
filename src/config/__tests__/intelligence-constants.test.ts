@@ -53,9 +53,7 @@ describe('Intelligence Constants', () => {
 
     it('should have high confidence threshold above enhancement threshold', () => {
       expect(EMOTION.HIGH_CONFIDENCE_THRESHOLD).toBe(0.7);
-      expect(EMOTION.HIGH_CONFIDENCE_THRESHOLD).toBeGreaterThan(
-        EMOTION.LLM_ENHANCEMENT_THRESHOLD
-      );
+      expect(EMOTION.HIGH_CONFIDENCE_THRESHOLD).toBeGreaterThan(EMOTION.LLM_ENHANCEMENT_THRESHOLD);
     });
 
     it('should have escalating distress thresholds', () => {
@@ -64,12 +62,8 @@ describe('Intelligence Constants', () => {
       expect(EMOTION.CRISIS_DISTRESS_THRESHOLD).toBe(0.8);
 
       // They should be in ascending order
-      expect(EMOTION.DISTRESS_SUPPORT_THRESHOLD).toBeLessThan(
-        EMOTION.HIGH_DISTRESS_THRESHOLD
-      );
-      expect(EMOTION.HIGH_DISTRESS_THRESHOLD).toBeLessThan(
-        EMOTION.CRISIS_DISTRESS_THRESHOLD
-      );
+      expect(EMOTION.DISTRESS_SUPPORT_THRESHOLD).toBeLessThan(EMOTION.HIGH_DISTRESS_THRESHOLD);
+      expect(EMOTION.HIGH_DISTRESS_THRESHOLD).toBeLessThan(EMOTION.CRISIS_DISTRESS_THRESHOLD);
     });
 
     it('should have intensity tracking threshold', () => {
@@ -84,9 +78,7 @@ describe('Intelligence Constants', () => {
 
     it('should have higher sample count for high confidence', () => {
       expect(COMMUNITY.HIGH_CONFIDENCE_SAMPLES).toBe(50);
-      expect(COMMUNITY.HIGH_CONFIDENCE_SAMPLES).toBeGreaterThan(
-        COMMUNITY.MIN_SAMPLES_FOR_PATTERN
-      );
+      expect(COMMUNITY.HIGH_CONFIDENCE_SAMPLES).toBeGreaterThan(COMMUNITY.MIN_SAMPLES_FOR_PATTERN);
     });
 
     it('should have recompute interval', () => {
@@ -109,9 +101,7 @@ describe('Intelligence Constants', () => {
 
     it('should have high priority overdue days greater than default', () => {
       expect(PROACTIVE.HIGH_PRIORITY_OVERDUE_DAYS).toBe(30);
-      expect(PROACTIVE.HIGH_PRIORITY_OVERDUE_DAYS).toBeGreaterThan(
-        PROACTIVE.DEFAULT_OVERDUE_DAYS
-      );
+      expect(PROACTIVE.HIGH_PRIORITY_OVERDUE_DAYS).toBeGreaterThan(PROACTIVE.DEFAULT_OVERDUE_DAYS);
     });
 
     it('should have goal reminder days', () => {
@@ -235,4 +225,3 @@ describe('Intelligence Constants', () => {
     });
   });
 });
-

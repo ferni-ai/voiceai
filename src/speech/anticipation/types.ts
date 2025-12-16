@@ -173,4 +173,3 @@ export const DEFAULT_ANTICIPATION_OPTIONS: AnticipationOptions = {
   enableMicroReactions: true,
   enableTemplates: false, // Let LLM generate most responses
 };
-

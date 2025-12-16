@@ -1,0 +1,705 @@
+---
+layout: layouts/base.njk
+title: "Preview: AI-Enhanced Quiz"
+description: "AI Prototype - Quiz with intelligent, personalized responses"
+permalink: /preview/ai-quiz/
+---
+
+<style>
+  .quiz-hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-primary);
+    padding: var(--space-8);
+  }
+
+  .ai-quiz-container {
+    max-width: 700px;
+    width: 100%;
+    background: var(--color-bg-elevated);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-xl);
+    border: 1px solid var(--color-border-subtle);
+    overflow: hidden;
+  }
+
+  /* Quiz Header - Uses accent color for header branding */
+  .ai-quiz__header {
+    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-pressed) 100%);
+    color: white;
+    padding: var(--space-6);
+    text-align: center;
+  }
+
+  .ai-quiz__title {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: 600;
+    margin-bottom: var(--space-2);
+  }
+
+  .ai-quiz__subtitle {
+    font-size: var(--text-base);
+    opacity: 0.9;
+  }
+
+  /* Progress */
+  .ai-quiz__progress {
+    height: 4px;
+    background: rgba(255,255,255,0.2);
+  }
+
+  .ai-quiz__progress-bar {
+    height: 100%;
+    background: white;
+    transition: width 0.4s ease;
+  }
+
+  /* Quiz Body */
+  .ai-quiz__body {
+    padding: var(--space-8);
+  }
+
+  /* Question */
+  .ai-quiz__question {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    color: var(--color-text-primary);
+    text-align: center;
+    margin-bottom: var(--space-6);
+    line-height: 1.4;
+  }
+
+  /* Answer Input - Free-form */
+  .ai-quiz__input-container {
+    position: relative;
+    margin-bottom: var(--space-6);
+  }
+
+  .ai-quiz__input {
+    width: 100%;
+    padding: var(--space-4);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    border: 2px solid var(--color-border-medium);
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    transition: border-color 0.2s ease;
+    resize: none;
+    min-height: 100px;
+  }
+
+  .ai-quiz__input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+
+  .ai-quiz__input::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  /* Quick Options */
+  .ai-quiz__quick-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+  }
+
+  .ai-quiz__quick-option {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-medium);
+    border-radius: var(--radius-full);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .ai-quiz__quick-option:hover {
+    background: var(--color-accent);
+    color: white;
+    border-color: var(--color-accent);
+  }
+
+  /* Submit Button - Uses accent for CTA */
+  .ai-quiz__submit {
+    width: 100%;
+    padding: var(--space-4);
+    background: var(--color-accent);
+    color: white;
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    border: none;
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    transition: all var(--duration-slow) var(--ease-ease-out);
+  }
+
+  .ai-quiz__submit:hover:not(:disabled) {
+    background: var(--color-accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px var(--color-accent-glow);
+  }
+
+  .ai-quiz__submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* AI Response */
+  .ai-quiz__response {
+    margin-top: var(--space-6);
+    padding: var(--space-5);
+    background: var(--color-accent-subtle);
+    border-radius: var(--radius-lg);
+    border-left: 4px solid var(--color-accent);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all var(--duration-slow) var(--ease-ease-out);
+  }
+
+  .ai-quiz__response.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .ai-quiz__response-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+  }
+
+  .ai-quiz__response-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--color-ferni);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: var(--text-xs);
+    font-weight: 600;
+  }
+
+  .ai-quiz__response-name {
+    font-weight: 600;
+    color: var(--color-text-primary);
+    font-size: var(--text-sm);
+  }
+
+  .ai-quiz__response-text {
+    font-size: var(--text-base);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+  }
+
+  .ai-quiz__response-text em {
+    color: var(--color-text-primary);
+    font-style: normal;
+    font-weight: 500;
+  }
+
+  /* Typing Indicator */
+  .typing-indicator {
+    display: flex;
+    gap: var(--space-1);
+    padding: var(--space-2);
+  }
+
+  .typing-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--color-ferni);
+    border-radius: 50%;
+    animation: typingBounce 1.4s ease-in-out infinite;
+  }
+
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes typingBounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-8px); }
+  }
+
+  /* Result Screen */
+  .ai-quiz__result {
+    text-align: center;
+    padding: var(--space-8);
+  }
+
+  .ai-quiz__result-avatar {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto var(--space-4);
+    border-radius: 50%;
+    background: var(--persona-color, var(--color-ferni));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2.5rem;
+    font-weight: var(--font-weight-bold);
+    box-shadow: 0 10px 40px var(--color-ferni-glow);
+    position: relative;
+  }
+
+  .ai-quiz__result-glow {
+    position: absolute;
+    inset: -15px;
+    border-radius: 50%;
+    background: var(--persona-color, var(--color-ferni));
+    opacity: 0.2;
+    filter: blur(20px);
+    z-index: -1;
+  }
+
+  .ai-quiz__result-label {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: var(--space-2);
+  }
+
+  .ai-quiz__result-name {
+    font-family: var(--font-display);
+    font-size: var(--text-4xl);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-1);
+  }
+
+  .ai-quiz__result-role {
+    font-size: var(--text-lg);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--space-6);
+  }
+
+  .ai-quiz__result-insight {
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    margin-bottom: var(--space-6);
+    text-align: left;
+  }
+
+  .ai-quiz__result-insight-title {
+    font-weight: 600;
+    font-size: var(--text-sm);
+    color: var(--color-ferni);
+    margin-bottom: var(--space-2);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .ai-quiz__result-insight-text {
+    font-size: var(--text-base);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+  }
+
+  .ai-quiz__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-8);
+    background: var(--color-ferni);
+    color: white;
+    font-weight: 500;
+    border-radius: var(--radius-full);
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
+
+  .ai-quiz__cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px rgba(74, 103, 65, 0.4);
+  }
+
+  /* Preview Labels */
+  .preview-label {
+    position: fixed;
+    top: var(--space-4);
+    left: var(--space-4);
+    background: rgba(255, 193, 7, 0.9);
+    color: #333;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .preview-nav {
+    position: fixed;
+    top: var(--space-4);
+    right: var(--space-4);
+    display: flex;
+    gap: var(--space-2);
+    z-index: 1000;
+  }
+
+  .preview-nav a {
+    padding: var(--space-2) var(--space-4);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-medium);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .preview-nav a:hover {
+    background: var(--color-bg-secondary);
+    border-color: var(--color-accent);
+  }
+
+  .preview-nav a.active {
+    background: var(--color-accent);
+    color: white;
+    border-color: var(--color-accent);
+  }
+
+  @media (max-width: 640px) {
+    .ai-quiz__body {
+      padding: var(--space-5);
+    }
+    .ai-quiz__question {
+      font-size: var(--text-lg);
+    }
+  }
+</style>
+
+<div class="preview-label">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M12 9v4M12 17h.01M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/>
+  </svg>
+  PREVIEW: AI Quiz
+</div>
+
+<nav class="preview-nav">
+  <a href="/preview/voice-first/">Voice-First</a>
+  <a href="/preview/ai-quiz/" class="active">AI Quiz</a>
+  <a href="/preview/personalization/">Personalization</a>
+  <a href="/preview/live-chat/">Live Chat</a>
+  <a href="/">← Back to Main</a>
+</nav>
+
+<section class="quiz-hero">
+  <div class="ai-quiz-container">
+    <div class="ai-quiz__header">
+      <h1 class="ai-quiz__title">Find Your Perfect Guide</h1>
+      <p class="ai-quiz__subtitle">Tell me about yourself - I'll match you with the right guide</p>
+      <div class="ai-quiz__progress">
+        <div class="ai-quiz__progress-bar" id="progressBar" style="width: 25%"></div>
+      </div>
+    </div>
+
+    <div class="ai-quiz__body" id="quizBody">
+      <!-- Quiz content injected by JS -->
+    </div>
+  </div>
+</section>
+
+<script>
+(function() {
+  'use strict';
+
+  const PERSONAS = {
+    ferni: { id: 'ferni', name: 'Ferni', initials: 'FE', role: 'Life Coach', color: '#4a6741' },
+    nayan: { id: 'nayan', name: 'Nayan', initials: 'NP', role: 'Sage & Mentor', color: '#9a7b5a' },
+    peter: { id: 'peter', name: 'Peter', initials: 'PL', role: 'Research & Discovery', color: '#3a6b73' },
+    alex: { id: 'alex', name: 'Alex', initials: 'AX', role: 'Communication', color: '#5a6b8a' },
+    maya: { id: 'maya', name: 'Maya', initials: 'MY', role: 'Habits & Routines', color: '#a67a6a' },
+    jordan: { id: 'jordan', name: 'Jordan', initials: 'JD', role: 'Planning & Events', color: '#c4856a' }
+  };
+
+  // Open-ended questions with AI-style responses
+  const QUESTIONS = [
+    {
+      question: "What's the one thing you wish you could change about your daily life right now?",
+      quickOptions: ["Morning routine", "Work-life balance", "Relationships", "Decision making"],
+      aiResponses: {
+        routine: "I hear you wanting more structure. That tells me you value intention. Let me ask you something deeper...",
+        work: "Balance is such a loaded word, isn't it? What does balance actually *feel* like to you?",
+        relationship: "Relationships take courage to work on. I appreciate you being honest about that.",
+        decision: "Decision fatigue is real. The good news? There are frameworks that can help.",
+        default: "That's a really honest answer. It takes self-awareness to name what needs changing."
+      }
+    },
+    {
+      question: "When you're stressed, what's your go-to coping mechanism?",
+      quickOptions: ["Talk it out", "Research solutions", "Take action", "Retreat and think"],
+      aiResponses: {
+        talk: "You're an external processor - that's powerful. Having the right listener makes all the difference.",
+        research: "A pattern-seeker! You want to understand before you act. That's wisdom.",
+        action: "You're bias toward action is a strength. But sometimes the *right* action matters more than quick action.",
+        think: "Internal processing can be beautiful or isolating. Which is it for you lately?",
+        default: "Everyone has their patterns. Understanding yours is the first step to mastering them."
+      }
+    },
+    {
+      question: "Imagine it's one year from now and you're genuinely happy. What changed?",
+      quickOptions: ["More peace", "Clear direction", "Better relationships", "Consistent habits"],
+      aiResponses: {
+        peace: "Peace is the ultimate luxury, isn't it? Not quiet - but that deep, inner stillness.",
+        direction: "Clarity is freedom. When you know where you're going, every step feels meaningful.",
+        relationship: "Connection is what makes us human. I'm glad that's what you're reaching for.",
+        habit: "Small changes, compounded. You understand the math of transformation.",
+        default: "A year is both short and long. What you do in the next 30 days often determines the rest."
+      }
+    }
+  ];
+
+  let currentQuestion = 0;
+  let answers = [];
+  const quizBody = document.getElementById('quizBody');
+  const progressBar = document.getElementById('progressBar');
+
+  function renderQuestion() {
+    const q = QUESTIONS[currentQuestion];
+    const progress = ((currentQuestion + 1) / (QUESTIONS.length + 1)) * 100;
+    progressBar.style.width = `${progress}%`;
+
+    quizBody.innerHTML = `
+      <p class="ai-quiz__question">${q.question}</p>
+
+      <div class="ai-quiz__quick-options">
+        ${q.quickOptions.map(opt => `
+          <button class="ai-quiz__quick-option" data-option="${opt.toLowerCase().replace(/\s+/g, '-')}">${opt}</button>
+        `).join('')}
+      </div>
+
+      <div class="ai-quiz__input-container">
+        <textarea
+          class="ai-quiz__input"
+          id="userAnswer"
+          placeholder="Or tell me in your own words..."
+          rows="3"
+        ></textarea>
+      </div>
+
+      <button class="ai-quiz__submit" id="submitBtn">
+        <span>Continue</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </button>
+
+      <div class="ai-quiz__response" id="aiResponse">
+        <div class="ai-quiz__response-header">
+          <div class="ai-quiz__response-avatar">FE</div>
+          <span class="ai-quiz__response-name">Ferni</span>
+        </div>
+        <div class="ai-quiz__response-text" id="responseText"></div>
+      </div>
+    `;
+
+    // Event handlers
+    const input = document.getElementById('userAnswer');
+    const submitBtn = document.getElementById('submitBtn');
+    const quickOptions = quizBody.querySelectorAll('.ai-quiz__quick-option');
+
+    quickOptions.forEach(btn => {
+      btn.addEventListener('click', () => {
+        input.value = btn.textContent;
+        quickOptions.forEach(b => b.style.background = '');
+        btn.style.background = 'var(--color-ferni)';
+        btn.style.color = 'white';
+      });
+    });
+
+    submitBtn.addEventListener('click', () => handleAnswer(input.value));
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleAnswer(input.value);
+      }
+    });
+
+    // Animate in
+    quizBody.style.opacity = '0';
+    quizBody.style.transform = 'translateY(20px)';
+    requestAnimationFrame(() => {
+      quizBody.style.transition = 'all 0.4s ease';
+      quizBody.style.opacity = '1';
+      quizBody.style.transform = 'translateY(0)';
+    });
+  }
+
+  function handleAnswer(answer) {
+    if (!answer.trim()) return;
+
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<div class="typing-indicator">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>`;
+
+    answers.push(answer);
+
+    // Simulate AI thinking
+    setTimeout(() => {
+      showAIResponse(answer);
+    }, 1200);
+  }
+
+  function showAIResponse(answer) {
+    const q = QUESTIONS[currentQuestion];
+    const responseEl = document.getElementById('aiResponse');
+    const responseText = document.getElementById('responseText');
+
+    // Match answer to response type
+    let response = q.aiResponses.default;
+    const lowerAnswer = answer.toLowerCase();
+
+    if (lowerAnswer.includes('routine') || lowerAnswer.includes('morning')) {
+      response = q.aiResponses.routine || q.aiResponses.default;
+    } else if (lowerAnswer.includes('work') || lowerAnswer.includes('balance')) {
+      response = q.aiResponses.work || q.aiResponses.default;
+    } else if (lowerAnswer.includes('relationship') || lowerAnswer.includes('family') || lowerAnswer.includes('friend')) {
+      response = q.aiResponses.relationship || q.aiResponses.default;
+    } else if (lowerAnswer.includes('decision') || lowerAnswer.includes('choice')) {
+      response = q.aiResponses.decision || q.aiResponses.default;
+    } else if (lowerAnswer.includes('talk') || lowerAnswer.includes('vent')) {
+      response = q.aiResponses.talk || q.aiResponses.default;
+    } else if (lowerAnswer.includes('research') || lowerAnswer.includes('analyze')) {
+      response = q.aiResponses.research || q.aiResponses.default;
+    } else if (lowerAnswer.includes('action') || lowerAnswer.includes('do something')) {
+      response = q.aiResponses.action || q.aiResponses.default;
+    } else if (lowerAnswer.includes('think') || lowerAnswer.includes('alone') || lowerAnswer.includes('retreat')) {
+      response = q.aiResponses.think || q.aiResponses.default;
+    } else if (lowerAnswer.includes('peace') || lowerAnswer.includes('calm') || lowerAnswer.includes('stress')) {
+      response = q.aiResponses.peace || q.aiResponses.default;
+    } else if (lowerAnswer.includes('direction') || lowerAnswer.includes('clarity') || lowerAnswer.includes('purpose')) {
+      response = q.aiResponses.direction || q.aiResponses.default;
+    } else if (lowerAnswer.includes('habit') || lowerAnswer.includes('consistent') || lowerAnswer.includes('routine')) {
+      response = q.aiResponses.habit || q.aiResponses.default;
+    }
+
+    responseText.textContent = response;
+    responseEl.classList.add('visible');
+
+    // After showing response, proceed
+    setTimeout(() => {
+      currentQuestion++;
+      if (currentQuestion < QUESTIONS.length) {
+        renderQuestion();
+      } else {
+        showResult();
+      }
+    }, 2500);
+  }
+
+  function showResult() {
+    progressBar.style.width = '100%';
+
+    // Analyze answers to determine persona
+    const allAnswers = answers.join(' ').toLowerCase();
+    let persona = PERSONAS.ferni; // Default
+
+    if (allAnswers.includes('research') || allAnswers.includes('data') || allAnswers.includes('analyze') || allAnswers.includes('pattern')) {
+      persona = PERSONAS.peter;
+    } else if (allAnswers.includes('routine') || allAnswers.includes('habit') || allAnswers.includes('consistent')) {
+      persona = PERSONAS.maya;
+    } else if (allAnswers.includes('communicate') || allAnswers.includes('conversation') || allAnswers.includes('talk')) {
+      persona = PERSONAS.alex;
+    } else if (allAnswers.includes('plan') || allAnswers.includes('event') || allAnswers.includes('organize')) {
+      persona = PERSONAS.jordan;
+    } else if (allAnswers.includes('wisdom') || allAnswers.includes('perspective') || allAnswers.includes('long-term') || allAnswers.includes('purpose')) {
+      persona = PERSONAS.nayan;
+    }
+
+    // Generate personalized insight based on answers
+    const insight = generateInsight(answers, persona);
+
+    quizBody.innerHTML = `
+      <div class="ai-quiz__result">
+        <div class="ai-quiz__result-avatar" style="--persona-color: ${persona.color}">
+          ${persona.initials}
+          <div class="ai-quiz__result-glow"></div>
+        </div>
+
+        <p class="ai-quiz__result-label">Your ideal guide is</p>
+        <h2 class="ai-quiz__result-name">${persona.name}</h2>
+        <p class="ai-quiz__result-role">${persona.role}</p>
+
+        <div class="ai-quiz__result-insight">
+          <p class="ai-quiz__result-insight-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+            </svg>
+            What I noticed about you
+          </p>
+          <p class="ai-quiz__result-insight-text">${insight}</p>
+        </div>
+
+        <a href="https://app.ferni.ai?persona=${persona.id}&source=ai-quiz" class="ai-quiz__cta">
+          Start with ${persona.name}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </a>
+      </div>
+    `;
+
+    // Animate in
+    quizBody.style.opacity = '0';
+    requestAnimationFrame(() => {
+      quizBody.style.opacity = '1';
+    });
+  }
+
+  function generateInsight(answers, persona) {
+    const answerText = answers.join(' ').toLowerCase();
+
+    // Base insights by persona
+    const insights = {
+      ferni: "You seem to value deep understanding and being truly heard. You're not looking for quick fixes - you want to make sense of things at a deeper level. That's exactly the kind of exploration we can do together.",
+      nayan: "There's a thread of seeking meaning and purpose in your answers. You're thinking about the long game - where you're heading and why. That kind of perspective-seeking is rare and valuable.",
+      peter: "I notice you like to understand the patterns before you act. You want data, not just feelings. That analytical approach can be incredibly powerful when paired with the right frameworks.",
+      alex: "Communication seems central to what you're working through. Whether it's expressing yourself better or navigating tricky conversations, that's a skill that compounds across everything you do.",
+      maya: "You're drawn to consistency and sustainable change. You understand that transformation isn't about big moments - it's about small actions, repeated. That's wisdom.",
+      jordan: "You think in terms of plans and outcomes. You want to turn ideas into reality, dreams into experiences. That action-orientation is a gift when channeled well."
+    };
+
+    // Add personalization based on specific answer content
+    let extra = '';
+    if (answerText.includes('stress') || answerText.includes('anxious') || answerText.includes('overwhelm')) {
+      extra = " And given the stress you mentioned, we'll start with grounding before strategy.";
+    } else if (answerText.includes('relationship') || answerText.includes('family')) {
+      extra = " The relationship dynamics you mentioned? Those patterns usually have roots worth exploring.";
+    } else if (answerText.includes('work') || answerText.includes('career')) {
+      extra = " Work challenges often mirror our deeper patterns. There might be more to unpack there.";
+    }
+
+    return insights[persona.id] + extra;
+  }
+
+  // Initialize
+  renderQuestion();
+
+  console.log('%c🧠 AI Quiz Preview Loaded', 'color: #4a6741; font-weight: bold;');
+})();
+</script>

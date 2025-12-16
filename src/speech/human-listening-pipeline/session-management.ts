@@ -10,10 +10,7 @@ import { HumanListeningPipeline } from './pipeline.js';
 // SESSION MANAGEMENT
 // ============================================================================
 
-import {
-  createSessionRegistry,
-  registerGlobalRegistry,
-} from '../../utils/session-registry.js';
+import { createSessionRegistry, registerGlobalRegistry } from '../../utils/session-registry.js';
 
 const humanListeningRegistry = createSessionRegistry(
   (sessionId: string) => new HumanListeningPipeline(sessionId),

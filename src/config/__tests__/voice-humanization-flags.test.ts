@@ -55,7 +55,9 @@ describe('Voice Humanization Flags', () => {
 
   describe('STAGING_FLAGS', () => {
     it('should extend DEFAULT_FLAGS', () => {
-      expect(STAGING_FLAGS.enableProsodyTurnPrediction).toBe(DEFAULT_FLAGS.enableProsodyTurnPrediction);
+      expect(STAGING_FLAGS.enableProsodyTurnPrediction).toBe(
+        DEFAULT_FLAGS.enableProsodyTurnPrediction
+      );
     });
 
     it('should have verbose logging enabled', () => {
@@ -138,9 +140,7 @@ describe('Voice Humanization Flags', () => {
       expect(isFeatureEnabled('enableProsodyTurnPrediction')).toBe(
         flags.enableProsodyTurnPrediction
       );
-      expect(isFeatureEnabled('enableMicroInterruptions')).toBe(
-        flags.enableMicroInterruptions
-      );
+      expect(isFeatureEnabled('enableMicroInterruptions')).toBe(flags.enableMicroInterruptions);
     });
 
     it('should return correct value after updateFlags', () => {
@@ -383,4 +383,3 @@ describe('Voice Humanization Flags', () => {
     });
   });
 });
-

@@ -46,7 +46,8 @@ const log = createLogger({ module: 'context:unified-humanizing' });
 
 export const unifiedHumanizingBuilder: ContextBuilder = {
   name: 'unified-humanizing',
-  description: 'Consolidated humanization: active listening, emotional mirroring, spontaneous elements',
+  description:
+    'Consolidated humanization: active listening, emotional mirroring, spontaneous elements',
   priority: 75, // Runs after most content builders but before final polish
   category: BuilderCategory.HUMANIZING,
 
@@ -66,7 +67,12 @@ export const unifiedHumanizingBuilder: ContextBuilder = {
           primary: analysis.emotion.primary,
           secondary: undefined,
           confidence: analysis.emotion.confidence ?? 0.5,
-          valence: analysis.emotion.valence === 'positive' ? 0.5 : analysis.emotion.valence === 'negative' ? -0.5 : 0,
+          valence:
+            analysis.emotion.valence === 'positive'
+              ? 0.5
+              : analysis.emotion.valence === 'negative'
+                ? -0.5
+                : 0,
           intensity: analysis.emotion.intensity,
           distressLevel: analysis.emotion.distressLevel ?? 0,
           suggestedTone: mapTone(analysis.emotion.suggestedTone),
@@ -103,7 +109,9 @@ export const unifiedHumanizingBuilder: ContextBuilder = {
         signals: {
           isRushed: detectRushed(userText),
           isRelaxed: detectRelaxed(userText),
-          needsSupport: (analysis.emotion.distressLevel ?? 0) > DISTRESS.MODERATE || (analysis.intent.requiresEmpathy ?? false),
+          needsSupport:
+            (analysis.emotion.distressLevel ?? 0) > DISTRESS.MODERATE ||
+            (analysis.intent.requiresEmpathy ?? false),
           isPersonalSharing: detectPersonalSharing(userText, analysis.emotion.distressLevel ?? 0),
           seekingAdvice: analysis.intent.primary === 'seeking_advice',
           isVenting: detectVenting(userText, analysis.emotion.valence),
@@ -115,7 +123,9 @@ export const unifiedHumanizingBuilder: ContextBuilder = {
           priorityFocus: 'Listen and respond naturally',
           approach: 'supportive',
           guidelines: [],
-          useHighEmotionMode: (analysis.emotion.distressLevel ?? 0) >= DISTRESS.HIGH || analysis.emotion.intensity > 0.8,
+          useHighEmotionMode:
+            (analysis.emotion.distressLevel ?? 0) >= DISTRESS.HIGH ||
+            analysis.emotion.intensity > 0.8,
         },
         contextForPrompt: '',
         processingTimeMs: 0,
@@ -171,8 +181,13 @@ export const unifiedHumanizingBuilder: ContextBuilder = {
 // HELPER FUNCTIONS
 // ============================================================================
 
-function mapTone(tone?: string): 'gentle' | 'warm' | 'enthusiastic' | 'calm' | 'serious' | 'reassuring' {
-  const toneMap: Record<string, 'gentle' | 'warm' | 'enthusiastic' | 'calm' | 'serious' | 'reassuring'> = {
+function mapTone(
+  tone?: string
+): 'gentle' | 'warm' | 'enthusiastic' | 'calm' | 'serious' | 'reassuring' {
+  const toneMap: Record<
+    string,
+    'gentle' | 'warm' | 'enthusiastic' | 'calm' | 'serious' | 'reassuring'
+  > = {
     warm: 'warm',
     gentle: 'gentle',
     enthusiastic: 'enthusiastic',
@@ -186,8 +201,13 @@ function mapTone(tone?: string): 'gentle' | 'warm' | 'enthusiastic' | 'calm' | '
   return toneMap[tone || 'warm'] || 'warm';
 }
 
-function mapPhase(phase: string): 'greeting' | 'warming_up' | 'exploring' | 'advising' | 'supporting' | 'wrapping_up' {
-  const phaseMap: Record<string, 'greeting' | 'warming_up' | 'exploring' | 'advising' | 'supporting' | 'wrapping_up'> = {
+function mapPhase(
+  phase: string
+): 'greeting' | 'warming_up' | 'exploring' | 'advising' | 'supporting' | 'wrapping_up' {
+  const phaseMap: Record<
+    string,
+    'greeting' | 'warming_up' | 'exploring' | 'advising' | 'supporting' | 'wrapping_up'
+  > = {
     greeting: 'greeting',
     warming_up: 'warming_up',
     exploring: 'exploring',
@@ -199,8 +219,13 @@ function mapPhase(phase: string): 'greeting' | 'warming_up' | 'exploring' | 'adv
   return phaseMap[phase] || 'exploring';
 }
 
-function mapRelationshipStage(stage?: string): 'stranger' | 'acquaintance' | 'friend' | 'close_friend' | 'trusted' {
-  const stageMap: Record<string, 'stranger' | 'acquaintance' | 'friend' | 'close_friend' | 'trusted'> = {
+function mapRelationshipStage(
+  stage?: string
+): 'stranger' | 'acquaintance' | 'friend' | 'close_friend' | 'trusted' {
+  const stageMap: Record<
+    string,
+    'stranger' | 'acquaintance' | 'friend' | 'close_friend' | 'trusted'
+  > = {
     stranger: 'stranger',
     acquaintance: 'acquaintance',
     friend: 'friend',
@@ -216,7 +241,8 @@ function mapRelationshipStage(stage?: string): 'stranger' | 'acquaintance' | 'fr
 }
 
 function detectRushed(text: string): boolean {
-  const rushPatterns = /\b(gotta go|quick question|running late|no time|hurry|briefly|short on time)\b/i;
+  const rushPatterns =
+    /\b(gotta go|quick question|running late|no time|hurry|briefly|short on time)\b/i;
   return rushPatterns.test(text);
 }
 
@@ -226,7 +252,8 @@ function detectRelaxed(text: string): boolean {
 }
 
 function detectPersonalSharing(text: string, distressLevel: number): boolean {
-  const personalPatterns = /\b(my (wife|husband|kid|mom|dad|family)|i feel|makes me|i'm worried|i'm scared)\b/i;
+  const personalPatterns =
+    /\b(my (wife|husband|kid|mom|dad|family)|i feel|makes me|i'm worried|i'm scared)\b/i;
   return personalPatterns.test(text) || distressLevel > 0.5;
 }
 
@@ -248,4 +275,3 @@ registerContextBuilder(unifiedHumanizingBuilder);
 // ============================================================================
 
 export default unifiedHumanizingBuilder;
-

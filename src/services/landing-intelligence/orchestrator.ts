@@ -10,17 +10,38 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ExperimentPattern } from '../experiments/hypothesis-generator.js';
 import { analyzeWinningPatterns } from '../experiments/hypothesis-generator.js';
-import { generateChatGreeting, getGreetingTiming, type ChatGreetingContext } from './chat-greeter.js';
+import {
+  generateChatGreeting,
+  getGreetingTiming,
+  type ChatGreetingContext,
+} from './chat-greeter.js';
 import { generateDemoConversation, type DemoConversation } from './demo-generator.js';
-import { detectVisitorIntent, type BehaviorSignals, type VisitorIntent } from './intent-detector.js';
-import { getOptimalSectionOrder, optimizeForMobile, type LayoutOptimization } from './layout-optimizer.js';
+import {
+  detectVisitorIntent,
+  type BehaviorSignals,
+  type VisitorIntent,
+} from './intent-detector.js';
+import {
+  getOptimalSectionOrder,
+  optimizeForMobile,
+  type LayoutOptimization,
+} from './layout-optimizer.js';
 import {
   getReturningVisitorContext,
   getReturningVisitorExperience,
   type ReturningVisitorExperience,
 } from './returning-visitor.js';
-import { getTimeAwareContentWithOccasions, getTimeMode, type TimeAwareContent, type TimeMode } from './time-aware.js';
-import { generatePersonalizedVariant, type GeneratedVariant, type VariantGenerationContext } from './variant-generator.js';
+import {
+  getTimeAwareContentWithOccasions,
+  getTimeMode,
+  type TimeAwareContent,
+  type TimeMode,
+} from './time-aware.js';
+import {
+  generatePersonalizedVariant,
+  type GeneratedVariant,
+  type VariantGenerationContext,
+} from './variant-generator.js';
 
 const log = createLogger({ module: 'LandingOrchestrator' });
 
@@ -353,4 +374,3 @@ export async function getQuickOptimization(
     delay: timing.delay,
   };
 }
-

@@ -59,11 +59,11 @@ describe('generateMoodSignal', () => {
   it('should return null sometimes (probability-based)', async () => {
     // Run many times - should get at least some nulls
     const results = await Promise.all(
-      Array(50).fill(null).map(() =>
-        generateMoodSignal(createBaseContext(), createBaseMood(), createBaseSignals())
-      )
+      Array(50)
+        .fill(null)
+        .map(() => generateMoodSignal(createBaseContext(), createBaseMood(), createBaseSignals()))
     );
-    
+
     const nullCount = results.filter((r) => r === null).length;
     expect(nullCount).toBeGreaterThan(0);
   });
@@ -128,7 +128,7 @@ describe('generateBreathSound', () => {
 
   it('should use emotional breath sounds during emotional moments', async () => {
     const mood = createBaseMood({ inEmotionalMoment: true });
-    
+
     for (let i = 0; i < 100; i++) {
       const result = await generateBreathSound(
         createBaseContext(),
@@ -158,7 +158,9 @@ describe('generatePhysicalPresence', () => {
       );
       if (result) {
         expect(result.type).toBe('physical_presence');
-        expect(result.content).toMatch(/\*(leans|tilts|nods|smiles|softens|looks|meets|turns|pauses|considers|reflects|reaches|sits|steadies|present|brightens|animates|lights|settles|relaxes|exhales|grounds|gentle)/i);
+        expect(result.content).toMatch(
+          /\*(leans|tilts|nods|smiles|softens|looks|meets|turns|pauses|considers|reflects|reaches|sits|steadies|present|brightens|animates|lights|settles|relaxes|exhales|grounds|gentle)/i
+        );
         break;
       }
     }
@@ -166,7 +168,7 @@ describe('generatePhysicalPresence', () => {
 
   it('should use supportive cues during emotional moments', async () => {
     const mood = createBaseMood({ inEmotionalMoment: true });
-    
+
     for (let i = 0; i < 100; i++) {
       const result = await generatePhysicalPresence(
         createBaseContext(),
@@ -204,7 +206,7 @@ describe('generateSpontaneousThought', () => {
 
   it('should skip during emotional moments', async () => {
     const mood = createBaseMood({ inEmotionalMoment: true });
-    
+
     // Should always return null during emotional moments
     for (let i = 0; i < 20; i++) {
       const result = await generateSpontaneousThought(
@@ -219,7 +221,7 @@ describe('generateSpontaneousThought', () => {
   it('should have time-of-day awareness', async () => {
     // Morning context
     const morningContext = createBaseContext({ currentHour: 8 });
-    
+
     for (let i = 0; i < 100; i++) {
       const result = await generateSpontaneousThought(
         morningContext,
@@ -252,7 +254,7 @@ describe('generateExcitementInterruption', () => {
   it('should trigger on breakthrough moments', async () => {
     const context = createBaseContext({ userMessage: 'I just realized something!' });
     const signals = createBaseSignals({ isBreakthroughMoment: true });
-    
+
     // Run multiple times - should get at least one trigger
     let found = false;
     for (let i = 0; i < 50; i++) {
@@ -274,7 +276,7 @@ describe('generateExcitementInterruption', () => {
   it('should not trigger during emotional/heavy moments', async () => {
     const mood = createBaseMood({ inEmotionalMoment: true, emotionalLoad: 0.7 });
     const signals = createBaseSignals({ isBreakthroughMoment: true });
-    
+
     for (let i = 0; i < 20; i++) {
       const result = await generateExcitementInterruption(
         createBaseContext({ userMessage: 'I realized...' }),
@@ -308,7 +310,7 @@ describe('generateLiveReaction', () => {
 
   it('should use empathizing reactions during emotional moments', async () => {
     const mood = createBaseMood({ inEmotionalMoment: true });
-    
+
     for (let i = 0; i < 100; i++) {
       const result = await generateLiveReaction(
         createBaseContext(),
@@ -331,7 +333,7 @@ describe('generateLiveReaction', () => {
 describe('generatePlayfulness', () => {
   it('should not trigger during emotional moments', async () => {
     const mood = createBaseMood({ inEmotionalMoment: true });
-    
+
     for (let i = 0; i < 20; i++) {
       const result = await generatePlayfulness(
         createBaseContext({ relationshipStage: 'friend' }),
@@ -344,13 +346,9 @@ describe('generatePlayfulness', () => {
 
   it('should not trigger with strangers', async () => {
     const context = createBaseContext({ relationshipStage: 'stranger' });
-    
+
     for (let i = 0; i < 20; i++) {
-      const result = await generatePlayfulness(
-        context,
-        createBaseMood(),
-        createBaseSignals()
-      );
+      const result = await generatePlayfulness(context, createBaseMood(), createBaseSignals());
       expect(result).toBeNull();
     }
   });
@@ -358,7 +356,7 @@ describe('generatePlayfulness', () => {
   it('should have higher probability with trusted advisors', async () => {
     const context = createBaseContext({ relationshipStage: 'trusted_advisor' });
     const mood = createBaseMood({ energy: 0.8, emotionalLoad: 0.1 });
-    
+
     // Run many times - with trusted advisor boost should get some triggers
     let triggerCount = 0;
     for (let i = 0; i < 100; i++) {
@@ -381,13 +379,9 @@ describe('generateFirstTurnNotice', () => {
   it('should only trigger in early turns', async () => {
     // Turn 10 - should never trigger
     const context = createBaseContext({ turnCount: 10 });
-    
+
     for (let i = 0; i < 20; i++) {
-      const result = await generateFirstTurnNotice(
-        context,
-        createBaseMood(),
-        createBaseSignals()
-      );
+      const result = await generateFirstTurnNotice(context, createBaseMood(), createBaseSignals());
       expect(result).toBeNull();
     }
   });
@@ -397,14 +391,10 @@ describe('generateFirstTurnNotice', () => {
       turnCount: 2,
       userMessage: 'I guess... maybe...',
     });
-    
+
     let found = false;
     for (let i = 0; i < 100; i++) {
-      const result = await generateFirstTurnNotice(
-        context,
-        createBaseMood(),
-        createBaseSignals()
-      );
+      const result = await generateFirstTurnNotice(context, createBaseMood(), createBaseSignals());
       if (result) {
         expect(result.type).toBe('first_turn_notice');
         expect(result.content).toBeTruthy();
@@ -421,13 +411,9 @@ describe('generateFirstTurnNotice', () => {
       turnCount: 1,
       userMessage: 'Fine.',
     });
-    
+
     for (let i = 0; i < 100; i++) {
-      const result = await generateFirstTurnNotice(
-        context,
-        createBaseMood(),
-        createBaseSignals()
-      );
+      const result = await generateFirstTurnNotice(context, createBaseMood(), createBaseSignals());
       if (result) {
         // Should notice the deflection
         expect(result.content).toBeTruthy();
@@ -436,4 +422,3 @@ describe('generateFirstTurnNotice', () => {
     }
   });
 });
-

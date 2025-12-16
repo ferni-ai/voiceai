@@ -73,7 +73,10 @@ const TRAJECTORY_TO_EMOTION: Record<EmotionalTrajectory, CartesiaEmotion | null>
   stable_neutral: null,
 };
 
-const TRAJECTORY_PROSODY: Record<EmotionalTrajectory, { speed: number; volume: number; pause: number }> = {
+const TRAJECTORY_PROSODY: Record<
+  EmotionalTrajectory,
+  { speed: number; volume: number; pause: number }
+> = {
   rising_excitement: { speed: 1.1, volume: 1.1, pause: 0.8 },
   rising_concern: { speed: 0.9, volume: 0.95, pause: 1.2 },
   falling_sadness: { speed: 0.8, volume: 0.8, pause: 1.4 },
@@ -190,8 +193,10 @@ export class EmotionPredictor {
       speedMultiplier: prosody.speed,
       volumeMultiplier: prosody.volume,
       pauseMultiplier: prosody.pause,
-      microReactionSsml: reactions.length > 0 ? reactions[Math.floor(Math.random() * reactions.length)] : null,
-      softerDelivery: bestTrajectory === 'falling_sadness' || bestTrajectory === 'sharing_vulnerability',
+      microReactionSsml:
+        reactions.length > 0 ? reactions[Math.floor(Math.random() * reactions.length)] : null,
+      softerDelivery:
+        bestTrajectory === 'falling_sadness' || bestTrajectory === 'sharing_vulnerability',
     };
 
     // Track stats
@@ -274,4 +279,3 @@ export class EmotionPredictor {
     };
   }
 }
-

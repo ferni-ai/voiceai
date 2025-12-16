@@ -82,7 +82,7 @@ jobs:
         id: review
         run: |
           # Run AI review and capture output
-          REVIEW=$(npx tsx scripts/ferni.ts review full 2>&1 || true)
+          REVIEW=$(npx tsx apps/cli/src/index.ts review full 2>&1 || true)
           echo "review<<EOF" >> $GITHUB_OUTPUT
           echo "$REVIEW" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
@@ -138,7 +138,7 @@ jobs:
       - name: Check API Changes
         id: api_diff
         run: |
-          DIFF=$(npx tsx scripts/ferni.ts api diff 2>&1 || true)
+          DIFF=$(npx tsx apps/cli/src/index.ts api diff 2>&1 || true)
           echo "diff<<EOF" >> $GITHUB_OUTPUT
           echo "$DIFF" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
@@ -185,7 +185,7 @@ jobs:
       - name: Check Bundle Budget
         id: bundle
         run: |
-          RESULT=$(npx tsx scripts/ferni.ts perf budget 2>&1)
+          RESULT=$(npx tsx apps/cli/src/index.ts perf budget 2>&1)
           echo "result<<EOF" >> $GITHUB_OUTPUT
           echo "$RESULT" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
@@ -227,7 +227,7 @@ jobs:
       
       - name: Check Brand Compliance
         run: |
-          npx tsx scripts/ferni.ts design brand-words || true
+          npx tsx apps/cli/src/index.ts design brand-words || true
 
   # ============================================================================
   # RELEASE - Run on version tags
@@ -256,7 +256,7 @@ jobs:
         id: notes
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
-          NOTES=$(npx tsx scripts/ferni.ts release-auto notes $VERSION 2>&1 || true)
+          NOTES=$(npx tsx apps/cli/src/index.ts release-auto notes $VERSION 2>&1 || true)
           echo "notes<<EOF" >> $GITHUB_OUTPUT
           echo "$NOTES" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
@@ -299,7 +299,7 @@ jobs:
       - name: Check Dependencies
         id: deps
         run: |
-          RESULT=$(npx tsx scripts/ferni.ts deps-ai update 2>&1 || true)
+          RESULT=$(npx tsx apps/cli/src/index.ts deps-ai update 2>&1 || true)
           echo "result<<EOF" >> $GITHUB_OUTPUT
           echo "$RESULT" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
@@ -338,7 +338,7 @@ jobs:
       
       - name: Check Feature Flags
         run: |
-          npx tsx scripts/ferni.ts flags cleanup
+          npx tsx apps/cli/src/index.ts flags cleanup
 
   weekly-refactor:
     name: 🔄 Refactoring Suggestions
@@ -358,7 +358,7 @@ jobs:
       - name: Generate Suggestions
         id: refactor
         run: |
-          RESULT=$(npx tsx scripts/ferni.ts refactor suggest 2>&1 || true)
+          RESULT=$(npx tsx apps/cli/src/index.ts refactor suggest 2>&1 || true)
           echo "result<<EOF" >> $GITHUB_OUTPUT
           echo "$RESULT" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
@@ -381,7 +381,7 @@ jobs:
       
       - name: Scan for Hardcoded Strings
         run: |
-          npx tsx scripts/ferni.ts translate scan
+          npx tsx apps/cli/src/index.ts translate scan
 
   # ============================================================================
   # COST TRACKING - Run on main push
@@ -404,6 +404,6 @@ jobs:
       
       - name: Generate Forecast
         run: |
-          npx tsx scripts/ferni.ts costs-ai forecast
+          npx tsx apps/cli/src/index.ts costs-ai forecast
 
 

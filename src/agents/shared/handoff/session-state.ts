@@ -18,10 +18,11 @@ const handoffSessionStates = new Map<string, HandoffSessionState>();
 
 /**
  * Handoff timeout in milliseconds.
- * Reduced from 10s to 5s for better voice UX - users notice delays > 3s.
+ * Set to 8s to align with UI timeout (10s) with 2s buffer.
+ * Voice should timeout before UI to ensure consistent error messaging.
  * If handoff fails, we fall back to current voice gracefully.
  */
-export const HANDOFF_TIMEOUT_MS = 5000; // 5 seconds
+export const HANDOFF_TIMEOUT_MS = 8000; // 8 seconds (UI is 10s)
 
 /**
  * Maximum pending handoffs in queue
@@ -43,10 +44,24 @@ export function getHandoffSessionState(sessionId: string): HandoffSessionState {
       pendingHandoffs: [],
       timeoutTimer: null,
       handoffStartTime: null,
+      progressInterval: null,
+      targetPersonaId: null,
+      previousPersonaId: null,
+      messageSeq: 0,
     };
     handoffSessionStates.set(sessionId, state);
   }
   return state;
+}
+
+/**
+ * Get the next message sequence number (atomically increments)
+ * Used by handoff messages to allow frontend to detect out-of-order delivery
+ */
+export function getNextMessageSeq(sessionId: string): number {
+  const state = getHandoffSessionState(sessionId);
+  state.messageSeq += 1;
+  return state.messageSeq;
 }
 
 /**
@@ -56,6 +71,9 @@ export function clearHandoffSessionState(sessionId: string): void {
   const state = handoffSessionStates.get(sessionId);
   if (state?.timeoutTimer) {
     clearTimeout(state.timeoutTimer);
+  }
+  if (state?.progressInterval) {
+    clearInterval(state.progressInterval);
   }
   handoffSessionStates.delete(sessionId);
   getLogger().debug({ sessionId }, 'Handoff session state cleared');
@@ -74,21 +92,35 @@ export function isHandoffInProgress(sessionId: string): boolean {
 }
 
 /**
+ * Progress heartbeat interval in milliseconds
+ */
+export const PROGRESS_HEARTBEAT_MS = 2000; // 2 seconds
+
+/**
  * Start a handoff - sets in-progress flag and starts timeout
  */
 export function startHandoff(
   sessionId: string,
-  onTimeout: () => void
+  onTimeout: () => void,
+  options?: {
+    targetPersonaId?: string;
+    previousPersonaId?: string;
+  }
 ): { timeoutTimer: ReturnType<typeof setTimeout> } {
   const state = getHandoffSessionState(sessionId);
 
-  // Clear any existing timeout
+  // Clear any existing timeout and interval
   if (state.timeoutTimer) {
     clearTimeout(state.timeoutTimer);
+  }
+  if (state.progressInterval) {
+    clearInterval(state.progressInterval);
   }
 
   state.isHandoffInProgress = true;
   state.handoffStartTime = Date.now();
+  state.targetPersonaId = options?.targetPersonaId ?? null;
+  state.previousPersonaId = options?.previousPersonaId ?? null;
 
   // Set timeout for handoff
   state.timeoutTimer = setTimeout(() => {
@@ -101,7 +133,7 @@ export function startHandoff(
 }
 
 /**
- * Complete a handoff - clears in-progress flag and timeout
+ * Complete a handoff - clears in-progress flag, timeout, and progress heartbeat
  */
 export function completeHandoff(sessionId: string): { durationMs: number } {
   const state = handoffSessionStates.get(sessionId);
@@ -113,12 +145,19 @@ export function completeHandoff(sessionId: string): { durationMs: number } {
       state.timeoutTimer = null;
     }
 
+    if (state.progressInterval) {
+      clearInterval(state.progressInterval);
+      state.progressInterval = null;
+    }
+
     if (state.handoffStartTime) {
       durationMs = Date.now() - state.handoffStartTime;
     }
 
     state.isHandoffInProgress = false;
     state.handoffStartTime = null;
+    state.targetPersonaId = null;
+    state.previousPersonaId = null;
   }
 
   return { durationMs };
@@ -212,4 +251,85 @@ export function getActiveHandoffSessions(): string[] {
     }
   }
   return sessions;
+}
+
+// ============================================================================
+// PROGRESS HEARTBEAT
+// ============================================================================
+
+/**
+ * Progress info sent in heartbeat messages
+ */
+export interface HandoffProgressInfo {
+  elapsedMs: number;
+  targetPersonaId: string | null;
+  previousPersonaId: string | null;
+  timeoutMs: number;
+}
+
+/**
+ * Start progress heartbeat - sends updates every PROGRESS_HEARTBEAT_MS
+ *
+ * @param sessionId - The session ID
+ * @param onProgress - Callback called with progress info every interval
+ * @returns Cleanup function to stop the heartbeat
+ */
+export function startProgressHeartbeat(
+  sessionId: string,
+  onProgress: (info: HandoffProgressInfo) => void
+): () => void {
+  const state = handoffSessionStates.get(sessionId);
+  if (!state) {
+    return () => {}; // No-op cleanup
+  }
+
+  // Clear any existing interval
+  if (state.progressInterval) {
+    clearInterval(state.progressInterval);
+  }
+
+  // Start the heartbeat interval
+  state.progressInterval = setInterval(() => {
+    const elapsed = state.handoffStartTime ? Date.now() - state.handoffStartTime : 0;
+
+    onProgress({
+      elapsedMs: elapsed,
+      targetPersonaId: state.targetPersonaId,
+      previousPersonaId: state.previousPersonaId,
+      timeoutMs: HANDOFF_TIMEOUT_MS,
+    });
+  }, PROGRESS_HEARTBEAT_MS);
+
+  // Return cleanup function
+  return () => {
+    if (state.progressInterval) {
+      clearInterval(state.progressInterval);
+      state.progressInterval = null;
+    }
+  };
+}
+
+/**
+ * Stop progress heartbeat for a session
+ */
+export function stopProgressHeartbeat(sessionId: string): void {
+  const state = handoffSessionStates.get(sessionId);
+  if (state?.progressInterval) {
+    clearInterval(state.progressInterval);
+    state.progressInterval = null;
+  }
+}
+
+/**
+ * Get persona info for the current handoff (for rollback messages)
+ */
+export function getHandoffPersonaInfo(sessionId: string): {
+  targetPersonaId: string | null;
+  previousPersonaId: string | null;
+} {
+  const state = handoffSessionStates.get(sessionId);
+  return {
+    targetPersonaId: state?.targetPersonaId ?? null,
+    previousPersonaId: state?.previousPersonaId ?? null,
+  };
 }

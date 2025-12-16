@@ -28,9 +28,7 @@ const mockFirestoreData: Record<string, unknown[]> = {
     { userId: 'user_1', itemId: 'tool_1' },
     { userId: 'user_2', itemId: 'tool_2' },
   ],
-  marketplace_publishers: [
-    { id: 'pub_1', stripeConnectAccountId: 'acct_test_1' },
-  ],
+  marketplace_publishers: [{ id: 'pub_1', stripeConnectAccountId: 'acct_test_1' }],
 };
 
 vi.mock('firebase-admin/firestore', () => ({
@@ -45,7 +43,8 @@ vi.mock('firebase-admin/firestore', () => ({
       doc: vi.fn((id: string) => ({
         get: vi.fn().mockResolvedValue({
           exists: mockFirestoreData[name]?.some((d: unknown) => (d as { id?: string }).id === id),
-          data: () => mockFirestoreData[name]?.find((d: unknown) => (d as { id?: string }).id === id),
+          data: () =>
+            mockFirestoreData[name]?.find((d: unknown) => (d as { id?: string }).id === id),
         }),
       })),
     })),
@@ -71,12 +70,8 @@ vi.mock('../../../marketplace/index.js', () => ({
     { id: 'tool_1', publisher: { id: 'pub_1' } },
     { id: 'tool_2', publisher: { id: 'pub_2' } },
   ]),
-  listAgents: vi.fn(() => [
-    { id: 'agent_1', publisher: { id: 'pub_1' } },
-  ]),
-  listInstallations: vi.fn(() => [
-    { itemId: 'tool_1', itemType: 'tool' },
-  ]),
+  listAgents: vi.fn(() => [{ id: 'agent_1', publisher: { id: 'pub_1' } }]),
+  listInstallations: vi.fn(() => [{ itemId: 'tool_1', itemType: 'tool' }]),
 }));
 
 // Mock Stripe webhooks
@@ -210,7 +205,9 @@ describe('Marketplace Billing Jobs', () => {
     it('should export all job functions', () => {
       expect(marketplaceBillingJobs.runDailyUsageAggregation).toBe(runDailyUsageAggregation);
       expect(marketplaceBillingJobs.runWeeklyUsageReports).toBe(runWeeklyUsageReports);
-      expect(marketplaceBillingJobs.runMonthlyRevenueCalculation).toBe(runMonthlyRevenueCalculation);
+      expect(marketplaceBillingJobs.runMonthlyRevenueCalculation).toBe(
+        runMonthlyRevenueCalculation
+      );
       expect(marketplaceBillingJobs.runPublisherPayouts).toBe(runPublisherPayouts);
       expect(marketplaceBillingJobs.runQuarterlyCleanup).toBe(runQuarterlyCleanup);
     });

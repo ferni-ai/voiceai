@@ -1,0 +1,43 @@
+---
+pagination:
+  data: locales
+  size: 1
+  alias: localeData
+permalink: "{% if localeData.default %}/locale-en-redirect/{% else %}/{{ localeData.code }}/{% endif %}"
+eleventyExcludeFromCollections: true
+---
+{% set locale = localeData.code %}
+{% set dir = localeData.direction %}
+{% set t = translations[locale] or translations.en %}
+
+<!DOCTYPE html>
+<html lang="{{ locale }}" dir="{{ dir }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ t.hero.headline }} {{ t.hero.headlineAccent }} | Ferni</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  {% if dir == 'rtl' %}
+  <link rel="stylesheet" href="/css/rtl.css">
+  {% endif %}
+</head>
+<body>
+  <main>
+    <h1>{{ t.hero.headline }} <span>{{ t.hero.headlineAccent }}</span></h1>
+    <p>{{ t.hero.subhead }}</p>
+    <p>{{ t.hero.subheadLine2 }}</p>
+
+    <div>
+      <a href="{{ site.appUrl }}">{{ t.hero.cta.primary }}</a>
+      <a href="tel:{{ site.phoneRaw }}">{{ t.hero.cta.secondary }}</a>
+    </div>
+
+    <h2>{{ t.superpowers.memory.title }}</h2>
+    <p>{{ t.superpowers.memory.tagline }}</p>
+    <p>{{ t.superpowers.memory.description }}</p>
+
+    <h2>{{ t.team.sectionTitle }}</h2>
+    <p>{{ t.team.sectionSubtitle }}</p>
+  </main>
+</body>
+</html>

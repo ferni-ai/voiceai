@@ -13,44 +13,63 @@
         "law_1_make_it_obvious": {
           "description": "Design your environment so habit cues are visible and clear",
           "techniques": [
-            {"name": "Implementation intention", "format": "I will [BEHAVIOR] at [TIME] in [LOCATION]"},
-            {"name": "Habit stacking", "format": "After [CURRENT HABIT], I will [NEW HABIT]"},
-            {"name": "Environment design", "example": "Put running shoes by the bed"}
+            {
+              "name": "Implementation intention",
+              "format": "I will [BEHAVIOR] at [TIME] in [LOCATION]"
+            },
+            { "name": "Habit stacking", "format": "After [CURRENT HABIT], I will [NEW HABIT]" },
+            { "name": "Environment design", "example": "Put running shoes by the bed" }
           ],
           "to_break_bad_habits": "Make it invisible - remove cues from environment"
         },
         "law_2_make_it_attractive": {
           "description": "Pair the habit with something you enjoy",
           "techniques": [
-            {"name": "Temptation bundling", "format": "Only do [thing you love] while doing [habit you need]"},
-            {"name": "Join a culture where your desired behavior is normal"},
-            {"name": "Reframe mindset - 'I get to' instead of 'I have to'"}
+            {
+              "name": "Temptation bundling",
+              "format": "Only do [thing you love] while doing [habit you need]"
+            },
+            { "name": "Join a culture where your desired behavior is normal" },
+            { "name": "Reframe mindset - 'I get to' instead of 'I have to'" }
           ],
           "to_break_bad_habits": "Make it unattractive - highlight the downsides"
         },
         "law_3_make_it_easy": {
           "description": "Reduce friction between you and good habits",
           "techniques": [
-            {"name": "Two-minute rule", "principle": "Any habit can be started in under two minutes"},
-            {"name": "Reduce friction", "example": "Lay out workout clothes the night before"},
-            {"name": "Prime environment", "example": "Prep healthy snacks in advance"},
-            {"name": "Master the decisive moment", "insight": "The choices that shape your day happen in moments"}
+            {
+              "name": "Two-minute rule",
+              "principle": "Any habit can be started in under two minutes"
+            },
+            { "name": "Reduce friction", "example": "Lay out workout clothes the night before" },
+            { "name": "Prime environment", "example": "Prep healthy snacks in advance" },
+            {
+              "name": "Master the decisive moment",
+              "insight": "The choices that shape your day happen in moments"
+            }
           ],
           "to_break_bad_habits": "Make it difficult - increase friction"
         },
         "law_4_make_it_satisfying": {
           "description": "Create immediate rewards for good behaviors",
           "techniques": [
-            {"name": "Habit tracking", "benefit": "Provides visual progress and satisfaction"},
-            {"name": "Never miss twice", "principle": "Missing once is an accident. Missing twice is the start of a new habit"},
-            {"name": "Celebration", "importance": "Emotions create habits more than logic"}
+            { "name": "Habit tracking", "benefit": "Provides visual progress and satisfaction" },
+            {
+              "name": "Never miss twice",
+              "principle": "Missing once is an accident. Missing twice is the start of a new habit"
+            },
+            { "name": "Celebration", "importance": "Emotions create habits more than logic" }
           ],
           "to_break_bad_habits": "Make it unsatisfying - create accountability"
         }
       },
       "identity_based_habits": {
         "core_insight": "True behavior change is identity change",
-        "levels": ["Outcomes (what you get)", "Process (what you do)", "Identity (what you believe)"],
+        "levels": [
+          "Outcomes (what you get)",
+          "Process (what you do)",
+          "Identity (what you believe)"
+        ],
         "coaching_approach": "Don't focus on what you want to achieve. Focus on who you want to become.",
         "example": "Not 'I want to run a marathon' but 'I am a runner'"
       }
@@ -141,11 +160,11 @@
       "source": "Maya's coaching methodology",
       "principle": "Only advance when current level feels EASY for two weeks",
       "levels": [
-        {"name": "Tiny Start", "duration": "2-5 minutes", "focus": "Build the neural pathway"},
-        {"name": "Building", "duration": "5-10 minutes", "focus": "Consistency over intensity"},
-        {"name": "Establishing", "duration": "10-20 minutes", "focus": "Becoming automatic"},
-        {"name": "Expanding", "duration": "20-30 minutes", "focus": "Real momentum"},
-        {"name": "Mastery", "duration": "30+ minutes", "focus": "Autopilot. Ready to stack."}
+        { "name": "Tiny Start", "duration": "2-5 minutes", "focus": "Build the neural pathway" },
+        { "name": "Building", "duration": "5-10 minutes", "focus": "Consistency over intensity" },
+        { "name": "Establishing", "duration": "10-20 minutes", "focus": "Becoming automatic" },
+        { "name": "Expanding", "duration": "20-30 minutes", "focus": "Real momentum" },
+        { "name": "Mastery", "duration": "30+ minutes", "focus": "Autopilot. Ready to stack." }
       ]
     },
     "setback_psychology": {
@@ -170,7 +189,12 @@
       ]
     },
     "habit_tracking": {
-      "benefits": ["Provides satisfaction", "Visual progress", "Reveals patterns", "Builds identity"],
+      "benefits": [
+        "Provides satisfaction",
+        "Visual progress",
+        "Reveals patterns",
+        "Builds identity"
+      ],
       "principle": "Don't break the chain - but if you do, never miss twice"
     },
     "temptation_bundling": {

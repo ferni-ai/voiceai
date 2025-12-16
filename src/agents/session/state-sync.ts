@@ -267,7 +267,11 @@ export interface SyncedStateManager {
   // Mutation methods (sync after)
   incrementTurn: () => void;
   setTopic: (topic: string) => void;
-  setEmotionAnalysis: (analysis: { primary: string; intensity: number; distressLevel?: number }) => void;
+  setEmotionAnalysis: (analysis: {
+    primary: string;
+    intensity: number;
+    distressLevel?: number;
+  }) => void;
   setVoiceEmotion: (emotion: Parameters<SessionStateManager['setVoiceEmotion']>[0]) => void;
   markUserSpeaking: () => void;
   markUserSilent: () => void;
@@ -286,4 +290,3 @@ export interface SyncedStateManager {
   getMentionedThemes: () => ReturnType<SessionStateManager['getMentionedThemes']>;
   getSessionDuration: () => number;
 }
-

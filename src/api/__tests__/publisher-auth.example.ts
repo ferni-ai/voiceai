@@ -24,10 +24,7 @@ import {
 async function exampleRegisterPublisher() {
   console.log('=== EXAMPLE 1: Register Publisher ===\n');
 
-  const { publisher, apiKey } = await registerPublisher(
-    'john@example.com',
-    'John Doe'
-  );
+  const { publisher, apiKey } = await registerPublisher('john@example.com', 'John Doe');
 
   console.log('Publisher created:');
   console.log('  ID:', publisher.id);
@@ -62,7 +59,10 @@ async function exampleCreateApiKeys(publisherId: string) {
     console.log('  API Key:', liveKey.apiKey);
     console.log('  (Starts with: pk_live_)\n');
   } catch (error) {
-    console.log('Live key creation failed:', error instanceof Error ? error.message : String(error));
+    console.log(
+      'Live key creation failed:',
+      error instanceof Error ? error.message : String(error)
+    );
     console.log('  (Publisher must be verified first)\n');
   }
 
@@ -196,7 +196,8 @@ async function exampleMarketplaceIntegration() {
   console.log('=== EXAMPLE 8: Marketplace Route Integration ===\n');
 
   console.log('Example route handler:\n');
-  console.log(`
+  console.log(
+    `
 async function handlePublisherSubmit(req: IncomingMessage, res: ServerResponse) {
   // Authenticate publisher
   const session = await requirePublisherAuth(req, res);
@@ -218,7 +219,8 @@ async function handlePublisherSubmit(req: IncomingMessage, res: ServerResponse) 
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ success: true }));
 }
-  `.trim());
+  `.trim()
+  );
   console.log('\n');
 }
 

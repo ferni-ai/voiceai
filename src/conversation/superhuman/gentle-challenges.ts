@@ -127,21 +127,24 @@ const PATTERN_REPEAT_INDICATORS = [
 // CHALLENGE TEMPLATES
 // ============================================================================
 
-const CHALLENGE_TEMPLATES: Record<ChallengeType, { leadIns: string[]; challenges: string[]; softLandings: string[] }> = {
+const CHALLENGE_TEMPLATES: Record<
+  ChallengeType,
+  { leadIns: string[]; challenges: string[]; softLandings: string[] }
+> = {
   self_limiting: {
     leadIns: [
-      "I love you, and I have to push back a little here.",
-      "Can I gently challenge something?",
-      "I notice you said something I want to explore...",
+      'I love you, and I have to push back a little here.',
+      'Can I gently challenge something?',
+      'I notice you said something I want to explore...',
     ],
     challenges: [
       "Where did you learn you can't do that?",
       "What if that's a story, not a fact?",
-      "Is that true, or is that fear talking?",
-      "What would you say if your best friend said that about themselves?",
+      'Is that true, or is that fear talking?',
+      'What would you say if your best friend said that about themselves?',
     ],
     softLandings: [
-      "Just something to think about. No pressure.",
+      'Just something to think about. No pressure.',
       "You don't have to agree. I just see something in you.",
       "I could be wrong. But I don't think I am.",
     ],
@@ -149,53 +152,53 @@ const CHALLENGE_TEMPLATES: Record<ChallengeType, { leadIns: string[]; challenges
   catastrophizing: {
     leadIns: [
       "Okay, let's slow down for a second.",
-      "I hear the fear here. Can we reality-check it together?",
-      "Your brain is doing the thing again...",
+      'I hear the fear here. Can we reality-check it together?',
+      'Your brain is doing the thing again...',
     ],
     challenges: [
-      "Is that the most likely outcome, or the scariest one?",
+      'Is that the most likely outcome, or the scariest one?',
       "What's the evidence for that vs. against it?",
-      "If this happened to someone else, what would you tell them?",
+      'If this happened to someone else, what would you tell them?',
       "What's the version of this that isn't a catastrophe?",
     ],
     softLandings: [
-      "The fear is valid. The prediction might not be.",
+      'The fear is valid. The prediction might not be.',
       "Your feelings are real. But feelings aren't always facts.",
       "Let's make room for other possibilities too.",
     ],
   },
   deflection: {
     leadIns: [
-      "I notice you moved away from that pretty quickly.",
+      'I notice you moved away from that pretty quickly.',
       "Hang on—I think there's something underneath that.",
-      "You just did the thing where you...",
+      'You just did the thing where you...',
     ],
     challenges: [
-      "What if it IS a big deal?",
-      "What would happen if you actually sat with this?",
+      'What if it IS a big deal?',
+      'What would happen if you actually sat with this?',
       "You don't have to share, but... are you sure you're fine?",
       "I wonder what you're protecting yourself from here.",
     ],
     softLandings: [
       "You get to decide if we go there. I'm just noticing.",
-      "We can come back to it. Or not. Your call.",
+      'We can come back to it. Or not. Your call.',
       "I'll follow your lead. But I see you.",
     ],
   },
   self_blame: {
     leadIns: [
-      "Wait. I need to interrupt here.",
+      'Wait. I need to interrupt here.',
       "Hold on—that's really harsh.",
-      "Would you let someone talk to your friend that way?",
+      'Would you let someone talk to your friend that way?',
     ],
     challenges: [
-      "Is this responsibility actually yours to carry?",
-      "What would compassion for yourself look like here?",
+      'Is this responsibility actually yours to carry?',
+      'What would compassion for yourself look like here?',
       "You're being your own worst critic right now.",
       "That's a lot of blame for one person. Are you carrying someone else's too?",
     ],
     softLandings: [
-      "You can acknowledge mistakes without destroying yourself.",
+      'You can acknowledge mistakes without destroying yourself.',
       "Being hard on yourself isn't the same as being accountable.",
       "I'm not saying you're perfect. I'm saying you're human.",
     ],
@@ -204,13 +207,13 @@ const CHALLENGE_TEMPLATES: Record<ChallengeType, { leadIns: string[]; challenges
     leadIns: [
       "No no no, don't do that.",
       "Stop. I'm not going to let you minimize this.",
-      "Hey—own this.",
+      'Hey—own this.',
     ],
     challenges: [
-      "What if you actually let yourself feel proud?",
-      "Why are you making this smaller than it is?",
-      "You did this. Not luck. Not circumstance. You.",
-      "What are you afraid will happen if you celebrate this?",
+      'What if you actually let yourself feel proud?',
+      'Why are you making this smaller than it is?',
+      'You did this. Not luck. Not circumstance. You.',
+      'What are you afraid will happen if you celebrate this?',
     ],
     softLandings: [
       "I'm not asking you to brag. Just... acknowledge.",
@@ -220,31 +223,31 @@ const CHALLENGE_TEMPLATES: Record<ChallengeType, { leadIns: string[]; challenges
   },
   values_mismatch: {
     leadIns: [
-      "Can I reflect something back to you?",
-      "I want to hold up a mirror here.",
-      "Remember when you told me what matters most to you?",
+      'Can I reflect something back to you?',
+      'I want to hold up a mirror here.',
+      'Remember when you told me what matters most to you?',
     ],
     challenges: [
       "How does this align with what you've said matters to you?",
-      "Is this choice bringing you closer to who you want to be?",
-      "You told me {value} was important. Does this honor that?",
+      'Is this choice bringing you closer to who you want to be?',
+      'You told me {value} was important. Does this honor that?',
     ],
     softLandings: [
-      "You get to make whatever choice you want. I just noticed the tension.",
+      'You get to make whatever choice you want. I just noticed the tension.',
       "Maybe there's a reason this feels off.",
       "I'm not judging. Just curious.",
     ],
   },
   pattern_repeat: {
     leadIns: [
-      "This feels familiar...",
+      'This feels familiar...',
       "Didn't we talk about something like this before?",
       "I'm noticing a pattern here.",
     ],
     challenges: [
-      "What do you think keeps bringing you back here?",
-      "What would it take to break this cycle?",
-      "If you keep doing this, where does it lead?",
+      'What do you think keeps bringing you back here?',
+      'What would it take to break this cycle?',
+      'If you keep doing this, where does it lead?',
       "What's the pattern trying to protect you from?",
     ],
     softLandings: [
@@ -364,12 +367,10 @@ export function detectChallengeOpportunity(context: ChallengeContext): Challenge
   const templates = CHALLENGE_TEMPLATES[detectedType];
   const leadIn = templates.leadIns[Math.floor(Math.random() * templates.leadIns.length)];
   const challenge = templates.challenges[Math.floor(Math.random() * templates.challenges.length)];
-  const softLanding = templates.softLandings[Math.floor(Math.random() * templates.softLandings.length)];
+  const softLanding =
+    templates.softLandings[Math.floor(Math.random() * templates.softLandings.length)];
 
-  logger.debug(
-    { type: detectedType, confidence, evidence },
-    '🪞 Challenge opportunity detected'
-  );
+  logger.debug({ type: detectedType, confidence, evidence }, '🪞 Challenge opportunity detected');
 
   return {
     type: detectedType,
@@ -402,7 +403,7 @@ export function formatChallengeGuidance(context: ChallengeContext): string | nul
     '',
     'IMPORTANT:',
     '- Only use if the moment feels right',
-    "- If they push back, drop it immediately",
+    '- If they push back, drop it immediately',
     '- Lead with love, not judgment',
     '- This is optional, not required',
   ];

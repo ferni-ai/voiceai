@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Ferni Orb Logo - 512x512 -->
+  <defs>
+    <linearGradient id="orbGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3d5a35"/>
+      <stop offset="40%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#5a7a4d"/>
+    </linearGradient>
+    <radialGradient id="orbHighlight" cx="35%" cy="25%" r="40%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.4)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+    
+    <filter id="orbGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="20.48" result="blur"/>
+      <feFlood flood-color="#4a6741" flood-opacity="0.35"/>
+      <feComposite in2="blur" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="96" fill="#F5F1E8"/>
+  
+    <circle cx="256" cy="256" r="211.41504" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.15"/>
+    <circle cx="256" cy="256" r="190.95552000000004" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.1"/>
+
+  <!-- Main orb -->
+  <circle cx="256" cy="256" r="170.496" fill="url(#orbGradient)" filter="url(#orbGlow)"/>
+
+  <!-- Top highlight -->
+  <circle cx="256" cy="256" r="170.496" fill="url(#orbHighlight)"/>
+
+  <!-- Waveform bars -->
+  <g>
+    <rect x="169" y="243.2128" width="6" height="25.574400000000004" rx="3" fill="rgba(255,255,255,0.95)"/>
+    <rect x="190" y="236.8192" width="6" height="38.3616" rx="3" fill="rgba(255,255,255,0.95)"/>
+    <rect x="211" y="230.4256" width="6" height="51.14880000000001" rx="3" fill="rgba(255,255,255,0.95)"/>
+    <rect x="232" y="226.1632" width="6" height="59.67360000000001" rx="3" fill="rgba(255,255,255,0.95)"/>
+    <rect x="253" y="221.9008" width="6" height="68.1984" rx="3" fill="rgba(255,255,255,0.95)"/>
+    <rect x="274" y="226.1632" width="6" height="59.67360000000001" rx="3" fill="rgba(255,255,255,0.95)"/>
+    <rect x="295" y="230.4256" width="6" height="51.14880000000001" rx="3" fill="rgba(255,255,255,0.95)"/>
+    <rect x="316" y="236.8192" width="6" height="38.3616" rx="3" fill="rgba(255,255,255,0.95)"/>
+    <rect x="337" y="243.2128" width="6" height="25.574400000000004" rx="3" fill="rgba(255,255,255,0.95)"/>
+  </g>
+</svg>

@@ -20,42 +20,12 @@ import { HUMANIZATION_CONFIG } from '../../humanization-tuning.js';
 // ============================================================================
 
 const REACTIONS = {
-  thinking: [
-    'Hmm...',
-    'Let me think about that...',
-    'Okay...',
-    'Interesting...',
-  ],
-  processing: [
-    'Right, right...',
-    'I see...',
-    'Mm-hmm...',
-    'Yeah...',
-  ],
-  affirming: [
-    'Absolutely.',
-    'Totally.',
-    'One hundred percent.',
-    'Makes sense.',
-  ],
-  empathizing: [
-    'Oh...',
-    'Aw...',
-    'I hear you.',
-    'Yeah, that is real.',
-  ],
-  surprised: [
-    'Oh wow.',
-    'Huh!',
-    'Oh!',
-    'Really?',
-  ],
-  delighted: [
-    'Ha!',
-    'Love that.',
-    'Nice!',
-    'Ooh!',
-  ],
+  thinking: ['Hmm...', 'Let me think about that...', 'Okay...', 'Interesting...'],
+  processing: ['Right, right...', 'I see...', 'Mm-hmm...', 'Yeah...'],
+  affirming: ['Absolutely.', 'Totally.', 'One hundred percent.', 'Makes sense.'],
+  empathizing: ['Oh...', 'Aw...', 'I hear you.', 'Yeah, that is real.'],
+  surprised: ['Oh wow.', 'Huh!', 'Oh!', 'Really?'],
+  delighted: ['Ha!', 'Love that.', 'Nice!', 'Ooh!'],
 };
 
 // ============================================================================
@@ -103,4 +73,3 @@ export async function generateLiveReaction(
     cooldownTurns: HUMANIZATION_CONFIG.cooldowns.liveReaction,
   };
 }
-

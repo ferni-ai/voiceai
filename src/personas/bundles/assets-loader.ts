@@ -21,11 +21,7 @@
 import { readFile, stat, readdir } from 'fs/promises';
 import { join, extname } from 'path';
 import { getLogger } from '../../utils/safe-logger.js';
-import type {
-  BundleAssets,
-  BundleTheme,
-  BundleSounds,
-} from './types/commands.js';
+import type { BundleAssets, BundleTheme, BundleSounds } from './types/commands.js';
 
 const log = getLogger();
 

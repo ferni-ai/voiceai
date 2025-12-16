@@ -98,10 +98,7 @@ export async function loadMCPConfig(bundlePath: string): Promise<BundleMCPConfig
       return null;
     }
 
-    log.info(
-      { bundlePath, serverCount: validServers.length },
-      'Loaded MCP configuration'
-    );
+    log.info({ bundlePath, serverCount: validServers.length }, 'Loaded MCP configuration');
 
     return { servers: validServers };
   } catch (error) {
@@ -199,9 +196,7 @@ const activeConnections = new Map<string, MCPConnection>();
  * - stdio: Spawns a child process running the MCP server
  * - http/websocket: Connects via SSE transport
  */
-export async function connectToMCPServer(
-  server: BundleMCPServer
-): Promise<MCPConnection> {
+export async function connectToMCPServer(server: BundleMCPServer): Promise<MCPConnection> {
   log.info({ serverId: server.id, transport: server.transport }, 'Connecting to MCP server');
 
   // Check if already connected
@@ -285,20 +280,14 @@ export async function connectToMCPServer(
 
     activeConnections.set(server.id, connection);
 
-    log.info(
-      { serverId: server.id, toolCount: tools.length },
-      'Connected to MCP server'
-    );
+    log.info({ serverId: server.id, toolCount: tools.length }, 'Connected to MCP server');
 
     return connection;
   } catch (error) {
     connection.status = 'error';
     connection.error = error instanceof Error ? error.message : String(error);
 
-    log.error(
-      { serverId: server.id, error: connection.error },
-      'Failed to connect to MCP server'
-    );
+    log.error({ serverId: server.id, error: connection.error }, 'Failed to connect to MCP server');
 
     activeConnections.set(server.id, connection);
     return connection;
@@ -401,7 +390,9 @@ export async function callMCPTool(
     // Return the content from the result
     if (result.content && Array.isArray(result.content)) {
       // MCP returns content as an array of content blocks
-      const textBlocks = result.content.filter((c): c is { type: 'text'; text: string } => c.type === 'text');
+      const textBlocks = result.content.filter(
+        (c): c is { type: 'text'; text: string } => c.type === 'text'
+      );
       if (textBlocks.length === 1) {
         return textBlocks[0].text;
       }

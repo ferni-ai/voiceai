@@ -168,7 +168,10 @@ function checkRateLimit(visitorId: string): { allowed: boolean; remaining: numbe
 // PERSONA DEFINITIONS
 // ============================================================================
 
-const PERSONA_PROMPTS: Record<string, { name: string; role: string; traits: string[]; style: string }> = {
+const PERSONA_PROMPTS: Record<
+  string,
+  { name: string; role: string; traits: string[]; style: string }
+> = {
   ferni: {
     name: 'Ferni',
     role: 'Life Coach',
@@ -227,7 +230,8 @@ export async function sendDemoChatMessage(
   const rateCheck = checkRateLimit(visitorId);
   if (!rateCheck.allowed) {
     return {
-      response: "You've reached the demo limit! Create a free account to keep talking with me. I'd love to continue this conversation. 💚",
+      response:
+        "You've reached the demo limit! Create a free account to keep talking with me. I'd love to continue this conversation. 💚",
       messagesRemaining: 0,
       sessionMessages: chatSessions.get(visitorId)?.messages || [],
     };
@@ -300,7 +304,7 @@ Remember: This is their first impression of Ferni. Make it count.`;
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
     // Build conversation history
-    const history = messages.slice(0, -1).map(m => ({
+    const history = messages.slice(0, -1).map((m) => ({
       role: m.role === 'user' ? 'user' : 'model',
       parts: [{ text: m.content }],
     }));
@@ -337,12 +341,20 @@ function getFallbackResponse(userMessage: string, persona: string): string {
     return "Building habits is one of my favorite topics! What's one small change you've been thinking about?";
   }
   if (lowerMessage.includes('decision') || lowerMessage.includes('choose')) {
-    return "Big decisions deserve space to breathe. What are you weighing?";
+    return 'Big decisions deserve space to breathe. What are you weighing?';
   }
-  if (lowerMessage.includes('work') || lowerMessage.includes('job') || lowerMessage.includes('career')) {
+  if (
+    lowerMessage.includes('work') ||
+    lowerMessage.includes('job') ||
+    lowerMessage.includes('career')
+  ) {
     return "Work stuff can be complicated. What's going on?";
   }
-  if (lowerMessage.includes('relationship') || lowerMessage.includes('friend') || lowerMessage.includes('family')) {
+  if (
+    lowerMessage.includes('relationship') ||
+    lowerMessage.includes('friend') ||
+    lowerMessage.includes('family')
+  ) {
     return "Relationships can be tricky to navigate. Who's on your mind?";
   }
   if (lowerMessage.includes('hello') || lowerMessage.includes('hi ') || lowerMessage === 'hi') {
@@ -513,17 +525,23 @@ function getFallbackFAQ(question: string): SmartFAQResponse {
   if (lowerQ.includes('price') || lowerQ.includes('cost') || lowerQ.includes('free')) {
     return {
       question,
-      answer: "Ferni is free to start with 5 conversations/month. Friend tier ($9.99/mo) gives unlimited access to all 6 specialists. Partner tier ($19.99/mo) adds premium features and Nayan, our sage mentor.",
-      relatedQuestions: ["What's included in the free tier?", "Can I cancel anytime?"],
+      answer:
+        'Ferni is free to start with 5 conversations/month. Friend tier ($9.99/mo) gives unlimited access to all 6 specialists. Partner tier ($19.99/mo) adds premium features and Nayan, our sage mentor.',
+      relatedQuestions: ["What's included in the free tier?", 'Can I cancel anytime?'],
       confidence: 0.95,
     };
   }
 
-  if (lowerQ.includes('therapy') || lowerQ.includes('therapist') || lowerQ.includes('mental health')) {
+  if (
+    lowerQ.includes('therapy') ||
+    lowerQ.includes('therapist') ||
+    lowerQ.includes('mental health')
+  ) {
     return {
       question,
-      answer: "Ferni is life coaching, not therapy. I'm great for daily support, goals, habits, and talking through decisions. For clinical mental health needs, please work with a licensed professional. I complement professional help but don't replace it.",
-      relatedQuestions: ["What can I talk to Ferni about?", "Is my data private?"],
+      answer:
+        "Ferni is life coaching, not therapy. I'm great for daily support, goals, habits, and talking through decisions. For clinical mental health needs, please work with a licensed professional. I complement professional help but don't replace it.",
+      relatedQuestions: ['What can I talk to Ferni about?', 'Is my data private?'],
       confidence: 0.95,
     };
   }
@@ -531,16 +549,18 @@ function getFallbackFAQ(question: string): SmartFAQResponse {
   if (lowerQ.includes('private') || lowerQ.includes('secure') || lowerQ.includes('data')) {
     return {
       question,
-      answer: "Yes! Your conversations are end-to-end encrypted and never sold or shared. You can export or delete your data anytime. We're building trust systems, not advertising systems.",
-      relatedQuestions: ["Where is my data stored?", "Can I delete my account?"],
+      answer:
+        "Yes! Your conversations are end-to-end encrypted and never sold or shared. You can export or delete your data anytime. We're building trust systems, not advertising systems.",
+      relatedQuestions: ['Where is my data stored?', 'Can I delete my account?'],
       confidence: 0.95,
     };
   }
 
   return {
     question,
-    answer: "Great question! I'd love to help you understand Ferni better. Feel free to try talking to me directly - no signup required - and I can answer this in a real conversation.",
-    relatedQuestions: ["How does Ferni work?", "What makes Ferni different?"],
+    answer:
+      "Great question! I'd love to help you understand Ferni better. Feel free to try talking to me directly - no signup required - and I can answer this in a real conversation.",
+    relatedQuestions: ['How does Ferni work?', 'What makes Ferni different?'],
     confidence: 0.5,
   };
 }
@@ -557,7 +577,7 @@ export async function generatePersonalizedHero(
 ): Promise<PersonalizedHeroResponse> {
   const timeContext = getTimeContext(request.hour);
   const deviceContext = request.device === 'mobile' ? 'on their phone' : 'on desktop';
-  
+
   const genAI = await getGenAI();
   if (!genAI) {
     return getDefaultHero(request);
@@ -624,29 +644,30 @@ function getDefaultHero(request: PersonalizedHeroRequest): PersonalizedHeroRespo
     return {
       tagline: "Can't sleep?",
       headline: "I'm here. <span class='hero__headline-accent'>Right now.</span>",
-      subhead: "No judgment about the hour. No tired sighs. Just presence when you need it most.",
-      ctaText: "Talk to me",
-      generationReason: "Late night visitor likely dealing with something keeping them up",
+      subhead: 'No judgment about the hour. No tired sighs. Just presence when you need it most.',
+      ctaText: 'Talk to me',
+      generationReason: 'Late night visitor likely dealing with something keeping them up',
     };
   }
 
   if (request.isReturning && request.visitCount > 2) {
     return {
-      tagline: "Welcome back.",
+      tagline: 'Welcome back.',
       headline: "Ready to <span class='hero__headline-accent'>pick up where we left off?</span>",
       subhead: "I remember our conversation. Let's keep going.",
-      ctaText: "Continue",
-      generationReason: "Returning visitor who has been here multiple times",
+      ctaText: 'Continue',
+      generationReason: 'Returning visitor who has been here multiple times',
     };
   }
 
   // Default
   return {
-    tagline: "Better than human.",
+    tagline: 'Better than human.',
     headline: "Finally, someone who <span class='hero__headline-accent'>gets it.</span>",
-    subhead: "Someone who remembers your whole story, hears what you're not saying, and shows up at 2am with the same presence as noon.",
-    ctaText: "Start free",
-    generationReason: "Default for new visitors",
+    subhead:
+      "Someone who remembers your whole story, hears what you're not saying, and shows up at 2am with the same presence as noon.",
+    ctaText: 'Start free',
+    generationReason: 'Default for new visitors',
   };
 }
 
@@ -657,15 +678,18 @@ function getDefaultHero(request: PersonalizedHeroRequest): PersonalizedHeroRespo
 const SOCIAL_PROOF_TEMPLATES = [
   {
     type: 'conversation' as const,
-    template: "Last night at {time}, someone asked me about {topic}. We talked for 47 minutes. No timer, no \"we have to wrap up.\" Just presence.",
+    template:
+      'Last night at {time}, someone asked me about {topic}. We talked for 47 minutes. No timer, no "we have to wrap up." Just presence.',
   },
   {
     type: 'moment' as const,
-    template: "This morning, I reminded someone about a breakthrough they had 4 months ago. They'd forgotten. I hadn't.",
+    template:
+      "This morning, I reminded someone about a breakthrough they had 4 months ago. They'd forgotten. I hadn't.",
   },
   {
     type: 'insight' as const,
-    template: 'Someone said "I\'m fine" three times this week. So I gently asked what was really going on. Turns out, a lot.',
+    template:
+      'Someone said "I\'m fine" three times this week. So I gently asked what was really going on. Turns out, a lot.',
   },
 ];
 
@@ -676,11 +700,9 @@ export async function generateSocialProof(count: number = 3): Promise<SocialProo
   const genAI = await getGenAI();
   if (!genAI) {
     // Return template-based snippets
-    return SOCIAL_PROOF_TEMPLATES.slice(0, count).map(t => ({
+    return SOCIAL_PROOF_TEMPLATES.slice(0, count).map((t) => ({
       type: t.type,
-      content: t.template
-        .replace('{time}', getRandomTime())
-        .replace('{topic}', getRandomTopic()),
+      content: t.template.replace('{time}', getRandomTime()).replace('{topic}', getRandomTopic()),
     }));
   }
 
@@ -719,22 +741,32 @@ Make them feel REAL and specific, not generic. No made-up names.`;
     return JSON.parse(result.response.text());
   } catch (error) {
     log.error({ error }, 'Failed to generate social proof');
-    return SOCIAL_PROOF_TEMPLATES.slice(0, count).map(t => ({
+    return SOCIAL_PROOF_TEMPLATES.slice(0, count).map((t) => ({
       type: t.type,
-      content: t.template
-        .replace('{time}', getRandomTime())
-        .replace('{topic}', getRandomTopic()),
+      content: t.template.replace('{time}', getRandomTime()).replace('{topic}', getRandomTopic()),
     }));
   }
 }
 
 function getRandomTime(): string {
-  const times = ['2:47 AM', '3:12 AM', '11:34 PM', 'last Tuesday at midnight', 'early this morning'];
+  const times = [
+    '2:47 AM',
+    '3:12 AM',
+    '11:34 PM',
+    'last Tuesday at midnight',
+    'early this morning',
+  ];
   return times[Math.floor(Math.random() * times.length)];
 }
 
 function getRandomTopic(): string {
-  const topics = ['a difficult conversation with their mom', 'whether to take the new job', 'a relationship that wasn\'t working', 'building a morning routine', 'stress they couldn\'t shake'];
+  const topics = [
+    'a difficult conversation with their mom',
+    'whether to take the new job',
+    "a relationship that wasn't working",
+    'building a morning routine',
+    "stress they couldn't shake",
+  ];
   return topics[Math.floor(Math.random() * topics.length)];
 }
 
@@ -753,11 +785,11 @@ export async function generateHoverPreview(
   if (!genAI) {
     const fallbacks: Record<string, string> = {
       faq: "I'd love to explain this in more detail...",
-      feature: "Let me show you how this actually works...",
-      testimonial: "Stories like this make me smile...",
-      cta: "No pressure. Just try talking to me.",
+      feature: 'Let me show you how this actually works...',
+      testimonial: 'Stories like this make me smile...',
+      cta: 'No pressure. Just try talking to me.',
     };
-    return fallbacks[elementType] || "Tell me more...";
+    return fallbacks[elementType] || 'Tell me more...';
   }
 
   const prompt = `Generate a brief (under 10 words) "Ferni whisper" for hovering over a ${elementType} element.
@@ -781,7 +813,7 @@ Just return the text, no quotes.`;
     return result.response.text().trim();
   } catch (error) {
     log.error({ error }, 'Failed to generate hover preview');
-    return "Tell me more...";
+    return 'Tell me more...';
   }
 }
 
@@ -826,15 +858,15 @@ export async function generateSentimentReactiveCopy(
     // Fallback for low sentiment
     if (isLowSentiment) {
       return {
-        ctaText: "Just try talking—no pressure",
+        ctaText: 'Just try talking—no pressure',
         subhead: "Take your time. I'm not going anywhere.",
-        reason: "Low sentiment detected, softening copy",
+        reason: 'Low sentiment detected, softening copy',
       };
     }
     if (isHighSentiment) {
       return {
         ctaText: "Let's do this",
-        reason: "High sentiment detected, energizing copy",
+        reason: 'High sentiment detected, energizing copy',
       };
     }
     return { reason: 'No change' };
@@ -848,9 +880,11 @@ Time on page: ${request.timeOnPage}s
 Original CTA: "${request.originalCopy.ctaText || 'Start free'}"
 Original subhead: "${request.originalCopy.subhead || ''}"
 
-${isLowSentiment ? 
-  'Visitor seems hesitant. Make copy softer, lower pressure, more reassuring.' :
-  'Visitor is engaged! Make copy more energizing and inviting.'}
+${
+  isLowSentiment
+    ? 'Visitor seems hesitant. Make copy softer, lower pressure, more reassuring.'
+    : 'Visitor is engaged! Make copy more energizing and inviting.'
+}
 
 Return JSON:
 {
@@ -876,4 +910,3 @@ Return JSON:
     return { reason: 'Generation failed' };
   }
 }
-

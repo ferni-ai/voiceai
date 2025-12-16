@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="zen">
+<head>
+  {% include "partials/head.njk" %}
+  
+  {# NEW: Design system CSS architecture #}
+  <link rel="stylesheet" href="/css/main.css">
+  
+  {# Structured data for SEO #}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "{{ site.name }}",
+    "applicationCategory": "LifestyleApplication",
+    "operatingSystem": "Web",
+    "description": "{{ description or site.tagline }}",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "ratingCount": "127" }
+  }
+  </script>
+</head>
+<body>
+  {# Skip link for accessibility #}
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  
+  {# Navigation #}
+  {% include "partials/home/nav.njk" %}
+  
+  <main id="main-content">
+    {# NEW: Interactive Hero Section #}
+    {% include "partials/home/hero-new.njk" %}
+    
+    {# Team Section #}
+    {% include "partials/home/team.njk" %}
+    
+    {# Features Section #}
+    {% include "partials/home/features.njk" %}
+    
+    {# Testimonials Section #}
+    {% include "partials/home/testimonials.njk" %}
+    
+    {# FAQ Section #}
+    {% include "partials/home/faq.njk" %}
+    
+    {# CTA Section #}
+    {% include "partials/home/cta.njk" %}
+  </main>
+  
+  {# Footer #}
+  {% include "partials/home/footer.njk" %}
+  
+  {# Cookie Banner #}
+  {% include "cookie-banner.njk" %}
+  
+  {# Scripts #}
+  <script src="/js/hero-demo.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>
+

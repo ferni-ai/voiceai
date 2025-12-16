@@ -146,4 +146,3 @@ export function terminateVADWorker(): void {
     _worker = null;
   }
 }
-

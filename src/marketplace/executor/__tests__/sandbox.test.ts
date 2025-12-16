@@ -24,16 +24,8 @@ vi.mock('../../../utils/safe-logger.js', () => ({
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-import {
-  executeMarketplaceTool,
-  executeBatch,
-  type ExecutionContext,
-} from '../sandbox.js';
-import {
-  registerTool,
-  installItem,
-  clearRegistry,
-} from '../../registry.js';
+import { executeMarketplaceTool, executeBatch, type ExecutionContext } from '../sandbox.js';
+import { registerTool, installItem, clearRegistry } from '../../registry.js';
 import type { ToolManifest } from '../../schema/types.js';
 
 // ============================================================================
@@ -159,11 +151,7 @@ describe('Sandbox Executor', () => {
     });
 
     it('should return error for non-existent tool', async () => {
-      const result = await executeMarketplaceTool(
-        'non-existent-tool',
-        {},
-        createContext()
-      );
+      const result = await executeMarketplaceTool('non-existent-tool', {}, createContext());
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('TOOL_NOT_FOUND');
@@ -171,19 +159,21 @@ describe('Sandbox Executor', () => {
 
     it('should deny execution when permissions missing', async () => {
       // Register a tool requiring a permission the user doesn't have
-      registerTool(createMockManifest({
-        id: 'restricted-tool',
-        permissions: {
-          required: [
-            {
-              scope: 'user:finance:read',
-              reason: 'Reads financial data',
-              required: true,
-            },
-          ],
-          optional: [],
-        },
-      }));
+      registerTool(
+        createMockManifest({
+          id: 'restricted-tool',
+          permissions: {
+            required: [
+              {
+                scope: 'user:finance:read',
+                reason: 'Reads financial data',
+                required: true,
+              },
+            ],
+            optional: [],
+          },
+        })
+      );
 
       // Install with the required permission (install requires it)
       await installItem({
@@ -211,11 +201,7 @@ describe('Sandbox Executor', () => {
         text: async () => 'Internal Server Error',
       });
 
-      const result = await executeMarketplaceTool(
-        'test-tool',
-        { query: 'test' },
-        createContext()
-      );
+      const result = await executeMarketplaceTool('test-tool', { query: 'test' }, createContext());
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('EXECUTION_ERROR');
@@ -226,12 +212,9 @@ describe('Sandbox Executor', () => {
       abortError.name = 'AbortError';
       mockFetch.mockRejectedValueOnce(abortError);
 
-      const result = await executeMarketplaceTool(
-        'test-tool',
-        { query: 'test' },
-        createContext(),
-        { timeoutMs: 100 }
-      );
+      const result = await executeMarketplaceTool('test-tool', { query: 'test' }, createContext(), {
+        timeoutMs: 100,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('TIMEOUT');
@@ -241,50 +224,51 @@ describe('Sandbox Executor', () => {
     it('should skip permission check for platform tools', async () => {
       // No installation, but should work for platform tools
       clearRegistry();
-      registerTool(createMockManifest({
-        id: 'platform-tool',
-        verification: {
-          trustLevel: 'platform',
-          verified: true,
-        },
-      }));
+      registerTool(
+        createMockManifest({
+          id: 'platform-tool',
+          verification: {
+            trustLevel: 'platform',
+            verified: true,
+          },
+        })
+      );
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ data: 'result', summary: 'Done' }),
       });
 
-      const result = await executeMarketplaceTool(
-        'platform-tool',
-        {},
-        createContext(),
-        { skipPermissionCheck: true }
-      );
+      const result = await executeMarketplaceTool('platform-tool', {}, createContext(), {
+        skipPermissionCheck: true,
+      });
 
       expect(result.success).toBe(true);
     });
 
     it('should apply trust-based limits', async () => {
       // Community tools get stricter limits
-      registerTool(createMockManifest({
-        id: 'community-tool',
-        verification: {
-          trustLevel: 'community',
-          verified: false,
-        },
-        execution: {
-          mode: 'isolated',
-          runtime: {
-            type: 'http',
-            endpoint: 'https://api.community.com',
+      registerTool(
+        createMockManifest({
+          id: 'community-tool',
+          verification: {
+            trustLevel: 'community',
+            verified: false,
           },
-          limits: {
-            timeoutMs: 10000, // Will be reduced by 0.5x multiplier
-            networkAccess: true,
-            filesystemAccess: false,
+          execution: {
+            mode: 'isolated',
+            runtime: {
+              type: 'http',
+              endpoint: 'https://api.community.com',
+            },
+            limits: {
+              timeoutMs: 10000, // Will be reduced by 0.5x multiplier
+              networkAccess: true,
+              filesystemAccess: false,
+            },
           },
-        },
-      }));
+        })
+      );
 
       await installItem({
         itemType: 'tool',
@@ -298,11 +282,7 @@ describe('Sandbox Executor', () => {
         json: async () => ({ summary: 'Done' }),
       });
 
-      const result = await executeMarketplaceTool(
-        'community-tool',
-        {},
-        createContext()
-      );
+      const result = await executeMarketplaceTool('community-tool', {}, createContext());
 
       expect(result.success).toBe(true);
       // The fetch should have been called with appropriate limits
@@ -407,13 +387,15 @@ describe('Sandbox Executor', () => {
 
   describe('Trust Level Enforcement', () => {
     it('should block unverified tools without explicit consent', async () => {
-      registerTool(createMockManifest({
-        id: 'unverified-tool',
-        verification: {
-          trustLevel: 'verified',
-          verified: false, // Verification revoked
-        },
-      }));
+      registerTool(
+        createMockManifest({
+          id: 'unverified-tool',
+          verification: {
+            trustLevel: 'verified',
+            verified: false, // Verification revoked
+          },
+        })
+      );
 
       await installItem({
         itemType: 'tool',
@@ -422,11 +404,7 @@ describe('Sandbox Executor', () => {
         permissions: ['external:http:read'],
       });
 
-      const result = await executeMarketplaceTool(
-        'unverified-tool',
-        {},
-        createContext()
-      );
+      const result = await executeMarketplaceTool('unverified-tool', {}, createContext());
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe('EXECUTION_BLOCKED');

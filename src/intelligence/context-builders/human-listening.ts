@@ -225,9 +225,8 @@ Or weave in naturally: "I'm picking up on something..."`,
             : null;
 
           if (voiceSignal) {
-            const { detectVoiceDeviation } = await import(
-              '../../services/trust-systems/voice-emotion-integration.js'
-            );
+            const { detectVoiceDeviation } =
+              await import('../../services/trust-systems/voice-emotion-integration.js');
             const voiceDeviation = detectVoiceDeviation(userId, voiceSignal);
 
             if (voiceDeviation.deviates && voiceDeviation.significance > 0.4) {
@@ -246,7 +245,11 @@ Consider a gentle check-in: "You sound a bit different today. How are you really
               );
 
               log.info(
-                { userId, deviation: voiceDeviation.deviation, significance: voiceDeviation.significance },
+                {
+                  userId,
+                  deviation: voiceDeviation.deviation,
+                  significance: voiceDeviation.significance,
+                },
                 '🎧 Voice deviation detected - user sounds different than usual'
               );
             }

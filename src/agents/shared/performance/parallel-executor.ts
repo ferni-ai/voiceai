@@ -160,7 +160,8 @@ export class ParallelExecutor<T> {
           results.set(op.id, {
             id: op.id,
             success: false,
-            error: result.reason instanceof Error ? result.reason : new Error(String(result.reason)),
+            error:
+              result.reason instanceof Error ? result.reason : new Error(String(result.reason)),
             durationMs: 0,
           });
           failed.add(op.id);
@@ -170,12 +171,15 @@ export class ParallelExecutor<T> {
 
     const totalDurationMs = Date.now() - startTime;
 
-    log.debug({
-      totalDurationMs,
-      batchCount,
-      completed: completed.size,
-      failed: failed.size,
-    }, '⚡ Parallel execution complete');
+    log.debug(
+      {
+        totalDurationMs,
+        batchCount,
+        completed: completed.size,
+        failed: failed.size,
+      },
+      '⚡ Parallel execution complete'
+    );
 
     return {
       results,
@@ -336,9 +340,7 @@ export async function parallelCollect<T>(
   const wrapped = fns.map((fn) =>
     Promise.race([
       fn(),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout')), timeout)
-      ),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeout)),
     ])
   );
 
@@ -348,10 +350,11 @@ export async function parallelCollect<T>(
     if (result.status === 'fulfilled') {
       successes.push(result.value);
     } else {
-      errors.push(result.reason instanceof Error ? result.reason : new Error(String(result.reason)));
+      errors.push(
+        result.reason instanceof Error ? result.reason : new Error(String(result.reason))
+      );
     }
   }
 
   return { successes, errors };
 }
-

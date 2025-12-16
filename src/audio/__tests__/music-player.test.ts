@@ -17,11 +17,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type {
-  MusicTrack,
-  MusicPlayerState,
-  SessionMusicEntry,
-} from '../music-player.js';
+import type { MusicTrack, MusicPlayerState, SessionMusicEntry } from '../music-player.js';
 
 // Mock heavy dependencies
 vi.mock('@livekit/agents', () => ({
@@ -332,4 +328,3 @@ describe.skip('Music Player Integration Tests (TODO)', () => {
   it.todo('should apply ffmpeg fade-out to downloaded tracks');
   it.todo('should cleanup temp files on stop');
 });
-

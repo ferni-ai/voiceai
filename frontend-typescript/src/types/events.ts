@@ -62,6 +62,7 @@ export type HandoffEventType =
   | 'handoff_acknowledged'
   | 'handoff_started'
   | 'soft_open_complete'
+  | 'handoff_progress'
   | 'handoff_complete'
   | 'handoff_failed'
   | 'handoff_cancelled';
@@ -88,6 +89,12 @@ export interface HandoffEvent {
   readonly playSound?: string;
   /** Error message (on handoff_failed) */
   readonly error?: string;
+  /** Persona to rollback to on failure (on handoff_failed) */
+  readonly rollbackTo?: string;
+  /** Elapsed time in ms (on handoff_progress) */
+  readonly elapsedMs?: number;
+  /** Total timeout in ms (on handoff_progress) */
+  readonly timeoutMs?: number;
   /** Event timestamp */
   readonly timestamp: number;
   /** FIX BUG #31: Sequence number for ordering events and detecting out-of-order delivery */
@@ -379,10 +386,21 @@ export function isHandoffComplete(
 
 /**
  * Check if a handoff has failed (for recovery).
+ * Logs warning if rollbackTo is missing (for recovery info).
  */
-export function isHandoffFailed(data: unknown): data is HandoffEvent & { type: 'handoff_failed' } {
+export function isHandoffFailed(
+  data: unknown
+): data is HandoffEvent & { type: 'handoff_failed'; rollbackTo?: string } {
   if (!isHandoffMessage(data)) return false;
-  return data.type === 'handoff_failed';
+  if (data.type !== 'handoff_failed') return false;
+
+  // Log warning if rollbackTo missing (helpful for debugging)
+  const msg = data as unknown as Record<string, unknown>;
+  if (typeof msg['rollbackTo'] !== 'string') {
+    log.warn('handoff_failed missing rollbackTo field for UI recovery');
+  }
+
+  return true;
 }
 
 /**
@@ -393,6 +411,24 @@ export function isHandoffCancelled(
 ): data is HandoffEvent & { type: 'handoff_cancelled' } {
   if (!isHandoffMessage(data)) return false;
   return data.type === 'handoff_cancelled';
+}
+
+/**
+ * Check if this is a handoff progress heartbeat.
+ * Validates that elapsedMs and timeoutMs are present and are numbers.
+ */
+export function isHandoffProgress(
+  data: unknown
+): data is HandoffEvent & { type: 'handoff_progress'; elapsedMs: number; timeoutMs: number } {
+  if (!isHandoffMessage(data)) return false;
+  if (data.type !== 'handoff_progress') return false;
+
+  // Validate required numeric fields
+  const msg = data as unknown as Record<string, unknown>;
+  if (typeof msg['elapsedMs'] !== 'number') return false;
+  if (typeof msg['timeoutMs'] !== 'number') return false;
+
+  return true;
 }
 
 // ============================================================================

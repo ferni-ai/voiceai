@@ -125,11 +125,7 @@ const TERM_REFERENCE_TEMPLATES: Record<SharedTermType, string[]> = {
     'What you call your "{phrase}"',
     'Your "{phrase}" as you described it',
   ],
-  nickname: [
-    'How\'s "{phrase}"?',
-    'Has "{phrase}" come up lately?',
-    'Remember "{phrase}"?',
-  ],
+  nickname: ['How\'s "{phrase}"?', 'Has "{phrase}" come up lately?', 'Remember "{phrase}"?'],
   catchphrase: [
     '{phrase}', // Just use it naturally
     'To quote you—{phrase}',
@@ -141,7 +137,7 @@ const TERM_REFERENCE_TEMPLATES: Record<SharedTermType, string[]> = {
   ],
   inside_term: [
     '(Our old friend {phrase})',
-    '{phrase}, as we\'ve been calling it',
+    "{phrase}, as we've been calling it",
     'The {phrase} situation',
   ],
 };
@@ -314,13 +310,13 @@ export function findRelevantTerm(
     );
 
     // Also check if the current message touches on the term's meaning
-    const meaningRelevant =
-      context.currentMessage.toLowerCase().includes(term.meaning.toLowerCase().split(' ')[0]);
+    const meaningRelevant = context.currentMessage
+      .toLowerCase()
+      .includes(term.meaning.toLowerCase().split(' ')[0]);
 
     if (topicOverlap || meaningRelevant) {
       // Don't reference too often
-      const hoursSinceLastUse =
-        (Date.now() - term.lastUsed.getTime()) / (1000 * 60 * 60);
+      const hoursSinceLastUse = (Date.now() - term.lastUsed.getTime()) / (1000 * 60 * 60);
       if (hoursSinceLastUse < 24 && term.useCount > 3) {
         continue;
       }

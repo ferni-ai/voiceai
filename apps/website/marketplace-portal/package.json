@@ -1,0 +1,15 @@
+{
+  "name": "ferni-marketplace-portal",
+  "version": "1.0.0",
+  "description": "Ferni Marketplace - Browse and add personas to your team",
+  "scripts": {
+    "dev": "eleventy --serve --port=8082",
+    "build": "eleventy",
+    "build:prod": "eleventy && node scripts/minify.js",
+    "clean": "rm -rf _site"
+  },
+  "devDependencies": {
+    "@11ty/eleventy": "^2.0.1",
+    "@11ty/eleventy-plugin-syntaxhighlight": "^5.0.0"
+  }
+}
