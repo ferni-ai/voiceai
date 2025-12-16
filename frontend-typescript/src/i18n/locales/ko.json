@@ -127,8 +127,11 @@
     "goodbye": "안녕히 가세요",
     "end": "종료",
     "untilNextTime": "다음에 또 만나요...",
+    "takeCare": "잘 지내세요.",
+    "ending": "종료 중...",
     "endConversation": "대화 종료",
-    "endConversationGoodbye": "대화 종료 - 안녕히 가세요"
+    "endConversationGoodbye": "대화 종료 - 안녕히 가세요",
+    "agentEndingConversation": "에이전트가 대화를 종료합니다"
   },
   "subscription": {
     "free": "무료",

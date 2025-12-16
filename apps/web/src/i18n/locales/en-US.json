@@ -162,7 +162,8 @@
     "endConversation": "End conversation",
     "endConversationGoodbye": "End conversation - Goodbye",
     "takeCare": "Take care.",
-    "ending": "Ending..."
+    "ending": "Ending...",
+    "agentEndingConversation": "Agent ending conversation"
   },
 
   "subscription": {

@@ -376,20 +376,33 @@ This is YOUR boundary tool. You deserve to feel safe too.`,
           .optional()
           .describe('Brief internal note about what happened (not shared with user)'),
       }),
-      execute: async ({ reason, briefNote }) => {
+      execute: async ({ reason, briefNote }, { ctx }) => {
+        const userData = ctx.userData as UserData;
+        const userId = userData.services?.userId;
+        const sessionId = userData.services?.sessionId;
+        const personaId = userData.services?.personaId;
+
         getLogger().warn(`🛑 Agent-initiated graceful exit: ${reason}`, {
           reason,
           note: briefNote,
+          userId,
+          personaId,
         });
 
-        // 📊 Track this for safety monitoring (just logging for now)
-        // This can be expanded to Firestore/analytics later
-        getLogger().warn('🛑 SAFETY: Agent graceful exit triggered', {
-          type: 'agent_graceful_exit',
-          reason,
-          note: briefNote,
-          timestamp: new Date().toISOString(),
-        });
+        // 📊 Track in security events for pattern detection
+        try {
+          const { recordAgentGracefulExit } = await import('../services/security-events.js');
+          await recordAgentGracefulExit({
+            userId,
+            sessionId,
+            personaId,
+            reason,
+            briefNote,
+          });
+          getLogger().info('Recorded agent graceful exit in security events');
+        } catch (e) {
+          getLogger().debug(`Could not record security event: ${e}`);
+        }
 
         // 🌅 Signal the frontend to disconnect with the special "agent_exit" reason
         // This triggers a different sound/animation - like hanging up the phone

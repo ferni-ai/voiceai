@@ -127,8 +127,11 @@
     "goodbye": "さようなら",
     "end": "終了",
     "untilNextTime": "また次回...",
+    "takeCare": "お気をつけて。",
+    "ending": "終了中...",
     "endConversation": "会話を終了",
-    "endConversationGoodbye": "会話を終了 - さようなら"
+    "endConversationGoodbye": "会話を終了 - さようなら",
+    "agentEndingConversation": "エージェントが会話を終了しています"
   },
   "subscription": {
     "free": "無料",

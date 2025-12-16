@@ -128,8 +128,11 @@
     "goodbye": "Goodbye",
     "end": "End",
     "untilNextTime": "Until next time...",
+    "takeCare": "Take care.",
+    "ending": "Ending...",
     "endConversation": "End conversation",
-    "endConversationGoodbye": "End conversation - Goodbye"
+    "endConversationGoodbye": "End conversation - Goodbye",
+    "agentEndingConversation": "Agent ending conversation"
   },
   "subscription": {
     "free": "Free",

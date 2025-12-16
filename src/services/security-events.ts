@@ -61,7 +61,9 @@ export type SecurityEventType =
   // Voice
   | 'voice_mismatch'
   | 'voice_enrolled'
-  | 'voice_verification_failed';
+  | 'voice_verification_failed'
+  // Agent safety
+  | 'agent_graceful_exit';
 
 /**
  * Severity levels
@@ -864,6 +866,66 @@ export function getRecentEvents(
 }
 
 // ============================================================================
+// AGENT SAFETY EVENTS
+// ============================================================================
+
+/**
+ * Agent graceful exit reasons (for pattern tracking)
+ */
+export type AgentExitReason =
+  | 'uncomfortable'
+  | 'boundary_crossed'
+  | 'inappropriate_content'
+  | 'harassment'
+  | 'unproductive'
+  | 'safety_concern';
+
+/**
+ * Record an agent-initiated graceful exit event.
+ *
+ * This tracks when agents choose to end conversations due to
+ * discomfort, boundary violations, or safety concerns.
+ * Used for:
+ * - Pattern detection (same user triggering multiple exits)
+ * - Safety monitoring
+ * - Quality improvement
+ */
+export async function recordAgentGracefulExit(params: {
+  userId?: string;
+  sessionId?: string;
+  personaId?: string;
+  reason: AgentExitReason;
+  briefNote?: string;
+}): Promise<SecurityEvent> {
+  const { userId, sessionId, personaId, reason, briefNote } = params;
+
+  // Determine severity based on reason
+  const severityMap: Record<AgentExitReason, SecuritySeverity> = {
+    harassment: 'high',
+    safety_concern: 'high',
+    inappropriate_content: 'medium',
+    boundary_crossed: 'medium',
+    uncomfortable: 'low',
+    unproductive: 'low',
+  };
+
+  return recordSecurityEvent({
+    type: 'agent_graceful_exit',
+    actorId: userId,
+    actorType: 'user',
+    action: `Agent initiated graceful exit: ${reason}`,
+    outcome: 'warning',
+    details: {
+      reason,
+      personaId,
+      briefNote: briefNote ? '[redacted]' : undefined, // Don't log actual note
+      timestamp: new Date().toISOString(),
+    },
+    sessionId,
+  });
+}
+
+// ============================================================================
 // INITIALIZATION & CLEANUP
 // ============================================================================
 
@@ -910,6 +972,7 @@ registerInterval('security-events-cleanup', cleanupSecurityData, 5 * 60 * 1000);
 
 export default {
   recordSecurityEvent,
+  recordAgentGracefulExit,
   trackFailedAuth,
   clearFailedAuth,
   isLockedOut,

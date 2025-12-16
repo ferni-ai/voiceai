@@ -127,8 +127,11 @@
     "goodbye": "Adiós",
     "end": "Terminar",
     "untilNextTime": "Hasta la próxima...",
+    "takeCare": "Cuídate.",
+    "ending": "Terminando...",
     "endConversation": "Terminar conversación",
-    "endConversationGoodbye": "Terminar conversación - Adiós"
+    "endConversationGoodbye": "Terminar conversación - Adiós",
+    "agentEndingConversation": "El agente está terminando la conversación"
   },
   "subscription": {
     "free": "Gratis",

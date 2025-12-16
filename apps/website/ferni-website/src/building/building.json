@@ -1,0 +1,9 @@
+{
+  "layout": "layouts/blog-post.njk",
+  "tags": "buildStories",
+  "permalink": "/building/{{ page.fileSlug }}/",
+  "eleventyComputed": {
+    "ogImage": "{{ '/images/building/' + (image or 'building-og.jpg') }}"
+  }
+}
+

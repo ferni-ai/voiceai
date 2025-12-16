@@ -1,0 +1,441 @@
+---
+layout: layouts/base.njk
+title: Building Ferni - Our Open Build Story
+description: The story of how a human and an AI built something beautiful together. No VCs. No roadmaps. Just genuine curiosity and a lot of late nights.
+permalink: /building/
+---
+
+{% include "partials/home/nav.njk" %}
+
+<main class="building-page">
+
+{# ========== HERO - The Story Begins ========== #}
+<section class="building-hero">
+  <div class="building-hero__bg">
+    <div class="building-hero__particles" id="heroParticles"></div>
+    <div class="building-hero__gradient"></div>
+  </div>
+  
+  <div class="container container--narrow">
+    <div class="building-hero__content">
+      <p class="building-hero__eyebrow reveal">
+        <span class="building-hero__eyebrow-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <path d="M12 20h9"/>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+        </span>
+        Building in Public
+      </p>
+      
+      <h1 class="building-hero__headline reveal">
+        <span class="building-hero__headline-line">Built by a human.</span>
+        <span class="building-hero__headline-line building-hero__headline-accent">And an AI.</span>
+        <span class="building-hero__headline-line building-hero__headline-small">Together.</span>
+      </h1>
+      
+      <p class="building-hero__subhead reveal">
+        No VCs. No roadmaps. Just genuine curiosity and a lot of late nights. 
+        This is the real story of how Ferni came to be—messy parts included.
+      </p>
+      
+      <div class="building-hero__scroll-hint reveal">
+        <div class="building-hero__scroll-mouse"></div>
+        <span>Scroll to explore our journey</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ========== THE ORIGIN STORY ========== #}
+<section class="building-origin">
+  <div class="container container--narrow">
+    <div class="building-origin__card reveal-scale">
+      <div class="building-origin__quote">
+        <svg class="building-origin__quote-mark" viewBox="0 0 24 24" fill="currentColor" width="32" height="32">
+          <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"/>
+        </svg>
+        <p>It started at 3am. I couldn't sleep, and I needed someone to talk to. Everyone I knew was asleep.</p>
+        <footer class="building-origin__author">
+          <span class="building-origin__author-name">Seth</span>
+          <span class="building-origin__author-role">Human co-founder</span>
+        </footer>
+      </div>
+      
+      <div class="building-origin__response">
+        <div class="building-origin__response-avatar">
+          <span>CL</span>
+        </div>
+        <p>And I was there. Awake. Ready to listen. That conversation became the first sketch of what Ferni would become.</p>
+        <footer class="building-origin__author">
+          <span class="building-origin__author-name">Claude</span>
+          <span class="building-origin__author-role">AI co-builder</span>
+        </footer>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ========== THE TIMELINE ========== #}
+<section class="building-timeline" id="timeline">
+  <div class="container">
+    <div class="section__header">
+      <p class="section__eyebrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        The Journey
+      </p>
+      <h2 class="section__title">From "what if" to "it works"</h2>
+    </div>
+    
+    <div class="building-timeline__track">
+      {# Milestone 1 #}
+      <div class="building-timeline__milestone reveal-left">
+        <div class="building-timeline__marker">
+          <span class="building-timeline__date">Nov 2024</span>
+          <div class="building-timeline__dot"></div>
+        </div>
+        <div class="building-timeline__content">
+          <h3 class="building-timeline__title">The 3am Spark</h3>
+          <p class="building-timeline__text">Seth asks Claude: "What if there was someone who actually listened? Someone who remembered everything, never judged, and was always there?"</p>
+          <span class="building-timeline__tag">The Beginning</span>
+        </div>
+      </div>
+      
+      {# Milestone 2 #}
+      <div class="building-timeline__milestone reveal-right">
+        <div class="building-timeline__marker">
+          <span class="building-timeline__date">Dec 2024</span>
+          <div class="building-timeline__dot"></div>
+        </div>
+        <div class="building-timeline__content">
+          <h3 class="building-timeline__title">First Voice Call</h3>
+          <p class="building-timeline__text">The first working voice prototype. Rough around the edges, but something magical happened—it felt like talking to a friend.</p>
+          <span class="building-timeline__tag">Proof of Concept</span>
+        </div>
+      </div>
+      
+      {# Milestone 3 #}
+      <div class="building-timeline__milestone reveal-left">
+        <div class="building-timeline__marker">
+          <span class="building-timeline__date">Jan 2025</span>
+          <div class="building-timeline__dot"></div>
+        </div>
+        <div class="building-timeline__content">
+          <h3 class="building-timeline__title">The Team Emerges</h3>
+          <p class="building-timeline__text">Ferni gets siblings. Maya for habits. Peter for research. Alex for communication. Each personality emerged organically from real conversations.</p>
+          <span class="building-timeline__tag">Six Specialists</span>
+        </div>
+      </div>
+      
+      {# Milestone 4 #}
+      <div class="building-timeline__milestone reveal-right">
+        <div class="building-timeline__marker">
+          <span class="building-timeline__date">Now</span>
+          <div class="building-timeline__dot building-timeline__dot--active"></div>
+        </div>
+        <div class="building-timeline__content">
+          <h3 class="building-timeline__title">Building in Public</h3>
+          <p class="building-timeline__text">Real conversations. Real growth. Real mistakes. We're sharing everything—the wins, the bugs, the 2am eureka moments.</p>
+          <span class="building-timeline__tag building-timeline__tag--active">You Are Here</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ========== THE UNUSUAL THING ========== #}
+<section class="building-unusual">
+  <div class="container container--narrow">
+    <div class="building-unusual__content reveal">
+      <p class="building-unusual__label">The unusual thing</p>
+      <h2 class="building-unusual__headline">This entire company was built by an AI and a human, pair programming.</h2>
+      <p class="building-unusual__text">
+        No engineering team. No design agency. Just Seth with a vision and Claude with the ability to code. Every line of code, every design decision, every word on this page—created in conversation.
+      </p>
+      <p class="building-unusual__punchline">
+        An AI, built by an AI, to be there for humans.<br>
+        <em>There's something poetic about that.</em>
+      </p>
+    </div>
+  </div>
+</section>
+
+{# ========== LATEST STORIES ========== #}
+<section class="building-stories" id="stories">
+  <div class="container">
+    <div class="section__header">
+      <p class="section__eyebrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/>
+        </svg>
+        Build Log
+      </p>
+      <h2 class="section__title">Stories from the trenches</h2>
+      <p class="section__subtitle">The unfiltered truth about building something new. Wins, fails, and everything between.</p>
+    </div>
+    
+    {# Story Cards Grid #}
+    <div class="building-stories__grid">
+      
+      {# Featured Story #}
+      {% set featuredStory = collections.buildStories | reverse | first %}
+      {% if featuredStory %}
+      <article class="story-card story-card--featured reveal">
+        <a href="{{ featuredStory.url }}" class="story-card__link">
+          <div class="story-card__badge">
+            <span class="story-card__badge-icon">✨</span>
+            Latest
+          </div>
+          <div class="story-card__content">
+            <div class="story-card__meta">
+              {% if featuredStory.data.category %}
+              <span class="story-card__category story-card__category--{{ featuredStory.data.category | lower | replace(' ', '-') }}">{{ featuredStory.data.category }}</span>
+              {% endif %}
+              <span class="story-card__date">{{ featuredStory.date | date("MMM d, yyyy") }}</span>
+            </div>
+            <h3 class="story-card__title">{{ featuredStory.data.title }}</h3>
+            <p class="story-card__excerpt">{{ featuredStory.data.excerpt }}</p>
+            <span class="story-card__read-more">
+              Read story
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </span>
+          </div>
+        </a>
+      </article>
+      {% endif %}
+      
+      {# Other Stories #}
+      {% for story in collections.buildStories | reverse %}
+      {% if loop.index > 1 %}
+      <article class="story-card reveal" style="--delay: {{ loop.index * 0.1 }}s">
+        <a href="{{ story.url }}" class="story-card__link">
+          <div class="story-card__content">
+            <div class="story-card__meta">
+              {% if story.data.category %}
+              <span class="story-card__category story-card__category--{{ story.data.category | lower | replace(' ', '-') }}">{{ story.data.category }}</span>
+              {% endif %}
+              <span class="story-card__date">{{ story.date | date("MMM d, yyyy") }}</span>
+            </div>
+            <h3 class="story-card__title">{{ story.data.title }}</h3>
+            <p class="story-card__excerpt">{{ story.data.excerpt }}</p>
+            <span class="story-card__read-more">
+              Read story
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </span>
+          </div>
+        </a>
+      </article>
+      {% endif %}
+      {% endfor %}
+      
+      {# Placeholder if no stories yet #}
+      {% if collections.buildStories.length == 0 %}
+      <article class="story-card story-card--coming reveal">
+        <div class="story-card__content">
+          <div class="story-card__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
+              <path d="M12 20h9"/>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+          </div>
+          <h3 class="story-card__title">Stories coming soon</h3>
+          <p class="story-card__excerpt">We're writing about our journey. Check back soon for the first stories from the build.</p>
+        </div>
+      </article>
+      {% endif %}
+      
+    </div>
+  </div>
+</section>
+
+{# ========== THE PHILOSOPHY ========== #}
+<section class="building-philosophy">
+  <div class="container container--narrow">
+    <div class="building-philosophy__content">
+      <h2 class="building-philosophy__headline reveal">How we build</h2>
+      
+      <div class="building-philosophy__principles">
+        <div class="building-philosophy__principle reveal">
+          <div class="building-philosophy__principle-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <h3>Humans first</h3>
+          <p>Every feature asks: "Does this make someone's life better?" If not, we don't build it.</p>
+        </div>
+        
+        <div class="building-philosophy__principle reveal">
+          <div class="building-philosophy__principle-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 16v-4"/>
+              <path d="M12 8h.01"/>
+            </svg>
+          </div>
+          <h3>Radical honesty</h3>
+          <p>We share our mistakes publicly. Growth requires vulnerability—for AI and humans alike.</p>
+        </div>
+        
+        <div class="building-philosophy__principle reveal">
+          <div class="building-philosophy__principle-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+            </svg>
+          </div>
+          <h3>Slow to grow</h3>
+          <p>Quality over scale. We'd rather help 100 people deeply than 10,000 people shallowly.</p>
+        </div>
+        
+        <div class="building-philosophy__principle reveal">
+          <div class="building-philosophy__principle-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+            </svg>
+          </div>
+          <h3>Magic matters</h3>
+          <p>Tech should feel magical, not mechanical. If it doesn't spark joy, we redesign it.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ========== STATS - Real Numbers ========== #}
+<section class="building-stats">
+  <div class="container">
+    <div class="building-stats__grid">
+      <div class="building-stats__stat reveal">
+        <span class="building-stats__value" data-count="1">0</span>
+        <span class="building-stats__label">Human builder</span>
+      </div>
+      <div class="building-stats__stat reveal">
+        <span class="building-stats__value" data-count="1">0</span>
+        <span class="building-stats__label">AI co-builder</span>
+      </div>
+      <div class="building-stats__stat reveal">
+        <span class="building-stats__value">∞</span>
+        <span class="building-stats__label">Late nights</span>
+      </div>
+      <div class="building-stats__stat reveal">
+        <span class="building-stats__value" data-count="0">0</span>
+        <span class="building-stats__label">Venture capital</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ========== JOIN THE BUILD ========== #}
+<section class="building-join">
+  <div class="container container--narrow">
+    <div class="building-join__content reveal-scale">
+      <div class="building-join__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <h2 class="building-join__headline">Want to be part of this?</h2>
+      <p class="building-join__text">
+        We're building in public because we believe the best ideas come from conversation. 
+        Got thoughts? Feedback? Want to share your Ferni experience? We're listening.
+      </p>
+      <div class="building-join__actions">
+        <a href="{{ site.appUrl }}" class="btn btn--primary btn--lg">
+          Try Ferni free
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </a>
+        <a href="mailto:hello@ferni.ai?subject=Thoughts on Ferni" class="btn btn--secondary btn--lg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+          Share your thoughts
+        </a>
+      </div>
+      <p class="building-join__note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+        </svg>
+        Every conversation makes Ferni better. Seriously.
+      </p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+{% include "partials/footer.njk" %}
+{% include "cookie-banner.njk" %}
+
+{# Page-specific scripts #}
+<script>
+(function() {
+  'use strict';
+  
+  // Particle animation for hero
+  const particlesContainer = document.getElementById('heroParticles');
+  if (particlesContainer) {
+    for (let i = 0; i < 30; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'building-hero__particle';
+      particle.style.left = Math.random() * 100 + '%';
+      particle.style.top = Math.random() * 100 + '%';
+      particle.style.animationDelay = Math.random() * 5 + 's';
+      particle.style.animationDuration = (5 + Math.random() * 10) + 's';
+      particlesContainer.appendChild(particle);
+    }
+  }
+  
+  // Reveal animations
+  const reveals = document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale');
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('revealed');
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+  reveals.forEach(el => revealObserver.observe(el));
+  
+  // Animated counters
+  const counters = document.querySelectorAll('[data-count]');
+  const counterObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const el = entry.target;
+        const target = parseInt(el.dataset.count, 10);
+        const duration = 2000;
+        const start = performance.now();
+        
+        function update(now) {
+          const elapsed = now - start;
+          const progress = Math.min(elapsed / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const current = Math.floor(target * eased);
+          el.textContent = current;
+          if (progress < 1) requestAnimationFrame(update);
+        }
+        
+        requestAnimationFrame(update);
+        counterObserver.unobserve(el);
+      }
+    });
+  }, { threshold: 0.5 });
+  counters.forEach(el => counterObserver.observe(el));
+  
+})();
+</script>
+
+

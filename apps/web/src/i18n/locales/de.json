@@ -128,8 +128,11 @@
     "goodbye": "Auf Wiedersehen",
     "end": "Beenden",
     "untilNextTime": "Bis zum nächsten Mal...",
+    "takeCare": "Pass auf dich auf.",
+    "ending": "Beenden...",
     "endConversation": "Gespräch beenden",
-    "endConversationGoodbye": "Gespräch beenden - Auf Wiedersehen"
+    "endConversationGoodbye": "Gespräch beenden - Auf Wiedersehen",
+    "agentEndingConversation": "Agent beendet das Gespräch"
   },
   "subscription": {
     "free": "Kostenlos",

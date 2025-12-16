@@ -128,8 +128,11 @@
     "goodbye": "مع السلامة",
     "end": "إنهاء",
     "untilNextTime": "إلى اللقاء...",
+    "takeCare": "اعتنِ بنفسك.",
+    "ending": "جارٍ الإنهاء...",
     "endConversation": "إنهاء المحادثة",
-    "endConversationGoodbye": "إنهاء المحادثة - مع السلامة"
+    "endConversationGoodbye": "إنهاء المحادثة - مع السلامة",
+    "agentEndingConversation": "المساعد ينهي المحادثة"
   },
   "subscription": {
     "free": "مجاني",

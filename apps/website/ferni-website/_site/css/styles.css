@@ -13,6 +13,9 @@
 /* Hero Story Experience - Cinematic Demo */
 @import './hero-story.css';
 
+/* Building Ferni Story Page */
+@import './building-page.css';
+
 :root {
   /* Aliases that map to design tokens */
   --color-bg: var(--color-bg-primary);

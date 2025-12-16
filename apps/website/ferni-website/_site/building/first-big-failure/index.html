@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Our First Big Failure: The &quot;Smart&quot; Features Nobody Wanted | Ferni</title>
+<meta name="description" content="Your personal AI life coach">
+
+<!-- Canonical URL -->
+<link rel="canonical" href="https://ferni.ai/building/first-big-failure/">
+
+<!-- Hreflang Tags for International SEO -->
+
+
+<link rel="alternate" hreflang="en" href="https://ferni.ai/building/first-big-failure/">
+<link rel="alternate" hreflang="x-default" href="https://ferni.ai/building/first-big-failure/">
+
+
+
+<link rel="alternate" hreflang="en-GB" href="https://ferni.ai/en-GB/building/first-big-failure/">
+
+
+
+<link rel="alternate" hreflang="es" href="https://ferni.ai/es/building/first-big-failure/">
+
+
+
+<link rel="alternate" hreflang="fr" href="https://ferni.ai/fr/building/first-big-failure/">
+
+
+
+<link rel="alternate" hreflang="de" href="https://ferni.ai/de/building/first-big-failure/">
+
+
+
+<link rel="alternate" hreflang="ja" href="https://ferni.ai/ja/building/first-big-failure/">
+
+
+
+<link rel="alternate" hreflang="ko" href="https://ferni.ai/ko/building/first-big-failure/">
+
+
+
+<link rel="alternate" hreflang="zh-Hans" href="https://ferni.ai/zh-Hans/building/first-big-failure/">
+
+
+
+<link rel="alternate" hreflang="zh-Hant" href="https://ferni.ai/zh-Hant/building/first-big-failure/">
+
+
+
+<link rel="alternate" hreflang="ar" href="https://ferni.ai/ar/building/first-big-failure/">
+
+
+
+<link rel="alternate" hreflang="he" href="https://ferni.ai/he/building/first-big-failure/">
+
+
+
+<!-- Open Graph -->
+<meta property="og:title" content="Our First Big Failure: The &quot;Smart&quot; Features Nobody Wanted">
+<meta property="og:description" content="Your personal AI life coach">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ferni.ai/building/first-big-failure/">
+<meta property="og:site_name" content="Ferni">
+<meta property="og:locale" content="en">
+
+<meta property="og:image" content="https://ferni.ai/images/building/building-og.jpg">
+
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@ferniAI">
+<meta name="twitter:title" content="Our First Big Failure: The &quot;Smart&quot; Features Nobody Wanted">
+<meta name="twitter:description" content="Your personal AI life coach">
+
+<meta name="twitter:image" content="https://ferni.ai/images/building/building-og.jpg">
+
+
+<!-- Additional SEO -->
+<meta name="robots" content="index, follow">
+<meta name="author" content="Ferni">
+<meta name="theme-color" content="#4a6741">
+<link rel="manifest" href="/manifest.json">
+
+<!-- Favicon - Animated Breathing Eye Stone -->
+<link rel="icon" type="image/svg+xml" href="/images/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+<link rel="apple-touch-icon" href="/images/apple-touch-icon.png">
+
+<!-- Fonts - Preconnect and optimized loading -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</noscript>
+
+<!-- Design Tokens -->
+<link rel="stylesheet" href="/css/design-tokens.css">
+
+<!-- Google Analytics (graceful failure) -->
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){try{dataLayer.push(arguments)}catch(e){}}
+  gtag('js', new Date());
+  gtag('config', 'G-2JXL8SQPF2', { 'send_page_view': true });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-2JXL8SQPF2" 
+        onerror="console.log('Analytics blocked')"></script>
+
+  
+  <!-- Main Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+  
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Ferni",
+    "url": "https://ferni.ai",
+    "logo": "https://ferni.ai/images/logo.png",
+    "description": "AI life coaching that remembers your whole story. Six specialists, one conversation.",
+    "telephone": "+1-484-481-3081",
+    "sameAs": [
+      "https://twitter.com/ferniAI"
+    ]
+  }
+  </script>
+  
+  
+  
+</head>
+<body>
+  <!-- Skip Link for Accessibility -->
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-ferni focus:text-white focus:rounded-lg focus:shadow-lg">
+    Skip to main content
+  </a>
+  
+  
+  <header class="header">
+  <div class="container header-inner">
+    <a href="/" class="logo">
+      <span class="font-display font-bold text-xl">Ferni</span>
+      
+    </a>
+    <nav class="nav">
+      
+        
+        
+        <a href="/#features" >
+          Features
+        </a>
+        
+        <a href="/team/" >
+          Team
+        </a>
+        
+        <a href="/building/" >
+          Building
+        </a>
+        
+        <a href="/about/" >
+          About
+        </a>
+        
+        <a href="/#faq" >
+          FAQ
+        </a>
+        
+      
+    </nav>
+  </div>
+</header>
+
+
+  
+  
+  <main id="main-content" role="main" tabindex="-1">
+    
+<nav class="nav" id="nav">
+  <div class="container">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">
+        Ferni
+      </a>
+      <ul class="nav-links" id="navLinks">
+        
+        <li><a href="/#features" class="nav-link">Features</a></li>
+        
+        <li><a href="/team/" class="nav-link">Team</a></li>
+        
+        <li><a href="/building/" class="nav-link">Building</a></li>
+        
+        <li><a href="/about/" class="nav-link">About</a></li>
+        
+        <li><a href="/#faq" class="nav-link">FAQ</a></li>
+        
+      </ul>
+      <div class="nav-actions">
+        <a
+          href="https://app.ferni.ai?utm_source=ferni_website&utm_medium=web&utm_campaign=homepage"
+          class="btn btn-primary nav-cta"
+          onclick="trackEvent('CTA', 'click', 'nav-get-started')"
+        >Get Started</a>
+        <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="mobile-menu" id="mobileMenu">
+    <div class="mobile-menu-inner">
+      
+      <a href="/#features" class="mobile-link">Features</a>
+      
+      <a href="/team/" class="mobile-link">Team</a>
+      
+      <a href="/building/" class="mobile-link">Building</a>
+      
+      <a href="/about/" class="mobile-link">About</a>
+      
+      <a href="/#faq" class="mobile-link">FAQ</a>
+      
+      <div class="mobile-menu-cta">
+        <a
+          href="https://app.ferni.ai?utm_source=ferni_website&utm_medium=web&utm_campaign=homepage"
+          class="btn btn-primary"
+          onclick="trackEvent('CTA', 'click', 'mobile-get-started')"
+        >Get Started Free</a>
+        <a href="tel:+14844813081" class="btn btn-ghost">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+          Call 1 (484) 481-3081
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+
+<article class="blog-post">
+  <header class="blog-post__header">
+    <div class="container container-narrow">
+      <a href="/blog/" class="blog-post__back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Back to Blog
+      </a>
+      
+      
+      <span class="blog-post__category">Failures</span>
+      
+      
+      <h1 class="blog-post__title">Our First Big Failure: The &quot;Smart&quot; Features Nobody Wanted</h1>
+      
+      <div class="blog-post__meta">
+        
+        <div class="blog-post__author">
+          <div class="blog-post__author-avatar" style="background: #c4856a">
+            SF
+          </div>
+          <div class="blog-post__author-info">
+            <span class="blog-post__author-name">Seth</span>
+            <span class="blog-post__date">January 11, 2025</span>
+          </div>
+        </div>
+        
+        
+        
+        <span class="blog-post__read-time">4 min read</span>
+        
+      </div>
+    </div>
+  </header>
+  
+  
+  
+  <div class="blog-post__content">
+    <div class="container container-narrow">
+      <p>Let me tell you about the time we built something &quot;genius&quot; and it completely flopped.</p>
+<h2>The Feature We Were So Proud Of</h2>
+<p>In early January, we shipped what we called <strong>&quot;Predictive Prompts.&quot;</strong></p>
+<p>The idea was clever: Ferni would analyze your conversation patterns and proactively suggest topics to discuss. Feeling stressed on Sundays? We'd detect that and offer to talk about your week ahead. Mentioned your mom being sick three times? We'd gently bring it up.</p>
+<p>On paper, it was brilliant. &quot;AI that anticipates your needs!&quot;</p>
+<p>We were so proud.</p>
+<h2>What Actually Happened</h2>
+<p>Within a week, we got feedback like:</p>
+<blockquote>
+<p>&quot;It feels like Ferni is reading my diary.&quot;</p>
+</blockquote>
+<blockquote>
+<p>&quot;I mentioned my divorce ONCE and now it keeps bringing it up. Please make it stop.&quot;</p>
+</blockquote>
+<blockquote>
+<p>&quot;This feels less like a friend and more like a stalker with a great memory.&quot;</p>
+</blockquote>
+<p>Ouch.</p>
+<h2>Where We Went Wrong</h2>
+<p>We confused <strong>being helpful</strong> with <strong>being intrusive.</strong></p>
+<p>Here's the thing: when a human friend brings up something from your past, there's social context. They read the room. They sense whether you're open to that conversation.</p>
+<p>Our &quot;smart&quot; feature had no such sense. It just... brought stuff up. Regardless of whether you wanted to go there.</p>
+<p><strong>Lesson learned: Memory isn't enough. You need emotional intelligence about <em>when</em> to use it.</strong></p>
+<h2>The Fix</h2>
+<p>We didn't remove the feature entirely. We changed how it works:</p>
+<ol>
+<li>
+<p><strong>Ferni now asks permission.</strong> &quot;I remember you mentioned X. Want to talk about that, or is today about something else?&quot;</p>
+</li>
+<li>
+<p><strong>Users control callback frequency.</strong> Some people <em>want</em> Ferni to bring up past topics. Others don't. Now it's their choice.</p>
+</li>
+<li>
+<p><strong>We added &quot;Please don't mention this again.&quot;</strong> If something's painful and you've processed it, you can tell Ferni to let it go.</p>
+</li>
+</ol>
+<h2>The Deeper Lesson</h2>
+<p>This failure taught us something crucial about building AI companions:</p>
+<p><strong>The goal isn't to be impressive. It's to be helpful.</strong></p>
+<p>Predictive prompts were impressive. They showed off our tech. They made demos look cool.</p>
+<p>But they didn't make users feel <em>cared for</em>. They made users feel watched.</p>
+<p>Now, every feature we build passes one test: <strong>&quot;Does this serve the relationship, or just show off?&quot;</strong></p>
+<p>If it's the latter, we cut it.</p>
+<h2>What We're Doing Differently</h2>
+<p>Since &quot;Predictive Prompts,&quot; we've adopted a new rule: <strong>Ship shy, then listen.</strong></p>
+<p>Instead of building elaborate features and releasing them fully-formed, we:</p>
+<ol>
+<li>Build the simplest possible version</li>
+<li>Release it quietly</li>
+<li>Watch what users actually do</li>
+<li>Iterate based on behavior, not assumptions</li>
+</ol>
+<p>It's slower. It's less dramatic. But it means we fail smaller and learn faster.</p>
+<h2>Why We're Sharing This</h2>
+<p>Most companies hide their failures. They show you the polished version and pretend the messy parts never happened.</p>
+<p>We're not doing that.</p>
+<p>Ferni is about honesty. About being real. If we expect users to share their messy stuff with us, the least we can do is share ours.</p>
+<p>So: we messed up. We made something intrusive. We learned. We fixed it.</p>
+<p>And now we're better.</p>
+<hr>
+<p><em>This is part of our ongoing &quot;Building Ferni&quot; series. Next: <a href="/building/designing-the-personas/">How We Designed the Six Personas</a>—the story of how Maya, Peter, Alex, Jordan, and Nayan came to be.</em></p>
+
+    </div>
+  </div>
+  
+  <footer class="blog-post__footer">
+    <div class="container container-narrow">
+      <div class="blog-post__share">
+        <span class="blog-post__share-label">Share this article</span>
+        <div class="blog-post__share-buttons">
+          <a href="https://twitter.com/intent/tweet?text=Our%20First%20Big%20Failure%3A%20The%20%22Smart%22%20Features%20Nobody%20Wanted&url=https://ferni.ai/building/first-big-failure/" 
+             target="_blank" rel="noopener" class="blog-post__share-btn" aria-label="Share on Twitter">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </a>
+          <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://ferni.ai/building/first-big-failure/" 
+             target="_blank" rel="noopener" class="blog-post__share-btn" aria-label="Share on LinkedIn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+      
+      <div class="blog-post__cta">
+        <h3>Ready to try Ferni?</h3>
+        <p>Start a conversation with your AI life coach today. It's free.</p>
+        <a href="https://app.ferni.ai?utm_source=blog&utm_medium=web&utm_campaign=first-big-failure" class="btn btn-primary">Start Free</a>
+      </div>
+    </div>
+  </footer>
+</article>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="/" class="footer-logo">
+          <span class="footer-logo-icon">FE</span>
+          Ferni
+        </a>
+        <p class="footer-tagline">Your personal AI life coach.</p>
+
+        
+        <div class="footer-social">
+          <a href="https://twitter.com/ferniAI" class="social-link" aria-label="X (Twitter)" target="_blank" rel="noopener">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+          </a>
+          <a href="https://linkedin.com/company/ferni" class="social-link" aria-label="LinkedIn" target="_blank" rel="noopener">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+            </svg>
+          </a>
+          <a href="https://instagram.com/ferni.ai" class="social-link" aria-label="Instagram" target="_blank" rel="noopener">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+            </svg>
+          </a>
+          <a href="https://tiktok.com/@ferni.ai" class="social-link" aria-label="TikTok" target="_blank" rel="noopener">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+            </svg>
+          </a>
+          <a href="https://youtube.com/@ferniAI" class="social-link" aria-label="YouTube" target="_blank" rel="noopener">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="footer-links">
+        <div class="footer-column">
+          <h4>Product</h4>
+          
+          <a href="/#features">Features</a>
+          
+          <a href="/team/">Meet the Team</a>
+          
+          <a href="/building/">Building Ferni</a>
+          
+          <a href="/use-cases/">Use Cases</a>
+          
+          <a href="/pricing/">Pricing</a>
+          
+          <a href="/blog/">Blog</a>
+          
+        </div>
+        <div class="footer-column">
+          <h4>Connect</h4>
+          
+          <a href="https://app.ferni.ai">Web App</a>
+          
+          <a href="tel:+14844813081">Call Ferni</a>
+          
+          <a href="/#faq">FAQ</a>
+          
+        </div>
+        <div class="footer-column">
+          <h4>Legal</h4>
+          
+          <a href="/privacy/">Privacy Policy</a>
+          
+          <a href="/terms/">Terms of Service</a>
+          
+          <a href="/cookies/">Cookie Policy</a>
+          
+          <a href="/accessibility/">Accessibility</a>
+          
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© 2025 Ferni. All rights reserved.</p>
+      <p class="footer-made">Made with ♥ by AI, for humans.</p>
+    </div>
+  </div>
+</footer>
+
+<!-- Cookie Consent Banner -->
+<div id="cookieBanner" class="cookie-banner" role="dialog" aria-label="Cookie consent" aria-describedby="cookie-desc">
+  <div class="cookie-banner__container">
+    <div class="cookie-banner__content">
+      <p class="cookie-banner__title">We value your privacy</p>
+      <p class="cookie-banner__text" id="cookie-desc">
+        We use cookies to enhance your experience and analyze site traffic. 
+        <a href="/cookies">Learn more</a>
+      </p>
+    </div>
+    <div class="cookie-banner__actions">
+      <button id="cookieSettings" class="cookie-banner__btn cookie-banner__btn--settings">
+        Customize
+      </button>
+      <button id="cookieAccept" class="cookie-banner__btn cookie-banner__btn--accept">
+        Accept All
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Cookie Settings Modal -->
+<div id="cookieSettingsModal" class="cookie-settings-modal" role="dialog" aria-modal="true" aria-labelledby="cookie-settings-title">
+  <div class="cookie-settings__card">
+    <h2 id="cookie-settings-title" class="cookie-settings__title">Cookie Preferences</h2>
+    
+    <div class="cookie-settings__group">
+      <div class="cookie-settings__group-header">
+        <span class="cookie-settings__group-title">Essential Cookies</span>
+        <label class="cookie-toggle">
+          <input type="checkbox" checked disabled>
+          <span class="cookie-toggle__slider"></span>
+        </label>
+      </div>
+      <p class="cookie-settings__group-desc">Required for the website to function. Cannot be disabled.</p>
+    </div>
+    
+    <div class="cookie-settings__group">
+      <div class="cookie-settings__group-header">
+        <span class="cookie-settings__group-title">Analytics Cookies</span>
+        <label class="cookie-toggle">
+          <input type="checkbox" id="analyticsCookies" checked>
+          <span class="cookie-toggle__slider"></span>
+        </label>
+      </div>
+      <p class="cookie-settings__group-desc">Help us understand how visitors interact with our website.</p>
+    </div>
+    
+    <div class="cookie-settings__group">
+      <div class="cookie-settings__group-header">
+        <span class="cookie-settings__group-title">Functional Cookies</span>
+        <label class="cookie-toggle">
+          <input type="checkbox" id="functionalCookies" checked>
+          <span class="cookie-toggle__slider"></span>
+        </label>
+      </div>
+      <p class="cookie-settings__group-desc">Remember your preferences and settings.</p>
+    </div>
+    
+    <div class="cookie-banner__actions" style="margin-top: 1.5rem; justify-content: flex-end;">
+      <button id="cookieSettingsCancel" class="cookie-banner__btn cookie-banner__btn--settings">
+        Cancel
+      </button>
+      <button id="cookieSettingsSave" class="cookie-banner__btn cookie-banner__btn--accept">
+        Save Preferences
+      </button>
+    </div>
+  </div>
+</div>
+
+
+
+<script src="/js/main.js"></script>
+
+
+  </main>
+  
+  
+  <footer class="footer">
+  <div class="container">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <a href="/" class="footer-logo">
+          <span class="logo-text font-display font-bold text-xl">Ferni</span>
+        </a>
+        <p class="footer-tagline">Your personal AI life coach.</p>
+      </div>
+      
+      <div class="footer-links">
+        <div class="footer-column">
+          <h4>Product</h4>
+          
+          <a href="/#features">Features</a>
+          
+          <a href="/team/">Meet the Team</a>
+          
+          <a href="/building/">Building Ferni</a>
+          
+          <a href="/use-cases/">Use Cases</a>
+          
+          <a href="/pricing/">Pricing</a>
+          
+          <a href="/blog/">Blog</a>
+          
+        </div>
+        <div class="footer-column">
+          <h4>Connect</h4>
+          
+          <a href="https://app.ferni.ai">Web App</a>
+          
+          <a href="tel:+14844813081">Call Ferni</a>
+          
+          <a href="/#faq">FAQ</a>
+          
+        </div>
+        <div class="footer-column">
+          <h4>Legal</h4>
+          
+          <a href="/privacy/">Privacy Policy</a>
+          
+          <a href="/terms/">Terms of Service</a>
+          
+          <a href="/cookies/">Cookie Policy</a>
+          
+          <a href="/accessibility/">Accessibility</a>
+          
+        </div>
+      </div>
+    </div>
+    
+    <div class="footer-bottom">
+      <p>© 2025 Ferni. All rights reserved.</p>
+    </div>
+  </div>
+</footer>
+
+  
+  
+  <!-- Scripts -->
+  <script src="/js/better-than-human.js"></script>
+  <script src="/js/ferni-awakens.js"></script>
+  <script src="/js/apple-interactions.js"></script>
+  
+</body>
+</html>
+

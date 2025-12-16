@@ -128,8 +128,11 @@
     "goodbye": "再见",
     "end": "结束",
     "untilNextTime": "下次再见...",
+    "takeCare": "保重。",
+    "ending": "结束中...",
     "endConversation": "结束对话",
-    "endConversationGoodbye": "结束对话 - 再见"
+    "endConversationGoodbye": "结束对话 - 再见",
+    "agentEndingConversation": "助手正在结束对话"
   },
   "subscription": {
     "free": "免费",

@@ -127,8 +127,11 @@
     "goodbye": "להתראות",
     "end": "סיים",
     "untilNextTime": "עד הפעם הבאה...",
+    "takeCare": "שמור על עצמך.",
+    "ending": "מסיים...",
     "endConversation": "סיים שיחה",
-    "endConversationGoodbye": "סיים שיחה - להתראות"
+    "endConversationGoodbye": "סיים שיחה - להתראות",
+    "agentEndingConversation": "הסוכן מסיים את השיחה"
   },
   "subscription": {
     "free": "חינם",
