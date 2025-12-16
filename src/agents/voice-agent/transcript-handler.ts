@@ -44,6 +44,10 @@ import {
   startNewTurn as startSesameTurn,
 } from '../../speech/sesame-inspired/index.js';
 import type { ConversationContext as FeedbackContext } from '../../tools/feedback-collector.js';
+import {
+  isOrchestratorInitialized,
+  refreshToolsForContext,
+} from '../../tools/orchestrator/index.js';
 import { trackConversationTurn } from '../integrations/speech-metrics-integration.js';
 import type { IntegrationResult as VoiceHumanizationIntegration } from '../integrations/voice-humanization-integration.js';
 import type { UserData } from '../shared/types.js';
@@ -104,6 +108,39 @@ export interface TranscriptHandlerContext {
  * - Network latency buffer (~200ms)
  */
 const ECHO_PREVENTION_COOLDOWN_MS = 2000;
+
+/**
+ * Map emotion from user data to orchestrator's expected format
+ */
+function mapEmotionToOrchestratorFormat(
+  emotion: string | undefined
+): 'neutral' | 'happy' | 'sad' | 'stressed' | 'angry' | 'anxious' | 'excited' | undefined {
+  if (!emotion) return undefined;
+
+  const emotionMap: Record<string, 'neutral' | 'happy' | 'sad' | 'stressed' | 'angry' | 'anxious' | 'excited'> = {
+    neutral: 'neutral',
+    happy: 'happy',
+    joy: 'happy',
+    excited: 'excited',
+    sad: 'sad',
+    sadness: 'sad',
+    stressed: 'stressed',
+    stress: 'stressed',
+    anxious: 'anxious',
+    anxiety: 'anxious',
+    worried: 'anxious',
+    angry: 'angry',
+    anger: 'angry',
+    frustrated: 'angry',
+    calm: 'neutral',
+    content: 'happy',
+    hopeful: 'happy',
+    melancholy: 'sad',
+    overwhelmed: 'stressed',
+  };
+
+  return emotionMap[emotion.toLowerCase()] || 'neutral';
+}
 
 export interface TranscriptEvent {
   transcript: string;
@@ -219,7 +256,8 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       // IMPORTANT: Skip cache bypass if agent is currently speaking OR recently finished!
       // This prevents echo/feedback from triggering false responses.
       // e.g., Ferni says "Hey, how are you?" → mic picks up echo → transcribes "how are you"
-      // → matches question_about_user pattern → would incorrectly say "I'm doing well..."
+      // → matches question_about_agent pattern → could trigger cached response
+      // NOTE: We now use empty templates for this pattern so LLM handles it with character
       //
       // The cooldown period accounts for:
       // - Short greetings where agent finishes before echo is transcribed
@@ -496,6 +534,67 @@ function processFinalTranscript(ctx: TranscriptHandlerContext & { event: Transcr
       })
       .catch((error) => {
         getLogger().warn({ error }, 'Failed to process message for dynamic tool loading');
+      });
+  }
+
+  // ===============================================
+  // MID-CONVERSATION TOOL REFRESH
+  // When user's topic changes significantly, refresh available tools
+  // This enables the right tools to appear when topics shift
+  // ===============================================
+  // Get realtimeSession from the session's internal activity (LiveKit doesn't expose this directly)
+  const activity = (session as unknown as {
+    activity?: {
+      realtimeLLMSession?: {
+        updateTools?: (tools: Record<string, unknown>) => Promise<void>;
+      };
+    };
+  })?.activity;
+  const realtimeSession = activity?.realtimeLLMSession;
+
+  if (isOrchestratorInitialized() && realtimeSession?.updateTools) {
+    // Compute time of day for contextual tool loading
+    const hour = new Date().getHours();
+    const timeOfDay: 'morning' | 'afternoon' | 'evening' | 'night' =
+      hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : hour < 21 ? 'evening' : 'night';
+
+    // Map user emotion to orchestrator emotion format
+    const emotionFromUserData = userData?.lastEmotionAnalysis?.primary;
+    const orchestratorEmotion = mapEmotionToOrchestratorFormat(emotionFromUserData);
+
+    // Check for crisis state (high distress)
+    const isCrisis = (userData?.lastEmotionAnalysis?.distressLevel ?? 0) > 0.7;
+
+    refreshToolsForContext({
+      personaId: sessionPersona.id,
+      userId: userId || 'anonymous',
+      userProfile: services.userProfile,
+      subscriptionTier: services.userProfile?.subscription?.tier || 'free',
+      newTranscript: event.transcript,
+      currentTools: [], // Orchestrator compares semantically, not by exact names
+      sessionId,
+      contextUpdate: {
+        emotion: orchestratorEmotion,
+        timeOfDay,
+        isCrisis,
+      },
+    })
+      .then(async (result) => {
+        if (result.shouldRefresh && result.tools && realtimeSession?.updateTools) {
+          try {
+            await realtimeSession.updateTools(result.tools);
+            diag.tool('🔄 Tools refreshed mid-conversation', {
+              reason: result.reason,
+              newToolCount: Object.keys(result.tools).length,
+              transcript: event.transcript.slice(0, 30),
+            });
+          } catch (updateErr) {
+            diag.warn('Failed to update tools mid-conversation', { error: String(updateErr) });
+          }
+        }
+      })
+      .catch((error) => {
+        getLogger().warn({ error }, 'Tool refresh check failed');
       });
   }
 

@@ -98,6 +98,13 @@ import { getResponseEnhancements } from '../../speech/response-naturalness.js';
 import { getEmotionGuidance } from '../../speech/emotion-matching.js';
 
 // Voice-text mismatch detection ("better than human" - detect incongruence)
+
+// PERFORMANCE: Turn profiling for latency tracking
+import {
+  startTurnProfiling,
+  markTurnCheckpoint,
+  completeTurnProfiling,
+} from '../shared/performance/turn-profiler.js';
 import {
   buildMismatchGuidance,
   detectMismatch,
@@ -1732,6 +1739,10 @@ async function processAdvancedHumanization(
 export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult> {
   const startTime = Date.now();
   const { turnCtx, userText, userData, services, logger } = ctx;
+  const turnNumber = userData?.turnCount || 1;
+
+  // PERFORMANCE: Start turn profiling
+  startTurnProfiling(services.sessionId, turnNumber);
 
   // Log start
   diag.user('Processing user turn', {
@@ -1745,6 +1756,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   // 1. Analyze message (synchronous - required for all downstream)
   const analysisResult = analyzeMessage(ctx);
+  markTurnCheckpoint(services.sessionId, turnNumber, 'analysisComplete');
 
   // 2. Update conversation state (synchronous)
   updateConversationState(ctx, analysisResult);
@@ -1850,6 +1862,35 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     diag.warn('Identity message processing failed (non-fatal)', { error: String(identityErr) });
   }
 
+  // 5c. INTELLIGENCE: Detect moments and record to relationship memory
+  // This is what makes Ferni "remember" meaningful moments across sessions
+  try {
+    const { processMessageWithIntelligenceSystem } = await import(
+      '../integrations/conversation-session-integration.js'
+    );
+    const intelligenceResult = await processMessageWithIntelligenceSystem(
+      services.sessionId,
+      userText,
+      undefined, // AI response not yet available
+      (analysisResult as { currentTopic?: string }).currentTopic
+    );
+
+    if (intelligenceResult) {
+      if (intelligenceResult.shouldAcknowledge) {
+        diag.user('🧠 Moment detected - should acknowledge');
+      }
+      if (intelligenceResult.concerns.length > 0) {
+        diag.user('⚠️ Concerns detected', {
+          count: intelligenceResult.concerns.length,
+          severities: intelligenceResult.concerns.map((c) => c.severity),
+        });
+      }
+    }
+  } catch (intelligenceErr) {
+    // Non-fatal - don't block turn processing
+    diag.debug('Intelligence processing failed (non-fatal)', { error: String(intelligenceErr) });
+  }
+
   // 6. Build identity context
   const identityContext = buildIdentityContext(ctx);
 
@@ -1863,6 +1904,9 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // PARALLEL CONTEXT BUILDING: Run context + humanization concurrently
   // These are the two heaviest async operations - running in parallel saves ~50ms
   // ============================================================================
+
+  // PERFORMANCE: Mark context building start
+  markTurnCheckpoint(services.sessionId, turnNumber, 'contextBuildStart');
 
   const [injections, advancedHumanizationResult] = await Promise.all([
     // 9. Build all context injections
@@ -2029,6 +2073,18 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   // Calculate elapsed time
   const elapsedMs = Date.now() - startTime;
+
+  // PERFORMANCE: Mark context build complete and complete profiling
+  markTurnCheckpoint(services.sessionId, turnNumber, 'contextBuildComplete');
+  const profilingMetrics = completeTurnProfiling(services.sessionId, turnNumber);
+  if (profilingMetrics && profilingMetrics.tier !== 'excellent' && profilingMetrics.tier !== 'good') {
+    diag.warn('Turn performance below target', {
+      tier: profilingMetrics.tier,
+      totalMs: profilingMetrics.latencies.totalTurnMs,
+      bottleneck: profilingMetrics.bottleneck.component,
+      bottleneckMs: profilingMetrics.bottleneck.latencyMs,
+    });
+  }
 
   // Log completion
   logger.info(

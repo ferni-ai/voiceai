@@ -43,6 +43,12 @@ import { abTestingService } from '../../tools/ab-testing.js';
 import { patternAnalyzer } from '../../tools/pattern-analyzer.js';
 import { autoOptimizer } from '../../tools/auto-optimizer.js';
 
+// Tool Orchestrator for dynamic tool refresh
+import {
+  isOrchestratorInitialized,
+  refreshToolsForContext,
+} from '../../tools/orchestrator/index.js';
+
 // Session State Management (Single Source of Truth)
 import { createSessionStateManager, type SessionStateManager } from '../session/session-state.js';
 import { createUserDataProxy } from '../session/user-data-proxy.js';
@@ -88,6 +94,11 @@ export interface SessionInitResult {
   sessionStateManager: SessionStateManager;
   /** Cleanup function for periodic sync (call on session end) */
   stopPeriodicSync: (() => void) | null;
+  /**
+   * Refreshed tools from Tool Orchestrator (if USE_TOOL_ORCHESTRATOR=true)
+   * These should replace the initial placeholder tools now that we have real user context
+   */
+  refreshedTools?: Record<string, unknown>;
 }
 
 /**
@@ -344,6 +355,41 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
 
   logger.info({ sessionId, userId, isReturningUser, isTrialUser }, 'Session initialized');
 
+  // ================================================================
+  // TOOL REFRESH WITH REAL USER CONTEXT
+  // Now that we have real userId, userProfile, and subscription info,
+  // refresh tools to ensure correct filtering (handoffs, unlocks, etc.)
+  // ================================================================
+  let refreshedTools: Record<string, unknown> | undefined;
+
+  if (isOrchestratorInitialized()) {
+    const subscriptionTier = services.userProfile?.subscription?.tier || 'free';
+    try {
+      const refreshResult = await refreshToolsForContext({
+        personaId: sessionPersona.id,
+        userId: userId || 'anonymous',
+        userProfile: services.userProfile,
+        subscriptionTier,
+        newTranscript: '', // No transcript yet at session start
+      });
+
+      if (refreshResult.shouldRefresh && refreshResult.tools) {
+        refreshedTools = refreshResult.tools;
+        diag.session('🔄 Tool Orchestrator: Tools refreshed with real user context', {
+          toolCount: Object.keys(refreshResult.tools).length,
+          subscriptionTier,
+          hasUserProfile: !!services.userProfile,
+        });
+      } else {
+        diag.session('Tool Orchestrator: No tool refresh needed at session start');
+      }
+    } catch (refreshErr) {
+      diag.warn('Tool refresh failed (non-fatal, using initial tools)', {
+        error: String(refreshErr),
+      });
+    }
+  }
+
   return {
     services,
     isReturningUser,
@@ -353,6 +399,7 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
     userData,
     sessionStateManager,
     stopPeriodicSync: stopSync,
+    refreshedTools,
   };
 }
 

@@ -26,6 +26,9 @@ export interface PersonaConfig {
   /** Display name (e.g., "Jack Bogle", "Financial Advisor") */
   name: string;
 
+  /** Optional display name for UI (falls back to name if not provided) */
+  displayName?: string;
+
   /** Short description of this persona */
   description: string;
 

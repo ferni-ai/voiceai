@@ -1,0 +1,768 @@
+/**
+ * Unified Tool Orchestrator (UTO)
+ *
+ * The single source of truth for tool selection in Ferni.
+ * Combines semantic retrieval, dynamic loading, permission filtering,
+ * and context awareness into one elegant API.
+ *
+ * DESIGN PRINCIPLES:
+ * 1. SCALE: Handle 1000+ tools by never showing >40 to the LLM
+ * 2. SPEED: <100ms tool selection via caching and pre-computation
+ * 3. CORRECTNESS: Always include the right tool via semantic matching
+ * 4. DELIGHT: Contextual tools that anticipate user needs
+ *
+ * USAGE:
+ *
+ * // Initialize once at startup
+ * await toolOrchestrator.initialize();
+ *
+ * // Get tools for a conversation turn
+ * const tools = await toolOrchestrator.getToolsForIntent({
+ *   transcript: "Play some relaxing jazz",
+ *   userId: "user-123",
+ *   agentId: "ferni",
+ *   context: { emotion: "calm", timeOfDay: "evening" }
+ * });
+ *
+ * // Mid-session tool refresh (when context shifts)
+ * const newTools = await toolOrchestrator.refreshToolsForContext({
+ *   newTranscript: "Actually, I'm feeling pretty stressed about my job",
+ *   previousTools: currentTools,
+ *   sessionId: "session-456"
+ * });
+ */
+
+import { getLogger } from '../../utils/safe-logger.js';
+import { toolRegistry } from '../registry/index.js';
+import { initializeToolRegistry } from '../registry/loader.js';
+import { semanticRouter, type SemanticMatch } from '../semantic-router.js';
+import { TOOL_TIERS, detectToolIntent, type DetectedIntent } from '../dynamic-tool-router.js';
+import { buildEssentialTools } from '../builder.js';
+import {
+  initializeToolLifecycle,
+  isToolDeprecated,
+  getSuggestedReplacement,
+} from '../advanced/tool-lifecycle.js';
+import type { Tool, ToolContext, ToolDomain, ToolDefinition, ServiceRegistry } from '../registry/types.js';
+
+const log = getLogger();
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export interface ToolSelectionRequest {
+  /** User's spoken/typed input */
+  transcript: string;
+  /** User ID for personalization and permissions */
+  userId: string;
+  /** Current agent (persona) ID */
+  agentId: string;
+  /** Agent display name */
+  agentDisplayName?: string;
+  /** Additional context for smart filtering */
+  context?: ToolSelectionContext;
+  /** User's subscription tier */
+  subscriptionTier?: 'free' | 'friend' | 'partner';
+  /** Previous conversation turns (for context building) */
+  conversationHistory?: string[];
+  /** Force include specific tools */
+  forceInclude?: string[];
+  /** Force exclude specific tools */
+  forceExclude?: string[];
+}
+
+export interface ToolSelectionContext {
+  /** Detected emotion in conversation */
+  emotion?: 'neutral' | 'happy' | 'sad' | 'stressed' | 'angry' | 'anxious' | 'excited';
+  /** Time-based context */
+  timeOfDay?: 'morning' | 'afternoon' | 'evening' | 'night';
+  /** Is user in crisis mode? */
+  isCrisis?: boolean;
+  /** Current topic/domain being discussed */
+  currentTopic?: string;
+  /** Session duration in minutes */
+  sessionDurationMinutes?: number;
+  /** Number of messages in this session */
+  messageCount?: number;
+  /** Is this a new user? */
+  isNewUser?: boolean;
+}
+
+export interface ToolSelectionResult {
+  /** Final tool set for the LLM */
+  tools: Record<string, Tool>;
+  /** Metadata about selection */
+  meta: {
+    /** Total tools in registry */
+    totalAvailable: number;
+    /** Tools returned */
+    selected: number;
+    /** Selection time in ms */
+    selectionTimeMs: number;
+    /** Which systems contributed tools */
+    sources: {
+      essential: number;
+      semantic: number;
+      contextual: number;
+      mcp: number;
+    };
+    /** Intent detected from transcript */
+    detectedIntent: DetectedIntent | null;
+    /** Semantic matches (for debugging) */
+    semanticMatches: SemanticMatch[];
+    /** Warnings/notes */
+    warnings: string[];
+  };
+}
+
+export interface RefreshRequest {
+  /** New transcript that triggered refresh */
+  newTranscript: string;
+  /** Current tool names */
+  previousTools: string[];
+  /** Session ID for caching */
+  sessionId: string;
+  /** Context update */
+  contextUpdate?: Partial<ToolSelectionContext>;
+}
+
+export interface RefreshResult {
+  /** Should we refresh tools? */
+  shouldRefresh: boolean;
+  /** New tools to add */
+  toolsToAdd: string[];
+  /** Tools to remove */
+  toolsToRemove: string[];
+  /** Reason for refresh/no-refresh */
+  reason: string;
+  /** Full new tool set if refreshing */
+  newTools?: Record<string, Tool>;
+}
+
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+
+export interface OrchestratorConfig {
+  /** Maximum tools to return to LLM */
+  maxTools: number;
+  /** Similarity threshold for semantic matching */
+  semanticThreshold: number;
+  /** Enable pre-computation of embeddings at startup */
+  precomputeEmbeddings: boolean;
+  /** Cache tool selections for this long (ms) */
+  selectionCacheTtlMs: number;
+  /** Domains that are ALWAYS included */
+  alwaysDomains: ToolDomain[];
+  /** Enable A/B testing variants */
+  enableABTesting: boolean;
+  /** Enable deprecation warnings */
+  enableDeprecationWarnings: boolean;
+  /** Enable contextual tool injection */
+  enableContextualTools: boolean;
+}
+
+const DEFAULT_CONFIG: OrchestratorConfig = {
+  maxTools: 35,
+  semanticThreshold: 0.15,
+  precomputeEmbeddings: true,
+  selectionCacheTtlMs: 5 * 60 * 1000, // 5 minutes
+  alwaysDomains: ['memory', 'handoff', 'entertainment'] as ToolDomain[],
+  enableABTesting: true,
+  enableDeprecationWarnings: true,
+  enableContextualTools: true,
+};
+
+// ============================================================================
+// ORCHESTRATOR CLASS
+// ============================================================================
+
+export class UnifiedToolOrchestrator {
+  private config: OrchestratorConfig;
+  private initialized = false;
+  private selectionCache = new Map<
+    string,
+    { result: ToolSelectionResult; timestamp: number }
+  >();
+  private toolContext: ToolContext | null = null;
+  // Note: Embeddings are managed by SemanticRouter, not here
+
+  constructor(config: Partial<OrchestratorConfig> = {}) {
+    this.config = { ...DEFAULT_CONFIG, ...config };
+  }
+
+  // ==========================================================================
+  // INITIALIZATION
+  // ==========================================================================
+
+  /**
+   * Initialize all tool systems
+   * Call this ONCE at application startup
+   */
+  async initialize(): Promise<void> {
+    if (this.initialized) {
+      log.warn('Tool orchestrator already initialized');
+      return;
+    }
+
+    const startTime = Date.now();
+    log.info('🚀 Initializing Unified Tool Orchestrator...');
+
+    try {
+      // 1. Initialize tool registry (loads all tool definitions)
+      await initializeToolRegistry();
+      const allTools = toolRegistry.getAll();
+      log.info({ toolCount: allTools.length }, '📦 Tool registry initialized');
+
+      // 2. Initialize semantic router (builds embedding index)
+      if (this.config.precomputeEmbeddings) {
+        await semanticRouter.initialize();
+        log.info('🎯 Semantic router initialized');
+      }
+
+      // 3. Initialize tool lifecycle (A/B testing, deprecation, etc.)
+      await initializeToolLifecycle({
+        buildSemanticIndex: true,
+        checkDeprecations: this.config.enableDeprecationWarnings,
+        toolDefinitions: allTools,
+      });
+      log.info('🔄 Tool lifecycle initialized');
+
+      // 4. Pre-cache essential tools
+      await this.preloadEssentialTools();
+      log.info('⚡ Essential tools pre-cached');
+
+      this.initialized = true;
+      const elapsed = Date.now() - startTime;
+
+      log.info(
+        {
+          totalTools: allTools.length,
+          semanticIndex: this.config.precomputeEmbeddings,
+          alwaysDomains: this.config.alwaysDomains,
+          maxTools: this.config.maxTools,
+          elapsedMs: elapsed,
+        },
+        '✅ Unified Tool Orchestrator ready'
+      );
+    } catch (error) {
+      log.error({ error }, '❌ Failed to initialize tool orchestrator');
+      throw error;
+    }
+  }
+
+  /**
+   * Pre-load essential tools that are always available
+   */
+  private async preloadEssentialTools(): Promise<void> {
+    // Build essential tools to warm the cache
+    await buildEssentialTools();
+  }
+
+  // ==========================================================================
+  // MAIN API: GET TOOLS FOR INTENT
+  // ==========================================================================
+
+  /**
+   * Get the optimal tool set for a user's intent
+   *
+   * This is the main API - call this for every conversation turn
+   * to get the right tools for the LLM.
+   */
+  async getToolsForIntent(request: ToolSelectionRequest): Promise<ToolSelectionResult> {
+    const startTime = Date.now();
+
+    if (!this.initialized) {
+      log.warn('Orchestrator not initialized, initializing now...');
+      await this.initialize();
+    }
+
+    // Check cache
+    const cacheKey = this.buildCacheKey(request);
+    const cached = this.selectionCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.config.selectionCacheTtlMs) {
+      log.debug({ cacheKey }, '📋 Returning cached tool selection');
+      return cached.result;
+    }
+
+    const warnings: string[] = [];
+    const sources = { essential: 0, semantic: 0, contextual: 0, mcp: 0 };
+
+    // Build tool context
+    const ctx: ToolContext = {
+      userId: request.userId,
+      agentId: request.agentId,
+      agentDisplayName: request.agentDisplayName || request.agentId,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      services: undefined as any, // Will be populated by builder
+    };
+
+    // 1. ALWAYS-AVAILABLE TOOLS (Tier 0)
+    const alwaysTools = await this.getAlwaysAvailableTools(ctx);
+    sources.essential = Object.keys(alwaysTools).length;
+
+    // 2. SEMANTIC RETRIEVAL
+    const { semanticTools, matches } = await this.getSemanticTools(
+      request.transcript,
+      ctx,
+      request.conversationHistory
+    );
+    sources.semantic = Object.keys(semanticTools).length;
+
+    // 3. CONTEXTUAL TOOLS (based on emotion, time, etc.)
+    let contextualTools: Record<string, Tool> = {};
+    if (this.config.enableContextualTools && request.context) {
+      contextualTools = await this.getContextualTools(request.context, ctx);
+      sources.contextual = Object.keys(contextualTools).length;
+    }
+
+    // 4. INTENT-BASED DOMAINS
+    const intent = detectToolIntent(request.transcript);
+    let intentTools: Record<string, Tool> = {};
+    if (intent.domains.length > 0) {
+      intentTools = await this.getToolsForDomains(intent.domains, ctx);
+      log.debug(
+        { intent: intent.categories, domains: intent.domains },
+        '🎯 Intent-based domains detected'
+      );
+    }
+
+    // 5. MERGE AND FILTER
+    let allTools: Record<string, Tool> = {
+      ...alwaysTools,
+      ...semanticTools,
+      ...contextualTools,
+      ...intentTools,
+    };
+
+    // Apply force include/exclude
+    if (request.forceInclude?.length) {
+      const forcedTools = await this.getToolsByIds(request.forceInclude, ctx);
+      allTools = { ...allTools, ...forcedTools };
+    }
+
+    if (request.forceExclude?.length) {
+      for (const toolId of request.forceExclude) {
+        delete allTools[toolId];
+      }
+    }
+
+    // Handle deprecations
+    if (this.config.enableDeprecationWarnings) {
+      for (const [toolId, tool] of Object.entries(allTools)) {
+        if (isToolDeprecated(toolId)) {
+          const replacement = getSuggestedReplacement(toolId);
+          if (replacement && !allTools[replacement]) {
+            warnings.push(`Tool ${toolId} is deprecated, consider ${replacement}`);
+          }
+        }
+      }
+    }
+
+    // Limit to max tools
+    const finalTools = this.limitTools(allTools, this.config.maxTools);
+
+    // Build result
+    const result: ToolSelectionResult = {
+      tools: finalTools,
+      meta: {
+        totalAvailable: toolRegistry.getAll().length,
+        selected: Object.keys(finalTools).length,
+        selectionTimeMs: Date.now() - startTime,
+        sources,
+        detectedIntent: intent.domains.length > 0 ? intent : null,
+        semanticMatches: matches,
+        warnings,
+      },
+    };
+
+    // Cache result
+    this.selectionCache.set(cacheKey, { result, timestamp: Date.now() });
+
+    log.info(
+      {
+        transcript: request.transcript.slice(0, 50),
+        selected: result.meta.selected,
+        sources,
+        elapsedMs: result.meta.selectionTimeMs,
+      },
+      '🔧 Tools selected for intent'
+    );
+
+    return result;
+  }
+
+  // ==========================================================================
+  // LAYER 1: SEMANTIC RETRIEVAL
+  // ==========================================================================
+
+  /**
+   * Get tools based on semantic similarity to the user's intent
+   */
+  private async getSemanticTools(
+    transcript: string,
+    ctx: ToolContext,
+    conversationHistory?: string[]
+  ): Promise<{ semanticTools: Record<string, Tool>; matches: SemanticMatch[] }> {
+    // Build query from transcript + recent history for better context
+    let query = transcript;
+    if (conversationHistory?.length) {
+      const recentHistory = conversationHistory.slice(-3).join(' ');
+      query = `${recentHistory} ${transcript}`;
+    }
+
+    // Get semantic matches
+    const matches = await semanticRouter.findRelevantToolsAsync(query);
+
+    // Build tools from matches
+    const tools: Record<string, Tool> = {};
+    for (const match of matches) {
+      const toolDef = toolRegistry.get(match.toolId);
+      if (toolDef) {
+        try {
+          tools[match.toolId] = toolDef.create(ctx);
+        } catch (error) {
+          log.warn({ toolId: match.toolId, error }, 'Failed to create semantic tool');
+        }
+      }
+    }
+
+    return { semanticTools: tools, matches };
+  }
+
+  // ==========================================================================
+  // LAYER 2: ALWAYS-AVAILABLE TOOLS
+  // ==========================================================================
+
+  /**
+   * Get tools that are ALWAYS available (Tier 0)
+   */
+  private async getAlwaysAvailableTools(ctx: ToolContext): Promise<Record<string, Tool>> {
+    const tools: Record<string, Tool> = {};
+
+    for (const domain of this.config.alwaysDomains) {
+      const domainTools = toolRegistry.query({ domains: [domain] });
+      for (const toolDef of domainTools) {
+        try {
+          tools[toolDef.id] = toolDef.create(ctx);
+        } catch (error) {
+          log.warn({ toolId: toolDef.id, error }, 'Failed to create always-available tool');
+        }
+      }
+    }
+
+    return tools;
+  }
+
+  // ==========================================================================
+  // LAYER 3: CONTEXTUAL TOOLS
+  // ==========================================================================
+
+  /**
+   * Get tools based on contextual signals (emotion, time, etc.)
+   */
+  private async getContextualTools(
+    context: ToolSelectionContext,
+    ctx: ToolContext
+  ): Promise<Record<string, Tool>> {
+    const tools: Record<string, Tool> = {};
+    const domainsToLoad: ToolDomain[] = [];
+
+    // Crisis mode - load crisis tools
+    if (context.isCrisis) {
+      domainsToLoad.push('crisis' as ToolDomain);
+    }
+
+    // Emotional context
+    if (context.emotion) {
+      switch (context.emotion) {
+        case 'stressed':
+        case 'anxious':
+          domainsToLoad.push('presence' as ToolDomain, 'wellness' as ToolDomain);
+          break;
+        case 'sad':
+          domainsToLoad.push('self-compassion' as ToolDomain, 'grief' as ToolDomain);
+          break;
+        case 'excited':
+        case 'happy':
+          domainsToLoad.push('play' as ToolDomain, 'engagement' as ToolDomain);
+          break;
+      }
+    }
+
+    // Time of day
+    if (context.timeOfDay) {
+      switch (context.timeOfDay) {
+        case 'morning':
+          domainsToLoad.push('habits' as ToolDomain, 'productivity' as ToolDomain);
+          break;
+        case 'evening':
+        case 'night':
+          domainsToLoad.push('wellness' as ToolDomain, 'presence' as ToolDomain);
+          break;
+      }
+    }
+
+    // New user context
+    if (context.isNewUser) {
+      domainsToLoad.push('engagement' as ToolDomain);
+    }
+
+    // Load contextual domains
+    for (const domain of [...new Set(domainsToLoad)]) {
+      const domainTools = toolRegistry.query({ domains: [domain] });
+      for (const toolDef of domainTools.slice(0, 3)) {
+        // Limit per domain
+        try {
+          tools[toolDef.id] = toolDef.create(ctx);
+        } catch {
+          // Ignore creation errors for contextual tools
+        }
+      }
+    }
+
+    return tools;
+  }
+
+  // ==========================================================================
+  // MID-SESSION REFRESH
+  // ==========================================================================
+
+  /**
+   * Check if tools should be refreshed based on new context
+   * Call this when you detect a significant topic/emotion shift
+   */
+  async shouldRefreshTools(request: RefreshRequest): Promise<RefreshResult> {
+    const intent = detectToolIntent(request.newTranscript);
+
+    // Check if new intent requires tools not currently loaded
+    const newDomainsNeeded = intent.domains.filter((domain) => {
+      const domainTools = toolRegistry.query({ domains: [domain as ToolDomain] });
+      return !domainTools.some((t) => request.previousTools.includes(t.id));
+    });
+
+    if (newDomainsNeeded.length === 0 && intent.confidence < 0.5) {
+      return {
+        shouldRefresh: false,
+        toolsToAdd: [],
+        toolsToRemove: [],
+        reason: 'Current tools sufficient for detected intent',
+      };
+    }
+
+    // Determine tools to add
+    const toolsToAdd: string[] = [];
+    for (const domain of newDomainsNeeded) {
+      const domainTools = toolRegistry.query({ domains: [domain as ToolDomain] });
+      toolsToAdd.push(...domainTools.slice(0, 5).map((t) => t.id));
+    }
+
+    // Don't remove essential tools
+    const toolsToRemove = request.previousTools.filter((toolId) => {
+      const tool = toolRegistry.get(toolId);
+      return (
+        tool && !this.config.alwaysDomains.includes(tool.domain) && !toolsToAdd.includes(toolId)
+      );
+    });
+
+    // Only remove if we need space
+    const netChange = toolsToAdd.length - toolsToRemove.length;
+    const projectedTotal = request.previousTools.length + netChange;
+
+    if (projectedTotal > this.config.maxTools) {
+      // Remove oldest non-essential tools to make room
+      const toRemove = projectedTotal - this.config.maxTools;
+      // Keep toolsToRemove limited
+    }
+
+    return {
+      shouldRefresh: toolsToAdd.length > 0,
+      toolsToAdd,
+      toolsToRemove: toolsToRemove.slice(0, 5),
+      reason: `Detected shift to ${intent.categories.join(', ')} - adding ${toolsToAdd.length} tools`,
+    };
+  }
+
+  // ==========================================================================
+  // HELPER METHODS
+  // ==========================================================================
+
+  /**
+   * Get tools for specific domains
+   */
+  private async getToolsForDomains(
+    domains: string[],
+    ctx: ToolContext
+  ): Promise<Record<string, Tool>> {
+    const tools: Record<string, Tool> = {};
+
+    for (const domain of domains) {
+      const domainTools = toolRegistry.query({ domains: [domain as ToolDomain] });
+      for (const toolDef of domainTools) {
+        try {
+          tools[toolDef.id] = toolDef.create(ctx);
+        } catch {
+          // Ignore
+        }
+      }
+    }
+
+    return tools;
+  }
+
+  /**
+   * Get specific tools by ID
+   */
+  private async getToolsByIds(
+    toolIds: string[],
+    ctx: ToolContext
+  ): Promise<Record<string, Tool>> {
+    const tools: Record<string, Tool> = {};
+
+    for (const id of toolIds) {
+      const toolDef = toolRegistry.get(id);
+      if (toolDef) {
+        try {
+          tools[id] = toolDef.create(ctx);
+        } catch {
+          // Ignore
+        }
+      }
+    }
+
+    return tools;
+  }
+
+  /**
+   * Limit tools to maxTools, prioritizing essential and high-similarity matches
+   */
+  private limitTools(
+    tools: Record<string, Tool>,
+    maxTools: number
+  ): Record<string, Tool> {
+    const entries = Object.entries(tools);
+
+    if (entries.length <= maxTools) {
+      return tools;
+    }
+
+    // Sort: essential domains first, then by name (stable sort)
+    const sorted = entries.sort(([idA], [idB]) => {
+      const toolA = toolRegistry.get(idA);
+      const toolB = toolRegistry.get(idB);
+
+      const aEssential = toolA && this.config.alwaysDomains.includes(toolA.domain);
+      const bEssential = toolB && this.config.alwaysDomains.includes(toolB.domain);
+
+      if (aEssential && !bEssential) return -1;
+      if (bEssential && !aEssential) return 1;
+      return 0;
+    });
+
+    const limited = sorted.slice(0, maxTools);
+    const result: Record<string, Tool> = {};
+
+    for (const [id, tool] of limited) {
+      result[id] = tool;
+    }
+
+    log.debug(
+      { original: entries.length, limited: limited.length },
+      '🔪 Tools limited to max'
+    );
+
+    return result;
+  }
+
+  /**
+   * Build cache key for tool selection
+   */
+  private buildCacheKey(request: ToolSelectionRequest): string {
+    // Normalize transcript to reduce cache misses
+    const normalizedTranscript = request.transcript
+      .toLowerCase()
+      .replace(/[^\w\s]/g, '')
+      .slice(0, 100);
+
+    return `${request.agentId}:${request.userId}:${normalizedTranscript}`;
+  }
+
+  // ==========================================================================
+  // DIAGNOSTICS
+  // ==========================================================================
+
+  /**
+   * Explain why tools were selected (for debugging)
+   */
+  explainSelection(result: ToolSelectionResult): string {
+    let explanation = '🔧 Tool Selection Breakdown\n\n';
+
+    explanation += `Selected ${result.meta.selected} of ${result.meta.totalAvailable} tools\n`;
+    explanation += `Selection time: ${result.meta.selectionTimeMs}ms\n\n`;
+
+    explanation += 'Sources:\n';
+    explanation += `  • Essential (always): ${result.meta.sources.essential}\n`;
+    explanation += `  • Semantic (matched): ${result.meta.sources.semantic}\n`;
+    explanation += `  • Contextual (smart): ${result.meta.sources.contextual}\n`;
+    explanation += `  • MCP (external): ${result.meta.sources.mcp}\n\n`;
+
+    if (result.meta.detectedIntent) {
+      explanation += `Detected Intent:\n`;
+      explanation += `  Categories: ${result.meta.detectedIntent.categories.join(', ')}\n`;
+      explanation += `  Domains: ${result.meta.detectedIntent.domains.join(', ')}\n`;
+      explanation += `  Confidence: ${(result.meta.detectedIntent.confidence * 100).toFixed(0)}%\n\n`;
+    }
+
+    if (result.meta.semanticMatches.length > 0) {
+      explanation += 'Top Semantic Matches:\n';
+      for (const match of result.meta.semanticMatches.slice(0, 5)) {
+        explanation += `  • ${match.toolId} (${(match.similarity * 100).toFixed(0)}%)\n`;
+      }
+    }
+
+    if (result.meta.warnings.length > 0) {
+      explanation += '\n⚠️ Warnings:\n';
+      for (const warning of result.meta.warnings) {
+        explanation += `  • ${warning}\n`;
+      }
+    }
+
+    return explanation;
+  }
+
+  /**
+   * Get orchestrator stats
+   */
+  getStats(): {
+    initialized: boolean;
+    totalTools: number;
+    cacheSize: number;
+    config: OrchestratorConfig;
+  } {
+    return {
+      initialized: this.initialized,
+      totalTools: this.initialized ? toolRegistry.getAll().length : 0,
+      cacheSize: this.selectionCache.size,
+      config: this.config,
+    };
+  }
+
+  /**
+   * Clear all caches
+   */
+  clearCaches(): void {
+    this.selectionCache.clear();
+    semanticRouter.clearCache();
+    log.info('🧹 Orchestrator caches cleared');
+  }
+}
+
+// ============================================================================
+// SINGLETON EXPORT
+// ============================================================================
+
+export const toolOrchestrator = new UnifiedToolOrchestrator();
+
+export default toolOrchestrator;
+

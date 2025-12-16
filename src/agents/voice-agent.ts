@@ -452,92 +452,100 @@ class VoiceAgent extends voice.Agent<UserData> {
     const logger = log();
 
     // =========================================================================
-    // TOOL LOADING - Using Unified Tool Orchestrator OR registry-based system
+    // TOOL LOADING - Unified Tool Orchestrator (Default)
     // =========================================================================
     //
-    // TWO MODES:
-    // 1. ORCHESTRATOR MODE (when USE_TOOL_ORCHESTRATOR=true):
-    //    - Semantic-based tool selection (RAG for tools)
-    //    - Scales to 1000+ tools, shows only 25-40 to LLM
-    //    - Context-aware loading (emotion, time of day, topic)
-    //    - Pre-computed embeddings for <50ms selection
+    // The orchestrator provides:
+    // - Semantic-based tool selection (RAG for tools)
+    // - Scales to 1000+ tools, shows only 25-40 to LLM
+    // - Context-aware loading (emotion, time of day, topic)
+    // - Pre-computed embeddings for <50ms selection
     //
-    // 2. LEGACY MODE (default):
-    //    - Registry-based system with lazy loading
-    //    - Each agent's manifest defines tool domains
+    // Falls back to legacy registry-based loading only if orchestrator fails.
     //
-    // To enable orchestrator mode:
-    //   export USE_TOOL_ORCHESTRATOR=true
+    // To force legacy mode (debugging only):
+    //   export FORCE_LEGACY_TOOLS=true
     // =========================================================================
 
     perfInstrumentation.startPhase('tool-loading');
 
-    // Check if orchestrator mode is enabled
-    const useOrchestrator = process.env.USE_TOOL_ORCHESTRATOR === 'true';
+    // Use orchestrator by default, legacy only if forced or orchestrator fails
+    const forceLegacy = process.env.FORCE_LEGACY_TOOLS === 'true';
 
-    if (useOrchestrator) {
-      // ORCHESTRATOR MODE - Semantic-based tool selection
-      logger.info({ personaId: persona.id }, '🎯 Using Tool Orchestrator for semantic tool selection');
+    if (!forceLegacy) {
+      try {
+        // ORCHESTRATOR MODE - Semantic-based tool selection (DEFAULT)
+        logger.info({ personaId: persona.id }, '🎯 Using Tool Orchestrator for semantic tool selection');
 
-      // Initialize orchestrator if not ready
-      if (!isOrchestratorInitialized()) {
-        perfInstrumentation.startPhase('tool-orchestrator-init');
-        await initializeToolOrchestrator();
-        perfInstrumentation.endPhase('tool-orchestrator-init');
-        logger.info('✅ Tool Orchestrator initialized');
+        // Initialize orchestrator if not ready
+        if (!isOrchestratorInitialized()) {
+          perfInstrumentation.startPhase('tool-orchestrator-init');
+          await initializeToolOrchestrator();
+          perfInstrumentation.endPhase('tool-orchestrator-init');
+          logger.info('✅ Tool Orchestrator initialized');
+        }
+
+        // Get tools via orchestrator
+        const orchestratorResult = await getToolsForAgent({
+          persona: {
+            id: persona.id,
+            displayName: persona.displayName || persona.name,
+            tools: (persona as { tools?: { domains?: string[]; required?: string[]; forbidden?: string[] } }).tools,
+          },
+          userId: 'session-user', // Will be updated with real user ID
+          initialTranscript: '', // No initial transcript at session start
+          subscriptionTier: 'free', // Default, will be updated
+        });
+
+        perfInstrumentation.endPhase('tool-loading');
+
+        const toolNames = Object.keys(orchestratorResult.tools);
+        logger.info(
+          {
+            personaId: persona.id,
+            mode: 'orchestrator',
+            toolCount: orchestratorResult.meta.toolCount,
+            selectionTimeMs: orchestratorResult.meta.selectionTimeMs,
+            sources: orchestratorResult.meta.sources,
+            sampleTools: toolNames.slice(0, 10),
+          },
+          '🔧 Tools selected via orchestrator'
+        );
+
+        // 🔍 DIAGNOSTIC: Check specifically for music tools
+        const musicToolNames = toolNames.filter(
+          (name) =>
+            name.toLowerCase().includes('music') ||
+            name.toLowerCase().includes('spotify') ||
+            name === 'playMusic' ||
+            name === 'pauseMusic'
+        );
+        logger.info(
+          {
+            musicToolCount: musicToolNames.length,
+            musicTools: musicToolNames,
+            hasPlayMusic: toolNames.includes('playMusic'),
+          },
+          '🎵 [DIAG] Music tools from orchestrator'
+        );
+
+        return new VoiceAgent(persona, {
+          instructions: persona.systemPrompt,
+          tools: orchestratorResult.tools,
+        });
+      } catch (orchestratorError) {
+        // Log and fall through to legacy mode
+        logger.warn(
+          { error: String(orchestratorError), personaId: persona.id },
+          '⚠️ Tool Orchestrator failed, falling back to legacy mode'
+        );
       }
-
-      // Get tools via orchestrator
-      const orchestratorResult = await getToolsForAgent({
-        persona: {
-          id: persona.id,
-          displayName: persona.displayName || persona.name,
-          tools: (persona as { tools?: { domains?: string[]; required?: string[]; forbidden?: string[] } }).tools,
-        },
-        userId: 'session-user', // Will be updated with real user ID
-        initialTranscript: '', // No initial transcript at session start
-        subscriptionTier: 'free', // Default, will be updated
-      });
-
-      perfInstrumentation.endPhase('tool-loading');
-
-      const toolNames = Object.keys(orchestratorResult.tools);
-      logger.info(
-        {
-          personaId: persona.id,
-          mode: 'orchestrator',
-          toolCount: orchestratorResult.meta.toolCount,
-          selectionTimeMs: orchestratorResult.meta.selectionTimeMs,
-          sources: orchestratorResult.meta.sources,
-          sampleTools: toolNames.slice(0, 10),
-        },
-        '🔧 Tools selected via orchestrator'
-      );
-
-      // 🔍 DIAGNOSTIC: Check specifically for music tools
-      const musicToolNames = toolNames.filter(
-        (name) =>
-          name.toLowerCase().includes('music') ||
-          name.toLowerCase().includes('spotify') ||
-          name === 'playMusic' ||
-          name === 'pauseMusic'
-      );
-      logger.info(
-        {
-          musicToolCount: musicToolNames.length,
-          musicTools: musicToolNames,
-          hasPlayMusic: toolNames.includes('playMusic'),
-        },
-        '🎵 [DIAG] Music tools from orchestrator'
-      );
-
-      return new VoiceAgent(persona, {
-        instructions: persona.systemPrompt,
-        tools: orchestratorResult.tools,
-      });
     }
 
-    // LEGACY MODE - Registry-based system with lazy loading
+    // FALLBACK: Legacy registry-based system
+    // Only used if orchestrator fails or FORCE_LEGACY_TOOLS=true
+    logger.info({ personaId: persona.id }, '📦 Using legacy tool loading (fallback)');
+
     // Initialize the tool registry if not already done
     if (!isToolRegistryInitialized()) {
       perfInstrumentation.startPhase('tool-registry-init');
@@ -2697,6 +2705,7 @@ export default defineAgent({
         userData,
         sessionStateManager,
         stopPeriodicSync,
+        refreshedTools,
       } = await initializeSession({
         sessionId,
         userId,
@@ -2705,6 +2714,18 @@ export default defineAgent({
         sessionPersona,
         room: ctx.room,
       });
+
+      // ===============================================
+      // STEP 2a: UPDATE TOOLS WITH REAL USER CONTEXT (Orchestrator Mode)
+      // Note: Tools are passed to the session at creation time (line ~2881).
+      // The refreshedTools from initializeSession are used in the tool loading phase.
+      // Runtime tool updates happen via handoff mechanism, not here.
+      // ===============================================
+      if (refreshedTools && Object.keys(refreshedTools).length > 0) {
+        diag.session('🔧 Refreshed tools available for session creation', {
+          toolCount: Object.keys(refreshedTools).length,
+        });
+      }
 
       // Log that SessionStateManager is now the single source of truth
       diag.session('Session initialized with SessionStateManager as single source of truth', {
@@ -3229,7 +3250,7 @@ export default defineAgent({
         // All coordinated through a single session object
         const { initConversationSession } =
           await import('./integrations/conversation-session-integration.js');
-        const conversationSession = initConversationSession({
+        const conversationSession = await initConversationSession({
           sessionId,
           userId,
           personaId: sessionPersona.id,

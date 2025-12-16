@@ -340,6 +340,16 @@ export interface RelationshipMemory {
   totalTurns: number;
   /** Memory last updated */
   updatedAt: Date;
+
+  // === CONVERSATION HISTORY ===
+  /** Recent conversation summaries for context */
+  conversationHistory?: Array<{
+    sessionId: string;
+    timestamp: Date;
+    summary: string;
+    topics: string[];
+    mood: string;
+  }>;
 }
 
 // ============================================================================

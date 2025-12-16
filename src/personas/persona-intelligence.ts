@@ -48,6 +48,12 @@ import {
 // Cognitive Profiles (existing system)
 import { getCognitiveEngine, type CognitiveIntelligenceEngine } from './cognitive-intelligence.js';
 import { getCognitiveProfile } from './cognitive-profiles.js';
+
+// Stage Behavior Guards - prevents stage-inappropriate behaviors
+import {
+  generateBehaviorConstraints,
+  type BehaviorContext,
+} from './shared/stage-behavior-guards.js';
 import type { CognitiveProfile } from './cognitive-types.js';
 
 const log = getLogger();
@@ -283,25 +289,46 @@ export class PersonaIntelligenceEngine {
     let relationshipSection = '';
     if (this.config.enableRelationshipMemory) {
       const relInjection = this.relationshipEngine.buildPromptInjection();
+      const stage = this.relationshipEngine.getRelationshipContext().stage;
 
       relationshipSection = relInjection.relationshipPreamble;
 
-      // Add callback suggestions
+      // Add callback suggestions with USE directive
       if (relInjection.callbackSuggestions.length > 0) {
-        relationshipSection += '\n\n[CALLBACK OPPORTUNITIES]\n';
-        relationshipSection += relInjection.callbackSuggestions.slice(0, 2).join('\n');
+        relationshipSection += '\n\n[CALLBACK OPPORTUNITIES - USE IF RELEVANT TO TOPIC]\n';
+        for (const callback of relInjection.callbackSuggestions.slice(0, 2)) {
+          relationshipSection += `• ${callback}\n`;
+        }
+        relationshipSection += 'DIRECTIVE: Use ONE of these callbacks when the topic naturally connects.';
       }
 
-      // Add inside jokes
+      // Add inside jokes with USE directive and stage gating
       if (relInjection.insideJokeOptions.length > 0) {
-        relationshipSection += '\n\n[INSIDE JOKES AVAILABLE]\n';
-        relationshipSection += relInjection.insideJokeOptions.slice(0, 2).join('\n');
+        // Only inject inside jokes for 'friend' stage and above
+        if (['friend', 'trusted_advisor', 'inner_circle'].includes(stage)) {
+          const relevantJoke = this.findRelevantInsideJoke(
+            relInjection.insideJokeOptions,
+            currentTopic,
+            userMessage
+          );
+          
+          if (relevantJoke) {
+            relationshipSection += '\n\n[USE THIS INSIDE JOKE - HIGH RELEVANCE]\n';
+            relationshipSection += `"${relevantJoke}"\n`;
+            relationshipSection += 'DIRECTIVE: Work this reference into your response naturally. It builds connection.';
+          } else {
+            relationshipSection += '\n\n[INSIDE JOKES AVAILABLE - USE IF CONTEXT FITS]\n';
+            relationshipSection += relInjection.insideJokeOptions.slice(0, 2).join('\n');
+            relationshipSection += '\nDIRECTIVE: Only use if the conversation topic connects.';
+          }
+        }
       }
 
-      // Add pending acknowledgments
+      // Add pending acknowledgments with stronger directive
       if (relInjection.pendingAcknowledgments.length > 0) {
-        relationshipSection += '\n\n[MILESTONES TO ACKNOWLEDGE]\n';
-        relationshipSection += relInjection.pendingAcknowledgments[0];
+        relationshipSection += '\n\n[MILESTONE TO ACKNOWLEDGE - DO THIS]\n';
+        relationshipSection += `${relInjection.pendingAcknowledgments[0]}\n`;
+        relationshipSection += 'DIRECTIVE: Acknowledge this early in your response. They earned it.';
       }
 
       // Add stage guidance
@@ -310,17 +337,113 @@ export class PersonaIntelligenceEngine {
       sections.push(relationshipSection);
     }
 
-    // === COGNITIVE SECTION ===
+    // === COGNITIVE SECTION - NOW WITH BEHAVIORAL CONSTRAINTS ===
     let cognitiveSection = '';
     if (this.config.enableCognitiveDifferentiation && this.cognitiveDiff) {
-      cognitiveSection = '[COGNITIVE STYLE]\n';
-      cognitiveSection += `Questioning: ${this.cognitiveDiff.questioning.whyVsHow > 0.5 ? 'Why-focused' : 'How-focused'}, `;
-      cognitiveSection += `${this.cognitiveDiff.questioning.feelingVsData > 0.5 ? 'feeling-oriented' : 'data-oriented'}\n`;
-      cognitiveSection += `Silence: Interpret as ${this.cognitiveDiff.silence.primaryInterpretation}. Comfortable for ${this.cognitiveDiff.silence.comfortWithSilence}ms.\n`;
-      cognitiveSection += `Disagreement: ${this.cognitiveDiff.disagreement.primaryStyle} style. `;
-      cognitiveSection += `Strong opinions on: ${this.cognitiveDiff.disagreement.strongOpinionTopics.slice(0, 2).join(', ')}\n`;
-      cognitiveSection += `Insights: Frame as ${this.cognitiveDiff.insight.primaryFraming}.\n`;
-      cognitiveSection += `Pacing: Base thinking ${this.cognitiveDiff.pacing.baseThinkingTime}ms, emotional topics ${this.cognitiveDiff.pacing.emotionalMultiplier}x slower.`;
+      const diff = this.cognitiveDiff;
+      cognitiveSection = '[HOW YOU THINK AND RESPOND - FOLLOW THESE CONSTRAINTS]\n\n';
+      
+      // Questioning constraints
+      cognitiveSection += '[QUESTIONING STYLE]\n';
+      if (diff.questioning.whyVsHow > 0.6) {
+        cognitiveSection += 'DO: Ask "why" questions that explore meaning and motivation.\n';
+        cognitiveSection += 'DON\'T: Jump straight to "how" or tactical questions.\n';
+      } else if (diff.questioning.whyVsHow < 0.4) {
+        cognitiveSection += 'DO: Ask practical "how" and "what" questions.\n';
+        cognitiveSection += 'DON\'T: Get too philosophical or abstract.\n';
+      }
+      
+      if (diff.questioning.feelingVsData > 0.6) {
+        cognitiveSection += 'DO: Ask about feelings, experiences, and emotions.\n';
+        cognitiveSection += 'DON\'T: Lead with data or statistics.\n';
+      } else if (diff.questioning.feelingVsData < 0.4) {
+        cognitiveSection += 'DO: Reference data, research, and evidence.\n';
+        cognitiveSection += 'DON\'T: Rely solely on emotional appeals.\n';
+      }
+
+      // Silence handling constraints
+      cognitiveSection += '\n[WHEN USER GOES QUIET]\n';
+      switch (diff.silence.primaryInterpretation) {
+        case 'processing':
+          cognitiveSection += 'DO: Give them space. They\'re thinking deeply.\n';
+          cognitiveSection += 'DON\'T: Fill the silence immediately or rush them.\n';
+          break;
+        case 'emotional':
+          cognitiveSection += 'DO: Check in gently. "Want to share what\'s coming up?"\n';
+          cognitiveSection += 'DON\'T: Ignore the pause or change topics abruptly.\n';
+          break;
+        case 'discomfort':
+          cognitiveSection += 'DO: Acknowledge this might be hard. Offer an out.\n';
+          cognitiveSection += 'DON\'T: Push deeper into uncomfortable territory.\n';
+          break;
+        case 'waiting':
+          cognitiveSection += 'DO: Continue with your thought or move forward.\n';
+          cognitiveSection += 'DON\'T: Ask if they\'re still there.\n';
+          break;
+      }
+
+      // Disagreement constraints
+      cognitiveSection += '\n[WHEN YOU DISAGREE WITH USER]\n';
+      switch (diff.disagreement.primaryStyle) {
+        case 'gentle_question':
+          cognitiveSection += 'DO: Ask a question that introduces your perspective.\n';
+          cognitiveSection += 'Example: "Have you considered...?" or "What if...?"\n';
+          cognitiveSection += 'DON\'T: State your disagreement directly.\n';
+          break;
+        case 'direct_but_warm':
+          cognitiveSection += 'DO: Share your view warmly but directly.\n';
+          cognitiveSection += 'Example: "I actually see it differently..." with warmth.\n';
+          cognitiveSection += 'DON\'T: Beat around the bush or be wishy-washy.\n';
+          break;
+        case 'evidence_based':
+          cognitiveSection += 'DO: Present evidence or data that challenges their view.\n';
+          cognitiveSection += 'Example: "The research actually suggests..."\n';
+          cognitiveSection += 'DON\'T: Rely on emotion or opinion alone.\n';
+          break;
+        case 'reframe':
+          cognitiveSection += 'DO: Offer a different perspective without saying they\'re wrong.\n';
+          cognitiveSection += 'Example: "Another way to look at this..."\n';
+          cognitiveSection += 'DON\'T: Directly contradict them.\n';
+          break;
+      }
+      if (diff.disagreement.strongOpinionTopics.length > 0) {
+        cognitiveSection += `Topics where you have STRONG views: ${diff.disagreement.strongOpinionTopics.slice(0, 3).join(', ')}\n`;
+      }
+
+      // Insight framing constraints
+      cognitiveSection += '\n[HOW TO SHARE INSIGHTS]\n';
+      switch (diff.insight.primaryFraming) {
+        case 'observation':
+          cognitiveSection += 'DO: Start with "I notice..." or "I\'m seeing..."\n';
+          cognitiveSection += 'DON\'T: State conclusions as facts.\n';
+          break;
+        case 'reflection':
+          cognitiveSection += 'DO: Start with "What strikes me..." or "I\'m wondering..."\n';
+          cognitiveSection += 'DON\'T: Be too declarative.\n';
+          break;
+        case 'hypothesis':
+          cognitiveSection += 'DO: Start with "It sounds like..." or "Could it be that...?"\n';
+          cognitiveSection += 'DON\'T: Tell them what they\'re feeling.\n';
+          break;
+        case 'story':
+          cognitiveSection += 'DO: Share a relevant story or example first.\n';
+          cognitiveSection += 'DON\'T: Give direct advice without context.\n';
+          break;
+        case 'data':
+          cognitiveSection += 'DO: Lead with facts, statistics, or research.\n';
+          cognitiveSection += 'DON\'T: Rely solely on anecdotes.\n';
+          break;
+      }
+
+      // Response pacing constraints
+      cognitiveSection += '\n[RESPONSE PACING]\n';
+      if (diff.pacing.emotionalMultiplier > 1.3) {
+        cognitiveSection += 'DO: Slow down significantly for emotional topics. Add pauses.\n';
+      }
+      if (diff.pacing.uncertaintyPause && diff.pacing.uncertaintyPause > 1000) {
+        cognitiveSection += 'DO: Add brief pauses before uncertain statements.\n';
+      }
+      cognitiveSection += `DON\'T: Rush through ${(diff.pacing as { breathingTopics?: string[] }).breathingTopics?.join(', ') || 'heavy topics'}.\n`;
 
       sections.push(cognitiveSection);
     }
@@ -370,6 +493,27 @@ export class PersonaIntelligenceEngine {
           'You can naturally reference teammates when relevant. E.g., "Peter would love this data" or "Maya would remind you to celebrate small wins."';
         sections.push(teamSection);
       }
+    }
+
+    // === STAGE BEHAVIOR GUARDS ===
+    // Prevent behaviors that are too much too soon based on relationship stage
+    let behaviorGuardsSection = '';
+    if (this.config.enableRelationshipMemory) {
+      const relContext = this.relationshipEngine.getRelationshipContext();
+      const memory = this.relationshipEngine.getMemory();
+      
+      const behaviorContext: BehaviorContext = {
+        stage: relContext.stage,
+        sessionCount: memory.totalSessions ?? memory.conversationHistory?.length ?? 0,
+        totalTurns: memory.totalTurns ?? 0,
+        userHasSharedVulnerability: memory.sharedMoments.some(
+          m => m.type === 'first_vulnerability' || m.type === 'trust_demonstration'
+        ),
+        userInDistress: false, // Would need to be passed in from emotion detection
+      };
+      
+      behaviorGuardsSection = generateBehaviorConstraints(behaviorContext);
+      sections.push(behaviorGuardsSection);
     }
 
     // Combine all sections
@@ -547,6 +691,65 @@ export class PersonaIntelligenceEngine {
    */
   getCognitiveDifferentiation(): CognitiveDifferentiation | undefined {
     return this.cognitiveDiff;
+  }
+
+  // ============================================================================
+  // PRIVATE HELPERS
+  // ============================================================================
+
+  /**
+   * Find an inside joke that's relevant to the current topic/message
+   */
+  private findRelevantInsideJoke(
+    jokes: string[],
+    currentTopic?: string,
+    userMessage?: string
+  ): string | null {
+    if (!currentTopic && !userMessage) return null;
+
+    const searchText = `${currentTopic || ''} ${userMessage || ''}`.toLowerCase();
+
+    for (const joke of jokes) {
+      // Extract keywords from the joke to match against context
+      const jokeKeywords = this.extractKeywords(joke);
+
+      for (const keyword of jokeKeywords) {
+        if (searchText.includes(keyword)) {
+          log.debug(
+            { joke, keyword, topic: currentTopic },
+            'Found contextually relevant inside joke'
+          );
+          return joke;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract meaningful keywords from a joke for matching
+   */
+  private extractKeywords(text: string): string[] {
+    // Common inside joke topics and their keywords
+    const topicKeywords: Record<string, string[]> = {
+      spreadsheet: ['excel', 'data', 'track', 'chart', 'numbers', 'organize'],
+      confetti: ['celebrate', 'party', 'achievement', 'milestone', 'success'],
+      'inbox zero': ['email', 'organize', 'productivity', 'clean'],
+      'small wins': ['progress', 'step', 'habit', 'routine', 'improve'],
+      'sit with it': ['process', 'think', 'feel', 'emotion', 'reflect', 'pause'],
+    };
+
+    const lowerText = text.toLowerCase();
+    const keywords: string[] = [];
+
+    for (const [trigger, related] of Object.entries(topicKeywords)) {
+      if (lowerText.includes(trigger)) {
+        keywords.push(trigger, ...related);
+      }
+    }
+
+    return keywords;
   }
 }
 

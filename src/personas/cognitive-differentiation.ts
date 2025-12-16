@@ -53,7 +53,9 @@ export type SilenceInterpretation =
   | 'resistance' // User may disagree
   | 'processing' // User is thinking
   | 'emotional' // User is feeling something
-  | 'invitation'; // User wants us to continue
+  | 'invitation' // User wants us to continue
+  | 'discomfort' // User is uncomfortable
+  | 'waiting'; // User is waiting for us to continue
 
 export interface SilenceHandling {
   /** Primary interpretation of silence */
@@ -83,7 +85,11 @@ export type DisagreementStyle =
   | 'direct' // Clearly state disagreement
   | 'supportive' // Validate then redirect
   | 'philosophical' // Question assumptions
-  | 'data_driven'; // Present contrary evidence
+  | 'data_driven' // Present contrary evidence
+  | 'gentle_question' // Ask a question that introduces perspective
+  | 'direct_but_warm' // Share view warmly but directly
+  | 'evidence_based' // Present evidence or data
+  | 'reframe'; // Offer different perspective without contradiction
 
 export interface DisagreementApproach {
   /** Primary style */
@@ -120,7 +126,10 @@ export type InsightFramingStyle =
   | 'question' // Let user discover
   | 'principle' // State as wisdom
   | 'example' // Use concrete example
-  | 'direct'; // Just say it
+  | 'direct' // Just say it
+  | 'observation' // Start with "I notice..."
+  | 'reflection' // Start with "What strikes me..."
+  | 'hypothesis'; // Start with "It sounds like..."
 
 export interface InsightFraming {
   /** Primary framing style */
@@ -165,6 +174,12 @@ export interface ResponsePacing {
 
   /** How to signal processing */
   processingSignals: string[];
+
+  /** Pause duration before uncertain statements (ms) */
+  uncertaintyPause?: number;
+
+  /** Topics that require slower, more deliberate pacing */
+  breathingTopics?: string[];
 }
 
 // ============================================================================

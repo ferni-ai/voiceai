@@ -10,6 +10,9 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { IntelligenceIntegration } from './intelligence-integration.js';
 
+// Re-export the type for consumers
+export type { IntelligenceIntegration };
+
 const log = getLogger();
 
 // ============================================================================
@@ -191,4 +194,5 @@ export default {
   enhanceSystemPrompt,
   getQuickPromptEnhancement,
 };
+
 

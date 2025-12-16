@@ -273,17 +273,28 @@ export async function playAmbientMusic(): Promise<boolean> {
     return false;
   }
 
-  // Pick a random track
-  const track = tracks[Math.floor(Math.random() * tracks.length)];
-  if (!track.previewUrl) {
-    getLogger().debug('Selected track has no preview URL');
+  // 🐛 FIX BUG-010: Filter to only tracks with preview URLs, then pick random
+  // This prevents silent failure when randomly selecting a track without a preview
+  const tracksWithPreviews = tracks.filter((t) => t.previewUrl);
+  if (tracksWithPreviews.length === 0) {
+    getLogger().warn(
+      { totalTracks: tracks.length },
+      'No ambient tracks have preview URLs - cannot play ambient music'
+    );
     return false;
   }
+
+  // Pick a random track from those that have previews
+  const track = tracksWithPreviews[Math.floor(Math.random() * tracksWithPreviews.length)];
 
   // Play at low volume (ambient/background level)
   player.setVolume(0.15); // 15% - very soft
 
-  const success = await player.playFromUrl(track.previewUrl, track, true); // isAmbient=true
+  const previewUrl = track.previewUrl;
+  if (!previewUrl) {
+    return false; // Should never happen due to filter, but satisfies TypeScript
+  }
+  const success = await player.playFromUrl(previewUrl, track, true); // isAmbient=true - guaranteed by filter above
 
   if (success) {
     getLogger().info({ track: track.name, artist: track.artist }, '🎵 Started ambient music');

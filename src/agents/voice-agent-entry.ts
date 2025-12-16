@@ -352,6 +352,50 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
 
     // =========================================================================
+    // PERFORMANCE OPTIMIZATIONS: Initialize scaling systems for this session
+    // Enables: Pub/Sub offloading, batched LLM analysis, parallel memory search,
+    // context caching, speculative TTS, and turn profiling
+    // =========================================================================
+    const enablePubSub = process.env.PUBSUB_ENABLED === 'true';
+    try {
+      const perfModule = await import('./shared/performance/index.js');
+      await perfModule.initializePerformanceOptimizations({
+        userId: userId || 'anonymous',
+        personaId,
+        sessionId,
+        enablePubSub,
+        enableSpeculativeTTS: true,
+        enableBatchedAnalysis: true,
+        enableParallelMemory: true,
+        enableContextCache: true,
+        enableProfiling: true,
+      });
+      process.stderr.write(
+        `[voice-agent-entry] 🚀 Performance optimizations initialized (pubsub: ${enablePubSub})\n`
+      );
+
+      // Add cleanup handler for performance system
+      cleanupHandlers.push(async () => {
+        try {
+          // Log performance summary before reset
+          const summary = await perfModule.getPerformanceSummary();
+          if (summary) {
+            process.stderr.write(
+              `[voice-agent-entry] 📊 Performance summary: ${JSON.stringify(summary.turnProfiling || {})}\n`
+            );
+          }
+          perfModule.resetPerformanceOptimizations();
+        } catch {
+          /* ignore cleanup errors */
+        }
+      });
+    } catch (perfErr) {
+      process.stderr.write(
+        `[voice-agent-entry] ⚠️ Performance optimizations failed (non-fatal): ${perfErr}\n`
+      );
+    }
+
+    // =========================================================================
     // STEP 5: CREATE SESSION
     // =========================================================================
     currentPhase = 'session';
@@ -855,7 +899,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     try {
       const { initConversationSession } =
         await import('./integrations/conversation-session-integration.js');
-      const conversationSession = initConversationSession({
+      const conversationSession = await initConversationSession({
         sessionId,
         userId: userId || 'anonymous',
         personaId: sessionPersona.id,
