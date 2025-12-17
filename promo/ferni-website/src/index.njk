@@ -17,6 +17,7 @@ description: Six AI specialists who actually listen, remember everything, and he
     <ul class="nav__links">
       <li><a href="#story" class="nav__link">Our Story</a></li>
       <li><a href="#team" class="nav__link">Team</a></li>
+      <li><a href="/building/" class="nav__link">Building</a></li>
       <li><a href="#faq" class="nav__link">FAQ</a></li>
     </ul>
     
@@ -47,6 +48,7 @@ description: Six AI specialists who actually listen, remember everything, and he
   <nav class="mobile-menu__nav">
     <a href="#story">Our Story</a>
     <a href="#team">Meet the Team</a>
+    <a href="/building/">Building</a>
     <a href="#faq">FAQ</a>
     <a href="tel:{{ site.phoneRaw }}">Call {{ site.phone }}</a>
   </nav>
@@ -61,7 +63,7 @@ description: Six AI specialists who actually listen, remember everything, and he
 {# ========== HERO ========== #}
 <main id="main-content">
 <section class="section hero">
-  {# Animated Background #}
+  {# Animated Background with Living Particles #}
   <div class="hero__bg">
     <div class="hero__bg-gradient"></div>
     <div class="hero__bg-orbs">
@@ -69,17 +71,31 @@ description: Six AI specialists who actually listen, remember everything, and he
       <div class="hero__bg-orb hero__bg-orb--2"></div>
       <div class="hero__bg-orb hero__bg-orb--3"></div>
     </div>
+    {# Ambient floating particles - warmth and life #}
+    <div class="hero__bg-particles" aria-hidden="true">
+      <div class="ambient-particle"></div>
+      <div class="ambient-particle"></div>
+      <div class="ambient-particle"></div>
+      <div class="ambient-particle"></div>
+      <div class="ambient-particle"></div>
+      <div class="ambient-particle"></div>
+      <div class="ambient-particle"></div>
+      <div class="ambient-particle"></div>
+      <div class="ambient-particle"></div>
+      <div class="ambient-particle"></div>
+    </div>
   </div>
   
   <div class="container">
     <div class="hero__content">
       
-      {# Ferni Avatar - The warm presence #}
-      <div class="hero-ferni hero-ferni--breathing" aria-hidden="true">
+      {# Ferni Avatar - The LIVING presence (powered by living-ferni.js) #}
+      <div class="hero-ferni hero-ferni--breathing" aria-label="Ferni - Click to interact">
         <div class="hero-ferni__glow"></div>
         <div class="hero-ferni__ring hero-ferni__ring--outer"></div>
         <div class="hero-ferni__ring hero-ferni__ring--inner"></div>
         <div class="hero-ferni__orb">
+          {# Waveform will be injected by living-ferni.js, text is fallback #}
           <span class="hero-ferni__text">FE</span>
         </div>
         <div class="hero-ferni__pulse"></div>
