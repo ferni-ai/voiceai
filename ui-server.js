@@ -97,6 +97,13 @@ import { handleEvalOpsRoutes } from './dist/api/evalops-handler.js';
 // Household settings persistence
 import { handleHouseholdRoutes } from './dist/api/household-routes.js';
 
+// Musical You & Creative You routes (Phases 1-5)
+import { handleShareRoutes } from './dist/api/routes/share-routes.js';
+import { handleChallengeRoutes } from './dist/api/routes/challenge-routes.js';
+import { handleCreativeYouRoutes } from './dist/api/routes/creative-you-routes.js';
+import { handleSocialRoutes } from './dist/api/routes/social-routes.js';
+import { handlePremiumRoutes } from './dist/api/routes/premium-routes.js';
+
 // Story journey persistence
 import { handleStoryJourneyRoutes } from './dist/api/story-journey-routes.js';
 
@@ -1245,6 +1252,37 @@ const server = http.createServer(async (req, res) => {
     if (pathname.startsWith('/api/household')) {
       const handled = await handleHouseholdRoutes(req, res, pathname);
       if (handled) return;
+    }
+
+    // Musical You & Creative You routes (Phases 1-5)
+    // Share cards for Musical DNA, Desert Island, Game Victory, Creative Profile
+    if (pathname.startsWith('/api/share')) {
+      const shareHandled = await handleShareRoutes(req, res, pathname, parsedUrl);
+      if (shareHandled) return;
+    }
+
+    // Daily challenges system
+    if (pathname.startsWith('/api/challenges')) {
+      const challengeHandled = await handleChallengeRoutes(req, res, pathname, parsedUrl.searchParams);
+      if (challengeHandled) return;
+    }
+
+    // Creative You - videos, podcasts, learning tracks
+    if (pathname.startsWith('/api/creative')) {
+      const creativeHandled = await handleCreativeYouRoutes(req, res, pathname, parsedUrl.searchParams);
+      if (creativeHandled) return;
+    }
+
+    // Social - multiplayer, leaderboards, taste match
+    if (pathname.startsWith('/api/social')) {
+      const socialHandled = await handleSocialRoutes(req, res, pathname, parsedUrl.searchParams);
+      if (socialHandled) return;
+    }
+
+    // Premium features - Our Song, premium content
+    if (pathname.startsWith('/api/premium') || pathname.startsWith('/api/our-song')) {
+      const premiumHandled = await handlePremiumRoutes(req, res, pathname, parsedUrl.searchParams);
+      if (premiumHandled) return;
     }
 
     // Story journey persistence
