@@ -46,11 +46,15 @@ interface MusicConfig {
 }
 
 // Session-level config
-const musicConfig: MusicConfig = {
+// 🐛 FIX BUG-012: Add default config factory to prevent cross-session pollution
+const DEFAULT_MUSIC_CONFIG: MusicConfig = {
   preferredSource: 'itunes', // Default to free previews
   spotifyLinked: false,
   userRequestedSpotify: false,
 };
+
+// Mutable config - reset at start of each session via initializeMusicConfig()
+let musicConfig: MusicConfig = { ...DEFAULT_MUSIC_CONFIG };
 
 /**
  * Check if Spotify is available for this session.
@@ -68,8 +72,12 @@ async function checkSpotifyAvailability(): Promise<boolean> {
 /**
  * Initialize music config for the session.
  * Called when the voice agent starts.
+ * 🐛 FIX BUG-012: Resets config to defaults before initializing to prevent cross-session pollution
  */
 export async function initializeMusicConfig(): Promise<void> {
+  // Reset to defaults first to prevent cross-session pollution
+  musicConfig = { ...DEFAULT_MUSIC_CONFIG };
+
   musicConfig.spotifyLinked = await checkSpotifyAvailability();
 
   getLogger().info(
@@ -79,6 +87,15 @@ export async function initializeMusicConfig(): Promise<void> {
     },
     '🎵 Music config initialized'
   );
+}
+
+/**
+ * Reset music config to defaults.
+ * Call this when a session ends to ensure clean state for next session.
+ */
+export function resetMusicConfig(): void {
+  musicConfig = { ...DEFAULT_MUSIC_CONFIG };
+  getLogger().debug('🎵 Music config reset to defaults');
 }
 
 /**
@@ -187,22 +204,30 @@ export async function playViaItunes(query: string, personaId?: string): Promise<
       '🎵 [iTunes] Track found!'
     );
 
-    // Step 2: Get music player and check initialization
+    // Step 2: Get music player and wait for initialization (fixed race condition)
     log.debug('Step 2: Getting music player...');
     const musicPlayer = getMusicPlayer();
 
-    // 🚨 CRITICAL: Check if music player is initialized with helpful diagnostics
+    // 🐛 FIX: Use the new waitForInitialization method instead of manual retry loop
+    // This properly awaits the initialization promise with a 5-second timeout
     if (!musicPlayer.isInitialized()) {
-      log.error(
-        {
-          query,
-          trackName: track.name,
-          playerState: musicPlayer.getState(),
-        },
-        '🎵 [iTunes] Music player not initialized! Cannot play audio.'
-      );
-      // 🎯 IMPROVED: More specific error message and recovery suggestion
-      return `I found "${track.name}" by ${track.artist}, but the audio system isn't ready yet. Give me a second and ask again - it should work shortly!`;
+      log.debug('🎵 Music player not ready, waiting for initialization...');
+      const initialized = await musicPlayer.waitForInitialization(5000);
+
+      if (!initialized) {
+        log.error(
+          {
+            query,
+            trackName: track.name,
+            playerState: musicPlayer.getState(),
+            sessionId: musicPlayer.getSessionId(),
+          },
+          '🎵 [iTunes] Music player not initialized after waiting! Cannot play audio.'
+        );
+        // 🎯 IMPROVED: More specific error message and recovery suggestion
+        return `I found "${track.name}" by ${track.artist}, but the audio system isn't ready yet. Give me a second and ask again - it should work shortly!`;
+      }
+      log.debug('🎵 Music player initialization complete, proceeding with playback');
     }
 
     const wasPlaying = musicPlayer.isCurrentlyPlaying();
@@ -427,6 +452,15 @@ export async function suggestAndPlayMusic(mood: string): Promise<string> {
   // 🐛 FIX: Use preview duration (30s), not full track duration from iTunes API
   const ITUNES_PREVIEW_DURATION_MS = 30000;
   const musicPlayer = getMusicPlayer();
+
+  // 🐛 FIX: Wait for initialization before playing
+  if (!musicPlayer.isInitialized()) {
+    const initialized = await musicPlayer.waitForInitialization(5000);
+    if (!initialized) {
+      return `I found a great ${mood} track - "${result.track.name}" by ${result.track.artist}. But the audio system isn't quite ready yet. Ask me again in a moment!`;
+    }
+  }
+
   const musicTrack: MusicTrack = {
     name: result.track.name,
     artist: result.track.artist,
@@ -464,17 +498,9 @@ export function createMusicTools() {
 
   return {
     playMusic: llm.tool({
-      description: `Play music! Works for everyone - no subscription needed.
-Use when user asks to:
-- Play a song, artist, or genre
-- "Put on some music"
-- "Play something"
-- "Let me hear [song]"
-
-Plays a 30-second preview that everyone can enjoy.
-Users with Spotify linked get full tracks.`,
+      description: `Play music for the user. Call this function immediately when the user asks to play music, put on a song, or wants to hear something. Do not respond conversationally - call this function. Examples of when to call: "play some jazz", "put on Taylor Swift", "play something relaxing", "let me hear that song". Pass the song name, artist, genre, or mood as the query parameter.`,
       parameters: z.object({
-        query: z.string().describe('Song name, artist, genre, or search query'),
+        query: z.string().describe('The song name, artist name, genre, or mood to search for and play'),
       }),
       execute: async ({ query }) => {
         const log = getLogger();
@@ -487,7 +513,12 @@ Users with Spotify linked get full tracks.`,
           return result;
         } catch (error) {
           log.error({ query, error }, '🎵 TOOL: playMusic ERROR');
-          return `I had trouble playing "${query}". Let me try again in a moment.`;
+          const musicErrors = [
+            `"${query}" isn't cooperating. Let me try a different way.`,
+            `Hmm, can't get "${query}" going. Want me to try something similar?`,
+            `Music player's being weird. Give me a sec and I'll try again.`,
+          ];
+          return musicErrors[Math.floor(Math.random() * musicErrors.length)];
         }
       },
     }),
@@ -520,8 +551,7 @@ Use when user says "put on something relaxing" or asks for recommendations.`,
     }),
 
     pauseMusic: llm.tool({
-      description: `Pause the currently playing music.
-Use when user says "stop", "pause", "quiet", etc.`,
+      description: `Pause the currently playing music. Call this when the user says stop, pause, quiet, or wants the music to stop.`,
       parameters: z.object({}),
       execute: async () => {
         const musicPlayer = getMusicPlayer();
@@ -637,8 +667,7 @@ Use when user says "turn it up", "quieter", "volume".`,
     }),
 
     whatsPlaying: llm.tool({
-      description: `Check what's currently playing.
-Use when user asks "what song is this?", "what's playing?"`,
+      description: `Check what music is currently playing. Call this when the user asks what song is playing, what this is, or wants to know the current track.`,
       parameters: z.object({}),
       execute: async () => {
         const musicPlayer = getMusicPlayer();
