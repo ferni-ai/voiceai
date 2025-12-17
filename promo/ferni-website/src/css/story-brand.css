@@ -5784,3 +5784,290 @@ body[data-time-of-day='early-morning'] {
     text-align: center;
   }
 }
+
+/* ============================================================================
+   STORY PAGE STYLES
+   Used by: garden.njk, story.njk, how-it-works.njk, faq.njk
+   ============================================================================ */
+
+/* Base container */
+.story-page {
+  min-height: 100vh;
+  background: var(--color-bg-primary);
+}
+
+.garden-page {
+  min-height: 100vh;
+  background: var(--color-bg-primary);
+}
+
+/* Hero section */
+.story-page__hero {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: clamp(100px, 15vh, 160px) var(--space-6) clamp(60px, 10vh, 100px);
+}
+
+.story-page__eyebrow {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--color-ferni);
+  margin-bottom: var(--space-6);
+}
+
+.story-page__headline {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 8vw, 5rem);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.05;
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: -0.03em;
+}
+
+/* Sections */
+.story-page__section {
+  padding: clamp(60px, 10vh, 100px) var(--space-6);
+}
+
+.story-page__section--dark {
+  background: var(--color-dark-gradient-start, #1a1512);
+  color: var(--color-text-inverse);
+}
+
+.story-page__section--dark .story-page__subhead,
+.story-page__section--dark .story-page__text {
+  color: var(--color-text-inverse);
+}
+
+.story-page__section--dark .story-page__text--muted {
+  color: rgba(250, 248, 245, 0.7);
+}
+
+.story-page__section--dark .story-page__accent {
+  color: var(--color-ferni);
+}
+
+.story-page__section--accent {
+  background: linear-gradient(
+    135deg,
+    rgba(74, 103, 65, 0.08) 0%,
+    rgba(74, 103, 65, 0.03) 100%
+  );
+}
+
+.story-page__section--cta {
+  background: var(--color-bg-elevated);
+}
+
+/* Block container */
+.story-page__block {
+  max-width: 700px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* Subheads */
+.story-page__subhead {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.2;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-6);
+  letter-spacing: -0.02em;
+}
+
+/* Body text */
+.story-page__text {
+  font-family: var(--font-body);
+  font-size: clamp(1.0625rem, 2vw, 1.25rem);
+  line-height: 1.7;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-4);
+}
+
+.story-page__text:last-child {
+  margin-bottom: 0;
+}
+
+.story-page__text--muted {
+  color: var(--color-text-muted);
+}
+
+/* Accent text (punchlines) */
+.story-page__accent {
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-ferni);
+  margin: var(--space-6) 0;
+}
+
+/* Aside text */
+.story-page__aside {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--color-text-muted);
+  margin-top: var(--space-6);
+}
+
+/* List for features/team */
+.story-page__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-8);
+  text-align: left;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.story-page__list-item {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.story-page__list-item:last-child {
+  border-bottom: none;
+}
+
+.story-page__list-label {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-ferni);
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.story-page__list-value {
+  font-family: var(--font-body);
+  color: var(--color-text-secondary);
+}
+
+/* Dark section list styling */
+.story-page__section--dark .story-page__list-item {
+  border-bottom-color: rgba(250, 248, 245, 0.1);
+}
+
+.story-page__section--dark .story-page__list-label {
+  color: var(--color-ferni);
+}
+
+.story-page__section--dark .story-page__list-value {
+  color: rgba(250, 248, 245, 0.8);
+}
+
+/* CTA buttons */
+.story-page__cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-8);
+}
+
+@media (min-width: 640px) {
+  .story-page__cta {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+
+.story-page__cta-note {
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  color: var(--color-text-muted);
+  margin-top: var(--space-4);
+}
+
+.story-page__cta-note a {
+  color: var(--color-ferni);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.story-page__cta-note a:hover {
+  color: var(--color-ferni-secondary);
+}
+
+/* Garden-specific button */
+.btn--garden {
+  background: var(--color-ferni);
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.btn--garden:hover {
+  background: var(--color-ferni-secondary);
+}
+
+.btn--garden svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Container utilities */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 var(--space-4);
+}
+
+.container--narrow {
+  max-width: 800px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .story-page__hero {
+    min-height: 50vh;
+    padding: clamp(80px, 12vh, 120px) var(--space-5) clamp(40px, 8vh, 80px);
+  }
+  
+  .story-page__section {
+    padding: clamp(48px, 8vh, 80px) var(--space-5);
+  }
+  
+  .story-page__headline {
+    font-size: clamp(2rem, 10vw, 3rem);
+  }
+  
+  .story-page__subhead {
+    font-size: clamp(1.5rem, 6vw, 2rem);
+  }
+  
+  .story-page__list-item {
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  
+  .story-page__list-label {
+    min-width: auto;
+  }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+  .story-page__hero {
+    padding: 80px var(--space-4) 40px;
+  }
+  
+  .story-page__section {
+    padding: 40px var(--space-4);
+  }
+}

@@ -1350,10 +1350,7 @@ img, video {
   height: auto;
 }
 
-/* Font display optimization */
-@font-face {
-  font-display: swap;
-}
+/* Font display optimization is handled via Google Fonts ?display=swap parameter */
 
 /* Skeleton placeholder dimensions */
 .skeleton-card {
