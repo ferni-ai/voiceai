@@ -39,6 +39,9 @@ COPY .npmrc ./
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
 
+# Copy patches directory (required by pnpm-lock.yaml)
+COPY patches/ ./patches/
+
 # Install dependencies with pnpm
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --prefer-offline
