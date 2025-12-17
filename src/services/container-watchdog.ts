@@ -191,6 +191,11 @@ const state: WatchdogState = {
   alertCount: 0,
 };
 
+// Log sampling - only log "OK" status every Nth check to reduce noise
+const LOG_SAMPLE_INTERVAL = 10; // Log every 10th successful check
+let diskCheckCount = 0;
+let memoryCheckCount = 0;
+
 // ============================================================================
 // METRICS COLLECTION
 // ============================================================================
@@ -217,27 +222,74 @@ function getMemoryStatus(): MemoryStatus {
   const memUsage = process.memoryUsage();
 
   try {
-    // Get system memory
-    const memInfo = execSync('cat /proc/meminfo', { encoding: 'utf-8', stdio: 'pipe' });
-    const totalMatch = memInfo.match(/MemTotal:\s+(\d+)/);
-    const availMatch = memInfo.match(/MemAvailable:\s+(\d+)/);
+    // Platform-aware memory detection
+    const platform = process.platform;
 
-    const totalKb = parseInt(totalMatch?.[1] || '0', 10);
-    const availKb = parseInt(availMatch?.[1] || '0', 10);
-    const totalBytes = totalKb * 1024;
-    const availableBytes = availKb * 1024;
-    const usedBytes = totalBytes - availableBytes;
+    if (platform === 'linux') {
+      // Linux: Use /proc/meminfo
+      const memInfo = execSync('cat /proc/meminfo', { encoding: 'utf-8', stdio: 'pipe' });
+      const totalMatch = memInfo.match(/MemTotal:\s+(\d+)/);
+      const availMatch = memInfo.match(/MemAvailable:\s+(\d+)/);
 
-    return {
-      totalBytes,
-      usedBytes,
-      availableBytes,
-      usedPercent: totalBytes > 0 ? Math.round((usedBytes / totalBytes) * 100) : 0,
-      heapUsedBytes: memUsage.heapUsed,
-      heapTotalBytes: memUsage.heapTotal,
-    };
+      const totalKb = parseInt(totalMatch?.[1] || '0', 10);
+      const availKb = parseInt(availMatch?.[1] || '0', 10);
+      const totalBytes = totalKb * 1024;
+      const availableBytes = availKb * 1024;
+      const usedBytes = totalBytes - availableBytes;
+
+      return {
+        totalBytes,
+        usedBytes,
+        availableBytes,
+        usedPercent: totalBytes > 0 ? Math.round((usedBytes / totalBytes) * 100) : 0,
+        heapUsedBytes: memUsage.heapUsed,
+        heapTotalBytes: memUsage.heapTotal,
+      };
+    } else if (platform === 'darwin') {
+      // macOS: Use sysctl for total memory and vm_stat for usage
+      const totalOutput = execSync('sysctl -n hw.memsize', { encoding: 'utf-8', stdio: 'pipe' });
+      const totalBytes = parseInt(totalOutput.trim(), 10);
+
+      // vm_stat gives page statistics - calculate available memory
+      const vmStat = execSync('vm_stat', { encoding: 'utf-8', stdio: 'pipe' });
+      const pageSize = 16384; // Default macOS page size (can vary)
+
+      const freeMatch = vmStat.match(/Pages free:\s+(\d+)/);
+      const inactiveMatch = vmStat.match(/Pages inactive:\s+(\d+)/);
+      const speculativeMatch = vmStat.match(/Pages speculative:\s+(\d+)/);
+
+      const freePages = parseInt(freeMatch?.[1] || '0', 10);
+      const inactivePages = parseInt(inactiveMatch?.[1] || '0', 10);
+      const speculativePages = parseInt(speculativeMatch?.[1] || '0', 10);
+
+      // Available = free + inactive + speculative (rough approximation)
+      const availableBytes = (freePages + inactivePages + speculativePages) * pageSize;
+      const usedBytes = totalBytes - availableBytes;
+
+      return {
+        totalBytes,
+        usedBytes,
+        availableBytes,
+        usedPercent: totalBytes > 0 ? Math.round((usedBytes / totalBytes) * 100) : 0,
+        heapUsedBytes: memUsage.heapUsed,
+        heapTotalBytes: memUsage.heapTotal,
+      };
+    } else {
+      // Windows or other: Just use Node.js heap info
+      return {
+        totalBytes: 0,
+        usedBytes: 0,
+        availableBytes: 0,
+        usedPercent: 0,
+        heapUsedBytes: memUsage.heapUsed,
+        heapTotalBytes: memUsage.heapTotal,
+      };
+    }
   } catch (error) {
-    log.warn({ error: String(error) }, 'Failed to get system memory');
+    // Silent fallback - only log in debug mode to avoid noise
+    if (process.env.DEBUG) {
+      log.debug({ error: String(error), platform: process.platform }, 'System memory detection unavailable');
+    }
     return {
       totalBytes: 0,
       usedBytes: 0,
@@ -512,7 +564,11 @@ async function checkDisk(): Promise<void> {
     return;
   }
 
-  log.debug({ ...details }, 'Disk check OK');
+  // Only log OK status every Nth check to reduce noise
+  diskCheckCount++;
+  if (diskCheckCount % LOG_SAMPLE_INTERVAL === 0) {
+    log.info({ ...details }, 'Disk check OK (sampled)');
+  }
 }
 
 async function checkMemory(): Promise<void> {
@@ -554,7 +610,11 @@ async function checkMemory(): Promise<void> {
     return;
   }
 
-  log.debug({ ...details }, 'Memory check OK');
+  // Only log OK status every Nth check to reduce noise
+  memoryCheckCount++;
+  if (memoryCheckCount % LOG_SAMPLE_INTERVAL === 0) {
+    log.info({ ...details }, 'Memory check OK (sampled)');
+  }
 }
 
 async function sendHealthReport(): Promise<void> {
