@@ -107,6 +107,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY package.json pnpm-lock.yaml* ./
 COPY .npmrc ./
 
+# Copy patches directory (required by pnpm-lock.yaml)
+COPY patches/ ./patches/
+
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --prefer-offline --prod || npm ci --omit=dev
 
