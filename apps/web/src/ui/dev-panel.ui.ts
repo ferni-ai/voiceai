@@ -574,6 +574,72 @@ function createPanel(): HTMLElement {
           <button class="dev-action-btn" data-game="mood-dj">
             ${ICONS.headphones} Mood DJ Challenge
           </button>
+          <button class="dev-action-btn dev-action-btn--secondary" data-game="finish-the-lyric">
+            ${ICONS.music} Finish the Lyric (NEW)
+          </button>
+          <button class="dev-action-btn dev-action-btn--secondary" data-game="decade-challenge">
+            ${ICONS.clock} Decade Challenge (NEW)
+          </button>
+        </div>
+        <div class="dev-subsection">
+          <span class="dev-label">Share Cards (Viral Sharing)</span>
+          <div class="dev-actions">
+            <button class="dev-action-btn dev-action-btn--secondary" data-share-test="musical-dna">
+              ${ICONS.share} Test Musical DNA Card
+            </button>
+            <button class="dev-action-btn dev-action-btn--secondary" data-share-test="desert-island">
+              ${ICONS.share} Test Desert Island Card
+            </button>
+            <button class="dev-action-btn dev-action-btn--secondary" data-share-test="game-victory">
+              ${ICONS.share} Test Victory Card
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Creative You -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.video} Creative You</h3>
+        <p class="dev-section__desc">Videos, podcasts, and learning tracks</p>
+        <div class="dev-actions">
+          <button class="dev-action-btn dev-action-btn--primary" data-creative="dashboard">
+            ${ICONS.layout} Open Creative Dashboard
+          </button>
+          <button class="dev-action-btn" data-creative="test-videos">
+            ${ICONS.video} Test Video API
+          </button>
+          <button class="dev-action-btn" data-creative="test-podcasts">
+            ${ICONS.headphones} Test Podcast API
+          </button>
+          <button class="dev-action-btn" data-creative="test-dna">
+            ${ICONS.brain} Test Creative DNA
+          </button>
+          <button class="dev-action-btn dev-action-btn--secondary" data-share-test="creative-profile">
+            ${ICONS.share} Test Creative Profile Card
+          </button>
+        </div>
+      </section>
+
+      <!-- Social & Multiplayer -->
+      <section class="dev-section">
+        <h3 class="dev-section__title">${ICONS.users} Social & Multiplayer</h3>
+        <p class="dev-section__desc">Leaderboards, challenges, taste match</p>
+        <div class="dev-actions">
+          <button class="dev-action-btn dev-action-btn--primary" data-social="leaderboard">
+            ${ICONS.trophy} Open Leaderboard
+          </button>
+          <button class="dev-action-btn" data-social="seed-data">
+            ${ICONS.database} Seed Test Data
+          </button>
+          <button class="dev-action-btn" data-social="test-challenge">
+            ${ICONS.sword} Test Challenge API
+          </button>
+          <button class="dev-action-btn" data-social="test-tastematch">
+            ${ICONS.heart} Test Taste Match
+          </button>
+          <button class="dev-action-btn" data-social="test-stats">
+            ${ICONS.chart} Test User Stats
+          </button>
         </div>
       </section>
       
@@ -2696,6 +2762,30 @@ function createPanel(): HTMLElement {
     });
   });
 
+  // Share test buttons
+  container.querySelectorAll('[data-share-test]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const shareType = (btn as HTMLElement).dataset.shareTest;
+      void testShareCard(shareType!);
+    });
+  });
+
+  // Creative You buttons
+  container.querySelectorAll('[data-creative]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const action = (btn as HTMLElement).dataset.creative;
+      void handleCreativeAction(action!);
+    });
+  });
+
+  // Social buttons
+  container.querySelectorAll('[data-social]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const action = (btn as HTMLElement).dataset.social;
+      void handleSocialAction(action!);
+    });
+  });
+
   // Music buttons
   container.querySelectorAll('.dev-music-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -3197,9 +3287,280 @@ async function handleGameAction(action: string): Promise<void> {
     case 'desert-island':
     case 'this-or-that':
     case 'mood-dj':
+    case 'finish-the-lyric':
+    case 'decade-challenge':
       // Request game start via voice agent
       await requestGameStart(action);
       break;
+  }
+}
+
+/**
+ * Test shareable card generation
+ */
+async function testShareCard(cardType: string): Promise<void> {
+  log.info({ cardType }, '📤 Testing share card generation');
+
+  // Create sample data based on card type
+  let cardData: Record<string, unknown>;
+
+  switch (cardType) {
+    case 'musical-dna':
+      cardData = {
+        type: 'musical-dna',
+        personalityLabel: 'The Explorer',
+        personalityDescription: 'You love discovering new genres and artists!',
+        topGenres: [
+          { name: 'Rock', score: 85 },
+          { name: 'Jazz', score: 72 },
+          { name: 'Indie', score: 68 },
+          { name: 'Electronic', score: 55 },
+        ],
+        totalGames: 25,
+        currentStreak: 7,
+      };
+      break;
+
+    case 'desert-island':
+      cardData = {
+        type: 'desert-island',
+        picks: [
+          { rank: 1, trackName: 'Bohemian Rhapsody', artistName: 'Queen', reason: 'Pure magic' },
+          { rank: 2, trackName: 'Imagine', artistName: 'John Lennon' },
+          { rank: 3, trackName: 'Hotel California', artistName: 'Eagles' },
+          { rank: 4, trackName: 'Stairway to Heaven', artistName: 'Led Zeppelin' },
+          { rank: 5, trackName: 'Sweet Child O Mine', artistName: "Guns N' Roses" },
+        ],
+        curatedDate: new Date().toISOString(),
+      };
+      break;
+
+    case 'game-victory':
+      cardData = {
+        type: 'game-victory',
+        gameType: 'name-that-tune',
+        gameDisplayName: 'Name That Tune',
+        score: 950,
+        guessTimeMs: 2340,
+        trackName: 'Billie Jean',
+        artistName: 'Michael Jackson',
+        isPersonalBest: true,
+      };
+      break;
+
+    case 'creative-profile':
+      cardData = {
+        type: 'creative-profile',
+        personalityLabel: 'The Curious Explorer',
+        personalityDescription: 'You dive deep into topics that fascinate you!',
+        topTopics: [
+          { name: 'Psychology', score: 85 },
+          { name: 'Philosophy', score: 78 },
+          { name: 'Science', score: 72 },
+          { name: 'Productivity', score: 65 },
+        ],
+        totalContent: 42,
+        insightsSaved: 15,
+        learningStyle: 'Visual',
+      };
+      break;
+
+    default:
+      log.warn({ cardType }, 'Unknown card type for share test');
+      return;
+  }
+
+  try {
+    // Call the share API
+    const response = await fetch('/api/share/cards/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: cardType,
+        userId: 'dev-test-user',
+        data: cardData,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (result.success && result.card) {
+      log.info({ card: result.card }, '✅ Share card generated');
+      showToast('Card generated! Opening preview...', 'success');
+
+      // Open the share page in a new tab
+      window.open(result.card.shareUrl, '_blank');
+
+      // Also try native share
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: `My ${cardType.replace(/-/g, ' ')} | Ferni`,
+            text: 'Check out my music profile!',
+            url: result.card.shareUrl,
+          });
+        } catch {
+          // User cancelled or not supported
+        }
+      }
+    } else {
+      log.error({ error: result.error }, '❌ Failed to generate share card');
+      showToast(`Failed: ${result.error}`, 'error');
+    }
+  } catch (error) {
+    log.error({ error }, '❌ Share card API error');
+    showToast('API error - check console', 'error');
+  }
+}
+
+/**
+ * Handle Creative You actions
+ */
+async function handleCreativeAction(action: string): Promise<void> {
+  const baseUrl = window.location.origin;
+
+  switch (action) {
+    case 'dashboard':
+      try {
+        const { openCreativeYouDashboard } = await import('./creative-you-dashboard.ui.js');
+        openCreativeYouDashboard('dev-test-user');
+        log.info('🎨 Opened Creative You dashboard');
+        showToast('Creative dashboard opened', 'success');
+      } catch (e) {
+        log.error('Failed to open Creative dashboard:', e);
+        showToast('Failed to open dashboard', 'error');
+      }
+      break;
+
+    case 'test-videos':
+      try {
+        const res = await fetch(`${baseUrl}/api/creative/videos/recommendations?userId=dev-test&mood=learn&maxResults=3`);
+        const data = await res.json();
+        log.info({ recommendations: data.recommendations }, '🎬 Video recommendations');
+        showToast(`Got ${data.recommendations?.length || 0} video recommendations`, 'success');
+      } catch (e) {
+        log.error('Video API test failed:', e);
+        showToast('Video API error', 'error');
+      }
+      break;
+
+    case 'test-podcasts':
+      try {
+        const res = await fetch(`${baseUrl}/api/creative/podcasts/recommendations?userId=dev-test&mood=reflect&maxResults=3`);
+        const data = await res.json();
+        log.info({ recommendations: data.recommendations }, '🎧 Podcast recommendations');
+        showToast(`Got ${data.recommendations?.length || 0} podcast recommendations`, 'success');
+      } catch (e) {
+        log.error('Podcast API test failed:', e);
+        showToast('Podcast API error', 'error');
+      }
+      break;
+
+    case 'test-dna':
+      try {
+        const res = await fetch(`${baseUrl}/api/creative/dna?userId=dev-test`);
+        const data = await res.json();
+        log.info({ dna: data.dna }, '🧬 Creative DNA');
+        showToast(`Personality: ${data.dna?.personalityLabel || 'Unknown'}`, 'success');
+      } catch (e) {
+        log.error('Creative DNA test failed:', e);
+        showToast('Creative DNA API error', 'error');
+      }
+      break;
+
+    default:
+      log.warn({ action }, 'Unknown creative action');
+  }
+}
+
+/**
+ * Handle Social & Multiplayer actions
+ */
+async function handleSocialAction(action: string): Promise<void> {
+  const baseUrl = window.location.origin;
+
+  switch (action) {
+    case 'leaderboard':
+      try {
+        const { openLeaderboard } = await import('./leaderboard.ui.js');
+        openLeaderboard('dev-test-user');
+        log.info('🏆 Opened leaderboard');
+        showToast('Leaderboard opened', 'success');
+      } catch (e) {
+        log.error('Failed to open leaderboard:', e);
+        showToast('Failed to open leaderboard', 'error');
+      }
+      break;
+
+    case 'seed-data':
+      try {
+        const res = await fetch(`${baseUrl}/api/social/seed`, { method: 'POST' });
+        const data = await res.json();
+        log.info({ result: data }, '🌱 Seeded test data');
+        showToast('Leaderboard seeded with test data', 'success');
+      } catch (e) {
+        log.error('Seed data failed:', e);
+        showToast('Seed failed', 'error');
+      }
+      break;
+
+    case 'test-challenge':
+      try {
+        const res = await fetch(`${baseUrl}/api/social/challenges/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'score-beat',
+            gameType: 'name-that-tune',
+            challengerId: 'dev-user-1',
+            challengerName: 'Dev Tester',
+            challengeeId: 'dev-user-2',
+            challengerScore: 500,
+          }),
+        });
+        const data = await res.json();
+        log.info({ challenge: data.challenge }, '⚔️ Challenge created');
+        showToast(`Challenge created! Code: ${data.challenge?.shareCode}`, 'success');
+      } catch (e) {
+        log.error('Challenge API test failed:', e);
+        showToast('Challenge API error', 'error');
+      }
+      break;
+
+    case 'test-tastematch':
+      try {
+        const res = await fetch(`${baseUrl}/api/social/tastematch/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            hostUserId: 'dev-test-user',
+            hostDisplayName: 'Dev Tester',
+            rounds: 5,
+          }),
+        });
+        const data = await res.json();
+        log.info({ session: data.session }, '🎵 Taste Match session created');
+        showToast(`Session: ${data.session?.id?.slice(0, 12)}...`, 'success');
+      } catch (e) {
+        log.error('Taste Match API test failed:', e);
+        showToast('Taste Match API error', 'error');
+      }
+      break;
+
+    case 'test-stats':
+      try {
+        const res = await fetch(`${baseUrl}/api/social/stats?userId=dev-test-user&displayName=DevTester`);
+        const data = await res.json();
+        log.info({ stats: data.stats, rank: data.weeklyRank }, '📊 User stats');
+        showToast(`Level ${data.stats?.level || 1} | XP: ${data.stats?.totalXP || 0}`, 'success');
+      } catch (e) {
+        log.error('User stats test failed:', e);
+        showToast('Stats API error', 'error');
+      }
+      break;
+
+    default:
+      log.warn({ action }, 'Unknown social action');
   }
 }
 

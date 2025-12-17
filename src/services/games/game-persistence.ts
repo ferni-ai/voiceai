@@ -267,6 +267,8 @@ function formatGameName(gameType: GameType): string {
     'desert-island-discs': 'Desert Island Discs',
     'this-or-that': 'This or That',
     'mood-dj-challenge': 'Mood DJ Challenge',
+    'finish-the-lyric': 'Finish the Lyric',
+    'decade-challenge': 'Decade Challenge',
   };
   return names[gameType] || gameType;
 }

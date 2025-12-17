@@ -40,6 +40,11 @@ import {
   getMusicalDNAMessage,
   type SongSelectionContext,
 } from './game-intelligence.js';
+import {
+  FinishTheLyricGame,
+  DecadeChallengeGame,
+  setGameMemoryForNewGames,
+} from './new-music-games.js';
 
 const log = getLogger();
 
@@ -55,6 +60,7 @@ let sharedGameMemory: GameMemory | null = null;
  */
 export function setGameMemoryForGames(memory: GameMemory | null): void {
   sharedGameMemory = memory;
+  setGameMemoryForNewGames(memory);
 }
 
 export function getMusicGameImplementation(
@@ -72,6 +78,10 @@ export function getMusicGameImplementation(
       return new ThisOrThatGame(personaId);
     case 'mood-dj-challenge':
       return new MoodDJChallengeGame(personaId);
+    case 'finish-the-lyric':
+      return new FinishTheLyricGame();
+    case 'decade-challenge':
+      return new DecadeChallengeGame();
     default:
       return null;
   }

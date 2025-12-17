@@ -469,3 +469,23 @@ export {
   type GameMusicEventResult,
   type GameMusicState,
 } from './game-music-controller.js';
+
+// ============================================================================
+// 🎧 LIBRARY GAME MODE (Play from Your Spotify Library)
+// ============================================================================
+
+export {
+  checkLibraryAvailability,
+  createLibraryGameSession,
+  getCurrentRound as getLibraryCurrentRound,
+  submitLibraryAnswer,
+  startLibraryGame,
+  abandonLibraryGame,
+  getSessionStats as getLibrarySessionStats,
+  getLibraryGameSuggestions,
+  type LibraryGameType,
+  type LibraryGameConfig,
+  type LibraryGameRound,
+  type LibraryGameSession,
+  type LibraryAvailability,
+} from './library-game-mode.js';

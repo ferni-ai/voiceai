@@ -17,15 +17,15 @@ export type GameType =
   | 'one-word-song' // User says word, find a song with it
   | 'this-or-that' // Pick favorite between two songs
   | 'desert-island-discs' // Pick 5 songs for a desert island
-  | 'mood-dj-challenge'; // Describe mood, agent finds song
+  | 'mood-dj-challenge' // Describe mood, agent finds song
+  | 'finish-the-lyric' // Complete the song lyric
+  | 'decade-challenge'; // Guess what decade a song is from
 
 /**
  * Future game types (not yet implemented)
  * These are defined separately to allow type-safe feature flags
  */
 export type FutureGameType =
-  | 'finish-the-lyric' // Complete the song lyric (requires lyrics API)
-  | 'decade-challenge' // Guess what decade a song is from
   | 'song-dedication' // Dedicate a song to someone
   | 'music-trivia'; // Music knowledge questions (requires trivia database)
 

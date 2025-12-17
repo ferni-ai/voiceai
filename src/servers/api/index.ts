@@ -37,7 +37,13 @@ import {
 import { handleStaticRoutes, serveStaticFile } from './static.js';
 
 // Spotify auto-refresh
-import { startAutoRefresh as startSpotifyAutoRefresh } from './services/spotify.js';
+import { startAutoRefresh as startSpotifyAutoRefresh, shutdown as shutdownSpotify } from './services/spotify.js';
+import { shutdown as shutdownPlaid } from './services/plaid.js';
+import { shutdown as shutdownDemoSessions } from './services/demo-sessions.js';
+import { shutdown as shutdownTokenRoutes } from './routes/token.js';
+import { shutdown as shutdownGoogleCalendar } from '../token/oauth/google-calendar.js';
+import { shutdown as shutdownSpotifyOAuth } from '../token/oauth/spotify.js';
+import { shutdownPersistence } from '../../services/persistence/index.js';
 
 // Existing API route handlers (from dist/)
 import { handleEngagementRoutes } from '../../api/engagement-routes.js';
@@ -88,6 +94,11 @@ import { handleLandingOptimizationRoutes } from '../../api/landing-optimization-
 import { handleCameoAnalyticsRoutes } from '../../api/cameo-analytics-routes.js';
 import { handleGardenRoutes } from '../../api/garden-routes.js';
 import { handleMarketplaceRoutes } from '../../api/marketplace-routes.js';
+import { handleShareRoutes } from '../../api/routes/share-routes.js';
+import { handleChallengeRoutes } from '../../api/routes/challenge-routes.js';
+import { handleCreativeYouRoutes } from '../../api/routes/creative-you-routes.js';
+import { handleSocialRoutes } from '../../api/routes/social-routes.js';
+import { handlePremiumRoutes } from '../../api/routes/premium-routes.js';
 
 const PORT = parseInt(process.env.PORT || '3002', 10);
 
@@ -185,6 +196,58 @@ const server = http.createServer(async (req, res) => {
     if (engagementHandled) return;
   } catch (err) {
     log.error({ error: String(err) }, 'Engagement route error');
+  }
+
+  try {
+    // Share routes (Musical You / Creative You cards)
+    if (pathname.startsWith('/api/share/') || pathname.startsWith('/share/')) {
+      const handled = await handleShareRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
+    // Challenge routes (Daily Challenges)
+    if (pathname.startsWith('/api/challenges')) {
+      // Convert URLSearchParams to ParsedUrlQuery-like object
+      const query: Record<string, string | string[]> = {};
+      parsedUrl.searchParams.forEach((value, key) => {
+        query[key] = value;
+      });
+      const handled = await handleChallengeRoutes(req, res, pathname, query);
+      if (handled) return;
+    }
+
+    // Creative You routes (Videos, Podcasts, DNA)
+    if (pathname.startsWith('/api/creative')) {
+      const query: Record<string, string | string[]> = {};
+      parsedUrl.searchParams.forEach((value, key) => {
+        query[key] = value;
+      });
+      const handled = await handleCreativeYouRoutes(req, res, pathname, query);
+      if (handled) return;
+    }
+
+    // Social routes (Challenges, Leaderboards, Taste Match)
+    if (pathname.startsWith('/api/social')) {
+      const query: Record<string, string | string[]> = {};
+      parsedUrl.searchParams.forEach((value, key) => {
+        query[key] = value;
+      });
+      const handled = await handleSocialRoutes(req, res, pathname, query);
+      if (handled) return;
+    }
+
+    // Premium routes (Our Song, Premium Content)
+    if (pathname.startsWith('/api/premium/')) {
+      const query = new URLSearchParams(parsedUrl.search || '');
+      log.debug({
+        path: pathname,
+        params: Object.fromEntries(query.entries()),
+      });
+      const handled = await handlePremiumRoutes(req, res, pathname, query);
+      if (handled) return;
+    }
+  } catch (err) {
+    log.error({ error: String(err) }, 'Share route error');
   }
 
   try {
@@ -617,6 +680,58 @@ server.listen(PORT, '0.0.0.0', () => {
   startSpotifyAutoRefresh();
 });
 
+// ============================================================================
+// GRACEFUL SHUTDOWN
+// ============================================================================
+
+/**
+ * Gracefully shutdown all services
+ */
+async function gracefulShutdown(): Promise<void> {
+  log.info('Initiating graceful shutdown...');
+
+  // Stop accepting new connections
+  server.close();
+
+  // Stop DDoS monitoring
+  stopDDoSMonitoring();
+
+  // Shutdown all services in parallel
+  try {
+    await Promise.all([
+      shutdownSpotify(),
+      shutdownPlaid(),
+      shutdownDemoSessions(),
+      shutdownTokenRoutes(),
+      shutdownGoogleCalendar(),
+      shutdownSpotifyOAuth(),
+      shutdownPersistence(),
+    ]);
+    log.info('All services shutdown complete');
+  } catch (err) {
+    log.error({ error: (err as Error).message }, 'Error during shutdown');
+  }
+
+  process.exit(0);
+}
+
+// Handle shutdown signals
+process.on('SIGTERM', () => {
+  log.info('Received SIGTERM, shutting down gracefully...');
+  gracefulShutdown().catch((err) => {
+    log.error({ error: (err as Error).message }, 'Shutdown error');
+    process.exit(1);
+  });
+});
+
+process.on('SIGINT', () => {
+  log.info('Received SIGINT, shutting down gracefully...');
+  gracefulShutdown().catch((err) => {
+    log.error({ error: (err as Error).message }, 'Shutdown error');
+    process.exit(1);
+  });
+});
+
 // Export for gateway
-export { server };
+export { server, gracefulShutdown };
 export { stopDDoSMonitoring };
