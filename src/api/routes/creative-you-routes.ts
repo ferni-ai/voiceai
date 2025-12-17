@@ -46,7 +46,7 @@ export async function handleCreativeYouRoutes(
   req: IncomingMessage,
   res: ServerResponse,
   pathname: string,
-  query: Record<string, string | string[]>
+  searchParams: URLSearchParams
 ): Promise<boolean> {
   // Only handle /api/creative/* routes
   if (!pathname.startsWith('/api/creative')) {
@@ -73,10 +73,10 @@ export async function handleCreativeYouRoutes(
 
     // GET /api/creative/videos/recommendations?userId=xxx&mood=learn&maxResults=5
     if (pathname === '/api/creative/videos/recommendations' && method === 'GET') {
-      const userId = (query?.userId as string) || '';
-      const mood = query?.mood as 'learn' | 'chill' | 'inspire' | 'reflect' | undefined;
-      const maxResults = parseInt((query?.maxResults as string) || '5');
-      const topic = query?.topic as string | undefined;
+      const userId = searchParams.get('userId') || '';
+      const mood = searchParams.get('mood') as 'learn' | 'chill' | 'inspire' | 'reflect' | undefined;
+      const maxResults = parseInt(searchParams.get('maxResults') || '5');
+      const topic = searchParams.get('topic') || undefined;
 
       if (!userId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -97,7 +97,7 @@ export async function handleCreativeYouRoutes(
 
     // GET /api/creative/videos/daily?userId=xxx
     if (pathname === '/api/creative/videos/daily' && method === 'GET') {
-      const userId = (query?.userId as string) || '';
+      const userId = searchParams.get('userId') || '';
 
       if (!userId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -197,8 +197,8 @@ export async function handleCreativeYouRoutes(
 
     // GET /api/creative/watch/history?userId=xxx
     if (pathname === '/api/creative/watch/history' && method === 'GET') {
-      const userId = (query?.userId as string) || '';
-      const limit = parseInt((query?.limit as string) || '20');
+      const userId = searchParams.get('userId') || '';
+      const limit = parseInt(searchParams.get('limit') || '20');
 
       if (!userId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -219,12 +219,11 @@ export async function handleCreativeYouRoutes(
 
     // GET /api/creative/podcasts/recommendations?userId=xxx&mood=learn
     if (pathname === '/api/creative/podcasts/recommendations' && method === 'GET') {
-      const userId = (query?.userId as string) || '';
-      const mood = query?.mood as 'learn' | 'chill' | 'inspire' | 'reflect' | undefined;
-      const maxResults = parseInt((query?.maxResults as string) || '5');
-      const maxDuration = query?.maxDuration
-        ? parseInt(query.maxDuration as string)
-        : undefined;
+      const userId = searchParams.get('userId') || '';
+      const mood = searchParams.get('mood') as 'learn' | 'chill' | 'inspire' | 'reflect' | undefined;
+      const maxResults = parseInt(searchParams.get('maxResults') || '5');
+      const maxDurationParam = searchParams.get('maxDuration');
+      const maxDuration = maxDurationParam ? parseInt(maxDurationParam) : undefined;
 
       if (!userId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -245,7 +244,7 @@ export async function handleCreativeYouRoutes(
 
     // GET /api/creative/podcasts/daily?userId=xxx
     if (pathname === '/api/creative/podcasts/daily' && method === 'GET') {
-      const userId = (query?.userId as string) || '';
+      const userId = searchParams.get('userId') || '';
 
       if (!userId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -319,7 +318,7 @@ export async function handleCreativeYouRoutes(
 
     // GET /api/creative/dna?userId=xxx
     if (pathname === '/api/creative/dna' && method === 'GET') {
-      const userId = (query?.userId as string) || '';
+      const userId = searchParams.get('userId') || '';
 
       if (!userId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -337,7 +336,7 @@ export async function handleCreativeYouRoutes(
 
     // GET /api/creative/dna/card?userId=xxx
     if (pathname === '/api/creative/dna/card' && method === 'GET') {
-      const userId = (query?.userId as string) || '';
+      const userId = searchParams.get('userId') || '';
 
       if (!userId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -388,9 +387,9 @@ export async function handleCreativeYouRoutes(
 
     // GET /api/creative/insights?userId=xxx
     if (pathname === '/api/creative/insights' && method === 'GET') {
-      const userId = (query?.userId as string) || '';
-      const limit = parseInt((query?.limit as string) || '50');
-      const topic = query?.topic as string | undefined;
+      const userId = searchParams.get('userId') || '';
+      const limit = parseInt(searchParams.get('limit') || '50');
+      const topic = searchParams.get('topic') || undefined;
 
       if (!userId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });

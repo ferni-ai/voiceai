@@ -5,7 +5,6 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import type { ParsedUrlQuery } from 'querystring';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   getTodaysChallenge,
@@ -29,7 +28,7 @@ export async function handleChallengeRoutes(
   req: IncomingMessage,
   res: ServerResponse,
   pathname: string,
-  query: ParsedUrlQuery
+  searchParams: URLSearchParams
 ): Promise<boolean> {
   // Only handle /api/challenges/* routes
   if (!pathname.startsWith('/api/challenges')) {
@@ -52,7 +51,7 @@ export async function handleChallengeRoutes(
   try {
     // GET /api/challenges/today?userId=xxx
     if (pathname === '/api/challenges/today' && method === 'GET') {
-      const userId = (query?.userId as string) || '';
+      const userId = searchParams.get('userId') || '';
       if (!userId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Missing userId parameter' }));
@@ -83,8 +82,8 @@ export async function handleChallengeRoutes(
 
     // GET /api/challenges/upcoming?userId=xxx&days=7
     if (pathname === '/api/challenges/upcoming' && method === 'GET') {
-      const userId = (query?.userId as string) || '';
-      const days = parseInt((query?.days as string) || '7');
+      const userId = searchParams.get('userId') || '';
+      const days = parseInt(searchParams.get('days') || '7');
 
       if (!userId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -101,7 +100,7 @@ export async function handleChallengeRoutes(
 
     // GET /api/challenges/stats?userId=xxx
     if (pathname === '/api/challenges/stats' && method === 'GET') {
-      const userId = (query?.userId as string) || '';
+      const userId = searchParams.get('userId') || '';
 
       if (!userId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -198,7 +197,7 @@ export async function handleChallengeRoutes(
 
     // GET /api/challenges/notification-content?userId=xxx
     if (pathname === '/api/challenges/notification-content' && method === 'GET') {
-      const userId = (query?.userId as string) || '';
+      const userId = searchParams.get('userId') || '';
 
       if (!userId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });

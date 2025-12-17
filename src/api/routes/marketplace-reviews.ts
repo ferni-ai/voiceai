@@ -28,6 +28,7 @@ import {
   type UpdateReviewInput,
 } from '../../marketplace/reviews/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { parseBody, sendJSON } from '../helpers.js';
 
 const log = getLogger().child({ module: 'reviews-api' });
 
@@ -35,26 +36,13 @@ const log = getLogger().child({ module: 'reviews-api' });
 // HELPERS
 // ============================================================================
 
-async function parseBody<T>(req: IncomingMessage): Promise<T> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => {
-      body += chunk;
-    });
-    req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : {});
-      } catch {
-        reject(new Error('Invalid JSON body'));
-      }
-    });
-    req.on('error', reject);
-  });
-}
+// parseBody and sendJSON imported from '../helpers.js'
 
+/**
+ * Legacy wrapper for sendJSON with (res, status, data) signature.
+ */
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
+  sendJSON(res, data, status);
 }
 
 function getUserId(req: IncomingMessage): string | null {

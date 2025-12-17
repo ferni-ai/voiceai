@@ -5,8 +5,11 @@
  * - POST /api/group/sessions - Create a new group session
  * - GET /api/group/sessions - Get user's group sessions
  * - GET /api/group/sessions/:sessionId - Get a specific session
- * - POST /api/group/sessions/:sessionId/start - Start a session
- * - POST /api/group/sessions/:sessionId/end - End a session
+ * - POST /api/group/sessions/:sessionId/start - Start a session (creates LiveKit room)
+ * - POST /api/group/sessions/:sessionId/end - End a session (closes LiveKit room)
+ * - GET /api/group/sessions/:sessionId/token - Get participant's LiveKit token
+ * - GET /api/group/sessions/:sessionId/agent-token - Get Ferni agent's LiveKit token (host only)
+ * - GET /api/group/sessions/:sessionId/room-info - Get LiveKit room status
  * - POST /api/group/sessions/:sessionId/join - Request to join
  * - POST /api/group/sessions/:sessionId/approve - Approve join request
  * - DELETE /api/group/sessions/:sessionId/participants/:participantId - Remove participant
@@ -122,16 +125,18 @@ export async function handleGroupCoachingRoutes(
     // POST /api/group/sessions/:sessionId/start
     if (sessionActionMatch && sessionActionMatch[2] === 'start' && method === 'POST') {
       const sessionId = sessionActionMatch[1];
-      const success = manager.startSession(sessionId);
+      const result = await manager.startSession(sessionId);
 
-      if (!success) {
-        sendError(res, 'Failed to start session', 400);
+      if (!result.success) {
+        sendError(res, result.error || 'Failed to start session', 400);
         return true;
       }
 
       sendJSON(res, {
         success: true,
         session: manager.getSession(sessionId),
+        roomName: result.roomName,
+        livekitUrl: result.livekitUrl,
       });
       return true;
     }
@@ -139,7 +144,7 @@ export async function handleGroupCoachingRoutes(
     // POST /api/group/sessions/:sessionId/end
     if (sessionActionMatch && sessionActionMatch[2] === 'end' && method === 'POST') {
       const sessionId = sessionActionMatch[1];
-      const result = manager.endSession(sessionId);
+      const result = await manager.endSession(sessionId);
 
       if (!result.success) {
         sendError(res, 'Failed to end session', 400);
@@ -149,6 +154,67 @@ export async function handleGroupCoachingRoutes(
       sendJSON(res, {
         success: true,
         summary: result.summary,
+      });
+      return true;
+    }
+
+    // GET /api/group/sessions/:sessionId/token - Get participant's LiveKit token
+    if (sessionActionMatch && sessionActionMatch[2] === 'token' && method === 'GET') {
+      const sessionId = sessionActionMatch[1];
+      const tokenResult = await manager.getParticipantToken(sessionId, userId);
+
+      if (!tokenResult) {
+        sendError(res, 'Cannot get token - session not active or user not a participant', 400);
+        return true;
+      }
+
+      sendJSON(res, {
+        success: true,
+        token: tokenResult.token,
+        livekitUrl: tokenResult.livekitUrl,
+      });
+      return true;
+    }
+
+    // GET /api/group/sessions/:sessionId/agent-token - Get Ferni agent's LiveKit token
+    if (sessionActionMatch && sessionActionMatch[2] === 'agent-token' && method === 'GET') {
+      const sessionId = sessionActionMatch[1];
+
+      // Only host can request agent token
+      const session = manager.getSession(sessionId);
+      if (!session) {
+        sendError(res, 'Session not found', 404);
+        return true;
+      }
+
+      const participant = session.participants.find((p) => p.userId === userId);
+      if (!participant || (participant.role !== 'host' && participant.role !== 'co-host')) {
+        sendError(res, 'Only host or co-host can request agent token', 403);
+        return true;
+      }
+
+      const tokenResult = await manager.getAgentToken(sessionId);
+      if (!tokenResult) {
+        sendError(res, 'Cannot get agent token - session not active', 400);
+        return true;
+      }
+
+      sendJSON(res, {
+        success: true,
+        token: tokenResult.token,
+        livekitUrl: tokenResult.livekitUrl,
+      });
+      return true;
+    }
+
+    // GET /api/group/sessions/:sessionId/room-info - Get LiveKit room status
+    if (sessionActionMatch && sessionActionMatch[2] === 'room-info' && method === 'GET') {
+      const sessionId = sessionActionMatch[1];
+      const roomInfo = await manager.getRoomInfo(sessionId);
+
+      sendJSON(res, {
+        success: true,
+        ...roomInfo,
       });
       return true;
     }

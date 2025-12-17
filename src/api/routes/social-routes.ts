@@ -48,7 +48,7 @@ export async function handleSocialRoutes(
   req: IncomingMessage,
   res: ServerResponse,
   pathname: string,
-  query: Record<string, string | string[]>
+  searchParams: URLSearchParams
 ): Promise<boolean> {
   // Only handle /api/social/* routes
   if (!pathname.startsWith('/api/social')) {
@@ -218,7 +218,7 @@ export async function handleSocialRoutes(
 
     // GET /api/social/challenges/pending?userId=xxx
     if (pathname === '/api/social/challenges/pending' && method === 'GET') {
-      const userId = query?.userId as string;
+      const userId = searchParams.get('userId');
 
       if (!userId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -235,8 +235,8 @@ export async function handleSocialRoutes(
 
     // GET /api/social/challenges/history?userId=xxx
     if (pathname === '/api/social/challenges/history' && method === 'GET') {
-      const userId = query?.userId as string;
-      const limit = parseInt((query?.limit as string) || '20');
+      const userId = searchParams.get('userId');
+      const limit = parseInt(searchParams.get('limit') || '20');
 
       if (!userId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -373,10 +373,10 @@ export async function handleSocialRoutes(
 
     // GET /api/social/leaderboard?period=weekly&gameType=overall&scope=global
     if (pathname === '/api/social/leaderboard' && method === 'GET') {
-      const period = (query?.period as LeaderboardPeriod) || 'weekly';
-      const gameType = (query?.gameType as string) || 'overall';
-      const scope = (query?.scope as LeaderboardScope) || 'global';
-      const userId = query?.userId as string | undefined;
+      const period = (searchParams.get('period') as LeaderboardPeriod) || 'weekly';
+      const gameType = searchParams.get('gameType') || 'overall';
+      const scope = (searchParams.get('scope') as LeaderboardScope) || 'global';
+      const userId = searchParams.get('userId') | undefined;
 
       const leaderboard = getLeaderboard(period, gameType, scope, userId);
 
@@ -387,9 +387,9 @@ export async function handleSocialRoutes(
 
     // GET /api/social/leaderboard/around?userId=xxx
     if (pathname === '/api/social/leaderboard/around' && method === 'GET') {
-      const userId = query?.userId as string;
-      const period = (query?.period as LeaderboardPeriod) || 'weekly';
-      const gameType = (query?.gameType as string) || 'overall';
+      const userId = searchParams.get('userId');
+      const period = (searchParams.get('period') as LeaderboardPeriod) || 'weekly';
+      const gameType = searchParams.get('gameType') || 'overall';
 
       if (!userId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -411,8 +411,8 @@ export async function handleSocialRoutes(
 
     // GET /api/social/stats?userId=xxx
     if (pathname === '/api/social/stats' && method === 'GET') {
-      const userId = query?.userId as string;
-      const displayName = query?.displayName as string | undefined;
+      const userId = searchParams.get('userId');
+      const displayName = searchParams.get('displayName') || undefined;
 
       if (!userId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });

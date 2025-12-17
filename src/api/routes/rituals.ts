@@ -5,6 +5,9 @@
  * POST /api/rituals - Create a ritual
  * DELETE /api/rituals/:id - Delete a ritual
  * POST /api/rituals/:id/complete - Complete a ritual
+ *
+ * NOTE: Streak logic is consolidated in DailyRitualsService.
+ * This routes file delegates to the service to avoid duplicate implementations.
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -13,6 +16,7 @@ import { requireUserId, sendJSON, sendJSONCached, sendError } from '../helpers.j
 import { validateBody, CreateRitualSchema, CompleteRitualSchema } from '../validators.js';
 import { API_ERRORS } from '../error-messages.js';
 import { type AnyRecord, MILESTONES, getMilestoneMessage } from './types.js';
+import { getDailyRitualsService, PERSONA_RITUALS } from '../../services/daily-rituals.js';
 
 const log = createLogger({ module: 'RitualsAPI' });
 
@@ -130,6 +134,9 @@ export async function handleDeleteRitual(
 
 /**
  * POST /api/rituals/:id/complete - Complete a ritual
+ *
+ * CONSOLIDATED: Uses DailyRitualsService for streak logic.
+ * This ensures consistent streak calculation across voice and API flows.
  */
 export async function handleCompleteRitual(
   req: IncomingMessage,
@@ -147,52 +154,49 @@ export async function handleCompleteRitual(
     const { getEngagementStore } = await import('../../services/engagement-store.js');
     const store = await getEngagementStore();
 
-    const streak = (await store.getRitualStreak(userId, ritualId)) as unknown as AnyRecord | null;
-    if (!streak) {
+    // Check if ritual exists
+    const streak = await store.getRitualStreak(userId, ritualId);
+    
+    // For known persona rituals, auto-activate if not exists
+    const isKnownRitual = ritualId in PERSONA_RITUALS;
+    if (!streak && !isKnownRitual) {
       sendError(res, API_ERRORS.RITUAL_NOT_FOUND, 404);
       return;
     }
 
-    const today = new Date().toISOString().split('T')[0];
-    const lastCompleted = (streak.lastCompletedAt as string)?.split('T')[0];
+    // Check if already completed today
+    if (streak) {
+      const today = new Date().toISOString().split('T')[0];
+      const lastCompleted = streak.lastCompletedAt?.split('T')[0];
 
-    if (lastCompleted === today) {
-      sendJSON(res, {
-        success: true,
-        message: 'Already completed today',
-        streak: streak.currentStreak,
-      });
-      return;
-    }
-
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-    const wasConsecutive = lastCompleted === yesterday;
-    const wasNeverCompleted = !lastCompleted;
-
-    if (wasConsecutive) {
-      streak.currentStreak = (streak.currentStreak as number) + 1;
-    } else {
-      if ((streak.currentStreak as number) > 0 && !wasNeverCompleted) {
-        const history = ((streak.streakHistory as AnyRecord[]) || []).slice();
-        history.push({
-          endedAt: streak.lastCompletedAt,
-          length: streak.currentStreak,
-          reason: 'missed_day',
+      if (lastCompleted === today) {
+        sendJSON(res, {
+          success: true,
+          message: 'Already completed today',
+          streak: streak.currentStreak,
         });
-        streak.streakHistory = history;
+        return;
       }
-      streak.currentStreak = 1;
     }
 
-    streak.longestStreak = Math.max(
-      (streak.longestStreak as number) || 0,
-      streak.currentStreak as number
-    );
-    streak.totalCompletions = ((streak.totalCompletions as number) || 0) + 1;
-    streak.lastCompletedAt = new Date().toISOString();
+    // Use DailyRitualsService for consolidated streak logic
+    const service = getDailyRitualsService();
+    
+    // Build emotional weather data if provided
+    const emotionalWeather = body.weather
+      ? {
+          primary: body.weather.primary as 'sunny' | 'partly-cloudy' | 'cloudy' | 'rainy' | 'stormy' | 'foggy' | 'rainbow',
+          energy: body.weather.energy as 'high' | 'medium' | 'low',
+          note: body.weather.note,
+        }
+      : undefined;
 
-    await store.saveRitualStreak(userId, streak as Parameters<typeof store.saveRitualStreak>[1]);
+    // Record completion using the service (handles all streak logic)
+    const result = await service.recordCompletionAsync(userId, ritualId, {
+      emotionalWeather,
+    });
 
+    // Also record weather to engagement store if provided
     if (body.weather) {
       await store.recordWeather(userId, {
         date: new Date().toISOString(),
@@ -201,34 +205,24 @@ export async function handleCompleteRitual(
       });
     }
 
-    const profile = (await store.getProfile(userId)) as unknown as AnyRecord;
-    profile.totalRitualDays = ((profile.totalRitualDays as number) || 0) + 1;
-    profile.longestOverallStreak = Math.max(
-      (profile.longestOverallStreak as number) || 0,
-      streak.currentStreak as number
-    );
-    profile.lastEngagementAt = new Date().toISOString();
-    await store.saveProfile(profile as Parameters<typeof store.saveProfile>[0]);
+    log.info({ ritualId, streak: result.newStreak, userId }, 'Ritual completed');
 
-    log.info({ ritualId, streak: streak.currentStreak, userId }, 'Ritual completed');
-
-    const isMilestone = MILESTONES.includes(streak.currentStreak as number);
-    const isPersonalBest =
-      streak.currentStreak === streak.longestStreak && (streak.currentStreak as number) > 1;
+    const isMilestone = MILESTONES.includes(result.newStreak);
+    const isPersonalBest = result.isNewRecord && result.newStreak > 1;
 
     sendJSON(res, {
       success: true,
-      streak: streak.currentStreak,
-      longestStreak: streak.longestStreak,
-      totalCompletions: streak.totalCompletions,
+      streak: result.newStreak,
+      isNewRecord: result.isNewRecord,
       celebration:
         isMilestone || isPersonalBest
           ? {
               type: isMilestone ? 'milestone' : 'personal_best',
-              milestone: streak.currentStreak,
-              message: isMilestone
-                ? getMilestoneMessage(streak.currentStreak as number)
-                : `New personal best: ${streak.currentStreak} days!`,
+              milestone: result.newStreak,
+              message: result.celebration || 
+                (isMilestone
+                  ? getMilestoneMessage(result.newStreak)
+                  : `New personal best: ${result.newStreak} days!`),
             }
           : null,
     });

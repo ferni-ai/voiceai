@@ -1,7 +1,7 @@
 /**
  * Wearable Integration API Routes
  *
- * API endpoints for health and fitness wearable integrations:
+ * API endpoints for wearable device integrations:
  * - GET /api/wearable/status - Get connection status for all providers
  * - POST /api/wearable/connect - Initiate connection to a provider
  * - POST /api/wearable/callback - OAuth callback handler
