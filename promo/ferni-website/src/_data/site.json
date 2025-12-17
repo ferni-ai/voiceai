@@ -227,12 +227,14 @@
     "main": [
       { "title": "Features", "url": "/#features", "i18nKey": "nav.features" },
       { "title": "Team", "url": "/team/", "i18nKey": "nav.team" },
+      { "title": "Building", "url": "/building/", "i18nKey": "nav.building" },
       { "title": "About", "url": "/about/", "i18nKey": "nav.about" },
       { "title": "FAQ", "url": "/#faq", "i18nKey": "nav.faq" }
     ],
     "mobile": [
       { "title": "Features", "url": "/#features", "i18nKey": "nav.features" },
       { "title": "Team", "url": "/team/", "i18nKey": "nav.team" },
+      { "title": "Building", "url": "/building/", "i18nKey": "nav.building" },
       { "title": "About", "url": "/about/", "i18nKey": "nav.about" },
       { "title": "FAQ", "url": "/#faq", "i18nKey": "nav.faq" }
     ],
