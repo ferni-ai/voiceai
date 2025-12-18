@@ -57,7 +57,7 @@ export interface TTSOptions {
  * Default TTS options.
  */
 export const DEFAULT_TTS_OPTIONS: Required<TTSOptions> = {
-  model: 'sonic-3', // Will be overridden by env var
+  model: 'sonic-3-latest', // Will be overridden by env var
   encoding: 'pcm_s16le',
   sampleRate: 24000,
   language: 'en',

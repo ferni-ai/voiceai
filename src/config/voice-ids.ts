@@ -25,7 +25,7 @@ const log = createLogger({ module: 'VoiceIds' });
  * Cartesia model from environment variable.
  * sonic-3 is the latest with best quality.
  */
-export const CARTESIA_MODEL = process.env.CARTESIA_MODEL || 'sonic-3';
+export const CARTESIA_MODEL = process.env.CARTESIA_MODEL || 'sonic-3-latest';
 
 // =============================================================================
 // CANONICAL VOICE IDS

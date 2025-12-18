@@ -191,7 +191,7 @@ describe('VoiceManager', () => {
     });
 
     it('should have consistent model across all voices', () => {
-      const expectedModel = process.env.CARTESIA_MODEL || 'sonic-3';
+      const expectedModel = process.env.CARTESIA_MODEL || 'sonic-3-latest';
       for (const [_id, config] of Object.entries(VOICES)) {
         expect(config.model).toBe(expectedModel);
       }
