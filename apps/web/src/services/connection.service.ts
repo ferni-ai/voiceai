@@ -61,6 +61,7 @@ import type { ConnectionState, DataMessage } from '../types/events.js';
 import type { RoomState, TokenRequest, TokenResponse } from '../types/livekit.js';
 import { isValidTokenResponse } from '../types/livekit.js';
 import { createLogger } from '../utils/logger.js';
+import { spotifyService } from './spotify.service.js';
 
 const log = createLogger('Connection');
 
@@ -359,6 +360,19 @@ class ConnectionService {
 
       this.updateState('connected');
       this.startQualityMonitoring();
+
+      // Initialize Spotify Web Playback SDK now that user has interacted
+      // This must happen after user interaction (browser autoplay policy)
+      spotifyService.initialize().then((success) => {
+        if (success) {
+          log.info('🎵 Spotify Web Playback initialized');
+        } else {
+          log.debug('Spotify not available (not linked or not Premium)');
+        }
+      }).catch((err) => {
+        log.warn('Spotify init failed:', err);
+      });
+
       return true;
     } catch (error) {
       log.error('Connection failed:', error);

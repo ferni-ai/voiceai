@@ -36,23 +36,15 @@ import { getToolDescription, getParameterDescription } from '../../utils/tool-de
 // MUSIC SOURCE CONFIGURATION
 // ============================================================================
 
-type MusicSource = 'itunes' | 'spotify';
-
 interface MusicConfig {
-  /** Preferred source (itunes = free previews, spotify = full playback if linked) */
-  preferredSource: MusicSource;
-  /** Is Spotify linked and working? */
+  /** Is Spotify linked and working? (auto-detected at session start) */
   spotifyLinked: boolean;
-  /** User explicitly requested Spotify? */
-  userRequestedSpotify: boolean;
 }
 
 // Session-level config
 // 🐛 FIX BUG-012: Add default config factory to prevent cross-session pollution
 const DEFAULT_MUSIC_CONFIG: MusicConfig = {
-  preferredSource: 'itunes', // Default to free previews
   spotifyLinked: false,
-  userRequestedSpotify: false,
 };
 
 // Mutable config - reset at start of each session via initializeMusicConfig()
@@ -74,7 +66,7 @@ async function checkSpotifyAvailability(): Promise<boolean> {
 /**
  * Initialize music config for the session.
  * Called when the voice agent starts.
- * 🐛 FIX BUG-012: Resets config to defaults before initializing to prevent cross-session pollution
+ * Auto-detects if Spotify is available.
  */
 export async function initializeMusicConfig(): Promise<void> {
   // Reset to defaults first to prevent cross-session pollution
@@ -85,9 +77,9 @@ export async function initializeMusicConfig(): Promise<void> {
   getLogger().info(
     {
       spotifyLinked: musicConfig.spotifyLinked,
-      preferredSource: musicConfig.preferredSource,
+      musicSource: musicConfig.spotifyLinked ? 'spotify' : 'itunes',
     },
-    '🎵 Music config initialized'
+    '🎵 Music auto-configured'
   );
 }
 
@@ -100,15 +92,6 @@ export function resetMusicConfig(): void {
   getLogger().debug('🎵 Music config reset to defaults');
 }
 
-/**
- * Set user's preferred music source.
- */
-export function setMusicSource(source: MusicSource): void {
-  musicConfig.preferredSource = source;
-  musicConfig.userRequestedSpotify = source === 'spotify';
-  getLogger().info({ source }, '🎵 Music source preference set');
-}
-
 // ============================================================================
 // UNIFIED PLAYBACK
 // ============================================================================
@@ -116,30 +99,29 @@ export function setMusicSource(source: MusicSource): void {
 /**
  * Play music using the best available source.
  *
- * Priority:
- * 1. If user explicitly requested Spotify AND it's linked → Spotify
- * 2. Otherwise → iTunes previews (works for everyone!)
+ * Priority (AUTO-DETECT):
+ * 1. If Spotify is linked → Use Spotify (full songs!)
+ * 2. Otherwise → iTunes previews (30-second samples, works for everyone)
  *
- * This ensures delightful music for all users, regardless of subscriptions.
+ * No explicit user request needed - just works with whatever they have.
  */
 export async function playMusicUnified(query: string): Promise<string> {
   const log = getLogger();
   log.debug('playMusicUnified called', {
     query,
-    userRequestedSpotify: musicConfig.userRequestedSpotify,
     spotifyLinked: musicConfig.spotifyLinked,
     preferredSource: musicConfig.preferredSource,
   });
-  log.info({ query, config: musicConfig }, '🎵 Playing music');
+  log.info({ query, spotifyLinked: musicConfig.spotifyLinked }, '🎵 Playing music');
 
-  // Check if user wants Spotify AND it's available
-  if (musicConfig.userRequestedSpotify && musicConfig.spotifyLinked) {
-    log.debug('Taking SPOTIFY path');
+  // AUTO-DETECT: Use Spotify if linked, otherwise iTunes
+  if (musicConfig.spotifyLinked) {
+    log.info({ query }, '🎵 Using Spotify (user has linked account)');
     return playViaSpotify(query);
   }
 
-  // Default: Play via iTunes (free for everyone!)
-  log.debug('Taking iTunes path (default)');
+  // Fallback: iTunes 30-second previews (works for everyone!)
+  log.info({ query }, '🎵 Using iTunes previews (no Spotify linked)');
   return playViaItunes(query);
 }
 
