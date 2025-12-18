@@ -12,7 +12,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
-      '@design-system': resolve(__dirname, '../design-system/dist'),
+      // Design system - specific file alias first, then directory
+      '@design-system/tokens': resolve(__dirname, '../../design-system/dist/tokens.ts'),
+      '@design-system': resolve(__dirname, '../../design-system/dist'),
       // Stub native-only Capacitor plugins for web development
       '@ferni/capacitor-purchases': capacitorStub,
       '@capacitor/browser': capacitorStub,

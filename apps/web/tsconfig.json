@@ -28,7 +28,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@design-system/*": ["../design-system/dist/*"],
+      "@design-system/tokens": ["../../design-system/dist/tokens.ts"],
+      "@design-system/*": ["../../design-system/dist/*"],
       "firebase/app": ["src/stubs/firebase-stub.ts"],
       "firebase/auth": ["src/stubs/firebase-stub.ts"],
       "@capacitor/push-notifications": ["src/stubs/capacitor-stub.ts"],
