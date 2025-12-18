@@ -125,7 +125,7 @@ describe('Timeless Perspective Domain Tools', () => {
       expect(toolIds).toContain('ancientParallel');
       expect(toolIds).toContain('zoomOut');
       expect(toolIds).toContain('whatWillMatter');
-      expect(toolIds).toContain('seasonalWisdom');
+      expect(toolIds).toContain('applySeasonalWisdom');
     });
   });
 
@@ -308,9 +308,9 @@ describe('Timeless Perspective Domain Tools', () => {
   // seasonalWisdom Tool
   // --------------------------------------------------------------------------
 
-  describe('seasonalWisdom', () => {
+  describe('applySeasonalWisdom', () => {
     it('should apply winter season wisdom', async () => {
-      const toolDef = toolDefinitions.find((t) => t.id === 'seasonalWisdom');
+      const toolDef = toolDefinitions.find((t) => t.id === 'applySeasonalWisdom');
       expect(toolDef).toBeDefined();
 
       const tool = toolDef!.create(mockContext);
@@ -326,7 +326,7 @@ describe('Timeless Perspective Domain Tools', () => {
     });
 
     it('should apply spring season wisdom', async () => {
-      const toolDef = toolDefinitions.find((t) => t.id === 'seasonalWisdom');
+      const toolDef = toolDefinitions.find((t) => t.id === 'applySeasonalWisdom');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -340,7 +340,7 @@ describe('Timeless Perspective Domain Tools', () => {
     });
 
     it('should apply summer season wisdom', async () => {
-      const toolDef = toolDefinitions.find((t) => t.id === 'seasonalWisdom');
+      const toolDef = toolDefinitions.find((t) => t.id === 'applySeasonalWisdom');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
@@ -354,7 +354,7 @@ describe('Timeless Perspective Domain Tools', () => {
     });
 
     it('should handle unsure season', async () => {
-      const toolDef = toolDefinitions.find((t) => t.id === 'seasonalWisdom');
+      const toolDef = toolDefinitions.find((t) => t.id === 'applySeasonalWisdom');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({

@@ -135,7 +135,7 @@ describe('Workflow Mastery Domain Tools', () => {
       expect(toolIds).toContain('calendarArchitecture');
       expect(toolIds).toContain('messageCrafting');
       expect(toolIds).toContain('difficultEmailDraft');
-      expect(toolIds).toContain('communicationStrategy');
+      expect(toolIds).toContain('planStakeholderCommunication');
     });
   });
 
@@ -328,9 +328,9 @@ describe('Workflow Mastery Domain Tools', () => {
   // communicationStrategy Tool
   // --------------------------------------------------------------------------
 
-  describe('communicationStrategy', () => {
+  describe('planStakeholderCommunication', () => {
     it('should develop strategic communication plans', async () => {
-      const toolDef = toolDefinitions.find((t) => t.id === 'communicationStrategy');
+      const toolDef = toolDefinitions.find((t) => t.id === 'planStakeholderCommunication');
       expect(toolDef).toBeDefined();
 
       const tool = toolDef!.create(mockContext);
@@ -348,7 +348,7 @@ describe('Workflow Mastery Domain Tools', () => {
     });
 
     it('should handle situations without complications', async () => {
-      const toolDef = toolDefinitions.find((t) => t.id === 'communicationStrategy');
+      const toolDef = toolDefinitions.find((t) => t.id === 'planStakeholderCommunication');
       const tool = toolDef!.create(mockContext);
 
       const result = await tool.execute({
