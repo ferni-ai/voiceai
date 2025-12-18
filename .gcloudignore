@@ -50,14 +50,12 @@ apps/ios/
 apps/macos-menubar/
 apps/marketing/
 apps/marketplace-agents/
-# apps/web - exclude large parts but keep public/sounds for voice agent
+# apps/web - keep for UI server build (frontend code)
+# Only exclude large generated/cache directories
 apps/web/dist/
 apps/web/node_modules/
-apps/web/src/
-apps/web/scripts/
-apps/web/tests/
 apps/web/test-results/
-# Keep apps/web/public/sounds/ (needed for voice agent handoff sounds)
+# Keep: apps/web/src/, apps/web/public/, apps/web/scripts/, apps/web/tests/
 apps/website/
 # NOTE: apps/cli/ is intentionally NOT excluded (needed for Dockerfile.agent build)
 
@@ -88,10 +86,11 @@ design-system/tokens/
 
 # Exclude root files
 
-design-system/_.js
-design-system/_.ts
-design-system/_.json
-design-system/_.md
+# Only exclude root-level files (not in dist/)
+design-system/*.js
+design-system/*.ts
+design-system/*.json
+design-system/*.md
 
 # ===================
 
