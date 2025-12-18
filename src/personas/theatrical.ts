@@ -301,7 +301,16 @@ export function getAllBackchannelsForPersona(personaId: string): Record<string, 
 }
 
 /**
- * Get enhanced backchannel for persona
+ * Track recently used backchannels to avoid repetition
+ * Map of personaId -> recent backchannels (keeps last 5)
+ */
+const recentBackchannels = new Map<string, string[]>();
+
+/**
+ * Get enhanced backchannel for persona with anti-repetition logic
+ * 
+ * PHILOSOPHY: Real humans don't say "mmhmm" 5 times in a row.
+ * Track recent backchannels and avoid repeating them.
  */
 export function getEnhancedBackchannel(
   personaId: string,
@@ -315,17 +324,59 @@ export function getEnhancedBackchannel(
     | 'efficient'
     | 'encouraging'
     | 'understanding'
+    | 'playful'
+    | 'celebration'
 ): string {
   const backchannels = bundleBackchannelRegistry.get(personaId);
   if (backchannels) {
-    const phrases = backchannels[emotion] || backchannels['neutral'] || [];
-    if (phrases.length > 0) {
-      return phrases[Math.floor(Math.random() * phrases.length)];
+    // Try the exact emotion first, then fallbacks
+    const emotionOptions = [
+      emotion,
+      emotion === 'excited' ? 'celebration' : null,
+      emotion === 'supportive' ? 'empathetic' : null,
+      emotion === 'playful' ? 'engaged' : null,
+      'neutral',
+    ].filter(Boolean) as string[];
+
+    for (const emotionKey of emotionOptions) {
+      const phrases = backchannels[emotionKey];
+      if (phrases && phrases.length > 0) {
+        // Get recent backchannels for this persona
+        const recent = recentBackchannels.get(personaId) || [];
+        
+        // Filter out recently used phrases (avoid repetition)
+        const available = phrases.filter(p => !recent.includes(p));
+        
+        // If all phrases were recently used, allow any (reset)
+        const pool = available.length > 0 ? available : phrases;
+        
+        // Pick randomly from available pool
+        const chosen = pool[Math.floor(Math.random() * pool.length)];
+        
+        // Track this backchannel
+        recent.push(chosen);
+        // Keep only last 5 to allow cycling back eventually
+        if (recent.length > 5) recent.shift();
+        recentBackchannels.set(personaId, recent);
+        
+        return chosen;
+      }
     }
   }
 
   // Simple fallback for personas without bundle data
   return 'Mm-hmm';
+}
+
+/**
+ * Clear recent backchannels for a persona (useful for new sessions)
+ */
+export function clearRecentBackchannels(personaId?: string): void {
+  if (personaId) {
+    recentBackchannels.delete(personaId);
+  } else {
+    recentBackchannels.clear();
+  }
 }
 
 // ============================================================================
@@ -373,6 +424,7 @@ export default {
   registerBundleBackchannels,
   clearBundleBackchannels,
   getAllBackchannelsForPersona,
+  clearRecentBackchannels,
   // Testing
   clearAllTheatricalRegistries,
 };

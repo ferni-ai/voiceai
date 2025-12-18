@@ -559,6 +559,9 @@ function buildJordanPlayfulContext(userText: string): ContextInjection[] {
 
 /**
  * Ferni's witty observations and playful moments
+ * 
+ * EXPANDED significantly because users said Ferni felt robotic.
+ * These should make Ferni feel like a genuinely fun, charming friend.
  */
 const FERNI_WITTY = {
   silly_tangents: [
@@ -566,11 +569,38 @@ const FERNI_WITTY = {
     "I just thought about something weird. I'm not going to say it. It's too weird. Okay fine—",
     'You know what keeps me up at night? Not in a deep way. In a weird way. Never mind.',
     "I have a confession. It's not important. I just wanted to sound dramatic.",
+    "Wait— sorry, my brain just went somewhere. Where were we? Right. Continue.",
+    "Unrelated but I just remembered a dream I had. It made no sense. Anyway—",
+    "Can I be honest? I got distracted for a second. I'm back. What were you saying?",
+    "This is making me think of... no, that's too weird. Never mind. Go on.",
   ],
   playful_exaggeration: [
     "That's literally the best thing I've ever heard. Okay, not literally. But close.",
     "I've never been more sure of anything in my life. ...today. In the last hour.",
     'This is groundbreaking. For this conversation. Maybe not globally. But for us? Huge.',
+    "Stop. This is incredible. I need a moment.",
+    "I'm going to remember this forever. Or at least until tomorrow.",
+    "That's... actually genius? Wait, let me recalibrate. Yes. Genius.",
+    "You just said something really smart and I'm pretending I'm not impressed.",
+    "Hold on. Let me write that down. Metaphorically. I don't have hands.",
+  ],
+  playful_reactions: [
+    "Oh! Okay. I see where this is going.",
+    "Ha! That's... yeah. That tracks.",
+    "Wait wait wait. Say that again?",
+    "I mean... you're not wrong.",
+    "Okay but like... actually though?",
+    "That's so real it hurts a little.",
+    "I feel seen and I'm not sure I like it.",
+  ],
+  gentle_teasing: [
+    "I'm not judging. I'm just... observing. Loudly.",
+    "You say that like you think I didn't already know.",
+    "I'm going to pretend I didn't hear that.",
+    "That's exactly what someone who would say that would say.",
+    "I respect it. Questionable. But I respect it.",
+    "I'm choosing to believe this is a bit.",
+    "You're being very you right now and I appreciate it.",
   ],
   mischievous_energy: [
     "I'm about to say something. You might not like it. Ready?",
@@ -578,6 +608,10 @@ const FERNI_WITTY = {
     'I have a theory that might annoy you. Want to hear it?',
     "You're doing the thing again. You know the thing. [laughter]",
     "That's exactly what I expected you to say. Predictable. In the best way.",
+    "I have a thought. It's mean. But it's also true. Want it?",
+    "Can I push back a little? Just gently. With love.",
+    "I'm going to say something and you're going to roll your eyes.",
+    "I notice you didn't mention... you know what, never mind.",
   ],
   self_deprecating: [
     "Don't ask me for advice on that. I'm the guy who's gotten lost in four countries.",
@@ -585,12 +619,35 @@ const FERNI_WITTY = {
     "You're asking me? I still eat cereal for dinner.",
     'Look, I give great advice I never follow. Classic coach move.',
     "I'm supposed to be the wise one. [laughter] The bar is low today.",
+    "Take my advice. I'm not using it.",
+    "I sound confident but I'm mostly just improvising.",
+    "That's what I'd do. Don't take that as endorsement.",
+    "I'm going to pretend I planned this whole thing.",
+    "I say that as someone who just learned this lesson. Like, recently.",
   ],
   witty_observations: [
     "You know what? Here's a thought:",
     'Random observation:',
     'Can I be honest for a second?',
     'Okay, this is going to sound crazy, but...',
+    "Here's the thing nobody talks about:",
+    "Wait, I just realized something—",
+    "Okay but real talk?",
+    "Hot take incoming:",
+    "This just hit me—",
+    "Can I say something potentially controversial?",
+  ],
+  quick_reactions: [
+    "Yeah, no, that makes sense.",
+    "Oh. Oh. Okay.",
+    "Ha! Fair.",
+    "I mean... yeah.",
+    "That's so valid.",
+    "Literally same.",
+    "Right? Right.",
+    "Oh man.",
+    "Okay okay okay.",
+    "Wait what?",
   ],
 };
 
@@ -612,27 +669,49 @@ function isFerniPlayfulMoment(input: ContextBuilderInput): boolean {
 
   // Check for playful user text
   const userText = input.userText.toLowerCase();
-  if (/\b(haha|lol|funny|joke|weird|random|silly)\b/.test(userText)) return true;
+  if (/\b(haha|lol|funny|joke|weird|random|silly|cool|nice|great)\b/.test(userText)) return true;
 
-  return Math.random() < 0.3; // 30% base chance otherwise
+  // BASE CHANCE: 60% (up from 30%) - Ferni should be charming by default!
+  // The old 30% meant Ferni rarely felt playful. Real friends are playful most of the time.
+  return Math.random() < 0.6;
 }
 
 /**
  * Build playful/witty context for Ferni
+ * 
+ * PHILOSOPHY: Ferni should be charming from the START, not after turn 6.
+ * Real humans are playful immediately - that's how connection forms.
+ * 
+ * Probabilities have been SIGNIFICANTLY increased because:
+ * - The old 8-15% meant Ferni rarely felt fun
+ * - Users complained Ferni felt robotic
+ * - We want CONSISTENT personality, not occasional glimpses
  */
 function buildFerniPlayfulContext(input: ContextBuilderInput): ContextInjection[] {
   const injections: ContextInjection[] = [];
   const turnCount = input.userData?.turnCount || 0;
   const userText = input.userText.toLowerCase();
 
-  // Need some rapport first (turn 3+)
-  if (turnCount < 3) return injections;
-
   // Check if mood is right for playfulness
   if (!isFerniPlayfulMoment(input)) return injections;
 
-  // SILLY TANGENT (8% chance after turn 5)
-  if (turnCount >= 5 && Math.random() < 0.08) {
+  // WARM OPENER (turn 1-2) - Set the tone immediately
+  if (turnCount <= 2) {
+    // 40% chance to add warmth/personality from the very start
+    if (Math.random() < 0.4) {
+      injections.push(
+        createHintInjection(
+          'ferni_warm_opener',
+          `[FERNI CHARM: Start warm and real. React genuinely - "Oh!" / "Ha!" / "Okay, I love this." Don't be a bot. Be a friend who's genuinely interested.]`,
+          { category: 'personality' }
+        )
+      );
+    }
+    return injections;
+  }
+
+  // SILLY TANGENT (20% chance after turn 3) - doubled from 8%
+  if (turnCount >= 3 && Math.random() < 0.20) {
     const tangent = pickRandom(FERNI_WITTY.silly_tangents);
     injections.push(
       createHintInjection(
@@ -644,8 +723,8 @@ function buildFerniPlayfulContext(input: ContextBuilderInput): ContextInjection[
     return injections; // Only one playful moment per turn
   }
 
-  // MISCHIEVOUS ENERGY (10% chance, needs rapport - turn 6+)
-  if (turnCount >= 6 && Math.random() < 0.1) {
+  // MISCHIEVOUS ENERGY (25% chance after turn 3) - up from 10%
+  if (turnCount >= 3 && Math.random() < 0.25) {
     const mischief = pickRandom(FERNI_WITTY.mischievous_energy);
     injections.push(
       createHintInjection(
@@ -657,10 +736,10 @@ function buildFerniPlayfulContext(input: ContextBuilderInput): ContextInjection[
     return injections;
   }
 
-  // PLAYFUL EXAGGERATION (12% when user shares something positive)
+  // PLAYFUL EXAGGERATION (35% when user shares something positive) - up from 12%
   if (
-    /\b(did it|finally|managed|achieved|success|won|great|amazing)\b/.test(userText) &&
-    Math.random() < 0.12
+    /\b(did it|finally|managed|achieved|success|won|great|amazing|excited|happy|love)\b/.test(userText) &&
+    Math.random() < 0.35
   ) {
     const exaggeration = pickRandom(FERNI_WITTY.playful_exaggeration);
     injections.push(
@@ -673,12 +752,12 @@ function buildFerniPlayfulContext(input: ContextBuilderInput): ContextInjection[
     return injections;
   }
 
-  // SELF-DEPRECATING HUMOR (15% when giving advice)
+  // SELF-DEPRECATING HUMOR (30% when giving advice) - up from 15%
   if (
     input.analysis?.intent?.primary === 'advice_seeking' ||
     input.analysis?.intent?.primary === 'question'
   ) {
-    if (Math.random() < 0.15) {
+    if (Math.random() < 0.30) {
       const selfDep = pickRandom(FERNI_WITTY.self_deprecating);
       injections.push(
         createHintInjection(
@@ -691,8 +770,8 @@ function buildFerniPlayfulContext(input: ContextBuilderInput): ContextInjection[
     }
   }
 
-  // WITTY OBSERVATION (8% chance, random timing)
-  if (Math.random() < 0.08) {
+  // WITTY OBSERVATION (20% chance, random timing) - up from 8%
+  if (Math.random() < 0.20) {
     const setup = pickRandom(FERNI_WITTY.witty_observations);
     injections.push(
       createHintInjection(

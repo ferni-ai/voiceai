@@ -99,6 +99,7 @@ export {
   clearBundleEntrances,
   clearBundleGoodbyes,
   clearBundleStorytelling,
+  clearRecentBackchannels,
   // Getters
   getAllBackchannelsForPersona,
   getAllEntrancesForPersona,
