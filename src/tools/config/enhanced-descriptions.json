@@ -10,10 +10,9 @@
   ],
   "enhanced": {
     "playMusic": {
-      "description": "Play music based on a search query. Call when user asks to play music, wants to hear a song, artist, genre, or mood-based music. Returns confirmation of what's playing.",
+      "description": "IMMEDIATELY play music when user asks. MUST call this function - do NOT just talk about music. Works for everyone with free 30-second previews, or full songs if they have Spotify. Call for ANY music request: 'play music', 'put on some tunes', 'I want to hear X', 'can you play Y', 'play something relaxing'.",
       "parameters": {
-        "query": "The music search query. Can be a song title, artist name, genre, or mood. Examples: 'relaxing jazz', 'The Beatles', 'upbeat workout music', 'lo-fi beats', 'classical piano'",
-        "source": "Optional: Music service to use. Options: 'spotify', 'youtube', 'apple'. Default: user's preferred service"
+        "query": "The music search query - extract the song/artist/mood from user's request. Examples: 'Mariah Carey Christmas', 'relaxing jazz', 'The Beatles', 'upbeat workout music', 'lo-fi beats', 'classical piano', 'happy music'"
       }
     },
     "rememberAboutUser": {

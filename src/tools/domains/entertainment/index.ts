@@ -69,7 +69,7 @@ function getUnifiedMusicToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'playMusic',
       'Play Music',
-      'Play music by song, artist, genre, or mood. Works for everyone with free 30-second previews. Examples: "play some jazz", "play Taylor Swift", "put on relaxing music", "play Happy by Pharrell". If user has Spotify Premium linked, plays full songs.',
+      'IMMEDIATELY play music when user asks. MUST call this function - do NOT talk about music, actually PLAY it. Works for everyone. Call for ANY music request: "play music", "put on some tunes", "play X", "can you play Y".',
       legacyTools.playMusic,
       { tags: ['playback', 'primary', 'search', 'suggestions'] }
     ),
