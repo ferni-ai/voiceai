@@ -51,6 +51,10 @@ apps/macos-menubar/
 apps/marketing/
 apps/marketplace-agents/
 apps/web/
+# Re-include sounds directory needed by voice agent
+!apps/web/public/
+!apps/web/public/sounds/
+!apps/web/public/sounds/**
 apps/website/
 # NOTE: apps/cli/ is intentionally NOT excluded (needed for Dockerfile.agent build)
 
