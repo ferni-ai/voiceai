@@ -195,11 +195,11 @@ Start with 5 high-value markets:
 
 | File | Changes |
 |------|---------|
-| `promo/ferni-website/.eleventy.js` | Add i18n plugin |
-| `promo/ferni-website/src/_data/site.json` | Keep structure, remove translatable text |
-| `promo/ferni-website/src/_data/i18n/*.json` | New translation files |
-| `promo/ferni-website/src/_includes/partials/head.njk` | Add `lang` and `hreflang` |
-| `promo/ferni-website/src/_includes/partials/header.njk` | Add language switcher |
+| `apps/website/ferni-website/.eleventy.js` | Add i18n plugin |
+| `apps/website/ferni-website/src/_data/site.json` | Keep structure, remove translatable text |
+| `apps/website/ferni-website/src/_data/i18n/*.json` | New translation files |
+| `apps/website/ferni-website/src/_includes/partials/head.njk` | Add `lang` and `hreflang` |
+| `apps/website/ferni-website/src/_includes/partials/header.njk` | Add language switcher |
 | All `.njk` templates | Replace hardcoded strings with `| i18n` filter |
 
 ---
@@ -304,7 +304,7 @@ const session = await stripe.checkout.sessions.create({
 | `src/config/currencies.ts` | New - currency config per locale |
 | `src/types/subscription.ts` | Multi-currency TIER_CONFIGS, updated formatPrice |
 | `src/services/stripe-subscription.ts` | Currency-aware checkout |
-| `promo/ferni-website/src/pricing.njk` | Dynamic price display |
+| `apps/website/ferni-website/src/pricing.njk` | Dynamic price display |
 | `apps/web/src/ui/subscription.ui.ts` | Locale-aware pricing |
 
 ---

@@ -17,8 +17,8 @@
 | `design-system/tokens/*.json` | Source | ❌ Manual edits | ✅ **Source of Truth** |
 | `design-system/dist/tokens.css` | Both themes | ✅ From build.js | ⚠️ Needs sync |
 | `brand/ferni-design-tokens.css` | Zen only | ✅ From sync-promo | 🗑️ **DEPRECATED** |
-| `promo/ferni-website/css/design-tokens.css` | Zen only | ✅ From sync-promo | ⚠️ Outdated |
-| `promo/ferni-website/src/css/_tokens.css` | Zen only | ✅ From sync-promo | ⚠️ Duplicate |
+| `apps/website/ferni-website/css/design-tokens.css` | Zen only | ✅ From sync-promo | ⚠️ Outdated |
+| `apps/website/ferni-website/src/css/_tokens.css` | Zen only | ✅ From sync-promo | ⚠️ Duplicate |
 | `apps/web/public/design-system/tokens.css` | Both | ✅ From build-assets | ⚠️ Needs sync |
 
 **Impact:** Changes to tokens require manual runs of multiple scripts. Easy to miss one.
@@ -76,10 +76,10 @@ This is intentional (shorter for promo) but causes confusion.
 
 ### 6. Hardcoded Colors in Promo CSS
 
-Found **45+ hardcoded hex values** in `promo/ferni-website/src/css/`:
+Found **45+ hardcoded hex values** in `apps/website/ferni-website/src/css/`:
 
 ```css
-/* promo/ferni-website/src/css/apple-polish.css */
+/* apps/website/ferni-website/src/css/apple-polish.css */
 background: #4a6741;        /* Should be var(--color-ferni) */
 color: #2c2520;             /* Should be var(--color-text-primary) */
 border-color: #4a6741;      /* Should be var(--color-ferni) */
@@ -117,7 +117,7 @@ Two separate definitions exist:
 
 ### 9. Tailwind Config Drift
 
-`promo/ferni-website/tailwind.config.js` has hardcoded values:
+`apps/website/ferni-website/tailwind.config.js` has hardcoded values:
 
 ```js
 // Should reference design tokens
@@ -135,7 +135,7 @@ colors: {
 | `brand/favicons/` | 3 SVGs | Legacy |
 | `design-system/assets/favicons/` | 3 SVGs | Generated from |
 | `apps/web/public/` | favicon-animated.svg | App |
-| `promo/ferni-website/images/` | favicon.png | Website |
+| `apps/website/ferni-website/images/` | favicon.png | Website |
 
 ---
 

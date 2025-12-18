@@ -40,7 +40,7 @@ const SYNC_CONFIGS = [
   },
   {
     name: 'Landing Page',
-    localeDir: 'promo/ferni-website/src/_data/i18n',
+    localeDir: 'apps/website/ferni-website/src/_data/i18n',
     sourceLocale: 'en.json',
   },
 ];

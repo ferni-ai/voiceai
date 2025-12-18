@@ -18,7 +18,7 @@ Use prompts from `prompts/VEO3-PROMPTS.txt`
 
 ### 4. Process Video
 ```bash
-cd promo/ferni-website
+cd apps/website/ferni-website
 
 # Optimize for web (creates WebM + MP4)
 node scripts/optimize-assets.js --type=videos

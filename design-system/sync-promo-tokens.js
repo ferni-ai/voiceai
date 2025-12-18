@@ -2,7 +2,7 @@
 /**
  * Sync Design Tokens to Promo Website
  *
- * Copies essential design tokens from design-system to promo/ferni-website
+ * Copies essential design tokens from design-system to apps/website/ferni-website
  * for brand consistency.
  *
  * Usage:
@@ -30,8 +30,8 @@ const CONFIG = {
 
   // Output files (multiple destinations for consistency)
   outputs: [
-    path.join(PROJECT_ROOT, 'promo/ferni-website/css/design-tokens.css'),
-    path.join(PROJECT_ROOT, 'promo/ferni-website/src/css/_tokens.css'),
+    path.join(PROJECT_ROOT, 'apps/website/ferni-website/css/design-tokens.css'),
+    path.join(PROJECT_ROOT, 'apps/website/ferni-website/src/css/_tokens.css'),
     path.join(PROJECT_ROOT, 'brand/ferni-design-tokens.css'),
   ],
 };

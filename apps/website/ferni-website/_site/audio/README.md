@@ -66,4 +66,4 @@ To update the voice samples:
 2. Regenerate: `ferni voices generate-samples`
 3. Deploy: `npm run deploy:landing`
 
-The sample text should match `promo/ferni-website/src/js/voice-samples.js`.
+The sample text should match `apps/website/ferni-website/src/js/voice-samples.js`.

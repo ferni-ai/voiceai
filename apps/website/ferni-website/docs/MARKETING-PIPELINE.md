@@ -107,7 +107,7 @@
 
 ```bash
 # Navigate to scripts
-cd promo/ferni-website/scripts
+cd apps/website/ferni-website/scripts
 
 # Generate avatar images
 node generate-assets.js --batch=avatars
@@ -340,7 +340,7 @@ Every piece of content must pass:
 
 ### Package.json Scripts
 
-Add to `promo/ferni-website/package.json`:
+Add to `apps/website/ferni-website/package.json`:
 
 ```json
 {

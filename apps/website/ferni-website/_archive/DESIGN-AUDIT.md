@@ -110,7 +110,7 @@
 ## 7. Files to Audit
 
 ```
-promo/ferni-website/
+apps/website/ferni-website/
  css/
     design-tokens.css   # Source of truth
     styles.css          # Main styles (needs audit)

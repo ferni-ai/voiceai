@@ -206,7 +206,7 @@ function checkTailwindUsesVars(tailwindContent) {
 function checkHardcodedColorsInCSS() {
   const issues = [];
   const cssFiles = [
-    'promo/ferni-website/css/styles.css',
+    'apps/website/ferni-website/css/styles.css',
   ];
 
   // Brand colors that should NEVER be hardcoded
@@ -292,7 +292,7 @@ function main() {
   // Check 2: Tailwind uses CSS variables
   console.log('📋 Check 2: Tailwind CSS Variable Usage');
   console.log('─'.repeat(50));
-  const tailwindPath = path.join(PROJECT_ROOT, 'promo/ferni-website/tailwind.config.js');
+  const tailwindPath = path.join(PROJECT_ROOT, 'apps/website/ferni-website/tailwind.config.js');
   const tailwindContent = loadTailwindConfig(tailwindPath);
 
   if (tailwindContent) {

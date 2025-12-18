@@ -60,9 +60,9 @@ const CONFIG = {
   },
   // Landing page i18n
   landing: {
-    localeDir: 'promo/ferni-website/src/_data/i18n',
+    localeDir: 'apps/website/ferni-website/src/_data/i18n',
     sourceLocale: 'en.json',
-    sourcePatterns: ['promo/ferni-website/src/**/*.njk', 'promo/ferni-website/src/**/*.html'],
+    sourcePatterns: ['apps/website/ferni-website/src/**/*.njk', 'apps/website/ferni-website/src/**/*.html'],
     keyPatterns: [
       /\{\{\s*['"]([^'"]+)['"]\s*\|\s*t\s*\}\}/g, // {{ 'key' | t }}
     ],

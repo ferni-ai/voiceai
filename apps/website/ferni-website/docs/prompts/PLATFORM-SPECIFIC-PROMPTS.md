@@ -223,7 +223,7 @@ videos/generated/testimonials/testimonial-sarah.mp4
 
 ## Option 3: Node.js Script
 ```bash
-cd promo/ferni-website
+cd apps/website/ferni-website
 npm install @google-cloud/aiplatform
 export GOOGLE_APPLICATION_CREDENTIALS="/path/to/key.json"
 node scripts/generate-assets.js --batch=images

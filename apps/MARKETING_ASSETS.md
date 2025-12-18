@@ -34,7 +34,7 @@ Complete checklist of brand and marketing assets needed for app store submission
 | **Subtitle** | 30 chars | ❌ | "Your AI that listens" |
 | **Description** | 4000 chars | ❌ | Write copy |
 | **Keywords** | 100 chars | ❌ | Research |
-| **Privacy URL** | - | ✅ `promo/ferni-website/privacy.html` | Done |
+| **Privacy URL** | - | ✅ `apps/website/ferni-website/privacy.html` | Done |
 | **Support URL** | - | ❌ | Create |
 | **Marketing URL** | - | ⏳ | Ferni website |
 
@@ -88,13 +88,13 @@ Complete checklist of brand and marketing assets needed for app store submission
 
 | Asset | Location |
 |-------|----------|
-| Hero images | `promo/ferni-website/images/generated/hero/` |
-| OG/Social images | `promo/ferni-website/images/generated/social/` |
-| Avatar images | `promo/ferni-website/images/generated/avatars/` |
-| Testimonial backgrounds | `promo/ferni-website/images/generated/testimonials/` |
-| Video frames | `promo/ferni-website/images/sequence/` |
+| Hero images | `apps/website/ferni-website/images/generated/hero/` |
+| OG/Social images | `apps/website/ferni-website/images/generated/social/` |
+| Avatar images | `apps/website/ferni-website/images/generated/avatars/` |
+| Testimonial backgrounds | `apps/website/ferni-website/images/generated/testimonials/` |
+| Video frames | `apps/website/ferni-website/images/sequence/` |
 | Full logo set | `brand/logos/` |
-| Privacy/Terms pages | `promo/ferni-website/` |
+| Privacy/Terms pages | `apps/website/ferni-website/` |
 
 ### Needed Assets
 
@@ -108,7 +108,7 @@ Complete checklist of brand and marketing assets needed for app store submission
 
 ## 🎬 Video Generation (Veo 3 Prompts Ready)
 
-You already have prompts in `promo/ferni-website/prompts/VEO3-PROMPTS.txt`!
+You already have prompts in `apps/website/ferni-website/prompts/VEO3-PROMPTS.txt`!
 
 ### Priority Videos to Generate
 

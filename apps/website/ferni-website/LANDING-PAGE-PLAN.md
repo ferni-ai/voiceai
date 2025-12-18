@@ -477,7 +477,7 @@ npm run marketing:optimize:images
 
 ```bash
 # 1. Build production version
-cd promo/ferni-website
+cd apps/website/ferni-website
 npm run build:prod
 
 # 2. Preview locally

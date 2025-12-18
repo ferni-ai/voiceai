@@ -235,7 +235,7 @@ const [injections, advancedHumanizationResult] = await Promise.all([
 
 | Item | Status |
 |------|--------|
-| `promo/ferni-website/_archive/` | Archived - leave alone |
+| `apps/website/ferni-website/_archive/` | Archived - leave alone |
 | Some phase docs in marketplace-agents | May need review |
 | Duplicate TECH-DEBT locations | Already consolidated |
 

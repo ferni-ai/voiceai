@@ -3,7 +3,7 @@
 **Date**: December 13, 2024 (Updated)  
 **Auditor**: AI-assisted review  
 **URL**: https://ferni.ai  
-**Source**: `promo/ferni-website/`
+**Source**: `apps/website/ferni-website/`
 
 ---
 
@@ -51,11 +51,11 @@ The Ferni landing page has **excellent content alignment** with CORE-PRINCIPLES.
 
 **Phase 1 (Token Compliance & Accessibility):**
 
-- `promo/ferni-website/src/js/ai-powered-landing.js` - Token compliance + features enabled
-- `promo/ferni-website/src/index.njk` - CTA copy updates ("Meet Ferni")
-- `promo/ferni-website/src/css/utils/accessibility.css` - NEW: Focus-visible, screen reader utils
-- `promo/ferni-website/src/css/styles.css` - Import accessibility utils
-- `promo/ferni-website/scripts/lint-design.sh` - Improved token file detection
+- `apps/website/ferni-website/src/js/ai-powered-landing.js` - Token compliance + features enabled
+- `apps/website/ferni-website/src/index.njk` - CTA copy updates ("Meet Ferni")
+- `apps/website/ferni-website/src/css/utils/accessibility.css` - NEW: Focus-visible, screen reader utils
+- `apps/website/ferni-website/src/css/styles.css` - Import accessibility utils
+- `apps/website/ferni-website/scripts/lint-design.sh` - Improved token file detection
 - `e2e/landing-accessibility.spec.ts` - NEW: WCAG 2.1 AA test suite
 
 **Phase 2 (AI Features & Automation):**
@@ -63,7 +63,7 @@ The Ferni landing page has **excellent content alignment** with CORE-PRINCIPLES.
 - `src/api/routes/landing-ai.ts` - NEW: 7 AI endpoints for landing features
 - `src/api/routes/index.ts` - Export landing AI routes
 - `.github/workflows/lighthouse-ci.yml` - NEW: Automated a11y/perf audits
-- `promo/ferni-website/src/_data/site.json` - Expanded content structure
+- `apps/website/ferni-website/src/_data/site.json` - Expanded content structure
 
 ---
 
@@ -153,8 +153,8 @@ The landing page content excellently reflects our core principles:
 
 **Two token files exist:**
 
-- `promo/ferni-website/css/design-tokens.css` (auto-generated from design-system)
-- `promo/ferni-website/src/css/tokens.css` (manual, older version)
+- `apps/website/ferni-website/css/design-tokens.css` (auto-generated from design-system)
+- `apps/website/ferni-website/src/css/tokens.css` (manual, older version)
 
 ### ⚠️ Issues Found
 
@@ -314,7 +314,7 @@ src/blog/*.md           - Blog posts
 
 ```bash
 # Run audit
-./promo/ferni-website/scripts/lint-design.sh
+./apps/website/ferni-website/scripts/lint-design.sh
 
 # Fix all hardcoded values
 # Update ai-powered-landing.js to use CSS vars
@@ -444,8 +444,8 @@ e2e/landing-accessibility.spec.ts  # A11y e2e tests
 ### Files to Modify
 
 ```
-promo/ferni-website/src/css/tokens.css         # DELETE (use generated)
-promo/ferni-website/src/js/ai-powered-landing.js  # Fix hardcoded colors
+apps/website/ferni-website/src/css/tokens.css         # DELETE (use generated)
+apps/website/ferni-website/src/js/ai-powered-landing.js  # Fix hardcoded colors
 apps/web/firebase.json              # Add landing AI rewrites
 .github/workflows/landing.yml                  # Add a11y + lint checks
 ```
@@ -480,8 +480,8 @@ apps/web/firebase.json              # Add landing AI rewrites
 
 ### Today ✅ COMPLETED
 
-1. [x] Run `./promo/ferni-website/scripts/audit-content.sh`
-2. [x] Run `./promo/ferni-website/scripts/lint-design.sh`
+1. [x] Run `./apps/website/ferni-website/scripts/audit-content.sh`
+2. [x] Run `./apps/website/ferni-website/scripts/lint-design.sh`
 3. [x] Document all failures
 
 ### This Week ✅ COMPLETED

@@ -15,7 +15,7 @@
 2. Copy the full prompt from `VEO3-PROMPTS.txt`
 3. Generate at 4K or 8K resolution
 4. Download and convert to web-optimized MP4 (H.264)
-5. Place in `/promo/ferni-website/videos/`
+5. Place in `/apps/website/ferni-website/videos/`
 
 ### Priority 2: Supporting Videos
 
@@ -75,7 +75,7 @@ For longer brand storytelling (see `MOVIE-STORY-PROMPTS.txt`):
 ##  File Organization
 
 ```
-promo/ferni-website/
+apps/website/ferni-website/
  images/
     og-image.png          # Social sharing
     hero-park-city.jpg    # Main hero image

@@ -2,7 +2,7 @@
 /**
  * Generate Tailwind Config for Promo Website
  *
- * Auto-generates promo/ferni-website/tailwind.config.generated.js
+ * Auto-generates apps/website/ferni-website/tailwind.config.generated.js
  * from design-system/tokens/*.json
  *
  * IMPORTANT: This generator outputs CSS variable references (not hardcoded hex)
@@ -29,7 +29,7 @@ const CONFIG = {
   sourceSpacing: path.join(__dirname, 'tokens/spacing.json'),
   sourceTypography: path.join(__dirname, 'tokens/typography.json'),
   sourceAnimation: path.join(__dirname, 'tokens/animation.json'),
-  output: path.join(PROJECT_ROOT, 'promo/ferni-website/tailwind.config.generated.js'),
+  output: path.join(PROJECT_ROOT, 'apps/website/ferni-website/tailwind.config.generated.js'),
 };
 
 // ============================================================================

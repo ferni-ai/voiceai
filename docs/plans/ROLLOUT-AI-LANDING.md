@@ -16,7 +16,7 @@
 - [x] Voice samples CSS added
 - [x] Design system tokens created
 - [x] Storybook stories created
-- [ ] Voice sample audio files generated (see `promo/ferni-website/src/audio/README.md`)
+- [ ] Voice sample audio files generated (see `apps/website/ferni-website/src/audio/README.md`)
 - [ ] E2E tests written
 
 ---

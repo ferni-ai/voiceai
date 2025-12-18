@@ -3,7 +3,7 @@
  * 
  * 🎬 AUTO-GENERATED FROM design-system/tokens/animation.json
  * Do not edit directly - run: npm run build:animation-constants
- * Generated: 2025-12-15T21:43:38.511Z
+ * Generated: 2025-12-18T16:55:53.968Z
  * 
  * This file contains the generated constants. The main animation-constants.ts
  * imports and re-exports these along with manual additions.

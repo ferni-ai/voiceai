@@ -66,7 +66,7 @@
 │   ├── ferni-design-tokens.css
 │   └── logos/
 │
-├── promo/ferni-website/      # Marketing landing page
+├── apps/website/ferni-website/      # Marketing landing page
 │   ├── index.html
 │   ├── css/styles.css
 │   ├── js/main.js
@@ -132,8 +132,8 @@
 
 ### Creating Brand Assets
 
-1. **Generate avatars** using prompts in `/promo/ferni-website/prompts/IMAGE-PROMPTS.txt`
-2. **Generate videos** using prompts in `/promo/ferni-website/prompts/VEO3-PROMPTS.txt`
+1. **Generate avatars** using prompts in `/apps/website/ferni-website/prompts/IMAGE-PROMPTS.txt`
+2. **Generate videos** using prompts in `/apps/website/ferni-website/prompts/VEO3-PROMPTS.txt`
 3. **Export brand book** by printing `/brand/brand-book.html` to PDF
 
 ---
@@ -196,7 +196,7 @@ npm run dev
 cd apps/web && npm run dev
 
 # Terminal 3: Run landing page (for testing)
-cd promo/ferni-website && python3 -m http.server 8765
+cd apps/website/ferni-website && python3 -m http.server 8765
 ```
 
 ---
@@ -204,7 +204,7 @@ cd promo/ferni-website && python3 -m http.server 8765
 ## 4. Landing Page (Marketing Site)
 
 ### Location
-`/promo/ferni-website/`
+`/apps/website/ferni-website/`
 
 ### Structure
 
@@ -231,7 +231,7 @@ ferni-website/
 ### Local Testing
 
 ```bash
-cd promo/ferni-website
+cd apps/website/ferni-website
 python3 -m http.server 8765
 # Open http://localhost:8765
 ```
@@ -241,14 +241,14 @@ python3 -m http.server 8765
 **Option A: Firebase Hosting (Recommended for landing page)**
 
 ```bash
-cd promo/ferni-website
+cd apps/website/ferni-website
 firebase init hosting
 firebase deploy
 ```
 
 **Option B: Netlify / Vercel (Static hosting)**
 
-Connect repo and set root to `/promo/ferni-website`
+Connect repo and set root to `/apps/website/ferni-website`
 
 **Option C: GCP Cloud Storage + CDN**
 
@@ -257,7 +257,7 @@ Connect repo and set root to `/promo/ferni-website`
 gsutil mb -l us-central1 gs://ferni-landing
 
 # Upload files
-gsutil -m cp -r promo/ferni-website/* gs://ferni-landing/
+gsutil -m cp -r apps/website/ferni-website/* gs://ferni-landing/
 
 # Make public
 gsutil iam ch allUsers:objectViewer gs://ferni-landing
@@ -451,7 +451,7 @@ done
 # 3. Deploy landing page (choose one)
 firebase deploy                    # Firebase Hosting
 # OR
-gsutil -m cp -r promo/ferni-website/* gs://ferni-landing/
+gsutil -m cp -r apps/website/ferni-website/* gs://ferni-landing/
 ```
 
 ### Individual Deployments
@@ -468,7 +468,7 @@ gsutil -m cp -r promo/ferni-website/* gs://ferni-landing/
 
 **Landing Page Only:**
 ```bash
-cd promo/ferni-website
+cd apps/website/ferni-website
 firebase deploy
 ```
 
@@ -645,7 +645,7 @@ gcloud secrets versions access latest --secret=secret-name
 |-------|------|
 | Brand Guidelines | `/design-system/brand/FERNI-SCREEN-GUIDELINES.md` |
 | Design Tokens | `/brand/ferni-design-tokens.css` |
-| Landing Page | `/promo/ferni-website/` |
+| Landing Page | `/apps/website/ferni-website/` |
 | Frontend App | `/apps/web/` |
 | Voice Agent | `/src/` |
 | Personas | `/src/personas/bundles/` |

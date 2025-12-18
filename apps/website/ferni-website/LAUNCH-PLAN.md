@@ -443,8 +443,8 @@ src/js/
 
 ### Animation Reference
 - `design-system/README.md`
-- `promo/ferni-website/src/css/better-than-human.css`
-- `promo/ferni-website/src/js/better-than-human.js`
+- `apps/website/ferni-website/src/css/better-than-human.css`
+- `apps/website/ferni-website/src/js/better-than-human.js`
 
 ---
 

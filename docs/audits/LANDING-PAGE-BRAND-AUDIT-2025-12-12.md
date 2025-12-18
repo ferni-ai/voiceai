@@ -1,6 +1,6 @@
 # Landing Page Brand Alignment Audit
 **Date:** 2025-12-12
-**Scope:** `promo/ferni-website/` alignment with brand guidelines and design system
+**Scope:** `apps/website/ferni-website/` alignment with brand guidelines and design system
 
 ---
 
@@ -69,9 +69,9 @@ The landing page has **significant drift** from the brand guidelines and design 
 ├── design-system/tokens/colors.json        ← Source of Truth
 ├── design-system/dist/tokens.css           ← Build output
 ├── brand/ferni-design-tokens.css           ← DEPRECATED (should delete)
-├── promo/ferni-website/css/design-tokens.css  ← Auto-synced
+├── apps/website/ferni-website/css/design-tokens.css  ← Auto-synced
 ├── apps/web/public/design-system/tokens.css  ← App tokens
-└── promo/ferni-website/tailwind.config.js  ← HARDCODED (not synced!)
+└── apps/website/ferni-website/tailwind.config.js  ← HARDCODED (not synced!)
 ```
 
 ### Problem: Tailwind Config Bypass
@@ -219,7 +219,7 @@ npm run tokens:sync
 npm run tokens:check
 
 # 4. Fix Nayan in tailwind.config.js manually
-# Edit promo/ferni-website/tailwind.config.js
+# Edit apps/website/ferni-website/tailwind.config.js
 ```
 
 ---

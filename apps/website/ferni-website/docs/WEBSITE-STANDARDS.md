@@ -253,7 +253,7 @@ design-system/
 ### Website Structure (Target State)
 
 ```
-promo/ferni-website/
+apps/website/ferni-website/
  src/
     _includes/
        layouts/base.njk

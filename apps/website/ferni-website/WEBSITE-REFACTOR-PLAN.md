@@ -18,7 +18,7 @@
 
 ### File Structure
 ```
-promo/ferni-website/
+apps/website/ferni-website/
 ├── index.html              ← PROBLEM: 2077 lines of hardcoded HTML (THIS IS LIVE)
 ├── css/styles.css          ← PROBLEM: Hardcoded values, not using design tokens
 ├── js/main.js              ← OK: Works but needs cleanup
@@ -387,7 +387,7 @@ firebase deploy --only hosting:ferni-landing
 ## 📁 Final Directory Structure
 
 ```
-promo/ferni-website/
+apps/website/ferni-website/
 ├── .eleventy.js
 ├── package.json
 ├── firebase.json
@@ -453,7 +453,7 @@ promo/ferni-website/
 
 ```bash
 # 1. Navigate to website directory
-cd promo/ferni-website
+cd apps/website/ferni-website
 
 # 2. Install dependencies (if needed)
 npm install

@@ -37,8 +37,8 @@ const TOKEN_SOURCES = [
 const GENERATED_FILES = [
   'design-system/dist/tokens.css',
   'apps/web/public/design-system/tokens.css',
-  'promo/ferni-website/css/design-tokens.css',
-  'promo/ferni-website/src/css/_tokens.css',
+  'apps/website/ferni-website/css/design-tokens.css',
+  'apps/website/ferni-website/src/css/_tokens.css',
 ];
 
 const DEPRECATED_FILES = [

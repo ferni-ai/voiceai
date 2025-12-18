@@ -163,7 +163,7 @@ ferni-instagram-post-template-1080x1080.png
 ### Using Imagen (in generate-assets.js)
 
 ```bash
-cd promo/ferni-website
+cd apps/website/ferni-website
 node scripts/generate-assets.js --batch=social
 ```
 

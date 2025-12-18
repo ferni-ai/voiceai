@@ -208,7 +208,7 @@ export const LANDING_PAGE_VARIANTS = {
 Update the landing page to fetch and apply variants:
 
 ```javascript
-// promo/ferni-website/src/js/experiment-variants.js
+// apps/website/ferni-website/src/js/experiment-variants.js
 
 (function () {
   'use strict';
@@ -701,7 +701,7 @@ src/services/experiments/
 ├── variant-library.ts         # Landing page variants
 └── optimizer-scheduler.ts     # Cloud Function
 
-promo/ferni-website/src/js/
+apps/website/ferni-website/src/js/
 ├── experiment-variants.js     # Apply variants to DOM
 └── conversion-tracking.js     # Track goals
 
@@ -714,8 +714,8 @@ src/api/
 ```
 src/services/experiments/web-experiments.ts  # Add bandit support
 src/api/v1/admin/experiments.ts              # Add optimizer endpoints
-promo/ferni-website/src/story-brand.njk      # Add experiment hooks
-promo/ferni-website/src/js/main.js           # Include new scripts
+apps/website/ferni-website/src/story-brand.njk      # Add experiment hooks
+apps/website/ferni-website/src/js/main.js           # Include new scripts
 ```
 
 ---

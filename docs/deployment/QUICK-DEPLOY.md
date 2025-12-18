@@ -41,7 +41,7 @@ npm run deploy:backend
 ```
 This rebuilds and deploys the Cloud Run service.
 
-### Changed Landing Page (`promo/ferni-website/*`)
+### Changed Landing Page (`apps/website/ferni-website/*`)
 ```bash
 npm run deploy:landing
 ```
@@ -66,8 +66,8 @@ npm run deploy:all
 | `apps/web/public/**` | `deploy:app` |
 | `ui-server.js` | `deploy:backend` |
 | `src/**/*.ts` | `deploy:backend` |
-| `promo/ferni-website/**` | `deploy:landing` |
-| `promo/ferni-website/_site/**` | `deploy:landing` |
+| `apps/website/ferni-website/**` | `deploy:landing` |
+| `apps/website/ferni-website/_site/**` | `deploy:landing` |
 
 ## ⚠️ Common Mistakes
 
@@ -90,12 +90,12 @@ The landing page uses `_site/` as the public folder. New assets must be copied t
 If you see `Fetch failed loading: POST "https://www.google-analytics.com/..."` errors in the console, **this is expected behavior** when users have ad blockers. GA will work for users without blockers. We've added graceful error handling so it logs a friendly message instead of an error.
 
 ### Landing Page Build
-The landing page in `promo/ferni-website/_site/` is a built version. Always edit the source files in `promo/ferni-website/` (not `_site/`), then:
+The landing page in `apps/website/ferni-website/_site/` is a built version. Always edit the source files in `apps/website/ferni-website/` (not `_site/`), then:
 1. Build/copy files to `_site/`
 2. Deploy with `npm run deploy:landing`
 
 ### Image Sequence for Landing Page
-If updating the scroll animation, ensure images are in `promo/ferni-website/_site/images/sequence/`.
+If updating the scroll animation, ensure images are in `apps/website/ferni-website/_site/images/sequence/`.
 
 ## 🔧 Setting Up Deploy Commands
 
@@ -105,7 +105,7 @@ Add these to your root `package.json`:
 {
   "scripts": {
     "deploy:app": "cd apps/web && firebase deploy --only hosting:ferni-prod,hosting:johnb-app --project johnb-2025",
-    "deploy:landing": "cd promo/ferni-website && firebase deploy --only hosting:ferni-landing --project johnb-2025",
+    "deploy:landing": "cd apps/website/ferni-website && firebase deploy --only hosting:ferni-landing --project johnb-2025",
     "deploy:backend": "gcloud builds submit --config=cloudbuild-ui.yaml --project=johnb-2025",
     "deploy:all": "npm run deploy:app && npm run deploy:landing && npm run deploy:backend"
   }

@@ -9,7 +9,7 @@ Quick reference for adding generated images/videos to the Ferni website.
 Place generated assets in these folders:
 
 ```
-promo/ferni-website/
+apps/website/ferni-website/
  images/
     avatars/           <- Team avatars (NEW)
        ferni.png

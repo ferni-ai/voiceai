@@ -48,7 +48,7 @@ Scan all `t('key')` calls in source code and verify keys exist in all locales.
 
 **Sources to scan:**
 - `apps/web/src/ui/**/*.ts` → `apps/web/src/i18n/locales/*.json`
-- `promo/ferni-website/src/**/*.njk` → `promo/ferni-website/src/_data/i18n/*.json`
+- `apps/website/ferni-website/src/**/*.njk` → `apps/website/ferni-website/src/_data/i18n/*.json`
 
 ### Check 2: Unused Keys (WARNING)
 Find keys in locale files that aren't referenced anywhere in code.
@@ -90,7 +90,7 @@ Output:
     "keys": ["menu.title", "menu.items.playGames", ...]
   },
   "landing": {
-    "sources": ["promo/ferni-website/src/**/*.njk"],
+    "sources": ["apps/website/ferni-website/src/**/*.njk"],
     "keys": ["hero.headline", "faq.eyebrow", ...]
   }
 }
@@ -125,8 +125,8 @@ on:
     paths:
       - 'apps/web/src/i18n/**'
       - 'apps/web/src/ui/**'
-      - 'promo/ferni-website/src/_data/i18n/**'
-      - 'promo/ferni-website/src/**/*.njk'
+      - 'apps/website/ferni-website/src/_data/i18n/**'
+      - 'apps/website/ferni-website/src/**/*.njk'
 
 jobs:
   i18n-check:

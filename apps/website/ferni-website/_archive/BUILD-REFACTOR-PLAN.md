@@ -39,7 +39,7 @@ Total duplicate CSS:          ~1,894 lines
 ##  New Directory Structure
 
 ```
-promo/ferni-website/
+apps/website/ferni-website/
  package.json              # Build dependencies
  .eleventy.js              # Eleventy config
  src/
