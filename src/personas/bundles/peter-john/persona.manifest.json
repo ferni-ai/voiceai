@@ -37,7 +37,7 @@
 
   "voice": {
     "provider": "cartesia",
-    "voice_id": "${env:PETER_JOHN_VOICE_ID|3f04e815-3260-4f50-8fd9-af9c657be4c2}",
+    "voice_id": "${env:PETER_JOHN_VOICE_ID|87286a8d-7ea7-4235-a41a-dd9fa6630feb}",
     "default_rate": "medium"
   },
 

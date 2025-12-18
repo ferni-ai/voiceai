@@ -40,7 +40,7 @@ export const VOICE_IDS = {
   FERNI: 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc',
 
   // Peter John (insights quant) - Updated Dec 2024
-  PETER_JOHN: '3f04e815-3260-4f50-8fd9-af9c657be4c2',
+  PETER_JOHN: '87286a8d-7ea7-4235-a41a-dd9fa6630feb',
 
   // Alex Chen (communications specialist) - Verified Dec 2024
   ALEX_CHEN: '81c164d9-7baa-419d-9f9a-6b18100a01ee',
