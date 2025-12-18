@@ -19,6 +19,7 @@
 
 import { getFirestoreDatabase, getGCPProjectId, getConfig } from '../config/environment.js';
 import { getCircuitBreaker } from '../utils/circuit-breaker.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { runBackground, runBackgroundBatch } from '../utils/background-task.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
@@ -523,11 +524,13 @@ async function persistOrder(order: DeliveryOrder, userId?: string): Promise<void
       await firestore
         .collection(DELIVERY_ORDERS_COLLECTION)
         .doc(order.id)
-        .set({
-          ...order,
-          userId,
-          updatedAt: new Date(),
-        });
+        .set(
+          removeUndefined({
+            ...order,
+            userId,
+            updatedAt: new Date(),
+          })
+        );
     } catch (err) {
       getLogger().warn({ err, orderId: order.id }, 'Failed to persist delivery order');
     }
@@ -541,11 +544,13 @@ async function saveOrderToHistory(order: DeliveryOrder, userId: string): Promise
   const firestore = await getFirestore();
   if (firestore) {
     try {
-      await firestore.collection(ORDER_HISTORY_COLLECTION).add({
-        ...order,
-        userId,
-        completedAt: new Date(),
-      });
+      await firestore.collection(ORDER_HISTORY_COLLECTION).add(
+        removeUndefined({
+          ...order,
+          userId,
+          completedAt: new Date(),
+        })
+      );
       getLogger().info({ orderId: order.id, userId }, 'Saved order to history');
     } catch (err) {
       getLogger().warn({ err, orderId: order.id }, 'Failed to save order to history');

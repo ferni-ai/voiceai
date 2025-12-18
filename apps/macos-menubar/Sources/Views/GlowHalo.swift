@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Glow Halo
 
 /// Animated glow rings around the avatar
-/// Matches the halo effect from frontend-typescript/src/ui/avatar-soul.ui.ts
+/// Matches the halo effect from apps/web/src/ui/avatar-soul.ui.ts
 struct GlowHalo: View {
     let persona: Persona
     let size: CGFloat
@@ -133,7 +133,7 @@ struct GlowHalo: View {
 // MARK: - Warmth Bloom
 
 /// Emotional warmth burst animation
-/// From frontend-typescript/src/ui/avatar-soul.ui.ts: soul-warmth-bloom
+/// From apps/web/src/ui/avatar-soul.ui.ts: soul-warmth-bloom
 struct WarmthBloom: View {
     let persona: Persona
     let size: CGFloat

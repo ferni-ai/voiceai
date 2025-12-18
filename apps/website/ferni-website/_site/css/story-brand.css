@@ -1604,7 +1604,7 @@ button {
 }
 
 .pricing-card--featured .pricing-card__price span {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-dark-text-secondary, #f0ebe4);
 }
 
 .pricing-card__description {
@@ -1615,7 +1615,7 @@ button {
 }
 
 .pricing-card--featured .pricing-card__description {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-dark-text-secondary, #f0ebe4);
 }
 
 .pricing-card__features {
@@ -1744,7 +1744,7 @@ button {
 .final-cta__subhead {
   font-family: var(--font-body);
   font-size: var(--text-body-lg);
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-dark-text-secondary, #f0ebe4);
   margin-bottom: var(--space-10);
   line-height: 1.6;
 }
@@ -1790,8 +1790,7 @@ button {
   gap: var(--space-4);
   margin: var(--space-8) auto;
   max-width: 300px;
-  /* 4.89:1 contrast on dark bg - WCAG AA compliant */
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-dark-text-muted, #ddd6cc);
   font-family: var(--font-body);
   font-size: 0.875rem;
 }
@@ -2178,7 +2177,7 @@ button {
 .showcase__app-input span {
   flex: 1;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-dark-text-muted, #ddd6cc);
 }
 
 .showcase__app-input-mic {
@@ -2283,7 +2282,7 @@ button {
 }
 
 .comparison .section__eyebrow {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-dark-text-muted, #ddd6cc);
 }
 
 .comparison .section__title {
@@ -2291,7 +2290,7 @@ button {
 }
 
 .comparison .section__subtitle {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-dark-text-secondary, #f0ebe4);
 }
 
 .comparison-grid {
@@ -2362,7 +2361,7 @@ button {
 }
 
 .comparison-card--others .comparison-card__list svg {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-dark-text-muted, #ddd6cc);
 }
 
 .comparison-card--ferni .comparison-card__list svg {
@@ -4236,7 +4235,7 @@ img[loading='lazy']:not([data-src]) {
   font-family: var(--font-mono, monospace);
   font-size: clamp(48px, 12vw, 96px);
   font-weight: 300;
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--color-dark-text-muted, #ddd6cc);
   margin-bottom: var(--space-8);
   letter-spacing: 0.1em;
 }
@@ -4250,7 +4249,7 @@ img[loading='lazy']:not([data-src]) {
   font-size: clamp(20px, 4vw, 32px);
   font-style: italic;
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-dark-text-secondary, #f0ebe4);
   line-height: 1.4;
 }
 
@@ -4275,7 +4274,7 @@ img[loading='lazy']:not([data-src]) {
   font-family: var(--font-display);
   font-size: 0.875rem;
   font-weight: var(--font-weight-semibold);
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-dark-text-muted, #ddd6cc);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -4283,7 +4282,7 @@ img[loading='lazy']:not([data-src]) {
 .two-am__limit-status {
   font-family: var(--font-body);
   font-size: 0.9375rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-dark-text-muted, #ddd6cc);
   line-height: 1.5;
 }
 
@@ -5169,6 +5168,55 @@ img[loading='lazy']:not([data-src]) {
   font-style: italic;
   color: var(--color-text-muted);
   margin-top: var(--space-6);
+}
+
+/* Building in public link */
+.story__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-8);
+  padding: var(--space-3) var(--space-5);
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-ferni-green);
+  background: rgba(74, 103, 65, 0.08);
+  border-radius: 100px;
+  text-decoration: none;
+  transition: all 0.3s var(--ease-out-expo);
+}
+
+.story__link:hover {
+  background: rgba(74, 103, 65, 0.15);
+  transform: translateX(4px);
+}
+
+.story__link svg {
+  transition: transform 0.3s var(--ease-out-expo);
+}
+
+.story__link:hover svg {
+  transform: translateX(4px);
+}
+
+.story__link-text {
+  position: relative;
+}
+
+.story__link-text::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: currentColor;
+  transition: width 0.3s var(--ease-out-expo);
+}
+
+.story__link:hover .story__link-text::after {
+  width: 100%;
 }
 
 /* Final block styling */

@@ -29,7 +29,6 @@ import {
   type RelationshipStage,
   type StageChangeEvent,
 } from '../services/relationship-stage.service.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { getCelebrationUI } from './celebration.ui.js';
@@ -192,6 +191,10 @@ let modal: HTMLElement | null = null;
 let styleElement: HTMLStyleElement | null = null;
 let isInitialized = false;
 
+/** FIX: Track cleanup handlers for navigation */
+let navigationCleanupHandler: (() => void) | null = null;
+let visibilityCleanupHandler: (() => void) | null = null;
+
 // ============================================================================
 // INITIALIZATION
 // ============================================================================
@@ -229,8 +232,79 @@ export function initStageCelebration(): void {
     }
   });
 
+  // FIX: Add navigation cleanup handlers
+  setupNavigationCleanup();
+
   isInitialized = true;
   log.debug('Stage celebration system initialized');
+}
+
+/**
+ * FIX: Setup navigation cleanup to close modal on page navigation or visibility change
+ * This prevents modals from persisting during SPA navigation or tab switches
+ */
+function setupNavigationCleanup(): void {
+  // Cleanup existing handlers first
+  teardownNavigationCleanup();
+
+  // Handle SPA-style navigation (popstate)
+  navigationCleanupHandler = () => {
+    if (modal) {
+      log.debug('Navigation detected, cleaning up celebration modal');
+      cleanupCelebrationModal();
+    }
+  };
+  window.addEventListener('popstate', navigationCleanupHandler);
+
+  // Handle visibility change (tab switch, minimize)
+  visibilityCleanupHandler = () => {
+    if (document.hidden && modal) {
+      log.debug('Page hidden, cleaning up celebration modal');
+      cleanupCelebrationModal();
+    }
+  };
+  document.addEventListener('visibilitychange', visibilityCleanupHandler);
+
+  // Handle custom navigation event from router (if using SPA routing)
+  window.addEventListener('ferni:navigate', navigationCleanupHandler as EventListener);
+
+  log.debug('Navigation cleanup handlers setup');
+}
+
+/**
+ * FIX: Teardown navigation cleanup handlers
+ */
+function teardownNavigationCleanup(): void {
+  if (navigationCleanupHandler) {
+    window.removeEventListener('popstate', navigationCleanupHandler);
+    window.removeEventListener('ferni:navigate', navigationCleanupHandler as EventListener);
+    navigationCleanupHandler = null;
+  }
+  if (visibilityCleanupHandler) {
+    document.removeEventListener('visibilitychange', visibilityCleanupHandler);
+    visibilityCleanupHandler = null;
+  }
+}
+
+/**
+ * FIX: Cleanup celebration modal immediately (for navigation scenarios)
+ * Unlike hideStageCelebration, this doesn't animate - just removes immediately
+ */
+function cleanupCelebrationModal(): void {
+  // Clear all tracked timeouts
+  clearAllTimeouts();
+
+  // Remove modal immediately
+  if (modal) {
+    modal.remove();
+    modal = null;
+  }
+
+  // Release coordinator lock
+  const currentStage = relationshipStageService.getStage();
+  modalCoordinator.release(`stage-celebration-${currentStage}`);
+
+  log.debug('Celebration modal cleaned up');
 }
 
 function cleanupOrphanedElements(): void {
@@ -276,13 +350,10 @@ export function showStageCelebration(event: StageChangeEvent): void {
 export function hideStageCelebration(): void {
   if (!modal) return;
 
-  // Clean up iOS tap listeners
-  cleanupTapListeners(modal);
-
   modal.classList.remove('stage-celebration-modal--visible');
 
   // Release modal coordinator lock
-  const currentStage = relationshipStageService.getMetrics().stage;
+  const currentStage = relationshipStageService.getStage();
   modalCoordinator.release(`stage-celebration-${currentStage}`);
 
   trackedTimeout(() => {
@@ -381,10 +452,15 @@ function createModal(stage: RelationshipStage): HTMLElement {
     </div>
   `;
 
-  // Event listeners (iOS-compatible)
-  addTapListener(container.querySelector('.stage-celebration-backdrop'), hideStageCelebration);
-  addTapListener(container.querySelector('.stage-celebration-close'), hideStageCelebration);
-  addTapListener(container.querySelector('[data-action="continue"]'), hideStageCelebration);
+  // Event listeners
+  const backdrop = container.querySelector('.stage-celebration-backdrop');
+  backdrop?.addEventListener('click', hideStageCelebration);
+
+  const closeBtn = container.querySelector('.stage-celebration-close');
+  closeBtn?.addEventListener('click', hideStageCelebration);
+
+  const continueBtn = container.querySelector('[data-action="continue"]');
+  continueBtn?.addEventListener('click', hideStageCelebration);
 
   // Escape key
   const handleEscape = (e: KeyboardEvent) => {
@@ -461,7 +537,7 @@ function animateIn(): void {
           {
             duration: DURATION.DELIBERATE,
             easing: EASING.EXPO_OUT,
-            delay: DURATION.NORMAL + i * STAGGER.FAST,
+            delay: DURATION.NORMAL + i * STAGGER.TIGHT,
             fill: 'forwards',
           }
         );
@@ -1006,6 +1082,29 @@ function injectStyles(): void {
 }
 
 // ============================================================================
+// DISPOSE
+// ============================================================================
+
+/**
+ * FIX: Cleanup all resources associated with stage celebration
+ * Call this when the app is unmounting or on route changes
+ */
+export function disposeStageCelebration(): void {
+  cleanupCelebrationModal();
+  teardownNavigationCleanup();
+  clearAllTimeouts();
+
+  // Remove injected styles
+  if (styleElement) {
+    styleElement.remove();
+    styleElement = null;
+  }
+
+  isInitialized = false;
+  log.debug('Stage celebration disposed');
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -1013,6 +1112,8 @@ export const stageCelebration = {
   init: initStageCelebration,
   show: showStageCelebration,
   hide: hideStageCelebration,
+  cleanup: cleanupCelebrationModal,
+  dispose: disposeStageCelebration,
 };
 
 export default stageCelebration;

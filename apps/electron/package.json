@@ -11,8 +11,8 @@
   "scripts": {
     "start": "electron .",
     "dev": "npm run build:frontend && electron .",
-    "build:frontend": "cd ../../frontend-typescript && npm run build && cp -r dist/* ../apps/electron/web/",
-    "build:frontend:win": "cd ..\\..\\frontend-typescript && npm run build && xcopy dist\\* ..\\apps\\electron\\web\\ /E /Y",
+    "build:frontend": "cd ../../apps/web && npm run build && cp -r dist/* ../apps/electron/web/",
+    "build:frontend:win": "cd ..\\..\\apps/web && npm run build && xcopy dist\\* ..\\apps\\electron\\web\\ /E /Y",
     "build": "npm run build:frontend && electron-builder",
     "build:mac": "npm run build:frontend && electron-builder --mac",
     "build:win": "electron-builder --win",

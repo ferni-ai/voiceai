@@ -30,13 +30,13 @@ describe('Handoff Tool Descriptions', () => {
       expect(content).toContain('IMMEDIATELY return');
     });
 
-    it('should include "do NOT speak" instruction in handoff descriptions', async () => {
+    it('should include "do NOT announce" instruction in handoff descriptions', async () => {
       const handoffFactoryPath = path.join(process.cwd(), 'src/tools/handoff/handoff-factory.ts');
       const content = fs.readFileSync(handoffFactoryPath, 'utf-8');
 
-      // Verify the tool description tells LLM not to speak about the action
-      expect(content).toContain('do NOT speak about transferring');
-      expect(content).toContain('do NOT speak about returning');
+      // Verify the tool description tells LLM not to announce the action
+      expect(content).toContain('do NOT announce the transfer');
+      expect(content).toContain('do NOT announce the return');
     });
 
     it('should have action-oriented descriptions (not descriptive)', async () => {

@@ -25,6 +25,7 @@ import {
 } from 'crypto';
 import * as admin from 'firebase-admin';
 import { promisify } from 'util';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger();
@@ -354,11 +355,16 @@ async function saveTokenToFirestore(token: string, value: string, category: stri
   if (!db) return;
 
   try {
-    await db.collection(TOKEN_VAULT_COLLECTION).doc(token).set({
-      value,
-      category,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    await db
+      .collection(TOKEN_VAULT_COLLECTION)
+      .doc(token)
+      .set(
+        removeUndefined({
+          value,
+          category,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        })
+      );
   } catch (error) {
     log.error({ error, token }, 'Failed to save token to Firestore');
   }

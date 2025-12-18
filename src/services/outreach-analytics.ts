@@ -13,6 +13,7 @@
  */
 
 import { getFirestoreDatabase, getGCPProjectId } from '../config/environment.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 import type { OutreachTrigger } from './outreach-intelligence.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
@@ -110,10 +111,12 @@ async function persistEvent(event: OutreachEvent): Promise<void> {
       await firestore
         .collection(OUTREACH_EVENTS_COLLECTION)
         .doc(event.id)
-        .set({
-          ...event,
-          timestamp: event.timestamp,
-        });
+        .set(
+          removeUndefined({
+            ...event,
+            timestamp: event.timestamp,
+          })
+        );
     } catch (err) {
       getLogger().warn({ err, eventId: event.id }, 'Failed to persist outreach event');
     }
@@ -159,10 +162,12 @@ async function saveUserAnalytics(userId: string, analytics: UserAnalytics): Prom
       await firestore
         .collection(USER_ANALYTICS_COLLECTION)
         .doc(userId)
-        .set({
-          ...analytics,
-          updatedAt: new Date(),
-        });
+        .set(
+          removeUndefined({
+            ...analytics,
+            updatedAt: new Date(),
+          })
+        );
     } catch (err) {
       getLogger().warn({ err, userId }, 'Failed to save user analytics');
     }

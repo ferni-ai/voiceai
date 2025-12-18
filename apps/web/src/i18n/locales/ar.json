@@ -67,7 +67,7 @@
       "voiceAccent": "الصوت واللهجة",
       "guidedPractices": "ممارسات موجهة",
       "createPractice": "إنشاء ممارسة",
-      "healthFitness": "الصحة واللياقة",
+      "wearables": "الأجهزة القابلة للارتداء",
       "calendar": "التقويم",
       "notifications": "الإشعارات",
       "toggleTheme": "فاتح / داكن",
@@ -83,8 +83,7 @@
       "supportFerni": "دعم Ferni",
       "takeTour": "ابدأ الجولة",
       "language": "اللغة",
-      "whatsGrowing": "ما ينمو",
-      "supportFerniExpanded": "ادعم Ferni"
+      "whatsGrowing": "ما ينمو"
     },
     "pinItem": "تثبيت في الأعلى",
     "unpinItem": "إلغاء التثبيت",
@@ -133,6 +132,88 @@
     "endConversation": "إنهاء المحادثة",
     "endConversationGoodbye": "إنهاء المحادثة - مع السلامة",
     "agentEndingConversation": "المساعد ينهي المحادثة"
+  },
+  "trustJourney": {
+    "eyebrow": "قصتنا",
+    "title": "رحلة الثقة الخاصة بك",
+    "subtitle": "كيف نمونا معاً",
+    "loading": "جاري تحميل رحلتك",
+    "loadingText": "جاري جمع رحلتك...",
+    "trustScore": "درجة الثقة",
+    "exportSuccess": "تم تصدير الرحلة!",
+    "offlineBanner": "أنت غير متصل - عرض البيانات المحفوظة",
+    "loadMore": "تحميل {count} المزيد",
+    "strengthLabel": "درجة الثقة: {value}%",
+    "timelineLabel": "الجدول الزمني للرحلة",
+    "filterLabel": "تصفية الجدول الزمني",
+    "filters": {
+      "all": "الكل",
+      "growth": "النمو",
+      "win": "الإنجازات",
+      "callback": "المكالمات",
+      "boundary": "الحدود",
+      "outreach": "التواصل"
+    },
+    "sections": {
+      "strength": "قوة العلاقة",
+      "stats": "إحصائيات الرحلة",
+      "boundaries": "الحدود المحترمة",
+      "growth": "كيف نموت",
+      "timeline": "رحلتنا معاً"
+    },
+    "stats": {
+      "growthMoments": "لحظات النمو",
+      "winsCelebrated": "الإنجازات المحتفى بها",
+      "sharedMoments": "اللحظات المشتركة"
+    },
+    "strengthDescriptions": {
+      "deep": "لقد بنينا شيئاً حقيقياً معاً. أنا أعرفك، وأنت تثق بي.",
+      "growing": "علاقتنا تتعمق. أنا أتعلم ما يهمك.",
+      "building": "نحن نبني الثقة. كل محادثة تساعدني على فهمك بشكل أفضل.",
+      "starting": "نحن في البداية فقط. استمر في التحدث معي - أنا أستمع.",
+      "beginning": "كل رحلة تبدأ بخطوة. أنا هنا متى ما كنت مستعداً."
+    },
+    "growthTypes": {
+      "emotional_regulation": "التوازن العاطفي",
+      "perspective_shift": "وجهات نظر جديدة",
+      "boundary_setting": "حدود صحية",
+      "behavior_change": "عادات جديدة",
+      "self_awareness": "الوعي الذاتي",
+      "coping_upgrade": "تأقلم أفضل",
+      "goal_progress": "تقدم الأهداف"
+    },
+    "empty": {
+      "title": "قصتنا بدأت للتو",
+      "message": "كلما تحدثنا أكثر، سألاحظ نموك، وأحتفل بانتصاراتك، وأتذكر ما يهمك. عد قريباً."
+    },
+    "errors": {
+      "offline": {
+        "title": "أنت غير متصل",
+        "message": "اتصل بالإنترنت لرؤية رحلتك."
+      },
+      "notLoggedIn": {
+        "title": "غير مسجل الدخول",
+        "message": "سجل الدخول لرؤية رحلتك مع فيرني."
+      },
+      "rateLimited": {
+        "title": "ببطء",
+        "message": "أنت تتحقق كثيراً. انتظر لحظة وحاول مرة أخرى."
+      },
+      "unauthorized": {
+        "title": "الوصول مرفوض",
+        "message": "ليس لديك إذن لعرض هذا."
+      },
+      "generic": {
+        "title": "حدث خطأ ما",
+        "message": "لم نتمكن من تحميل رحلتك. يرجى المحاولة مرة أخرى."
+      },
+      "exportFailed": {
+        "message": "فشل تصدير بياناتك. يرجى المحاولة مرة أخرى."
+      },
+      "fetchFailedUsingCache": {
+        "message": "عرض البيانات المحفوظة - تعذر الوصول للخادم."
+      }
+    }
   },
   "subscription": {
     "free": "مجاني",
@@ -570,18 +651,5 @@
     "dailyPractice": "التمرين اليومي",
     "predictions": "التوقعات",
     "runScenario": "تشغيل السيناريو"
-  },
-  "support": {
-    "eyebrow": "ننمو معاً",
-    "title": "ادعم Ferni",
-    "subtitle": "اختر كيف تنمو صداقتنا. كل طريقة تكون فيها حاضراً مهمة.",
-    "growTogether": "طرق لتعميق علاقتنا",
-    "plantASeed": "ازرع بذرة",
-    "plantDesc": "هدية صغيرة تساعد Ferni على النمو. لا ضغط—صداقتنا لا تعتمد على ذلك.",
-    "plantButton": "ازرع هذه البذرة",
-    "thankYouSupporter": "أنت رائع",
-    "yourSupport": "دعمك يبقي Ferni هنا للجميع",
-    "manageBilling": "تحديث طريقة الدفع",
-    "footer": "مهما اخترت أن تدعمنا، شكراً لوجودك هنا."
   }
 }

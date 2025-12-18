@@ -10,6 +10,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { IntelligentTask } from './intelligent-task.js';
 
+import { getToolDescription } from '../tools/utils/tool-descriptions.js';
 // ============================================================================
 // EMOTIONAL SUPPORT TASK
 // ============================================================================
@@ -78,8 +79,7 @@ export class EmotionalSupportTask extends IntelligentTask<SupportResult> {
         }),
 
         shareVulnerability: llm.tool({
-          description:
-            'Share understanding and compassion. Use sparingly and only when it would help them feel less alone.',
+          description: getToolDescription('acknowledgeEmotion'),
           parameters: z.object({
             context: z.string().describe('What they shared that prompted this'),
             response: z.string().describe('Your compassionate response showing you understand'),
@@ -90,7 +90,7 @@ export class EmotionalSupportTask extends IntelligentTask<SupportResult> {
         }),
 
         checkIn: llm.tool({
-          description: "Gently check if they're feeling any better. Don't rush this.",
+          description: getToolDescription('checkIn'),
           parameters: z.object({}),
           execute: async () => {
             const checkIns = [
@@ -104,7 +104,7 @@ export class EmotionalSupportTask extends IntelligentTask<SupportResult> {
         }),
 
         concludeSupport: llm.tool({
-          description: 'Use when the user seems to be feeling better and ready to continue.',
+          description: getToolDescription('shareVulnerability'),
           parameters: z.object({
             emotionAddressed: z.string().describe('What emotion was addressed'),
             userFeelsBetter: z.boolean().describe('Whether they seem better now'),
@@ -183,7 +183,7 @@ export class CheckInTask extends IntelligentTask<CheckInResult> {
       },
       tools: {
         recordCheckIn: llm.tool({
-          description: 'Record how the user is doing after the check-in.',
+          description: getToolDescription('checkIn'),
           parameters: z.object({
             howTheyAre: z
               .enum(['great', 'good', 'okay', 'not_great', 'struggling'])
@@ -257,7 +257,7 @@ export class ComfortTask extends IntelligentTask<ComfortResult> {
       },
       tools: {
         validateConcern: llm.tool({
-          description: 'Validate their concern without dismissing it.',
+          description: getToolDescription('concludeSupport'),
           parameters: z.object({
             validation: z.string().describe('Your validating response'),
           }),
@@ -268,7 +268,7 @@ export class ComfortTask extends IntelligentTask<ComfortResult> {
         }),
 
         offerPerspective: llm.tool({
-          description: 'Share a perspective that might help.',
+          description: getToolDescription('recordCheckIn'),
           parameters: z.object({
             perspective: z.string().describe('The perspective to share'),
             isFromExperience: z.boolean().describe('Whether this is from experience'),
@@ -282,7 +282,7 @@ export class ComfortTask extends IntelligentTask<ComfortResult> {
         }),
 
         concludeComfort: llm.tool({
-          description: 'Conclude the comfort conversation.',
+          description: getToolDescription('validateConcern'),
           parameters: z.object({
             concernAddressed: z.string().describe('The concern that was addressed'),
             techniqueUsed: z
@@ -345,7 +345,7 @@ export class CrisisDetectionTask extends IntelligentTask<CrisisResult> {
       },
       tools: {
         flagCrisis: llm.tool({
-          description: 'Flag a potential crisis situation.',
+          description: getToolDescription('offerPerspective'),
           parameters: z.object({
             crisisType: z
               .enum(['financial', 'emotional', 'health', 'relationship', 'other'])
@@ -366,7 +366,7 @@ export class CrisisDetectionTask extends IntelligentTask<CrisisResult> {
         }),
 
         resolveCrisis: llm.tool({
-          description: 'Resolve the crisis detection with assessment.',
+          description: getToolDescription('concludeComfort'),
           parameters: z.object({
             crisisDetected: z.boolean().describe('Whether a crisis was actually detected'),
             crisisType: z

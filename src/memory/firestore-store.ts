@@ -100,6 +100,10 @@ export class FirestoreStore extends MemoryStore {
     this.config = { ...defaults, ...config };
   }
 
+  /**
+   * FIX: Initialize with proper race condition handling
+   * The initPromise is now only cleared after successful initialization
+   */
   async initialize(): Promise<void> {
     if (this._initialized) return;
 
@@ -113,8 +117,12 @@ export class FirestoreStore extends MemoryStore {
 
     try {
       await this.initPromise;
-    } finally {
+      // FIX: Only clear promise after successful initialization
+      // so subsequent calls during init return the same promise
+    } catch (error) {
+      // FIX: Clear promise on error so retry is possible
       this.initPromise = null;
+      throw error;
     }
   }
 
@@ -148,10 +156,24 @@ export class FirestoreStore extends MemoryStore {
     return this.db;
   }
 
-  /** Helper to get db with non-null assertion after ensureInitialized */
+  /**
+   * FIX: Helper to get db with explicit null check instead of assertion
+   * Throws a descriptive error if db is null (indicates a bug in initialization flow)
+   */
   private getDb(): Firestore {
-    // This is only called after ensureInitialized(), so db is guaranteed non-null
-    return this.db!;
+    if (!this.db) {
+      throw new Error('FirestoreStore.db is null after initialization - this is a bug');
+    }
+    return this.db;
+  }
+
+  /**
+   * Get the raw Firestore database instance.
+   * Ensures initialization before returning.
+   * Use this when you need direct access to Firestore APIs (e.g., for custom collections).
+   */
+  async getDatabase(): Promise<Firestore> {
+    return this.ensureInitialized();
   }
 
   // ============================================================================
@@ -172,7 +194,17 @@ export class FirestoreStore extends MemoryStore {
 
       const hydrated = this.hydrateData(data);
       if (!isValidUserProfile(hydrated)) {
-        getLogger().warn({ userId }, 'Invalid user profile data from Firestore');
+        // FIX: Enhanced logging with data sample for debugging data corruption
+        getLogger().error(
+          {
+            userId,
+            hasId: !!hydrated?.id,
+            hasName: !!hydrated?.name,
+            hasCreatedAt: !!hydrated?.createdAt,
+            dataKeys: Object.keys(hydrated || {}),
+          },
+          'Invalid user profile data from Firestore - potential data corruption'
+        );
         return null;
       }
       return hydrated;
@@ -555,7 +587,35 @@ export class FirestoreStore extends MemoryStore {
 
       return result;
     } catch (error) {
-      getLogger().error(`atomicProfileUpdate error: ${error}`);
+      const errorStr = String(error);
+
+      // FIX: Distinguish between transient errors (handled by Firestore retry)
+      // and permanent errors (should fail fast)
+      if (
+        errorStr.includes('ABORTED') ||
+        errorStr.includes('UNAVAILABLE') ||
+        errorStr.includes('DEADLINE_EXCEEDED')
+      ) {
+        // Transient errors - Firestore's maxAttempts handles retries
+        getLogger().warn(
+          { userId, error: errorStr },
+          'atomicProfileUpdate: transient error (retries exhausted)'
+        );
+      } else if (
+        errorStr.includes('PERMISSION_DENIED') ||
+        errorStr.includes('NOT_FOUND') ||
+        errorStr.includes('INVALID_ARGUMENT')
+      ) {
+        // Permanent errors - no retry will help
+        getLogger().error(
+          { userId, error: errorStr },
+          'atomicProfileUpdate: permanent error - check permissions or data'
+        );
+      } else {
+        // Unknown errors
+        getLogger().error({ userId, error: errorStr }, 'atomicProfileUpdate: unexpected error');
+      }
+
       throw error;
     }
   }

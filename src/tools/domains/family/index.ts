@@ -23,6 +23,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { persistKeyMoment, type ToolCtxWithUserData } from '../shared/persistence.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // DEVELOPMENTAL GUIDANCE DATABASE
 // ============================================================================
@@ -156,8 +157,7 @@ const coachParentingChallengeDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help parent navigate specific parenting challenges with age-appropriate guidance.',
+      description: getToolDescription('coachParentingChallenge'),
       parameters: z.object({
         challenge: z.string().describe('The parenting challenge'),
         childAgeGroup: z
@@ -236,7 +236,7 @@ const navigateDisciplineDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help parent navigate discipline situations with positive approaches.',
+      description: getToolDescription('navigateDiscipline'),
       parameters: z.object({
         situation: z.string().describe('The discipline situation'),
         childAge: z.string().optional().describe('Age of child'),
@@ -290,7 +290,7 @@ const suggestAgeAppropriateActivityDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Suggest age-appropriate activities for family bonding and child development.',
+      description: getToolDescription('suggestAgeAppropriateActivity'),
       parameters: z.object({
         childAgeGroup: z
           .enum(['infant', 'toddler', 'preschool', 'elementary', 'tween', 'teen'])
@@ -417,7 +417,7 @@ const trackChildMilestoneDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help parent record and celebrate child milestones.',
+      description: getToolDescription('trackChildMilestone'),
       parameters: z.object({
         childName: z.string().describe("Child's name"),
         milestone: z.string().describe('The milestone'),
@@ -469,7 +469,7 @@ const celebrateFamilyMomentDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help family celebrate and remember meaningful moments.',
+      description: getToolDescription('celebrateFamilyMoment'),
       parameters: z.object({
         moment: z.string().describe('The moment to celebrate'),
         whoWasInvolved: z.array(z.string()).optional().describe('Family members involved'),
@@ -509,7 +509,7 @@ const supportFamilyTransitionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help family navigate major transitions like divorce, new siblings, or moving.',
+      description: getToolDescription('supportFamilyTransition'),
       parameters: z.object({
         transition: z
           .enum([
@@ -605,7 +605,7 @@ const navigateFamilyConflictDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help navigate conflicts within the family.',
+      description: getToolDescription('navigateFamilyConflict'),
       parameters: z.object({
         conflictType: z
           .enum(['sibling', 'parent-child', 'parenting-disagreement', 'extended-family', 'other'])
@@ -682,7 +682,7 @@ const planFamilyMeetingDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help plan and facilitate a family meeting.',
+      description: getToolDescription('planFamilyMeeting'),
       parameters: z.object({
         topic: z.string().describe('What to discuss'),
         attendees: z.array(z.string()).optional().describe('Who will attend'),
@@ -757,7 +757,7 @@ const coordinateElderCareDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help coordinate care for aging parents or family members.',
+      description: getToolDescription('coordinateElderCare'),
       parameters: z.object({
         situation: z
           .enum([
@@ -840,16 +840,16 @@ const coordinateElderCareDef: ToolDefinition = {
 // TRADITIONS & VALUES TOOLS
 // ============================================================================
 
-const createTraditionDef: ToolDefinition = {
-  id: 'createTradition',
-  name: 'Create Tradition',
+const createFamilyTraditionDef: ToolDefinition = {
+  id: 'createFamilyTradition',
+  name: 'Create Family Tradition',
   description: 'Build meaningful family traditions',
   domain: 'family',
   tags: ['family', 'traditions', 'connection'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help create meaningful family traditions.',
+      description: getToolDescription('createFamilyTradition'),
       parameters: z.object({
         occasion: z
           .enum(['daily', 'weekly', 'holiday', 'birthday', 'seasonal', 'milestone', 'custom'])
@@ -930,7 +930,7 @@ const discussValuesDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help parents discuss and teach values to children.',
+      description: getToolDescription('discussValues'),
       parameters: z.object({
         value: z.string().describe('Value to discuss'),
         childAge: z.string().optional().describe('Age of child'),
@@ -998,7 +998,7 @@ const familyTools: ToolDefinition[] = [
   // Elder Care
   coordinateElderCareDef,
   // Traditions & Values
-  createTraditionDef,
+  createFamilyTraditionDef,
   discussValuesDef,
 ];
 

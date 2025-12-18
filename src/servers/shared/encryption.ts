@@ -4,6 +4,9 @@
 
 import crypto from 'crypto';
 import type { EncryptedPayload } from './types.js';
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'Encryption' });
 
 const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
 
@@ -15,7 +18,7 @@ function getEncryptionKey(): Buffer | null {
   const key = process.env.OAUTH_ENCRYPTION_KEY || process.env.LOG_HASH_SECRET;
 
   if (!key) {
-    console.warn('⚠️  SECURITY: OAUTH_ENCRYPTION_KEY not set - tokens stored without encryption');
+    log.warn('SECURITY: OAUTH_ENCRYPTION_KEY not set - tokens stored without encryption');
     return null;
   }
 
@@ -66,7 +69,7 @@ export function decryptData<T>(encryptedStr: string): T | null {
 
     const key = getEncryptionKey();
     if (!key) {
-      console.warn('⚠️  Cannot decrypt - no encryption key configured');
+      log.warn('Cannot decrypt - no encryption key configured');
       return null;
     }
 
@@ -84,7 +87,7 @@ export function decryptData<T>(encryptedStr: string): T | null {
     try {
       return JSON.parse(encryptedStr) as T;
     } catch {
-      console.error('Failed to decrypt or parse token data');
+      log.error('Failed to decrypt or parse token data');
       return null;
     }
   }

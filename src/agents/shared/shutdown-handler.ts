@@ -13,6 +13,7 @@
  */
 
 import { diag } from '../../services/diagnostic-logger.js';
+import { removeUndefined } from '../../utils/firestore-utils.js';
 
 // Track if we're already shutting down to prevent double-shutdown
 let isShuttingDown = false;
@@ -80,10 +81,7 @@ function isCriticalLiveKitError(error: Error): boolean {
 /**
  * Record a crash event for analytics
  */
-function recordCrashEvent(
-  reason: string,
-  type: CrashEvent['type']
-): CrashEvent {
+function recordCrashEvent(reason: string, type: CrashEvent['type']): CrashEvent {
   const memUsage = process.memoryUsage();
   const event: CrashEvent = {
     timestamp: new Date().toISOString(),
@@ -105,9 +103,7 @@ function recordCrashEvent(
 
   // Also track restart time for crash loop detection
   recentRestarts.push(Date.now());
-  recentRestarts = recentRestarts.filter(
-    (t) => Date.now() - t < CRASH_LOOP_WINDOW_MS
-  );
+  recentRestarts = recentRestarts.filter((t) => Date.now() - t < CRASH_LOOP_WINDOW_MS);
 
   return event;
 }
@@ -180,12 +176,14 @@ async function persistCrashAnalytics(event: CrashEvent): Promise<void> {
     const instanceId = process.env.GCE_INSTANCE || 'voiceai-agent';
     const docRef = firestore.collection('crash_analytics').doc();
 
-    await docRef.set({
-      ...event,
-      instanceId,
-      environment: process.env.NODE_ENV || 'production',
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    await docRef.set(
+      removeUndefined({
+        ...event,
+        instanceId,
+        environment: process.env.NODE_ENV || 'production',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      })
+    );
 
     diag.info('Crash analytics persisted to Firestore');
   } catch (error) {
@@ -249,10 +247,9 @@ export async function gracefulShutdown(signal: string): Promise<void> {
     const event = recordCrashEvent(signal, crashType);
 
     // Send notifications in parallel (don't block shutdown)
-    void Promise.all([
-      notifyCrashToSlack(event),
-      persistCrashAnalytics(event),
-    ]).catch((err) => diag.warn('Crash notification failed', { error: String(err) }));
+    void Promise.all([notifyCrashToSlack(event), persistCrashAnalytics(event)]).catch((err) =>
+      diag.warn('Crash notification failed', { error: String(err) })
+    );
   }
 
   try {

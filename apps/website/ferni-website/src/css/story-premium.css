@@ -741,7 +741,7 @@ button {
 .showcase__app-input span {
   flex: 1;
   font-size: 14px;
-  color: rgba(255,255,255,0.4);
+  color: var(--color-dark-text-muted, #ddd6cc);
 }
 
 .showcase__app-input-btn {
@@ -1282,7 +1282,7 @@ button {
 }
 
 .pricing-card--featured .pricing-card__price span {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-dark-text-secondary, #f0ebe4);
 }
 
 .pricing-card__description {
@@ -1292,7 +1292,7 @@ button {
 }
 
 .pricing-card--featured .pricing-card__description {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-dark-text-secondary, #f0ebe4);
 }
 
 .pricing-card__features {
@@ -1387,7 +1387,7 @@ button {
 
 .final-cta__subhead {
   font-size: clamp(17px, 2.5vw, 20px);
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-dark-text-secondary, #f0ebe4);
   margin-bottom: var(--space-10);
 }
 

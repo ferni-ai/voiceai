@@ -95,21 +95,24 @@ function calculateProgress(
   const threshold = STAGE_THRESHOLDS[nextStage];
 
   // Calculate progress as average of all requirements
-  const convProgress = Math.min(1, metrics.totalConversations / threshold.minConversations);
-  const daysProgress = Math.min(1, metrics.daysSinceFirstMeeting / threshold.minDays);
-  const streakProgress = Math.min(
-    1,
-    Math.max(metrics.currentStreak, metrics.longestStreak) / threshold.minStreak
-  );
+  // Handle zero thresholds (0/0 = NaN) by treating as already met (100%)
+  const convProgress =
+    threshold.minConversations === 0
+      ? 1
+      : Math.min(1, metrics.totalConversations / threshold.minConversations);
+  const daysProgress =
+    threshold.minDays === 0 ? 1 : Math.min(1, metrics.daysSinceFirstMeeting / threshold.minDays);
+  const streakProgress =
+    threshold.minStreak === 0
+      ? 1
+      : Math.min(1, Math.max(metrics.currentStreak, metrics.longestStreak) / threshold.minStreak);
 
   const progress = (convProgress + daysProgress + streakProgress) / 3;
 
   // Build requirement message
   const remaining: string[] = [];
   if (metrics.totalConversations < threshold.minConversations) {
-    remaining.push(
-      `${threshold.minConversations - metrics.totalConversations} more conversations`
-    );
+    remaining.push(`${threshold.minConversations - metrics.totalConversations} more conversations`);
   }
   if (metrics.daysSinceFirstMeeting < threshold.minDays) {
     remaining.push(`${threshold.minDays - metrics.daysSinceFirstMeeting} more days together`);
@@ -138,9 +141,8 @@ export async function handleGetRelationshipProgress(
 
   try {
     const { getEngagementStore } = await import('../../services/engagement-store.js');
-    const { getConversationHistoryService } = await import(
-      '../../services/conversation-history.js'
-    );
+    const { getConversationHistoryService } =
+      await import('../../services/conversation-history.js');
 
     const store = await getEngagementStore();
     const historyService = getConversationHistoryService();

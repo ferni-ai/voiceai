@@ -24,7 +24,6 @@
 import { t } from '../../i18n/index.js';
 import { createLogger } from '../../utils/logger.js';
 import { trapFocus } from '../../utils/accessibility.js';
-import { addTapListener, addTapListeners, cleanupTapListeners } from '../../utils/ios-touch.js';
 import { toast } from '../toast.ui.js';
 import { ICONS } from './icons.js';
 import { injectStyles, removeStyles } from './styles.js';
@@ -128,22 +127,17 @@ function createJourneyPanel(): void {
 
   document.body.appendChild(state.journeyPanel);
 
-  // Event handlers - use iOS-compatible tap listeners
-  addTapListener(
-    state.journeyPanel.querySelector('.trust-journey-backdrop'),
-    hideTrustJourney
-  );
+  // Event handlers
+  state.journeyPanel.querySelector('.trust-journey-backdrop')?.addEventListener('click', hideTrustJourney);
 
-  addTapListeners(
-    state.journeyPanel,
-    '.trust-journey-action-btn',
-    (_e, el) => {
-      const action = el.dataset.action;
+  state.journeyPanel.querySelectorAll('.trust-journey-action-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const action = (btn as HTMLElement).dataset.action;
       if (action === 'close') hideTrustJourney();
       else if (action === 'refresh') void refreshJourneyData();
       else if (action === 'export') void handleExport();
-    }
-  );
+    });
+  });
 
   // Escape key handler
   document.addEventListener('keydown', handleEscapeKey);
@@ -165,6 +159,31 @@ function handleOnlineStatusChange(): void {
     if (state.cachedData) {
       updateContent(state.cachedData);
     }
+  }
+}
+
+function handleContentClick(e: Event): void {
+  const target = e.target as HTMLElement;
+  const actionEl = target.closest('[data-action]') as HTMLElement | null;
+  const action = actionEl?.getAttribute('data-action');
+
+  if (action === 'retry') {
+    void refreshJourneyData();
+  } else if (action === 'load-more') {
+    loadMoreTimeline();
+  } else if (action === 'filter') {
+    const filter = actionEl?.dataset.filter as TrustJourneyState['timelineFilter'];
+    if (filter) {
+      setTimelineFilter(filter);
+    }
+  }
+}
+
+function setTimelineFilter(filter: TrustJourneyState['timelineFilter']): void {
+  state.timelineFilter = filter;
+  state.timelineOffset = 0; // Reset pagination when filter changes
+  if (state.cachedData) {
+    updateContent(state.cachedData);
   }
 }
 
@@ -245,40 +264,22 @@ function loadMoreTimeline(): void {
   }
 }
 
-function setTimelineFilter(filter: TrustJourneyState['timelineFilter']): void {
-  state.timelineFilter = filter;
-  state.timelineOffset = 0; // Reset pagination when filter changes
-  if (state.cachedData) {
-    updateContent(state.cachedData);
-  }
-}
-
 // ============================================================================
 // RENDERING
 // ============================================================================
 
 function updateContent(data: TrustJourneyData): void {
-  const content = state.journeyPanel?.querySelector('.trust-journey-content') as HTMLElement;
+  const content = state.journeyPanel?.querySelector('.trust-journey-content');
   if (!content) return;
-
-  // Clean up existing tap listeners on content area
-  cleanupTapListeners(content);
 
   // Add offline banner if needed
   const offlineBanner = state.error === 'fetchFailedUsingCache' ? renderOfflineBanner() : '';
 
   content.innerHTML = offlineBanner + renderContent(data, state);
 
-  // Attach iOS-compatible tap listeners for dynamic content
-  addTapListeners(content, '[data-action]', (_e, el) => {
-    const action = el.dataset.action;
-    if (action === 'retry') void refreshJourneyData();
-    else if (action === 'load-more') loadMoreTimeline();
-    else if (action === 'filter') {
-      const filter = el.dataset.filter as TrustJourneyState['timelineFilter'];
-      if (filter) setTimelineFilter(filter);
-    }
-  });
+  // Attach event listeners for dynamic content
+  content.removeEventListener('click', handleContentClick);
+  content.addEventListener('click', handleContentClick);
 
   // Animate the strength ring after render
   requestAnimationFrame(() => {
@@ -293,18 +294,14 @@ function updateContent(data: TrustJourneyData): void {
 }
 
 function renderErrorState(errorType: string): void {
-  const content = state.journeyPanel?.querySelector('.trust-journey-content') as HTMLElement;
+  const content = state.journeyPanel?.querySelector('.trust-journey-content');
   if (!content) return;
-
-  // Clean up existing tap listeners
-  cleanupTapListeners(content);
 
   content.innerHTML = renderError(errorType, () => void refreshJourneyData());
 
-  // Attach iOS-compatible retry handler
-  addTapListeners(content, '[data-action="retry"]', () => {
-    void refreshJourneyData();
-  });
+  // Attach retry handler
+  content.removeEventListener('click', handleContentClick);
+  content.addEventListener('click', handleContentClick);
 }
 
 // ============================================================================
@@ -370,11 +367,6 @@ export function dispose(): void {
   // Clean up focus trap
   if (state.focusCleanup) {
     state.focusCleanup();
-  }
-
-  // Clean up iOS tap listeners
-  if (state.journeyPanel) {
-    cleanupTapListeners(state.journeyPanel);
   }
 
   // Remove DOM elements

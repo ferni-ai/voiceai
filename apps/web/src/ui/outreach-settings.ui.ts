@@ -7,7 +7,6 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION } from '../config/animation-constants.js';
-import { addTapListener } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost } from '../utils/api.js';
@@ -42,6 +41,34 @@ export interface OutreachPreferences {
     reminders: boolean;
   };
 }
+
+// ============================================================================
+// ICONS (Lucide SVG - 2px stroke, rounded corners)
+// ============================================================================
+
+const ICONS = {
+  clipboard: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+  </svg>`,
+  heart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+  </svg>`,
+  sparkles: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+    <path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>
+  </svg>`,
+  thoughtBubble: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>`,
+  bell: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+  </svg>`,
+  close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>`,
+};
 
 // ============================================================================
 // STATE
@@ -278,7 +305,7 @@ function createSettingsPanel(): HTMLElement {
               <label class="outreach-settings-type">
                 <input type="checkbox" id="type-commitments" ${currentPreferences.triggerTypes.commitments ? 'checked' : ''}>
                 <div class="outreach-settings-type-content">
-                  <span class="outreach-settings-type-icon">📋</span>
+                  <span class="outreach-settings-type-icon">${ICONS.clipboard}</span>
                   <div class="outreach-settings-type-text">
                     <span class="outreach-settings-type-name">Commitments</span>
                     <span class="outreach-settings-type-desc">Check in on things you said you'd do</span>
@@ -288,7 +315,7 @@ function createSettingsPanel(): HTMLElement {
               <label class="outreach-settings-type">
                 <input type="checkbox" id="type-emotional" ${currentPreferences.triggerTypes.emotional ? 'checked' : ''}>
                 <div class="outreach-settings-type-content">
-                  <span class="outreach-settings-type-icon">💙</span>
+                  <span class="outreach-settings-type-icon">${ICONS.heart}</span>
                   <div class="outreach-settings-type-text">
                     <span class="outreach-settings-type-name">Support</span>
                     <span class="outreach-settings-type-desc">Check in when you might need it</span>
@@ -298,7 +325,7 @@ function createSettingsPanel(): HTMLElement {
               <label class="outreach-settings-type">
                 <input type="checkbox" id="type-celebrations" ${currentPreferences.triggerTypes.celebrations ? 'checked' : ''}>
                 <div class="outreach-settings-type-content">
-                  <span class="outreach-settings-type-icon">🎉</span>
+                  <span class="outreach-settings-type-icon">${ICONS.sparkles}</span>
                   <div class="outreach-settings-type-text">
                     <span class="outreach-settings-type-name">Celebrations</span>
                     <span class="outreach-settings-type-desc">Celebrate your wins with you</span>
@@ -308,7 +335,7 @@ function createSettingsPanel(): HTMLElement {
               <label class="outreach-settings-type">
                 <input type="checkbox" id="type-thinking" ${currentPreferences.triggerTypes.thinkingOfYou ? 'checked' : ''}>
                 <div class="outreach-settings-type-content">
-                  <span class="outreach-settings-type-icon">💭</span>
+                  <span class="outreach-settings-type-icon">${ICONS.thoughtBubble}</span>
                   <div class="outreach-settings-type-text">
                     <span class="outreach-settings-type-name">Thinking of You</span>
                     <span class="outreach-settings-type-desc">Random moments of connection</span>
@@ -318,7 +345,7 @@ function createSettingsPanel(): HTMLElement {
               <label class="outreach-settings-type">
                 <input type="checkbox" id="type-reminders" ${currentPreferences.triggerTypes.reminders ? 'checked' : ''}>
                 <div class="outreach-settings-type-content">
-                  <span class="outreach-settings-type-icon">⏰</span>
+                  <span class="outreach-settings-type-icon">${ICONS.bell}</span>
                   <div class="outreach-settings-type-text">
                     <span class="outreach-settings-type-name">Reminders</span>
                     <span class="outreach-settings-type-desc">Important dates and events</span>
@@ -351,9 +378,9 @@ function createSettingsPanel(): HTMLElement {
 }
 
 function setupEventListeners(panel: HTMLElement): void {
-  // Close button (iOS-compatible)
-  addTapListener(panel.querySelector('.outreach-settings-close'), close);
-  addTapListener(panel.querySelector('.outreach-settings-backdrop'), close);
+  // Close button
+  panel.querySelector('.outreach-settings-close')?.addEventListener('click', close);
+  panel.querySelector('.outreach-settings-backdrop')?.addEventListener('click', close);
 
   // Master toggle
   const enabledToggle = panel.querySelector('#outreach-enabled') as HTMLInputElement;
@@ -415,8 +442,8 @@ function setupEventListeners(panel: HTMLElement): void {
     });
   });
 
-  // Save button (iOS-compatible)
-  addTapListener(panel.querySelector('.outreach-settings-save'), async () => {
+  // Save button
+  panel.querySelector('.outreach-settings-save')?.addEventListener('click', async () => {
     const saveBtn = panel.querySelector('.outreach-settings-save') as HTMLButtonElement;
     saveBtn.textContent = t('common.saving');
     saveBtn.disabled = true;
@@ -784,7 +811,15 @@ function getStyles(): string {
     }
 
     .outreach-settings-type-icon {
-      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: var(--persona-primary, #4a6741);
+      flex-shrink: 0;
+    }
+
+    .outreach-settings-type-icon svg {
+      width: 100%;
+      height: 100%;
     }
 
     .outreach-settings-type-text {

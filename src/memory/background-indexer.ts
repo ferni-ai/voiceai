@@ -12,6 +12,7 @@
 
 import { createHash } from 'crypto';
 import { getLogger } from '../utils/safe-logger.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import type { FirestoreVectorStore } from './firestore-vector-store.js';
 import type { VectorStore } from './vector-store.js';
 
@@ -137,11 +138,13 @@ async function saveIndexStatus(bundleId: string, status: IndexingStatus): Promis
     await db
       .collection('vector_index_status')
       .doc(bundleId)
-      .set({
-        ...status,
-        lastIndexedAt: status.lastIndexedAt || new Date(),
-        updatedAt: new Date(),
-      });
+      .set(
+        removeUndefined({
+          ...status,
+          lastIndexedAt: status.lastIndexedAt || new Date(),
+          updatedAt: new Date(),
+        })
+      );
   } catch (error) {
     log.debug({ error, bundleId }, 'Could not save index status');
   }

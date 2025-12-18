@@ -8,6 +8,9 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import fs from 'fs';
 import path from 'path';
 import { rateLimit } from '../../../api/auth-middleware.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'AgentRoutes' });
 
 // Helper to parse JSON body
 function parseJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
@@ -47,7 +50,7 @@ export async function handleAgentRoutes(
           disabledAgents = config.disabledAgents || [];
         }
       } catch (configErr) {
-        console.warn('Could not read agent config:', (configErr as Error).message);
+        log.warn({ error: (configErr as Error).message }, 'Could not read agent config');
       }
 
       // Filter out disabled agents (but never disable the coordinator)
@@ -96,7 +99,7 @@ export async function handleAgentRoutes(
         })
       );
     } catch (err) {
-      console.error('❌ Failed to get agents:', err);
+      log.error({ error: (err as Error).message }, 'Failed to get agents');
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({
@@ -134,7 +137,7 @@ export async function handleAgentRoutes(
         })
       );
     } catch (err) {
-      console.error('❌ Failed to read agent config:', err);
+      log.error({ error: (err as Error).message }, 'Failed to read agent config');
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Failed to read config', message: (err as Error).message }));
     }
@@ -184,7 +187,7 @@ export async function handleAgentRoutes(
         })
       );
     } catch (err) {
-      console.error('❌ Failed to get agent:', err);
+      log.error({ error: (err as Error).message }, 'Failed to get agent');
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Failed to load agent', message: (err as Error).message }));
     }
@@ -221,7 +224,7 @@ export async function handleAgentRoutes(
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true }));
     } catch (err) {
-      console.error('❌ Failed to save team order:', err);
+      log.error({ error: (err as Error).message }, 'Failed to save team order');
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Failed to save order' }));
     }
@@ -295,7 +298,7 @@ export async function handleAgentRoutes(
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, enabled }));
     } catch (err) {
-      console.error('❌ Failed to update agent config:', err);
+      log.error({ error: (err as Error).message }, 'Failed to update agent config');
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Failed to update config' }));
     }

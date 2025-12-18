@@ -343,7 +343,7 @@
       }
     },
     "wearableSettings": {
-      "title": "Health & Fitness",
+      "title": "Wearables",
       "loading": "Loading...",
       "intro": "Connect your wearables to give Ferni context about your health and energy levels.",
       "sections": {

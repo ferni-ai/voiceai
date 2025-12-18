@@ -130,43 +130,100 @@ export const CAMEO_ANIMATION = {
 // ============================================================================
 
 /**
- * Colors for each persona (for cameo transitions)
- * These should match the design system persona colors
+ * Persona color configuration for cameo transitions
+ *
+ * IMPORTANT: These values are used to set CSS variables dynamically.
+ * The values MUST match the design system tokens in design-system/tokens/colors.json
+ *
+ * Pattern: Uses CSS variable references where possible for consistency.
+ * For dynamic color setting (like setCSSVariable), we need the raw values.
+ *
+ * CSS Variables available from design system:
+ * - var(--persona-ferni-primary)
+ * - var(--persona-ferni-glow)
+ * - var(--persona-peter-primary)
+ * - etc.
  */
 export const CAMEO_PERSONA_COLORS: Record<
   string,
   {
+    /** CSS variable name for the primary color */
+    primaryVar: string;
+    /** Fallback primary color (matches design token) */
     primary: string;
+    /** Fallback glow color (matches design token with higher opacity for cameo) */
     glow: string;
+    /** Display name for the persona */
     text: string;
   }
 > = {
   ferni: {
-    primary: '#4a6741',
-    glow: 'rgba(74, 103, 65, 0.5)',
+    primaryVar: 'var(--persona-ferni-primary)',
+    primary: '#4a6741', // matches design-system/tokens/colors.json personas.ferni.primary
+    glow: 'rgba(74, 103, 65, 0.5)', // design token glow with higher opacity for cameo effect
     text: 'Ferni',
   },
   'peter-john': {
+    primaryVar: 'var(--persona-peter-primary)',
+    primary: '#3a6b73', // matches personas.peter.primary
+    glow: 'rgba(58, 107, 115, 0.5)',
+    text: 'Peter',
+  },
+  peter: {
+    // Alias for peter-john
+    primaryVar: 'var(--persona-peter-primary)',
     primary: '#3a6b73',
     glow: 'rgba(58, 107, 115, 0.5)',
     text: 'Peter',
   },
   'alex-chen': {
+    primaryVar: 'var(--persona-alex-primary)',
+    primary: '#5a6b8a', // matches personas.alex.primary
+    glow: 'rgba(90, 107, 138, 0.5)',
+    text: 'Alex',
+  },
+  alex: {
+    // Alias for alex-chen
+    primaryVar: 'var(--persona-alex-primary)',
     primary: '#5a6b8a',
     glow: 'rgba(90, 107, 138, 0.5)',
     text: 'Alex',
   },
   'maya-santos': {
+    primaryVar: 'var(--persona-maya-primary)',
+    primary: '#a67a6a', // matches personas.maya.primary
+    glow: 'rgba(166, 122, 106, 0.5)',
+    text: 'Maya',
+  },
+  maya: {
+    // Alias for maya-santos
+    primaryVar: 'var(--persona-maya-primary)',
     primary: '#a67a6a',
     glow: 'rgba(166, 122, 106, 0.5)',
     text: 'Maya',
   },
   'jordan-taylor': {
+    primaryVar: 'var(--persona-jordan-primary)',
+    primary: '#c4856a', // matches personas.jordan.primary
+    glow: 'rgba(196, 133, 106, 0.5)',
+    text: 'Jordan',
+  },
+  jordan: {
+    // Alias for jordan-taylor
+    primaryVar: 'var(--persona-jordan-primary)',
     primary: '#c4856a',
     glow: 'rgba(196, 133, 106, 0.5)',
     text: 'Jordan',
   },
   'nayan-patel': {
+    primaryVar: 'var(--persona-nayan-primary)',
+    primary: '#b8956a', // matches personas.nayan.primary
+    glow: 'rgba(184, 149, 106, 0.5)',
+    text: 'Nayan',
+  },
+  nayan: {
+    // Alias for nayan-patel
+    primaryVar: 'var(--persona-nayan-primary)',
     primary: '#b8956a',
     glow: 'rgba(184, 149, 106, 0.5)',
     text: 'Nayan',
@@ -219,19 +276,31 @@ export const CAMEO_SOUNDS = {
 
 /**
  * Get persona colors for a cameo transition
+ *
+ * Returns both the CSS variable reference (for static CSS) and
+ * the fallback value (for dynamic style.setProperty calls).
+ *
+ * @param personaId - The persona ID (supports both full IDs and short aliases)
+ * @returns Color config with primaryVar, primary fallback, glow, and text
  */
 export function getCameoPersonaColors(personaId: string): {
+  primaryVar: string;
   primary: string;
   glow: string;
   text: string;
 } {
-  return (
-    CAMEO_PERSONA_COLORS[personaId] || {
-      primary: '#4a6741', // Default to Ferni's colors
-      glow: 'rgba(74, 103, 65, 0.5)',
-      text: personaId,
-    }
-  );
+  const config = CAMEO_PERSONA_COLORS[personaId];
+  if (config) {
+    return config;
+  }
+
+  // Default to Ferni's colors if persona not found
+  return {
+    primaryVar: 'var(--persona-ferni-primary)',
+    primary: '#4a6741', // matches design-system/tokens/colors.json
+    glow: 'rgba(74, 103, 65, 0.5)',
+    text: personaId,
+  };
 }
 
 /**

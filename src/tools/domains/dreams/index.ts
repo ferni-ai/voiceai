@@ -17,6 +17,7 @@ import { llm, log } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // DREAM TOOLS
 // ============================================================================
@@ -30,7 +31,7 @@ const captureDreamDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user capture a dream without editing it for practicality.',
+      description: getToolDescription('captureDream'),
       parameters: z.object({
         dream: z.string().describe('The dream or aspiration'),
         type: z
@@ -64,7 +65,7 @@ const exploreDreamDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user explore what their dream really means at a deeper level.',
+      description: getToolDescription('exploreDream'),
       parameters: z.object({
         dream: z.string().describe('The dream to explore'),
         question: z
@@ -127,7 +128,7 @@ const honorUnfulfilledDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user grieve and honor dreams that may never be fulfilled.',
+      description: getToolDescription('honorUnfulfilled'),
       parameters: z.object({
         dream: z.string().describe('The unfulfilled dream'),
         whyUnfulfilled: z.string().optional().describe('Why it cannot be fulfilled'),
@@ -167,8 +168,7 @@ const playWithPossibilityDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Create space for imaginative play with possibilities unconstrained by practicality.',
+      description: getToolDescription('playWithPossibility'),
       parameters: z.object({
         prompt: z
           .enum([
@@ -211,7 +211,7 @@ const alternativeLifeDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Explore alternative paths and lives not taken.',
+      description: getToolDescription('alternativeLife'),
       parameters: z.object({
         alternativePath: z.string().describe('The alternative life or path to explore'),
         turningPoint: z.string().optional().describe('The choice that led elsewhere'),
@@ -246,7 +246,7 @@ const futureSelfDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user connect with and learn from their future self.',
+      description: getToolDescription('futureSelf'),
       parameters: z.object({
         howFarAhead: z
           .enum(['5-years', '10-years', '20-years', 'end-of-life'])
@@ -303,7 +303,7 @@ const bucketListDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user explore and articulate their bucket list.',
+      description: getToolDescription('bucketList'),
       parameters: z.object({
         mode: z
           .enum(['add', 'explore', 'prioritize', 'why-not-now'])
@@ -362,7 +362,7 @@ const reconnectWithDreamsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user reconnect with dreams they may have forgotten or suppressed.',
+      description: getToolDescription('reconnectWithDreams'),
       parameters: z.object({
         timeOfLife: z
           .enum(['childhood', 'teens', 'young-adult', 'before-responsibilities', 'recent'])

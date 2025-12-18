@@ -119,16 +119,25 @@ export class BundleRuntimeEngine {
     const startTime = Date.now();
 
     // Helper to wrap promises with timeout
+    // FIX BUG #bundle-8: Clear timeout on success to prevent false-positive warnings
     const withTimeout = async <T>(
       promise: Promise<T> | undefined,
       name: string
     ): Promise<T | null> => {
       if (!promise) return Promise.resolve(null);
 
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
       return Promise.race([
-        promise.then((result) => result ?? null),
+        promise.then((result) => {
+          // Clear the timeout if promise resolves first
+          if (timeoutId !== null) {
+            clearTimeout(timeoutId);
+          }
+          return result ?? null;
+        }),
         new Promise<null>((resolve) => {
-          setTimeout(() => {
+          timeoutId = setTimeout(() => {
             getLogger().warn(
               { personaId: this.state.personaId, operation: name },
               'Content load timed out'

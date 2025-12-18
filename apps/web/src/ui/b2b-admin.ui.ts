@@ -1173,7 +1173,7 @@ function setupTeamListeners(): void {
     const role = roleSelect?.value as 'admin' | 'member';
 
     if (!email || !email.includes('@')) {
-      toast.error('Please enter a valid email');
+      toast.error('Enter a valid email');
       return;
     }
 
@@ -1182,7 +1182,7 @@ function setupTeamListeners(): void {
       toast.success('Invite sent!');
       emailInput.value = '';
     } else {
-      toast.error('Failed to send invite');
+      toast.error("Couldn't send invite");
     }
   });
 

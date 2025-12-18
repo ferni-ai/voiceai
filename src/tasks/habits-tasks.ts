@@ -10,6 +10,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { IntelligentTask } from './intelligent-task.js';
 
+import { getToolDescription } from '../tools/utils/tool-descriptions.js';
 // ============================================================================
 // HABIT TRACKING TASK
 // ============================================================================
@@ -59,7 +60,7 @@ export class HabitTrackingTask extends IntelligentTask<HabitTrackingResult> {
       },
       tools: {
         recordProgress: llm.tool({
-          description: 'Record their habit progress update.',
+          description: getToolDescription('recordProgress'),
           parameters: z.object({
             habitName: z.string().describe('Name of the habit'),
             streakLength: z.number().describe('Current streak in days'),
@@ -83,7 +84,7 @@ export class HabitTrackingTask extends IntelligentTask<HabitTrackingResult> {
         }),
 
         suggestAdjustment: llm.tool({
-          description: 'Suggest an adjustment to make the habit easier.',
+          description: getToolDescription('suggestAdjustment'),
           parameters: z.object({
             suggestion: z.string().describe('The adjustment suggestion'),
             reason: z.string().describe('Why this might help'),
@@ -94,7 +95,7 @@ export class HabitTrackingTask extends IntelligentTask<HabitTrackingResult> {
         }),
 
         completeTracking: llm.tool({
-          description: 'Complete the habit tracking check-in.',
+          description: getToolDescription('completeTracking'),
           parameters: z.object({
             habitName: z.string(),
             streakLength: z.number(),
@@ -173,7 +174,7 @@ export class HabitBuildingTask extends IntelligentTask<HabitBuildingResult> {
       },
       tools: {
         identifyTrigger: llm.tool({
-          description: 'Help identify when/where the habit will happen.',
+          description: getToolDescription('identifyTrigger'),
           parameters: z.object({
             triggerType: z.enum(['time', 'location', 'preceding_habit', 'emotion', 'event']),
             triggerDescription: z.string().describe('The specific trigger'),
@@ -188,7 +189,7 @@ export class HabitBuildingTask extends IntelligentTask<HabitBuildingResult> {
         }),
 
         designRoutine: llm.tool({
-          description: 'Design the actual habit routine.',
+          description: getToolDescription('designRoutine'),
           parameters: z.object({
             fullVersion: z.string().describe('What they ultimately want to do'),
             tinyVersion: z.string().describe('The smallest possible version'),
@@ -200,7 +201,7 @@ export class HabitBuildingTask extends IntelligentTask<HabitBuildingResult> {
         }),
 
         addReward: llm.tool({
-          description: 'Add a reward to make the habit satisfying.',
+          description: getToolDescription('addReward'),
           parameters: z.object({
             reward: z.string().describe('The reward'),
             isIntrinsic: z
@@ -216,7 +217,7 @@ export class HabitBuildingTask extends IntelligentTask<HabitBuildingResult> {
         }),
 
         completeHabitDesign: llm.tool({
-          description: 'Complete the habit design.',
+          description: getToolDescription('completeHabitDesign'),
           parameters: z.object({
             habitName: z.string().describe('Name of the habit'),
             trigger: z.string().describe('When/where it happens'),
@@ -289,7 +290,7 @@ export class HabitStruggleTask extends IntelligentTask<HabitStruggleResult> {
       },
       tools: {
         identifyBarrier: llm.tool({
-          description: "Identify what's blocking the habit.",
+          description: getToolDescription('identifyHabitBlocker'),
           parameters: z.object({
             barrier: z.string().describe('The specific barrier'),
             barrierType: z.enum([
@@ -314,7 +315,7 @@ export class HabitStruggleTask extends IntelligentTask<HabitStruggleResult> {
         }),
 
         suggestRedesign: llm.tool({
-          description: 'Suggest a redesign of the habit.',
+          description: getToolDescription('identifyBarrier'),
           parameters: z.object({
             newApproach: z.string().describe('The redesigned habit'),
             whyItMightWork: z.string().describe('Why this version might work better'),
@@ -325,7 +326,7 @@ export class HabitStruggleTask extends IntelligentTask<HabitStruggleResult> {
         }),
 
         suggestRelease: llm.tool({
-          description: "Suggest letting go of the habit - sometimes that's the right answer.",
+          description: getToolDescription('suggestLettingGo'),
           parameters: z.object({
             reason: z.string().describe('Why letting go might be right'),
             alternative: z.string().optional().describe('Alternative focus'),
@@ -340,7 +341,7 @@ export class HabitStruggleTask extends IntelligentTask<HabitStruggleResult> {
         }),
 
         completeStruggle: llm.tool({
-          description: 'Complete the struggle conversation.',
+          description: getToolDescription('suggestRedesign'),
           parameters: z.object({
             habitName: z.string(),
             barrier: z.string(),
@@ -433,7 +434,7 @@ export class RoutineDesignTask extends IntelligentTask<RoutineDesignResult> {
       },
       tools: {
         identifyAnchor: llm.tool({
-          description: 'Identify a fixed point to anchor the routine.',
+          description: getToolDescription('suggestRelease'),
           parameters: z.object({
             anchor: z.string().describe('The anchor point (e.g., "7am alarm", "9am work start")'),
             isFlexible: z.boolean().describe('Can this anchor move?'),
@@ -447,7 +448,7 @@ export class RoutineDesignTask extends IntelligentTask<RoutineDesignResult> {
         }),
 
         addStep: llm.tool({
-          description: 'Add a step to the routine.',
+          description: getToolDescription('completeStruggle'),
           parameters: z.object({
             step: z.string().describe("What they'll do"),
             duration: z.number().describe('How long in minutes'),
@@ -463,7 +464,7 @@ export class RoutineDesignTask extends IntelligentTask<RoutineDesignResult> {
         }),
 
         completeRoutine: llm.tool({
-          description: 'Complete the routine design.',
+          description: getToolDescription('identifyAnchor'),
           parameters: z.object({
             routineName: z.string().describe('Name for this routine'),
             routineType: z.enum(['morning', 'evening', 'work', 'custom']),

@@ -629,18 +629,22 @@ export class AdvancedHumanizationOrchestrator {
     repair: RepairDecision
   ): 'shorter' | 'normal' | 'longer' {
     // Shorter when:
-    // - High emotional debt (give them space)
-    // - Low energy (don't overwhelm)
+    // - Very high emotional debt (give them space to process)
+    // - Very low energy combined with negative valence (truly struggling)
     // - Repair needed (focus on fixing)
     // - They're testing waters (don't flood them)
+    //
+    // NOTE: We raised thresholds because "shorter" was triggering too often
+    // and stripping Ferni's natural warmth. Being brief is less important
+    // than being present and warm.
 
-    if (aftercare.emotionalDebt > 0.6) return 'shorter';
-    if (energy.level < 0.3) return 'shorter';
+    if (aftercare.emotionalDebt > 0.7) return 'shorter'; // Raised from 0.6
+    if (energy.level < 0.2 && energy.valence < 0) return 'shorter'; // Raised from 0.3, added valence check
     if (repair.shouldRepair) return 'shorter';
     if (subtext.type === 'testing_waters') return 'shorter';
 
     // Longer when high engagement
-    if (energy.level > 0.7 && energy.valence > 0.2) return 'longer';
+    if (energy.level > 0.6 && energy.valence > 0.1) return 'longer'; // Lowered threshold to be more generous
 
     return 'normal';
   }

@@ -55,7 +55,7 @@ Pre-commit hooks validate both backend and frontend code. CI enforces all qualit
 | `console.*` usage | ≤100 | `pnpm quality:check` |
 | File size | ≤500 lines | `pnpm quality:check` |
 | Layer violations | 0 | `pnpm quality:arch` |
-| Design tokens (frontend) | 0 | `cd frontend-typescript && pnpm lint:tokens` |
+| Design tokens (frontend) | 0 | `cd apps/web && pnpm lint:tokens` |
 
 ## 🚀 Development Servers (MUST RUN ALL 3)
 ```bash
@@ -66,7 +66,7 @@ node token-server.js
 PORT=3002 node ui-server.js
 
 # Terminal 3: Vite Dev Server (port 3004) - Frontend with HMR
-cd frontend-typescript && pnpm dev
+cd apps/web && pnpm dev
 ```
 
 **Why 3 servers?** Vite proxies API calls: `/api/*` → UI Server (3002), `/token`, `/spotify/*`, `/subscription/*` → Token Server (3001)
@@ -347,7 +347,7 @@ color: #4a6741;
 background: #3D5A45;
 ```
 
-**ESLint enforces design tokens** in `frontend-typescript/src/ui/**/*.ts`:
+**ESLint enforces design tokens** in `apps/web/src/ui/**/*.ts`:
 - 🎨 Hardcoded hex colors → Use `var(--color-*)` or `var(--persona-*)`
 - 🎨 Hardcoded rgba() → Use `var(--backdrop-*)` or `var(--persona-tint)`
 - 📝 Hardcoded font-family → Use `var(--font-body)` or `var(--font-display)`
@@ -419,6 +419,71 @@ Cmd/Ctrl+Shift+D  # Toggle dev panel
 Cmd/Ctrl+Shift+U  # Quick unlock all team members
 Cmd/Ctrl+Shift+R  # Reset to free tier
 ```
+
+## 🍞 Toast Guidelines (MANDATORY)
+
+Toasts are Ferni's brief voice in UI feedback. **Never** use enterprise software patterns - keep them warm, human, and SHORT.
+
+### Toast Rules
+
+| Rule | Wrong | Right |
+|------|-------|-------|
+| **Keep short** | "Payment failed. Please try again." | "Payment didn't go through. Try again?" |
+| **Use contractions** | "Failed to save changes" | "Couldn't save that" |
+| **Avoid "Please"** | "Please enter a valid email" | "Enter a valid email" |
+| **Drop "successfully"** | "Voice enrollment complete successfully!" | "Got it! I'll know your voice now." |
+| **Human tone** | "Error: Connection timeout" | "Lost connection. Retry?" |
+| **Consistent errors** | "Failed to X" | "Couldn't X" |
+
+### Toast Types
+
+| Type | Duration | Use For | Example |
+|------|----------|---------|---------|
+| `toast.success()` | 2.5s | Confirmations | "Saved!" |
+| `toast.info()` | 2.5s | Status updates | "Just a moment..." |
+| `toast.warning()` | 2.5s | Soft alerts | "Add a name first" |
+| `toast.error()` | 4s | Failures | "Couldn't connect. Try again?" |
+
+### Pattern Templates
+
+```typescript
+// ✅ Success - celebrate briefly
+toast.success('Saved!');
+toast.success(`${name} added!`);
+
+// ✅ Info - minimal status
+toast.info('Just a moment...');
+toast.info('Checking...');
+
+// ✅ Warning - guide action
+toast.warning('Add a name first');
+toast.warning("Your voice profile needs a refresh");
+
+// ✅ Error - acknowledge + offer retry
+toast.error("Couldn't save that. Try again?");
+toast.error("That didn't work. Retry?");
+```
+
+### Anti-patterns (NEVER USE)
+
+```typescript
+// ❌ Too formal
+toast.error('Failed to process your request. Please try again later.');
+
+// ❌ Too technical
+toast.error('Error: API_TIMEOUT_EXCEPTION');
+
+// ❌ Too long
+toast.info('Your upgrade is processing. It may take a moment to reflect everywhere.');
+
+// ❌ Missing warmth
+toast.success('Operation completed successfully');
+```
+
+### Admin vs User Toasts
+
+- **User-facing**: Warm, human, supportive
+- **Admin-facing**: Can be slightly more technical, but still concise
 
 ## Read First
 - **Architecture**: `docs/architecture/CLEAN-ARCHITECTURE.md`
@@ -502,7 +567,7 @@ emotion-event-dispatcher.ts
 
 **Key files:**
 - Backend: `src/agents/realtime/emotion-event-dispatcher.ts`
-- Frontend: `frontend-typescript/src/ui/better-than-human.ui.ts`
+- Frontend: `apps/web/src/ui/better-than-human.ui.ts`
 
 ## 🦸 200% Persona System - Superhuman Capabilities
 
@@ -818,4 +883,4 @@ git commit --no-verify -m "EMERGENCY: ..."
 - `src/tools/habit-coaching/CLAUDE.md` - Habit coaching module structure
 - `src/personas/CLAUDE.md` - How to create personas
 - `src/intelligence/context-builders/CLAUDE.md` - Context builder patterns
-- `frontend-typescript/CLAUDE.md` - Frontend/design system rules
+- `apps/web/CLAUDE.md` - Frontend/design system rules

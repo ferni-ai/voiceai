@@ -10,6 +10,7 @@
  * Data is persisted to Firestore for historical analysis.
  */
 
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
@@ -384,10 +385,12 @@ class ToolUsageAnalyticsService {
         await this.db
           .collection(this.TOOL_REPORTS)
           .doc(reportId)
-          .set({
-            ...report,
-            timestamp: report.timestamp.toISOString(),
-          });
+          .set(
+            removeUndefined({
+              ...report,
+              timestamp: report.timestamp.toISOString(),
+            } as Record<string, unknown>)
+          );
         getLogger().info({ reportId }, 'Tool usage report saved');
       } catch (error) {
         getLogger().warn({ error }, 'Failed to save tool usage report');
@@ -483,17 +486,30 @@ class ToolUsageAnalyticsService {
 
     try {
       // Batch save call records
+      // FIX: Remove undefined values which Firestore doesn't accept
       const batchId = `batch_${Date.now()}`;
       await this.db
         .collection(this.TOOL_CALLS)
         .doc(batchId)
-        .set({
-          calls: toFlush.map((c) => ({
-            ...c,
-            timestamp: c.timestamp.toISOString(),
-          })),
-          createdAt: new Date().toISOString(),
-        });
+        .set(
+          removeUndefined({
+            calls: toFlush.map((c) =>
+              // Use removeUndefined to filter out ALL undefined fields
+              removeUndefined({
+                toolId: c.toolId,
+                agentId: c.agentId,
+                userId: c.userId,
+                sessionId: c.sessionId,
+                timestamp: c.timestamp.toISOString(),
+                latencyMs: c.latencyMs,
+                success: c.success,
+                domain: c.domain,
+                errorType: c.errorType,
+              })
+            ),
+            createdAt: new Date().toISOString(),
+          })
+        );
 
       // Update stats documents
       for (const stats of statsCache.values()) {
@@ -501,11 +517,11 @@ class ToolUsageAnalyticsService {
           .collection(this.TOOL_STATS)
           .doc(stats.toolId)
           .set(
-            {
+            removeUndefined({
               ...stats,
               lastUsed: stats.lastUsed.toISOString(),
               updatedAt: new Date().toISOString(),
-            },
+            } as Record<string, unknown>),
             { merge: true }
           );
       }

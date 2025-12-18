@@ -46,7 +46,7 @@ All critical and high-priority items have been implemented and tested.
 - `src/services/cartesia-voice-localization.ts` - Voice localization API with Firestore caching
 - `src/services/__tests__/cartesia-voice-localization.test.ts` - 13 unit tests
 - `src/tests/international-accent-integration.test.ts` - 18 E2E integration tests
-- `frontend-typescript/src/ui/accent-settings.ui.ts` - Frontend accent selection modal
+- `apps/web/src/ui/accent-settings.ui.ts` - Frontend accent selection modal
 - `src/api/session-accent-routes.ts` - Mid-session accent change API
 
 ### Modified Files
@@ -59,8 +59,8 @@ All critical and high-priority items have been implemented and tested.
 - `src/api/user-routes.ts` - Added `/api/user/accent` endpoints
 - `src/tests/voice-manager.test.ts` - Added accent support tests
 - `ui-server.js` - Enabled IP geolocation in token endpoints
-- `frontend-typescript/src/ui/settings-menu.ui.ts` - Added "Voice Accent" menu item
-- `frontend-typescript/src/app.ts` - Wired up accent settings callback
+- `apps/web/src/ui/settings-menu.ui.ts` - Added "Voice Accent" menu item
+- `apps/web/src/app.ts` - Wired up accent settings callback
 
 ---
 
@@ -139,7 +139,7 @@ npm test -- --run \
 
 ### ~~P2: Frontend UI~~ ✅ DONE
 
-- ✅ Settings UI for accent selection (`frontend-typescript/src/ui/accent-settings.ui.ts`)
+- ✅ Settings UI for accent selection (`apps/web/src/ui/accent-settings.ui.ts`)
 - ✅ Display detected accent with auto-detect badge
 - ✅ Allow manual override with toggle
 - ✅ Added to Settings Menu → Customize → "Voice Accent"

@@ -563,10 +563,7 @@ export function getVideosByCategory(
   category: VideoCategory,
   maxResults: number = 5
 ): YouTubeVideo[] {
-  const videos = CURATED_VIDEOS.filter((v) => v.category === category).slice(
-    0,
-    maxResults
-  );
+  const videos = CURATED_VIDEOS.filter((v) => v.category === category).slice(0, maxResults);
   return videos.map(curatedToYouTubeVideo);
 }
 
@@ -615,10 +612,7 @@ const watchSessionStore = new Map<string, WatchSession[]>();
 /**
  * Start a watch session
  */
-export function startWatchSession(
-  userId: string,
-  videoId: string
-): WatchSession | null {
+export function startWatchSession(userId: string, videoId: string): WatchSession | null {
   const video = getVideoById(videoId);
   if (!video) {
     log.warn({ videoId }, '📺 Video not found for watch session');
@@ -668,10 +662,7 @@ export function updateWatchProgress(
 /**
  * Complete a watch session
  */
-export function completeWatchSession(
-  userId: string,
-  sessionId: string
-): WatchSession | null {
+export function completeWatchSession(userId: string, sessionId: string): WatchSession | null {
   const userSessions = watchSessionStore.get(userId);
   if (!userSessions) return null;
 
@@ -681,20 +672,14 @@ export function completeWatchSession(
   session.completedAt = new Date().toISOString();
   session.percentWatched = 100;
 
-  log.info(
-    { userId, sessionId, videoTitle: session.video.title },
-    '📺 Watch session completed'
-  );
+  log.info({ userId, sessionId, videoTitle: session.video.title }, '📺 Watch session completed');
   return session;
 }
 
 /**
  * Start a discussion after watching
  */
-export function startDiscussion(
-  userId: string,
-  sessionId: string
-): WatchSession | null {
+export function startDiscussion(userId: string, sessionId: string): WatchSession | null {
   const userSessions = watchSessionStore.get(userId);
   if (!userSessions) return null;
 
@@ -713,11 +698,7 @@ export function startDiscussion(
 /**
  * Add insight from discussion
  */
-export function addDiscussionInsight(
-  userId: string,
-  sessionId: string,
-  insight: string
-): boolean {
+export function addDiscussionInsight(userId: string, sessionId: string, insight: string): boolean {
   const userSessions = watchSessionStore.get(userId);
   if (!userSessions) return false;
 
@@ -731,10 +712,7 @@ export function addDiscussionInsight(
 /**
  * Get user's watch history
  */
-export function getWatchHistory(
-  userId: string,
-  limit: number = 20
-): WatchSession[] {
+export function getWatchHistory(userId: string, limit: number = 20): WatchSession[] {
   const userSessions = watchSessionStore.get(userId) || [];
   return userSessions
     .filter((s) => s.completedAt)
@@ -765,9 +743,7 @@ export function getSavedInsights(userId: string): Array<{
     }
   }
 
-  return insights.sort(
-    (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
-  );
+  return insights.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
 }
 
 // ============================================================================
@@ -803,10 +779,7 @@ function formatDuration(seconds: number): string {
   return `PT${minutes}M${secs}S`;
 }
 
-function getRecommendationReason(
-  video: CuratedVideo,
-  recentTopics: string[]
-): string {
+function getRecommendationReason(video: CuratedVideo, recentTopics: string[]): string {
   // Find matching topic
   const matchingTopic = recentTopics.find((t) =>
     video.topics.some((vt) => vt.toLowerCase().includes(t.toLowerCase()))
@@ -818,10 +791,7 @@ function getRecommendationReason(
 
   // Category-based reasons
   const categoryReasons: Record<VideoCategory, string[]> = {
-    'ted-talk': [
-      'A thought-provoking TED talk for you',
-      'This talk might shift your perspective',
-    ],
+    'ted-talk': ['A thought-provoking TED talk for you', 'This talk might shift your perspective'],
     documentary: ['A fascinating documentary to explore'],
     educational: ['Something interesting to learn today'],
     'music-video': ['Some music to set the mood'],
@@ -876,4 +846,3 @@ export function getYouTubeEmbedUrl(
 export function getYouTubeWatchUrl(videoId: string): string {
   return `https://www.youtube.com/watch?v=${videoId}`;
 }
-

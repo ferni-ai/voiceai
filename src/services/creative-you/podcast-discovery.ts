@@ -108,8 +108,7 @@ const CURATED_PODCASTS: CuratedPodcast[] = [
     id: 'huberman-lab',
     title: 'Huberman Lab',
     author: 'Dr. Andrew Huberman',
-    description:
-      'Science-based tools for everyday life from a Stanford neuroscientist',
+    description: 'Science-based tools for everyday life from a Stanford neuroscientist',
     imageUrl: 'https://example.com/huberman.jpg',
     category: 'science',
   },
@@ -177,8 +176,7 @@ const CURATED_EPISODES: CuratedEpisode[] = [
     id: 'huberman-sleep',
     podcastId: 'huberman-lab',
     title: 'Master Your Sleep & Be More Alert When Awake',
-    description:
-      'Science-based tools to optimize your sleep and increase daytime alertness',
+    description: 'Science-based tools to optimize your sleep and increase daytime alertness',
     summary:
       'Dr. Huberman explains the neuroscience of sleep, including how light exposure, temperature, and timing affect sleep quality. Key takeaways: get morning sunlight, avoid bright lights at night, and maintain consistent sleep times.',
     durationMinutes: 90,
@@ -284,14 +282,14 @@ const CURATED_EPISODES: CuratedEpisode[] = [
     id: 'tenpercent-beginner',
     podcastId: 'ten-percent-happier',
     title: 'Meditation for Fidgety Skeptics',
-    description: 'A guide for people who think they can\'t meditate',
+    description: "A guide for people who think they can't meditate",
     summary:
-      'Dan Harris addresses common objections to meditation and offers practical tips for beginners. Key insight: the goal isn\'t to stop thinking, it\'s to notice when you\'re thinking.',
+      "Dan Harris addresses common objections to meditation and offers practical tips for beginners. Key insight: the goal isn't to stop thinking, it's to notice when you're thinking.",
     durationMinutes: 40,
     topics: ['meditation', 'mindfulness', 'beginners', 'stress'],
     mood: 'chill',
     discussionPrompts: [
-      "Have you tried meditation before? What was your experience?",
+      'Have you tried meditation before? What was your experience?',
       "What's your biggest obstacle to starting a meditation practice?",
       'How do you currently manage stress?',
     ],
@@ -304,14 +302,14 @@ const CURATED_EPISODES: CuratedEpisode[] = [
     title: 'Airbnb: Brian Chesky',
     description: 'How a design school project became a $100B company',
     summary:
-      'The story of Airbnb\'s founding, from selling cereal boxes to survive to building one of the most valuable companies in the world. Key theme: persistence through rejection.',
+      "The story of Airbnb's founding, from selling cereal boxes to survive to building one of the most valuable companies in the world. Key theme: persistence through rejection.",
     durationMinutes: 55,
     topics: ['entrepreneurship', 'startup', 'persistence', 'creativity'],
     mood: 'inspire',
     discussionPrompts: [
       "What's a creative solution you've found to a problem?",
       'How do you handle rejection?',
-      'What would you build if you knew you couldn\'t fail?',
+      "What would you build if you knew you couldn't fail?",
     ],
   },
   {
@@ -438,7 +436,7 @@ const CURATED_EPISODES: CuratedEpisode[] = [
     title: 'Nietzsche: Beyond Good and Evil',
     description: 'Questioning morality and embracing life-affirmation',
     summary:
-      'An exploration of Nietzsche\'s philosophy including the will to power, eternal recurrence, and the creation of new values. Key theme: becoming who you are.',
+      "An exploration of Nietzsche's philosophy including the will to power, eternal recurrence, and the creation of new values. Key theme: becoming who you are.",
     durationMinutes: 45,
     topics: ['nietzsche', 'philosophy', 'morality', 'self-creation'],
     mood: 'reflect',
@@ -503,10 +501,10 @@ const CURATED_EPISODES: CuratedEpisode[] = [
   {
     id: 'tenpercent-compassion',
     podcastId: 'ten-percent-happier',
-    title: 'Self-Compassion: The Skill That\'s Missing',
+    title: "Self-Compassion: The Skill That's Missing",
     description: 'Why being kind to yourself is the key to growth',
     summary:
-      'The science of self-compassion and why it\'s more effective than self-criticism for motivation and growth. Includes practical self-compassion exercises.',
+      "The science of self-compassion and why it's more effective than self-criticism for motivation and growth. Includes practical self-compassion exercises.",
     durationMinutes: 40,
     topics: ['self-compassion', 'meditation', 'mental-health', 'growth'],
     mood: 'reflect',
@@ -609,9 +607,7 @@ export function getPodcastById(podcastId: string): Podcast | null {
   const episodes = CURATED_EPISODES.filter((e) => e.podcastId === podcastId);
   const avgDuration =
     episodes.length > 0
-      ? Math.round(
-          episodes.reduce((sum, e) => sum + e.durationMinutes, 0) / episodes.length
-        )
+      ? Math.round(episodes.reduce((sum, e) => sum + e.durationMinutes, 0) / episodes.length)
       : 45;
 
   return {
@@ -681,9 +677,7 @@ export function getPodcastsByCategory(category: PodcastCategory): Podcast[] {
     const episodes = CURATED_EPISODES.filter((e) => e.podcastId === curated.id);
     const avgDuration =
       episodes.length > 0
-        ? Math.round(
-            episodes.reduce((sum, e) => sum + e.durationMinutes, 0) / episodes.length
-          )
+        ? Math.round(episodes.reduce((sum, e) => sum + e.durationMinutes, 0) / episodes.length)
         : 45;
 
     return {
@@ -716,8 +710,14 @@ export function getLearningTracks(): LearningTrack[] {
         CURATED_EPISODES.find((e) => e.id === 'huberman-sleep'),
         CURATED_EPISODES.find((e) => e.id === 'huberman-focus'),
         CURATED_EPISODES.find((e) => e.id === 'ferriss-habits'),
-      ].filter((e): e is CuratedEpisode => e !== undefined)
-        .map((e) => curatedToEpisode(e, CURATED_PODCASTS.find((p) => p.id === e.podcastId))),
+      ]
+        .filter((e): e is CuratedEpisode => e !== undefined)
+        .map((e) =>
+          curatedToEpisode(
+            e,
+            CURATED_PODCASTS.find((p) => p.id === e.podcastId)
+          )
+        ),
       totalDuration: 225,
       category: 'self-improvement',
       difficulty: 'intermediate',
@@ -730,8 +730,14 @@ export function getLearningTracks(): LearningTrack[] {
         CURATED_EPISODES.find((e) => e.id === 'tenpercent-beginner'),
         CURATED_EPISODES.find((e) => e.id === 'shetty-overthinking'),
         CURATED_EPISODES.find((e) => e.id === 'philosophize-stoicism'),
-      ].filter((e): e is CuratedEpisode => e !== undefined)
-        .map((e) => curatedToEpisode(e, CURATED_PODCASTS.find((p) => p.id === e.podcastId))),
+      ]
+        .filter((e): e is CuratedEpisode => e !== undefined)
+        .map((e) =>
+          curatedToEpisode(
+            e,
+            CURATED_PODCASTS.find((p) => p.id === e.podcastId)
+          )
+        ),
       totalDuration: 120,
       category: 'mindfulness',
       difficulty: 'beginner',
@@ -743,8 +749,14 @@ export function getLearningTracks(): LearningTrack[] {
       episodes: [
         CURATED_EPISODES.find((e) => e.id === 'hidden-brain-decisions'),
         CURATED_EPISODES.find((e) => e.id === 'shetty-overthinking'),
-      ].filter((e): e is CuratedEpisode => e !== undefined)
-        .map((e) => curatedToEpisode(e, CURATED_PODCASTS.find((p) => p.id === e.podcastId))),
+      ]
+        .filter((e): e is CuratedEpisode => e !== undefined)
+        .map((e) =>
+          curatedToEpisode(
+            e,
+            CURATED_PODCASTS.find((p) => p.id === e.podcastId)
+          )
+        ),
       totalDuration: 95,
       category: 'psychology',
       difficulty: 'beginner',
@@ -764,10 +776,7 @@ export function getLearningTrackById(trackId: string): LearningTrack | null {
 // HELPERS
 // ============================================================================
 
-function curatedToEpisode(
-  curated: CuratedEpisode,
-  podcast?: CuratedPodcast
-): PodcastEpisode {
+function curatedToEpisode(curated: CuratedEpisode, podcast?: CuratedPodcast): PodcastEpisode {
   return {
     id: curated.id,
     podcastId: curated.podcastId,
@@ -791,10 +800,7 @@ function formatListenTime(minutes: number): string {
   return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
 }
 
-function getRecommendationReason(
-  episode: CuratedEpisode,
-  recentTopics: string[]
-): string {
+function getRecommendationReason(episode: CuratedEpisode, recentTopics: string[]): string {
   // Find matching topic
   const matchingTopic = recentTopics.find((t) =>
     episode.topics.some((et) => et.toLowerCase().includes(t.toLowerCase()))
@@ -806,25 +812,12 @@ function getRecommendationReason(
 
   // Mood-based reasons
   const moodReasons: Record<string, string[]> = {
-    learn: [
-      'Something interesting to learn today',
-      'Expand your knowledge with this episode',
-    ],
-    chill: [
-      'A relaxing listen for you',
-      'Wind down with this episode',
-    ],
-    inspire: [
-      'Some inspiration for your day',
-      'This one might spark something',
-    ],
-    reflect: [
-      'Food for thought',
-      'Something to reflect on',
-    ],
+    learn: ['Something interesting to learn today', 'Expand your knowledge with this episode'],
+    chill: ['A relaxing listen for you', 'Wind down with this episode'],
+    inspire: ['Some inspiration for your day', 'This one might spark something'],
+    reflect: ['Food for thought', 'Something to reflect on'],
   };
 
   const reasons = moodReasons[episode.mood];
   return reasons[Math.floor(Math.random() * reasons.length)];
 }
-

@@ -2314,7 +2314,7 @@ button {
   transition: background var(--transition-base);
 }
 .developer-cta__input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-dark-text-muted, #ddd6cc);
 }
 .developer-cta__input:focus {
   background: rgba(255, 255, 255, 0.15);
@@ -2341,7 +2341,7 @@ button {
 }
 .developer-cta__note {
   font-size: 14px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-dark-text-muted, #ddd6cc);
   margin-top: var(--space-4);
 }
 @media (max-width: 1024px) {

@@ -26,8 +26,8 @@ const CONFIG = {
   sourceAssets: path.join(__dirname, 'assets'),
   sourceDist: path.join(__dirname, 'dist'),
 
-  // Target directory (frontend-typescript/public/design-system/)
-  targetDir: path.join(PROJECT_ROOT, 'frontend-typescript/public/design-system'),
+  // Target directory (apps/web/public/design-system/)
+  targetDir: path.join(PROJECT_ROOT, 'apps/web/public/design-system'),
 
   // Logo PNG sizes to generate
   logoSizes: [16, 32, 48, 64, 96, 128, 180, 192, 256, 300, 512, 1024],
@@ -338,7 +338,7 @@ function copyToLegacyLocations() {
   console.log('🔗 Copying to legacy locations for compatibility...');
 
   // Copy key files to root of public/ for existing imports
-  const publicDir = path.join(PROJECT_ROOT, 'frontend-typescript/public');
+  const publicDir = path.join(PROJECT_ROOT, 'apps/web/public');
 
   // favicon.svg at root
   const faviconSrc = path.join(CONFIG.sourceAssets, 'favicons/favicon-32.svg');

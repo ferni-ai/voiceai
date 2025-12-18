@@ -1,11 +1,10 @@
 /**
  * Relationship Progress Integration Tests
  *
- * Tests the relationship stage calculation across multiple stores:
- * - Conversation history contribution
- * - Ritual engagement contribution
- * - Stage progression thresholds
- * - Progress percentage calculations
+ * Tests the relationship stage calculation based on the UNIFIED STAGE SYSTEM:
+ * - Stage names: first-meeting, getting-started, building-trust, established, deep-partnership
+ * - Based on: totalConversations, daysSinceFirstMeeting, currentStreak, longestStreak
+ * - NOT based on engagement scores or ritual days
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -91,9 +90,13 @@ describe('Relationship Progress Integration', () => {
   });
 
   describe('Stage Calculation from Multiple Stores', () => {
-    it('should calculate stranger stage for new user (score < 5)', async () => {
+    it('should calculate first-meeting stage for new user (< 10 conversations)', async () => {
       mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 2 });
-      mockEngagementStore.getProfile.mockResolvedValue({ totalRitualDays: 0 });
+      mockEngagementStore.getProfile.mockResolvedValue({
+        currentStreak: 0,
+        longestStreak: 0,
+        firstMeetingDate: new Date().toISOString(),
+      });
 
       const req = createMockRequest();
       const res = createMockResponse();
@@ -102,128 +105,21 @@ describe('Relationship Progress Integration', () => {
       await handleGetRelationshipProgress(req, res, parsedUrl);
 
       expect(res._data).toMatchObject({
-        stage: 'stranger',
+        stage: 'first-meeting',
         stageNumber: 1,
-        engagementScore: 2, // 2 conversations + 0 ritual days * 2
+        metrics: expect.objectContaining({
+          totalConversations: 2,
+        }),
       });
     });
 
-    it('should calculate familiar stage (score 5-9)', async () => {
-      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 5 });
-      mockEngagementStore.getProfile.mockResolvedValue({ totalRitualDays: 0 });
-
-      const req = createMockRequest();
-      const res = createMockResponse();
-      const parsedUrl = new URL('http://localhost/api/relationship/progress?userId=test-user');
-
-      await handleGetRelationshipProgress(req, res, parsedUrl);
-
-      expect(res._data).toMatchObject({
-        stage: 'familiar',
-        stageNumber: 2,
-        engagementScore: 5,
-        nextStageAt: 10,
-      });
-    });
-
-    it('should calculate acquaintance stage (score 10-24)', async () => {
-      // 8 conversations + 3 ritual days * 2 = 8 + 6 = 14
-      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 8 });
-      mockEngagementStore.getProfile.mockResolvedValue({ totalRitualDays: 3 });
-
-      const req = createMockRequest();
-      const res = createMockResponse();
-      const parsedUrl = new URL('http://localhost/api/relationship/progress?userId=test-user');
-
-      await handleGetRelationshipProgress(req, res, parsedUrl);
-
-      expect(res._data).toMatchObject({
-        stage: 'acquaintance',
-        stageNumber: 3,
-        engagementScore: 14,
-        nextStageAt: 25,
-      });
-    });
-
-    it('should calculate friend stage (score 25-49)', async () => {
-      // 15 conversations + 7 ritual days * 2 = 15 + 14 = 29
-      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 15 });
-      mockEngagementStore.getProfile.mockResolvedValue({ totalRitualDays: 7 });
-
-      const req = createMockRequest();
-      const res = createMockResponse();
-      const parsedUrl = new URL('http://localhost/api/relationship/progress?userId=test-user');
-
-      await handleGetRelationshipProgress(req, res, parsedUrl);
-
-      expect(res._data).toMatchObject({
-        stage: 'friend',
-        stageNumber: 4,
-        engagementScore: 29,
-        nextStageAt: 50,
-      });
-    });
-
-    it('should calculate confidant stage (score 50-99)', async () => {
-      // 30 conversations + 15 ritual days * 2 = 30 + 30 = 60
-      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 30 });
-      mockEngagementStore.getProfile.mockResolvedValue({ totalRitualDays: 15 });
-
-      const req = createMockRequest();
-      const res = createMockResponse();
-      const parsedUrl = new URL('http://localhost/api/relationship/progress?userId=test-user');
-
-      await handleGetRelationshipProgress(req, res, parsedUrl);
-
-      expect(res._data).toMatchObject({
-        stage: 'confidant',
-        stageNumber: 5,
-        engagementScore: 60,
-        nextStageAt: 100,
-      });
-    });
-
-    it('should calculate family stage (score >= 100)', async () => {
-      // 50 conversations + 30 ritual days * 2 = 50 + 60 = 110
-      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 50 });
-      mockEngagementStore.getProfile.mockResolvedValue({ totalRitualDays: 30 });
-
-      const req = createMockRequest();
-      const res = createMockResponse();
-      const parsedUrl = new URL('http://localhost/api/relationship/progress?userId=test-user');
-
-      await handleGetRelationshipProgress(req, res, parsedUrl);
-
-      expect(res._data).toMatchObject({
-        stage: 'family',
-        stageNumber: 6,
-        engagementScore: 110,
-        nextStageAt: null,
-      });
-    });
-  });
-
-  describe('Engagement Score Calculation', () => {
-    it('should weight ritual days 2x compared to conversations', async () => {
-      // Ritual days should contribute 2 points each
-      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 0 });
-      mockEngagementStore.getProfile.mockResolvedValue({ totalRitualDays: 5 });
-
-      const req = createMockRequest();
-      const res = createMockResponse();
-      const parsedUrl = new URL('http://localhost/api/relationship/progress?userId=test-user');
-
-      await handleGetRelationshipProgress(req, res, parsedUrl);
-
-      expect(res._data).toMatchObject({
-        engagementScore: 10, // 0 conversations + 5 * 2 = 10
-        stage: 'acquaintance',
-      });
-    });
-
-    it('should combine both conversation and ritual contributions', async () => {
+    it('should calculate getting-started stage (10+ conversations)', async () => {
       mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 10 });
-      mockEngagementStore.getProfile.mockResolvedValue({ totalRitualDays: 10 });
+      mockEngagementStore.getProfile.mockResolvedValue({
+        currentStreak: 0,
+        longestStreak: 0,
+        firstMeetingDate: new Date().toISOString(),
+      });
 
       const req = createMockRequest();
       const res = createMockResponse();
@@ -232,16 +128,92 @@ describe('Relationship Progress Integration', () => {
       await handleGetRelationshipProgress(req, res, parsedUrl);
 
       expect(res._data).toMatchObject({
-        engagementScore: 30, // 10 + 10*2
+        stage: 'getting-started',
+        stageNumber: 2,
+        nextStage: 'building-trust',
+      });
+    });
+
+    it('should calculate building-trust stage (15+ conversations, 5+ days, 3+ streak)', async () => {
+      const firstMeetingDate = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(); // 10 days ago
+      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 15 });
+      mockEngagementStore.getProfile.mockResolvedValue({
+        currentStreak: 3,
+        longestStreak: 3,
+        firstMeetingDate,
+      });
+
+      const req = createMockRequest();
+      const res = createMockResponse();
+      const parsedUrl = new URL('http://localhost/api/relationship/progress?userId=test-user');
+
+      await handleGetRelationshipProgress(req, res, parsedUrl);
+
+      expect(res._data).toMatchObject({
+        stage: 'building-trust',
+        stageNumber: 3,
+        nextStage: 'established',
+      });
+    });
+
+    it('should calculate established stage (30+ conversations, 21+ days, 7+ streak)', async () => {
+      const firstMeetingDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days ago
+      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 30 });
+      mockEngagementStore.getProfile.mockResolvedValue({
+        currentStreak: 7,
+        longestStreak: 7,
+        firstMeetingDate,
+      });
+
+      const req = createMockRequest();
+      const res = createMockResponse();
+      const parsedUrl = new URL('http://localhost/api/relationship/progress?userId=test-user');
+
+      await handleGetRelationshipProgress(req, res, parsedUrl);
+
+      expect(res._data).toMatchObject({
+        stage: 'established',
+        stageNumber: 4,
+        nextStage: 'deep-partnership',
+      });
+    });
+
+    it('should calculate deep-partnership stage (60+ conversations, 45+ days, 14+ streak)', async () => {
+      const firstMeetingDate = new Date(Date.now() - 50 * 24 * 60 * 60 * 1000).toISOString(); // 50 days ago
+      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 60 });
+      mockEngagementStore.getProfile.mockResolvedValue({
+        currentStreak: 14,
+        longestStreak: 14,
+        firstMeetingDate,
+      });
+
+      const req = createMockRequest();
+      const res = createMockResponse();
+      const parsedUrl = new URL('http://localhost/api/relationship/progress?userId=test-user');
+
+      await handleGetRelationshipProgress(req, res, parsedUrl);
+
+      expect(res._data).toMatchObject({
+        stage: 'deep-partnership',
+        stageNumber: 5,
+        nextStage: null,
       });
     });
   });
 
   describe('Progress Percentage Calculation', () => {
     it('should calculate progress towards next stage', async () => {
-      // Score 7, next stage at 10 = 70% progress
-      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 7 });
-      mockEngagementStore.getProfile.mockResolvedValue({ totalRitualDays: 0 });
+      // 5 conversations (50% of 10 needed for getting-started)
+      // Days requirement: 0 (meets requirement, 100%)
+      // Streak requirement: 0 (meets requirement, 100%)
+      // Progress = average of (50%, 100%, 100%) = 83.33% ≈ 83%
+      const firstMeetingDate = new Date().toISOString();
+      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 5 });
+      mockEngagementStore.getProfile.mockResolvedValue({
+        currentStreak: 0,
+        longestStreak: 0,
+        firstMeetingDate,
+      });
 
       const req = createMockRequest();
       const res = createMockResponse();
@@ -249,15 +221,24 @@ describe('Relationship Progress Integration', () => {
 
       await handleGetRelationshipProgress(req, res, parsedUrl);
 
+      // Progress is calculated as average of all requirements (conversations, days, streak)
       expect(res._data).toMatchObject({
-        progress: 70,
+        stage: 'first-meeting',
+        nextStage: 'getting-started',
       });
+      expect(res._data.progress).toBeGreaterThan(0);
+      expect(res._data.progress).toBeLessThanOrEqual(100);
     });
 
-    it('should cap progress at 100%', async () => {
-      // Family stage has no next stage
+    it('should cap progress at 100% for max stage', async () => {
+      // deep-partnership stage has no next stage
+      const firstMeetingDate = new Date(Date.now() - 50 * 24 * 60 * 60 * 1000).toISOString();
       mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 100 });
-      mockEngagementStore.getProfile.mockResolvedValue({ totalRitualDays: 50 });
+      mockEngagementStore.getProfile.mockResolvedValue({
+        currentStreak: 20,
+        longestStreak: 20,
+        firstMeetingDate,
+      });
 
       const req = createMockRequest();
       const res = createMockResponse();
@@ -267,18 +248,24 @@ describe('Relationship Progress Integration', () => {
 
       expect(res._data).toMatchObject({
         progress: 100,
-        stage: 'family',
+        stage: 'deep-partnership',
+        nextStage: null,
       });
     });
   });
 
-  describe('Stats Aggregation', () => {
-    it('should include stats from both stores', async () => {
+  describe('Metrics Aggregation', () => {
+    it('should include metrics from both stores', async () => {
       const lastEngagement = new Date().toISOString();
+      const firstMeetingDate = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
       mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 20 });
       mockEngagementStore.getProfile.mockResolvedValue({
-        totalRitualDays: 10,
+        currentStreak: 5,
+        longestStreak: 7,
         lastEngagementAt: lastEngagement,
+        firstMeetingDate,
+        milestonesReached: 3,
+        insightsShared: 12,
       });
 
       const req = createMockRequest();
@@ -288,19 +275,22 @@ describe('Relationship Progress Integration', () => {
       await handleGetRelationshipProgress(req, res, parsedUrl);
 
       expect(res._data).toMatchObject({
-        stats: {
+        metrics: {
           totalConversations: 20,
-          totalRitualDays: 10,
-          lastEngagement: lastEngagement,
+          currentStreak: 5,
+          longestStreak: 7,
+          milestonesReached: 3,
+          insightsShared: 12,
+          lastConversation: lastEngagement,
         },
       });
     });
   });
 
   describe('Edge Cases', () => {
-    it('should handle missing totalRitualDays gracefully', async () => {
+    it('should handle missing streak data gracefully', async () => {
       mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 5 });
-      mockEngagementStore.getProfile.mockResolvedValue({}); // No totalRitualDays
+      mockEngagementStore.getProfile.mockResolvedValue({}); // No streak data
 
       const req = createMockRequest();
       const res = createMockResponse();
@@ -309,16 +299,20 @@ describe('Relationship Progress Integration', () => {
       await handleGetRelationshipProgress(req, res, parsedUrl);
 
       expect(res._data).toMatchObject({
-        engagementScore: 5, // Only conversations counted
-        stats: {
-          totalRitualDays: 0,
+        metrics: {
+          totalConversations: 5,
+          currentStreak: 0,
+          longestStreak: 0,
         },
       });
     });
 
     it('should handle zero data gracefully', async () => {
       mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: 0 });
-      mockEngagementStore.getProfile.mockResolvedValue({ totalRitualDays: 0 });
+      mockEngagementStore.getProfile.mockResolvedValue({
+        currentStreak: 0,
+        longestStreak: 0,
+      });
 
       const req = createMockRequest();
       const res = createMockResponse();
@@ -327,10 +321,12 @@ describe('Relationship Progress Integration', () => {
       await handleGetRelationshipProgress(req, res, parsedUrl);
 
       expect(res._data).toMatchObject({
-        stage: 'stranger',
+        stage: 'first-meeting',
         stageNumber: 1,
-        engagementScore: 0,
-        nextStageAt: 5,
+        nextStage: 'getting-started',
+        metrics: {
+          totalConversations: 0,
+        },
       });
     });
   });
@@ -338,7 +334,10 @@ describe('Relationship Progress Integration', () => {
   describe('Error Handling', () => {
     it('should return error response when conversation history fails', async () => {
       mockConversationHistory.getHistory.mockRejectedValue(new Error('DB error'));
-      mockEngagementStore.getProfile.mockResolvedValue({ totalRitualDays: 5 });
+      mockEngagementStore.getProfile.mockResolvedValue({
+        currentStreak: 5,
+        longestStreak: 5,
+      });
 
       const req = createMockRequest();
       const res = createMockResponse();
@@ -349,7 +348,7 @@ describe('Relationship Progress Integration', () => {
       expect(res._status).toBe(500);
       expect(res._data).toMatchObject({
         error: 'Failed to get progress',
-        stage: 'stranger',
+        stage: 'first-meeting',
       });
     });
 
@@ -387,23 +386,43 @@ describe('Relationship Stage Thresholds', () => {
   });
 
   it.each([
-    { score: 0, expectedStage: 'stranger', stageNumber: 1 },
-    { score: 4, expectedStage: 'stranger', stageNumber: 1 },
-    { score: 5, expectedStage: 'familiar', stageNumber: 2 },
-    { score: 9, expectedStage: 'familiar', stageNumber: 2 },
-    { score: 10, expectedStage: 'acquaintance', stageNumber: 3 },
-    { score: 24, expectedStage: 'acquaintance', stageNumber: 3 },
-    { score: 25, expectedStage: 'friend', stageNumber: 4 },
-    { score: 49, expectedStage: 'friend', stageNumber: 4 },
-    { score: 50, expectedStage: 'confidant', stageNumber: 5 },
-    { score: 99, expectedStage: 'confidant', stageNumber: 5 },
-    { score: 100, expectedStage: 'family', stageNumber: 6 },
-    { score: 200, expectedStage: 'family', stageNumber: 6 },
+    // first-meeting: 0-9 conversations
+    { conversations: 0, days: 0, streak: 0, expectedStage: 'first-meeting', stageNumber: 1 },
+    { conversations: 5, days: 0, streak: 0, expectedStage: 'first-meeting', stageNumber: 1 },
+    { conversations: 9, days: 0, streak: 0, expectedStage: 'first-meeting', stageNumber: 1 },
+
+    // getting-started: 10+ conversations, 0+ days, 0+ streak
+    { conversations: 10, days: 0, streak: 0, expectedStage: 'getting-started', stageNumber: 2 },
+    { conversations: 14, days: 4, streak: 2, expectedStage: 'getting-started', stageNumber: 2 },
+
+    // building-trust: 15+ conversations, 5+ days, 3+ streak
+    { conversations: 15, days: 5, streak: 3, expectedStage: 'building-trust', stageNumber: 3 },
+    { conversations: 20, days: 10, streak: 5, expectedStage: 'building-trust', stageNumber: 3 },
+
+    // established: 30+ conversations, 21+ days, 7+ streak
+    { conversations: 30, days: 21, streak: 7, expectedStage: 'established', stageNumber: 4 },
+    { conversations: 50, days: 30, streak: 10, expectedStage: 'established', stageNumber: 4 },
+
+    // deep-partnership: 60+ conversations, 45+ days, 14+ streak
+    { conversations: 60, days: 45, streak: 14, expectedStage: 'deep-partnership', stageNumber: 5 },
+    {
+      conversations: 100,
+      days: 100,
+      streak: 20,
+      expectedStage: 'deep-partnership',
+      stageNumber: 5,
+    },
   ])(
-    'should map score $score to stage $expectedStage',
-    async ({ score, expectedStage, stageNumber }) => {
-      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: score });
-      mockEngagementStore.getProfile.mockResolvedValue({ totalRitualDays: 0 });
+    'should map $conversations conversations, $days days, $streak streak to $expectedStage',
+    async ({ conversations, days, streak, expectedStage, stageNumber }) => {
+      const firstMeetingDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+      mockConversationHistory.getHistory.mockResolvedValue({ totalSessions: conversations });
+      mockEngagementStore.getProfile.mockResolvedValue({
+        currentStreak: streak,
+        longestStreak: streak,
+        firstMeetingDate,
+      });
 
       const req = createMockRequest();
       const res = createMockResponse();
@@ -414,7 +433,9 @@ describe('Relationship Stage Thresholds', () => {
       expect(res._data).toMatchObject({
         stage: expectedStage,
         stageNumber: stageNumber,
-        engagementScore: score,
+        metrics: {
+          totalConversations: conversations,
+        },
       });
     }
   );

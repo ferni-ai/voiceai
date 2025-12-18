@@ -13,6 +13,7 @@ import { getProactiveSuggestions, getUserPatterns } from './pattern-intelligence
 import { getProactiveOpener } from './proactive-hooks.js';
 import { activeTimers } from './shared-state.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 const getUtilitySuggestionsDef: ToolDefinition = {
   id: 'getUtilitySuggestions',
   name: 'Get Utility Suggestions',
@@ -22,9 +23,7 @@ const getUtilitySuggestionsDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Get proactive suggestions for utilities the user might want.
-This tool is for INTERNAL USE - call it proactively to offer anticipated help.
-Returns suggestions like "Want me to set your usual tea timer?"`,
+      description: getToolDescription('getUtilitySuggestions'),
       parameters: z.object({}),
       execute: async (_, { ctx: toolCtx }) => {
         const userData = toolCtx.userData as { userId?: string };
@@ -65,10 +64,7 @@ const checkTimerStatusDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Check the status of the user's active timer. Use when someone asks:
-- "How much time left on my timer?"
-- "Is my timer still running?"
-- "Timer status"`,
+      description: getToolDescription('checkTimerStatus'),
       parameters: z.object({}),
       execute: async (_, { ctx: toolCtx }) => {
         const userData = toolCtx.userData as { userId?: string };

@@ -109,7 +109,7 @@ interface DocumentationMetrics {
 const CONFIG = {
   paths: {
     src: ['src/**/*.ts', 'src/**/*.tsx'],
-    frontend: ['frontend-typescript/src/**/*.ts'],
+    frontend: ['apps/web/src/**/*.ts'],
     styles: ['**/*.css', '!node_modules/**'],
     docs: ['design-system/brand/**/*.md', 'docs/**/*.md'],
   },

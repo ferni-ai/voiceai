@@ -23,6 +23,7 @@ import { handleAdminDiagnosticsRoutes } from './diagnostics.js';
 import { handleAdminExperimentsRoutes } from './experiments.js';
 import { handleAdminFlagsRoutes } from './flags.js';
 import { handleHumanListeningRoutes } from './human-listening.js';
+import { handleAdminModelConfigRoutes } from './model-config.js';
 import { handleAdminOperationsRoutes } from './operations.js';
 import { handleAdminTTSMonitoringRoutes } from './tts-monitoring.js';
 
@@ -94,6 +95,11 @@ export async function handleAdminRoutes(
   // TTS Monitoring (sanitization effectiveness)
   if (pathname.startsWith(`${BASE_PATH}/tts-monitoring`)) {
     return handleAdminTTSMonitoringRoutes(req, res, pathname, parsedUrl);
+  }
+
+  // Model Configuration (system prompts, Gemini parameters)
+  if (pathname.startsWith(`${BASE_PATH}/model-config`)) {
+    return handleAdminModelConfigRoutes(req, res, pathname, parsedUrl);
   }
 
   // Route not matched

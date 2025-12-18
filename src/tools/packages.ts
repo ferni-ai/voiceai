@@ -15,6 +15,7 @@ import { z } from 'zod';
 import { sanitizePlainText } from './validation.js';
 import { getLogger, generateId } from './utils/tool-helpers.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -426,11 +427,7 @@ export function archivePackage(pkgId: string): boolean {
 export function createPackageTools() {
   return {
     trackPackage: llm.tool({
-      description: `Add a package to track by its tracking number.
-Use when user says:
-- "Track package [number]"
-- "I'm expecting a delivery"
-- "Add tracking number"`,
+      description: getToolDescription('trackPackage'),
       parameters: z.object({
         trackingNumber: z.string().describe('Tracking number'),
         description: z.string().describe("What's in the package"),
@@ -475,8 +472,7 @@ Use when user says:
     }),
 
     getPackages: llm.tool({
-      description: `Show all tracked packages.
-Use when user asks "where are my packages?" or "what's being delivered?"`,
+      description: getToolDescription('getPackages'),
       parameters: z.object({
         includeDelivered: z.boolean().optional().default(false),
       }),
@@ -521,7 +517,7 @@ Use when user asks "where are my packages?" or "what's being delivered?"`,
     }),
 
     checkPackageStatus: llm.tool({
-      description: `Check the latest status of a specific package.`,
+      description: getToolDescription('checkPackageStatus'),
       parameters: z.object({
         packageDescription: z.string().describe('Description of the package'),
       }),
@@ -540,7 +536,7 @@ Use when user asks "where are my packages?" or "what's being delivered?"`,
 
         // Refresh tracking info
         const refreshed = await refreshPackage(pkg.id);
-        if (!refreshed) return `Error checking package status.`;
+        if (!refreshed) return `Couldn't check that package right now. Want to try again?`;
 
         let response = `📦 **${refreshed.description}**\n\n`;
         response += `**Status:** ${refreshed.status.replace(/_/g, ' ')}\n`;
@@ -589,8 +585,7 @@ Use when user asks "where are my packages?" or "what's being delivered?"`,
     }),
 
     markPackageDelivered: llm.tool({
-      description: `Mark a package as delivered manually.
-Use when user says "I got my package" or "package arrived".`,
+      description: getToolDescription('markPackageDelivered'),
       parameters: z.object({
         packageDescription: z.string().describe('Which package'),
       }),
@@ -614,7 +609,7 @@ Use when user says "I got my package" or "package arrived".`,
     }),
 
     removePackage: llm.tool({
-      description: `Stop tracking a package.`,
+      description: getToolDescription('removePackage'),
       parameters: z.object({
         packageDescription: z.string().describe('Which package'),
       }),
@@ -638,7 +633,7 @@ Use when user says "I got my package" or "package arrived".`,
     }),
 
     getDeliveryExpectations: llm.tool({
-      description: `Show what's expected to arrive soon.`,
+      description: getToolDescription('getDeliveryExpectations'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userData = ctx?.userData as { userId?: string } | undefined;

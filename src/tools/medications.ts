@@ -22,6 +22,7 @@ import {
 } from '../services/productivity-store.js';
 import { getLogger, generateId } from './utils/tool-helpers.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // Bridge functions for persistence
 function medDataToMed(data: MedicationData, userId: string): Medication {
   return {
@@ -442,8 +443,7 @@ export { getDueDoses, getUpcomingDoses, getMedsNeedingRefill, getUserMedications
 export function createMedicationTools() {
   return {
     addMedication: llm.tool({
-      description: `Add a new medication to track.
-Use when user wants to track a medication with reminders.`,
+      description: getToolDescription('addMedication'),
       parameters: z.object({
         name: z.string().describe('Medication name'),
         dosage: z.string().describe('Dosage (e.g., "10mg", "2 tablets")'),
@@ -502,8 +502,7 @@ Use when user wants to track a medication with reminders.`,
     }),
 
     takeMedication: llm.tool({
-      description: `Log that a medication was taken.
-Use when user says "I took my [medication]" or "done with my meds"`,
+      description: getToolDescription('takeMedication'),
       parameters: z.object({
         medicationName: z.string().describe('Which medication was taken'),
         notes: z.string().optional().describe('Any notes'),
@@ -565,8 +564,7 @@ Use when user says "I took my [medication]" or "done with my meds"`,
     }),
 
     skipMedication: llm.tool({
-      description: `Log that a dose was skipped.
-Use when user says they're skipping a dose (with reason).`,
+      description: getToolDescription('skipMedication'),
       parameters: z.object({
         medicationName: z.string().describe('Which medication'),
         reason: z.string().optional().describe('Why skipping'),
@@ -614,8 +612,7 @@ Use when user says they're skipping a dose (with reason).`,
     }),
 
     getMedicationSchedule: llm.tool({
-      description: `Show today's medication schedule.
-Use when user asks "what meds do I need to take?" or checks schedule.`,
+      description: getToolDescription('getMedicationSchedule'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userData = ctx?.userData as { userId?: string } | undefined;
@@ -672,7 +669,7 @@ Use when user asks "what meds do I need to take?" or checks schedule.`,
     }),
 
     getAllMedications: llm.tool({
-      description: `List all tracked medications with details.`,
+      description: getToolDescription('getAllMedications'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userData = ctx?.userData as { userId?: string } | undefined;
@@ -708,8 +705,7 @@ Use when user asks "what meds do I need to take?" or checks schedule.`,
     }),
 
     updatePillCount: llm.tool({
-      description: `Update the pill count after a refill.
-Use when user says "I refilled my [medication]" or updates count.`,
+      description: getToolDescription('updatePillCount'),
       parameters: z.object({
         medicationName: z.string().describe('Which medication'),
         newCount: z.number().describe('New pill count'),
@@ -729,7 +725,7 @@ Use when user says "I refilled my [medication]" or updates count.`,
         }
 
         const updated = updateMedication(med.id, { pillsRemaining: newCount });
-        if (!updated) return `Error updating medication.`;
+        if (!updated) return `Couldn't update that medication. Try again?`;
 
         updated.lastRefillDate = new Date();
         // Save to cache and persist
@@ -741,7 +737,7 @@ Use when user says "I refilled my [medication]" or updates count.`,
     }),
 
     stopMedication: llm.tool({
-      description: `Stop tracking a medication (discontinued, finished, etc.)`,
+      description: getToolDescription('stopMedication'),
       parameters: z.object({
         medicationName: z.string().describe('Which medication'),
         reason: z.string().optional().describe('Why stopping'),
@@ -778,7 +774,7 @@ Use when user says "I refilled my [medication]" or updates count.`,
     }),
 
     medicationCheckIn: llm.tool({
-      description: `Quick medication check-in - what's due, what's taken.`,
+      description: getToolDescription('medicationCheckIn'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userData = ctx?.userData as { userId?: string } | undefined;

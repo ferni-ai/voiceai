@@ -39,6 +39,7 @@ import {
 import { trackToolUsage, isLifeCoachAnalyticsEnabled } from '../shared/index.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // SECOND CHANCES WISDOM DATABASE
 // ============================================================================
@@ -300,8 +301,7 @@ const assessReadinessForChangeDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user assess their readiness for making a significant change or fresh start. Meet them where they are without pushing.',
+      description: getToolDescription('assessReadinessForChange'),
       parameters: z.object({
         changeType: z
           .enum([
@@ -397,8 +397,7 @@ const identifyWhatToKeepDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user identify what valuable things they want to carry forward into their fresh start—skills, lessons, relationships, values.',
+      description: getToolDescription('identifyWhatToKeep'),
       parameters: z.object({
         context: z.string().describe("What situation they're starting over from"),
         feelingAboutPast: z
@@ -470,8 +469,7 @@ const acknowledgeWhatWasDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Create space for user to acknowledge and grieve what was lost. Moving forward requires honoring what was, not bypassing it.',
+      description: getToolDescription('acknowledgeWhatWas'),
       parameters: z.object({
         whatWasLost: z.string().describe('What they lost or are leaving behind'),
         hasHadSpaceToGrieve: z
@@ -566,8 +564,7 @@ const reframeNarrativeDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user reframe their narrative from "this happened TO me" to "this is part of my story." Not toxic positivity—honest meaning-making.',
+      description: getToolDescription('reframeNarrative'),
       parameters: z.object({
         currentStory: z.string().describe('How they currently tell the story of what happened'),
         stuckPoint: z.string().optional().describe('Where they feel stuck in the narrative'),
@@ -635,8 +632,7 @@ const findTheLessonsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user find genuine lessons from their experience—not forced silver linings, but real wisdom earned.',
+      description: getToolDescription('findTheLessons'),
       parameters: z.object({
         experience: z.string().describe("The experience they're extracting lessons from"),
         readyForLessons: z
@@ -717,8 +713,7 @@ const defineFirstStepDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user identify a tiny, manageable first step. Not the whole journey—just the very next thing.',
+      description: getToolDescription('defineFirstStep'),
       parameters: z.object({
         direction: z.string().describe('What direction they want to move in'),
         overwhelmLevel: z
@@ -807,7 +802,7 @@ const createComebackPlanDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user create a realistic comeback plan with phases, not a rigid timeline.',
+      description: getToolDescription('createComebackPlan'),
       parameters: z.object({
         comebackType: z
           .enum(['career', 'financial', 'relationship', 'health', 'identity', 'general'])
@@ -912,8 +907,7 @@ const identifySupportsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user identify and strengthen their support system for their fresh start journey.',
+      description: getToolDescription('identifySupports'),
       parameters: z.object({
         currentSupport: z.string().optional().describe('Who/what currently supports them'),
         supportGaps: z.string().optional().describe('What support they feel is missing'),
@@ -994,8 +988,7 @@ const processGriefForWhatWasDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Create dedicated space for grieving losses. Not rushing past pain, but sitting with it.',
+      description: getToolDescription('processGriefForWhatWas'),
       parameters: z.object({
         loss: z.string().describe("What they're grieving"),
         griefExpression: z
@@ -1063,8 +1056,7 @@ const buildCourageForWhatNextDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user build courage for their fresh start. Acknowledge fear while building capacity to act.',
+      description: getToolDescription('buildCourageForWhatNext'),
       parameters: z.object({
         fearOf: z.string().describe("What they're afraid of"),
         whatCourageLooksLike: z
@@ -1148,8 +1140,7 @@ const celebrateTinyWinsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user recognize and celebrate their progress on the fresh start journey—especially the small wins that are easy to dismiss.',
+      description: getToolDescription('celebrateTinyWins'),
       parameters: z.object({
         win: z.string().describe('What they accomplished'),
         sizePerception: z
@@ -1229,8 +1220,7 @@ const checkInOnJourneyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Check in with user on how their fresh start journey is going. Not to judge progress, but to understand where they are.',
+      description: getToolDescription('checkInOnJourney'),
       parameters: z.object({
         timeSinceStart: z.string().optional().describe("How long they've been on this journey"),
         currentPhase: z
@@ -1319,8 +1309,7 @@ const holdHopeWhenCantDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'For moments when user has lost hope. Ferni holds hope for them until they can hold it themselves.',
+      description: getToolDescription('holdHopeWhenCant'),
       parameters: z.object({
         whatFeelsHopeless: z.string().describe('What feels hopeless to them'),
         howLongFeeling: z.string().optional().describe("How long they've felt this way"),
@@ -1396,8 +1385,7 @@ const remindOfProgressDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        "Remind user of the progress they've made—especially useful when they feel like they're not getting anywhere.",
+      description: getToolDescription('remindOfProgress'),
       parameters: z.object({
         whereyStarted: z.string().describe('Where they started this journey'),
         whereTheyAreNow: z.string().describe('Where they are now'),
@@ -1466,7 +1454,7 @@ const shareSecondChanceWisdomDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Share relevant wisdom, quotes, or comeback stories to inspire and encourage.',
+      description: getToolDescription('shareSecondChanceWisdom'),
       parameters: z.object({
         context: z
           .enum([

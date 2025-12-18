@@ -13,7 +13,6 @@
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { t } from '../i18n/index.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 
 // ============================================================================
 // TYPES
@@ -47,42 +46,52 @@ interface GroupCoachingCallbacks {
 // SESSION TYPE INFO
 // ============================================================================
 
-const SESSION_TYPES: Array<{
+interface SessionTypeInfo {
   id: GroupSessionType;
   name: string;
   icon: string;
   description: string;
   maxParticipants: number;
-}> = [
-  {
-    id: 'couple',
-    name: t('groupCoaching.sessionTypes.couple.name'),
-    icon: '💑',
-    description: t('groupCoaching.sessionTypes.couple.description'),
-    maxParticipants: 2,
-  },
-  {
-    id: 'family',
-    name: t('groupCoaching.sessionTypes.family.name'),
-    icon: '👨‍👩‍👧‍👦',
-    description: t('groupCoaching.sessionTypes.family.description'),
-    maxParticipants: 6,
-  },
-  {
-    id: 'team',
-    name: t('groupCoaching.sessionTypes.team.name'),
-    icon: '👥',
-    description: t('groupCoaching.sessionTypes.team.description'),
-    maxParticipants: 10,
-  },
-  {
-    id: 'peer_support',
-    name: t('groupCoaching.sessionTypes.peer.name'),
-    icon: '🤝',
-    description: t('groupCoaching.sessionTypes.peer.description'),
-    maxParticipants: 8,
-  },
-];
+}
+
+// Lazy getter to avoid calling t() at module load time (before i18n is initialized)
+let _sessionTypesCache: SessionTypeInfo[] | null = null;
+
+function getSessionTypes(): SessionTypeInfo[] {
+  if (!_sessionTypesCache) {
+    _sessionTypesCache = [
+      {
+        id: 'couple',
+        name: t('groupCoaching.sessionTypes.couple.name'),
+        icon: '💑',
+        description: t('groupCoaching.sessionTypes.couple.description'),
+        maxParticipants: 2,
+      },
+      {
+        id: 'family',
+        name: t('groupCoaching.sessionTypes.family.name'),
+        icon: '👨‍👩‍👧‍👦',
+        description: t('groupCoaching.sessionTypes.family.description'),
+        maxParticipants: 6,
+      },
+      {
+        id: 'team',
+        name: t('groupCoaching.sessionTypes.team.name'),
+        icon: '👥',
+        description: t('groupCoaching.sessionTypes.team.description'),
+        maxParticipants: 10,
+      },
+      {
+        id: 'peer_support',
+        name: t('groupCoaching.sessionTypes.peer.name'),
+        icon: '🤝',
+        description: t('groupCoaching.sessionTypes.peer.description'),
+        maxParticipants: 8,
+      },
+    ];
+  }
+  return _sessionTypesCache;
+}
 
 // ============================================================================
 // ICONS
@@ -158,9 +167,6 @@ class GroupCoachingUI {
   hide(): void {
     if (!this.panel) return;
 
-    // Clean up iOS tap listeners
-    cleanupTapListeners(this.panel);
-
     this.panel.classList.remove('group-coaching--visible');
     this.isVisible = false;
     this.callbacks.onClose?.();
@@ -184,8 +190,7 @@ class GroupCoachingUI {
     this.wrapper.className = 'group-coaching__wrapper';
     this.panel.appendChild(this.wrapper);
 
-    // Click outside to close (iOS-compatible)
-    addTapListener(this.panel, (e) => {
+    this.panel.addEventListener('click', (e) => {
       if (e.target === this.panel) this.hide();
     });
 
@@ -198,8 +203,8 @@ class GroupCoachingUI {
         '/api/group/sessions'
       );
 
-      if (response.ok && response.data?.success) {
-        this.sessions = response.data.sessions ?? [];
+      if (response.data?.success) {
+        this.sessions = response.data.sessions;
         this.renderList();
       } else {
         this.renderError('Unable to load sessions');
@@ -238,9 +243,9 @@ class GroupCoachingUI {
             .map(
               (session) => `
           <div class="group-coaching__session" data-session-id="${session.id}">
-            <div class="group-coaching__session-icon">${SESSION_TYPES.find((t) => t.id === session.type)?.icon || '👥'}</div>
+            <div class="group-coaching__session-icon">${getSessionTypes().find((t) => t.id === session.type)?.icon || '👥'}</div>
             <div class="group-coaching__session-info">
-              <span class="group-coaching__session-type">${SESSION_TYPES.find((t) => t.id === session.type)?.name || session.type}</span>
+              <span class="group-coaching__session-type">${getSessionTypes().find((t) => t.id === session.type)?.name || session.type}</span>
               <span class="group-coaching__session-status">${session.status} • ${session.participants.length} ${t('groupCoaching.participantsLabel')}</span>
             </div>
             <button class="group-coaching__session-join" data-session-id="${session.id}">
@@ -288,7 +293,7 @@ class GroupCoachingUI {
   private renderCreate(): void {
     if (!this.wrapper) return;
 
-    const typeOptions = SESSION_TYPES.map(
+    const typeOptions = getSessionTypes().map(
       (type) => `
       <button class="group-coaching__type" data-type="${type.id}">
         <div class="group-coaching__type-icon">${type.icon}</div>
@@ -326,7 +331,7 @@ class GroupCoachingUI {
   private renderSession(session: GroupSession, joinLink?: string): void {
     if (!this.wrapper) return;
 
-    const typeInfo = SESSION_TYPES.find((t) => t.id === session.type);
+    const typeInfo = getSessionTypes().find((t) => t.id === session.type);
     const participantsList = session.participants
       .map(
         (p) => `
@@ -412,25 +417,25 @@ class GroupCoachingUI {
     `;
 
     this.bindCloseButton();
-    addTapListener(this.wrapper.querySelector('.group-coaching__retry'), () => {
+    this.wrapper.querySelector('.group-coaching__retry')?.addEventListener('click', () => {
       this.renderLoading();
       this.loadSessions();
     });
   }
 
   private bindCloseButton(): void {
-    addTapListener(this.wrapper?.querySelector('.group-coaching__close') ?? null, () => {
+    this.wrapper?.querySelector('.group-coaching__close')?.addEventListener('click', () => {
       this.hide();
     });
   }
 
   private bindListActions(): void {
-    addTapListener(this.wrapper?.querySelector('[data-action="create"]') ?? null, () => {
+    this.wrapper?.querySelector('[data-action="create"]')?.addEventListener('click', () => {
       this.view = 'create';
       this.renderCreate();
     });
 
-    addTapListener(this.wrapper?.querySelector('[data-action="join-link"]') ?? null, () => {
+    this.wrapper?.querySelector('[data-action="join-link"]')?.addEventListener('click', () => {
       const link = prompt('Enter the session join link:');
       if (link) {
         const sessionId = link.split('/').pop();
@@ -441,7 +446,7 @@ class GroupCoachingUI {
     });
 
     this.wrapper?.querySelectorAll('.group-coaching__session-join').forEach((btn) => {
-      addTapListener(btn, async () => {
+      btn.addEventListener('click', async () => {
         const sessionId = (btn as HTMLElement).dataset.sessionId;
         if (sessionId) {
           const session = this.sessions.find((s) => s.id === sessionId);
@@ -456,13 +461,13 @@ class GroupCoachingUI {
   }
 
   private bindCreateActions(): void {
-    addTapListener(this.wrapper?.querySelector('[data-action="back"]') ?? null, () => {
+    this.wrapper?.querySelector('[data-action="back"]')?.addEventListener('click', () => {
       this.view = 'list';
       this.renderList();
     });
 
     this.wrapper?.querySelectorAll('[data-type]').forEach((btn) => {
-      addTapListener(btn, async () => {
+      btn.addEventListener('click', async () => {
         const type = (btn as HTMLElement).dataset.type as GroupSessionType;
         await this.createSession(type);
       });
@@ -470,12 +475,12 @@ class GroupCoachingUI {
   }
 
   private bindSessionActions(): void {
-    addTapListener(this.wrapper?.querySelector('[data-action="back"]') ?? null, () => {
+    this.wrapper?.querySelector('[data-action="back"]')?.addEventListener('click', () => {
       this.view = 'list';
       this.renderList();
     });
 
-    addTapListener(this.wrapper?.querySelector('[data-action="copy"]') ?? null, async () => {
+    this.wrapper?.querySelector('[data-action="copy"]')?.addEventListener('click', async () => {
       const link = (this.wrapper?.querySelector('[data-action="copy"]') as HTMLElement)?.dataset
         .link;
       if (link) {
@@ -484,7 +489,7 @@ class GroupCoachingUI {
       }
     });
 
-    addTapListener(this.wrapper?.querySelector('[data-action="start"]') ?? null, async () => {
+    this.wrapper?.querySelector('[data-action="start"]')?.addEventListener('click', async () => {
       const sessionId = (this.wrapper?.querySelector('[data-action="start"]') as HTMLElement)
         ?.dataset.sessionId;
       if (sessionId) {
@@ -500,7 +505,7 @@ class GroupCoachingUI {
         { type }
       );
 
-      if (response.ok && response.data?.success && response.data.session) {
+      if (response.data?.success) {
         this.activeSession = response.data.session;
         this.callbacks.onSessionCreated?.(response.data.session);
         this.view = 'session';
@@ -519,7 +524,7 @@ class GroupCoachingUI {
         { displayName }
       );
 
-      if (response.ok && response.data?.success && response.data.session) {
+      if (response.data?.success && response.data.session) {
         this.activeSession = response.data.session;
         this.callbacks.onSessionJoined?.(response.data.session);
         this.view = 'session';
@@ -537,7 +542,7 @@ class GroupCoachingUI {
         {}
       );
 
-      if (response.ok && response.data?.success && response.data.session) {
+      if (response.data?.success) {
         this.activeSession = response.data.session;
         this.renderSession(response.data.session);
       }

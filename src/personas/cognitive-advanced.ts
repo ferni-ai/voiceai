@@ -904,10 +904,90 @@ export interface CognitiveLearning {
 
 /**
  * Track cognitive approach effectiveness
+ *
+ * NOW WITH PERSISTENCE! Cognitive learnings are saved to Firestore so we
+ * actually learn HOW to communicate with each user over time.
  */
 export class CognitiveLearningTracker {
   private learnings = new Map<string, CognitiveLearning>();
   private recentEffectiveness: CognitiveEffectiveness[] = [];
+  private loadedUsers = new Set<string>(); // Track which users we've loaded from persistence
+  private pendingSaves = new Set<string>(); // Track dirty learnings that need saving
+  private saveTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  /**
+   * Load learning from persistence if not already loaded
+   */
+  async ensureLoaded(userId: string, personaId: string): Promise<void> {
+    const key = `${userId}_${personaId}`;
+    if (this.loadedUsers.has(key)) return;
+
+    try {
+      const { loadCognitiveLearning, fromPersistedLearning } =
+        await import('./cognitive-persistence.js');
+      const persisted = await loadCognitiveLearning(userId, personaId);
+
+      if (persisted) {
+        const learning = fromPersistedLearning(persisted);
+        this.learnings.set(key, {
+          userId,
+          personaId,
+          ...learning,
+        });
+        log.info(
+          { userId, personaId, totalInteractions: learning.totalInteractions },
+          '✅ Loaded cognitive learning from persistence'
+        );
+      }
+
+      this.loadedUsers.add(key);
+    } catch (error) {
+      log.warn({ error, userId, personaId }, 'Failed to load cognitive learning, starting fresh');
+      this.loadedUsers.add(key);
+    }
+  }
+
+  /**
+   * Schedule a debounced save to persistence
+   */
+  private scheduleSave(userId: string, personaId: string): void {
+    const key = `${userId}_${personaId}`;
+    this.pendingSaves.add(key);
+
+    // Debounce saves - wait 5 seconds after last change
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout);
+    }
+
+    this.saveTimeout = setTimeout(() => {
+      void this.flushPendingSaves();
+    }, 5000);
+  }
+
+  /**
+   * Flush all pending saves to Firestore
+   */
+  async flushPendingSaves(): Promise<void> {
+    if (this.pendingSaves.size === 0) return;
+
+    const { saveCognitiveLearning, toPersistableLearning } =
+      await import('./cognitive-persistence.js');
+
+    for (const key of this.pendingSaves) {
+      const learning = this.learnings.get(key);
+      if (learning) {
+        try {
+          const persistable = toPersistableLearning(learning.userId, learning.personaId, learning);
+          await saveCognitiveLearning(persistable);
+          log.debug({ key }, 'Saved cognitive learning to persistence');
+        } catch (error) {
+          log.error({ error, key }, 'Failed to save cognitive learning');
+        }
+      }
+    }
+
+    this.pendingSaves.clear();
+  }
 
   /**
    * Record a cognitive approach and user response
@@ -986,7 +1066,7 @@ export class CognitiveLearningTracker {
       learning.userPreferredStyle = userCognitiveStyle;
     }
 
-    getLogger().debug(
+    log.debug(
       {
         userId,
         personaId,
@@ -996,6 +1076,9 @@ export class CognitiveLearningTracker {
       },
       'Cognitive approach effectiveness recorded'
     );
+
+    // Schedule save to persistence
+    this.scheduleSave(userId, personaId);
   }
 
   /**
@@ -1015,8 +1098,10 @@ export class CognitiveLearningTracker {
       learning.expertiseTopics.push(topic);
       // Remove from novice if present
       learning.noviceTopics = learning.noviceTopics.filter((t) => t !== topic);
+      this.scheduleSave(userId, personaId);
     } else if (level === 'novice' && !learning.noviceTopics.includes(topic)) {
       learning.noviceTopics.push(topic);
+      this.scheduleSave(userId, personaId);
     }
   }
 
@@ -1024,6 +1109,14 @@ export class CognitiveLearningTracker {
    * Get learning for a user-persona pair
    */
   getLearning(userId: string, personaId: string): CognitiveLearning | null {
+    return this.learnings.get(`${userId}_${personaId}`) || null;
+  }
+
+  /**
+   * Get learning with async persistence load
+   */
+  async getLearningAsync(userId: string, personaId: string): Promise<CognitiveLearning | null> {
+    await this.ensureLoaded(userId, personaId);
     return this.learnings.get(`${userId}_${personaId}`) || null;
   }
 
@@ -1130,6 +1223,25 @@ export function getCognitiveLearningTracker(): CognitiveLearningTracker {
   return cognitiveLearningTracker;
 }
 
+/**
+ * Initialize cognitive learning for a user-persona pair (call at session start)
+ */
+export async function initializeCognitiveLearning(
+  userId: string,
+  personaId: string
+): Promise<void> {
+  const tracker = getCognitiveLearningTracker();
+  await tracker.ensureLoaded(userId, personaId);
+}
+
+/**
+ * Flush cognitive learning to persistence (call at session end)
+ */
+export async function flushCognitiveLearning(): Promise<void> {
+  const tracker = getCognitiveLearningTracker();
+  await tracker.flushPendingSaves();
+}
+
 // ============================================================================
 // KNOWLEDGE STATE PERSISTENCE
 // ============================================================================
@@ -1158,9 +1270,83 @@ export interface UserKnowledgeState {
 
 /**
  * Track what we've explained to users
+ *
+ * NOW WITH PERSISTENCE! Knowledge state is saved to Firestore so we don't
+ * re-explain concepts users already understand.
  */
 export class KnowledgeStateTracker {
   private states = new Map<string, UserKnowledgeState>();
+  private loadedUsers = new Set<string>(); // Track which users we've loaded
+  private pendingSaves = new Set<string>(); // Track dirty states that need saving
+  private saveTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  /**
+   * Load state from persistence if not already loaded
+   */
+  async ensureLoaded(userId: string): Promise<void> {
+    if (this.loadedUsers.has(userId)) return;
+
+    try {
+      const { loadKnowledgeState, fromPersistedKnowledge } =
+        await import('./cognitive-persistence.js');
+      const persisted = await loadKnowledgeState(userId);
+
+      if (persisted) {
+        const state = fromPersistedKnowledge(persisted);
+        this.states.set(userId, state);
+        log.info(
+          { userId, topicsCount: state.topicsExplained.size },
+          '✅ Loaded knowledge state from persistence'
+        );
+      }
+
+      this.loadedUsers.add(userId);
+    } catch (error) {
+      log.warn({ error, userId }, 'Failed to load knowledge state, starting fresh');
+      this.loadedUsers.add(userId);
+    }
+  }
+
+  /**
+   * Schedule a debounced save to persistence
+   */
+  private scheduleSave(userId: string): void {
+    this.pendingSaves.add(userId);
+
+    // Debounce saves - wait 5 seconds after last change
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout);
+    }
+
+    this.saveTimeout = setTimeout(() => {
+      void this.flushPendingSaves();
+    }, 5000);
+  }
+
+  /**
+   * Flush all pending saves to Firestore
+   */
+  async flushPendingSaves(): Promise<void> {
+    if (this.pendingSaves.size === 0) return;
+
+    const { saveKnowledgeState, toPersistableKnowledge } =
+      await import('./cognitive-persistence.js');
+
+    for (const userId of this.pendingSaves) {
+      const state = this.states.get(userId);
+      if (state) {
+        try {
+          const persistable = toPersistableKnowledge(userId, state);
+          await saveKnowledgeState(persistable);
+          log.debug({ userId }, 'Saved knowledge state to persistence');
+        } catch (error) {
+          log.error({ error, userId }, 'Failed to save knowledge state');
+        }
+      }
+    }
+
+    this.pendingSaves.clear();
+  }
 
   /**
    * Record that we explained a topic
@@ -1198,6 +1384,7 @@ export class KnowledgeStateTracker {
           personaWhoExplained: personaId,
         });
       }
+      this.scheduleSave(userId);
       return;
     }
 
@@ -1236,6 +1423,9 @@ export class KnowledgeStateTracker {
         state.confusionTopics.push(topic);
       }
     }
+
+    // Schedule save to persistence
+    this.scheduleSave(userId);
   }
 
   /**
@@ -1306,6 +1496,21 @@ export class KnowledgeStateTracker {
   }
 
   /**
+   * Get explanation guidance with async persistence load
+   */
+  async getExplanationGuidanceAsync(
+    userId: string,
+    topic: string
+  ): Promise<{
+    shouldExplain: boolean;
+    depth: 'skip' | 'brief_reminder' | 'moderate' | 'full';
+    note: string;
+  }> {
+    await this.ensureLoaded(userId);
+    return this.getExplanationGuidance(userId, topic);
+  }
+
+  /**
    * Get state for persistence
    */
   getState(userId: string): UserKnowledgeState | null {
@@ -1347,6 +1552,22 @@ export function getKnowledgeStateTracker(): KnowledgeStateTracker {
     knowledgeStateTracker = new KnowledgeStateTracker();
   }
   return knowledgeStateTracker;
+}
+
+/**
+ * Initialize knowledge state for a user (call at session start)
+ */
+export async function initializeKnowledgeState(userId: string): Promise<void> {
+  const tracker = getKnowledgeStateTracker();
+  await tracker.ensureLoaded(userId);
+}
+
+/**
+ * Flush knowledge state to persistence (call at session end)
+ */
+export async function flushKnowledgeState(): Promise<void> {
+  const tracker = getKnowledgeStateTracker();
+  await tracker.flushPendingSaves();
 }
 
 // ============================================================================

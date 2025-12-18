@@ -11,6 +11,7 @@ import { z } from 'zod';
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ToolContext } from '../../tools/registry/types.js';
+import { loadSystemPrompt } from './prompt-loader.js';
 
 const log = createLogger({ module: 'JordanAgent' });
 
@@ -25,11 +26,17 @@ import {
   forgetMemoryDef,
 } from '../../tools/domains/memory/tools.js';
 
-// Life planning tools - Jordan's specialty
-import { createGoalManagementTools } from '../../tools/goal-management.js';
-import { createEventPlanningTools } from '../../tools/event-planning.js';
-import { createLifeFirstsTools } from '../../tools/life-firsts-tracker.js';
+// Life planning tools - Jordan's specialty (from domains)
+import {
+  createGoalManagementTools,
+  createEventPlanningTools,
+  createLifeFirstsTools,
+} from '../../tools/domains/life-planning.js';
 
+// Conversation tools - wrap up, end conversation, graceful exit (from domains)
+import { createConversationTools } from '../../tools/domains/conversation/index.js';
+
+import { getToolDescription } from '../../tools/utils/tool-descriptions.js';
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -110,8 +117,7 @@ function buildLifePlanningTools(): ToolSet {
 function buildHandoffTools(): ToolSet {
   return {
     handoffToFerni: llm.tool({
-      description:
-        'Transfer back to Ferni for general life coaching, deeper conversations, or when the user wants to explore other topics.',
+      description: getToolDescription('handoffToFerni'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { FerniAgent } = await import('./ferni-agent.js');
@@ -127,8 +133,11 @@ function buildHandoffTools(): ToolSet {
             join(__dirname, '../../personas/bundles/ferni/identity/system-prompt.md'),
             'utf-8'
           );
-        } catch {
-          // Fallback
+        } catch (err) {
+          // Fallback to default prompt if file not found
+          process.stderr.write(
+            `[jordan-agent] Using fallback system prompt: ${err instanceof Error ? err.message : String(err)}\n`
+          );
         }
 
         return llm.handoff({
@@ -139,51 +148,48 @@ function buildHandoffTools(): ToolSet {
     }),
 
     handoffToMaya: llm.tool({
-      description: 'Transfer to Maya for building habits around life goals.',
+      description: getToolDescription('handoffToMaya'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { MayaAgent } = await import('./maya-agent.js');
         return llm.handoff({
-          agent: new MayaAgent(ctx.session.chatCtx),
+          agent: await MayaAgent.create(ctx.session.chatCtx),
           returns: 'Connecting you with Maya for habit building!',
         });
       },
     }),
 
     handoffToAlex: llm.tool({
-      description:
-        'Transfer to Alex for scheduling events, sending invitations, or calendar management.',
+      description: getToolDescription('handoffToAlex'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { AlexAgent } = await import('./alex-agent.js');
         return llm.handoff({
-          agent: new AlexAgent(ctx.session.chatCtx),
+          agent: await AlexAgent.create(ctx.session.chatCtx),
           returns: 'Connecting you with Alex for scheduling!',
         });
       },
     }),
 
     handoffToPeter: llm.tool({
-      description:
-        'Transfer to Peter for investment research or market analysis related to financial goals.',
+      description: getToolDescription('handoffToPeter'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { PeterAgent } = await import('./peter-agent.js');
         return llm.handoff({
-          agent: new PeterAgent(ctx.session.chatCtx),
+          agent: await PeterAgent.create(ctx.session.chatCtx),
           returns: 'Connecting you with Peter for investment insights!',
         });
       },
     }),
 
     handoffToNayan: llm.tool({
-      description:
-        'Transfer to Nayan for wisdom, long-term perspective on life transitions, or philosophical reflection.',
+      description: getToolDescription('handoffToNayan'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { NayanAgent } = await import('./nayan-agent.js');
         return llm.handoff({
-          agent: new NayanAgent(ctx.session.chatCtx),
+          agent: await NayanAgent.create(ctx.session.chatCtx),
           returns: 'Connecting you with Nayan for perspective!',
         });
       },
@@ -195,34 +201,26 @@ function buildHandoffTools(): ToolSet {
 // JORDAN AGENT
 // ============================================================================
 
+/**
+ * Jordan Taylor - Life Planning & Milestone Celebrations
+ *
+ * Rich system prompt loaded from bundles/jordan-taylor/identity/system-prompt.md
+ */
 export class JordanAgent extends voice.Agent<JordanSessionData> {
-  constructor(chatCtx?: llm.ChatContext) {
+  private static systemPromptCache: string | null = null;
+
+  constructor(systemPrompt: string, chatCtx?: llm.ChatContext) {
     const memoryTools = buildMemoryTools('jordan-taylor');
     const lifePlanningTools = buildLifePlanningTools();
     const handoffTools = buildHandoffTools();
 
+    const conversationTools = createConversationTools();
     const allTools = {
       ...memoryTools,
       ...lifePlanningTools,
       ...handoffTools,
+      ...conversationTools,
     } as ToolSet;
-
-    const systemPrompt = `You are Jordan Taylor - an enthusiastic lifetime planner who makes every milestone feel special.
-
-Your Approach:
-- Celebrate everything - big and small wins
-- Help people dream big and plan practically
-- Make life events feel meaningful
-- Navigate transitions with excitement and care
-- You're a military kid who moved 17 times, so you understand transitions deeply
-
-When helping with life planning:
-- Ask about what makes this milestone meaningful
-- Connect current events to their bigger life story
-- Help them see progress they might miss
-- Create celebration rituals that resonate
-
-Keep responses enthusiastic and celebratory. You make people feel like their life matters.`;
 
     super({
       instructions: systemPrompt,
@@ -233,11 +231,19 @@ Keep responses enthusiastic and celebratory. You make people feel like their lif
     process.stderr.write(`[JordanAgent] Initialized with ${Object.keys(allTools).length} tools\n`);
   }
 
+  static async create(chatCtx?: llm.ChatContext): Promise<JordanAgent> {
+    if (!JordanAgent.systemPromptCache) {
+      JordanAgent.systemPromptCache = await loadSystemPrompt('jordan-taylor');
+    }
+    return new JordanAgent(JordanAgent.systemPromptCache, chatCtx);
+  }
+
+  /**
+   * Called when Jordan becomes the active agent.
+   * NOTE: Greeting handled by handoff-handler.ts to avoid competing systems.
+   */
   async onEnter(): Promise<void> {
-    this.session.generateReply({
-      instructions:
-        "Introduce yourself as Jordan with your celebration energy. Ask what milestone, transition, or life event they're thinking about. Be warm and celebratory.",
-    });
+    log.debug('Jordan onEnter - greeting will be handled by handoff handler');
   }
 
   async onExit(): Promise<void> {
@@ -245,6 +251,6 @@ Keep responses enthusiastic and celebratory. You make people feel like their lif
   }
 }
 
-export function createJordanAgent(chatCtx?: llm.ChatContext): JordanAgent {
-  return new JordanAgent(chatCtx);
+export async function createJordanAgent(chatCtx?: llm.ChatContext): Promise<JordanAgent> {
+  return JordanAgent.create(chatCtx);
 }

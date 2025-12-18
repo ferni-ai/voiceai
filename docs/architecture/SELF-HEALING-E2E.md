@@ -467,7 +467,7 @@ export function trackJobMetrics(job: JobTrace): void {
 - [x] User communication on issues (warm, human explanations)
 - [x] Resilient HTTP client for all external APIs (`resilient-http.ts`)
 - [x] Tool execution resilience (`src/tools/utils/tool-wrapper.ts`)
-- [x] Frontend API retry logic (`frontend-typescript/src/utils/api.ts`)
+- [x] Frontend API retry logic (`apps/web/src/utils/api.ts`)
 
 ### Phase 4: Intelligence ✅ COMPLETE
 
@@ -476,7 +476,7 @@ export function trackJobMetrics(job: JobTrace): void {
 - [x] Real-time dashboards (error-dashboard.html + `/health/circuits`)
 - [x] Slack/email alerting (`src/services/self-healing/circuit-alerting.ts`)
 - [x] GCP Cloud Monitoring metrics (`src/services/self-healing/cloud-metrics.ts`)
-- [x] Frontend service health UI (`frontend-typescript/src/ui/service-health.ui.ts`)
+- [x] Frontend service health UI (`apps/web/src/ui/service-health.ui.ts`)
 
 ### Phase 5: Advanced Recovery ✅ COMPLETE
 

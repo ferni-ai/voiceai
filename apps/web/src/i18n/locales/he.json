@@ -67,7 +67,7 @@
       "voiceAccent": "קול ומבטא",
       "guidedPractices": "תרגולים מודרכים",
       "createPractice": "צור תרגול",
-      "healthFitness": "בריאות וכושר",
+      "wearables": "מכשירים לבישים",
       "calendar": "יומן",
       "notifications": "התראות",
       "toggleTheme": "בהיר / כהה",
@@ -83,8 +83,7 @@
       "supportFerni": "תמוך ב-Ferni",
       "takeTour": "התחל סיור",
       "language": "שפה",
-      "whatsGrowing": "מה צומח",
-      "supportFerniExpanded": "תמוך ב-Ferni"
+      "whatsGrowing": "מה צומח"
     },
     "pinItem": "הצמד למעלה",
     "unpinItem": "בטל הצמדה",
@@ -133,6 +132,88 @@
     "endConversation": "סיים שיחה",
     "endConversationGoodbye": "סיים שיחה - להתראות",
     "agentEndingConversation": "הסוכן מסיים את השיחה"
+  },
+  "trustJourney": {
+    "eyebrow": "הסיפור שלנו",
+    "title": "מסע האמון שלך",
+    "subtitle": "איך גדלנו יחד",
+    "loading": "טוען את המסע שלך",
+    "loadingText": "אוסף את המסע שלך...",
+    "trustScore": "ציון אמון",
+    "exportSuccess": "המסע יוצא!",
+    "offlineBanner": "אתה לא מחובר - מציג נתונים שמורים",
+    "loadMore": "טען עוד {count}",
+    "strengthLabel": "ציון אמון: {value}%",
+    "timelineLabel": "ציר זמן המסע",
+    "filterLabel": "סנן ציר זמן",
+    "filters": {
+      "all": "הכל",
+      "growth": "צמיחה",
+      "win": "הישגים",
+      "callback": "שיחות",
+      "boundary": "גבולות",
+      "outreach": "יצירת קשר"
+    },
+    "sections": {
+      "strength": "חוזק הקשר",
+      "stats": "סטטיסטיקות המסע",
+      "boundaries": "גבולות שנכבדו",
+      "growth": "איך גדלת",
+      "timeline": "המסע שלנו יחד"
+    },
+    "stats": {
+      "growthMoments": "רגעי צמיחה",
+      "winsCelebrated": "הישגים שחגגנו",
+      "sharedMoments": "רגעים משותפים"
+    },
+    "strengthDescriptions": {
+      "deep": "בנינו משהו אמיתי יחד. אני מכיר אותך, ואתה סומך עליי.",
+      "growing": "הקשר שלנו מעמיק. אני לומד מה חשוב לך.",
+      "building": "אנחנו בונים אמון. כל שיחה עוזרת לי להבין אותך טוב יותר.",
+      "starting": "אנחנו רק מתחילים. המשך לדבר איתי - אני מקשיב.",
+      "beginning": "כל מסע מתחיל בצעד ראשון. אני כאן כשתהיה מוכן."
+    },
+    "growthTypes": {
+      "emotional_regulation": "איזון רגשי",
+      "perspective_shift": "פרספקטיבות חדשות",
+      "boundary_setting": "גבולות בריאים",
+      "behavior_change": "הרגלים חדשים",
+      "self_awareness": "מודעות עצמית",
+      "coping_upgrade": "התמודדות טובה יותר",
+      "goal_progress": "התקדמות ביעדים"
+    },
+    "empty": {
+      "title": "הסיפור שלנו רק מתחיל",
+      "message": "ככל שנדבר יותר, אשים לב לצמיחה שלך, אחגוג את ההישגים שלך, ואזכור מה חשוב לך. חזור בקרוב."
+    },
+    "errors": {
+      "offline": {
+        "title": "אתה לא מחובר",
+        "message": "התחבר לאינטרנט כדי לראות את המסע שלך."
+      },
+      "notLoggedIn": {
+        "title": "לא מחובר",
+        "message": "התחבר כדי לראות את המסע שלך עם פרני."
+      },
+      "rateLimited": {
+        "title": "לאט יותר",
+        "message": "אתה בודק לעתים קרובות מדי. חכה רגע ונסה שוב."
+      },
+      "unauthorized": {
+        "title": "הגישה נדחתה",
+        "message": "אין לך הרשאה לצפות בזה."
+      },
+      "generic": {
+        "title": "משהו השתבש",
+        "message": "לא הצלחנו לטעון את המסע שלך. אנא נסה שוב."
+      },
+      "exportFailed": {
+        "message": "לא הצלחנו לייצא את הנתונים שלך. אנא נסה שוב."
+      },
+      "fetchFailedUsingCache": {
+        "message": "מציג נתונים שמורים - לא הצלחנו להגיע לשרת."
+      }
+    }
   },
   "subscription": {
     "free": "חינם",
@@ -570,18 +651,5 @@
     "dailyPractice": "תרגול יומי",
     "predictions": "תחזיות",
     "runScenario": "הפעל תרחיש"
-  },
-  "support": {
-    "eyebrow": "גדלים יחד",
-    "title": "תמוך ב-Ferni",
-    "subtitle": "בחר איך הידידות שלנו גדלה. כל דרך שבה אתה נוכח חשובה.",
-    "growTogether": "דרכים להעמיק את הקשר שלנו",
-    "plantASeed": "שתול זרע",
-    "plantDesc": "מתנה קטנה שעוזרת ל-Ferni לגדול. בלי לחץ—הידידות שלנו לא תלויה בזה.",
-    "plantButton": "שתול את הזרע הזה",
-    "thankYouSupporter": "אתה מדהים",
-    "yourSupport": "התמיכה שלך שומרת את Ferni כאן לכולם",
-    "manageBilling": "עדכן אמצעי תשלום",
-    "footer": "לא משנה איך תבחר לתמוך בנו, תודה שאתה כאן."
   }
 }

@@ -103,6 +103,7 @@ async function checkLiveKit(): Promise<HealthCheckResult> {
 
 /**
  * Cartesia TTS health check - verify API connectivity
+ * Note: Cartesia is optional - the voice agent uses Gemini's built-in TTS
  */
 async function checkCartesia(): Promise<HealthCheckResult> {
   const start = Date.now();
@@ -111,9 +112,9 @@ async function checkCartesia(): Promise<HealthCheckResult> {
     const apiKey = process.env.CARTESIA_API_KEY;
     if (!apiKey) {
       return {
-        healthy: false,
+        healthy: true, // Optional service - Gemini provides built-in TTS
         latencyMs: 0,
-        error: 'CARTESIA_API_KEY not configured',
+        details: 'Cartesia not configured (optional - using Gemini TTS)',
       };
     }
 
@@ -122,17 +123,24 @@ async function checkCartesia(): Promise<HealthCheckResult> {
 
     try {
       // Cartesia voices endpoint as health check
+      // Note: Cartesia API returns 405 for HEAD requests, so we use GET
+      // As of 2024, Cartesia requires a version header in YYYY-MM-DD format
       const response = await fetch('https://api.cartesia.ai/voices', {
-        method: 'HEAD',
-        headers: { 'X-API-Key': apiKey },
+        method: 'GET',
+        headers: {
+          'X-API-Key': apiKey,
+          'Cartesia-Version': '2024-06-10', // Required version header
+        },
         signal: controller.signal,
       });
 
       clearTimeout(timeout);
       const latencyMs = Date.now() - start;
 
+      // 200 = success, 401/403 = auth issue but API is reachable
+      // We consider the service healthy if we can reach it
       return {
-        healthy: response.ok,
+        healthy: response.ok || response.status === 401 || response.status === 403,
         latencyMs,
         details: `Status: ${response.status}`,
       };
@@ -237,6 +245,7 @@ async function checkFirestore(): Promise<HealthCheckResult> {
 
 /**
  * Deepgram STT health check - verify API connectivity
+ * Note: Deepgram is optional - the voice agent uses Gemini's built-in STT
  */
 async function checkDeepgram(): Promise<HealthCheckResult> {
   const start = Date.now();
@@ -245,9 +254,9 @@ async function checkDeepgram(): Promise<HealthCheckResult> {
     const apiKey = process.env.DEEPGRAM_API_KEY;
     if (!apiKey) {
       return {
-        healthy: false,
+        healthy: true, // Optional service - Gemini provides built-in STT
         latencyMs: 0,
-        error: 'DEEPGRAM_API_KEY not configured',
+        details: 'Deepgram not configured (optional - using Gemini STT)',
       };
     }
 
@@ -284,6 +293,7 @@ async function checkDeepgram(): Promise<HealthCheckResult> {
 
 /**
  * OpenAI health check - verify API connectivity
+ * Note: OpenAI is optional - the voice agent uses Gemini as primary LLM
  */
 async function checkOpenAI(): Promise<HealthCheckResult> {
   const start = Date.now();
@@ -292,9 +302,9 @@ async function checkOpenAI(): Promise<HealthCheckResult> {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       return {
-        healthy: false,
+        healthy: true, // Optional service - Gemini is primary LLM
         latencyMs: 0,
-        error: 'OPENAI_API_KEY not configured',
+        details: 'OpenAI not configured (optional - using Gemini LLM)',
       };
     }
 

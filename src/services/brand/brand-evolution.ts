@@ -8,6 +8,7 @@
  */
 
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { removeUndefined } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getWebExperiments, type WebExperiment } from '../experiments/web-experiments.js';
 import { clearBrandContextCache } from './brand-context.js';
@@ -392,14 +393,16 @@ export async function logValidation(
   const db = getFirestore();
 
   try {
-    await db.collection('brand_validations').add({
-      contentLength: content.length,
-      isCompliant: result.isCompliant,
-      score: result.score,
-      violations: result.violations,
-      context,
-      timestamp: FieldValue.serverTimestamp(),
-    });
+    await db.collection('brand_validations').add(
+      removeUndefined({
+        contentLength: content.length,
+        isCompliant: result.isCompliant,
+        score: result.score,
+        violations: result.violations,
+        context,
+        timestamp: FieldValue.serverTimestamp(),
+      })
+    );
   } catch (error) {
     log.warn({ error }, 'Failed to log validation');
   }

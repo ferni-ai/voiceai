@@ -9,6 +9,7 @@
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import { z } from 'zod';
+import { getToolDescription } from '../utils/tool-descriptions.js';
 import {
   type DeliveryAddress,
   type MenuItem,
@@ -27,11 +28,7 @@ export function createDeliveryTools() {
     // ========== SEARCH DELIVERY ==========
 
     searchFoodDelivery: llm.tool({
-      description: `Search for restaurants on food delivery apps (DoorDash, Uber Eats).
-Use when the user wants to:
-- Order food for delivery
-- Find what delivers to their area
-- Get dinner/lunch delivered`,
+      description: getToolDescription('searchFoodDelivery'),
       parameters: z.object({
         query: z.string().describe('What to search for (e.g., "pizza", "Thai food", "McDonalds")'),
         street: z.string().describe('Delivery address street'),
@@ -65,8 +62,7 @@ Use when the user wants to:
     // ========== START ORDER ==========
 
     startFoodOrder: llm.tool({
-      description: `Start a food delivery order from a specific restaurant.
-Use after the user picks a restaurant from search results.`,
+      description: getToolDescription('startFoodOrder'),
       parameters: z.object({
         restaurantName: z.string().describe('Name of the restaurant'),
         platform: z.enum(['doordash', 'ubereats']).describe('Which delivery app'),
@@ -96,8 +92,7 @@ Use after the user picks a restaurant from search results.`,
     // ========== ADD TO ORDER ==========
 
     addItemToOrder: llm.tool({
-      description: `Add an item to the current food order.
-Use when user says what they want to eat.`,
+      description: getToolDescription('addItemToOrder'),
       parameters: z.object({
         orderId: z.string().describe('The order ID from startFoodOrder'),
         itemName: z.string().describe('Name of the menu item'),
@@ -130,8 +125,7 @@ Use when user says what they want to eat.`,
     // ========== CHECKOUT ==========
 
     checkoutOrder: llm.tool({
-      description: `Finalize the food order and get a link to complete payment.
-Use when user is done adding items and ready to pay.`,
+      description: getToolDescription('checkoutOrder'),
       parameters: z.object({
         orderId: z.string().describe('The order ID'),
         tip: z.number().optional().describe('Tip amount in dollars'),
@@ -186,7 +180,7 @@ Use when user is done adding items and ready to pay.`,
     // ========== ORDER STATUS ==========
 
     getOrderStatus: llm.tool({
-      description: `Check the status of a food order.`,
+      description: getToolDescription('getOrderStatus'),
       parameters: z.object({
         orderId: z.string().describe('The order ID'),
       }),
@@ -203,8 +197,7 @@ Use when user is done adding items and ready to pay.`,
     // ========== QUICK ORDER (common items) ==========
 
     quickFoodOrder: llm.tool({
-      description: `Quick order for common food items - searches, picks best match, and creates order link.
-Use for simple orders like "order me a pizza" or "get me Chinese food".`,
+      description: getToolDescription('quickFoodOrder'),
       parameters: z.object({
         foodType: z.string().describe('Type of food (pizza, Chinese, burgers, etc.)'),
         street: z.string().describe('Delivery address street'),

@@ -21,6 +21,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { CARTESIA_MODEL } from '../../config/voice-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'ResourceServer' });
@@ -445,14 +446,13 @@ function handleTTSRequest(reg: ResourceRegistry, request: ResourceRequest): Reso
           process.env.FERNI_VOICE_ID ||
           process.env.JACK_B_VOICE_ID ||
           'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc';
-        const cartesiaModel = process.env.CARTESIA_MODEL || 'sonic-3';
         return {
           id: request.id,
           success: true,
           data: {
             voiceId: persona.voice?.voiceId || defaultVoiceId,
             provider: persona.voice?.provider || 'cartesia',
-            model: cartesiaModel,
+            model: CARTESIA_MODEL,
             accent: 'american',
           },
         };
@@ -668,7 +668,7 @@ export async function getPrewarmedTTSConfig(personaId: string): Promise<{
     return {
       voiceId: persona.voice.voiceId,
       provider: persona.voice.provider,
-      model: process.env.CARTESIA_MODEL || 'sonic-3',
+      model: CARTESIA_MODEL,
       accent: 'american',
     };
   }

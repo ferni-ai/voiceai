@@ -179,7 +179,12 @@ async function handleGetRecommendations(
   const userId = searchParams.get('userId') || 'anonymous';
   const tier = (searchParams.get('tier') as PremiumTier) || 'free';
   const limit = parseInt(searchParams.get('limit') || '10', 10);
-  const contentType = searchParams.get('type') as 'video' | 'podcast' | 'guide' | 'course' | undefined;
+  const contentType = searchParams.get('type') as
+    | 'video'
+    | 'podcast'
+    | 'guide'
+    | 'course'
+    | undefined;
   const topic = searchParams.get('topic') || undefined;
 
   const recommendations = getPersonalizedRecommendations(userId, tier, {
@@ -234,10 +239,7 @@ async function handleUpdatePreferences(
   return true;
 }
 
-async function handleRecordEngagement(
-  req: IncomingMessage,
-  res: ServerResponse
-): Promise<boolean> {
+async function handleRecordEngagement(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   const body = await parseBody(req);
   const userId = body.userId as string | undefined;
   const contentId = body.contentId as string | undefined;
@@ -282,10 +284,7 @@ async function handleGetOurSongs(
   return true;
 }
 
-async function handleAddOurSong(
-  req: IncomingMessage,
-  res: ServerResponse
-): Promise<boolean> {
+async function handleAddOurSong(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   const body = await parseBody(req);
   const userId = body.userId as string | undefined;
   const trackName = body.trackName as string | undefined;
@@ -307,7 +306,16 @@ async function handleAddOurSong(
     artistName,
     {
       topic: topic || 'general',
-      emotionalTone: (emotionalTone as 'joyful' | 'reflective' | 'comforting' | 'energizing' | 'nostalgic' | 'triumphant' | 'peaceful' | 'bittersweet') || 'reflective',
+      emotionalTone:
+        (emotionalTone as
+          | 'joyful'
+          | 'reflective'
+          | 'comforting'
+          | 'energizing'
+          | 'nostalgic'
+          | 'triumphant'
+          | 'peaceful'
+          | 'bittersweet') || 'reflective',
       memory: memory || `We listened to this together`,
       keywords,
     },
@@ -320,10 +328,7 @@ async function handleAddOurSong(
   return true;
 }
 
-async function handleDesignateOurSong(
-  req: IncomingMessage,
-  res: ServerResponse
-): Promise<boolean> {
+async function handleDesignateOurSong(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   const body = await parseBody(req);
   const userId = body.userId as string | undefined;
   const trackName = body.trackName as string | undefined;
@@ -357,7 +362,12 @@ async function handleGetSongSuggestions(
 
   const currentMood = searchParams.get('mood') || undefined;
   const conversationTopic = searchParams.get('topic') || undefined;
-  const timeOfDay = searchParams.get('time') as 'morning' | 'afternoon' | 'evening' | 'night' | undefined;
+  const timeOfDay = searchParams.get('time') as
+    | 'morning'
+    | 'afternoon'
+    | 'evening'
+    | 'night'
+    | undefined;
   const isMilestone = searchParams.get('milestone') === 'true';
   const keywords = searchParams.get('keywords')?.split(',') || undefined;
 
@@ -434,10 +444,7 @@ async function handleGetOurSongCard(
   return true;
 }
 
-async function handleRecordSongPlayed(
-  req: IncomingMessage,
-  res: ServerResponse
-): Promise<boolean> {
+async function handleRecordSongPlayed(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   const body = await parseBody(req);
   const userId = body.userId as string | undefined;
   const songId = body.songId as string | undefined;
@@ -478,4 +485,3 @@ async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>>
     req.on('error', reject);
   });
 }
-

@@ -19,6 +19,7 @@ import { llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // FINANCIAL ANXIETY RESPONSES
 // ============================================================================
@@ -214,8 +215,7 @@ export function reframeBelief(beliefType: keyof typeof REFRAMING_PERSPECTIVES): 
 export function createWellnessTools() {
   return {
     addressFinancialAnxiety: llm.tool({
-      description:
-        'Help someone who is anxious about money or markets. Use when user expresses worry, fear, or stress about finances.',
+      description: getToolDescription('addressFinancialAnxiety'),
       parameters: z.object({
         anxietyType: z
           .enum([
@@ -235,8 +235,7 @@ export function createWellnessTools() {
     }),
 
     provideEncouragement: llm.tool({
-      description:
-        'Encourage and motivate someone on their financial journey. Use when they need a boost.',
+      description: getToolDescription('provideEncouragement'),
       parameters: z.object({
         stage: z
           .enum([
@@ -254,7 +253,7 @@ export function createWellnessTools() {
     }),
 
     reframeMoneyBelief: llm.tool({
-      description: 'Help reframe unhealthy money beliefs into healthier perspectives.',
+      description: getToolDescription('reframeMoneyBelief'),
       parameters: z.object({
         beliefType: z
           .enum([
@@ -303,7 +302,7 @@ export function createWellnessTools() {
     }),
 
     practiceGratitude: llm.tool({
-      description: 'Guide a financial gratitude practice to build contentment.',
+      description: getToolDescription('checkInOnWellbeing'),
       parameters: z.object({}),
       execute: async () => {
         getLogger().info('Practicing financial gratitude');

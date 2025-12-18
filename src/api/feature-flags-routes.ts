@@ -10,6 +10,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { createLogger } from '../utils/safe-logger.js';
+import { parseBody, sendJSON } from './helpers.js';
 
 import {
   disableAllTrustFlags,
@@ -35,39 +36,43 @@ const log = createLogger({ module: 'FeatureFlagsRoutes' });
 // UTILITIES
 // ============================================================================
 
-async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => (body += chunk.toString()));
-    req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : {});
-      } catch {
-        resolve({});
-      }
-    });
-    req.on('error', reject);
-  });
-}
+// parseBody and sendJSON imported from './helpers.js'
 
+/**
+ * Legacy wrapper for sendJSON with (res, status, data) signature.
+ */
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
+  sendJSON(res, data, status);
 }
 
 function isAdmin(req: IncomingMessage): boolean {
-  // SECURITY: 'dev-mode' key only works in development environment
+  // SECURITY: Admin access ALWAYS requires a configured ADMIN_KEY
+  // The hardcoded 'dev-mode' backdoor has been removed for security
   const adminKey = req.headers['x-admin-key'] as string;
-  const isDev = process.env.NODE_ENV !== 'production';
   const configuredAdminKey = process.env.ADMIN_KEY;
 
-  // In production, require ADMIN_KEY
-  if (!isDev) {
-    return !!configuredAdminKey && adminKey === configuredAdminKey;
+  // SECURITY: Explicitly check for production - fail closed if NODE_ENV is unset
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (!configuredAdminKey) {
+    // No ADMIN_KEY configured - block admin access entirely
+    if (!isProduction) {
+      log.warn('ADMIN_KEY not configured - admin access blocked. Set ADMIN_KEY env var.');
+    }
+    return false;
   }
 
-  // In development, allow 'dev-mode' or configured admin key
-  return adminKey === 'dev-mode' || adminKey === configuredAdminKey;
+  // SECURITY: Use timing-safe comparison to prevent timing attacks
+  if (!adminKey || adminKey.length !== configuredAdminKey.length) {
+    return false;
+  }
+
+  // Simple constant-time comparison
+  let result = 0;
+  for (let i = 0; i < adminKey.length; i++) {
+    result |= adminKey.charCodeAt(i) ^ configuredAdminKey.charCodeAt(i);
+  }
+  return result === 0;
 }
 
 // ============================================================================
@@ -137,7 +142,7 @@ export async function handleFeatureFlagsRoutes(
         return true;
       }
 
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
 
       await setFlag(flagId, {
         enabled: body.enabled as boolean | undefined,
@@ -207,7 +212,7 @@ export async function handleFeatureFlagsRoutes(
         return true;
       }
 
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       const percentage = body.percentage as number;
 
       if (typeof percentage !== 'number' || percentage < 0 || percentage > 100) {

@@ -15,6 +15,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   // SAFETY
   crisis: () => import('./crisis.js'),
   'wellbeing-context': () => import('./wellbeing-context.js'),
+  'principal-alignment': () => import('./principal-alignment.js'),
 
   // EMOTIONAL
   emotional: () => import('./emotional.js'),

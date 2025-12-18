@@ -149,6 +149,11 @@ export const DEFAULT_TOOL_CONFIG: ToolConfig = {
  */
 export const AVAILABLE_MODELS = [
   {
+    id: 'gemini-3-flash-preview',
+    name: 'Gemini 3 Flash (Preview)',
+    description: 'Latest model with improved capabilities',
+  },
+  {
     id: 'gemini-2.0-flash-exp',
     name: 'Gemini 2.0 Flash (Experimental)',
     description: 'Fast, latest features',
@@ -511,11 +516,38 @@ export function validateGeminiConfig(config: Partial<GeminiModelConfig>): {
 }
 
 // ============================================================================
+// CONVENIENCE HELPERS
+// ============================================================================
+
+/**
+ * Get the default model name from config.
+ * Use this instead of hardcoding model names!
+ *
+ * @example
+ * // Instead of: model: 'gemini-2.0-flash-exp'
+ * // Use: model: getDefaultModel()
+ */
+export function getDefaultModel(): string {
+  return getDefaultGeminiConfig().model;
+}
+
+/**
+ * Get the default model for a specific persona, falling back to global default.
+ */
+export function getModelForPersona(personaId?: string): string {
+  if (personaId) {
+    return getPersonaModelConfig(personaId).gemini.model;
+  }
+  return getDefaultModel();
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
 export const modelConfig = {
   getDefault: getDefaultGeminiConfig,
+  getDefaults: getDefaultGeminiConfig, // Alias for compatibility
   setDefault: setDefaultGeminiConfig,
   getPersona: getPersonaModelConfig,
   setPersona: setPersonaModelConfig,
@@ -533,6 +565,9 @@ export const modelConfig = {
   getDefaultToolConfig,
   setDefaultToolConfig,
   availableToolDomains: AVAILABLE_TOOL_DOMAINS,
+  // Convenience helpers
+  getDefaultModel,
+  getModelForPersona,
 };
 
 export default modelConfig;

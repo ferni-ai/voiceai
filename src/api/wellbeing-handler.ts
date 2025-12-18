@@ -13,7 +13,12 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
-import { getUserId, handleCorsPreflightIfNeeded } from './helpers.js';
+import {
+  getUserId,
+  handleCorsPreflightIfNeeded,
+  parseBody as parseBodyHelper,
+  sendJSON,
+} from './helpers.js';
 
 const log = getLogger().child({ module: 'wellbeing-handler' });
 
@@ -68,28 +73,24 @@ interface SnapshotRequest {
 // HELPERS
 // ============================================================================
 
-// getUserId imported from ./helpers.js
+// getUserId, parseBodyHelper, sendJSON imported from ./helpers.js
 
+/**
+ * Parse body with null fallback (for optional/nullable body)
+ */
 async function parseBody<T>(req: IncomingMessage): Promise<T | null> {
-  return new Promise((resolve) => {
-    let data = '';
-    req.on('data', (chunk) => {
-      data += chunk;
-    });
-    req.on('end', () => {
-      try {
-        resolve(JSON.parse(data) as T);
-      } catch {
-        resolve(null);
-      }
-    });
-    req.on('error', () => resolve(null));
-  });
+  try {
+    return await parseBodyHelper<T>(req);
+  } catch {
+    return null;
+  }
 }
 
+/**
+ * Legacy wrapper for sendJSON with (res, status, data) signature.
+ */
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
+  sendJSON(res, data, status);
 }
 
 // ============================================================================
@@ -151,7 +152,7 @@ async function handleGetDashboard(
     if (currentState.mood > 0.7) {
       insights.push({
         type: 'celebration',
-        message: 'Your mood has been great lately! 🎉',
+        message: 'Your mood has been great lately!',
         dimension: 'mood',
       });
     }

@@ -7,7 +7,7 @@
   "toolDefaults": {
     "debugMode": true,
     "maxTools": 15,
-    "enabledDomains": ["entertainment", "memory", "awareness", "simple-utilities"],
+    "enabledDomains": ["entertainment", "memory", "awareness", "simple-utilities", "information"],
     "excludedTools": [],
     "includedTools": [],
     "logToolSchemas": true,

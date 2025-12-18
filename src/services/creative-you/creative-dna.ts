@@ -39,7 +39,7 @@ export interface CreativeDNA {
   // Interest Topics
   topTopics: Array<{ topic: string; score: number }>;
   emergingInterests: string[]; // Recently explored topics
-  
+
   // Engagement Stats
   totalVideosWatched: number;
   totalPodcastsListened: number;
@@ -62,7 +62,7 @@ export type LearningStyle =
   | 'practical' // Prefers actionable content
   | 'philosophical' // Prefers reflective content
   | 'visual' // Prefers video over audio
-  | 'audio' // Prefers podcasts;
+  | 'audio'; // Prefers podcasts;
 
 export type EngagementPattern =
   | 'daily-learner' // Consistent daily engagement
@@ -300,8 +300,7 @@ const PERSONALITY_LABELS: Array<{
     description: 'You love discovering new ideas and perspectives across many topics.',
     match: (dna) => {
       const topicVariety = dna.topTopics.length;
-      const categoryVariety =
-        dna.topVideoCategories.length + dna.topPodcastCategories.length;
+      const categoryVariety = dna.topVideoCategories.length + dna.topPodcastCategories.length;
       return topicVariety * 2 + categoryVariety;
     },
   },
@@ -319,8 +318,7 @@ const PERSONALITY_LABELS: Array<{
     description: 'You engage thoughtfully with content, saving insights along the way.',
     match: (dna) => {
       const insightRatio =
-        dna.totalInsightsSaved /
-        Math.max(1, dna.totalVideosWatched + dna.totalPodcastsListened);
+        dna.totalInsightsSaved / Math.max(1, dna.totalVideosWatched + dna.totalPodcastsListened);
       return insightRatio * 100;
     },
   },
@@ -329,8 +327,7 @@ const PERSONALITY_LABELS: Array<{
     description: 'You prefer learning through video content over audio.',
     match: (dna) => {
       const videoRatio =
-        dna.totalVideosWatched /
-        Math.max(1, dna.totalVideosWatched + dna.totalPodcastsListened);
+        dna.totalVideosWatched / Math.max(1, dna.totalVideosWatched + dna.totalPodcastsListened);
       return videoRatio * 100;
     },
   },
@@ -339,8 +336,7 @@ const PERSONALITY_LABELS: Array<{
     description: 'Podcasts are your preferred way to consume content and ideas.',
     match: (dna) => {
       const podcastRatio =
-        dna.totalPodcastsListened /
-        Math.max(1, dna.totalVideosWatched + dna.totalPodcastsListened);
+        dna.totalPodcastsListened / Math.max(1, dna.totalVideosWatched + dna.totalPodcastsListened);
       return podcastRatio * 100;
     },
   },
@@ -386,9 +382,7 @@ function calculatePersonalityDescription(dna: CreativeDNA): string {
     return "You're just getting started on your creative journey. Let's explore together!";
   }
 
-  const personality = PERSONALITY_LABELS.find(
-    (p) => p.label === dna.personalityLabel
-  );
+  const personality = PERSONALITY_LABELS.find((p) => p.label === dna.personalityLabel);
   return personality?.description || 'You have a unique creative profile!';
 }
 
@@ -469,9 +463,7 @@ function updateTopicScores(
   newTopics: string[]
 ): void {
   for (const topic of newTopics) {
-    const existing = topics.find(
-      (t) => t.topic.toLowerCase() === topic.toLowerCase()
-    );
+    const existing = topics.find((t) => t.topic.toLowerCase() === topic.toLowerCase());
     if (existing) {
       existing.score += 5;
     } else {
@@ -488,18 +480,14 @@ function updateAverageCompletion(dna: CreativeDNA, completion: number): void {
   if (total === 1) {
     dna.averageWatchCompletion = completion;
   } else {
-    dna.averageWatchCompletion =
-      (dna.averageWatchCompletion * (total - 1) + completion) / total;
+    dna.averageWatchCompletion = (dna.averageWatchCompletion * (total - 1) + completion) / total;
   }
 }
 
 function updateDiscussionParticipation(dna: CreativeDNA): void {
   const total = dna.totalVideosWatched + dna.totalPodcastsListened;
   // Increment participation score
-  dna.discussionParticipation = Math.min(
-    100,
-    dna.discussionParticipation + 10
-  );
+  dna.discussionParticipation = Math.min(100, dna.discussionParticipation + 10);
 }
 
 function estimateTimeSpent(dna: CreativeDNA): number {
@@ -552,4 +540,3 @@ function formatLearningStyle(style: LearningStyle): string {
   };
   return labels[style];
 }
-

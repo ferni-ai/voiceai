@@ -129,6 +129,9 @@ import { getPersonaAsync, initializeFromBundles, type PersonaConfig } from '../p
 // Services Bootstrap
 import { initializeServices } from '../services/index.js';
 
+// Model Configuration - runtime settings from data/model-config.json
+import { modelConfig } from '../services/model-config.js';
+
 // First Taste Trial - "Better than Human" free trial experience
 
 // Adaptive SSML
@@ -465,17 +468,38 @@ class VoiceAgent extends voice.Agent<UserData> {
     //
     // To force legacy mode (debugging only):
     //   export FORCE_LEGACY_TOOLS=true
+    //   OR set useOrchestrator: false in data/model-config.json
     // =========================================================================
 
     perfInstrumentation.startPhase('tool-loading');
 
-    // Use orchestrator by default, legacy only if forced or orchestrator fails
-    const forceLegacy = process.env.FORCE_LEGACY_TOOLS === 'true';
+    // Use orchestrator by default, legacy only if:
+    // 1. FORCE_LEGACY_TOOLS env var is set, OR
+    // 2. useOrchestrator is false in model-config.json
+    const toolConfig = modelConfig.getDefaultToolConfig();
+    const forceLegacy =
+      process.env.FORCE_LEGACY_TOOLS === 'true' || toolConfig.useOrchestrator === false;
+
+    if (toolConfig.debugMode) {
+      logger.info(
+        {
+          useOrchestrator: toolConfig.useOrchestrator,
+          enabledDomains: toolConfig.enabledDomains,
+          excludedTools: toolConfig.excludedTools.length,
+          includedTools: toolConfig.includedTools.length,
+          maxTools: toolConfig.maxTools,
+        },
+        '🔧 Tool config from model-config.json'
+      );
+    }
 
     if (!forceLegacy) {
       try {
         // ORCHESTRATOR MODE - Semantic-based tool selection (DEFAULT)
-        logger.info({ personaId: persona.id }, '🎯 Using Tool Orchestrator for semantic tool selection');
+        logger.info(
+          { personaId: persona.id },
+          '🎯 Using Tool Orchestrator for semantic tool selection'
+        );
 
         // Initialize orchestrator if not ready
         if (!isOrchestratorInitialized()) {
@@ -490,7 +514,11 @@ class VoiceAgent extends voice.Agent<UserData> {
           persona: {
             id: persona.id,
             displayName: persona.displayName || persona.name,
-            tools: (persona as { tools?: { domains?: string[]; required?: string[]; forbidden?: string[] } }).tools,
+            tools: (
+              persona as {
+                tools?: { domains?: string[]; required?: string[]; forbidden?: string[] };
+              }
+            ).tools,
           },
           userId: 'session-user', // Will be updated with real user ID
           initialTranscript: '', // No initial transcript at session start
@@ -2860,31 +2888,29 @@ export default defineAgent({
       // 🌍 Register TTS for mid-session accent changes
       registerSessionTTS(sessionId, tts, sessionPersona.id, userAccent);
 
+      // Get centralized model config (toggle via admin UI or model-config.json)
+      const geminiConfig = modelConfig.getDefault();
+      logger.info({ model: geminiConfig.model }, '🤖 Using model from centralized config');
+
       const session = new voice.AgentSession({
         vad: vad as sileroType.VAD,
         llm: new google!.beta.realtime.RealtimeModel({
-          model: 'gemini-2.0-flash-exp',
+          model: geminiConfig.model,
           modalities: [Modality!.TEXT],
-          temperature: 0.8,
-          language: 'en-US',
+          temperature: geminiConfig.temperature,
+          language: geminiConfig.language,
           instructions: sessionPersona.systemPrompt,
         }),
         tts,
         userData,
-        // LATENCY OPTIMIZATION: Tune voice options for snappy, human-like responses
+        // ZERO LATENCY TRADEOFF: Fast detection + intelligent filtering
+        // Validator catches noise in <1ms, so timing can be aggressive
         voiceOptions: {
-          // Allow user to interrupt the agent naturally
           allowInterruptions: true,
-          // Minimum silence before considering user done speaking (ms)
-          // Lower = snappier responses, but may cut off pauses
-          minEndpointingDelay: 400,
-          // Maximum wait time (ms) - prevents long awkward pauses
-          maxEndpointingDelay: 1200,
-          // How many words user must say before they can interrupt
-          minInterruptionWords: 1,
-          // How long user must speak to interrupt (ms)
-          minInterruptionDuration: 300,
-          // Start generating response while user is still finishing
+          minEndpointingDelay: 350, // Fast! Validator catches false positives
+          maxEndpointingDelay: 1000,
+          minInterruptionWords: 2,
+          minInterruptionDuration: 250, // Fast! Validator filters, not timing
           preemptiveGeneration: true,
         },
       });
@@ -2977,6 +3003,8 @@ export default defineAgent({
       // ============================================================
       // Extracted to voice-agent/tool-tracking-handler.ts for maintainability
       // Tracks: tool usage analytics, deprecation analysis, pattern analysis, auto-optimizer
+      // Read tool config for tracking options (model-config.json)
+      const trackingToolConfig = modelConfig.getDefaultToolConfig();
       setupToolTrackingHandler({
         session,
         userData,
@@ -2984,6 +3012,8 @@ export default defineAgent({
         sessionPersona,
         sessionId,
         debugEnabled: DEBUG_STARTUP,
+        // Connected from model-config.json toolDefaults
+        logToolResults: trackingToolConfig.logToolResults,
       });
 
       // ===============================================

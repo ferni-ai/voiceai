@@ -504,8 +504,8 @@ scripts/colab_export_ecapa.py
 
 ### Phase 1: UI Integration ✅ COMPLETE
 
-- [x] Add voice enrollment to settings menu → `frontend-typescript/src/ui/voice-enrollment.ui.ts`
-- [x] Add "Voice ID" indicator to user profile area → `frontend-typescript/src/ui/voice-id-badge.ui.ts`
+- [x] Add voice enrollment to settings menu → `apps/web/src/ui/voice-enrollment.ui.ts`
+- [x] Add "Voice ID" indicator to user profile area → `apps/web/src/ui/voice-id-badge.ui.ts`
 - [x] Add re-enrollment prompt when quality is low
 - [ ] Test enrollment flow on mobile devices (iOS Safari, Android Chrome)
 

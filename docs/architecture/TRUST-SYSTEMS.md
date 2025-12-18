@@ -81,7 +81,7 @@ src/api/
 ├── trust-journey-routes.ts       # Phase 1: Journey visualization API
 └── trust-export-routes.ts        # Phase 2: Data export API
 
-frontend-typescript/src/ui/
+apps/web/src/ui/
 └── trust-journey.ui.ts           # Phase 1: Journey visualization UI
 
 src/intelligence/context-builders/
@@ -452,7 +452,7 @@ const style = isFeatureEnabled(userId, 'celebration-style-v1')
 **Advanced Features:**
 - `src/api/trust-journey-routes.ts` - Journey visualization API (Phase 1)
 - `src/api/trust-export-routes.ts` - Data export API (Phase 2)
-- `frontend-typescript/src/ui/trust-journey.ui.ts` - Journey UI component (Phase 1)
+- `apps/web/src/ui/trust-journey.ui.ts` - Journey UI component (Phase 1)
 - `src/services/trust-systems/cross-device-sync.ts` - Real-time sync (Phase 3)
 - `src/services/trust-systems/outreach-timing-ml.ts` - ML timing (Phase 4)
 - `src/services/trust-systems/persona-specific-learning.ts` - Persona learning (Phase 5)
@@ -467,7 +467,7 @@ const style = isFeatureEnabled(userId, 'celebration-style-v1')
 ## Advanced Features (Implemented)
 
 ### Phase 1: Frontend Visualization
-**File:** `frontend-typescript/src/ui/trust-journey.ui.ts`
+**File:** `apps/web/src/ui/trust-journey.ui.ts`
 
 Beautiful, cinematic visualization of the user's relationship with Ferni:
 - Relationship strength ring (0-100 score)
@@ -575,8 +575,8 @@ Wires the Trust Journey UI into the actual app:
 - `initTrustJourneyUI()` called in app.ts
 
 **Files:**
-- `frontend-typescript/src/app.ts` - Import & initialize
-- `frontend-typescript/src/ui/settings-menu.ui.ts` - Menu item
+- `apps/web/src/app.ts` - Import & initialize
+- `apps/web/src/ui/settings-menu.ui.ts` - Menu item
 
 ---
 
@@ -616,7 +616,7 @@ deliverToUser(item, channelConfig) → Promise<DeliveryResult>
 ---
 
 ### Phase 9: User Preferences UI
-**File:** `frontend-typescript/src/ui/outreach-preferences.ui.ts`
+**File:** `apps/web/src/ui/outreach-preferences.ui.ts`
 
 Let users control their experience:
 - Master enable/disable toggle
@@ -630,7 +630,7 @@ Let users control their experience:
 ---
 
 ### Phase 10: Analytics Dashboard
-**File:** `frontend-typescript/src/ui/trust-analytics.ui.ts`
+**File:** `apps/web/src/ui/trust-analytics.ui.ts`
 
 Admin view for monitoring trust system health:
 - System health status (healthy/degraded/down)
@@ -939,7 +939,7 @@ src/api/
 ├── outreach-routes.ts             # Phase 8: Outreach management API
 └── utils.ts                       # Shared API utilities
 
-frontend-typescript/src/ui/
+apps/web/src/ui/
 ├── trust-journey.ui.ts            # Phase 1: Journey visualization UI
 ├── outreach-preferences.ui.ts     # Phase 9: User preferences UI
 └── trust-analytics.ui.ts          # Phase 10: Admin analytics UI

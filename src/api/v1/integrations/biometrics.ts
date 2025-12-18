@@ -8,7 +8,13 @@
  */
 
 import { Router, type Request, type Response } from 'express';
+import { z } from 'zod';
 import { createLogger } from '../../../utils/safe-logger.js';
+
+// SECURITY: Schema for validating OAuth state parameter
+const OAuthStateSchema = z.object({
+  userId: z.string().min(1),
+});
 import {
   getAuthorizationUrl,
   exchangeCodeForTokens,
@@ -107,11 +113,16 @@ router.get('/callback/:platform', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Missing code or state parameter' });
     }
 
-    // Decode state to get userId
+    // SECURITY: Decode and validate state parameter with Zod schema
     let userId: string;
     try {
-      const decoded = JSON.parse(Buffer.from(state, 'base64').toString());
-      userId = decoded.userId;
+      const rawDecoded = JSON.parse(Buffer.from(state, 'base64').toString());
+      const parsed = OAuthStateSchema.safeParse(rawDecoded);
+      if (!parsed.success) {
+        log.warn({ issues: parsed.error.issues }, 'Invalid OAuth state structure');
+        return res.status(400).json({ error: 'Invalid state parameter' });
+      }
+      userId = parsed.data.userId;
     } catch {
       return res.status(400).json({ error: 'Invalid state parameter' });
     }

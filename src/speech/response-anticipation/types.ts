@@ -18,8 +18,8 @@ export type IntentCategory =
   | 'negation'
   | 'gratitude'
   | 'apology'
-  | 'question_about_self'
-  | 'question_about_user'
+  | 'question_about_self' // User asking "who are you?"
+  | 'question_about_agent' // User asking "how are you?" (renamed from question_about_user - that was wrong)
   | 'request_clarification'
   | 'emotional_disclosure'
   | 'task_request'

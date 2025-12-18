@@ -31,6 +31,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 const log = getLogger();
 
 // ============================================================================
@@ -63,7 +64,7 @@ Use when user says things like:
       tags: ['games', 'music', 'interactive', 'fun'],
       create: (ctx: ToolContext) =>
         llm.tool({
-          description: 'Start a music game',
+          description: getToolDescription('startGame'),
           parameters: z.object({
             gameType: z
               .enum([
@@ -114,7 +115,7 @@ Use when:
       tags: ['games', 'answer', 'interactive'],
       create: (ctx: ToolContext) =>
         llm.tool({
-          description: 'Submit answer in current game',
+          description: getToolDescription('submitGameAnswer'),
           parameters: z.object({
             answer: z.string().describe("The user's answer, choice, or input"),
           }),
@@ -159,7 +160,7 @@ Use when user says "hint", "help", "I don't know", or seems stuck.`,
       tags: ['games', 'hint', 'help'],
       create: (ctx: ToolContext) =>
         llm.tool({
-          description: 'Get a hint for the current game',
+          description: getToolDescription('getGameHint'),
           parameters: z.object({}),
           execute: async () => {
             const personaId = ctx.agentId || 'ferni';
@@ -185,7 +186,7 @@ Use when user says "skip", "pass", "next", or wants to move on.`,
       tags: ['games', 'skip', 'next'],
       create: (ctx: ToolContext) =>
         llm.tool({
-          description: 'Skip the current round',
+          description: getToolDescription('skipGameRound'),
           parameters: z.object({}),
           execute: async () => {
             const personaId = ctx.agentId || 'ferni';
@@ -216,7 +217,7 @@ Use when user says "stop", "quit", "end game", or wants to do something else.`,
       tags: ['games', 'end', 'quit'],
       create: (ctx: ToolContext) =>
         llm.tool({
-          description: 'End the current game',
+          description: getToolDescription('endGame'),
           parameters: z.object({}),
           execute: async () => {
             const personaId = ctx.agentId || 'ferni';
@@ -245,7 +246,7 @@ Use when user asks "what's the score?", "what round?", "how am I doing?"`,
       tags: ['games', 'status', 'score'],
       create: (ctx: ToolContext) =>
         llm.tool({
-          description: 'Get current game status',
+          description: getToolDescription('getGameStatus'),
           parameters: z.object({}),
           execute: async () => {
             const personaId = ctx.agentId || 'ferni';
@@ -276,7 +277,7 @@ Use when user asks "how many games have I played?", "what's my best score?"`,
       tags: ['games', 'history', 'stats'],
       create: (ctx: ToolContext) =>
         llm.tool({
-          description: 'Get game history and stats',
+          description: getToolDescription('getGameHistory'),
           parameters: z.object({}),
           execute: async () => {
             const personaId = ctx.agentId || 'ferni';
@@ -309,7 +310,7 @@ Use proactively during lulls or when user seems like they want to do something f
       tags: ['games', 'suggest', 'proactive'],
       create: (ctx: ToolContext) =>
         llm.tool({
-          description: 'Suggest a game based on mood',
+          description: getToolDescription('suggestGame'),
           parameters: z.object({
             context: z
               .enum(['energetic', 'relaxed', 'competitive', 'creative', 'social'])
@@ -366,7 +367,7 @@ Use when user says things like:
       tags: ['games', 'text-games', 'tic-tac-toe', 'interactive', 'fun'],
       create: (ctx: ToolContext) =>
         llm.tool({
-          description: 'Start a text-based game like tic-tac-toe',
+          description: getToolDescription('startTextGame'),
           parameters: z.object({
             gameType: z.enum(['tic-tac-toe']).describe('Which text game to play'),
             userGoesFirst: z
@@ -416,7 +417,7 @@ Use when:
       tags: ['games', 'text-games', 'move', 'interactive'],
       create: (ctx: ToolContext) =>
         llm.tool({
-          description: 'Make a move in the current text game',
+          description: getToolDescription('makeTextGameMove'),
           parameters: z.object({
             move: z.string().describe("The user's move (e.g., 'center', 'top left', '5')"),
           }),
@@ -448,7 +449,7 @@ Use when user asks "what does the board look like?", "where are the pieces?", "s
       tags: ['games', 'text-games', 'status', 'board'],
       create: (ctx: ToolContext) =>
         llm.tool({
-          description: 'Get current text game board state',
+          description: getToolDescription('getTextGameBoard'),
           parameters: z.object({}),
           execute: async () => {
             const personaId = ctx.agentId || 'ferni';
@@ -472,7 +473,7 @@ Use when user says "stop", "quit", "I give up", "end game", or wants to do somet
       tags: ['games', 'text-games', 'end', 'quit'],
       create: (ctx: ToolContext) =>
         llm.tool({
-          description: 'End the current text game',
+          description: getToolDescription('endTextGame'),
           parameters: z.object({}),
           execute: async () => {
             const personaId = ctx.agentId || 'ferni';

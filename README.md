@@ -125,7 +125,7 @@ src/
 ├── speech/          # SSML, prosody, naturalness
 └── api/             # REST endpoints
 
-frontend-typescript/ # TypeScript UI
+apps/web/ # TypeScript UI
 docs/               # Architecture, guides, features
 brand/              # Design assets
 ```

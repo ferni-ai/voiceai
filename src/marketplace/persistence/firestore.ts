@@ -12,6 +12,7 @@
  * - marketplace_executions/{executionId} - Execution history
  */
 
+import { removeUndefined } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type {
   AgentManifest,
@@ -120,10 +121,12 @@ class FirestoreMarketplaceStore implements MarketplaceStore {
     await this.db
       .collection(COLLECTIONS.TOOLS)
       .doc(manifest.id)
-      .set({
-        ...manifest,
-        _updatedAt: new Date(),
-      });
+      .set(
+        removeUndefined({
+          ...manifest,
+          _updatedAt: new Date(),
+        })
+      );
     log.debug({ toolId: manifest.id }, 'Tool saved to Firestore');
   }
 
@@ -186,10 +189,12 @@ class FirestoreMarketplaceStore implements MarketplaceStore {
     await this.db
       .collection(COLLECTIONS.AGENTS)
       .doc(manifest.id)
-      .set({
-        ...manifest,
-        _updatedAt: new Date(),
-      });
+      .set(
+        removeUndefined({
+          ...manifest,
+          _updatedAt: new Date(),
+        })
+      );
     log.debug({ agentId: manifest.id }, 'Agent saved to Firestore');
   }
 
@@ -250,10 +255,12 @@ class FirestoreMarketplaceStore implements MarketplaceStore {
     await this.db
       .collection(COLLECTIONS.INSTALLATIONS)
       .doc(installation.id)
-      .set({
-        ...installation,
-        _updatedAt: new Date(),
-      });
+      .set(
+        removeUndefined({
+          ...installation,
+          _updatedAt: new Date(),
+        })
+      );
     log.debug({ installationId: installation.id }, 'Installation saved to Firestore');
   }
 
@@ -334,10 +341,12 @@ class FirestoreMarketplaceStore implements MarketplaceStore {
     await this.db
       .collection(COLLECTIONS.EXECUTIONS)
       .doc(execution.id)
-      .set({
-        ...execution,
-        _createdAt: new Date(),
-      });
+      .set(
+        removeUndefined({
+          ...execution,
+          _createdAt: new Date(),
+        })
+      );
   }
 
   async listExecutions(

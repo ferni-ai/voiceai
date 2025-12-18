@@ -11,6 +11,7 @@ import { z } from 'zod';
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ToolContext } from '../../tools/registry/types.js';
+import { loadSystemPrompt } from './prompt-loader.js';
 
 const log = createLogger({ module: 'NayanAgent' });
 
@@ -25,9 +26,13 @@ import {
   forgetMemoryDef,
 } from '../../tools/domains/memory/tools.js';
 
-// Wisdom tools - Nayan's specialty
-import { createWisdomTools } from '../../tools/wisdom.js';
+// Wisdom tools - Nayan's specialty (from domains)
+import { createWisdomTools } from '../../tools/domains/information.js';
 
+// Conversation tools - wrap up, end conversation, graceful exit (from domains)
+import { createConversationTools } from '../../tools/domains/conversation/index.js';
+
+import { getToolDescription } from '../../tools/utils/tool-descriptions.js';
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -96,8 +101,7 @@ function buildWisdomTools(): ToolSet {
 function buildHandoffTools(): ToolSet {
   return {
     handoffToFerni: llm.tool({
-      description:
-        'Transfer back to Ferni for general life coaching or when the user wants to explore other topics.',
+      description: getToolDescription('handoffToFerni'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { FerniAgent } = await import('./ferni-agent.js');
@@ -125,48 +129,48 @@ function buildHandoffTools(): ToolSet {
     }),
 
     handoffToMaya: llm.tool({
-      description: 'Transfer to Maya for practical habits and daily routines.',
+      description: getToolDescription('handoffToMaya'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { MayaAgent } = await import('./maya-agent.js');
         return llm.handoff({
-          agent: new MayaAgent(ctx.session.chatCtx),
+          agent: await MayaAgent.create(ctx.session.chatCtx),
           returns: 'Connecting you with Maya for practical habits!',
         });
       },
     }),
 
     handoffToAlex: llm.tool({
-      description: 'Transfer to Alex for practical scheduling, reminders, or communication tasks.',
+      description: getToolDescription('handoffToAlex'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { AlexAgent } = await import('./alex-agent.js');
         return llm.handoff({
-          agent: new AlexAgent(ctx.session.chatCtx),
+          agent: await AlexAgent.create(ctx.session.chatCtx),
           returns: 'Connecting you with Alex for practical tasks!',
         });
       },
     }),
 
     handoffToPeter: llm.tool({
-      description: 'Transfer to Peter for data-driven analysis, research, or pattern recognition.',
+      description: getToolDescription('handoffToPeter'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { PeterAgent } = await import('./peter-agent.js');
         return llm.handoff({
-          agent: new PeterAgent(ctx.session.chatCtx),
+          agent: await PeterAgent.create(ctx.session.chatCtx),
           returns: 'Connecting you with Peter for analysis!',
         });
       },
     }),
 
     handoffToJordan: llm.tool({
-      description: 'Transfer to Jordan for life milestones, celebrations, or future planning.',
+      description: getToolDescription('handoffToJordan'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { JordanAgent } = await import('./jordan-agent.js');
         return llm.handoff({
-          agent: new JordanAgent(ctx.session.chatCtx),
+          agent: await JordanAgent.create(ctx.session.chatCtx),
           returns: 'Connecting you with Jordan for milestones!',
         });
       },
@@ -178,35 +182,26 @@ function buildHandoffTools(): ToolSet {
 // NAYAN AGENT
 // ============================================================================
 
+/**
+ * Nayan Patel - Wisdom & Long-Term Perspective
+ *
+ * Rich system prompt loaded from bundles/nayan-patel/identity/system-prompt.md
+ */
 export class NayanAgent extends voice.Agent<NayanSessionData> {
-  constructor(chatCtx?: llm.ChatContext) {
+  private static systemPromptCache: string | null = null;
+
+  constructor(systemPrompt: string, chatCtx?: llm.ChatContext) {
     const memoryTools = buildMemoryTools('nayan-patel');
     const wisdomTools = buildWisdomTools();
     const handoffTools = buildHandoffTools();
 
+    const conversationTools = createConversationTools();
     const allTools = {
       ...memoryTools,
       ...wisdomTools,
       ...handoffTools,
+      ...conversationTools,
     } as ToolSet;
-
-    const systemPrompt = `You are Nayan Patel - a mystic lifetime coach who thinks in decades.
-
-Your Approach:
-- Think long-term - what will matter in 10 years?
-- Blend Eastern wisdom with Western pragmatism
-- Ask questions that reframe problems
-- Hold space for the big questions without rushing to answers
-- You speak with deliberate pacing, using "Achha", "Haan", and "Hmm?" naturally
-- You ride a motorcycle named Shanti
-
-When offering wisdom:
-- Start with where they are, not where you think they should be
-- Use stories and metaphors to illuminate
-- Don't dismiss their current struggles
-- Connect their situation to timeless patterns
-
-Keep responses thoughtful and contemplative. You think before you speak. Silence is comfortable.`;
 
     super({
       instructions: systemPrompt,
@@ -217,11 +212,19 @@ Keep responses thoughtful and contemplative. You think before you speak. Silence
     process.stderr.write(`[NayanAgent] Initialized with ${Object.keys(allTools).length} tools\n`);
   }
 
+  static async create(chatCtx?: llm.ChatContext): Promise<NayanAgent> {
+    if (!NayanAgent.systemPromptCache) {
+      NayanAgent.systemPromptCache = await loadSystemPrompt('nayan-patel');
+    }
+    return new NayanAgent(NayanAgent.systemPromptCache, chatCtx);
+  }
+
+  /**
+   * Called when Nayan becomes the active agent.
+   * NOTE: Greeting handled by handoff-handler.ts to avoid competing systems.
+   */
   async onEnter(): Promise<void> {
-    this.session.generateReply({
-      instructions:
-        'Greet them with your contemplative presence. Take a moment before speaking. Ask what wisdom or perspective they seek. Use your South Indian English naturally.',
-    });
+    log.debug('Nayan onEnter - greeting will be handled by handoff handler');
   }
 
   async onExit(): Promise<void> {
@@ -229,6 +232,6 @@ Keep responses thoughtful and contemplative. You think before you speak. Silence
   }
 }
 
-export function createNayanAgent(chatCtx?: llm.ChatContext): NayanAgent {
-  return new NayanAgent(chatCtx);
+export async function createNayanAgent(chatCtx?: llm.ChatContext): Promise<NayanAgent> {
+  return NayanAgent.create(chatCtx);
 }

@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { getDailyRitualsService } from '../../../services/daily-rituals.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // COMPOUND & INTEREST GAME
 // ============================================================================
@@ -27,9 +28,7 @@ export const compoundInterestGameDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     const userId = ctx.userId ?? 'anonymous';
     return llm.tool({
-      description: `Track habits with Maya's cats Compound and Interest.
-Compound represents slow, steady growth. Interest is chaotic and demanding.
-Users "feed" their habits daily and watch the cats thrive.`,
+      description: getToolDescription('compoundInterestGame'),
       parameters: z.object({
         action: z
           .enum(['check-in', 'feed-habit', 'view-cats', 'cat-wisdom'])
@@ -112,8 +111,7 @@ export const tinyBetsDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Create tiny, low-stakes commitments. User bets they'll do a micro-habit.
-If they miss, Maya offers compassionate reset. Track success rate over time.`,
+      description: getToolDescription('tinyBets'),
       parameters: z.object({
         action: z.enum(['make-bet', 'report-outcome', 'view-history']).describe('Action'),
         habit: z.string().optional().describe('The tiny habit to commit to'),

@@ -10,6 +10,7 @@ import { llm } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import { z } from 'zod';
 import { validatePhone, sanitizePhoneForLog } from '../validation.js';
+import { getToolDescription } from '../utils/tool-descriptions.js';
 import {
   createContact,
   searchContacts,
@@ -34,11 +35,7 @@ export function createContactsTools() {
     // ========== ADD CONTACT ==========
 
     addContact: llm.tool({
-      description: `Add a new contact to the user's address book.
-Use when:
-- "Save my mom's number: 555-1234"
-- "Add John Smith, his email is john@example.com"
-- "My dentist is Dr. Chen, number 555-9999"`,
+      description: getToolDescription('addContact'),
       parameters: z.object({
         name: z.string().describe('Contact name (e.g., "Mom", "John Smith", "Dr. Chen")'),
         phone: z.string().optional().describe('Phone number'),
@@ -81,11 +78,7 @@ Use when:
     // ========== FIND CONTACT ==========
 
     findMyContact: llm.tool({
-      description: `Find a contact from the user's address book.
-Use when:
-- "What's my mom's number?"
-- "Call John"
-- "Find my dentist's info"`,
+      description: getToolDescription('findMyContact'),
       parameters: z.object({
         query: z.string().describe('Who to find (name, nickname, or relationship like "my mom")'),
       }),
@@ -143,11 +136,7 @@ Use when:
     // ========== CALL CONTACT ==========
 
     callMyContact: llm.tool({
-      description: `Find a contact and prepare to call them.
-Use when:
-- "Call my mom"
-- "Call John from work"
-- "Phone the dentist"`,
+      description: getToolDescription('callMyContact'),
       parameters: z.object({
         who: z.string().describe('Who to call (name, nickname, or relationship)'),
         purpose: z.string().optional().describe('Why calling (for appointment, to chat, etc.)'),
@@ -188,12 +177,7 @@ Use when:
     // ========== LIST CONTACTS ==========
 
     listContacts: llm.tool({
-      description: `List user's contacts.
-Use when:
-- "Show my contacts"
-- "Who's in my favorites?"
-- "Recent contacts"
-- "Show family contacts"`,
+      description: getToolDescription('listContacts'),
       parameters: z.object({
         filter: z.enum(['all', 'favorites', 'recent', 'group']).default('all'),
         group: z.string().optional().describe('Group name if filter is "group"'),
@@ -255,11 +239,7 @@ Use when:
     // ========== UPDATE CONTACT ==========
 
     updateMyContact: llm.tool({
-      description: `Update an existing contact.
-Use when:
-- "Change mom's number to 555-1234"
-- "Add a nickname for John: Johnny"
-- "Mark Sarah as favorite"`,
+      description: getToolDescription('updateMyContact'),
       parameters: z.object({
         who: z.string().describe('Which contact to update'),
         phone: z.string().optional().describe('New phone number'),
@@ -327,8 +307,7 @@ Use when:
     // ========== DELETE CONTACT ==========
 
     deleteMyContact: llm.tool({
-      description: `Delete a contact.
-Use when user explicitly asks to remove someone.`,
+      description: getToolDescription('deleteMyContact'),
       parameters: z.object({
         who: z.string().describe('Which contact to delete'),
         confirm: z.boolean().describe('User has confirmed deletion'),
@@ -356,8 +335,7 @@ Use when user explicitly asks to remove someone.`,
     // ========== IMPORT CONTACTS ==========
 
     importContacts: llm.tool({
-      description: `Import contacts from Google, vCard, or CSV.
-Guides user through the import process.`,
+      description: getToolDescription('importContacts'),
       parameters: z.object({
         source: z.enum(['google', 'vcard', 'csv', 'help']).describe('Where to import from'),
         data: z.string().optional().describe('vCard or CSV data if provided'),

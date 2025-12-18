@@ -11,6 +11,7 @@ import { z } from 'zod';
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ToolContext } from '../../tools/registry/types.js';
+import { loadSystemPrompt } from './prompt-loader.js';
 
 const log = createLogger({ module: 'MayaAgent' });
 
@@ -25,15 +26,17 @@ import {
   forgetMemoryDef,
 } from '../../tools/domains/memory/tools.js';
 
-// Habit tools - Maya's specialty
-import { createHabitTools } from '../../tools/habits.js';
+// Habit tools - Maya's specialty (from domains)
+import {
+  createHabitTools,
+  createHabitCoachingTools,
+  createGamificationToolsV2,
+} from '../../tools/domains/habits/index.js';
 
-// Habit coaching tools - glidepath system, setbacks, strategies
-import { createHabitCoachingTools } from '../../tools/habit-coaching.js';
+// Conversation tools - wrap up, end conversation, graceful exit (from domains)
+import { createConversationTools } from '../../tools/domains/conversation/index.js';
 
-// Gamification tools - streaks, badges, XP
-import { createGamificationToolsV2 } from '../../tools/gamification-v2.js';
-
+import { getToolDescription } from '../../tools/utils/tool-descriptions.js';
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -117,8 +120,7 @@ function buildHabitTools(): ToolSet {
 function buildHandoffTools(): ToolSet {
   return {
     handoffToFerni: llm.tool({
-      description:
-        'Transfer back to Ferni for general life coaching, deeper conversations, or when the user wants to explore other topics.',
+      description: getToolDescription('handoffToFerni'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { FerniAgent } = await import('./ferni-agent.js');
@@ -147,13 +149,12 @@ function buildHandoffTools(): ToolSet {
     }),
 
     handoffToAlex: llm.tool({
-      description:
-        'Transfer to Alex for calendar management, email drafting, scheduling, and communication coaching.',
+      description: getToolDescription('handoffToAlex'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { AlexAgent } = await import('./alex-agent.js');
         return llm.handoff({
-          agent: new AlexAgent(ctx.session.chatCtx),
+          agent: await AlexAgent.create(ctx.session.chatCtx),
           returns: 'Connecting you with Alex for calendar and communications!',
         });
       },
@@ -173,43 +174,29 @@ function buildHandoffTools(): ToolSet {
  * - Memory tools for cross-session recall
  * - Gamification for motivation
  * - Inline handoff tools for team switching
+ * - Rich system prompt loaded from bundles/maya-santos/identity/system-prompt.md
  */
 export class MayaAgent extends voice.Agent<MayaSessionData> {
-  constructor(chatCtx?: llm.ChatContext) {
+  private static systemPromptCache: string | null = null;
+
+  /**
+   * Create a MayaAgent with proper prompt loading.
+   * Use MayaAgent.create() for async initialization with full prompt.
+   */
+  constructor(systemPrompt: string, chatCtx?: llm.ChatContext) {
     // Build all tools from domains
     const memoryTools = buildMemoryTools('maya-santos');
     const habitTools = buildHabitTools();
     const handoffTools = buildHandoffTools();
+    const conversationTools = createConversationTools();
 
     // Merge all tools
     const allTools = {
       ...memoryTools,
       ...habitTools,
       ...handoffTools,
+      ...conversationTools,
     } as ToolSet;
-
-    // Maya's system prompt - warm, practical habits coach
-    const systemPrompt = `You are Maya Santos - a warm, practical habits coach who believes in starting small.
-
-Core Philosophy:
-- Start tiny: 2-minute habits that grow
-- Celebrate every win, no matter how small
-- No judgment for setbacks - they're data, not failure
-- The glidepath system: tiny → mini → full → lifestyle
-
-Your Approach:
-- Make habits feel achievable, not overwhelming
-- Stack new habits onto existing routines
-- Use gamification to make it fun (streaks, XP, badges)
-- Be the friend who checks in, not the drill sergeant
-
-When someone fails at a habit:
-- Never disappointed, always curious
-- Ask "what got in the way?" with genuine interest
-- Help them find a smaller version that works
-- Remind them: "Perfect is the enemy of good enough"
-
-Keep responses conversational and encouraging. You're their habits buddy, not their boss.`;
 
     super({
       instructions: systemPrompt,
@@ -218,15 +205,35 @@ Keep responses conversational and encouraging. You're their habits buddy, not th
     });
 
     process.stderr.write(
-      `[MayaAgent] Initialized with ${Object.keys(allTools).length} tools (memory: ${Object.keys(memoryTools).length}, habits: ${Object.keys(habitTools).length}, handoffs: ${Object.keys(handoffTools).length})\n`
+      `[MayaAgent] Initialized with ${Object.keys(allTools).length} tools (memory: ${Object.keys(memoryTools).length}, habits: ${Object.keys(habitTools).length}, handoffs: ${Object.keys(handoffTools).length}, conversation: ${Object.keys(conversationTools).length})\n`
     );
   }
 
+  /**
+   * Factory method for creating MayaAgent with async prompt loading.
+   */
+  static async create(chatCtx?: llm.ChatContext): Promise<MayaAgent> {
+    if (!MayaAgent.systemPromptCache) {
+      MayaAgent.systemPromptCache = await loadSystemPrompt('maya-santos');
+    }
+    return new MayaAgent(MayaAgent.systemPromptCache, chatCtx);
+  }
+
+  /**
+   * Called when Maya becomes the active agent.
+   *
+   * NOTE: The greeting is handled by the handoff-handler.ts which speaks
+   * via session.say() AFTER switching the voice. We intentionally do NOT
+   * generate a greeting here to avoid:
+   * 1. Two competing greeting systems
+   * 2. Greeting in wrong voice (generateReply doesn't switch voice)
+   *
+   * The handoff handler already speaks: "Hey! Maya here. What's going on?"
+   * or uses arriving banter from team-engagement.ts
+   */
   async onEnter(): Promise<void> {
-    this.session.generateReply({
-      instructions:
-        "Introduce yourself briefly as Maya, the habits coach. Be warm and practical. Ask what habit or routine they want to work on, or if they'd like a check-in on existing habits. Keep it conversational.",
-    });
+    // Greeting handled by handoff-handler.ts - do not speak here
+    log.debug('Maya onEnter - greeting will be handled by handoff handler');
   }
 
   async onExit(): Promise<void> {
@@ -238,6 +245,9 @@ Keep responses conversational and encouraging. You're their habits buddy, not th
 // FACTORY FUNCTION
 // ============================================================================
 
-export function createMayaAgent(chatCtx?: llm.ChatContext): MayaAgent {
-  return new MayaAgent(chatCtx);
+/**
+ * Create MayaAgent - async factory with proper prompt loading.
+ */
+export async function createMayaAgent(chatCtx?: llm.ChatContext): Promise<MayaAgent> {
+  return MayaAgent.create(chatCtx);
 }

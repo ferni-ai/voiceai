@@ -16,7 +16,6 @@
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
-import { addTapListener } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import {
   createAnimationConfig,
@@ -62,13 +61,15 @@ const COMMANDS_COPY = {
   loading: 'Finding practices...',
   error: {
     title: 'Something went wrong',
-    message: 'Could not load practices. Please try again.',
+    message: "Couldn't load practices. Try again?",
     retry: 'Try again',
   },
   categories: {
     'check-in': 'Check-ins',
     reflection: 'Reflection',
     action: 'Take Action',
+    review: 'Reviews',
+    planning: 'Planning',
     default: 'Practices',
   },
   buttons: {
@@ -83,6 +84,8 @@ const COMMAND_ICONS: Record<string, string> = {
   'check-in': ICONS.sunny,
   reflection: ICONS.cloudy,
   action: ICONS.flame,
+  review: ICONS.calendar,
+  planning: ICONS.calendar,
   // Specific icons
   sunrise: ICONS.sunny,
   moon: ICONS.cloudy,
@@ -207,8 +210,7 @@ class CommandsPanelUI {
     // Backdrop
     const backdrop = document.createElement('div');
     backdrop.className = 'ferni-commands__backdrop';
-    // iOS-compatible backdrop handler
-    addTapListener(backdrop, () => this.hide());
+    backdrop.addEventListener('click', () => this.hide());
     this.panel.appendChild(backdrop);
 
     // Wrapper
@@ -307,8 +309,7 @@ class CommandsPanelUI {
     `;
 
     this.bindCloseButton();
-    // iOS-compatible retry button
-    addTapListener(this.wrapper.querySelector('.ferni-commands__retry'), () => {
+    this.wrapper.querySelector('.ferni-commands__retry')?.addEventListener('click', () => {
       this.loadCommands();
     });
   }
@@ -420,9 +421,9 @@ class CommandsPanelUI {
   }
 
   private bindCloseButton(): void {
-    // iOS-compatible close button
-    const closeBtn = this.wrapper?.querySelector('.engagement-close-btn') ?? null;
-    addTapListener(closeBtn, () => this.hide());
+    this.wrapper
+      ?.querySelector('.engagement-close-btn')
+      ?.addEventListener('click', () => this.hide());
   }
 
   private bindCommandButtons(): void {
@@ -430,8 +431,8 @@ class CommandsPanelUI {
     if (!buttons) return;
 
     buttons.forEach((btn, index) => {
-      // Click handler (iOS-compatible)
-      addTapListener(btn, () => this.selectCommand(btn as HTMLElement));
+      // Click handler
+      btn.addEventListener('click', () => this.selectCommand(btn as HTMLElement));
 
       // Keyboard navigation
       btn.addEventListener('keydown', (e) => {

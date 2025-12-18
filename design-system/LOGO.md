@@ -201,7 +201,7 @@ design-system/assets/logos/
 ├── *.svg                       # SVG copies
 └── *.png                       # All size variants
 
-frontend-typescript/public/
+apps/web/public/
 ├── logo.svg                    # App logo
 ├── logo-icon.svg               # App icon
 └── icons/                      # Favicons & PWA icons

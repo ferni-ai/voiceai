@@ -78,7 +78,9 @@ describe('Agents Service', () => {
 
       expect(agents).toHaveLength(2);
       expect(agents[0].id).toBe('ferni');
-      expect(mockFetch).toHaveBeenCalledWith('/api/agents');
+      expect(mockFetch).toHaveBeenCalledWith('/api/agents', expect.objectContaining({
+        method: 'GET',
+      }));
     });
 
     it('should cache results', async () => {

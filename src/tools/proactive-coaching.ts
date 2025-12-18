@@ -16,6 +16,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { getProductivityStore } from '../services/productivity-store.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // PROACTIVE TRIGGER TYPES
 // ============================================================================
@@ -925,14 +926,7 @@ export function createProactiveCoachingTools() {
      * Check for proactive coaching opportunities
      */
     checkForProactiveOpportunities: llm.tool({
-      description: `Check if there are any proactive coaching opportunities for the user.
-This analyzes their habits, challenges, moods, and activity to find moments
-where Maya should reach out proactively.
-
-Use when:
-- Starting a conversation (check if there's something to celebrate/address)
-- User hasn't mentioned anything specific
-- Periodic check-in time`,
+      description: getToolDescription('checkForProactiveOpportunities'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userData = ctx.userData as { userId?: string };
@@ -1023,12 +1017,7 @@ Use when:
      * Generate personalized proactive message
      */
     generateProactiveMessage: llm.tool({
-      description: `Generate a personalized proactive coaching message for a specific trigger.
-Use this to craft the perfect outreach based on the user's personality and situation.
-
-Use when:
-- A proactive opportunity was detected
-- You want to reach out with intention`,
+      description: getToolDescription('generateProactiveMessage'),
       parameters: z.object({
         triggerType: z
           .enum([
@@ -1106,13 +1095,7 @@ Use when:
      * Schedule a follow-up check-in
      */
     scheduleFollowUp: llm.tool({
-      description: `Schedule a proactive follow-up with the user.
-Use this to set a reminder to check in at a specific time.
-
-Use when:
-- User is working on something and you want to check back
-- User is struggling and needs future support
-- User completed something and deserves follow-up celebration`,
+      description: getToolDescription('scheduleFollowUp'),
       parameters: z.object({
         reason: z.string().describe("Why we're following up"),
         timing: z
@@ -1181,8 +1164,7 @@ Use when:
      * Get pending follow-ups
      */
     getPendingFollowUps: llm.tool({
-      description: `Get any scheduled follow-ups that are due.
-Use at the start of conversations to see if there's something to follow up on.`,
+      description: getToolDescription('getPendingFollowUps'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userData = ctx.userData as { userId?: string };
@@ -1226,8 +1208,7 @@ Use at the start of conversations to see if there's something to follow up on.`,
      * Mark follow-up as complete
      */
     completeFollowUp: llm.tool({
-      description: `Mark a scheduled follow-up as complete.
-Use after you've followed up with the user.`,
+      description: getToolDescription('completeFollowUp'),
       parameters: z.object({
         followUpId: z.string().describe('ID of the follow-up to complete'),
         outcome: z.string().optional().describe('What happened when you followed up'),
@@ -1270,15 +1251,7 @@ Use after you've followed up with the user.`,
      * Celebrate an achievement proactively
      */
     celebrateAchievement: llm.tool({
-      description: `Generate a celebration for a user achievement.
-Use this when you detect or are told about an achievement that deserves recognition.
-
-Use when:
-- Streak milestone reached
-- Challenge completed
-- Level up achieved
-- Comeback after break
-- Any win worth celebrating`,
+      description: getToolDescription('celebrateAchievement'),
       parameters: z.object({
         achievementType: z
           .enum([

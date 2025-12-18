@@ -263,9 +263,9 @@ export function updateUserStats(
   gameStats.highScore = Math.max(gameStats.highScore, result.score);
   gameStats.averageScore = Math.round(gameStats.totalScore / gameStats.gamesPlayed);
   gameStats.accuracy = Math.round(
-    ((gameStats.accuracy * (gameStats.gamesPlayed - 1) +
+    (gameStats.accuracy * (gameStats.gamesPlayed - 1) +
       (result.correctAnswers / result.totalQuestions) * 100) /
-      gameStats.gamesPlayed)
+      gameStats.gamesPlayed
   );
   if (result.timeMs) {
     gameStats.fastestTimeMs = gameStats.fastestTimeMs
@@ -283,12 +283,9 @@ export function updateUserStats(
 /**
  * Record a challenge result
  */
-export function recordChallengeResult(
-  userId: string,
-  won: boolean
-): void {
+export function recordChallengeResult(userId: string, won: boolean): void {
   const stats = getUserStats(userId);
-  
+
   if (won) {
     stats.challengesWon++;
     stats.totalXP += XP_CONFIG.winChallenge;
@@ -353,11 +350,7 @@ export function getLeaderboard(
       gamesPlayed = stats.totalGamesPlayed;
       winRate =
         stats.challengesWon + stats.challengesLost > 0
-          ? Math.round(
-              (stats.challengesWon /
-                (stats.challengesWon + stats.challengesLost)) *
-                100
-            )
+          ? Math.round((stats.challengesWon / (stats.challengesWon + stats.challengesLost)) * 100)
           : 0;
     } else {
       const gameStats = stats.gameStats[gameType];
@@ -564,4 +557,3 @@ export function seedLeaderboardData(): void {
 
   log.info('🏆 Seeded leaderboard with test data');
 }
-

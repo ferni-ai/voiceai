@@ -70,5 +70,5 @@ Implement a comprehensive design token system:
 ## References
 
 - `brand/ferni-design-tokens.css` - Token definitions
-- `frontend-typescript/scripts/validate-design-tokens.js` - Validator
-- `frontend-typescript/CLAUDE.md` - Frontend standards
+- `apps/web/scripts/validate-design-tokens.js` - Validator
+- `apps/web/CLAUDE.md` - Frontend standards

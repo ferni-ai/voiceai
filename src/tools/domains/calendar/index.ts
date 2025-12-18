@@ -19,6 +19,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // Stub options for internal tool routing (these calls don't use the actual context)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const STUB_CONTEXT = { ctx: {}, toolCallId: 'internal-routing' } as any;
@@ -70,8 +71,7 @@ function getAppointmentToolDefinitions(): ToolDefinition[] {
       tags: ['calendar', 'appointments', 'scheduling', 'confirm', 'cancel', 'status'],
       create: (_ctx: ToolContext) =>
         llm.tool({
-          description:
-            'Manage appointments. Actions: "schedule" (new appointment), "confirm", "cancel", or "status" (list upcoming).',
+          description: getToolDescription('manageAppointment'),
           parameters: z.object({
             action: z
               .enum(['schedule', 'confirm', 'cancel', 'status'])
@@ -166,7 +166,7 @@ function getAppointmentToolDefinitions(): ToolDefinition[] {
       tags: ['calendar', 'restaurants', 'reservations', 'search', 'dining'],
       create: (_ctx: ToolContext) =>
         llm.tool({
-          description: 'Restaurant search or reservation. Actions: "search" or "reserve".',
+          description: getToolDescription('restaurant'),
           parameters: z.object({
             action: z
               .enum(['search', 'reserve'])
@@ -244,8 +244,7 @@ function getDeliveryToolDefinitions(): ToolDefinition[] {
       tags: ['calendar', 'delivery', 'food', 'order', 'doordash', 'ubereats'],
       create: (_ctx: ToolContext) =>
         llm.tool({
-          description:
-            'Food delivery management. Actions: "search" (find restaurants), "start" (begin order), "add" (add item), "checkout" (complete order), "status" (check order).',
+          description: getToolDescription('foodDelivery'),
           parameters: z.object({
             action: z
               .enum(['search', 'start', 'add', 'checkout', 'status', 'quick'])
@@ -379,8 +378,7 @@ function getPlacesToolDefinitions(): ToolDefinition[] {
       tags: ['calendar', 'places', 'search', 'nearby', 'details', 'phone', 'hours'],
       create: (_ctx: ToolContext) =>
         llm.tool({
-          description:
-            'Business search and info. Actions: "search" (find by name/type), "details" (full info), "phone" (just the number), "call" (find and call).',
+          description: getToolDescription('findBusiness'),
           parameters: z.object({
             action: z.enum(['search', 'details', 'phone', 'call']).describe('What to do'),
             query: z.string().optional().describe('Business name or type'),
@@ -461,8 +459,7 @@ function getContactsToolDefinitions(): ToolDefinition[] {
       tags: ['calendar', 'contacts', 'add', 'find', 'update', 'delete', 'list', 'call'],
       create: (_ctx: ToolContext) =>
         llm.tool({
-          description:
-            'Contact management. Actions: "add", "find", "update", "delete", "list", or "call".',
+          description: getToolDescription('manageContact'),
           parameters: z.object({
             action: z
               .enum(['add', 'find', 'update', 'delete', 'list', 'call'])

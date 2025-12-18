@@ -17,6 +17,7 @@
 import { llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
+import { getToolDescription } from './utils/tool-descriptions.js';
 import {
   validateEmail,
   validatePhone,
@@ -625,12 +626,7 @@ export function parseScheduleTime(naturalTime: string): Date | null {
 export function createCommunicationTools() {
   return {
     sendEmail: llm.tool({
-      description: `Send an email to the user. Use for:
-- Portfolio summaries
-- Important reminders
-- Follow-up information
-- Documents or reports
-Ask for their email address first if you don't have it.`,
+      description: getToolDescription('sendEmail'),
       parameters: z.object({
         to: z.string().email().describe('Recipient email address'),
         subject: z.string().describe('Email subject line'),
@@ -643,11 +639,7 @@ Ask for their email address first if you don't have it.`,
     }),
 
     sendSMS: llm.tool({
-      description: `Send a text message to the user. Use for:
-- Quick reminders
-- Time-sensitive alerts
-- Brief updates
-Ask for their phone number first if you don't have it.`,
+      description: getToolDescription('sendSMS'),
       parameters: z.object({
         to: z.string().describe('Phone number (with or without country code)'),
         message: z.string().max(160).describe('Message content (max 160 chars)'),
@@ -659,10 +651,7 @@ Ask for their phone number first if you don't have it.`,
     }),
 
     scheduleReminder: llm.tool({
-      description: `Schedule a reminder for the user. Examples:
-- "Remind me to rebalance next month"
-- "Schedule a quarterly review for next Tuesday"
-- "Set a reminder to check my 401k tomorrow"`,
+      description: getToolDescription('scheduleReminder'),
       parameters: z.object({
         reminderText: z.string().describe('What to remind them about'),
         when: z.string().describe('When to remind (e.g., "tomorrow", "next week", "next Tuesday")'),
@@ -695,10 +684,7 @@ Ask for their phone number first if you don't have it.`,
     }),
 
     scheduleEvent: llm.tool({
-      description: `Schedule a calendar event. Use for:
-- Quarterly portfolio reviews
-- Financial planning sessions
-- Important financial dates`,
+      description: getToolDescription('scheduleEvent'),
       parameters: z.object({
         title: z.string().describe('Event title'),
         description: z.string().optional().describe('Event description'),

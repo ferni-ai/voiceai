@@ -18,6 +18,7 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // SUPPORTED LANGUAGES
 // ============================================================================
@@ -104,13 +105,7 @@ const translateDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Translate text between languages. Use when someone asks:
-- "How do you say 'hello' in Japanese?"
-- "Translate 'thank you' to Spanish"
-- "What's 'I love you' in French?"
-- "Say 'where is the bathroom' in German"
-
-Gemini natively speaks these languages, so translations are natural and contextual.`,
+      description: getToolDescription('translate'),
       parameters: z.object({
         text: z.string().describe('The text to translate'),
         targetLanguage: z
@@ -184,12 +179,7 @@ const pronounceDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Help with pronunciation of words or phrases. Use when someone asks:
-- "How do I pronounce 'croissant'?"
-- "How do you say this word?"
-- "What's the correct pronunciation of..."
-
-Provide phonetic guidance that's easy to follow.`,
+      description: getToolDescription('pronounce'),
       parameters: z.object({
         word: z.string().describe('The word or phrase to pronounce'),
         language: z
@@ -224,11 +214,7 @@ const learnPhrasesDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Teach common phrases in a language. Use when someone:
-- Is preparing for travel
-- Wants to learn basics of a language
-- Asks for survival phrases
-- Wants phrases for a specific situation (restaurant, hotel, etc.)`,
+      description: getToolDescription('learnPhrases'),
       parameters: z.object({
         language: z.string().describe('Language to learn phrases in'),
         category: z
@@ -295,10 +281,7 @@ const detectLanguageDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Identify what language something is written or spoken in. Use when someone asks:
-- "What language is this?"
-- "Is this Spanish or Portuguese?"
-- "What does this say?" (with foreign text)`,
+      description: getToolDescription('detectLanguage'),
       parameters: z.object({
         text: z.string().describe('The text to identify'),
       }),
@@ -330,11 +313,7 @@ const culturalContextDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Provide cultural context for communicating with people from different cultures. Use when someone:
-- Is meeting someone from another culture
-- Preparing for international business
-- Traveling and wants to be respectful
-- Curious about customs`,
+      description: getToolDescription('culturalContext'),
       parameters: z.object({
         culture: z.string().describe('The culture or country to learn about'),
         situation: z

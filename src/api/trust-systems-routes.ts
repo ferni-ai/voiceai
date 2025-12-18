@@ -19,7 +19,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
-import { handleCorsPreflightIfNeeded } from './helpers.js';
+import { handleCorsPreflightIfNeeded, parseBody, sendJSON } from './helpers.js';
 
 // Trust Systems imports
 import {
@@ -88,24 +88,13 @@ const log = createLogger({ module: 'TrustSystemsRoutes' });
 // UTILITIES
 // ============================================================================
 
-async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => (body += chunk.toString()));
-    req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : {});
-      } catch {
-        resolve({});
-      }
-    });
-    req.on('error', reject);
-  });
-}
+// parseBody and sendJSON imported from './helpers.js'
 
+/**
+ * Legacy wrapper for sendJSON with (res, status, data) signature.
+ */
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
+  sendJSON(res, data, status);
 }
 
 // getUserId available from ./helpers.js if needed
@@ -248,7 +237,7 @@ export async function handleTrustSystemsRoutes(
     }
 
     if (pathname === '/api/trust/life-events' && method === 'POST') {
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       const detections = detectLifeEvents(validUserId, body.text as string);
 
       for (const detection of detections) {
@@ -367,7 +356,7 @@ export async function handleTrustSystemsRoutes(
     }
 
     if (pathname === '/api/trust/seasonal/personal-date' && method === 'POST') {
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       const date = addPersonalDate(validUserId, {
         date: { month: body.month as number, day: body.day as number },
         name: body.name as string,
@@ -380,7 +369,7 @@ export async function handleTrustSystemsRoutes(
     }
 
     if (pathname === '/api/trust/seasonal/holiday' && method === 'POST') {
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       updateHolidayPreference(validUserId, body.holiday as string, {
         sentiment: body.sentiment as 'positive' | 'neutral' | 'negative' | 'mixed',
         avoidMentioning: body.avoidMentioning as boolean,
@@ -420,7 +409,7 @@ export async function handleTrustSystemsRoutes(
     }
 
     if (pathname === '/api/trust/insights/generate' && method === 'POST') {
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       const period = (body.period as 'week' | 'month' | 'quarter' | 'year') || 'month';
       const report = generateReport(validUserId, period);
       sendJson(res, 201, report);
@@ -454,7 +443,7 @@ export async function handleTrustSystemsRoutes(
     }
 
     if (pathname === '/api/trust/media/feedback' && method === 'POST') {
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       recordSuggestionFeedback(validUserId, body.suggestionId as string, {
         used: body.used as boolean,
         rating: body.rating as 1 | 2 | 3 | 4 | 5,
@@ -507,7 +496,7 @@ export async function handleTrustSystemsRoutes(
     // ========================================================================
 
     if (pathname === '/api/trust/life-events/outcome' && method === 'POST') {
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       const eventId = body.eventId as string;
       const outcome = body.outcome as 'positive' | 'negative' | 'neutral' | 'unknown';
 
@@ -561,7 +550,7 @@ export async function handleTrustSystemsRoutes(
     // ========================================================================
 
     if (pathname === '/api/trust/health/calculate' && method === 'POST') {
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       const metrics = body.metrics as Record<string, number> | undefined;
 
       // Calculate fresh health score with provided or default metrics

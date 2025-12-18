@@ -21,6 +21,7 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../utils/safe-logger.js';
+import { getToolDescription } from './utils/tool-descriptions.js';
 import {
   getHomeAssistantClient,
   getHueClient,
@@ -531,11 +532,7 @@ export async function activateScene(sceneName: string): Promise<string> {
 export function createSmartHomeTools() {
   return {
     controlLight: llm.tool({
-      description: `Control smart lights. Use when someone says:
-- "Turn on the lights"
-- "Turn off the bedroom light"
-- "Dim the living room to 50%"
-- "Make it brighter"`,
+      description: getToolDescription('controlLight'),
       parameters: z.object({
         room: z.string().describe('Room or light name (e.g., "living room", "bedroom", "kitchen")'),
         action: z.enum(['on', 'off', 'toggle']).describe('What to do with the light'),
@@ -547,11 +544,7 @@ export function createSmartHomeTools() {
     }),
 
     setThermostat: llm.tool({
-      description: `Set the thermostat temperature. Use when someone says:
-- "Set the temperature to 72"
-- "Make it cooler/warmer"
-- "Turn up the heat"
-- "Turn on the AC"`,
+      description: getToolDescription('setThermostat'),
       parameters: z.object({
         temperature: z.number().describe('Target temperature in Fahrenheit'),
         mode: z.enum(['heat', 'cool', 'auto', 'off']).optional().describe('HVAC mode'),
@@ -562,10 +555,7 @@ export function createSmartHomeTools() {
     }),
 
     controlLock: llm.tool({
-      description: `Control smart locks. Use when someone says:
-- "Lock the front door"
-- "Unlock the back door"
-- "Is the door locked?"`,
+      description: getToolDescription('controlLock'),
       parameters: z.object({
         lock: z.string().describe('Which lock (e.g., "front door", "back door", "garage")'),
         action: z.enum(['lock', 'unlock', 'status']).describe('What to do'),
@@ -586,10 +576,7 @@ export function createSmartHomeTools() {
     }),
 
     listDevices: llm.tool({
-      description: `List all smart home devices and their status. Use when someone asks:
-- "What smart devices do I have?"
-- "Show me all my lights"
-- "What's the status of my home?"`,
+      description: getToolDescription('listDevices'),
       parameters: z.object({
         type: z
           .enum(['all', 'lights', 'thermostats', 'locks', 'switches'])
@@ -645,10 +632,7 @@ export function createSmartHomeTools() {
     }),
 
     activateScene: llm.tool({
-      description: `Activate a smart home scene/routine. Use when someone says:
-- "Good night" (turns off lights, sets thermostat)
-- "Good morning" (turns on lights)
-- "Movie time" (dims lights)`,
+      description: getToolDescription('activateScene'),
       parameters: z.object({
         sceneName: z
           .string()

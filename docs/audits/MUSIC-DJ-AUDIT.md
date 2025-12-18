@@ -28,13 +28,13 @@ Audit of the music playback and DJ capabilities across the Ferni platform. Ident
 
 | Component                   | Location                            | Purpose                                    |
 | --------------------------- | ----------------------------------- | ------------------------------------------ |
-| `now-playing.ui.ts`         | `frontend-typescript/src/ui/`       | Floating card with track info              |
-| `music-audio.controller.ts` | `frontend-typescript/src/services/` | **🎚️ REAL-TIME DUCKING** via Web Audio API |
-| `connection.service.ts`     | `frontend-typescript/src/services/` | Music track identification & attachment    |
-| `music-dashboard.ui.ts`     | `frontend-typescript/src/ui/`       | Music insights/stats dashboard             |
-| `toast.ui.ts`               | `frontend-typescript/src/ui/`       | General toast notifications                |
-| `spotify.service.ts`        | `frontend-typescript/src/services/` | Spotify Web Playback SDK                   |
-| `spotify.ui.ts`             | `frontend-typescript/src/ui/`       | Spotify connection UI                      |
+| `now-playing.ui.ts`         | `apps/web/src/ui/`       | Floating card with track info              |
+| `music-audio.controller.ts` | `apps/web/src/services/` | **🎚️ REAL-TIME DUCKING** via Web Audio API |
+| `connection.service.ts`     | `apps/web/src/services/` | Music track identification & attachment    |
+| `music-dashboard.ui.ts`     | `apps/web/src/ui/`       | Music insights/stats dashboard             |
+| `toast.ui.ts`               | `apps/web/src/ui/`       | General toast notifications                |
+| `spotify.service.ts`        | `apps/web/src/services/` | Spotify Web Playback SDK                   |
+| `spotify.ui.ts`             | `apps/web/src/ui/`       | Spotify connection UI                      |
 
 ### 🎚️ MusicAudioController Deep Dive
 
@@ -117,7 +117,7 @@ Backend Music Player
 
 **Files Modified:**
 
-- `frontend-typescript/src/ui/now-playing.ui.ts`
+- `apps/web/src/ui/now-playing.ui.ts`
 
 ---
 
@@ -444,7 +444,7 @@ To verify DJ intro/outro is working:
 ### Automated Tests to Add
 
 ```typescript
-// frontend-typescript/src/tests/now-playing.test.ts
+// apps/web/src/tests/now-playing.test.ts
 
 describe('NowPlayingUI', () => {
   it('should hide after track ends', async () => {
@@ -550,7 +550,7 @@ Use this checklist to verify the full DJ experience is working:
 │                           │                                                 │
 │                           ▼ (LiveKit Data Channel: music_state)            │
 │                                                                             │
-│  FRONTEND (frontend-typescript/src/services/music-audio.controller.ts)     │
+│  FRONTEND (apps/web/src/services/music-audio.controller.ts)     │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
 │  │ MusicAudioController (Web Audio API)                                │   │
 │  │                                                                      │   │
@@ -574,10 +574,10 @@ Use this checklist to verify the full DJ experience is working:
 | ------------------------------------------------------------ | -------- | --------------------------------------------------- |
 | `src/audio/music-player.ts`                                  | Backend  | Sends 'ducking'/'playing' state messages            |
 | `src/agents/voice-agent/session-state-handler.ts`            | Backend  | Calls `player.duck()` on agent speech start         |
-| `frontend-typescript/src/services/music-audio.controller.ts` | Frontend | **REAL DUCKING** via Web Audio GainNode             |
-| `frontend-typescript/src/services/connection.service.ts`     | Frontend | Identifies music tracks, calls `attachMusicTrack()` |
-| `frontend-typescript/src/app.ts`                             | Frontend | Triggers `duckForAgent()`/`unduckForAgent()`        |
-| `frontend-typescript/src/app/data-message-handlers.ts`       | Frontend | Handles 'ducking' state from backend                |
+| `apps/web/src/services/music-audio.controller.ts` | Frontend | **REAL DUCKING** via Web Audio GainNode             |
+| `apps/web/src/services/connection.service.ts`     | Frontend | Identifies music tracks, calls `attachMusicTrack()` |
+| `apps/web/src/app.ts`                             | Frontend | Triggers `duckForAgent()`/`unduckForAgent()`        |
+| `apps/web/src/app/data-message-handlers.ts`       | Frontend | Handles 'ducking' state from backend                |
 
 ### Volume Levels
 
@@ -739,7 +739,7 @@ Run these tests with browser console open to verify ducking is working:
 
 ### Recommended New Test File
 
-Create `frontend-typescript/src/__tests__/music-ducking.e2e.test.ts`:
+Create `apps/web/src/__tests__/music-ducking.e2e.test.ts`:
 
 ```typescript
 describe('Music Ducking E2E', () => {

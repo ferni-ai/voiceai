@@ -6,6 +6,9 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import * as spotifyService from '../services/spotify.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'SpotifyRoutes' });
 
 /**
  * Handle Spotify routes
@@ -19,10 +22,10 @@ export async function handleSpotifyRoutes(
   // Get Spotify access token for Web Playback SDK
   if (pathname === '/spotify/token') {
     const forceRefresh = parsedUrl.searchParams.get('force') === '1';
-    console.log('🎵 /spotify/token requested', forceRefresh ? '(force refresh)' : '');
+    log.debug({ forceRefresh }, '/spotify/token requested');
 
     if (!spotifyService.isConfigured() || !spotifyService.getRefreshToken()) {
-      console.error('❌ Spotify not configured');
+      log.error('Spotify not configured');
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({
@@ -50,7 +53,7 @@ export async function handleSpotifyRoutes(
         })
       );
     } catch (err) {
-      console.error('❌ Spotify token error:', err);
+      log.error({ error: (err as Error).message }, 'Spotify token error');
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Failed to get token' }));
     }
@@ -62,7 +65,17 @@ export async function handleSpotifyRoutes(
     let body = '';
     req.on('data', (chunk: Buffer) => (body += chunk.toString()));
 
+    // FIX BUG: Add error handler to prevent hanging promises on request errors
     return new Promise((resolve) => {
+      req.on('error', (err) => {
+        log.error({ error: err.message }, 'Request error in Spotify device registration');
+        if (!res.headersSent) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Request error' }));
+        }
+        resolve(true);
+      });
+
       req.on('end', () => {
         try {
           const { device_id } = JSON.parse(body) as { device_id: string };
@@ -79,9 +92,11 @@ export async function handleSpotifyRoutes(
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true, device_id }));
         } catch (err) {
-          console.error('❌ Spotify device registration error:', err);
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Internal server error' }));
+          log.error({ error: (err as Error).message }, 'Spotify device registration error');
+          if (!res.headersSent) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Internal server error' }));
+          }
         }
         resolve(true);
       });

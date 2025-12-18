@@ -39,6 +39,7 @@
  * @module @ferni/humanization/persistence
  */
 
+import { removeUndefined } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getComfortProgressionEngine } from './comfort-progression.js';
 import { getCrossSessionVoiceEngine, type CrossSessionVoiceMemory } from './cross-session-voice.js';
@@ -155,11 +156,13 @@ export async function saveVoicePrint(userId: string, voicePrint: VoicePrint): Pr
     const path = `${getUserHumanizationPath(userId)}/${VOICE_PRINT_DOC}`;
     const { FieldValue } = await import('firebase-admin/firestore');
 
-    await db.doc(path).set({
-      data: JSON.stringify(voicePrint),
-      updatedAt: FieldValue.serverTimestamp(),
-      version: 1,
-    } satisfies FirestoreHumanizationDoc);
+    await db.doc(path).set(
+      removeUndefined({
+        data: JSON.stringify(voicePrint),
+        updatedAt: FieldValue.serverTimestamp(),
+        version: 1,
+      } satisfies FirestoreHumanizationDoc)
+    );
 
     logger.info({ userId }, '💾 Voice print saved to Firestore');
     return true;
@@ -191,11 +194,13 @@ export async function saveCrossSessionMemory(
     const path = `${getUserHumanizationPath(userId)}/${CROSS_SESSION_DOC}`;
     const { FieldValue } = await import('firebase-admin/firestore');
 
-    await db.doc(path).set({
-      data: JSON.stringify(memory),
-      updatedAt: FieldValue.serverTimestamp(),
-      version: 1,
-    } satisfies FirestoreHumanizationDoc);
+    await db.doc(path).set(
+      removeUndefined({
+        data: JSON.stringify(memory),
+        updatedAt: FieldValue.serverTimestamp(),
+        version: 1,
+      } satisfies FirestoreHumanizationDoc)
+    );
 
     logger.info({ userId, sessions: memory.totalSessions }, '💾 Cross-session memory saved');
     return true;
@@ -231,11 +236,13 @@ export async function saveComfortState(
     const path = `${getUserHumanizationPath(userId)}/${COMFORT_DOC}`;
     const { FieldValue } = await import('firebase-admin/firestore');
 
-    await db.doc(path).set({
-      data: JSON.stringify(state),
-      updatedAt: FieldValue.serverTimestamp(),
-      version: 1,
-    } satisfies FirestoreHumanizationDoc);
+    await db.doc(path).set(
+      removeUndefined({
+        data: JSON.stringify(state),
+        updatedAt: FieldValue.serverTimestamp(),
+        version: 1,
+      } satisfies FirestoreHumanizationDoc)
+    );
 
     logger.info({ userId, comfortLevel: state.comfortLevel }, '💾 Comfort state saved');
     return true;

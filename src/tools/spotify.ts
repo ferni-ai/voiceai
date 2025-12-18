@@ -16,6 +16,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { z } from 'zod';
 import { getMusicPlayer, type MusicTrack } from '../audio/index.js';
+import { isMusicEnabled } from '../config/environment.js';
 import {
   getSpotifyAccessToken,
   getSpotifyHealthStatus,
@@ -30,6 +31,7 @@ import { getMusicReaction, shouldReactToMusic } from '../speech/music-reactions.
 import { getLogger } from '../utils/safe-logger.js';
 import { getMusicCommentary, hasArtistInfo } from './music-commentary.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // Flag to control playback mode
 let streamIntoCall = false; // If true, stream music INTO the call (phone users)
 
@@ -421,7 +423,15 @@ export async function searchTracksWithPreviews(
  * 2. Stream into call - Play 30-second preview directly into the call
  */
 async function playMusic(query: string, streamIntoCallOverride?: boolean): Promise<string> {
-  getLogger().info(
+  const log = getLogger();
+
+  // 🐛 FIX: Check if music is enabled FIRST before doing anything
+  if (!isMusicEnabled()) {
+    log.warn({ query }, '🎵 [Spotify] Music feature is disabled (MUSIC_ENABLED=false)');
+    return `I'd love to play "${query}" for you, but music playback is currently disabled. Let's keep chatting instead!`;
+  }
+
+  log.info(
     {
       query,
       streamIntoCallOverride,
@@ -465,10 +475,16 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
       getLogger().info('Streaming preview into call...');
       const musicPlayer = getMusicPlayer();
 
-      // 🚨 Check if music player is initialized
+      // 🐛 FIX: Wait for music player initialization instead of just checking
       if (!musicPlayer.isInitialized()) {
-        getLogger().error('🎵 [Spotify] Music player not initialized! Cannot stream preview.');
-        return `I found "${track.name}" by ${artists}, but I can't play it right now. There's an issue with the audio setup.`;
+        getLogger().debug('🎵 [Spotify] Music player not ready, waiting for initialization...');
+        const initialized = await musicPlayer.waitForInitialization(5000);
+        if (!initialized) {
+          getLogger().error(
+            '🎵 [Spotify] Music player not initialized after waiting! Cannot stream preview.'
+          );
+          return `I found "${track.name}" by ${artists}, but I can't play it right now. The audio system is still warming up - try again in a moment!`;
+        }
       }
 
       const musicTrack: MusicTrack = {
@@ -515,11 +531,17 @@ async function playMusic(query: string, streamIntoCallOverride?: boolean): Promi
         getLogger().info('No device - falling back to preview stream');
         const musicPlayer = getMusicPlayer();
 
-        // 🚨 Check if music player is initialized
+        // 🐛 FIX: Wait for music player initialization for fallback preview
         if (!musicPlayer.isInitialized()) {
-          getLogger().error('🎵 [Spotify] Music player not initialized for fallback preview!');
-          // Fall through to device guidance below
-        } else {
+          getLogger().debug('🎵 [Spotify] Music player not ready for fallback, waiting...');
+          const initialized = await musicPlayer.waitForInitialization(5000);
+          if (!initialized) {
+            getLogger().error('🎵 [Spotify] Music player not initialized for fallback preview!');
+            // Fall through to device guidance below
+          }
+        }
+
+        if (musicPlayer.isInitialized()) {
           const musicTrack: MusicTrack = {
             name: track.name,
             artist: artists,
@@ -917,11 +939,7 @@ export function createSpotifyTools() {
 
   return {
     playMusic: llm.tool({
-      description: `Play music on Spotify. Use this tool when the user asks to:
-- play a song, artist, or genre
-- put on music
-- hear something
-Examples: "play jazz", "play Beethoven", "put on some music"`,
+      description: getToolDescription('playMusic'),
       parameters: z.object({
         query: z.string().describe('Song, artist, genre, or search query'),
       }),
@@ -937,8 +955,7 @@ Examples: "play jazz", "play Beethoven", "put on some music"`,
     }),
 
     searchMusic: llm.tool({
-      description: `Search for songs on Spotify without playing them.
-Use when user wants to find music or asks "what songs do you have by..."`,
+      description: getToolDescription('searchMusic'),
       parameters: z.object({
         query: z.string().describe('Search query'),
         limit: z.number().optional().describe('Number of results (default 5)'),
@@ -952,14 +969,7 @@ Use when user wants to find music or asks "what songs do you have by..."`,
     }),
 
     pauseMusic: llm.tool({
-      description: `Pause/stop the currently playing music.
-Use when user says ANY of these:
-- "stop", "stop the music", "stop playing"
-- "pause", "pause the music", "pause it"
-- "quiet", "quiet please", "be quiet"
-- "turn it off", "turn off the music"
-- "enough", "that's enough", "no more music"
-- "shh", "hush", "silence"`,
+      description: getToolDescription('pauseMusic'),
       parameters: z.object({}),
       execute: async () => {
         if (!checkConfigured()) return "Spotify isn't connected.";
@@ -971,8 +981,7 @@ Use when user says ANY of these:
     }),
 
     resumeMusic: llm.tool({
-      description: `Resume paused music.
-Use when user says "play", "resume", "continue the music"`,
+      description: getToolDescription('resumeMusic'),
       parameters: z.object({}),
       execute: async () => {
         if (!checkConfigured()) return "Spotify isn't connected.";
@@ -981,8 +990,7 @@ Use when user says "play", "resume", "continue the music"`,
     }),
 
     skipSong: llm.tool({
-      description: `Skip to the next song.
-Use when user says "skip", "next song", "I don't like this one"`,
+      description: getToolDescription('skipSong'),
       parameters: z.object({}),
       execute: async () => {
         if (!checkConfigured()) return "Spotify isn't connected.";
@@ -991,8 +999,7 @@ Use when user says "skip", "next song", "I don't like this one"`,
     }),
 
     whatsPlaying: llm.tool({
-      description: `Check what's currently playing on Spotify.
-Use when user asks "what's playing", "what song is this", "who sings this"`,
+      description: getToolDescription('whatsPlaying'),
       parameters: z.object({}),
       execute: async () => {
         if (!checkConfigured()) return "Spotify isn't connected.";
@@ -1001,8 +1008,7 @@ Use when user asks "what's playing", "what song is this", "who sings this"`,
     }),
 
     setMusicVolume: llm.tool({
-      description: `Adjust Spotify volume. 
-Use when user says "turn it up", "louder", "quieter", "volume to 50%"`,
+      description: getToolDescription('setMusicVolume'),
       parameters: z.object({
         volume: z.number().min(0).max(100).describe('Volume percentage (0-100)'),
       }),
@@ -1013,8 +1019,7 @@ Use when user says "turn it up", "louder", "quieter", "volume to 50%"`,
     }),
 
     suggestMusic: llm.tool({
-      description: `Get Jack's music suggestion based on mood or activity.
-Use when user says "put on some music" without specifics, or asks for recommendations.`,
+      description: getToolDescription('suggestMusic'),
       parameters: z.object({
         mood: z
           .string()
@@ -1026,7 +1031,7 @@ Use when user says "put on some music" without specifics, or asks for recommenda
         const suggestion = getJackMusicSuggestion(mood);
 
         if (!checkConfigured()) {
-          return `For ${mood}, I'd recommend searching for "${suggestion}" on Spotify. Unfortunately, I can't play it directly right now.`;
+          return `Ooh, for ${mood}... try "${suggestion}" on Spotify! I can't reach your player right now, but that'd be perfect.`;
         }
 
         // Actually play the suggestion
@@ -1036,12 +1041,7 @@ Use when user says "put on some music" without specifics, or asks for recommenda
     }),
 
     tellMeAboutThisMusic: llm.tool({
-      description: `Share a story, fact, or personal memory about the currently playing music.
-Use when user asks:
-- "tell me about this song/artist"
-- "do you know anything about this?"
-- "what's the story behind this?"
-- Or proactively when Jack wants to share something interesting about the music`,
+      description: getToolDescription('tellMeAboutThisMusic'),
       parameters: z.object({}),
       execute: async () => {
         if (!checkConfigured()) return "Spotify isn't connected.";
@@ -1086,9 +1086,7 @@ Use when user asks:
     // ========================================
 
     playPreview: llm.tool({
-      description: `Play a song preview DIRECTLY into the call (30 seconds). 
-Use when user is on a phone call and wants to hear music through the call itself.
-Great for: "play that in the call", "let me hear it", "play a sample"`,
+      description: getToolDescription('playPreview'),
       parameters: z.object({
         query: z.string().describe('Song name, artist, or search query'),
       }),
@@ -1100,8 +1098,7 @@ Great for: "play that in the call", "let me hear it", "play a sample"`,
     }),
 
     pauseCallMusic: llm.tool({
-      description: `Pause background music playing in the call.
-Use when user says "pause the music", "stop playing", "quiet please"`,
+      description: getToolDescription('pauseCallMusic'),
       parameters: z.object({}),
       execute: async () => {
         const musicPlayer = getMusicPlayer();
@@ -1111,8 +1108,7 @@ Use when user says "pause the music", "stop playing", "quiet please"`,
     }),
 
     resumeCallMusic: llm.tool({
-      description: `Resume background music in the call (replays from start).
-Use when user says "play the music again", "continue the song", "unpause"`,
+      description: getToolDescription('resumeCallMusic'),
       parameters: z.object({}),
       execute: async () => {
         const musicPlayer = getMusicPlayer();
@@ -1126,12 +1122,7 @@ Use when user says "play the music again", "continue the song", "unpause"`,
     }),
 
     stopCallMusic: llm.tool({
-      description: `Stop background music completely and move on to a new topic.
-Use when user says:
-- "stop", "stop the music", "turn it off", "no more music"
-- "quit", "enough", "that's enough"
-- Any indication they want the music to stop
-After stopping, naturally transition to a new topic or ask what they'd like to talk about.`,
+      description: getToolDescription('stopCallMusic'),
       parameters: z.object({}),
       execute: async () => {
         const musicPlayer = getMusicPlayer();
@@ -1147,8 +1138,7 @@ After stopping, naturally transition to a new topic or ask what they'd like to t
     }),
 
     setCallMusicVolume: llm.tool({
-      description: `Adjust the volume of background music in the call.
-Use when user says "make it quieter", "turn up the background music"`,
+      description: getToolDescription('setCallMusicVolume'),
       parameters: z.object({
         volume: z
           .number()
@@ -1164,12 +1154,7 @@ Use when user says "make it quieter", "turn up the background music"`,
     }),
 
     transferMusic: llm.tool({
-      description: `Transfer currently playing music to another device (car, phone, speaker, etc).
-Use when user says:
-- "transfer to my car", "play it in my car"
-- "move the music to my phone"
-- "play on my speaker"
-- "yes" or "sure" after you offered to transfer`,
+      description: getToolDescription('transferMusic'),
       parameters: z.object({
         deviceName: z
           .string()
@@ -1227,8 +1212,7 @@ Use when user says:
     }),
 
     getMusicStatus: llm.tool({
-      description: `Check what music is currently playing.
-Use when user asks "what's playing?", "what song is this?", "is music playing?"`,
+      description: getToolDescription('getMusicStatus'),
       parameters: z.object({}),
       execute: async () => {
         const musicPlayer = getMusicPlayer();
@@ -1257,10 +1241,7 @@ Use when user asks "what's playing?", "what song is this?", "is music playing?"`
     // ========================================
 
     checkSpotifyHealth: llm.tool({
-      description: `Check Spotify connection health. Use when:
-- User reports music isn't working
-- You need to diagnose Spotify issues
-- User asks "is Spotify connected?", "why isn't music working?"`,
+      description: getToolDescription('checkSpotifyHealth'),
       parameters: z.object({}),
       execute: async () => {
         const health = getSpotifyHealthStatus();

@@ -204,7 +204,9 @@ export function getFeatureAvailability(): Record<string, boolean> {
     smsNotifications: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
     plaidBanking: !!(process.env.PLAID_CLIENT_ID && process.env.PLAID_SECRET),
     // Music master flag - controls whether music tools are available
-    musicEnabled: process.env.MUSIC_ENABLED === 'true',
+    // NOTE: Music is ENABLED by default. Set MUSIC_ENABLED=false to disable.
+    // This matches the runtime behavior in config/environment.ts
+    musicEnabled: process.env.MUSIC_ENABLED !== 'false',
     // Spotify configuration - only meaningful if musicEnabled is true
     spotifyMusic: !!(process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET),
     marketData: !!process.env.ALPHA_VANTAGE_API_KEY,

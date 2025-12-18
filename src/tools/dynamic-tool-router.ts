@@ -1,12 +1,12 @@
 /**
- * Dynamic Tool Router (JSPLIT-style)
+ * Dynamic Tool Router - Intent Detection for Tool Loading
  *
- * Instead of loading 50+ tools at once (which overwhelms Gemini's function calling),
- * this router analyzes user intent and injects only relevant tools.
+ * Analyzes user transcripts to detect intent and determine which tool domains
+ * should be loaded. Used by UnifiedToolOrchestrator for intelligent tool selection.
  *
  * ARCHITECTURE:
- * - Tier 0 (Always): Core tools (~10) - memory, handoff basics, music, weather
- * - Tier 1 (Common): Frequently needed (~10) - search, news, games
+ * - Tier 0 (Always): Core tools - memory, handoff, entertainment
+ * - Tier 1 (Common): Frequently needed - information, games, awareness
  * - Tier 2 (Contextual): Loaded on-demand based on detected intent
  *
  * RESEARCH BASIS:
@@ -15,16 +15,13 @@
  * - Our testing: 56 tools breaks function calling, 20 tools works
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-
-const log = getLogger();
-
 // ============================================================================
 // TOOL HIERARCHY
 // ============================================================================
 
 /**
- * Tool domains organized by priority tier
+ * Tool domains organized by priority tier.
+ * Used by UnifiedToolOrchestrator's alwaysDomains config.
  */
 export const TOOL_TIERS = {
   /** Always loaded - essential for every conversation */
@@ -52,6 +49,7 @@ export const TOOL_TIERS = {
         'funeral',
         'mourning',
         'grieving',
+        'grief',
         'loss',
         'miss them',
         'gone',
@@ -187,6 +185,28 @@ export const TOOL_TIERS = {
       ],
       domains: ['wisdom', 'curiosity'],
     },
+
+    // Information domains
+    weather_info: {
+      keywords: [
+        'weather',
+        'forecast',
+        'temperature',
+        'rain',
+        'snow',
+        'sunny',
+        'cloudy',
+        'cold',
+        'hot',
+        'humid',
+        'storm',
+      ],
+      domains: ['information'],
+    },
+    news_info: {
+      keywords: ['news', 'headlines', 'whats happening', 'current events', 'breaking news'],
+      domains: ['information'],
+    },
   } as const,
 } as const;
 
@@ -206,7 +226,17 @@ export interface DetectedIntent {
 }
 
 /**
- * Detect user intent from transcript to determine which tools to load
+ * Detect user intent from transcript to determine which tools to load.
+ *
+ * Used by UnifiedToolOrchestrator for intent-based domain loading.
+ * Extend TIER_2_CONTEXTUAL keywords to improve tool detection accuracy.
+ *
+ * @param userTranscript - The user's speech transcript
+ * @returns Detected intent with categories, domains, and confidence
+ *
+ * @example
+ * const intent = detectToolIntent("What's the weather like today?");
+ * // { categories: ['weather_info'], domains: ['information'], confidence: 0.33, ... }
  */
 export function detectToolIntent(userTranscript: string): DetectedIntent {
   const transcript = userTranscript.toLowerCase();
@@ -238,184 +268,3 @@ export function detectToolIntent(userTranscript: string): DetectedIntent {
 
   return detected;
 }
-
-// ============================================================================
-// DYNAMIC TOOL SET BUILDER
-// ============================================================================
-
-export interface DynamicToolSetConfig {
-  /** User's current transcript (for intent detection) */
-  transcript?: string;
-  /** Recent conversation context (for better detection) */
-  conversationContext?: string[];
-  /** Force include specific domains */
-  forceInclude?: string[];
-  /** Max tools to load (default: 25) */
-  maxTools?: number;
-  /** Include tier 1 common tools (default: true) */
-  includeTier1?: boolean;
-}
-
-/**
- * Get the domains to load based on context
- */
-export function getDynamicDomains(config: DynamicToolSetConfig = {}): {
-  domains: string[];
-  intent: DetectedIntent | null;
-  totalEstimatedTools: number;
-} {
-  const domains: string[] = [];
-  let intent: DetectedIntent | null = null;
-
-  // Always include Tier 0
-  domains.push(...TOOL_TIERS.TIER_0_ALWAYS);
-
-  // Include Tier 1 if enabled (default)
-  if (config.includeTier1 !== false) {
-    domains.push(...TOOL_TIERS.TIER_1_COMMON);
-  }
-
-  // Detect intent from transcript
-  if (config.transcript) {
-    intent = detectToolIntent(config.transcript);
-    if (intent.domains.length > 0) {
-      log.debug(
-        {
-          categories: intent.categories,
-          domains: intent.domains,
-          triggers: intent.triggerKeywords,
-        },
-        '🎯 Dynamic tool intent detected'
-      );
-      domains.push(...intent.domains);
-    }
-  }
-
-  // Also check conversation context for broader patterns
-  if (config.conversationContext?.length) {
-    const contextText = config.conversationContext.join(' ');
-    const contextIntent = detectToolIntent(contextText);
-    if (contextIntent.domains.length > 0) {
-      domains.push(...contextIntent.domains);
-    }
-  }
-
-  // Add forced includes
-  if (config.forceInclude?.length) {
-    domains.push(...config.forceInclude);
-  }
-
-  // Dedupe
-  const uniqueDomains = [...new Set(domains)];
-
-  // Estimate tool count (rough: ~5 tools per domain average)
-  const estimatedTools = uniqueDomains.length * 5;
-
-  return {
-    domains: uniqueDomains,
-    intent,
-    totalEstimatedTools: estimatedTools,
-  };
-}
-
-// ============================================================================
-// CONVERSATION CONTEXT TRACKER
-// ============================================================================
-
-/**
- * Tracks conversation context for better intent detection across turns
- */
-export class ConversationToolContext {
-  private recentTranscripts: string[] = [];
-  private activeContextualDomains = new Set<string>();
-  private maxHistoryLength = 5;
-
-  /**
-   * Add a user transcript to context
-   */
-  addTranscript(transcript: string): void {
-    this.recentTranscripts.push(transcript);
-    if (this.recentTranscripts.length > this.maxHistoryLength) {
-      this.recentTranscripts.shift();
-    }
-
-    // Detect and cache domains
-    const intent = detectToolIntent(transcript);
-    for (const domain of intent.domains) {
-      this.activeContextualDomains.add(domain);
-    }
-  }
-
-  /**
-   * Get domains to load for current context
-   */
-  getDomainsForContext(): string[] {
-    return [...this.activeContextualDomains];
-  }
-
-  /**
-   * Get recent transcripts for context
-   */
-  getRecentTranscripts(): string[] {
-    return [...this.recentTranscripts];
-  }
-
-  /**
-   * Clear context (e.g., on session end)
-   */
-  clear(): void {
-    this.recentTranscripts = [];
-    this.activeContextualDomains.clear();
-  }
-
-  /**
-   * Check if a specific domain category is active
-   */
-  hasActiveCategory(category: string): boolean {
-    const config =
-      TOOL_TIERS.TIER_2_CONTEXTUAL[category as keyof typeof TOOL_TIERS.TIER_2_CONTEXTUAL];
-    if (!config) return false;
-    return config.domains.some((d) => this.activeContextualDomains.has(d));
-  }
-}
-
-// ============================================================================
-// INTEGRATION WITH TOOL BUILDER
-// ============================================================================
-
-/**
- * Build a dynamic tool spec for use with buildAgentTools
- */
-export function buildDynamicToolSpec(config: DynamicToolSetConfig = {}): {
-  domains: string[];
-  intent: DetectedIntent | null;
-} {
-  const result = getDynamicDomains(config);
-
-  log.info(
-    {
-      domainCount: result.domains.length,
-      domains: result.domains,
-      estimatedTools: result.totalEstimatedTools,
-      detectedCategories: result.intent?.categories || [],
-    },
-    '🔧 Dynamic tool spec built'
-  );
-
-  return {
-    domains: result.domains,
-    intent: result.intent,
-  };
-}
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default {
-  TOOL_TIERS,
-  detectToolIntent,
-  getDynamicDomains,
-  buildDynamicToolSpec,
-  ConversationToolContext,
-};

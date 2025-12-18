@@ -162,7 +162,7 @@ Admin Dashboards: https://admin.ferni.ai/dashboards/ (auth required)
 npm run dev:agent
 
 # Start the frontend (Vite on port 5173)
-cd frontend-typescript && npm run dev
+cd apps/web && npm run dev
 
 # Open dashboards
 open http://localhost:5173/cognitive-dashboard.html

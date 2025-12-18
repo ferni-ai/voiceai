@@ -17,7 +17,7 @@ node token-server.js
 PORT=3002 node ui-server.js
 
 # Terminal 3 - Frontend Dev Server (port 3004)
-cd frontend-typescript && pnpm dev
+cd apps/web && pnpm dev
 ```
 
 Open the app at: `http://localhost:3004`

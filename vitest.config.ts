@@ -11,7 +11,7 @@ export default defineConfig({
       '**/node_modules/**',
       'dist/**',
       'frontend-orb/**',
-      'frontend-typescript/**',
+      'apps/web/**',
       'design-system/**',
       'apps/**',
       'e2e/**',
@@ -29,7 +29,7 @@ export default defineConfig({
         '**/index.ts',
         'src/tests/helpers/**',
         'frontend-orb/**',
-        'frontend-typescript/**',
+        'apps/web/**',
       ],
       // Coverage thresholds - stepped approach toward 60%
       // Current: ~32% lines, ~33% functions, ~32% statements, ~27% branches

@@ -1,5 +1,5 @@
 /**
- * 🎨 Creative You Dashboard UI
+ * Creative You Dashboard UI
  *
  * The main dashboard for Creative You features:
  * - Daily content picks (video + podcast)
@@ -11,6 +11,10 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { createLogger } from '../utils/logger.js';
+import { t } from '../i18n/index.js';
+
+const log = createLogger('CreativeYouDashboard');
 
 // ============================================================================
 // TYPES
@@ -84,10 +88,10 @@ const MOOD_COLORS: Record<string, string> = {
 };
 
 const MOOD_LABELS: Record<string, string> = {
-  learn: '📚 Learn',
-  chill: '🎧 Chill',
-  inspire: '✨ Inspire',
-  reflect: '🌙 Reflect',
+  learn: 'Learn',
+  chill: 'Chill',
+  inspire: 'Inspire',
+  reflect: 'Reflect',
 };
 
 // ============================================================================
@@ -207,10 +211,10 @@ export class CreativeYouDashboard {
       <div class="creative-dashboard-content">
         <header class="creative-dashboard-header">
           <div class="header-left">
-            <span class="eyebrow">YOUR CREATIVE JOURNEY</span>
-            <h2>Creative You</h2>
+            <span class="eyebrow">${t('creativeYou.eyebrow')}</span>
+            <h2>${t('creativeYou.title')}</h2>
           </div>
-          <button class="close-btn" aria-label="Close">
+          <button class="close-btn" aria-label="${t('common.close')}">
             ${ICONS.close}
           </button>
         </header>
@@ -218,30 +222,30 @@ export class CreativeYouDashboard {
         <div class="creative-dashboard-body">
           <!-- Daily Picks Section -->
           <section class="dashboard-section daily-picks">
-            <h3>${ICONS.lightbulb} Today's Picks</h3>
+            <h3>${ICONS.lightbulb} ${t('creativeYou.todaysPicks')}</h3>
             <div class="picks-grid">
               <div class="pick-card video-pick" data-loading="true">
-                <div class="pick-loading">Loading...</div>
+                <div class="pick-loading">${t('common.loading')}</div>
               </div>
               <div class="pick-card podcast-pick" data-loading="true">
-                <div class="pick-loading">Loading...</div>
+                <div class="pick-loading">${t('common.loading')}</div>
               </div>
             </div>
           </section>
 
           <!-- Creative DNA Section -->
           <section class="dashboard-section creative-dna-section">
-            <h3>${ICONS.brain} Your Creative DNA</h3>
+            <h3>${ICONS.brain} ${t('creativeYou.yourDNA')}</h3>
             <div class="dna-card" data-loading="true">
-              <div class="pick-loading">Loading your profile...</div>
+              <div class="pick-loading">${t('creativeYou.loadingProfile')}</div>
             </div>
           </section>
 
           <!-- Learning Tracks Section -->
           <section class="dashboard-section learning-tracks-section">
-            <h3>${ICONS.book} Learning Tracks</h3>
+            <h3>${ICONS.book} ${t('creativeYou.learningTracks')}</h3>
             <div class="tracks-list" data-loading="true">
-              <div class="pick-loading">Loading tracks...</div>
+              <div class="pick-loading">${t('creativeYou.loadingTracks')}</div>
             </div>
           </section>
         </div>
@@ -285,7 +289,7 @@ export class CreativeYouDashboard {
         this.renderLearningTracks();
       }
     } catch (error) {
-      console.error('Failed to load Creative You data:', error);
+      log.error('Failed to load Creative You data:', error);
     }
   }
 
@@ -299,7 +303,7 @@ export class CreativeYouDashboard {
 
     container.innerHTML = `
       <div class="pick-type" style="background: ${moodColor}">
-        ${ICONS.video} Video
+        ${ICONS.video} ${t('creativeYou.video')}
       </div>
       <div class="pick-thumbnail" style="background-image: url('${video.thumbnailUrl}')">
         <div class="play-overlay">
@@ -328,7 +332,7 @@ export class CreativeYouDashboard {
 
     container.innerHTML = `
       <div class="pick-type" style="background: ${moodColor}">
-        ${ICONS.headphones} Podcast
+        ${ICONS.headphones} ${t('creativeYou.podcast')}
       </div>
       <div class="pick-icon-container" style="background: ${moodColor}20">
         ${ICONS.headphones}
@@ -354,7 +358,7 @@ export class CreativeYouDashboard {
     container.setAttribute('data-loading', 'false');
 
     const topTopics = this.creativeDNA.topTopics.slice(0, 4);
-    const maxScore = Math.max(...topTopics.map((t) => t.score), 1);
+    const maxScore = Math.max(...topTopics.map((topic) => topic.score), 1);
 
     container.innerHTML = `
       <div class="dna-header">
@@ -362,7 +366,7 @@ export class CreativeYouDashboard {
           <span class="personality-label">${this.creativeDNA.personalityLabel}</span>
           <p class="personality-desc">${this.creativeDNA.personalityDescription}</p>
         </div>
-        <button class="share-dna-btn" aria-label="Share Creative DNA">
+        <button class="share-dna-btn" aria-label="${t('common.share')}">
           ${ICONS.share}
         </button>
       </div>
@@ -370,19 +374,19 @@ export class CreativeYouDashboard {
       <div class="dna-stats">
         <div class="stat">
           <span class="stat-value">${this.creativeDNA.totalVideosWatched}</span>
-          <span class="stat-label">Videos</span>
+          <span class="stat-label">${t('creativeYou.videos')}</span>
         </div>
         <div class="stat">
           <span class="stat-value">${this.creativeDNA.totalPodcastsListened}</span>
-          <span class="stat-label">Podcasts</span>
+          <span class="stat-label">${t('creativeYou.podcasts')}</span>
         </div>
         <div class="stat">
           <span class="stat-value">${this.creativeDNA.totalInsightsSaved}</span>
-          <span class="stat-label">Insights</span>
+          <span class="stat-label">${t('creativeYou.insights')}</span>
         </div>
         <div class="stat">
           <span class="stat-value">${this.creativeDNA.learningStyle}</span>
-          <span class="stat-label">Style</span>
+          <span class="stat-label">${t('creativeYou.style')}</span>
         </div>
       </div>
 
@@ -390,7 +394,7 @@ export class CreativeYouDashboard {
         topTopics.length > 0
           ? `
       <div class="dna-interests">
-        <h5>Top Interests</h5>
+        <h5>${t('creativeYou.topInterests')}</h5>
         <div class="interest-bars">
           ${topTopics
             .map(
@@ -426,7 +430,7 @@ export class CreativeYouDashboard {
     container.setAttribute('data-loading', 'false');
 
     if (this.learningTracks.length === 0) {
-      container.innerHTML = `<p class="empty-state">No learning tracks available</p>`;
+      container.innerHTML = `<p class="empty-state">${t('creativeYou.noTracks')}</p>`;
       return;
     }
 
@@ -438,12 +442,12 @@ export class CreativeYouDashboard {
             <h4>${track.title}</h4>
             <p>${track.description}</p>
             <div class="track-meta">
-              <span>${track.episodes.length} episodes</span>
+              <span>${track.episodes.length} ${t('creativeYou.episodes')}</span>
               <span>•</span>
-              <span>${Math.round(track.totalDuration / 60)}h total</span>
+              <span>${Math.round(track.totalDuration / 60)}h ${t('creativeYou.total')}</span>
             </div>
           </div>
-          <button class="start-track-btn">Start</button>
+          <button class="start-track-btn">${t('creativeYou.start')}</button>
         </div>
       `
       )
@@ -470,11 +474,12 @@ export class CreativeYouDashboard {
     backdrop?.addEventListener('click', () => this.close());
 
     // Escape key
-    document.addEventListener('keydown', (e) => {
+    const handleEscape = (e: KeyboardEvent): void => {
       if (e.key === 'Escape' && this.isOpen) {
         this.close();
       }
-    });
+    };
+    document.addEventListener('keydown', handleEscape);
   }
 
   // ========================================
@@ -487,8 +492,7 @@ export class CreativeYouDashboard {
   }
 
   private openPodcast(episodeId: string): void {
-    // For now, just log - would open podcast player
-    console.log('Open podcast:', episodeId);
+    log.debug('Open podcast:', episodeId);
     // TODO: Implement podcast player modal
   }
 
@@ -498,32 +502,30 @@ export class CreativeYouDashboard {
     try {
       const response = await fetch('/api/creative/dna/card?userId=' + this.userId);
       if (response.ok) {
-        const data = await response.json();
         // Use native share if available
         if (navigator.share) {
           await navigator.share({
-            title: 'My Creative Profile',
-            text: `I'm a "${this.creativeDNA.personalityLabel}" on Ferni!`,
+            title: t('creativeYou.shareTitle'),
+            text: t('creativeYou.shareText', { label: this.creativeDNA.personalityLabel }),
             url: window.location.origin,
           });
         } else {
           // Copy to clipboard
           await navigator.clipboard.writeText(
-            `I'm a "${this.creativeDNA.personalityLabel}" on Ferni! ${window.location.origin}`
+            `${t('creativeYou.shareText', { label: this.creativeDNA.personalityLabel })} ${window.location.origin}`
           );
-          alert('Link copied to clipboard!');
+          // Would use toast here
         }
       }
     } catch (error) {
-      console.error('Failed to share:', error);
+      log.error('Failed to share:', error);
     }
   }
 
   private startLearningTrack(trackId: string): void {
     const track = this.learningTracks.find((t) => t.id === trackId);
     if (track && track.episodes.length > 0) {
-      // Open first episode
-      console.log('Starting track:', trackId, 'First episode:', track.episodes[0]);
+      log.debug('Starting track:', trackId, 'First episode:', track.episodes[0]);
       // TODO: Implement learning track player
     }
   }
@@ -552,7 +554,7 @@ export class CreativeYouDashboard {
       .creative-dashboard-overlay {
         position: fixed;
         inset: 0;
-        z-index: 10000;
+        z-index: var(--z-modal, 2100);
         display: none;
         align-items: center;
         justify-content: center;
@@ -566,7 +568,7 @@ export class CreativeYouDashboard {
       .creative-dashboard-backdrop {
         position: absolute;
         inset: 0;
-        background: rgba(44, 37, 32, 0.6);
+        background: var(--backdrop-heavy, rgba(44, 37, 32, 0.6));
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
       }
@@ -624,7 +626,8 @@ export class CreativeYouDashboard {
         transition: background ${DURATION.FAST}ms ease;
       }
 
-      .creative-dashboard-header .close-btn:hover {
+      .creative-dashboard-header .close-btn:hover,
+      .creative-dashboard-header .close-btn:focus-visible {
         background: var(--color-background-subtle, rgba(44, 37, 32, 0.05));
       }
 
@@ -666,7 +669,7 @@ export class CreativeYouDashboard {
       }
 
       .pick-card {
-        background: white;
+        background: var(--color-background-elevated, white);
         border-radius: var(--radius-lg, 16px);
         overflow: hidden;
         cursor: pointer;
@@ -815,7 +818,7 @@ export class CreativeYouDashboard {
 
       /* Creative DNA */
       .dna-card {
-        background: white;
+        background: var(--color-background-elevated, white);
         border-radius: var(--radius-lg, 16px);
         padding: var(--space-4, 16px);
         border: 1px solid var(--color-border, rgba(44, 37, 32, 0.08));
@@ -859,7 +862,8 @@ export class CreativeYouDashboard {
         transition: background ${DURATION.FAST}ms ease;
       }
 
-      .share-dna-btn:hover {
+      .share-dna-btn:hover,
+      .share-dna-btn:focus-visible {
         background: var(--color-teal, #3a6b73);
         color: white;
       }
@@ -950,7 +954,7 @@ export class CreativeYouDashboard {
         align-items: center;
         justify-content: space-between;
         padding: var(--space-3, 12px) var(--space-4, 16px);
-        background: white;
+        background: var(--color-background-elevated, white);
         border: 1px solid var(--color-border, rgba(44, 37, 32, 0.08));
         border-radius: var(--radius-lg, 16px);
         transition: border-color ${DURATION.FAST}ms ease;
@@ -994,7 +998,8 @@ export class CreativeYouDashboard {
                     box-shadow ${DURATION.FAST}ms ease;
       }
 
-      .start-track-btn:hover {
+      .start-track-btn:hover,
+      .start-track-btn:focus-visible {
         transform: scale(1.05);
         box-shadow: 0 4px 12px rgba(58, 107, 115, 0.3);
       }
@@ -1003,6 +1008,17 @@ export class CreativeYouDashboard {
         text-align: center;
         color: var(--color-text-muted, #7A6F63);
         padding: var(--space-4, 16px);
+      }
+
+      /* Reduced motion */
+      @media (prefers-reduced-motion: reduce) {
+        .creative-dashboard-content,
+        .pick-card,
+        .start-track-btn,
+        .share-dna-btn,
+        .interest-bar .bar-fill {
+          transition: none;
+        }
       }
     `;
 
@@ -1026,5 +1042,9 @@ export function getCreativeYouDashboard(userId: string): CreativeYouDashboard {
 export function openCreativeYouDashboard(userId: string): void {
   const dashboard = getCreativeYouDashboard(userId);
   dashboard.initialize().then(() => dashboard.open());
+}
+
+export function initCreativeYouDashboard(): void {
+  // Initialization hook - nothing needed for now
 }
 

@@ -241,19 +241,21 @@ export function getUnlockedTeamMemberIds(
 
 /**
  * Check if a specific team member is available for handoff.
- * When BYPASS_TEAM_UNLOCKS=true env var is set, all members are considered unlocked.
+ *
+ * Honors BYPASS_TEAM_UNLOCKS env var for testing/demo:
+ * - "all" or "true"     → All members unlocked
+ * - "1", "2", "3", etc. → First N members unlocked
+ * - "maya,peter"        → Specific members unlocked
  */
 export function isTeamMemberUnlocked(
   memberId: string,
   userProfile: import('../../types/user-profile.js').UserProfile | null,
   tier: 'free' | 'friend' | 'partner' = 'free'
 ): boolean {
-  // BYPASS: When env var is set, all team members are unlocked (for testing/demo)
-  if (process.env['BYPASS_TEAM_UNLOCKS'] === 'true') {
-    return true;
-  }
-
+  // Use the centralized bypass logic from team-unlocks.ts
+  // This ensures consistent behavior across all unlock checks
   const state = getTeamUnlockState(userProfile, tier);
+
   // Normalize the member ID (handle different formats)
   const normalizedId = memberId.toLowerCase().replace(/_/g, '-');
   return state.unlockedMembers.some((id) => {

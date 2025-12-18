@@ -248,16 +248,21 @@
   --duration-ambient: 8000ms;
 
   /* ============================================
-     DARK THEME - WCAG AA Accessible Colors
+     DARK THEME - BOLD & HIGH CONTRAST
      Background: #2c2520 (warm dark brown)
+     Designed for maximum readability
      ============================================ */
   --color-dark-bg: #2c2520;
   --color-dark-bg-elevated: #3a332d;
-  --color-dark-text: #f5f1e8;          /* 10.1:1 contrast - headings */
-  --color-dark-text-secondary: #e4ddd4; /* 6.8:1 contrast - body text */
-  --color-dark-text-muted: #cec5ba;     /* 4.7:1 contrast - captions */
-  --color-dark-accent: #8fa67a;         /* 4.5:1 contrast - links */
-  --color-dark-border: rgba(245, 241, 232, 0.12);
-  --color-dark-border-strong: rgba(245, 241, 232, 0.2);
+  --color-dark-text: #ffffff;            /* Pure white - maximum contrast for headlines */
+  --color-dark-text-primary: #ffffff;    /* Alias for headlines/important text */
+  --color-dark-text-secondary: #f0ebe4;  /* Warm cream - very readable body text */
+  --color-dark-text-muted: #ddd6cc;      /* Still bold - for captions/eyebrows */
+  --color-dark-text-dimmed: #c8bfb4;     /* Softest - but still readable */
+  --color-dark-accent: #a3c18a;          /* Brighter sage green for links/CTAs */
+  --color-dark-accent-hover: #b8d4a0;    /* Even brighter on hover */
+  --color-dark-border: rgba(255, 255, 255, 0.15);
+  --color-dark-border-strong: rgba(255, 255, 255, 0.25);
+  --color-dark-icon: #f0ebe4;            /* Icons should be clearly visible */
 
 }

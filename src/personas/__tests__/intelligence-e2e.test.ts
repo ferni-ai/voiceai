@@ -204,7 +204,7 @@ describe('Intelligence E2E Flow', () => {
 
     // Should have all sections
     expect(injection.relationshipSection).toContain('RELATIONSHIP');
-    expect(injection.cognitiveSection).toContain('COGNITIVE');
+    expect(injection.cognitiveSection).toContain('HOW YOU THINK');
     expect(injection.combined.length).toBeGreaterThan(0);
 
     // Combined should include context
@@ -327,4 +327,3 @@ describe('Moment Detection E2E', () => {
     }
   });
 });
-

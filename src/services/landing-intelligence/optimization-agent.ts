@@ -14,6 +14,7 @@
  */
 
 import { getFirestore } from 'firebase-admin/firestore';
+import { removeUndefined } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { generateJSON, generateText } from './gemini-client.js';
 import type { VisitorIntent } from './intent-detector.js';
@@ -96,10 +97,16 @@ export async function collectLandingMetrics(
   const startDate = new Date(now.getTime() - periodMs);
 
   try {
-    // Get sessions from Firestore
+    // Get sessions and returning visitors in parallel (2x faster)
     const sessionsRef = db.collection('landing_sessions');
     const sessionsQuery = sessionsRef.where('startTime', '>=', startDate);
-    const sessionsSnapshot = await sessionsQuery.get();
+    const visitorsRef = db.collection('landing_visitors');
+    const returningQuery = visitorsRef.where('visitCount', '>', 1);
+
+    const [sessionsSnapshot, returningSnapshot] = await Promise.all([
+      sessionsQuery.get(),
+      returningQuery.get(),
+    ]);
 
     const sessions = sessionsSnapshot.docs.map((doc) => doc.data());
 
@@ -107,11 +114,6 @@ export async function collectLandingMetrics(
     const visitors = sessions.length;
     const uniqueVisitorIds = new Set(sessions.map((s) => s.visitorId));
     const uniqueVisitors = uniqueVisitorIds.size;
-
-    // Get returning visitors
-    const visitorsRef = db.collection('landing_visitors');
-    const returningQuery = visitorsRef.where('visitCount', '>', 1);
-    const returningSnapshot = await returningQuery.get();
     const returningVisitors = returningSnapshot.size;
 
     // Calculate averages
@@ -404,10 +406,12 @@ async function persistReport(report: AgentReport): Promise<void> {
     await db
       .collection('landing_optimization_reports')
       .doc(report.id)
-      .set({
-        ...report,
-        generatedAt: report.generatedAt,
-      });
+      .set(
+        removeUndefined({
+          ...report,
+          generatedAt: report.generatedAt,
+        })
+      );
   } catch (error) {
     log.warn({ error }, 'Failed to persist optimization report');
   }

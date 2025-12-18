@@ -16,6 +16,8 @@ export interface HandoffEventData {
   persona: PersonaConfig;
   /** Shortcut to persona.id for convenience */
   agentId: string;
+  /** Voice ID for TTS - CRITICAL for voice switching! */
+  voiceId: string;
   /** Optional greeting for the new persona to say */
   greeting?: string;
   /** Sound to play during transition */
@@ -43,14 +45,28 @@ export async function createHandoffEvent(
   } = {}
 ): Promise<HandoffEventData> {
   // Dynamic import to avoid circular dependency through personas/index
-  const { getPersona } = await import('../../personas/index.js');
-  const persona = getPersona(targetId);
+  // 🐛 FIX: Use getPersonaAsync instead of sync getPersona to ensure bundle is loaded
+  // This was the ROOT CAUSE of Maya handoff failures - the sync function returns undefined
+  // if the persona bundle hasn't been loaded yet!
+  const { getPersonaAsync } = await import('../../personas/index.js');
+  const persona = await getPersonaAsync(targetId);
   if (!persona) {
-    throw new Error(`Cannot create handoff event: persona "${targetId}" not found`);
+    throw new Error(
+      `Cannot create handoff event: persona "${targetId}" not found (bundle may not be loaded)`
+    );
   }
+
+  // 🐛 FIX: Extract voiceId from persona.voice.voiceId - CRITICAL for TTS voice switching!
+  // Without this, the TTS continues using the previous persona's voice even after handoff.
+  const voiceId = persona.voice?.voiceId;
+  if (!voiceId) {
+    throw new Error(`Cannot create handoff event: persona "${targetId}" has no voiceId configured`);
+  }
+
   return {
     persona,
     agentId: persona.id,
+    voiceId,
     greeting: options.greeting,
     playSound: options.playSound,
     previousAgentId: options.previousAgentId,

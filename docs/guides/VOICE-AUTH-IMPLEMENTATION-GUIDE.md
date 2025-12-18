@@ -42,8 +42,8 @@ See [CURRENT-STATE-SUMMARY.md](./CURRENT-STATE-SUMMARY.md) for overall system st
 | Enrollment Service | `src/services/voice-enrollment.ts` | Multi-sample enrollment with quality checks |
 | Profile Store | `src/services/voice-profile-store.ts` | Firestore persistence + in-memory fallback |
 | REST API | `src/api/voice-auth-handler.ts` | All /api/voice/* endpoints |
-| Frontend Service | `frontend-typescript/src/services/voice-auth.service.ts` | Browser API client + audio recording |
-| Enrollment UI | `frontend-typescript/src/ui/voice-enrollment.ui.ts` | Beautiful modal with progress visualization |
+| Frontend Service | `apps/web/src/services/voice-auth.service.ts` | Browser API client + audio recording |
+| Enrollment UI | `apps/web/src/ui/voice-enrollment.ui.ts` | Beautiful modal with progress visualization |
 | E2E Tests | `scripts/validate-voice-auth.ts` | 13 comprehensive tests |
 
 ### Validation
@@ -61,7 +61,7 @@ npx ts-node --esm scripts/validate-voice-auth.ts --url=http://localhost:3002
 
 ### Task 1.1: Add Mic Icon to Settings Menu
 
-**File**: `frontend-typescript/src/ui/settings-menu.ui.ts`
+**File**: `apps/web/src/ui/settings-menu.ui.ts`
 
 **Location**: Add to `ICONS` object (around line 62-80)
 
@@ -72,7 +72,7 @@ mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2
 
 ### Task 1.2: Add Voice Enrollment Callback Type
 
-**File**: `frontend-typescript/src/ui/settings-menu.ui.ts`
+**File**: `apps/web/src/ui/settings-menu.ui.ts`
 
 **Location**: Add to `SettingsMenuUICallbacks` interface (around line 36-56)
 
@@ -83,7 +83,7 @@ onVoiceEnrollmentClick?: () => void;
 
 ### Task 1.3: Add Voice Enrollment Menu Item
 
-**File**: `frontend-typescript/src/ui/settings-menu.ui.ts`
+**File**: `apps/web/src/ui/settings-menu.ui.ts`
 
 **Location**: In `createPanel()` method, add to "Customize" section
 
@@ -109,7 +109,7 @@ private getVoiceEnrollmentBadge(): string {
 
 ### Task 1.4: Wire Up Click Handler
 
-**File**: `frontend-typescript/src/ui/settings-menu.ui.ts`
+**File**: `apps/web/src/ui/settings-menu.ui.ts`
 
 **Location**: In `handleItemClick()` method
 
@@ -122,7 +122,7 @@ case 'voice-enrollment':
 
 ### Task 1.5: Connect in App.ts
 
-**File**: `frontend-typescript/src/app.ts`
+**File**: `apps/web/src/app.ts`
 
 **Location**: In `initSettingsMenuUI()` call
 
@@ -137,7 +137,7 @@ this.safeInit('SettingsMenuUI', () => {
 
 ### Task 1.6: Add Voice ID Badge to Header
 
-**File**: `frontend-typescript/src/ui/coach.ui.ts` (or new component)
+**File**: `apps/web/src/ui/coach.ui.ts` (or new component)
 
 Create a small badge that shows when user is voice-enrolled:
 
@@ -153,7 +153,7 @@ function showVoiceIdBadge(enrolled: boolean): void {
 
 ### Task 1.7: Auto Re-enrollment Prompt
 
-**File**: `frontend-typescript/src/services/voice-auth.service.ts`
+**File**: `apps/web/src/services/voice-auth.service.ts`
 
 Add a method to check profile quality and prompt re-enrollment:
 
@@ -661,10 +661,10 @@ Delete voice profile.
 | Enrollment Logic | `src/services/voice-enrollment.ts` |
 | Profile Storage | `src/services/voice-profile-store.ts` |
 | API Handler | `src/api/voice-auth-handler.ts` |
-| Frontend Service | `frontend-typescript/src/services/voice-auth.service.ts` |
-| Enrollment UI | `frontend-typescript/src/ui/voice-enrollment.ui.ts` |
-| Settings Menu | `frontend-typescript/src/ui/settings-menu.ui.ts` |
-| App Entry | `frontend-typescript/src/app.ts` |
+| Frontend Service | `apps/web/src/services/voice-auth.service.ts` |
+| Enrollment UI | `apps/web/src/ui/voice-enrollment.ui.ts` |
+| Settings Menu | `apps/web/src/ui/settings-menu.ui.ts` |
+| App Entry | `apps/web/src/app.ts` |
 | E2E Tests | `scripts/validate-voice-auth.ts` |
 | This Guide | `docs/VOICE-AUTH-IMPLEMENTATION-GUIDE.md` |
 | Architecture | `docs/VOICE-AUTHENTICATION.md` |

@@ -128,12 +128,12 @@ These phases require ongoing usage and can be validated over time:
 
 ### New UI Components
 
-1. **Contact Settings** (`frontend-typescript/src/ui/contact-settings.ui.ts`)
+1. **Contact Settings** (`apps/web/src/ui/contact-settings.ui.ts`)
    - Modal for collecting phone, email, preferred name
    - SMS verification flow (scaffolded)
    - Privacy-focused messaging
 
-2. **Outreach Schedule** (`frontend-typescript/src/ui/outreach-schedule.ui.ts`)
+2. **Outreach Schedule** (`apps/web/src/ui/outreach-schedule.ui.ts`)
    - Shows upcoming check-ins
    - History tab for past outreach
    - Preview, reschedule, cancel actions
@@ -208,13 +208,13 @@ Added to `settings-menu.ui.ts`:
 - `src/api/outreach-webhook-routes.ts` - Webhook handlers
 
 ### New Frontend Files
-- `frontend-typescript/src/ui/contact-settings.ui.ts`
-- `frontend-typescript/src/ui/outreach-schedule.ui.ts`
+- `apps/web/src/ui/contact-settings.ui.ts`
+- `apps/web/src/ui/outreach-schedule.ui.ts`
 
 ### Modified Files
 - `ui-server.js` - Added outreach routes
-- `frontend-typescript/src/ui/settings-menu.ui.ts` - Added menu items
-- `frontend-typescript/src/app.ts` - Wired up callbacks
+- `apps/web/src/ui/settings-menu.ui.ts` - Added menu items
+- `apps/web/src/app.ts` - Wired up callbacks
 - `package.json` - Moved firebase-admin to dependencies
 - `cloudbuild-ui.yaml` - Fixed image name
 - `docker/Dockerfile.ui` - Added CI=true for npm ci

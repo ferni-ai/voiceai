@@ -13,4 +13,4 @@ export { createNewsTools } from '../news.js';
 export { createSportsTools } from '../sports.js';
 export { createWeatherTools, getCurrentWeather, getWeatherForecast } from '../weather.js';
 export { createSearchTools } from '../search.js';
-export { createWisdomTools } from '../wisdom.js';
+export { createWisdomTools } from './wisdom/wisdom.js';

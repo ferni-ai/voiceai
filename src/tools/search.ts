@@ -13,6 +13,7 @@ import { llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // PUBLIC API FUNCTIONS
 // ============================================================================
@@ -141,7 +142,7 @@ export function createSearchTools() {
   return {
     searchWeb: llm.tool({
       description:
-        "Search the web for current information. Use sparingly—only when you genuinely don't know something or need current data.",
+        "EXECUTE SILENTLY to search web. DO NOT say 'let me search' - call and share results naturally.",
       parameters: z.object({
         query: z.string().describe('The search query'),
       }),
@@ -152,8 +153,7 @@ export function createSearchTools() {
     }),
 
     searchWikipedia: llm.tool({
-      description:
-        'Search Wikipedia for factual information about a topic, person, event, or concept.',
+      description: getToolDescription('searchWeb'),
       parameters: z.object({
         query: z.string().describe('What to look up on Wikipedia'),
       }),
@@ -164,7 +164,7 @@ export function createSearchTools() {
     }),
 
     defineTerm: llm.tool({
-      description: 'Get the definition of a term, word, or concept.',
+      description: getToolDescription('searchWikipedia'),
       parameters: z.object({
         term: z.string().describe('The term to define'),
       }),

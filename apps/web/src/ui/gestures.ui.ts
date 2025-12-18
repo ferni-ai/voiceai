@@ -103,50 +103,14 @@ function isInsideScrollableContent(target: EventTarget | null): boolean {
   
   // Check if we're inside a modal content area that should scroll natively
   const scrollableSelectors = [
-    // Generic modals
     '.ferni-modal__content',
-    '.ferni-menu__panel',
-    '[data-scrollable="true"]',
-    
-    // Specific modals - core user experience
     '.subscription-card',
     '.marketplace-content',
     '.marketplace-detail-content',
     '.settings-menu__nav',
-    '.settings-menu__card',
     '.unlock-card',
     '.celebration-card',
-    '.engagement-panel__content',
-    '.memory-content',
-    '.history__sessions',
-    '.household-modal__content',
-    '.stage-celebration-card',
-    '.persona-intro-card',
-    
-    // Journey & Progress modals
-    '.journey-content',
-    '.journey-milestones-body',
-    '.trust-journey-content',
-    '.growth-journey-content',
-    '.relationship-progress-content',
-    
-    // Conversation modals
-    '.conversation-memory-content',
-    '.conversation-history-content',
-    
-    // Predictions & Engagement
-    '.predictions-panel__content',
-    '.prediction-resolution-modal__card',
-    
-    // Settings modals
-    '.accent-settings-content',
-    '.notification-settings-content',
-    '.integrations-settings-content',
-    '.wearable-settings-content',
-    
-    // Any element with overflow scroll/auto
-    '[style*="overflow-y: auto"]',
-    '[style*="overflow-y: scroll"]',
+    '[data-scrollable="true"]',
   ];
   
   for (const selector of scrollableSelectors) {

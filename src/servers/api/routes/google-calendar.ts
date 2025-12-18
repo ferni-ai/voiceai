@@ -7,6 +7,9 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createOAuthStateManager } from '../../../utils/ddos-protection.js';
 import * as googleCalendarService from '../../token/oauth/google-calendar.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'GoogleCalendarRoutes' });
 
 // OAuth state manager (5 minute expiry)
 const googleOAuthStates = createOAuthStateManager(5 * 60 * 1000);
@@ -53,7 +56,7 @@ export async function handleGoogleCalendarRoutes(
     });
 
     if (!state) {
-      console.error('❌ Google Calendar OAuth: State limit reached (possible attack)');
+      log.error('Google Calendar OAuth: State limit reached (possible attack)');
       res.writeHead(503, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Service temporarily unavailable, try again' }));
       return true;
@@ -68,7 +71,7 @@ export async function handleGoogleCalendarRoutes(
     authUrl.searchParams.set('prompt', 'consent');
     authUrl.searchParams.set('state', state);
 
-    console.log(`📅 Google Calendar OAuth: Redirecting user ${userId} to Google`);
+    log.info({ userId }, 'Google Calendar OAuth: Redirecting user to Google');
     res.writeHead(302, { Location: authUrl.toString() });
     res.end();
     return true;
@@ -81,7 +84,7 @@ export async function handleGoogleCalendarRoutes(
     const error = parsedUrl.searchParams.get('error');
 
     if (error) {
-      console.error(`❌ Google Calendar OAuth error: ${error}`);
+      log.error({ error }, 'Google Calendar OAuth error');
       res.writeHead(302, { Location: '/?calendar_error=' + encodeURIComponent(error) });
       res.end();
       return true;
@@ -93,7 +96,7 @@ export async function handleGoogleCalendarRoutes(
       return_url?: string;
     } | null;
     if (!stateData) {
-      console.error('❌ Google Calendar OAuth: Invalid or expired state');
+      log.error('Google Calendar OAuth: Invalid or expired state');
       res.writeHead(302, { Location: '/?calendar_error=invalid_state' });
       res.end();
       return true;
@@ -115,7 +118,7 @@ export async function handleGoogleCalendarRoutes(
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`❌ Google Calendar token exchange failed: ${errorText}`);
+        log.error({ error: errorText }, 'Google Calendar token exchange failed');
         res.writeHead(302, { Location: '/?calendar_error=token_exchange_failed' });
         res.end();
         return true;
@@ -128,22 +131,22 @@ export async function handleGoogleCalendarRoutes(
         scope: string;
       };
 
-      // Save tokens for this user
-      googleCalendarService.saveTokens(stateData.user_id ?? '', {
+      // Save tokens for this user (async - uses Firestore)
+      await googleCalendarService.saveTokens(stateData.user_id ?? '', {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token || '',
         expires_at: Date.now() + tokens.expires_in * 1000,
         scope: tokens.scope,
       });
 
-      console.log(`✅ Google Calendar linked for user ${stateData.user_id ?? 'unknown'}`);
+      log.info({ userId: stateData.user_id ?? 'unknown' }, 'Google Calendar linked');
 
       // Redirect back to app
       const returnUrl = stateData.return_url ?? '/?calendar_linked=true';
       res.writeHead(302, { Location: returnUrl });
       res.end();
     } catch (err) {
-      console.error('❌ Google Calendar OAuth callback error:', err);
+      log.error({ error: (err as Error).message }, 'Google Calendar OAuth callback error');
       res.writeHead(302, { Location: '/?calendar_error=callback_failed' });
       res.end();
     }
@@ -193,7 +196,7 @@ export async function handleGoogleCalendarRoutes(
       return true;
     }
 
-    const userTokens = googleCalendarService.getTokens(userId);
+    const userTokens = await googleCalendarService.getTokens(userId);
     const googleConfigured = !!(GOOGLE_CALENDAR_CLIENT_ID && GOOGLE_CALENDAR_CLIENT_SECRET);
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -220,8 +223,8 @@ export async function handleGoogleCalendarRoutes(
       return true;
     }
 
-    googleCalendarService.removeTokens(userId);
-    console.log(`📅 Google Calendar unlinked for user ${userId}`);
+    await googleCalendarService.removeTokens(userId);
+    log.info({ userId }, 'Google Calendar unlinked');
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ success: true, message: 'Google Calendar unlinked' }));

@@ -38,6 +38,7 @@ import {
 } from '../shared/persistence.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // LIFE TRANSITIONS WISDOM DATABASE
 // ============================================================================
@@ -323,8 +324,7 @@ const acknowledgeTransitionDef: ToolDefinition = {
   tags: ['life-transitions', 'validation', 'recognition', 'support'],
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        "For when user shares they're going through a major life transition. Validates the magnitude, identifies the type of transition, and provides initial support.",
+      description: getToolDescription('acknowledgeTransition'),
       parameters: z.object({
         transitionDescription: z.string().describe("What transition they're going through"),
         howLong: z.string().optional().describe("How long they've been in this transition"),
@@ -383,8 +383,7 @@ const transitionStageDef: ToolDefinition = {
   tags: ['life-transitions', 'stages', 'understanding', 'bridges-model'],
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user understand where they are in the transition process using the three stages: Ending, Neutral Zone, and New Beginning.',
+      description: getToolDescription('transitionStage'),
       parameters: z.object({
         whatTheyreExperiencing: z.string().describe("What they're experiencing in this transition"),
         howLongInTransition: z.string().optional().describe("How long they've been in transition"),
@@ -441,8 +440,7 @@ const grieveWhatWasDef: ToolDefinition = {
   tags: ['life-transitions', 'grief', 'processing', 'loss'],
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'For processing grief that accompanies life transitions - even positive ones involve loss. Creates space for mourning what was.',
+      description: getToolDescription('grieveWhatWas'),
       parameters: z.object({
         whatYoureLosing: z.string().describe("What they're losing or have lost in this transition"),
         theTransition: z.string().optional().describe('What transition is causing this loss'),
@@ -499,8 +497,7 @@ const holdDualEmotionsDef: ToolDefinition = {
   tags: ['life-transitions', 'emotions', 'complexity', 'both-and'],
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'For when user is experiencing conflicting emotions - happy AND sad, relieved AND guilty, etc. Normalizes holding multiple truths.',
+      description: getToolDescription('holdDualEmotions'),
       parameters: z.object({
         emotion1: z.string().describe("First emotion they're feeling"),
         emotion2: z.string().describe('Second, seemingly conflicting emotion'),
@@ -553,8 +550,7 @@ const navigateAmbiguousLossDef: ToolDefinition = {
   tags: ['life-transitions', 'ambiguous-loss', 'grief', 'no-closure'],
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        "For losses that don't have clean endings - estranged family, dementia, missing persons, relationships that faded, the loss of who someone used to be.",
+      description: getToolDescription('navigateAmbiguousLoss'),
       parameters: z.object({
         typeOfLoss: z.string().describe("What kind of ambiguous loss they're experiencing"),
         whatMakesItHard: z
@@ -615,8 +611,7 @@ const exploreIdentityShiftDef: ToolDefinition = {
   tags: ['life-transitions', 'identity', 'exploration', 'who-am-i'],
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Guide exploration of how their identity is shifting through this transition. Helps connect past, present, and future selves.',
+      description: getToolDescription('exploreIdentityShift'),
       parameters: z.object({
         focus: z
           .enum(['past', 'present', 'future'])
@@ -682,8 +677,7 @@ const whoAmIBecomingDef: ToolDefinition = {
   tags: ['life-transitions', 'identity', 'future-self', 'becoming'],
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        "For when user is curious about or catching glimpses of who they're becoming through this transition.",
+      description: getToolDescription('whoAmIBecoming'),
       parameters: z.object({
         glimpsesTheyveNoticed: z
           .string()
@@ -746,8 +740,7 @@ const honorWhoYouWereDef: ToolDefinition = {
   tags: ['life-transitions', 'identity', 'past-self', 'gratitude'],
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        "Create space to honor and thank the past version of themselves before fully stepping into who they're becoming.",
+      description: getToolDescription('honorWhoYouWere'),
       parameters: z.object({
         pastIdentity: z.string().describe("The identity or version of self they're leaving behind"),
         whatItGaveThem: z.string().optional().describe('What that identity gave them'),
@@ -797,8 +790,7 @@ const findMeaningInTransitionDef: ToolDefinition = {
   tags: ['life-transitions', 'meaning', 'purpose', 'wisdom'],
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user explore what meaning, growth, or purpose might emerge from this transition.',
+      description: getToolDescription('findMeaningInTransition'),
       parameters: z.object({
         theTransition: z.string().describe("What transition they're going through"),
         whatFeelsMeaningless: z
@@ -858,8 +850,7 @@ const createTransitionRitualDef: ToolDefinition = {
   tags: ['life-transitions', 'ritual', 'ceremony', 'marking'],
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help create a meaningful ritual to mark an ending, beginning, or the in-between space of transition.',
+      description: getToolDescription('createTransitionRitual'),
       parameters: z.object({
         ritualType: z
           .enum(['ending', 'beginning', 'neutral_zone'])
@@ -919,8 +910,7 @@ const preserveWhatMattersDef: ToolDefinition = {
   tags: ['life-transitions', 'values', 'preservation', 'intentional'],
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user identify what they want to preserve and carry forward through this transition - values, relationships, practices, memories.',
+      description: getToolDescription('preserveWhatMatters'),
       parameters: z.object({
         theTransition: z.string().describe("What transition they're going through"),
         whatMatters: z.string().optional().describe("What they've identified as mattering"),
@@ -975,8 +965,7 @@ const embraceUncertaintyDef: ToolDefinition = {
   tags: ['life-transitions', 'uncertainty', 'unknown', 'patience'],
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'For when the uncertainty of transition feels overwhelming. Helps build capacity to sit with not-knowing.',
+      description: getToolDescription('embraceUncertainty'),
       parameters: z.object({
         whatFeelsUncertain: z.string().describe('What feels most uncertain'),
         howTheyreCoping: z
@@ -1034,8 +1023,7 @@ const adaptToNewNormalDef: ToolDefinition = {
   tags: ['life-transitions', 'adaptation', 'new-normal', 'practical'],
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'For the practical work of adapting to a new reality - new routines, new identity, new normal.',
+      description: getToolDescription('adaptToNewNormal'),
       parameters: z.object({
         whatChanged: z.string().describe('What major thing changed'),
         whatStruggling: z.string().optional().describe('What specific adjustments are hardest'),

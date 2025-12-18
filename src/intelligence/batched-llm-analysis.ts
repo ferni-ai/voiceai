@@ -19,6 +19,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { getDefaultModel } from '../services/model-config.js';
 
 const log = createLogger({ module: 'BatchedLLMAnalysis' });
 
@@ -304,7 +305,7 @@ class BatchedLLMAnalyzer {
       }
 
       const genai = new GoogleGenerativeAI(apiKey);
-      const model = genai.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+      const model = genai.getGenerativeModel({ model: getDefaultModel() });
 
       const response = await model.generateContent({
         contents: [{ role: 'user', parts: [{ text: `${ANALYSIS_SYSTEM_PROMPT}\n\n${prompt}` }] }],

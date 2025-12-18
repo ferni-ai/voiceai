@@ -287,6 +287,20 @@ class ConnectionService {
         // Demo claim service not available, continue without
       }
 
+      // 🌍 Load user's accent preference for international voice support
+      let preferredAccent: string | undefined;
+      try {
+        const { apiGet } = await import('../utils/api.js');
+        const accentResponse = await apiGet<{ accent?: string }>('/api/user/accent');
+        if (accentResponse.ok && accentResponse.data?.accent) {
+          preferredAccent = accentResponse.data.accent;
+          log.debug('Using saved accent preference:', preferredAccent);
+        }
+      } catch (e) {
+        // Accent preference not available, will use geo-detection on backend
+        log.debug('Accent preference not loaded, will use geo-detection');
+      }
+
       const tokenRequest: TokenRequest = {
         room: `voice-${Date.now()}`,
         username: state.userName ?? 'User',
@@ -294,6 +308,8 @@ class ConnectionService {
         personaId: state.selectedPersona.id,
         // Firebase UID for cross-device user identification (Priority 2 in voice agent)
         firebaseUid: state.firebaseUid ?? undefined,
+        // 🌍 User's preferred voice accent (international support)
+        preferredAccent,
         // Claimed demo conversation (Better than human - remember first conversation)
         claimedDemoConversation,
       };
@@ -437,6 +453,11 @@ class ConnectionService {
     // Add Firebase UID if available (Priority 2 for user identification)
     if (request.firebaseUid) {
       params.set('firebase_uid', request.firebaseUid);
+    }
+
+    // Add user's preferred accent for voice localization (🌍 international accent support)
+    if (request.preferredAccent) {
+      params.set('accent', request.preferredAccent);
     }
 
     // Add claimed demo conversation if available (Better than human)
@@ -614,24 +635,11 @@ class ConnectionService {
           try {
             // iOS requires load() call before play() in some cases
             audioEl.load();
-            log.info('🔊 Attempting to play audio element...');
             await audioEl.play();
-            log.info('🔊 Audio playback started successfully!');
           } catch (err) {
-            // Log the actual error - this is critical for debugging
-            log.warn('🔊 Initial audio play blocked by browser (will retry on user gesture)', { 
-              error: err instanceof Error ? err.message : String(err),
-              readyState: audioEl.readyState,
-              paused: audioEl.paused,
-              muted: audioEl.muted,
-            });
-            
             // iOS/mobile requires user gesture - set up handlers
             const unlock = () => {
-              log.info('🔊 User gesture detected, attempting audio unlock...');
-              audioEl.play()
-                .then(() => log.info('🔊 Audio unlocked and playing!'))
-                .catch((e) => log.warn('Audio unlock failed:', e));
+              audioEl.play().catch((e) => log.warn('Audio unlock failed:', e));
               document.removeEventListener('touchstart', unlock);
               document.removeEventListener('touchend', unlock);
               document.removeEventListener('click', unlock);

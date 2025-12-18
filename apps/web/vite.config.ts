@@ -3,6 +3,8 @@ import { defineConfig } from 'vite';
 
 // Stub for native Capacitor plugins that don't exist in web builds
 const capacitorStub = resolve(__dirname, 'src/stubs/capacitor-stub.ts');
+// Stub for Firebase when not configured
+const firebaseStub = resolve(__dirname, 'src/stubs/firebase-stub.ts');
 
 export default defineConfig({
   root: '.',
@@ -10,10 +12,15 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
-      '@design-system': resolve(__dirname, '../../design-system/dist'),
+      '@design-system': resolve(__dirname, '../design-system/dist'),
       // Stub native-only Capacitor plugins for web development
       '@ferni/capacitor-purchases': capacitorStub,
       '@capacitor/browser': capacitorStub,
+      '@capacitor/push-notifications': capacitorStub,
+      '@capacitor/local-notifications': capacitorStub,
+      // Firebase stubs for development without credentials
+      'firebase/app': firebaseStub,
+      'firebase/auth': firebaseStub,
     },
   },
   // Use global GSAP from CDN instead of bundling npm version
@@ -24,29 +31,16 @@ export default defineConfig({
   server: {
     port: 3004,
     proxy: {
-      // Token server runs on port 3001 (LiveKit tokens, Spotify OAuth)
-      '/token': 'http://localhost:3001',
-      '/token-url': 'http://localhost:3001',
-      '/spotify': 'http://localhost:3001',
-      // UI server runs on port 3002 (APIs, subscriptions)
-      '/api/agents': 'http://localhost:3002',
-      '/api/cognitive': 'http://localhost:3002',
-      '/api/conversations': 'http://localhost:3002',
-      '/api/analytics': 'http://localhost:3002',
-      '/api/predictions': 'http://localhost:3002',
-      '/api/rituals': 'http://localhost:3002',
-      '/api/huddles': 'http://localhost:3002',
-      '/api/export': 'http://localhost:3002',
-      '/api/relationship': 'http://localhost:3002',
-      '/api/voice': 'http://localhost:3002',
-      '/api/trust': 'http://localhost:3002',
-      '/api/marketplace': 'http://localhost:3002',
-      '/subscription': 'http://localhost:3002',
-      '/api/subscription': 'http://localhost:3002',
-      '/api/v1': 'http://localhost:3002',
-      '/api/evalops': 'http://localhost:3002',
-      '/api/metrics': 'http://localhost:3002',
+      // UI server handles EVERYTHING (tokens, OAuth, APIs)
+      // Run with: PORT=3002 node ui-server.js
+      '/token': 'http://localhost:3002',
+      '/token-url': 'http://localhost:3002',
+      '/demo-token': 'http://localhost:3002',
+      '/spotify': 'http://localhost:3002',
+      '/auth': 'http://localhost:3002',
       '/api': 'http://localhost:3002',
+      '/subscription': 'http://localhost:3002',
+      '/usage': 'http://localhost:3002',
       '/health': 'http://localhost:3002',
     },
   },

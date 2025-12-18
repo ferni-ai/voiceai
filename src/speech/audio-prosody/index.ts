@@ -39,7 +39,6 @@ export { AudioProsodyAnalyzer, default } from './analyzer.js';
 
 export {
   clearProsodyMetrics,
-  getAudioProsodyAnalyzer, // Deprecated
   getProsodyMetrics,
   getSessionAudioProsodyAnalyzer,
   recordProsodyAnalysis,

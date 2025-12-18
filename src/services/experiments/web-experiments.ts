@@ -18,6 +18,7 @@ import crypto from 'crypto';
 import * as admin from 'firebase-admin';
 import { FieldValue, getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { getGCPProjectId } from '../../config/environment.js';
+import { removeUndefined } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'WebExperiments' });
@@ -433,10 +434,12 @@ async function persistAssignment(
       .doc(experimentId)
       .collection('assignments')
       .doc(userId)
-      .set({
-        variantId,
-        assignedAt: FieldValue.serverTimestamp(),
-      });
+      .set(
+        removeUndefined({
+          variantId,
+          assignedAt: FieldValue.serverTimestamp(),
+        })
+      );
 
     // Update cache
     if (!assignmentsCache.has(experimentId)) {
@@ -506,10 +509,12 @@ async function trackEvent(event: ExperimentEvent): Promise<void> {
       .collection('web_experiments')
       .doc(event.experimentId)
       .collection('events')
-      .add({
-        ...event,
-        timestamp: FieldValue.serverTimestamp(),
-      });
+      .add(
+        removeUndefined({
+          ...event,
+          timestamp: FieldValue.serverTimestamp(),
+        })
+      );
 
     // Update metrics (increment counters)
     const metricsRef = db
@@ -746,10 +751,12 @@ export async function createWebExperiment(config: {
     createdAt: new Date(),
   };
 
-  const docRef = await db.collection('web_experiments').add({
-    ...experiment,
-    createdAt: FieldValue.serverTimestamp(),
-  });
+  const docRef = await db.collection('web_experiments').add(
+    removeUndefined({
+      ...experiment,
+      createdAt: FieldValue.serverTimestamp(),
+    })
+  );
 
   const created: WebExperiment = {
     ...experiment,

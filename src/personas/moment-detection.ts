@@ -12,10 +12,20 @@
  * - Trust demonstrations (sharing something sensitive)
  *
  * This powers the Relationship Memory Engine's automatic tracking.
+ *
+ * NOTE: This file now delegates to unified-moment-detection.ts as the
+ * single source of truth. We keep this file for backward compatibility
+ * with existing imports.
  */
 
 import { getLogger } from '../utils/safe-logger.js';
 import type { SharedMomentType } from './relationship-memory/types.js';
+import {
+  detectMomentsUnified,
+  extractMemorableMoments as extractMemorableMomentsUnified,
+  type MomentDetectionContext as UnifiedContext,
+  type UnifiedMoment,
+} from './unified-moment-detection.js';
 
 const log = getLogger();
 
@@ -551,9 +561,48 @@ export function getMomentPriority(type: SharedMomentType): number {
   return priorities[type] || 1;
 }
 
+/**
+ * NEW: Convert unified moments to legacy DetectedMoment format
+ */
+function convertUnifiedMoment(unified: UnifiedMoment): DetectedMoment {
+  return {
+    type: unified.type,
+    confidence: unified.confidence,
+    summary: unified.summary,
+    userPhrase: unified.triggerPhrase,
+    topic: unified.topic,
+    significance: unified.significance,
+    tags: unified.tags,
+  };
+}
+
+/**
+ * NEW: Detect moments using unified system (preferred method)
+ *
+ * Returns the full unified result including memorable details for callbacks
+ */
+export function detectMomentsUnifiedWrapper(context: MomentDetectionContext) {
+  const unifiedContext: UnifiedContext = {
+    userMessage: context.userMessage,
+    aiResponse: context.aiResponse,
+    topic: context.topic,
+    emotionalState: context.emotionalState,
+    sessionNumber: context.sessionNumber,
+    hasSharedVulnerabilityBefore: context.hasSharedVulnerabilityBefore,
+  };
+  return detectMomentsUnified(unifiedContext);
+}
+
+/**
+ * NEW: Re-export unified extractMemorableMoments
+ */
+export { extractMemorableMomentsUnified as extractMemorableMoments };
+
 export default {
   detectMoments,
   detectPrimaryMoment,
   hasMoment,
   getMomentPriority,
+  detectMomentsUnifiedWrapper,
+  extractMemorableMoments: extractMemorableMomentsUnified,
 };

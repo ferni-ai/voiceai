@@ -12,6 +12,7 @@
  */
 
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { createLogger } from '../utils/safe-logger.js';
 import type { EmotionalDataPoint, EmotionalPattern, GrowthMoment } from './emotional-patterns.js';
 
@@ -72,11 +73,13 @@ export async function saveEmotionalDataPoint(
       .collection('points')
       .doc();
 
-    await docRef.set({
-      ...dataPoint,
-      timestamp: dataPoint.timestamp.toISOString(),
-      createdAt: new Date().toISOString(),
-    });
+    await docRef.set(
+      removeUndefined({
+        ...dataPoint,
+        timestamp: dataPoint.timestamp.toISOString(),
+        createdAt: new Date().toISOString(),
+      })
+    );
 
     log.debug({ userId, emotion: dataPoint.emotion }, 'Emotional data point saved');
     return true;
@@ -150,11 +153,13 @@ export async function saveEmotionalPattern(
       .collection('patterns')
       .doc(pattern.id);
 
-    await docRef.set({
-      ...pattern,
-      detectedAt: pattern.detectedAt.toISOString(),
-      lastUpdated: new Date().toISOString(),
-    });
+    await docRef.set(
+      removeUndefined({
+        ...pattern,
+        detectedAt: pattern.detectedAt.toISOString(),
+        lastUpdated: new Date().toISOString(),
+      })
+    );
 
     log.info({ userId, patternId: pattern.id, pattern: pattern.pattern }, '🔮 Pattern saved');
     return true;
@@ -258,12 +263,14 @@ export async function saveGrowthMoment(userId: string, growth: GrowthMoment): Pr
       .collection('moments')
       .doc(growth.id);
 
-    await docRef.set({
-      ...growth,
-      pastDate: growth.pastDate.toISOString(),
-      currentDate: growth.currentDate.toISOString(),
-      createdAt: new Date().toISOString(),
-    });
+    await docRef.set(
+      removeUndefined({
+        ...growth,
+        pastDate: growth.pastDate.toISOString(),
+        currentDate: growth.currentDate.toISOString(),
+        createdAt: new Date().toISOString(),
+      })
+    );
 
     log.info({ userId, growthId: growth.id, area: growth.area }, '🌱 Growth moment saved');
     return true;

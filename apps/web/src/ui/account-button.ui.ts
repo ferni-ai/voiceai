@@ -22,7 +22,6 @@ import {
   signOut,
   type AuthState,
 } from '../services/firebase-auth.service.js';
-import { addTapListener } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
@@ -147,8 +146,8 @@ function createAccountButton(): void {
     button.style.boxShadow = 'none';
   });
 
-  // Click handler (iOS-compatible)
-  addTapListener(button, () => {
+  // Click handler
+  button.addEventListener('click', () => {
     if (currentAuthState?.isLinked) {
       showAccountMenu();
     } else {
@@ -272,14 +271,13 @@ function showLinkAccountModal(): void {
   const emailForm = overlay.querySelector('#account-email-form') as HTMLFormElement;
   const retryBtn = overlay.querySelector('.retry-btn') as HTMLElement;
 
-  // Event listeners (iOS-compatible)
-  addTapListener(closeBtn, () => closeModal());
-  addTapListener(backdrop, () => closeModal());
+  closeBtn.addEventListener('click', () => closeModal());
+  backdrop.addEventListener('click', () => closeModal());
 
-  addTapListener(googleBtn, () => handleSocialLink('google'));
-  addTapListener(appleBtn, () => handleSocialLink('apple'));
+  googleBtn.addEventListener('click', () => handleSocialLink('google'));
+  appleBtn.addEventListener('click', () => handleSocialLink('apple'));
   emailForm.addEventListener('submit', handleEmailSubmit);
-  addTapListener(retryBtn, () => resetModalState(overlay));
+  retryBtn.addEventListener('click', () => resetModalState(overlay));
 
   // Animate in
   document.body.appendChild(overlay);
@@ -705,9 +703,9 @@ function showAccountMenu(): void {
   `;
   menu.appendChild(style);
 
-  // Sign out handler (iOS-compatible)
+  // Sign out handler
   const signoutBtn = menu.querySelector('[data-action="signout"]');
-  addTapListener(signoutBtn, async () => {
+  signoutBtn?.addEventListener('click', async () => {
     await signOut();
     menu.remove();
   });

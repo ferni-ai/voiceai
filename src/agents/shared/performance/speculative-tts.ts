@@ -361,7 +361,9 @@ class SpeculativeTTSEngine {
     const partialMatch = this.findPartialMatch(text, voiceId);
     if (partialMatch) {
       // Return partial match while generating full
-      this.generateAndCache(text, voiceId, 'high').catch(() => {});
+      this.generateAndCache(text, voiceId, 'high').catch((err) => {
+        log.debug({ error: String(err), text: text.slice(0, 50) }, 'Background TTS generation failed');
+      });
       return partialMatch;
     }
 

@@ -165,7 +165,7 @@
 [data-user-context] {
   font-family: var(--font-body, sans-serif);
   font-size: clamp(1rem, 2vw, 1.25rem);
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-dark-text-muted, #ddd6cc);
   text-align: center;
   max-width: 500px;
   line-height: 1.6;
@@ -379,7 +379,7 @@
 .story-selector-label {
   font-family: var(--font-body, sans-serif);
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-dark-text-muted, #ddd6cc);
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }

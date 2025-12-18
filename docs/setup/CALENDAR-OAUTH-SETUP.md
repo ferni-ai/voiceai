@@ -100,7 +100,7 @@ open http://localhost:3001/auth/google/login?user_id=test-user
 The calendar settings UI needs to be connected. Update the settings menu to include:
 
 ```typescript
-// In frontend-typescript/src/ui/settings-menu.ui.ts
+// In apps/web/src/ui/settings-menu.ui.ts
 {
   id: 'calendar',
   label: 'Calendar',
@@ -188,5 +188,5 @@ npx playwright test e2e/calendar.spec.ts
 - `src/api/calendar-routes.ts` - Calendar status/sync/disconnect API
 - `src/tools/domains/calendar/` - Calendar tools for agents
 - `e2e/calendar.spec.ts` - E2E tests
-- `frontend-typescript/src/ui/calendar-settings.ui.ts` - Settings UI
+- `apps/web/src/ui/calendar-settings.ui.ts` - Settings UI
 - `docs/guides/GOOGLE-CALENDAR-SETUP.md` - Detailed setup guide

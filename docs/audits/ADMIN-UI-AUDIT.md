@@ -1,7 +1,7 @@
 # Admin UI Audit Report
 
 > **Date**: 2025-12-11
-> **Scope**: All admin section files in `frontend-typescript/src/admin/`
+> **Scope**: All admin section files in `apps/web/src/admin/`
 
 ## Executive Summary
 

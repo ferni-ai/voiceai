@@ -238,7 +238,7 @@ describe('Tool Proxy', () => {
       const tool = createProxiedTool(toolDef, ctx, config);
       const result = await tool.execute({});
 
-      expect(result).toBe('That took too long. Let me try a simpler approach.');
+      expect(result).toBe("That's taking forever. Let me try another way.");
     });
 
     it('should fallback to local execution in hybrid mode on failure', async () => {

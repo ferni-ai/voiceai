@@ -11,6 +11,7 @@
 import { llm, log } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import { z } from 'zod';
+import { getToolDescription } from '../utils/tool-descriptions.js';
 import {
   type LifePlanningToolsConfig,
   DEFAULT_TOOL_BEHAVIOR,
@@ -49,8 +50,8 @@ export function createLifePlanningToolsFactory(configOverrides?: Partial<LifePla
   // ============================================================================
 
   const createMilestone = llm.tool({
-    description: `Create a life milestone to track (wedding, baby, home purchase, etc.). ${
-      config.culturalAwareness ? 'I can include cultural traditions and considerations.' : ''
+    description: `${getToolDescription('createMilestone')}${
+      config.culturalAwareness ? ' I can include cultural traditions and considerations.' : ''
     }`,
     parameters: z.object({
       title: z.string().describe('Milestone name'),
@@ -68,7 +69,7 @@ export function createLifePlanningToolsFactory(configOverrides?: Partial<LifePla
   });
 
   const getMilestoneProgress = llm.tool({
-    description: 'Check progress on your milestones',
+    description: getToolDescription('getMilestoneProgress'),
     parameters: z.object({
       milestoneId: z.string().optional().describe('Specific milestone to check'),
       showAll: z.boolean().optional().default(false).describe('Show all active milestones'),
@@ -84,8 +85,8 @@ export function createLifePlanningToolsFactory(configOverrides?: Partial<LifePla
   // ============================================================================
 
   const createGoal = llm.tool({
-    description: `Create a life goal with actionable steps. ${
-      config.teamCoordination ? 'Can involve team members for support.' : ''
+    description: `${getToolDescription('createGoal')}${
+      config.teamCoordination ? ' Can involve team members for support.' : ''
     }`,
     parameters: z.object({
       title: z.string().describe('Goal title'),
@@ -103,7 +104,7 @@ export function createLifePlanningToolsFactory(configOverrides?: Partial<LifePla
   });
 
   const updateGoalProgress = llm.tool({
-    description: 'Update progress on a goal',
+    description: getToolDescription('updateGoalProgress'),
     parameters: z.object({
       goalId: z.string().describe('Goal to update'),
       progress: z.number().min(0).max(100).describe('Progress percentage'),
@@ -143,7 +144,7 @@ export function createLifePlanningToolsFactory(configOverrides?: Partial<LifePla
   // Cultural awareness tools
   if (config.culturalAwareness) {
     tools.getCulturalTraditions = llm.tool({
-      description: 'Get cultural traditions and considerations for life events',
+      description: getToolDescription('getCulturalTraditions'),
       parameters: z.object({
         eventType: z.string().describe('Type of event'),
         culture: z.string().optional().describe('Specific cultural background'),
@@ -157,7 +158,7 @@ export function createLifePlanningToolsFactory(configOverrides?: Partial<LifePla
   // Gift registry
   if (config.giftRegistry) {
     tools.manageGiftRegistry = llm.tool({
-      description: 'Manage gift registry for events',
+      description: getToolDescription('manageGiftRegistry'),
       parameters: z.object({
         action: z.enum(['create', 'add', 'view', 'track']).describe('Action to take'),
         eventId: z.string().optional().describe('Event to manage registry for'),
@@ -173,7 +174,7 @@ export function createLifePlanningToolsFactory(configOverrides?: Partial<LifePla
   // Retirement planning
   if (config.retirementPlanning) {
     tools.planRetirement = llm.tool({
-      description: 'Create or update retirement plan',
+      description: getToolDescription('planRetirement'),
       parameters: z.object({
         currentAge: z.number().describe('Current age'),
         targetRetirementAge: z.number().describe('Target retirement age'),
@@ -202,7 +203,7 @@ export function createLifePlanningToolsFactory(configOverrides?: Partial<LifePla
   // Team coordination
   if (config.teamCoordination) {
     tools.coordinateWithTeam = llm.tool({
-      description: 'Coordinate with team members for goal support',
+      description: getToolDescription('coordinateWithTeam'),
       parameters: z.object({
         goalId: z.string().describe('Goal to coordinate'),
         teamMembers: z.array(z.string()).describe('Team members to involve'),

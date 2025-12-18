@@ -15,6 +15,7 @@
 
 import { type EnglishAccent, ACCENT_TO_DIALECT } from '../config/voice-accents.js';
 import { getVoiceIdForPersona } from '../config/voice-ids.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'CartesiaLocalization' });
@@ -127,11 +128,13 @@ async function saveToFirestore(cacheKey: string, voice: LocalizedVoice): Promise
     await db
       .collection(FIRESTORE_COLLECTION)
       .doc(cacheKey)
-      .set({
-        ...voice,
-        cacheKey,
-        updatedAt: new Date().toISOString(),
-      });
+      .set(
+        removeUndefined({
+          ...voice,
+          cacheKey,
+          updatedAt: new Date().toISOString(),
+        })
+      );
 
     log.debug({ cacheKey, voiceId: voice.id }, '💾 Saved localized voice to Firestore');
   } catch (err) {

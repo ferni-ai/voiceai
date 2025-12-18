@@ -144,8 +144,10 @@ async function callGemini(
 
   const fullPrompt = [systemPrompt, ...contextInjections, `User: ${userMessage}`].join('\n\n');
 
+  // Use GEMINI_MODEL env var for model selection (default: gemini-2.0-flash-exp)
+  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash-exp';
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

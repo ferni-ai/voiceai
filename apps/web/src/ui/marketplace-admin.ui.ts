@@ -210,7 +210,7 @@ async function loadData(): Promise<void> {
     });
   } catch (error) {
     log.error('Failed to load admin data:', error);
-    toast.error('Failed to load review queue');
+    toast.error("Couldn't load the queue. Try refreshing?");
   }
 }
 
@@ -499,11 +499,11 @@ async function handleApprove(itemId: string): Promise<void> {
       renderPanel();
     } else {
       const data = await response.json();
-      toast.error(data.error || 'Failed to approve');
+      toast.error(data.error || "Couldn't approve that one");
     }
   } catch (error) {
     log.error('Failed to approve item:', error);
-    toast.error('Failed to approve item');
+    toast.error("Couldn't approve that. Try again?");
   }
 }
 
@@ -530,11 +530,11 @@ async function handleReject(itemId: string): Promise<void> {
       renderPanel();
     } else {
       const data = await response.json();
-      toast.error(data.error || 'Failed to reject');
+      toast.error(data.error || "Couldn't reject that one");
     }
   } catch (error) {
     log.error('Failed to reject item:', error);
-    toast.error('Failed to reject item');
+    toast.error("Couldn't reject that. Try again?");
   }
 }
 
@@ -561,11 +561,11 @@ async function handleModerateReview(
       renderPanel();
     } else {
       const data = await response.json();
-      toast.error(data.error || 'Failed to moderate');
+      toast.error(data.error || "Couldn't update that one");
     }
   } catch (error) {
     log.error('Failed to moderate review:', error);
-    toast.error('Failed to moderate review');
+    toast.error("Couldn't update that. Try again?");
   }
 }
 

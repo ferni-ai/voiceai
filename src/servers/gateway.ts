@@ -133,10 +133,13 @@ async function main(): Promise<void> {
     startUIServer();
   }
 
-  log.info({
-    tokenServer: !uiOnly ? `http://localhost:${process.env.TOKEN_SERVER_PORT || 3001}` : null,
-    uiServer: !tokenOnly ? `http://localhost:${process.env.PORT || 3002}` : null,
-  }, 'Gateway running');
+  log.info(
+    {
+      tokenServer: !uiOnly ? `http://localhost:${process.env.TOKEN_SERVER_PORT || 3001}` : null,
+      uiServer: !tokenOnly ? `http://localhost:${process.env.PORT || 3002}` : null,
+    },
+    'Gateway running'
+  );
 }
 
 // Run

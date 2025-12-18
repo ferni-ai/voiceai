@@ -72,7 +72,7 @@
 │   ├── js/main.js
 │   └── images/
 │
-├── frontend-typescript/      # Main app (app.ferni.ai)
+├── apps/web/      # Main app (app.ferni.ai)
 │   ├── src/
 │   ├── dist/
 │   └── vite.config.ts
@@ -164,7 +164,7 @@ cd voiceai
 npm install
 
 # Install frontend dependencies
-cd frontend-typescript && npm install && cd ..
+cd apps/web && npm install && cd ..
 
 # Copy environment template
 cp .env.example .env
@@ -193,7 +193,7 @@ FIREBASE_PROJECT_ID=your_firebase_project
 npm run dev
 
 # Terminal 2: Run frontend app
-cd frontend-typescript && npm run dev
+cd apps/web && npm run dev
 
 # Terminal 3: Run landing page (for testing)
 cd promo/ferni-website && python3 -m http.server 8765
@@ -271,7 +271,7 @@ gsutil web set -m index.html gs://ferni-landing
 ## 5. Frontend App
 
 ### Location
-`/frontend-typescript/`
+`/apps/web/`
 
 ### Technology Stack
 - Vite + TypeScript
@@ -281,7 +281,7 @@ gsutil web set -m index.html gs://ferni-landing
 ### Structure
 
 ```
-frontend-typescript/
+apps/web/
 ├── src/
 │   ├── main.ts           # Entry point
 │   ├── config/
@@ -300,7 +300,7 @@ frontend-typescript/
 ### Development
 
 ```bash
-cd frontend-typescript
+cd apps/web
 npm install
 npm run dev
 # Open http://localhost:5173
@@ -621,11 +621,11 @@ gcloud run services update-traffic voiceai-agent \
 ```bash
 # Local development
 npm run dev                      # Run agent
-cd frontend-typescript && npm run dev  # Run frontend
+cd apps/web && npm run dev  # Run frontend
 
 # Build
 npm run build                    # Build agent
-cd frontend-typescript && npm run build  # Build frontend
+cd apps/web && npm run build  # Build frontend
 
 # Deploy
 ./scripts/deploy-gcp.sh          # Deploy agent
@@ -646,7 +646,7 @@ gcloud secrets versions access latest --secret=secret-name
 | Brand Guidelines | `/design-system/brand/FERNI-SCREEN-GUIDELINES.md` |
 | Design Tokens | `/brand/ferni-design-tokens.css` |
 | Landing Page | `/promo/ferni-website/` |
-| Frontend App | `/frontend-typescript/` |
+| Frontend App | `/apps/web/` |
 | Voice Agent | `/src/` |
 | Personas | `/src/personas/bundles/` |
 | Deploy Scripts | `/scripts/` |

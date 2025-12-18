@@ -180,7 +180,7 @@ rm .subscriptions.json
 | `src/services/stripe-subscription.ts` | Stripe API integration |
 | `src/api/subscription-routes.ts` | API route handlers |
 | `src/personas/subscription-prompts.ts` | Human-centered conversation prompts |
-| `frontend-typescript/src/ui/subscription.ui.ts` | Frontend modal and UI |
+| `apps/web/src/ui/subscription.ui.ts` | Frontend modal and UI |
 | `token-server.js` | Gating logic in token generation |
 
 ## Migration Notes

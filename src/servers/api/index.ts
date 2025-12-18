@@ -37,7 +37,10 @@ import {
 import { handleStaticRoutes, serveStaticFile } from './static.js';
 
 // Spotify auto-refresh
-import { startAutoRefresh as startSpotifyAutoRefresh, shutdown as shutdownSpotify } from './services/spotify.js';
+import {
+  startAutoRefresh as startSpotifyAutoRefresh,
+  shutdown as shutdownSpotify,
+} from './services/spotify.js';
 import { shutdown as shutdownPlaid } from './services/plaid.js';
 import { shutdown as shutdownDemoSessions } from './services/demo-sessions.js';
 import { shutdown as shutdownTokenRoutes } from './routes/token.js';
@@ -93,6 +96,7 @@ import { handleLandingIntelligenceRoutes } from '../../api/landing-intelligence-
 import { handleLandingOptimizationRoutes } from '../../api/landing-optimization-handler.js';
 import { handleCameoAnalyticsRoutes } from '../../api/cameo-analytics-routes.js';
 import { handleGardenRoutes } from '../../api/garden-routes.js';
+import { handleRoadmapRoutes } from '../../api/roadmap-routes.js';
 import { handleMarketplaceRoutes } from '../../api/marketplace-routes.js';
 import { handleShareRoutes } from '../../api/routes/share-routes.js';
 import { handleChallengeRoutes } from '../../api/routes/challenge-routes.js';
@@ -108,7 +112,9 @@ const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || '';
 
 if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
-  log.error('Missing required environment variables: LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET');
+  log.error(
+    'Missing required environment variables: LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET'
+  );
   process.exit(1);
 }
 
@@ -207,31 +213,21 @@ const server = http.createServer(async (req, res) => {
 
     // Challenge routes (Daily Challenges)
     if (pathname.startsWith('/api/challenges')) {
-      // Convert URLSearchParams to ParsedUrlQuery-like object
-      const query: Record<string, string | string[]> = {};
-      parsedUrl.searchParams.forEach((value, key) => {
-        query[key] = value;
-      });
+      const query = new URLSearchParams(parsedUrl.search || '');
       const handled = await handleChallengeRoutes(req, res, pathname, query);
       if (handled) return;
     }
 
     // Creative You routes (Videos, Podcasts, DNA)
     if (pathname.startsWith('/api/creative')) {
-      const query: Record<string, string | string[]> = {};
-      parsedUrl.searchParams.forEach((value, key) => {
-        query[key] = value;
-      });
+      const query = new URLSearchParams(parsedUrl.search || '');
       const handled = await handleCreativeYouRoutes(req, res, pathname, query);
       if (handled) return;
     }
 
     // Social routes (Challenges, Leaderboards, Taste Match)
     if (pathname.startsWith('/api/social')) {
-      const query: Record<string, string | string[]> = {};
-      parsedUrl.searchParams.forEach((value, key) => {
-        query[key] = value;
-      });
+      const query = new URLSearchParams(parsedUrl.search || '');
       const handled = await handleSocialRoutes(req, res, pathname, query);
       if (handled) return;
     }
@@ -496,6 +492,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // Roadmap routes (What's Growing - feature voting, suggestions, seed economy)
+    if (pathname.startsWith('/api/roadmap')) {
+      const handled = await handleRoadmapRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
     // Cameo analytics routes
     if (pathname.startsWith('/api/cameo')) {
       const handled = await handleCameoAnalyticsRoutes(req, res, pathname);
@@ -670,11 +672,14 @@ const stopDDoSMonitoring = startDDoSMonitoring('ui-server', 30_000);
 
 // Start the server
 server.listen(PORT, '0.0.0.0', () => {
-  log.info({
-    port: PORT,
-    livekitUrl: LIVEKIT_URL,
-    ddosProtection: true,
-  }, 'UI Server started');
+  log.info(
+    {
+      port: PORT,
+      livekitUrl: LIVEKIT_URL,
+      ddosProtection: true,
+    },
+    'UI Server started'
+  );
 
   // Start Spotify token auto-refresh
   startSpotifyAutoRefresh();

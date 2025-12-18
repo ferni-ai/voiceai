@@ -21,6 +21,7 @@ import {
 } from '../services/productivity-store.js';
 import { getLogger, generateId } from './utils/tool-helpers.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // Bridge functions for persistence
 function noteDataToNote(data: NoteData, userId: string): Note {
   return {
@@ -368,12 +369,7 @@ export { getTodayJournal, getJournalStreak, getUserNotes };
 export function createNotesTools() {
   return {
     saveNote: llm.tool({
-      description: `Save a quick note or thought.
-Use when user says:
-- "Note to self..."
-- "Remember this..."
-- "Save that..."
-- "I want to remember..."`,
+      description: getToolDescription('saveNote'),
       parameters: z.object({
         content: z.string().describe('The note content'),
         title: z.string().optional().describe('Optional title'),
@@ -413,8 +409,7 @@ Use when user says:
     }),
 
     getRecentNotes: llm.tool({
-      description: `Show recent notes.
-Use when user asks "what did I note?" or "show my notes"`,
+      description: getToolDescription('getRecentNotes'),
       parameters: z.object({
         limit: z.number().optional().default(5),
         type: z.enum(['quick', 'idea', 'reminder', 'reflection', 'all']).optional().default('all'),
@@ -447,8 +442,7 @@ Use when user asks "what did I note?" or "show my notes"`,
     }),
 
     searchNotes: llm.tool({
-      description: `Search through notes.
-Use when user asks "find my note about..." or "what did I say about..."`,
+      description: getToolDescription('searchNotes'),
       parameters: z.object({
         query: z.string().describe('What to search for'),
       }),
@@ -478,8 +472,7 @@ Use when user asks "find my note about..." or "what did I say about..."`,
     }),
 
     startJournal: llm.tool({
-      description: `Start a guided journal entry.
-Use for daily journaling, gratitude practice, or reflection.`,
+      description: getToolDescription('startJournal'),
       parameters: z.object({
         type: z
           .enum(['evening', 'morning', 'gratitude'])
@@ -518,8 +511,7 @@ Use for daily journaling, gratitude practice, or reflection.`,
     }),
 
     addGratitude: llm.tool({
-      description: `Add gratitude items to today's journal.
-Use when user shares what they're grateful for.`,
+      description: getToolDescription('addGratitude'),
       parameters: z.object({
         gratitudes: z.array(z.string()).min(1).max(5).describe('Things to be grateful for'),
       }),
@@ -549,8 +541,7 @@ Use when user shares what they're grateful for.`,
     }),
 
     recordMood: llm.tool({
-      description: `Record current mood for the journal.
-Use when user shares how they're feeling.`,
+      description: getToolDescription('recordMood'),
       parameters: z.object({
         mood: z.number().min(1).max(5).describe('Mood 1-5 (1=low, 5=great)'),
         notes: z.string().optional().describe('Any additional context'),
@@ -585,7 +576,7 @@ Use when user shares how they're feeling.`,
     }),
 
     completeJournal: llm.tool({
-      description: `Complete a full journal entry with highlight, challenge, and intention.`,
+      description: getToolDescription('completeJournal'),
       parameters: z.object({
         highlight: z.string().optional().describe('Best part of the day'),
         challenge: z.string().optional().describe('Biggest challenge'),
@@ -624,7 +615,7 @@ Use when user shares how they're feeling.`,
     }),
 
     getJournalHistory: llm.tool({
-      description: `Review past journal entries.`,
+      description: getToolDescription('getJournalHistory'),
       parameters: z.object({
         days: z.number().optional().default(7).describe('How many days back'),
       }),
@@ -668,7 +659,7 @@ Use when user shares how they're feeling.`,
     }),
 
     getJournalPrompt: llm.tool({
-      description: `Get a journaling prompt for inspiration.`,
+      description: getToolDescription('getJournalPrompt'),
       parameters: z.object({
         type: z.enum(['gratitude', 'reflection', 'morning']).optional().default('reflection'),
       }),

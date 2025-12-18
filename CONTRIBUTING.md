@@ -47,7 +47,7 @@ npm run dev
 | `CLAUDE.md` | Quick reference for common patterns |
 | `src/tools/CLAUDE.md` | How to create tools |
 | `src/personas/CLAUDE.md` | How to create personas |
-| `frontend-typescript/CLAUDE.md` | Frontend design standards |
+| `apps/web/CLAUDE.md` | Frontend design standards |
 
 ### 2. Understand the Architecture
 

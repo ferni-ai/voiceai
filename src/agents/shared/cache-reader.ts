@@ -32,8 +32,20 @@ const CACHE_MAX_AGE_MS = 10 * 60 * 1000;
  * Only includes fields needed for greeting generation.
  */
 export interface CachedCommunicationConfig {
-  greetingStyle: 'warm-friend' | 'professional' | 'enthusiastic' | 'calm-supportive' | 'casual-peer' | 'wise-mentor';
-  returningUserStyle: 'warm-friend' | 'professional' | 'enthusiastic' | 'calm-supportive' | 'casual-peer' | 'wise-mentor';
+  greetingStyle:
+    | 'warm-friend'
+    | 'professional'
+    | 'enthusiastic'
+    | 'calm-supportive'
+    | 'casual-peer'
+    | 'wise-mentor';
+  returningUserStyle:
+    | 'warm-friend'
+    | 'professional'
+    | 'enthusiastic'
+    | 'calm-supportive'
+    | 'casual-peer'
+    | 'wise-mentor';
   formalityLevel: number;
 }
 

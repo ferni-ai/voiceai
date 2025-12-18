@@ -15,6 +15,7 @@
 
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
+import { removeUndefined } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'CrossDeviceSync' });
 
@@ -231,14 +232,17 @@ async function flushPendingWrites(userId: string): Promise<void> {
         .collection(TRUST_SUBCOLLECTION)
         .doc(systemId);
 
-      batch.set(docRef, {
-        userId,
-        systemId,
-        data: pending.data,
-        updatedAt: FieldValue.serverTimestamp(),
-        deviceId: getDeviceId(userId),
-        version: Date.now(),
-      });
+      batch.set(
+        docRef,
+        removeUndefined({
+          userId,
+          systemId,
+          data: pending.data,
+          updatedAt: FieldValue.serverTimestamp(),
+          deviceId: getDeviceId(userId),
+          version: Date.now(),
+        })
+      );
     }
 
     await batch.commit();
@@ -347,12 +351,14 @@ export async function updateSessionState(
       .collection('session_state')
       .doc('current');
 
-    await sessionDocRef.set({
-      deviceId: getDeviceId(userId),
-      lastActivity: FieldValue.serverTimestamp(),
-      lastContext: context,
-      gracefulEnd: isEnding,
-    });
+    await sessionDocRef.set(
+      removeUndefined({
+        deviceId: getDeviceId(userId),
+        lastActivity: FieldValue.serverTimestamp(),
+        lastContext: context,
+        gracefulEnd: isEnding,
+      })
+    );
   } catch (err) {
     log.error({ error: err, userId }, 'Failed to update session state');
   }

@@ -19,10 +19,10 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext } from '../../registry/types.js';
 
 // Import tool creators
-import { createHabitTools } from '../../habits.js';
+import { createHabitTools } from './habits.js';
 import { createHabitCoachingTools } from '../../habit-coaching.js';
 // NOTE: Using gamification-v2 for proper Firestore persistence
-import { createGamificationToolsV2 } from '../../gamification-v2.js';
+import { createGamificationToolsV2 } from './gamification-v2.js';
 
 // Also import new unified definitions (will be used in future)
 import { habitToolDefinitions as unifiedHabitTools } from './unified-habits.js';
@@ -168,6 +168,11 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 );
 
 export { getCoreHabitToolDefinitions, getCoachingToolDefinitions, getGamificationToolDefinitions };
+
+// Re-export legacy tool creators for direct use by persona agents
+export { createHabitTools } from './habits.js';
+export { createHabitCoachingTools } from '../../habit-coaching.js';
+export { createGamificationToolsV2 } from './gamification-v2.js';
 
 // Export unified tools for future use
 export { unifiedHabitTools };

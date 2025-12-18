@@ -315,37 +315,63 @@ export async function detectPatterns(
 
 /**
  * Check if context matches a temporal pattern
+ * NOW FULLY USES BUNDLE TRIGGERS - checks both time conditions AND message content
  */
 function matchesTemporalPattern(context: PatternMatchContext, config: PatternConfig): boolean {
   const { dayOfWeek, hour, currentMessage } = context;
   const triggers = config.triggers || [];
   const messageLower = currentMessage.toLowerCase();
 
+  let timeMatches = false;
+  let messageMatches = false;
+
+  // === TIME-BASED CONDITIONS ===
   // Sunday evening anxiety (Sunday = 0, evening = 17-21)
-  if (triggers.includes('sunday') && dayOfWeek === 0 && hour >= 17) {
-    return true;
+  if (triggers.includes('sunday') && dayOfWeek === 0 && hour >= 17 && hour <= 21) {
+    timeMatches = true;
   }
 
-  // Friday reflective (Friday = 5)
-  if (triggers.includes('friday') && dayOfWeek === 5) {
-    return true;
+  // Friday reflective (Friday = 5, afternoon+)
+  if (triggers.includes('friday') && dayOfWeek === 5 && hour >= 14) {
+    timeMatches = true;
   }
 
   // Late night processing
   if (triggers.includes('late') && (hour >= 22 || hour < 5)) {
-    return true;
+    timeMatches = true;
   }
 
   // Morning clarity
   if (triggers.includes('morning') && hour >= 6 && hour < 10) {
+    timeMatches = true;
+  }
+
+  // === MESSAGE-BASED MATCHING ===
+  // Count how many triggers match the message
+  let triggerMatchCount = 0;
+  for (const trigger of triggers) {
+    const triggerLower = trigger.toLowerCase();
+    if (messageLower.includes(triggerLower)) {
+      triggerMatchCount++;
+      messageMatches = true;
+      log.debug({ trigger, message: currentMessage.slice(0, 50) }, 'Predictive trigger matched');
+    }
+  }
+
+  // Match if: (time matches AND user mentions relevant content) OR (multiple triggers in message)
+  if (timeMatches && messageMatches) {
     return true;
   }
 
-  // Check message for triggers
-  for (const trigger of triggers) {
-    if (messageLower.includes(trigger.toLowerCase())) {
-      return true;
-    }
+  // Strong message match (2+ triggers) can override time requirement
+  if (triggerMatchCount >= 2) {
+    return true;
+  }
+
+  // Single trigger + time context is enough
+  if (timeMatches && messageLower.length > 10) {
+    // Time is right, just engaging is enough
+    return true;
   }
 
   return false;
@@ -353,39 +379,100 @@ function matchesTemporalPattern(context: PatternMatchContext, config: PatternCon
 
 /**
  * Check if context matches an emotional pattern
+ * NOW USES BUNDLE'S INSIGHT + DETECTION FIELDS for smarter matching
  */
 function matchesEmotionalPattern(context: PatternMatchContext, config: PatternConfig): boolean {
   const { currentMessage, emotionalTrajectory } = context;
   const messageLower = currentMessage.toLowerCase();
+  const detection = config.detection?.toLowerCase() || '';
+  const insight = config.insight?.toLowerCase() || '';
 
-  // Check for deflection with humor
-  if (config.detection.includes('joke') || config.detection.includes('humor')) {
-    const humorIndicators = ['haha', 'lol', 'just kidding', 'anyway', 'but yeah'];
+  // === DEFLECTION WITH HUMOR ===
+  if (detection.includes('joke') || detection.includes('humor') || insight.includes('humor')) {
+    const humorIndicators = [
+      'haha',
+      'lol',
+      'just kidding',
+      'anyway',
+      'but yeah',
+      'ha!',
+      'lmao',
+      'jk',
+      '😂',
+      'joking',
+    ];
     if (humorIndicators.some((h) => messageLower.includes(h))) {
+      log.debug({ pattern: 'deflection_with_humor' }, 'Detected humor after vulnerable share');
       return true;
     }
   }
 
-  // Check for minimizing success
-  if (config.detection.includes('downplay') || config.detection.includes('minimiz')) {
-    const minimizers = ["it's not a big deal", "it's nothing", 'just lucky', "doesn't matter"];
+  // === MINIMIZING SUCCESS ===
+  if (detection.includes('downplay') || detection.includes('minimiz') || insight.includes('win')) {
+    const minimizers = [
+      "it's not a big deal",
+      "it's nothing",
+      'just lucky',
+      "doesn't matter",
+      'whatever',
+      'no big deal',
+      'not really',
+      "wasn't that hard",
+      'anyone could',
+      'got lucky',
+    ];
     if (minimizers.some((m) => messageLower.includes(m))) {
+      log.debug({ pattern: 'minimizing_success' }, 'Detected success minimization');
       return true;
     }
   }
 
-  // Check for comparison spiral
-  if (config.detection.includes('compar')) {
-    const comparisons = ['compared to', 'not as good as', 'everyone else', 'other people'];
+  // === COMPARISON SPIRAL ===
+  if (detection.includes('compar') || insight.includes('benchmark')) {
+    const comparisons = [
+      'compared to',
+      'not as good as',
+      'everyone else',
+      'other people',
+      'unlike me',
+      'they have',
+      'she has',
+      'he has',
+      'wish I was',
+      'better than me',
+      'ahead of me',
+    ];
     if (comparisons.some((c) => messageLower.includes(c))) {
+      log.debug({ pattern: 'comparison_spiral' }, 'Detected unfavorable comparison');
       return true;
     }
   }
 
-  // Check for preemptive apology
-  if (config.detection.includes('apolog')) {
-    const apologies = ['sorry to', 'sorry for', "i'm sorry but", 'sorry if'];
+  // === PREEMPTIVE APOLOGY ===
+  if (detection.includes('apolog') || insight.includes('burden')) {
+    const apologies = [
+      'sorry to',
+      'sorry for',
+      "i'm sorry but",
+      'sorry if',
+      "sorry i'm",
+      'sorry this is',
+      'i know this is',
+      'hope this is okay',
+      'feel bad',
+    ];
     if (apologies.some((a) => messageLower.includes(a))) {
+      log.debug({ pattern: 'preemptive_apology' }, 'Detected preemptive apology');
+      return true;
+    }
+  }
+
+  // === EMOTIONAL TRAJECTORY CHECK ===
+  if (emotionalTrajectory && emotionalTrajectory.trendDirection === 'declining') {
+    // If user is in decline AND message seems negative, match
+    const negativeIndicators = ["can't", "won't", 'never', 'nothing', 'pointless', 'tired'];
+    if (negativeIndicators.some((n) => messageLower.includes(n))) {
+      log.debug({ pattern: 'declining_trajectory' }, 'Matched with declining emotional trajectory');
       return true;
     }
   }

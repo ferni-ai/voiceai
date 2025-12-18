@@ -137,7 +137,7 @@ src/services/games/
 src/tools/domains/games/
 └── index.ts              # LLM-accessible game tools
 
-frontend-typescript/src/ui/
+apps/web/src/ui/
 ├── game-picker.ui.ts     # Game selection modal
 └── music-dashboard.ui.ts # Musical You dashboard
 ```

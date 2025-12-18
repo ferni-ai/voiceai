@@ -14,6 +14,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { getCommunityInsights } from './community-insights.js';
 
 // ============================================================================
@@ -946,10 +947,13 @@ export async function saveAgentEvolutionToFirestore(): Promise<void> {
 
     for (const [personaId, state] of states) {
       const docRef = firestore.collection(FIRESTORE_COLLECTION).doc(personaId);
-      batch.set(docRef, {
-        ...state,
-        updatedAt: new Date(),
-      });
+      batch.set(
+        docRef,
+        removeUndefined({
+          ...state,
+          updatedAt: new Date(),
+        })
+      );
     }
 
     await batch.commit();

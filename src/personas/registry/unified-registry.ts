@@ -61,9 +61,9 @@ function loadAgentConfig(): AgentConfigFile {
     const __dirname = dirname(__filename);
     // Try multiple paths for robustness (monorepo vs standalone)
     const possiblePaths = [
-      join(__dirname, '../../../data/agent-config.json'),  // Standard: from src/personas/registry
+      join(__dirname, '../../../data/agent-config.json'), // Standard: from src/personas/registry
       join(__dirname, '../../../../data/agent-config.json'), // If in deeper nested structure
-      join(process.cwd(), 'data/agent-config.json'),  // From CWD (most reliable in production)
+      join(process.cwd(), 'data/agent-config.json'), // From CWD (most reliable in production)
     ];
 
     for (const configPath of possiblePaths) {
@@ -75,10 +75,16 @@ function loadAgentConfig(): AgentConfigFile {
       }
     }
 
-    getLogger().debug({ triedPaths: possiblePaths }, 'No agent-config.json found, all agents enabled');
+    getLogger().debug(
+      { triedPaths: possiblePaths },
+      'No agent-config.json found, all agents enabled'
+    );
     agentConfig = { disabledAgents: [] };
   } catch (error) {
-    getLogger().warn({ error: String(error) }, 'Failed to load agent-config.json, defaulting to all enabled');
+    getLogger().warn(
+      { error: String(error) },
+      'Failed to load agent-config.json, defaulting to all enabled'
+    );
     agentConfig = { disabledAgents: [] };
   }
 

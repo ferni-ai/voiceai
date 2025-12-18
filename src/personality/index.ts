@@ -13,17 +13,16 @@
  * ## Architecture (2024-12)
  *
  * **PREFERRED** (use for new code):
- * - `memory-adapter.ts` - Semantic relevance, memory integration
+ * - `memory-adapter.ts` - Semantic relevance, memory integration, callbacks
  * - `timing-intelligence.ts` - When to share vs listen
  * - `emotional-patterns.ts` - Pattern recognition, growth tracking
  * - `personal-moment-store.ts` - Moment registry for all personas
  *
- * **DEPRECATED** (legacy, being phased out):
- * - `callback-system.ts` - Use memory-adapter instead
- * - `relationship-memory.ts` - Use memory module instead
- * - `relevance-engine.ts` - Use memory-adapter's semantic search instead
- *
- * See ARCHITECTURE.md for migration guidance.
+ * ## CLEANUP (2024-12)
+ * The following deprecated files have been REMOVED:
+ * - `callback-system.ts` - Use memory-adapter.ts (getPendingCallbacksFromProfile)
+ * - `relationship-memory.ts` - Use memory module (personas/relationship-memory/)
+ * - `relevance-engine.ts` - Use memory-adapter.ts (findRelevantMomentSemantic)
  *
  * @module personality
  */
@@ -59,33 +58,6 @@ export {
   getRegisteredPersonaIds,
   searchMomentsByKeyword,
 } from './personal-moment-store.js';
-
-// Relevance Engine
-export {
-  detectFollowUpQuestion,
-  findRelevantMoment,
-  findRelevantMoments,
-} from './relevance-engine.js';
-
-// Callback System (legacy - prefer memory-adapter for new code)
-export {
-  extractCallbackMoments,
-  formatCallbackForPrompt as formatCallbackForPromptLegacy,
-  getPendingCallbacks,
-} from './callback-system.js';
-
-// Relationship Memory (legacy - prefer memory-adapter for new code)
-export {
-  getDiscoveredTopics,
-  getPendingUserMoments,
-  getRelationship,
-  getShareCount,
-  incrementVulnerabilityDepth,
-  markCallbackComplete as markCallbackCompleteLegacy,
-  recordSharedMoment,
-  recordUserMoment,
-  wasMomentShared,
-} from './relationship-memory.js';
 
 // Memory-Integrated Adapter (preferred - uses existing memory infrastructure)
 export {

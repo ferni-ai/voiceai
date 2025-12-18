@@ -248,25 +248,12 @@ export function considerTipJarOffer(userId: string): void {
 }
 
 /**
- * Record a conversation for milestone tracking
+ * @deprecated Use event-driven tracking instead.
+ * Conversation recording is now handled by growthJourneyService
+ * which listens to ferni:conversation-end directly.
  */
 export function recordConversation(): void {
-  try {
-    const newMilestones = growthJourneyService.recordConversation();
-
-    // If new milestones are ready, dispatch event for UI
-    if (newMilestones.length > 0) {
-      log.info({ count: newMilestones.length }, 'New milestones ready to celebrate');
-
-      document.dispatchEvent(
-        new CustomEvent('ferni:milestones-ready', {
-          detail: { milestones: newMilestones },
-        })
-      );
-    }
-  } catch (error) {
-    log.debug('Growth journey recording failed (not initialized):', error);
-  }
+  log.debug('recordConversation() is deprecated - handled by growthJourneyService');
 }
 
 /**
@@ -362,10 +349,8 @@ export function initMonetizationIntegration(userId: string): void {
     }
   }) as EventListener);
 
-  // Record conversations for journey milestones
-  document.addEventListener('ferni:conversation-turn', () => {
-    recordConversation();
-  });
+  // NOTE: Conversation recording is now handled by growthJourneyService
+  // which listens to ferni:conversation-end directly.
 
   isInitialized = true;
   log.info({ userId }, 'Monetization integration initialized');

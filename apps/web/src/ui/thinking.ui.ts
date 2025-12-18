@@ -92,12 +92,13 @@ const PERSONA_THINKING_MESSAGES: Record<PersonaId, string[]> = {
 };
 
 // Default fallback messages
+// Note: Using hardcoded string instead of t() to avoid module-load race condition
 const DEFAULT_THINKING_MESSAGES = [
   'Thinking...',
   'Hmm...',
   'Let me think...',
   'One moment...',
-  t('common.processing'),
+  'Processing...',
 ];
 
 let messageIndex = 0;

@@ -5,6 +5,17 @@
  * Use this to plan migrations and ensure smooth transitions.
  *
  * @module tools/deprecation-timeline
+ *
+ * ## CLEANUP STATUS (December 2024)
+ *
+ * The domain-based tool system (src/tools/domains/) is the canonical source.
+ * The legacy createXxxTools() functions are WRAPPED by domain modules
+ * for backward compatibility. They can be removed once:
+ *
+ * 1. Agent persona classes (src/agents/personas/*.ts) migrate to domain imports
+ * 2. Tests update to use domain tools directly
+ *
+ * For now, the legacy files are kept but wrapped by domains.
  */
 
 // ============================================================================

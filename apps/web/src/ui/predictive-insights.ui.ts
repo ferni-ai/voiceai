@@ -18,7 +18,6 @@ import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 
 const log = createLogger('PredictiveInsightsUI');
 
@@ -254,21 +253,25 @@ class PredictiveInsightsUI {
       </div>
     `;
 
-    // Event handlers (iOS-compatible)
-    addTapListener(card.querySelector('.insight-card-dismiss'), (e) => {
-      e.stopPropagation();
-      this.dismissInsight(insight.id, true);
-    });
+    // Event handlers
+    const dismissBtn = card.querySelector('.insight-card-dismiss');
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.dismissInsight(insight.id, true);
+      });
+    }
 
-    if (insight.onAction) {
-      addTapListener(card.querySelector('.insight-card-action'), () => {
+    const actionBtn = card.querySelector('.insight-card-action');
+    if (actionBtn && insight.onAction) {
+      actionBtn.addEventListener('click', () => {
         insight.onAction!();
         this.dismissInsight(insight.id, false);
       });
     }
 
-    // Click to expand/interact (iOS-compatible)
-    addTapListener(card, () => {
+    // Click to expand/interact
+    card.addEventListener('click', () => {
       card.classList.toggle('expanded');
     });
 
@@ -281,9 +284,6 @@ class PredictiveInsightsUI {
   dismissInsight(id: string, remember: boolean): void {
     const card = this.activeCards.get(id);
     if (!card) return;
-
-    // Clean up iOS tap listeners
-    cleanupTapListeners(card);
 
     card.classList.remove('visible');
     card.classList.add('dismissing');

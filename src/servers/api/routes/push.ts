@@ -6,6 +6,9 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { rateLimit, requireAdmin } from '../../../api/auth-middleware.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'PushRoutes' });
 
 // VAPID configuration
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
@@ -38,7 +41,7 @@ export async function handlePushRoutes(
   // GET /api/push/vapid-key - Get VAPID public key
   if (pathname === '/api/push/vapid-key' && req.method === 'GET') {
     if (!VAPID_PUBLIC_KEY) {
-      console.warn('⚠️ VAPID_PUBLIC_KEY not set - push notifications unavailable');
+      log.warn('VAPID_PUBLIC_KEY not set - push notifications unavailable');
       res.writeHead(503, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({
@@ -59,7 +62,17 @@ export async function handlePushRoutes(
     let body = '';
     req.on('data', (chunk: Buffer) => (body += chunk.toString()));
 
+    // FIX BUG: Add error handler to prevent hanging promises on request errors
     return new Promise((resolve) => {
+      req.on('error', (err) => {
+        log.error({ error: err.message }, 'Request error in push subscribe');
+        if (!res.headersSent) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Request error' }));
+        }
+        resolve(true);
+      });
+
       req.on('end', () => {
         try {
           const subscription = JSON.parse(body) as PushSubscription;
@@ -82,15 +95,17 @@ export async function handlePushRoutes(
               createdAt: new Date().toISOString(),
             });
             globalWithPush.pushSubscriptions!.set(userId, userSubs);
-            console.log(`🔔 Push subscription registered for user: ${userId}`);
+            log.info({ userId }, 'Push subscription registered');
           }
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true }));
         } catch (err) {
-          console.error('❌ Failed to register push subscription:', err);
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Failed to register subscription' }));
+          log.error({ error: (err as Error).message }, 'Failed to register push subscription');
+          if (!res.headersSent) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Failed to register subscription' }));
+          }
         }
         resolve(true);
       });
@@ -102,7 +117,17 @@ export async function handlePushRoutes(
     let body = '';
     req.on('data', (chunk: Buffer) => (body += chunk.toString()));
 
+    // FIX BUG: Add error handler to prevent hanging promises on request errors
     return new Promise((resolve) => {
+      req.on('error', (err) => {
+        log.error({ error: err.message }, 'Request error in push unsubscribe');
+        if (!res.headersSent) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Request error' }));
+        }
+        resolve(true);
+      });
+
       req.on('end', () => {
         try {
           const { endpoint, userId } = JSON.parse(body) as { endpoint: string; userId?: string };
@@ -115,12 +140,15 @@ export async function handlePushRoutes(
             globalWithPush.pushSubscriptions!.delete(userId || 'anonymous');
           }
 
-          console.log(`🔕 Push subscription removed for user: ${userId || 'anonymous'}`);
+          log.info({ userId: userId || 'anonymous' }, 'Push subscription removed');
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true }));
         } catch (err) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Failed to unsubscribe' }));
+          log.error({ error: (err as Error).message }, 'Failed to unsubscribe');
+          if (!res.headersSent) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Failed to unsubscribe' }));
+          }
         }
         resolve(true);
       });
@@ -141,7 +169,17 @@ export async function handlePushRoutes(
     let body = '';
     req.on('data', (chunk: Buffer) => (body += chunk.toString()));
 
+    // FIX BUG: Add error handler to prevent hanging promises on request errors
     return new Promise((resolve) => {
+      req.on('error', (err) => {
+        log.error({ error: err.message }, 'Request error in push send');
+        if (!res.headersSent) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Request error' }));
+        }
+        resolve(true);
+      });
+
       req.on('end', async () => {
         try {
           const {

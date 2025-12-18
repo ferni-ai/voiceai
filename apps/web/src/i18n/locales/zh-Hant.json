@@ -67,7 +67,7 @@
       "voiceAccent": "語音和口音",
       "guidedPractices": "引導練習",
       "createPractice": "建立練習",
-      "healthFitness": "健康與健身",
+      "wearables": "穿戴式裝置",
       "calendar": "行事曆",
       "notifications": "通知",
       "toggleTheme": "淺色 / 深色",
@@ -83,8 +83,7 @@
       "supportFerni": "支持Ferni",
       "takeTour": "開始導覽",
       "language": "語言",
-      "whatsGrowing": "成長中",
-      "supportFerniExpanded": "支持 Ferni"
+      "whatsGrowing": "成長中"
     },
     "pinItem": "固定到頂部",
     "unpinItem": "取消固定",
@@ -133,6 +132,88 @@
     "endConversation": "結束對話",
     "endConversationGoodbye": "結束對話 - 再見",
     "agentEndingConversation": "助手正在結束對話"
+  },
+  "trustJourney": {
+    "eyebrow": "我們的故事",
+    "title": "你的信任之旅",
+    "subtitle": "我們一起成長的歷程",
+    "loading": "正在載入你的旅程",
+    "loadingText": "正在收集你的旅程...",
+    "trustScore": "信任分數",
+    "exportSuccess": "旅程已匯出！",
+    "offlineBanner": "你處於離線狀態 - 顯示快取資料",
+    "loadMore": "載入更多 {count} 項",
+    "strengthLabel": "信任分數：{value}%",
+    "timelineLabel": "旅程時間軸",
+    "filterLabel": "篩選時間軸",
+    "filters": {
+      "all": "全部",
+      "growth": "成長",
+      "win": "勝利",
+      "callback": "回訪",
+      "boundary": "界限",
+      "outreach": "聯絡"
+    },
+    "sections": {
+      "strength": "關係強度",
+      "stats": "旅程統計",
+      "boundaries": "被尊重的界限",
+      "growth": "你的成長",
+      "timeline": "我們一起的旅程"
+    },
+    "stats": {
+      "growthMoments": "成長時刻",
+      "winsCelebrated": "慶祝的勝利",
+      "sharedMoments": "共享的時刻"
+    },
+    "strengthDescriptions": {
+      "deep": "我們一起建立了真實的東西。我了解你，你信任我。",
+      "growing": "我們的聯繫正在加深。我正在了解什麼對你重要。",
+      "building": "我們正在建立信任。每次對話都幫助我更好地了解你。",
+      "starting": "我們才剛剛開始。繼續和我說話 - 我在聽。",
+      "beginning": "每段旅程都從第一步開始。當你準備好時，我就在這裡。"
+    },
+    "growthTypes": {
+      "emotional_regulation": "情緒平衡",
+      "perspective_shift": "新的視角",
+      "boundary_setting": "健康的界限",
+      "behavior_change": "新習慣",
+      "self_awareness": "自我意識",
+      "coping_upgrade": "更好的應對",
+      "goal_progress": "目標進展"
+    },
+    "empty": {
+      "title": "我們的故事剛剛開始",
+      "message": "隨著我們交流更多，我會注意到你的成長，慶祝你的勝利，記住對你重要的事。請很快回來查看。"
+    },
+    "errors": {
+      "offline": {
+        "title": "你處於離線狀態",
+        "message": "連接到網路以查看你的旅程。"
+      },
+      "notLoggedIn": {
+        "title": "未登入",
+        "message": "登入以查看你與 Ferni 的旅程。"
+      },
+      "rateLimited": {
+        "title": "慢一點",
+        "message": "你檢查得太頻繁了。等一會兒再試。"
+      },
+      "unauthorized": {
+        "title": "存取被拒絕",
+        "message": "你沒有權限查看此內容。"
+      },
+      "generic": {
+        "title": "出了點問題",
+        "message": "我們無法載入你的旅程。請重試。"
+      },
+      "exportFailed": {
+        "message": "無法匯出你的資料。請重試。"
+      },
+      "fetchFailedUsingCache": {
+        "message": "顯示儲存的資料 - 無法連接到伺服器。"
+      }
+    }
   },
   "subscription": {
     "free": "免費",
@@ -570,18 +651,5 @@
     "dailyPractice": "每日練習",
     "predictions": "預測",
     "runScenario": "執行場景"
-  },
-  "support": {
-    "eyebrow": "一起成長",
-    "title": "支持 Ferni",
-    "subtitle": "選擇我們的友誼如何成長。你的每一種方式都很重要。",
-    "growTogether": "深化我們連結的方式",
-    "plantASeed": "種下一顆種子",
-    "plantDesc": "一份幫助 Ferni 成長的小禮物。沒有壓力——我們的友誼不取決於它。",
-    "plantButton": "種下這顆種子",
-    "thankYouSupporter": "你太棒了",
-    "yourSupport": "你的支持讓 Ferni 能為大家服務",
-    "manageBilling": "更新付款方式",
-    "footer": "無論你選擇如何支持我們，感謝你在這裡。"
   }
 }

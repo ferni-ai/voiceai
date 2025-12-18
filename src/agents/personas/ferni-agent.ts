@@ -15,6 +15,7 @@ import { llm, voice } from '@livekit/agents';
 import { z } from 'zod';
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { createSanitizerTransformStream } from '../shared/tool-call-sanitizer.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import type { ToolContext } from '../../tools/registry/types.js';
 
@@ -44,6 +45,8 @@ export interface FerniAgentOptions {
   skipGreeting?: boolean;
   /** Session data passed from voice-agent-entry */
   userData?: FerniSessionData;
+  /** Pre-selected tools from orchestrator (if provided, skips internal tool building) */
+  tools?: ToolSet;
 }
 
 // ============================================================================
@@ -61,12 +64,39 @@ import {
   forgetMemoryDef,
 } from '../../tools/domains/memory/tools.js';
 
-// Entertainment tools - music playback (lazy loaded)
-import { createMusicTools } from '../../tools/music.js';
+// Entertainment tools - music playback (from domains)
+import { createMusicTools } from '../../tools/domains/entertainment.js';
+
+// Conversation tools - wrap up, end conversation, graceful exit (from domains)
+import { createConversationTools } from '../../tools/domains/conversation/index.js';
 
 // Information tools - weather, news, sports, search
 import { definitions as informationToolDefs } from '../../tools/domains/information/index.js';
 
+// ============================================================================
+// BETTER-THAN-HUMAN DOMAIN IMPORTS (Phase 2)
+// These give Ferni the ability to ACT, not just talk
+// ============================================================================
+
+// Presence tools - grounding, breathing, mindfulness
+import { definitions as presenceToolDefs } from '../../tools/domains/presence/index.js';
+
+// Proactive tools - reminders, follow-ups, intentions
+import { definitions as proactiveToolDefs } from '../../tools/domains/proactive/index.js';
+
+// Crisis tools - emergency support
+import { definitions as crisisToolDefs } from '../../tools/domains/crisis/index.js';
+
+// Habits tools - goal setting, tracking
+import { definitions as habitsToolDefs } from '../../tools/domains/habits/index.js';
+
+// Wellness tools - self-care, health
+import { definitions as wellnessToolDefs } from '../../tools/domains/wellness/index.js';
+
+// Connection tools - relationship building
+import { definitions as connectionToolDefs } from '../../tools/domains/connection/index.js';
+
+import { getToolDescription } from '../../tools/utils/tool-descriptions.js';
 // ============================================================================
 // TOOL BUILDING HELPERS
 // ============================================================================
@@ -155,32 +185,146 @@ function buildInformationTools(agentId: string): ToolSet {
 }
 
 /**
+ * Create a standard tool context for domain tools.
+ */
+function createToolContext(agentId: string): ToolContext {
+  const minimalServiceRegistry = {
+    has: () => false,
+    get: () => {
+      throw new Error('Services not available in this context');
+    },
+    getOptional: () => undefined,
+  };
+
+  return {
+    agentId,
+    agentDisplayName: 'Ferni',
+    userId: 'default',
+    services: minimalServiceRegistry as ToolContext['services'],
+  };
+}
+
+/**
+ * Build presence & grounding tools.
+ * Enables: breatheWithMe, groundingExercise, noticeThisMoment, protectPresence
+ */
+function buildPresenceTools(agentId: string): ToolSet {
+  const ctx = createToolContext(agentId);
+  const tools: Record<string, unknown> = {};
+
+  for (const def of presenceToolDefs) {
+    tools[def.id] = def.create(ctx);
+  }
+
+  return tools as ToolSet;
+}
+
+/**
+ * Build proactive tools.
+ * Enables: scheduleReminder, createFollowUp, setIntention
+ */
+function buildProactiveTools(agentId: string): ToolSet {
+  const ctx = createToolContext(agentId);
+  const tools: Record<string, unknown> = {};
+
+  for (const def of proactiveToolDefs) {
+    tools[def.id] = def.create(ctx);
+  }
+
+  return tools as ToolSet;
+}
+
+/**
+ * Build crisis support tools.
+ * Enables: crisis assessment and support
+ */
+function buildCrisisTools(agentId: string): ToolSet {
+  const ctx = createToolContext(agentId);
+  const tools: Record<string, unknown> = {};
+
+  for (const def of crisisToolDefs) {
+    tools[def.id] = def.create(ctx);
+  }
+
+  return tools as ToolSet;
+}
+
+/**
+ * Build habits & coaching tools.
+ * Enables: setGoal, trackProgress, reviewHabits
+ */
+function buildHabitsTools(agentId: string): ToolSet {
+  const ctx = createToolContext(agentId);
+  const tools: Record<string, unknown> = {};
+
+  for (const def of habitsToolDefs) {
+    tools[def.id] = def.create(ctx);
+  }
+
+  return tools as ToolSet;
+}
+
+/**
+ * Build wellness tools.
+ * Enables: self-care tracking, health check-ins
+ */
+function buildWellnessTools(agentId: string): ToolSet {
+  const ctx = createToolContext(agentId);
+  const tools: Record<string, unknown> = {};
+
+  for (const def of wellnessToolDefs) {
+    tools[def.id] = def.create(ctx);
+  }
+
+  return tools as ToolSet;
+}
+
+/**
+ * Build connection tools.
+ * Enables: gratitude, relationship repair, check-ins
+ */
+function buildConnectionTools(agentId: string): ToolSet {
+  const ctx = createToolContext(agentId);
+  const tools: Record<string, unknown> = {};
+
+  for (const def of connectionToolDefs) {
+    tools[def.id] = def.create(ctx);
+  }
+
+  return tools as ToolSet;
+}
+
+/**
  * Build handoff tools for team member switching.
- * These follow the clean LiveKit 1.0 pattern.
+ * These follow the clean LiveKit 1.0 pattern with async prompt loading.
+ *
+ * IMPORTANT: Tool descriptions use imperative language to force Gemini to CALL
+ * the function instead of talking about it. The key phrases are:
+ * - "SILENT HANDOFF" - No speech before executing
+ * - "Execute without speaking" - Don't announce the transfer
+ * - "This function handles the transition" - Don't provide your own message
  */
 function buildHandoffTools(): ToolSet {
   return {
     handoffToMaya: llm.tool({
-      description:
-        'Transfer to Maya for habits, budgeting, spending tracking, financial wellness, and building sustainable routines. Maya is warm and practical.',
+      description: getToolDescription('handoffToMaya'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { MayaAgent } = await import('./maya-agent.js');
         return llm.handoff({
-          agent: new MayaAgent(ctx.session.chatCtx),
+          agent: await MayaAgent.create(ctx.session.chatCtx),
           returns: 'Connecting you with Maya - she is incredible with habits and budgeting.',
         });
       },
     }),
 
     handoffToAlex: llm.tool({
-      description:
-        'Transfer to Alex for calendar management, email drafting, scheduling, and communication coaching. Alex is efficient and organized.',
+      description: getToolDescription('handoffToAlex'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { AlexAgent } = await import('./alex-agent.js');
         return llm.handoff({
-          agent: new AlexAgent(ctx.session.chatCtx),
+          agent: await AlexAgent.create(ctx.session.chatCtx),
           returns:
             'Connecting you with Alex - they handle calendar and communications like nobody else.',
         });
@@ -188,39 +332,36 @@ function buildHandoffTools(): ToolSet {
     }),
 
     handoffToPeter: llm.tool({
-      description:
-        'Transfer to Peter for investment analysis, stock research, market patterns, and financial insights. Peter is analytical and excited about data.',
+      description: getToolDescription('handoffToPeter'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { PeterAgent } = await import('./peter-agent.js');
         return llm.handoff({
-          agent: new PeterAgent(ctx.session.chatCtx),
+          agent: await PeterAgent.create(ctx.session.chatCtx),
           returns: 'Connecting you with Peter - he sees patterns nobody else sees.',
         });
       },
     }),
 
     handoffToJordan: llm.tool({
-      description:
-        'Transfer to Jordan for life planning, milestone celebrations, event planning, and navigating life transitions. Jordan is enthusiastic and celebratory.',
+      description: getToolDescription('handoffToJordan'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { JordanAgent } = await import('./jordan-agent.js');
         return llm.handoff({
-          agent: new JordanAgent(ctx.session.chatCtx),
+          agent: await JordanAgent.create(ctx.session.chatCtx),
           returns: 'Connecting you with Jordan - they make every milestone feel special.',
         });
       },
     }),
 
     handoffToNayan: llm.tool({
-      description:
-        'Transfer to Nayan for wisdom, philosophy, meaning of life questions, and long-term perspective. Nayan is contemplative and wise.',
+      description: getToolDescription('handoffToNayan'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { NayanAgent } = await import('./nayan-agent.js');
         return llm.handoff({
-          agent: new NayanAgent(ctx.session.chatCtx),
+          agent: await NayanAgent.create(ctx.session.chatCtx),
           returns: 'Connecting you with Nayan - he thinks in decades.',
         });
       },
@@ -246,19 +387,69 @@ export class FerniAgent extends voice.Agent<FerniSessionData> {
   private skipGreeting: boolean;
 
   constructor(systemPrompt: string, options: FerniAgentOptions = {}) {
-    // Build all tools from domain imports
-    const memoryTools = buildMemoryTools('ferni');
-    const entertainmentTools = buildEntertainmentTools();
-    const informationTools = buildInformationTools('ferni');
-    const handoffTools = buildHandoffTools();
+    // Use orchestrator-selected tools if provided, otherwise build all tools
+    let allTools: ToolSet;
+    let toolSource: 'orchestrator' | 'internal';
 
-    // Merge all tools
-    const allTools = {
-      ...memoryTools,
-      ...entertainmentTools,
-      ...informationTools,
-      ...handoffTools,
-    } as ToolSet;
+    if (options.tools) {
+      // Orchestrator provided pre-selected tools - use those
+      allTools = options.tools;
+      toolSource = 'orchestrator';
+    } else {
+      // Build all tools from domain imports (legacy mode)
+      const memoryTools = buildMemoryTools('ferni');
+      const entertainmentTools = buildEntertainmentTools();
+      const informationTools = buildInformationTools('ferni');
+      const handoffTools = buildHandoffTools();
+
+      // BETTER-THAN-HUMAN: Action-enabling tools (Phase 2)
+      const presenceTools = buildPresenceTools('ferni');
+      const proactiveTools = buildProactiveTools('ferni');
+      const crisisTools = buildCrisisTools('ferni');
+      const habitsTools = buildHabitsTools('ferni');
+      const wellnessTools = buildWellnessTools('ferni');
+      const connectionTools = buildConnectionTools('ferni');
+
+      // Conversation flow tools - wrap up, end conversation, graceful exit
+      const conversationTools = createConversationTools();
+
+      // Merge all tools
+      allTools = {
+        ...memoryTools,
+        ...entertainmentTools,
+        ...informationTools,
+        ...handoffTools,
+        // BETTER-THAN-HUMAN tools
+        ...presenceTools,
+        ...proactiveTools,
+        ...crisisTools,
+        ...habitsTools,
+        ...wellnessTools,
+        ...connectionTools,
+        // Conversation flow tools (goodbye handling)
+        ...conversationTools,
+      } as ToolSet;
+      toolSource = 'internal';
+
+      log.info(
+        {
+          totalTools: Object.keys(allTools).length,
+          memoryTools: Object.keys(memoryTools).length,
+          entertainmentTools: Object.keys(entertainmentTools).length,
+          informationTools: Object.keys(informationTools).length,
+          handoffTools: Object.keys(handoffTools).length,
+          presenceTools: Object.keys(presenceTools).length,
+          proactiveTools: Object.keys(proactiveTools).length,
+          crisisTools: Object.keys(crisisTools).length,
+          habitsTools: Object.keys(habitsTools).length,
+          wellnessTools: Object.keys(wellnessTools).length,
+          connectionTools: Object.keys(connectionTools).length,
+          conversationTools: Object.keys(conversationTools).length,
+          skipGreeting: options.skipGreeting ?? false,
+        },
+        'Agent initialized with INTERNAL tools (legacy mode - no orchestrator)'
+      );
+    }
 
     super({
       instructions: systemPrompt,
@@ -268,17 +459,16 @@ export class FerniAgent extends voice.Agent<FerniSessionData> {
 
     this.skipGreeting = options.skipGreeting ?? false;
 
-    log.info(
-      {
-        totalTools: Object.keys(allTools).length,
-        memoryTools: Object.keys(memoryTools).length,
-        entertainmentTools: Object.keys(entertainmentTools).length,
-        informationTools: Object.keys(informationTools).length,
-        handoffTools: Object.keys(handoffTools).length,
-        skipGreeting: this.skipGreeting,
-      },
-      'Agent initialized with tools'
-    );
+    if (toolSource === 'orchestrator') {
+      log.info(
+        {
+          totalTools: Object.keys(allTools).length,
+          toolNames: Object.keys(allTools).slice(0, 20),
+          skipGreeting: this.skipGreeting,
+        },
+        '🎯 Agent initialized with ORCHESTRATOR-selected tools'
+      );
+    }
   }
 
   /**
@@ -316,6 +506,31 @@ export class FerniAgent extends voice.Agent<FerniSessionData> {
   async onExit(): Promise<void> {
     log.debug('Transitioning to another agent (handoff)');
   }
+
+  /**
+   * Override transcriptionNode to filter out malformed function-call-like text.
+   *
+   * Sometimes Gemini outputs text like "Play music query christmas music" instead
+   * of actually calling the playMusic function. This filter catches and sanitizes
+   * such output before it reaches TTS.
+   *
+   * @see ../shared/tool-call-sanitizer.ts
+   */
+  async transcriptionNode(
+    text: ReadableStream<string>,
+    modelSettings: voice.ModelSettings
+  ): Promise<ReadableStream<string> | null> {
+    // First, get the default processed stream
+    const defaultStream = await voice.Agent.default.transcriptionNode(this, text, modelSettings);
+
+    if (!defaultStream) {
+      return null;
+    }
+
+    // Pipe through our sanitizer to filter tool-call-like text
+    const sanitizer = createSanitizerTransformStream();
+    return defaultStream.pipeThrough(sanitizer);
+  }
 }
 
 // ============================================================================
@@ -327,4 +542,59 @@ export class FerniAgent extends voice.Agent<FerniSessionData> {
  */
 export function createFerniAgent(systemPrompt: string, options?: FerniAgentOptions): FerniAgent {
   return new FerniAgent(systemPrompt, options);
+}
+
+/**
+ * Build all Ferni tools externally (for filtering before passing to constructor).
+ * This is called by voice-agent-entry when orchestrator is disabled but tool
+ * filtering is still needed.
+ */
+export function buildAllFerniTools(agentId: string = 'ferni'): ToolSet {
+  const memoryTools = buildMemoryTools(agentId);
+  const entertainmentTools = buildEntertainmentTools();
+  const informationTools = buildInformationTools(agentId);
+  const handoffTools = buildHandoffTools();
+
+  // BETTER-THAN-HUMAN: Action-enabling tools
+  const presenceTools = buildPresenceTools(agentId);
+  const proactiveTools = buildProactiveTools(agentId);
+  const crisisTools = buildCrisisTools(agentId);
+  const habitsTools = buildHabitsTools(agentId);
+  const wellnessTools = buildWellnessTools(agentId);
+  const connectionTools = buildConnectionTools(agentId);
+
+  // Conversation flow tools
+  const conversationTools = createConversationTools();
+
+  log.info(
+    {
+      totalTools:
+        Object.keys(memoryTools).length +
+        Object.keys(entertainmentTools).length +
+        Object.keys(informationTools).length +
+        Object.keys(handoffTools).length +
+        Object.keys(presenceTools).length +
+        Object.keys(proactiveTools).length +
+        Object.keys(crisisTools).length +
+        Object.keys(habitsTools).length +
+        Object.keys(wellnessTools).length +
+        Object.keys(connectionTools).length +
+        Object.keys(conversationTools).length,
+    },
+    'Building all Ferni tools for external filtering'
+  );
+
+  return {
+    ...memoryTools,
+    ...entertainmentTools,
+    ...informationTools,
+    ...handoffTools,
+    ...presenceTools,
+    ...proactiveTools,
+    ...crisisTools,
+    ...habitsTools,
+    ...wellnessTools,
+    ...connectionTools,
+    ...conversationTools,
+  } as ToolSet;
 }

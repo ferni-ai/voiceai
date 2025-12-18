@@ -61,16 +61,16 @@ export interface TasteMatchSession {
   id: string;
   participants: TasteMatchParticipant[];
   status: 'waiting' | 'in-progress' | 'completed';
-  
+
   // Game state
   currentRound: number;
   totalRounds: number;
   questions: TasteMatchQuestion[];
-  
+
   // Results
   compatibilityScore?: number;
   insights?: TasteMatchInsight[];
-  
+
   createdAt: Date;
   completedAt?: Date;
 }
@@ -309,10 +309,7 @@ export function completeChallenge(
   }
 
   challengeStore.set(challengeId, challenge);
-  log.info(
-    { challengeId, winnerId: challenge.winnerId },
-    '🎮 Challenge completed'
-  );
+  log.info({ challengeId, winnerId: challenge.winnerId }, '🎮 Challenge completed');
 
   return challenge;
 }
@@ -320,10 +317,7 @@ export function completeChallenge(
 /**
  * Decline a challenge
  */
-export function declineChallenge(
-  challengeId: string,
-  challengeeId: string
-): boolean {
+export function declineChallenge(challengeId: string, challengeeId: string): boolean {
   const challenge = challengeStore.get(challengeId);
   if (!challenge) return false;
   if (challenge.challengeeId !== challengeeId) return false;
@@ -368,30 +362,20 @@ export function getPendingChallenges(userId: string): Challenge[] {
       challenges.push(challenge);
     }
   }
-  return challenges.sort(
-    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-  );
+  return challenges.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
 /**
  * Get challenge history for a user
  */
-export function getChallengeHistory(
-  userId: string,
-  limit: number = 20
-): Challenge[] {
+export function getChallengeHistory(userId: string, limit: number = 20): Challenge[] {
   const challenges: Challenge[] = [];
   for (const challenge of challengeStore.values()) {
-    if (
-      challenge.challengerId === userId ||
-      challenge.challengeeId === userId
-    ) {
+    if (challenge.challengerId === userId || challenge.challengeeId === userId) {
       challenges.push(challenge);
     }
   }
-  return challenges
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .slice(0, limit);
+  return challenges.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, limit);
 }
 
 // ============================================================================
@@ -467,10 +451,7 @@ export function joinTasteMatchSession(
 /**
  * Mark participant as ready
  */
-export function setParticipantReady(
-  sessionId: string,
-  userId: string
-): TasteMatchSession | null {
+export function setParticipantReady(sessionId: string, userId: string): TasteMatchSession | null {
   const session = tasteMatchStore.get(sessionId);
   if (!session) return null;
 
@@ -480,10 +461,7 @@ export function setParticipantReady(
   participant.isReady = true;
 
   // Check if all participants are ready
-  if (
-    session.participants.length >= 2 &&
-    session.participants.every((p) => p.isReady)
-  ) {
+  if (session.participants.length >= 2 && session.participants.every((p) => p.isReady)) {
     session.status = 'in-progress';
     session.currentRound = 1;
   }
@@ -547,18 +525,14 @@ export function submitTasteMatchAnswer(
 /**
  * Get Taste Match session
  */
-export function getTasteMatchSession(
-  sessionId: string
-): TasteMatchSession | null {
+export function getTasteMatchSession(sessionId: string): TasteMatchSession | null {
   return tasteMatchStore.get(sessionId) || null;
 }
 
 /**
  * Get current question for a session
  */
-export function getCurrentQuestion(
-  sessionId: string
-): TasteMatchQuestion | null {
+export function getCurrentQuestion(sessionId: string): TasteMatchQuestion | null {
   const session = tasteMatchStore.get(sessionId);
   if (!session || session.status !== 'in-progress') return null;
   return session.questions[session.currentRound - 1] || null;
@@ -675,4 +649,3 @@ function generateShareCode(): string {
   }
   return code;
 }
-

@@ -13,7 +13,6 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
-import { addTapListener } from '../utils/ios-touch.js';
 import { apiGet, apiPost } from '../utils/api.js';
 
 // ============================================================================
@@ -155,8 +154,8 @@ class CalendarSettingsUI {
     this.wrapper.className = 'calendar-settings__wrapper';
     this.panel.appendChild(this.wrapper);
 
-    // Close on backdrop click (iOS-compatible)
-    addTapListener(this.panel, (e) => {
+    // Close on backdrop click
+    this.panel.addEventListener('click', (e) => {
       if (e.target === this.panel) this.hide();
     });
 
@@ -169,8 +168,8 @@ class CalendarSettingsUI {
         '/api/calendar/status'
       );
 
-      if (response.success) {
-        this.status = response.status;
+      if (response.data?.success) {
+        this.status = response.data.status;
         this.renderContent();
       } else {
         this.renderError('Unable to load calendar status');
@@ -316,35 +315,33 @@ class CalendarSettingsUI {
     `;
 
     this.bindCloseButton();
-    addTapListener(this.wrapper.querySelector('[data-action="retry"]'), () => {
+    this.wrapper.querySelector('[data-action="retry"]')?.addEventListener('click', () => {
       this.renderLoading();
       this.loadStatus();
     });
   }
 
   private bindCloseButton(): void {
-    const closeBtn = this.wrapper?.querySelector('.calendar-settings__close') ?? null;
-    addTapListener(closeBtn, () => {
+    this.wrapper?.querySelector('.calendar-settings__close')?.addEventListener('click', () => {
       this.hide();
     });
   }
 
   private bindActions(): void {
-    // Connect button (iOS-compatible)
-    const connectBtn = this.wrapper?.querySelector('[data-action="connect"]') ?? null;
-    addTapListener(connectBtn, async () => {
+    // Connect button
+    this.wrapper?.querySelector('[data-action="connect"]')?.addEventListener('click', async () => {
       await this.connect();
     });
 
-    // Disconnect button (iOS-compatible)
-    const disconnectBtn = this.wrapper?.querySelector('[data-action="disconnect"]') ?? null;
-    addTapListener(disconnectBtn, async () => {
+    // Disconnect button
+    this.wrapper
+      ?.querySelector('[data-action="disconnect"]')
+      ?.addEventListener('click', async () => {
         await this.disconnect();
       });
 
-    // Sync button (iOS-compatible)
-    const syncBtn = this.wrapper?.querySelector('[data-action="sync"]') ?? null;
-    addTapListener(syncBtn, async () => {
+    // Sync button
+    this.wrapper?.querySelector('[data-action="sync"]')?.addEventListener('click', async () => {
       await this.sync();
     });
   }
@@ -359,7 +356,7 @@ class CalendarSettingsUI {
       const userId = this.getUserId();
       window.location.href = `/auth/google/login?user_id=${encodeURIComponent(userId)}`;
     } catch (error) {
-      this.renderError('Failed to connect. Please try again.');
+      this.renderError("Couldn't connect. Try again?");
     } finally {
       this.isLoading = false;
     }
@@ -381,7 +378,7 @@ class CalendarSettingsUI {
       this.renderContent();
       this.callbacks.onConnectionChange?.(false);
     } catch {
-      this.renderError('Failed to disconnect. Please try again.');
+      this.renderError("Couldn't disconnect. Try again?");
     } finally {
       this.isLoading = false;
     }
@@ -402,7 +399,7 @@ class CalendarSettingsUI {
       await apiPost('/api/calendar/sync', {});
       await this.loadStatus();
     } catch {
-      this.renderError('Failed to sync. Please try again.');
+      this.renderError("Couldn't sync. Try again?");
     } finally {
       this.isLoading = false;
     }

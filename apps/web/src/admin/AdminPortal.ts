@@ -200,6 +200,19 @@ const ADMIN_SECTIONS: AdminSection[] = [
     component: async () => (await import('./sections/DesignSystemSection.js')).render(),
   },
   {
+    id: 'model-config',
+    name: 'Model Config',
+    icon: ICON_SPARKLES,
+    description: 'LLM parameters and system prompts',
+    badge: 'NEW',
+    component: async () => {
+      const section = await import('./sections/ModelConfigSection.js');
+      const html = await section.render();
+      setTimeout(() => section.setupEvents(), 100);
+      return html;
+    },
+  },
+  {
     id: 'more-dashboards',
     name: 'More Dashboards',
     icon: ICON_LAYOUT_GRID,

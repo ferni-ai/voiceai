@@ -12,7 +12,6 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 // Relationship stage service - used for feature unlocking and progress display
 import {
@@ -80,6 +79,9 @@ export interface SettingsMenuUICallbacks {
   onVideoSettingsClick?: () => void;
   onGroupCoachingClick?: () => void;
   onMarketplaceAdminClick?: () => void;
+  onCreativeYouClick?: () => void;
+  onDiscoverAgentsClick?: () => void;
+  onConnectionsClick?: () => void;
   onClose?: () => void;
 }
 
@@ -179,6 +181,14 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
   video:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+
+  // Creative & Discovery
+  creative:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>',
+  compass:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>',
+  link:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
 
   // Legacy aliases (deprecated but kept for compatibility)
   creditCard:
@@ -349,6 +359,37 @@ class SettingsMenuUI {
     }
   }
 
+  /**
+   * iOS Safari compatibility: Add both click and touchend events
+   * iOS sometimes doesn't fire click events properly on dynamically created elements
+   */
+  private addTapListener(
+    element: Element | null,
+    handler: (e: Event) => void,
+    options?: { stopPropagation?: boolean }
+  ): void {
+    if (!element) return;
+
+    // Standard click event
+    element.addEventListener('click', handler);
+
+    // iOS Safari: touchend as backup (handles taps that don't trigger click)
+    element.addEventListener('touchend', (e: Event) => {
+      const touch = e as TouchEvent;
+      // Only handle single-finger taps
+      if (touch.touches && touch.touches.length > 0) return;
+
+      // Prevent double-firing with click
+      e.preventDefault();
+
+      if (options?.stopPropagation) {
+        e.stopPropagation();
+      }
+
+      handler(e);
+    }, { passive: false });
+  }
+
   private createTrigger(): void {
     this.trigger = document.createElement('button');
     this.trigger.className = 'settings-trigger';
@@ -356,7 +397,7 @@ class SettingsMenuUI {
     this.trigger.innerHTML = ICONS.menu;
 
     // iOS Safari: Use tap listener for better touch handling
-    addTapListener(this.trigger, () => this.toggle());
+    this.addTapListener(this.trigger, () => this.toggle());
 
     document.body.appendChild(this.trigger);
   }
@@ -539,6 +580,8 @@ class SettingsMenuUI {
                   `
             ${this.renderMenuItem('play-games', ICONS.sparkles, t('menu.items.playGames'))}
             ${this.renderMenuItem('music-dashboard', ICONS.music, t('menu.items.musicalYou'))}
+            ${this.renderMenuItemWithBadge('creative-you', ICONS.creative, t('menu.items.creativeYou'), t('common.new'))}
+            ${this.renderMenuItem('discover-agents', ICONS.compass, t('menu.items.discoverAgents'))}
             ${this.renderMenuItem('video-settings', ICONS.video, t('menu.items.videoSessions'))}
             ${this.renderMenuItem('group-coaching', ICONS.users, t('menu.items.groupCoaching'))}
             ${this.renderMenuItem('team', ICONS.team, t('menu.items.teamHuddles'))}
@@ -556,7 +599,6 @@ class SettingsMenuUI {
                   expandedSections.has('grow'),
                   `
             ${this.renderMenuItem('your-journey', ICONS.heart, t('menu.items.yourJourney'))}
-            ${this.renderMenuItem('trust-journey', ICONS.sparkles, t('menu.items.trustDetails'))}
             ${this.renderMenuItem('analytics', ICONS.analytics, t('menu.items.progressAnalytics'))}
             ${this.renderMenuItem('predictions', ICONS.target, t('menu.items.predictionAccuracy'))}
             ${this.renderMenuItem('cognitive', ICONS.brain, t('menu.items.whatILearned'))}
@@ -593,7 +635,8 @@ class SettingsMenuUI {
             ${this.renderMenuItem('accent-settings', ICONS.globe, t('menu.items.voiceAccent'))}
             ${this.renderMenuItem('commands', ICONS.commands, t('menu.items.guidedPractices'))}
             ${this.renderMenuItem('ritual', ICONS.ritual, t('menu.items.createPractice'))}
-            ${this.renderMenuItemWithBadge('wearable-settings', ICONS.watch, t('menu.items.healthFitness'), t('common.new'))}
+            ${this.renderMenuItemWithBadge('wearable-settings', ICONS.watch, t('menu.items.wearables'), t('common.new'))}
+            ${this.renderMenuItem('connections', ICONS.link, t('menu.items.connections'))}
             ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.calendar'))}
             ${this.renderMenuItem('notifications', ICONS.bell, t('menu.items.notifications'))}
             ${this.renderMenuItem('theme', ICONS.theme, t('menu.items.toggleTheme'))}
@@ -637,18 +680,18 @@ class SettingsMenuUI {
     `;
 
     // Bind events - close on backdrop click (iOS Safari compatible)
-    addTapListener(
+    this.addTapListener(
       this.panel.querySelector('.settings-menu__backdrop'),
       () => this.hide()
     );
-    addTapListener(
+    this.addTapListener(
       this.panel.querySelector('.settings-menu__close'),
       () => this.hide()
     );
 
     // Bind collapsible section toggle events (iOS Safari compatible)
     this.panel.querySelectorAll('.settings-menu__section-header').forEach((header) => {
-      addTapListener(header, () => {
+      this.addTapListener(header, () => {
         const sectionId = (header as HTMLElement).dataset.section;
         if (sectionId) {
           this.toggleSection(sectionId);
@@ -658,7 +701,7 @@ class SettingsMenuUI {
 
     // Menu item tap handlers (iOS Safari compatible)
     this.panel.querySelectorAll('.settings-menu__item').forEach((btn) => {
-      addTapListener(btn, (e) => {
+      this.addTapListener(btn, (e) => {
         const target = e.target as HTMLElement;
         // Don't trigger main action if clicking unpin button
         if (target.closest('.settings-menu__unpin-btn')) return;
@@ -700,13 +743,13 @@ class SettingsMenuUI {
 
     // Handle unpin button clicks (iOS Safari compatible)
     this.panel.querySelectorAll('.settings-menu__unpin-btn').forEach((btn) => {
-      addTapListener(btn, (e) => {
+      this.addTapListener(btn, (e) => {
         e.stopPropagation();
         const action = (btn as HTMLElement).dataset.unpin;
         if (action) {
           this.togglePinned(action);
         }
-      });
+      }, { stopPropagation: true });
     });
 
     // Bind language selector events
@@ -724,7 +767,7 @@ class SettingsMenuUI {
     const toggleBtn = this.panel.querySelector('[data-action="toggle-language"]');
 
     if (toggleBtn) {
-      addTapListener(toggleBtn, (e) => {
+      this.addTapListener(toggleBtn, (e) => {
         e.stopPropagation();
         this.languageExpanded = !this.languageExpanded;
         // Re-render just the language selector
@@ -734,13 +777,13 @@ class SettingsMenuUI {
           // Rebind events for the new elements
           this.bindLanguageSelectorEvents();
         }
-      });
+      }, { stopPropagation: true });
     }
 
     // Handle language selection (only if expanded) - iOS Safari compatible
     if (this.languageExpanded) {
       this.panel.querySelectorAll('[data-action="set-language"]').forEach((btn) => {
-        addTapListener(btn, async (e) => {
+        this.addTapListener(btn, async (e) => {
           e.stopPropagation();
           const htmlBtn = btn as HTMLElement;
           const locale = htmlBtn.dataset.locale as SupportedLocale;
@@ -751,7 +794,7 @@ class SettingsMenuUI {
             // Re-render the entire menu to reflect language change
             this.renderContent();
           }
-        });
+        }, { stopPropagation: true });
       });
     }
   }
@@ -787,7 +830,6 @@ class SettingsMenuUI {
     // Map of all menu items for quick lookup
     const menuItems: Record<string, { icon: string; label: string }> = {
       'your-journey': { icon: ICONS.heart, label: t('menu.items.yourJourney') },
-      'trust-journey': { icon: ICONS.sparkles, label: t('menu.items.trustDetails') },
       analytics: { icon: ICONS.analytics, label: t('menu.items.progressAnalytics') },
       predictions: { icon: ICONS.target, label: t('menu.items.predictionAccuracy') },
       cognitive: { icon: ICONS.brain, label: t('menu.items.whatILearned') },
@@ -799,11 +841,14 @@ class SettingsMenuUI {
       team: { icon: ICONS.team, label: t('menu.items.teamHuddles') },
       'play-games': { icon: ICONS.sparkles, label: t('menu.items.playGames') },
       'music-dashboard': { icon: ICONS.music, label: t('menu.items.musicalYou') },
+      'creative-you': { icon: ICONS.creative, label: t('menu.items.creativeYou') },
+      'discover-agents': { icon: ICONS.compass, label: t('menu.items.discoverAgents') },
+      connections: { icon: ICONS.link, label: t('menu.items.connections') },
       personalize: { icon: ICONS.palette, label: t('menu.items.personalize') },
       'accent-settings': { icon: ICONS.globe, label: t('menu.items.voiceAccent') },
       commands: { icon: ICONS.commands, label: t('menu.items.guidedPractices') },
       ritual: { icon: ICONS.ritual, label: t('menu.items.createPractice') },
-      'wearable-settings': { icon: ICONS.watch, label: t('menu.items.healthFitness') },
+      'wearable-settings': { icon: ICONS.watch, label: t('menu.items.wearables') },
       'calendar-settings': { icon: ICONS.calendar, label: t('menu.items.calendar') },
       notifications: { icon: ICONS.bell, label: t('menu.items.notifications') },
       theme: { icon: ICONS.theme, label: t('menu.items.toggleTheme') },
@@ -819,7 +864,7 @@ class SettingsMenuUI {
     const pinnedItemsHtml = [...this.pinnedItems]
       .filter((action) => menuItems[action] && !this.isFeatureLocked(action))
       .map((action) => {
-        const item = menuItems[action]!;
+        const item = menuItems[action];
         return `
           <button class="settings-menu__item settings-menu__item--pinned" data-action="${action}" data-pinnable="true">
             <span class="settings-menu__icon">${item.icon}</span>
@@ -1005,9 +1050,7 @@ class SettingsMenuUI {
       case 'spotify':
         this.callbacks.onSpotifyClick?.();
         break;
-      case 'trust-journey':
-        this.callbacks.onTrustJourneyClick?.();
-        break;
+      // trust-journey removed - consolidated into your-journey
       case 'music-dashboard':
         this.callbacks.onMusicDashboardClick?.();
         break;
@@ -1067,6 +1110,15 @@ class SettingsMenuUI {
         break;
       case 'marketplace-admin':
         this.callbacks.onMarketplaceAdminClick?.();
+        break;
+      case 'creative-you':
+        this.callbacks.onCreativeYouClick?.();
+        break;
+      case 'discover-agents':
+        this.callbacks.onDiscoverAgentsClick?.();
+        break;
+      case 'connections':
+        this.callbacks.onConnectionsClick?.();
         break;
       case 'whats-growing':
         // Open roadmap panel with overview (no specific feature)

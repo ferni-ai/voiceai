@@ -312,7 +312,7 @@ src/api/routes/
 ├── marketplace-reviews.ts  # Reviews API
 └── marketplace-admin.ts    # Admin API
 
-frontend-typescript/src/ui/
+apps/web/src/ui/
 ├── marketplace.ui.ts                    # Browse/install UI
 ├── marketplace-permission-consent.ui.ts # Consent modal
 ├── marketplace-publisher.ui.ts          # Publisher portal

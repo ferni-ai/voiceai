@@ -10,11 +10,11 @@
  * - RSS feeds as fallback
  */
 
-import { llm, log } from '@livekit/agents';
-import { getLogger } from '../utils/safe-logger.js';
+import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import { withRateLimit } from './rate-limiter.js';
+import { getLogger } from '../utils/safe-logger.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 const FINNHUB_KEY = process.env.FINNHUB_API_KEY || '';
 const _GNEWS_KEY = process.env.GNEWS_API_KEY || '';
 
@@ -28,12 +28,22 @@ const _GNEWS_KEY = process.env.GNEWS_API_KEY || '';
 export async function getFinancialNews(
   category: 'general' | 'forex' | 'crypto' | 'merger' = 'general'
 ): Promise<string> {
+  const startTime = Date.now();
+  const logger = getLogger();
+
+  logger.info(
+    { timestamp: new Date().toISOString(), category },
+    '📰 [DIAG] getFinancialNews START'
+  );
+
   if (!FINNHUB_KEY) {
+    logger.warn({ elapsed: Date.now() - startTime }, '📰 [DIAG] getFinancialNews: No API key');
     return "I don't have access to real-time financial news right now. But remember—don't let headlines drive your investment decisions!";
   }
 
   try {
     const url = `https://finnhub.io/api/v1/news?category=${category}&token=${FINNHUB_KEY}`;
+    logger.debug({ category }, '📰 [DIAG] Fetching from Finnhub...');
     const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
 
     if (!response.ok) {
@@ -55,9 +65,20 @@ export async function getFinancialNews(
       return `Financial news headlines: ${topStories.join('. ')}`;
     }
 
+    logger.info({ elapsed: Date.now() - startTime }, '📰 [DIAG] getFinancialNews: No news found');
     return 'The financial news is quiet today. Sometimes no news is good news for investors!';
   } catch (error) {
-    getLogger().warn(`Financial news error: ${error}`);
+    const elapsed = Date.now() - startTime;
+    const isTimeout = String(error).includes('timeout') || String(error).includes('AbortError');
+    logger.warn(
+      {
+        error: String(error),
+        elapsed,
+        isTimeout,
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+      },
+      '📰 [DIAG] getFinancialNews FAILED - check if this correlates with music issues!'
+    );
     return "I'm having trouble getting the news. But you know, I've found that ignoring most financial news makes you a better investor!";
   }
 }
@@ -108,45 +129,63 @@ export async function getStockNews(symbol: string): Promise<string> {
  * Using NPR and BBC RSS as they're reliable and free
  */
 export async function getGeneralNews(): Promise<string> {
-  try {
-    // Try multiple sources
-    const sources = [
-      {
-        url: 'https://feeds.npr.org/1001/rss.xml',
-        name: 'NPR',
-      },
-      {
-        url: 'http://feeds.bbci.co.uk/news/rss.xml',
-        name: 'BBC',
-      },
-    ];
+  const startTime = Date.now();
+  const logger = getLogger();
 
-    for (const source of sources) {
-      try {
-        const response = await fetch(source.url, {
-          signal: AbortSignal.timeout(8000),
-          headers: { 'User-Agent': 'Mozilla/5.0' },
-        });
+  logger.info({ timestamp: new Date().toISOString() }, '📰 [DIAG] getGeneralNews START');
 
-        if (response.ok) {
-          const xml = await response.text();
-          const headlines = extractRSSHeadlines(xml, 5);
+  // Try multiple sources
+  const sources = [
+    { url: 'https://feeds.npr.org/1001/rss.xml', name: 'NPR' },
+    { url: 'http://feeds.bbci.co.uk/news/rss.xml', name: 'BBC' },
+  ];
 
-          if (headlines.length > 0) {
-            return `Top news from ${source.name}: ${headlines.join('. ')}`;
-          }
+  for (const source of sources) {
+    const sourceStartTime = Date.now();
+    try {
+      logger.debug({ source: source.name }, '📰 [DIAG] Trying news source...');
+      const response = await fetch(source.url, {
+        signal: AbortSignal.timeout(8000),
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+      });
+
+      if (response.ok) {
+        const xml = await response.text();
+        const headlines = extractRSSHeadlines(xml, 5);
+
+        if (headlines.length > 0) {
+          logger.info(
+            { source: source.name, elapsed: Date.now() - startTime, headlines: headlines.length },
+            '📰 [DIAG] getGeneralNews SUCCESS'
+          );
+          return `Top news from ${source.name}: ${headlines.join('. ')}`;
         }
-      } catch (error) {
-        getLogger().debug({ source: source.name, error }, 'News source failed, trying next');
-        continue; // Try next source
+      } else {
+        logger.warn(
+          { source: source.name, status: response.status, elapsed: Date.now() - sourceStartTime },
+          '📰 [DIAG] News source returned non-OK'
+        );
       }
+    } catch (error) {
+      const elapsed = Date.now() - sourceStartTime;
+      const isTimeout = String(error).includes('timeout') || String(error).includes('AbortError');
+      logger.warn(
+        {
+          source: source.name,
+          error: String(error),
+          elapsed,
+          isTimeout,
+          errorType: error instanceof Error ? error.constructor.name : typeof error,
+        },
+        '📰 [DIAG] News source FAILED - may affect subsequent tools!'
+      );
+      continue; // Try next source
     }
-
-    return "I couldn't fetch the latest news right now. Check back later.";
-  } catch (error) {
-    getLogger().warn(`General news error: ${error}`);
-    return "I'm having trouble getting the news.";
   }
+
+  const elapsed = Date.now() - startTime;
+  logger.warn({ elapsed }, '📰 [DIAG] getGeneralNews: All sources failed');
+  return "I couldn't fetch the latest news right now. Check back later.";
 }
 
 /**
@@ -236,7 +275,7 @@ export function createNewsTools() {
   return {
     getFinancialNews: llm.tool({
       description:
-        "Get latest financial and market news headlines. Use when user asks about market news or what's happening in finance.",
+        "EXECUTE SILENTLY to get financial news. DO NOT say 'let me check the news' - call and share the headlines naturally.",
       parameters: z.object({
         category: z
           .enum(['general', 'forex', 'crypto', 'merger'])
@@ -250,7 +289,7 @@ export function createNewsTools() {
     }),
 
     getStockNews: llm.tool({
-      description: 'Get recent news about a specific stock or company.',
+      description: getToolDescription('getFinancialNews'),
       parameters: z.object({
         symbol: z.string().describe('Stock ticker symbol (e.g., AAPL, TSLA)'),
       }),
@@ -261,8 +300,7 @@ export function createNewsTools() {
     }),
 
     getGeneralNews: llm.tool({
-      description:
-        'Get top world news and headlines. Use when user asks about general news, world events, or "what\'s happening".',
+      description: getToolDescription('getStockNews'),
       parameters: z.object({}),
       execute: async () => {
         getLogger().info('Getting general news');
@@ -271,8 +309,7 @@ export function createNewsTools() {
     }),
 
     getTechNews: llm.tool({
-      description:
-        'Get latest technology and innovation news. Use when user asks about tech news, startups, or technology trends.',
+      description: getToolDescription('getGeneralNews'),
       parameters: z.object({}),
       execute: async () => {
         getLogger().info('Getting tech news');

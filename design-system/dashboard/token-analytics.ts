@@ -134,8 +134,8 @@ async function analyzeTokenUsage(
     'src/**/*.ts',
     'src/**/*.tsx',
     'src/**/*.css',
-    'frontend-typescript/src/**/*.ts',
-    'frontend-typescript/src/**/*.css',
+    'apps/web/src/**/*.ts',
+    'apps/web/src/**/*.css',
   ]);
 
   const tokenUsageMap: Map<string, { count: number; files: Set<string>; contexts: Set<string> }> =

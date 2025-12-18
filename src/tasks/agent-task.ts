@@ -12,6 +12,7 @@ import { type voice, llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../tools/utils/tool-descriptions.js';
 /**
  * Base class for creating tasks that can be awaited for a typed result.
  *
@@ -23,7 +24,7 @@ import { z } from 'zod';
  *       instructions: 'Ask for the user\'s name and confirm it.',
  *       tools: {
  *         recordName: llm.tool({
- *           description: 'Record the user\'s name',
+ *           description: getToolDescription('recordName')s name',
  *           parameters: z.object({ name: z.string() }),
  *           execute: async ({ name }) => {
  *             this.complete(name);
@@ -185,7 +186,7 @@ interface TaskInfo {
  * @example
  * ```typescript
  * const group = new TaskGroup();
- * group.add(() => new CollectEmailTask(), { id: 'email', description: 'Collect email' });
+ * group.add(() => new CollectEmailTask(), { id: 'email', description: getToolDescription('recordName') });
  * group.add(() => new CollectAddressTask(), { id: 'address', description: 'Collect address' });
  *
  * const results = await group.start(session);
@@ -315,7 +316,7 @@ export class CollectConsentTask extends AgentTask<ConsentResult> {
         : baseInstructions,
       tools: {
         consentGiven: llm.tool({
-          description: 'Use this when the user gives consent to record.',
+          description: getToolDescription('consentGiven'),
           parameters: z.object({}),
           execute: async () => {
             this.complete(true);
@@ -323,7 +324,7 @@ export class CollectConsentTask extends AgentTask<ConsentResult> {
           },
         }),
         consentDenied: llm.tool({
-          description: 'Use this when the user denies consent to record.',
+          description: getToolDescription('consentDenied'),
           parameters: z.object({}),
           execute: async () => {
             this.complete(false);
@@ -361,7 +362,7 @@ export class CollectNameTask extends AgentTask<NameResult> {
         : baseInstructions,
       tools: {
         recordName: llm.tool({
-          description: "Record the user's name after they provide it.",
+          description: getToolDescription('email'),
           parameters: z.object({
             name: z.string().describe("The user's name"),
           }),
@@ -371,7 +372,7 @@ export class CollectNameTask extends AgentTask<NameResult> {
           },
         }),
         nameDeclined: llm.tool({
-          description: 'Use when the user declines to provide their name.',
+          description: getToolDescription('recordName'),
           parameters: z.object({}),
           execute: async () => {
             this.complete({ name: 'Anonymous' });
@@ -407,7 +408,7 @@ export class CollectEmailTask extends AgentTask<EmailResult> {
         : baseInstructions,
       tools: {
         recordEmail: llm.tool({
-          description: "Record the user's email address after confirmation.",
+          description: getToolDescription('nameDeclined'),
           parameters: z.object({
             email: z.string().email().describe("The user's email address"),
           }),
@@ -417,7 +418,7 @@ export class CollectEmailTask extends AgentTask<EmailResult> {
           },
         }),
         emailDeclined: llm.tool({
-          description: 'Use when the user declines to provide an email.',
+          description: getToolDescription('recordName'),
           parameters: z.object({}),
           execute: async () => {
             this.complete({ email: '' });

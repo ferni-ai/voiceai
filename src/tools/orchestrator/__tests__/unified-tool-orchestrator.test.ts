@@ -52,6 +52,13 @@ vi.mock('../../registry/loader.js', () => ({
     lazyLoadingEnabled: true,
     remainingDomains: [],
   }),
+  loadToolDomainsLazy: vi.fn().mockResolvedValue({
+    loaded: 0,
+    byDomain: {},
+    errors: [],
+    lazyLoadingEnabled: true,
+    remainingDomains: [],
+  }),
 }));
 
 // Mock semantic router
@@ -74,6 +81,24 @@ vi.mock('../../advanced/tool-lifecycle.js', () => ({
   initializeToolLifecycle: vi.fn().mockResolvedValue(undefined),
   isToolDeprecated: vi.fn().mockReturnValue(false),
   getSuggestedReplacement: vi.fn().mockReturnValue(null),
+}));
+
+// Mock model config (admin settings)
+vi.mock('../../../services/model-config.js', () => ({
+  modelConfig: {
+    getDefaultToolConfig: () => ({
+      debugMode: false,
+      maxTools: 35,
+      enabledDomains: [],
+      excludedTools: [],
+      includedTools: [],
+      logToolSchemas: false,
+      logToolResults: false,
+      useOrchestrator: true,
+    }),
+    getPersonaConfig: vi.fn(),
+    getDefaults: vi.fn(),
+  },
 }));
 
 // Mock builder
@@ -113,8 +138,15 @@ describe('UnifiedToolOrchestrator', () => {
       maxTools: 35,
       semanticThreshold: 0.15,
       precomputeEmbeddings: true,
-      alwaysDomains: ['memory', 'handoff', 'entertainment'],
+      alwaysDomains: ['memory', 'handoff', 'entertainment', 'information'],
       enableContextualTools: true,
+      // New model-config.json connected settings
+      enabledDomains: [],
+      excludedTools: [],
+      includedTools: [],
+      debugMode: false,
+      logToolSchemas: false,
+      logToolResults: false,
     });
   });
 

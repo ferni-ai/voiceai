@@ -18,6 +18,7 @@ import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // LEARNING SCIENCE INSIGHTS
 // ============================================================================
@@ -68,7 +69,7 @@ const setLearningGoalDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user set clear, achievable learning goals.',
+      description: getToolDescription('setLearningGoal'),
       parameters: z.object({
         subject: z.string().describe('What they want to learn'),
         motivation: z.string().optional().describe('Why they want to learn this'),
@@ -128,7 +129,7 @@ const trackLearningProgressDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user track their learning progress.',
+      description: getToolDescription('trackLearningProgress'),
       parameters: z.object({
         subject: z.string().describe('What they are learning'),
         update: z.string().optional().describe('Progress update'),
@@ -181,7 +182,7 @@ const reflectOnLearningDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Guide user through reflection to consolidate learning.',
+      description: getToolDescription('reflectOnLearning'),
       parameters: z.object({
         topic: z.string().describe('What was learned'),
         timeframe: z.enum(['today', 'this-week', 'this-month', 'project']).describe('Time period'),
@@ -237,7 +238,7 @@ const planStudySessionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help plan an effective study session.',
+      description: getToolDescription('planStudySession'),
       parameters: z.object({
         subject: z.string().describe('What to study'),
         timeAvailable: z.number().describe('Minutes available'),
@@ -313,7 +314,7 @@ const scheduleSpacedRepetitionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help set up spaced repetition schedule for better retention.',
+      description: getToolDescription('scheduleSpacedRepetition'),
       parameters: z.object({
         material: z.string().describe('What to retain'),
         startDate: z.string().optional().describe('When learning started'),
@@ -375,7 +376,7 @@ const testKnowledgeDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user test their knowledge through active recall.',
+      description: getToolDescription('testKnowledge'),
       parameters: z.object({
         topic: z.string().describe('Topic to test'),
         format: z.enum(['explain', 'questions', 'teach', 'apply']).describe('Testing format'),
@@ -442,7 +443,7 @@ const recommendResourceDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help find learning resources based on topic and preferences.',
+      description: getToolDescription('recommendResource'),
       parameters: z.object({
         topic: z.string().describe('What to learn'),
         format: z
@@ -521,7 +522,7 @@ const trackBooksReadDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help track books read and capture key insights.',
+      description: getToolDescription('trackBooksRead'),
       parameters: z.object({
         action: z.enum(['log', 'list', 'reflect']).describe('What to do'),
         title: z.string().optional().describe('Book title'),
@@ -587,7 +588,7 @@ const overcomeLearningBlockDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help overcome obstacles to learning.',
+      description: getToolDescription('overcomeLearningBlock'),
       parameters: z.object({
         block: z
           .enum([

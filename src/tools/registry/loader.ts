@@ -39,6 +39,7 @@ export const ESSENTIAL_DOMAINS: ToolDomain[] = [
   'handoff', // Agent switching
   'awareness', // Time/context awareness
   'simple-utilities', // Timers, conversions, etc.
+  'entertainment', // Music - MUST be available immediately (users ask for music often!)
 ];
 
 /**
@@ -48,7 +49,7 @@ export const ESSENTIAL_DOMAINS: ToolDomain[] = [
 export const HIGH_PRIORITY_DOMAINS: ToolDomain[] = [
   'information', // News, weather, search
   'productivity', // Tasks, notes
-  'entertainment', // Music
+  // Note: 'entertainment' moved to ESSENTIAL_DOMAINS - music needs to be available immediately
 ];
 
 /**
@@ -111,31 +112,12 @@ export async function loadToolDomain(
   let toolCount = 0;
 
   if (!loader) {
-    getLogger().debug({ domain }, 'No loader registered for domain, attempting dynamic import');
-
-    // Try dynamic import
-    try {
-      const module = await import(`../domains/${domain}/index.js`);
-      if (module.getToolDefinitions) {
-        const definitions = await module.getToolDefinitions();
-        toolRegistry.registerAll(definitions);
-        toolCount = definitions.length;
-        getLogger().info(
-          { domain, count: definitions.length },
-          'Domain tools loaded via dynamic import'
-        );
-      } else if (module.default && Array.isArray(module.default)) {
-        toolRegistry.registerAll(module.default);
-        toolCount = module.default.length;
-        getLogger().info(
-          { domain, count: module.default.length },
-          'Domain tools loaded via default export'
-        );
-      }
-    } catch (error) {
-      // Domain not implemented yet - this is fine
-      getLogger().debug({ domain, error }, 'Could not load domain (may not be implemented yet)');
-    }
+    getLogger().warn(
+      { domain },
+      'No loader registered for domain - skipping (register loaders via registerDomainLoader or use autoRegisterAllDomains)'
+    );
+    // Note: Dynamic imports with variables don't work in Vitest/bundlers
+    // Domains must be pre-registered via registerDomainLoader()
   } else {
     try {
       const definitions = await loader();
@@ -186,6 +168,275 @@ export async function loadToolDomainsLazy(domains: ToolDomain[]): Promise<number
   );
 
   return results.reduce((sum, r) => sum + (r.status === 'fulfilled' ? r.value : 0), 0);
+}
+
+// ============================================================================
+// AUTO-REGISTRATION (Static Imports for Vitest/Bundlers)
+// ============================================================================
+
+/**
+ * Auto-register all domain loaders using static imports
+ * This is required for Vitest and bundlers that can't handle dynamic imports with variables
+ *
+ * Call this before initializeToolRegistry() in test/production environments
+ *
+ * ⚠️ CRITICAL: This MUST include ALL domains from ALL_TOOL_DOMAINS in types.ts!
+ * Missing domains = tools not available to voice agent!
+ */
+export async function autoRegisterAllDomains(): Promise<void> {
+  // Use static imports so bundlers can analyze them
+  // Note: We import getToolDefinitions from each domain's index file
+  // ⚠️ Keep this list in sync with ALL_TOOL_DOMAINS in types.ts!
+
+  const domains = [
+    // === CORE FUNCTIONAL DOMAINS ===
+    {
+      name: 'memory' as ToolDomain,
+      loader: () => import('../domains/memory/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'handoff' as ToolDomain,
+      loader: () => import('../domains/handoff/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'entertainment' as ToolDomain,
+      loader: () => import('../domains/entertainment/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'awareness' as ToolDomain,
+      loader: () => import('../domains/awareness/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'simple-utilities' as ToolDomain,
+      loader: () =>
+        import('../domains/simple-utilities/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'information' as ToolDomain,
+      loader: () => import('../domains/information/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'productivity' as ToolDomain,
+      loader: () => import('../domains/productivity/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'calendar' as ToolDomain,
+      loader: () => import('../domains/calendar/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'communication' as ToolDomain,
+      loader: () => import('../domains/communication/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'habits' as ToolDomain,
+      loader: () => import('../domains/habits/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'finance' as ToolDomain,
+      loader: () => import('../domains/finance/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'research' as ToolDomain,
+      loader: () => import('../domains/research/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'life-planning' as ToolDomain,
+      loader: () => import('../domains/life-planning/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'wellness' as ToolDomain,
+      loader: () => import('../domains/wellness/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'wisdom' as ToolDomain,
+      loader: () => import('../domains/wisdom/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'telephony' as ToolDomain,
+      loader: () => import('../domains/telephony/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'proactive' as ToolDomain,
+      loader: () => import('../domains/proactive/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'games' as ToolDomain,
+      loader: () => import('../domains/games/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'cameo' as ToolDomain,
+      loader: () => import('../domains/cameo/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'engagement' as ToolDomain,
+      loader: () => import('../domains/engagement/index.js').then((m) => m.getToolDefinitions()),
+    },
+
+    // === DEEP HUMAN ENGAGEMENT DOMAINS ===
+    {
+      name: 'grief' as ToolDomain,
+      loader: () => import('../domains/grief/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'presence' as ToolDomain,
+      loader: () => import('../domains/presence/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'meaning' as ToolDomain,
+      loader: () => import('../domains/meaning/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'relationships' as ToolDomain,
+      loader: () => import('../domains/relationships/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'stories' as ToolDomain,
+      loader: () => import('../domains/stories/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'curiosity' as ToolDomain,
+      loader: () => import('../domains/curiosity/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'vulnerability' as ToolDomain,
+      loader: () => import('../domains/vulnerability/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'dreams' as ToolDomain,
+      loader: () => import('../domains/dreams/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'play' as ToolDomain,
+      loader: () => import('../domains/play/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'self-compassion' as ToolDomain,
+      loader: () =>
+        import('../domains/self-compassion/index.js').then((m) => m.getToolDefinitions()),
+    },
+
+    // === LIFE COACHING DOMAINS ===
+    {
+      name: 'crisis' as ToolDomain,
+      loader: () => import('../domains/crisis/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'health' as ToolDomain,
+      loader: () => import('../domains/health/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'career' as ToolDomain,
+      loader: () => import('../domains/career/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'decisions' as ToolDomain,
+      loader: () => import('../domains/decisions/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'family' as ToolDomain,
+      loader: () => import('../domains/family/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'home' as ToolDomain,
+      loader: () => import('../domains/home/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'learning' as ToolDomain,
+      loader: () => import('../domains/learning/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'creativity' as ToolDomain,
+      loader: () => import('../domains/creativity/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'community' as ToolDomain,
+      loader: () => import('../domains/community/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'legal-admin' as ToolDomain,
+      loader: () => import('../domains/legal-admin/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'second-chances' as ToolDomain,
+      loader: () =>
+        import('../domains/second-chances/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'connection' as ToolDomain,
+      loader: () => import('../domains/connection/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'difficult-conversations' as ToolDomain,
+      loader: () =>
+        import('../domains/difficult-conversations/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'life-transitions' as ToolDomain,
+      loader: () =>
+        import('../domains/life-transitions/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'reflection-games' as ToolDomain,
+      loader: () =>
+        import('../domains/reflection-games/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'quiet-growth' as ToolDomain,
+      loader: () => import('../domains/quiet-growth/index.js').then((m) => m.getToolDefinitions()),
+    },
+
+    // === PERSONA-SPECIFIC "BETTER THAN HUMAN" DOMAINS ===
+    {
+      name: 'pattern-mastery' as ToolDomain,
+      loader: () =>
+        import('../domains/pattern-mastery/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'workflow-mastery' as ToolDomain,
+      loader: () =>
+        import('../domains/workflow-mastery/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'milestone-mastery' as ToolDomain,
+      loader: () =>
+        import('../domains/milestone-mastery/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'habit-persistence' as ToolDomain,
+      loader: () =>
+        import('../domains/habit-persistence/index.js').then((m) => m.getToolDefinitions()),
+    },
+    {
+      name: 'timeless-perspective' as ToolDomain,
+      loader: () =>
+        import('../domains/timeless-perspective/index.js').then((m) => m.getToolDefinitions()),
+    },
+
+    // === DEVELOPER DOMAIN ===
+    {
+      name: 'developer' as ToolDomain,
+      loader: () => import('../domains/developer/index.js').then((m) => m.getToolDefinitions()),
+    },
+  ];
+
+  for (const { name, loader } of domains) {
+    registerDomainLoader(name, loader);
+  }
+
+  getLogger().info(
+    { domainsRegistered: domains.length, expectedDomains: ALL_TOOL_DOMAINS.length },
+    'Domain loaders auto-registered'
+  );
+
+  // Sanity check: warn if we're missing any domains
+  const registeredDomainNames = new Set(domains.map((d) => d.name));
+  const missingDomains = ALL_TOOL_DOMAINS.filter((d) => !registeredDomainNames.has(d));
+  if (missingDomains.length > 0) {
+    getLogger().error(
+      { missingDomains },
+      '⚠️ CRITICAL: autoRegisterAllDomains is missing some domains! Tools will not be available.'
+    );
+  }
 }
 
 // ============================================================================

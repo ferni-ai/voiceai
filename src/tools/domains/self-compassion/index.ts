@@ -18,6 +18,7 @@ import { llm, log } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // SELF-KINDNESS TOOLS
 // ============================================================================
@@ -31,7 +32,7 @@ const practiceSelfKindnessDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Guide the user through a practice of self-kindness.',
+      description: getToolDescription('practiceSelfKindness'),
       parameters: z.object({
         struggle: z.string().describe('What they are struggling with'),
         howTheyreeTreatingThemselves: z
@@ -72,8 +73,7 @@ const speakToYourselfAsAFriendDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user speak to themselves with the same kindness they would show a friend.',
+      description: getToolDescription('speakToYourselfAsAFriend'),
       parameters: z.object({
         whatYouToldYourself: z.string().describe('What the harsh self-talk sounds like'),
         situation: z.string().describe('The situation prompting this'),
@@ -109,7 +109,7 @@ const noticeInnerCriticDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user become aware of and understand their inner critic.',
+      description: getToolDescription('noticeInnerCritic'),
       parameters: z.object({
         whatItsSaying: z.string().describe('What the inner critic is saying'),
         howItMakesYouFeel: z.string().optional().describe('How it makes them feel'),
@@ -144,7 +144,7 @@ const reframeInnerCriticDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user reframe harsh inner critic messages into supportive guidance.',
+      description: getToolDescription('reframeInnerCritic'),
       parameters: z.object({
         criticMessage: z.string().describe('What the inner critic is saying'),
       }),
@@ -182,7 +182,7 @@ const practiceSelfAcceptanceDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Guide the user through a practice of self-acceptance.',
+      description: getToolDescription('practiceSelfAcceptance'),
       parameters: z.object({
         whatToAccept: z.string().describe('What they are struggling to accept about themselves'),
         howLongTheyveStruggled: z.string().optional().describe('How long this has been a struggle'),
@@ -221,7 +221,7 @@ const embraceImperfectionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user embrace imperfection as part of being human.',
+      description: getToolDescription('embraceImperfection'),
       parameters: z.object({
         imperfection: z.string().describe('The imperfection they are struggling with'),
       }),
@@ -256,7 +256,7 @@ const enoughnessDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user connect with a sense of inherent enoughness.',
+      description: getToolDescription('enoughness'),
       parameters: z.object({
         notEnoughIn: z.string().describe('Where they feel not enough'),
         whatWouldBeEnough: z.string().optional().describe('What they think would make them enough'),
@@ -297,7 +297,7 @@ const celebrateYourselfDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user genuinely celebrate themselves and their qualities.',
+      description: getToolDescription('celebrateYourself'),
       parameters: z.object({
         whatToCelebrate: z.string().optional().describe('Something specific to celebrate'),
         mode: z.enum(['prompted', 'specific', 'freeform']).describe('Mode of celebration'),
@@ -343,7 +343,7 @@ const giveYourselfCreditDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user give themselves credit for things they typically overlook.',
+      description: getToolDescription('giveYourselfCredit'),
       parameters: z.object({
         context: z
           .enum(['daily', 'hard-time', 'growth', 'invisible-labor'])
@@ -378,7 +378,7 @@ const selfCompassionBreakDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: "Guide through Kristin Neff's self-compassion break practice.",
+      description: getToolDescription('selfCompassionBreak'),
       parameters: z.object({
         difficultSituation: z.string().describe('What is causing difficulty'),
       }),
@@ -424,7 +424,7 @@ const compassionateLetterDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Guide the user in writing a compassionate letter to themselves.',
+      description: getToolDescription('compassionateLetter'),
       parameters: z.object({
         topic: z.string().describe('What they are struggling with or criticizing themselves for'),
         writtenFrom: z
@@ -464,7 +464,7 @@ const bodyImageCompassionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user practice self-compassion around body image struggles.',
+      description: getToolDescription('bodyImageCompassion'),
       parameters: z.object({
         struggle: z.string().describe('What aspect of body image is difficult'),
       }),

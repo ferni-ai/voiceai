@@ -10,6 +10,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { IntelligentTask } from './intelligent-task.js';
 
+import { getToolDescription } from '../tools/utils/tool-descriptions.js';
 // ============================================================================
 // CURIOSITY EXPLORATION TASK
 // ============================================================================
@@ -57,7 +58,7 @@ export class CuriosityExplorationTask extends IntelligentTask<CuriosityExplorati
       },
       tools: {
         generateQuestions: llm.tool({
-          description: 'Generate questions to deepen their curiosity.',
+          description: getToolDescription('generateQuestions'),
           parameters: z.object({
             questions: z.array(z.string()).describe('Thought-provoking questions'),
             angle: z.string().describe('The angle these questions explore'),
@@ -68,7 +69,7 @@ export class CuriosityExplorationTask extends IntelligentTask<CuriosityExplorati
         }),
 
         suggestExploration: llm.tool({
-          description: 'Suggest a direction for exploration.',
+          description: getToolDescription('suggestExploration'),
           parameters: z.object({
             direction: z.string().describe('Where to explore'),
             whyExciting: z.string().describe('Why this direction is interesting'),
@@ -80,7 +81,7 @@ export class CuriosityExplorationTask extends IntelligentTask<CuriosityExplorati
         }),
 
         completeExploration: llm.tool({
-          description: 'Complete the curiosity exploration.',
+          description: getToolDescription('completeExploration'),
           parameters: z.object({
             topic: z.string(),
             questionsGenerated: z.array(z.string()),
@@ -158,7 +159,7 @@ export class LearningProjectTask extends IntelligentTask<LearningProjectResult> 
       },
       tools: {
         identifyGoal: llm.tool({
-          description: 'Help clarify their learning goal.',
+          description: getToolDescription('identifyGoal'),
           parameters: z.object({
             goal: z.string().describe('What they want to achieve'),
             measurable: z.boolean().describe('Can progress be measured?'),
@@ -178,7 +179,7 @@ export class LearningProjectTask extends IntelligentTask<LearningProjectResult> 
         }),
 
         suggestResources: llm.tool({
-          description: 'Suggest learning resources.',
+          description: getToolDescription('suggestResources'),
           parameters: z.object({
             resources: z.array(z.string()).describe('Recommended resources'),
             learningStyle: z.enum(['reading', 'watching', 'doing', 'mixed']),
@@ -190,7 +191,7 @@ export class LearningProjectTask extends IntelligentTask<LearningProjectResult> 
         }),
 
         createMilestones: llm.tool({
-          description: 'Create learning milestones.',
+          description: getToolDescription('createMilestones'),
           parameters: z.object({
             milestones: z.array(z.string()).describe('Progress markers'),
             firstMilestone: z.string().describe('The very first milestone'),
@@ -201,7 +202,7 @@ export class LearningProjectTask extends IntelligentTask<LearningProjectResult> 
         }),
 
         completeLearningPlan: llm.tool({
-          description: 'Complete the learning project plan.',
+          description: getToolDescription('completeLearningPlan'),
           parameters: z.object({
             subject: z.string(),
             goal: z.string(),
@@ -281,7 +282,7 @@ export class DeepResearchTask extends IntelligentTask<DeepResearchResult> {
       },
       tools: {
         clarifyQuestion: llm.tool({
-          description: 'Help clarify the research question.',
+          description: getToolDescription('clarifyQuestion'),
           parameters: z.object({
             originalQuestion: z.string(),
             refinedQuestion: z.string(),
@@ -293,7 +294,7 @@ export class DeepResearchTask extends IntelligentTask<DeepResearchResult> {
         }),
 
         evaluateSource: llm.tool({
-          description: 'Help evaluate a source or finding.',
+          description: getToolDescription('evaluateSource'),
           parameters: z.object({
             source: z.string().describe('The source being evaluated'),
             credibilityAssessment: z.string(),
@@ -316,7 +317,7 @@ export class DeepResearchTask extends IntelligentTask<DeepResearchResult> {
         }),
 
         synthesizeFindings: llm.tool({
-          description: 'Help synthesize research findings.',
+          description: getToolDescription('synthesizeFindings'),
           parameters: z.object({
             keyFindings: z.array(z.string()),
             consensus: z.string().optional(),
@@ -333,7 +334,7 @@ export class DeepResearchTask extends IntelligentTask<DeepResearchResult> {
         }),
 
         completeResearch: llm.tool({
-          description: 'Complete the research session.',
+          description: getToolDescription('completeResearch'),
           parameters: z.object({
             topic: z.string(),
             keySources: z.array(z.string()),
@@ -422,7 +423,7 @@ export class ExpertiseDevelopmentTask extends IntelligentTask<ExpertiseDevelopme
       },
       tools: {
         assessLevel: llm.tool({
-          description: 'Assess their current expertise level.',
+          description: getToolDescription('assessLevel'),
           parameters: z.object({
             currentLevel: z.enum(['novice', 'beginner', 'intermediate', 'advanced', 'expert']),
             evidence: z.string().describe('What indicates this level'),
@@ -435,7 +436,7 @@ export class ExpertiseDevelopmentTask extends IntelligentTask<ExpertiseDevelopme
         }),
 
         setTarget: llm.tool({
-          description: 'Set a target expertise level.',
+          description: getToolDescription('setTarget'),
           parameters: z.object({
             targetLevel: z.enum(['beginner', 'intermediate', 'advanced', 'expert']),
             whatItLooksLike: z.string().describe('What achieving this level would mean'),
@@ -451,7 +452,7 @@ export class ExpertiseDevelopmentTask extends IntelligentTask<ExpertiseDevelopme
         }),
 
         createDevelopmentPlan: llm.tool({
-          description: 'Create an expertise development plan.',
+          description: getToolDescription('createDevelopmentPlan'),
           parameters: z.object({
             steps: z.array(z.string()).describe('Development steps'),
             deliberatePractice: z.string().describe('Specific practice recommendation'),
@@ -463,7 +464,7 @@ export class ExpertiseDevelopmentTask extends IntelligentTask<ExpertiseDevelopme
         }),
 
         completeExpertisePlan: llm.tool({
-          description: 'Complete the expertise development session.',
+          description: getToolDescription('completeExpertisePlan'),
           parameters: z.object({
             domain: z.string(),
             currentLevel: z.enum(['novice', 'beginner', 'intermediate', 'advanced', 'expert']),

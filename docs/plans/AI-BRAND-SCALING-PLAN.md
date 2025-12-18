@@ -775,7 +775,7 @@ src/services/brand/
 src/api/
 └── brand-routes.ts           # API endpoints
 
-frontend-typescript/src/admin/sections/
+apps/web/src/admin/sections/
 └── BrandHealthSection.ts     # Dashboard UI
 ```
 

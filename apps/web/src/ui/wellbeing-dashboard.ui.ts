@@ -11,7 +11,6 @@
 // --duration-normal, --duration-slow, --duration-entrance, --ease-spring, etc.
 import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 
 const log = createLogger('WellbeingDashboard');
 
@@ -413,7 +412,15 @@ const styles = `
   }
   
   .wellbeing-achievement__icon {
-    font-size: 16px;
+    display: inline-flex;
+    width: 16px;
+    height: 16px;
+    color: var(--persona-primary, #4a6741);
+  }
+
+  .wellbeing-achievement__icon svg {
+    width: 100%;
+    height: 100%;
   }
   
   .wellbeing-achievement__title {
@@ -501,9 +508,16 @@ const styles = `
   }
   
   .wellbeing-empty__icon {
-    font-size: 48px;
+    width: 48px;
+    height: 48px;
     margin-bottom: var(--space-3, 12px);
     opacity: 0.5;
+    color: var(--color-text-muted, #70605a);
+  }
+
+  .wellbeing-empty__icon svg {
+    width: 100%;
+    height: 100%;
   }
   
   /* Footer */
@@ -677,29 +691,6 @@ const styles = `
   [data-theme="midnight"] .wellbeing-calendar__cell--very-low {
     background: var(--color-calendar-very-low-dark, rgba(201, 162, 85, 0.25));
   }
-  
-  /* ========================================
-     ACCESSIBILITY - Focus Styles
-     ======================================== */
-  .wellbeing-modal__close:focus-visible,
-  .wellbeing-btn:focus-visible {
-    outline: 2px solid var(--persona-primary, #4a6741);
-    outline-offset: 2px;
-  }
-  
-  /* ========================================
-     ACCESSIBILITY - Reduced Motion
-     ======================================== */
-  @media (prefers-reduced-motion: reduce) {
-    .wellbeing-modal-overlay,
-    .wellbeing-modal,
-    .wellbeing-modal__close,
-    .wellbeing-btn,
-    .wellbeing-spinner {
-      transition: none !important;
-      animation: none !important;
-    }
-  }
 `;
 
 // ============================================================================
@@ -711,6 +702,10 @@ const ICONS = {
   trendUp: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`,
   trendDown: `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>`,
   heart: `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
+  // Achievement icons (Lucide - 2px stroke, rounded corners)
+  smile: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>`,
+  calm: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><line x1="12" y1="2" x2="12" y2="2.01"/></svg>`,
+  star: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
 };
 
 // ============================================================================
@@ -923,7 +918,7 @@ function transformApiResponse(
       title: i.dimension ? DIMENSION_NAMES[i.dimension] || i.dimension : 'Milestone',
       description: i.message,
       earnedAt: currentState.lastUpdated,
-      icon: i.dimension === 'mood' ? '😊' : i.dimension === 'anxiety' ? '😌' : '⭐',
+      icon: i.dimension === 'mood' ? ICONS.smile : i.dimension === 'anxiety' ? ICONS.calm : ICONS.star,
     }));
 
   // Build prediction from insights
@@ -1056,10 +1051,6 @@ export async function showWellbeingDashboard(): Promise<void> {
  * Hide the wellbeing dashboard.
  */
 export function hideWellbeingDashboard(): void {
-  // Clean up iOS tap listeners
-  if (modal) {
-    cleanupTapListeners(modal);
-  }
   modal?.classList.remove('visible');
   document.body.style.overflow = '';
 }
@@ -1073,14 +1064,14 @@ function createModal(): void {
 
   modal.innerHTML = `
     <div class="wellbeing-modal-backdrop"></div>
-    <div class="wellbeing-modal" role="dialog" aria-labelledby="wellbeing-title" aria-modal="true">
+    <div class="wellbeing-modal">
       <header class="wellbeing-modal__header">
         <p class="wellbeing-modal__eyebrow">Your Journey</p>
         <h2 id="wellbeing-title" class="wellbeing-modal__title">State of Me</h2>
         <p class="wellbeing-modal__subtitle">How you've been feeling lately</p>
         <button class="wellbeing-modal__close" aria-label="${t('common.close')}">${ICONS.close}</button>
       </header>
-      <div class="wellbeing-modal__content" id="wellbeing-content" role="region" aria-live="polite">
+      <div class="wellbeing-modal__content" id="wellbeing-content">
         <div class="wellbeing-loading">
           <div class="wellbeing-spinner"></div>
         </div>
@@ -1092,10 +1083,11 @@ function createModal(): void {
     </div>
   `;
 
-  // Bind events (iOS-compatible)
-  addTapListener(modal.querySelector('.wellbeing-modal-backdrop'), hideWellbeingDashboard);
-  addTapListener(modal.querySelector('.wellbeing-modal__close'), hideWellbeingDashboard);
-  addTapListener(modal.querySelector('[data-action="close"]'), hideWellbeingDashboard);
+  modal
+    .querySelector('.wellbeing-modal-backdrop')
+    ?.addEventListener('click', hideWellbeingDashboard);
+  modal.querySelector('.wellbeing-modal__close')?.addEventListener('click', hideWellbeingDashboard);
+  modal.querySelector('[data-action="close"]')?.addEventListener('click', hideWellbeingDashboard);
 
   modal.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') hideWellbeingDashboard();

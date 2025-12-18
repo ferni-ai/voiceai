@@ -1,7 +1,7 @@
 /**
  * Wearable Settings UI
  *
- * Settings panel for managing health and fitness wearable integrations.
+ * Settings panel for managing wearable device integrations.
  * Supports Apple Watch, Fitbit, Garmin, Oura, and Whoop.
  *
  * DESIGN PRINCIPLES:
@@ -14,7 +14,6 @@
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
 import { t } from '../i18n/index.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 
 // ============================================================================
 // TYPES
@@ -43,37 +42,36 @@ interface WearableSettingsCallbacks {
 // PROVIDER INFO
 // ============================================================================
 
-const PROVIDERS: Array<{
-  id: WearableProvider;
-  icon: string;
-}> = [
-  {
-    id: 'apple_health',
-    icon: '❤️',
-  },
-  {
-    id: 'fitbit',
-    icon: '⌚',
-  },
-  {
-    id: 'garmin',
-    icon: '🏃',
-  },
-  {
-    id: 'oura',
-    icon: '💍',
-  },
-  {
-    id: 'whoop',
-    icon: '📊',
-  },
-];
-
 // ============================================================================
-// ICONS
+// ICONS (Lucide SVG - 2px stroke, rounded corners)
 // ============================================================================
 
 const ICONS = {
+  // Provider icons
+  heartPulse: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+    <path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>
+  </svg>`,
+  watch: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="6"/>
+    <polyline points="12 10 12 12 13 13"/>
+    <path d="m16.13 7.66-.81-4.05a2 2 0 0 0-2-1.61h-2.68a2 2 0 0 0-2 1.61l-.78 4.05"/>
+    <path d="m7.88 16.36.8 4a2 2 0 0 0 2 1.61h2.72a2 2 0 0 0 2-1.61l.81-4.05"/>
+  </svg>`,
+  run: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="17" cy="5" r="2"/>
+    <path d="M9 20h6"/>
+    <path d="m4 17 3-5 2.5 2 4-5 3.5 6"/>
+  </svg>`,
+  ring: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="8"/>
+    <circle cx="12" cy="12" r="3"/>
+  </svg>`,
+  chartLine: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 3v18h18"/>
+    <path d="m19 9-5 5-4-4-3 3"/>
+  </svg>`,
+  // UI icons
   activity: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
   </svg>`,
@@ -92,6 +90,36 @@ const ICONS = {
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
   </svg>`,
 };
+
+// ============================================================================
+// PROVIDER INFO
+// ============================================================================
+
+const PROVIDERS: Array<{
+  id: WearableProvider;
+  icon: string;
+}> = [
+  {
+    id: 'apple_health',
+    icon: ICONS.heartPulse,
+  },
+  {
+    id: 'fitbit',
+    icon: ICONS.watch,
+  },
+  {
+    id: 'garmin',
+    icon: ICONS.run,
+  },
+  {
+    id: 'oura',
+    icon: ICONS.ring,
+  },
+  {
+    id: 'whoop',
+    icon: ICONS.chartLine,
+  },
+];
 
 // ============================================================================
 // WEARABLE SETTINGS UI CLASS
@@ -136,9 +164,6 @@ class WearableSettingsUI {
   hide(): void {
     if (!this.panel) return;
 
-    // Clean up iOS tap listeners
-    cleanupTapListeners(this.panel);
-
     this.panel.classList.remove('wearable-settings--visible');
     this.isVisible = false;
     this.callbacks.onClose?.();
@@ -166,8 +191,7 @@ class WearableSettingsUI {
     this.wrapper.className = 'wearable-settings__wrapper';
     this.panel.appendChild(this.wrapper);
 
-    // Close on backdrop click (iOS-compatible)
-    addTapListener(this.panel, (e) => {
+    this.panel.addEventListener('click', (e) => {
       if (e.target === this.panel) this.hide();
     });
 
@@ -178,8 +202,8 @@ class WearableSettingsUI {
     try {
       const response = await apiGet<{ success: boolean } & WearableStatus>('/api/wearable/status');
 
-      if (response.success) {
-        this.status = response;
+      if (response.data?.success) {
+        this.status = response.data;
         this.renderContent();
       } else {
         this.renderError(t('wearableSettings.errors.loadFailed'));
@@ -304,22 +328,21 @@ class WearableSettingsUI {
     `;
 
     this.bindCloseButton();
-    addTapListener(this.wrapper.querySelector('.wearable-settings__retry'), () => {
+    this.wrapper.querySelector('.wearable-settings__retry')?.addEventListener('click', () => {
       this.renderLoading();
       void this.loadStatus();
     });
   }
 
   private bindCloseButton(): void {
-    if (!this.wrapper) return;
-    addTapListener(this.wrapper.querySelector('.wearable-settings__close'), () => {
+    this.wrapper?.querySelector('.wearable-settings__close')?.addEventListener('click', () => {
       this.hide();
     });
   }
 
   private bindProviderButtons(): void {
     this.wrapper?.querySelectorAll('.wearable-settings__provider-btn').forEach((btn) => {
-      addTapListener(btn, () => {
+      btn.addEventListener('click', () => {
         const htmlBtn = btn as HTMLButtonElement;
         const provider = htmlBtn.dataset.provider as WearableProvider;
         const isConnected = htmlBtn.dataset.connected === 'true';
@@ -358,8 +381,8 @@ class WearableSettingsUI {
         { provider }
       );
 
-      if (response.success && response.authUrl) {
-        window.location.href = response.authUrl as string;
+      if (response.data?.success && response.data.authUrl) {
+        window.location.href = response.data.authUrl;
       }
     } catch (error) {
       console.error('Failed to connect provider:', error);
@@ -514,7 +537,6 @@ class WearableSettingsUI {
       }
 
       .wearable-settings__provider-icon {
-        font-size: 1.5rem;
         width: 40px;
         height: 40px;
         display: flex;
@@ -522,6 +544,17 @@ class WearableSettingsUI {
         justify-content: center;
         background: var(--color-background-elevated, #fffdfb);
         border-radius: var(--radius-md, 0.5rem);
+        color: var(--color-text-secondary, #6b5b4f);
+      }
+
+      .wearable-settings__provider-icon svg {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+      }
+
+      .wearable-settings__provider--connected .wearable-settings__provider-icon {
+        color: var(--persona-primary, #4a6741);
       }
 
       .wearable-settings__provider-info {
@@ -686,6 +719,11 @@ class WearableSettingsUI {
 
       [data-theme="midnight"] .wearable-settings__provider-icon {
         background: var(--color-background-elevated, #70605a);
+        color: var(--color-text-secondary, #e8e2da);
+      }
+
+      [data-theme="midnight"] .wearable-settings__provider--connected .wearable-settings__provider-icon {
+        color: var(--persona-primary, #6b9b5a);
       }
 
       @media (max-width: 480px) {

@@ -22,12 +22,14 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 
-// Import intelligence systems
+// Import intelligence systems - using unified moment detection as single source of truth
 import {
-  detectMoments,
+  detectMomentsUnifiedWrapper as detectMoments,
+  extractMemorableMoments,
   type DetectedMoment,
   type MomentDetectionContext,
 } from '../../personas/moment-detection.js';
+import type { MomentDetectionResult } from '../../personas/unified-moment-detection.js';
 import {
   PersonaIntelligenceEngine,
   getPersonaIntelligence,
@@ -78,6 +80,8 @@ export interface MessageProcessResult {
   predictive: PredictiveAnalysis | null;
   shouldAcknowledgeMoment: boolean;
   suggestedResponse?: string;
+  /** Memorable details extracted for callbacks during silence */
+  memorableDetails?: string[];
 }
 
 // ============================================================================
@@ -228,7 +232,7 @@ export class IntelligenceIntegration {
       shouldAcknowledgeMoment: false,
     };
 
-    // Detect moments
+    // Detect moments using unified system (single source of truth)
     if (this.config.autoDetectMoments) {
       const momentContext: MomentDetectionContext = {
         userMessage,
@@ -238,7 +242,22 @@ export class IntelligenceIntegration {
         hasSharedVulnerabilityBefore: this.sessionState.hasSharedVulnerability,
       };
 
-      const moments = detectMoments(momentContext);
+      const unifiedResult = detectMoments(momentContext);
+      // Extract memorable details for potential callbacks
+      const memorableDetails =
+        unifiedResult.memorableDetails || extractMemorableMoments(userMessage);
+      result.memorableDetails = memorableDetails;
+
+      // Convert to DetectedMoment format and filter by confidence
+      const moments = unifiedResult.moments.map((m) => ({
+        type: m.type,
+        confidence: m.confidence,
+        summary: m.summary,
+        userPhrase: m.triggerPhrase,
+        topic: m.topic,
+        significance: m.significance,
+        tags: m.tags,
+      }));
       result.moments = moments.filter((m) => m.confidence >= this.config.momentConfidenceThreshold);
 
       // Record detected moments

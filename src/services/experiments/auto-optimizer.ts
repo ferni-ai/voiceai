@@ -13,6 +13,7 @@
  */
 
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { removeUndefined } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   analyzeExperiment,
@@ -463,13 +464,15 @@ async function shipWinner(
 
   // 2. Log the shipment
   const db = getFirestore();
-  await db.collection('experiment_shipments').add({
-    experimentId,
-    winnerId,
-    confidence,
-    shippedAt: FieldValue.serverTimestamp(),
-    shippedBy: 'auto-optimizer',
-  });
+  await db.collection('experiment_shipments').add(
+    removeUndefined({
+      experimentId,
+      winnerId,
+      confidence,
+      shippedAt: FieldValue.serverTimestamp(),
+      shippedBy: 'auto-optimizer',
+    })
+  );
 
   // 3. Update variant library (so future experiments use winner as baseline)
   await updateVariantLibraryDefault(experimentId, winnerId);

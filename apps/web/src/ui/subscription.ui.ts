@@ -42,8 +42,16 @@ export interface SubscriptionTier {
   id: 'free' | 'friend' | 'partner';
   name: string;
   description: string;
-  priceInCents: number;
-  priceDisplay: string;
+  /** @deprecated Use priceInSmallestUnit for multi-currency support */
+  priceInCents?: number;
+  /** Price in currency's smallest unit (cents, yen, etc.) - from API */
+  priceInSmallestUnit?: number;
+  /** @deprecated Use price for multi-currency support */
+  priceDisplay?: string;
+  /** Formatted price string with currency symbol - from API */
+  price?: string;
+  /** Currency code (USD, EUR, JPY, etc.) */
+  currency?: string;
   conversationsPerMonth: number | null;
   features: string[];
   popular?: boolean;
@@ -232,7 +240,7 @@ async function verifyPaymentAndCelebrate(tier: string, sessionId: string | null)
   const deviceId = appState.getState().deviceId;
 
   // Show loading state
-  toast.info('Confirming your upgrade...');
+  toast.info('Just a moment...');
 
   // Try to verify payment (with polling for webhook processing)
   const maxAttempts = 10;
@@ -258,13 +266,13 @@ async function verifyPaymentAndCelebrate(tier: string, sessionId: string | null)
       // Not verified yet - wait and retry (webhook might still be processing)
       if (attempt < maxAttempts - 1) {
         log.debug(`Payment not yet confirmed, attempt ${attempt + 1}/${maxAttempts}`);
-        await new Promise((resolve) => trackedTimeout(resolve, pollInterval));
+        await new Promise<void>((resolve) => setTimeout(resolve, pollInterval));
       }
     } catch (error) {
       log.warn('Error verifying payment:', error);
       // Continue polling on error
       if (attempt < maxAttempts - 1) {
-        await new Promise((resolve) => trackedTimeout(resolve, pollInterval));
+        await new Promise<void>((resolve) => setTimeout(resolve, pollInterval));
       }
     }
   }
@@ -276,7 +284,7 @@ async function verifyPaymentAndCelebrate(tier: string, sessionId: string | null)
 
   // Show a gentle note that it might take a moment
   trackedTimeout(() => {
-    toast.info('Your upgrade is processing. It may take a moment to reflect everywhere.');
+    toast.info("You're all set! Changes may take a moment to show everywhere.");
   }, 2000);
 }
 
@@ -707,10 +715,22 @@ function createTierCard(tier: SubscriptionTier, index: number): string {
   const isCurrentTier = status?.tier === tier.id;
   const isPopular = tier.popular;
   const isFree = tier.id === 'free';
-  const priceText = isFree ? 'Free' : `$${(tier.priceInCents / 100).toFixed(2)} per month`;
+
+  // Get formatted price - prefer API 'price' field, fall back to calculating from cents
+  const getFormattedPrice = (): string => {
+    if (isFree) return 'Free';
+    // API returns pre-formatted price with currency symbol
+    if (tier.price) return tier.price;
+    // Legacy: calculate from priceInSmallestUnit or priceInCents (USD assumed)
+    const priceInSmallest = tier.priceInSmallestUnit ?? tier.priceInCents ?? 0;
+    return `$${(priceInSmallest / 100).toFixed(2)}`;
+  };
+
+  const priceAmount = getFormattedPrice();
+  const priceText = isFree ? 'Free' : `${priceAmount} per month`;
 
   return `
-    <article 
+    <article
       class="tier-card ${isPopular ? 'tier-card--popular' : ''} ${isCurrentTier ? 'tier-card--current' : ''}"
       style="animation-delay: ${prefersReducedMotion() ? 0 : index * STAGGER.NORMAL}ms"
       aria-labelledby="tier-${tier.id}-name"
@@ -718,12 +738,12 @@ function createTierCard(tier: SubscriptionTier, index: number): string {
     >
       ${isPopular ? `<div class="tier-badge" role="status">${ICONS.star} <span>Most Popular</span></div>` : ''}
       ${isCurrentTier ? '<div class="tier-badge tier-badge--current" role="status">Current Plan</div>' : ''}
-      
+
       <h3 id="tier-${tier.id}-name" class="tier-name">${tier.name}</h3>
       <p id="tier-${tier.id}-desc" class="tier-description">${tier.description}</p>
-      
+
       <div class="tier-price" aria-label="${priceText}">
-        <span class="tier-amount">${isFree ? 'Free' : `$${(tier.priceInCents / 100).toFixed(2)}`}</span>
+        <span class="tier-amount">${priceAmount}</span>
         ${!isFree ? '<span class="tier-period">/month</span>' : ''}
       </div>
       
@@ -750,8 +770,9 @@ function getDefaultTiers(): SubscriptionTier[] {
       id: 'free',
       name: 'Ferni Forever',
       description: 'Talk to Ferni unlimited times, forever. 7 minutes per conversation.',
-      priceInCents: 0,
-      priceDisplay: 'Free',
+      price: 'Free',
+      priceInSmallestUnit: 0,
+      currency: 'USD',
       conversationsPerMonth: null, // Unlimited with Ferni!
       features: [
         'Unlimited conversations with Ferni',
@@ -764,8 +785,9 @@ function getDefaultTiers(): SubscriptionTier[] {
       id: 'friend',
       name: 'Your Life Coach',
       description: 'Unlimited time with Ferni + meet the whole team',
-      priceInCents: 999,
-      priceDisplay: '$9.99/month',
+      price: '$9.99',
+      priceInSmallestUnit: 999,
+      currency: 'USD',
       conversationsPerMonth: null,
       features: [
         'Talk as long as you need',
@@ -779,8 +801,9 @@ function getDefaultTiers(): SubscriptionTier[] {
       id: 'partner',
       name: 'Partner in Growth',
       description: 'Full team access + exclusive cosmetics + priority',
-      priceInCents: 1999,
-      priceDisplay: '$19.99/month',
+      price: '$19.99',
+      priceInSmallestUnit: 1999,
+      currency: 'USD',
       conversationsPerMonth: null,
       features: [
         'Everything in Life Coach, plus:',
@@ -866,7 +889,7 @@ function updateButtonLoadingState(tier: string, loading: boolean): void {
 
 function showUpgradeError(): void {
   toast.error('Something went sideways. Want to try again?');
-  announceToScreenReader("We couldn't process your upgrade. Please try again.");
+  announceToScreenReader("Couldn't process that upgrade. Try again?");
 }
 
 /**

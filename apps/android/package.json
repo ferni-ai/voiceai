@@ -4,7 +4,7 @@
   "description": "Ferni Android Application",
   "private": true,
   "scripts": {
-    "build:web": "cd ../../frontend-typescript && npm run build",
+    "build:web": "cd ../../apps/web && npm run build",
     "sync": "npx cap sync android",
     "open": "npx cap open android",
     "build": "npm run build:web && npm run sync",

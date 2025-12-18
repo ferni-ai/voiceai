@@ -24,6 +24,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { trackToolUsage, isLifeCoachAnalyticsEnabled } from '../shared/index.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // CRISIS RESOURCES DATABASE
 // ============================================================================
@@ -274,8 +275,7 @@ const provideCrisisResourcesDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Surface appropriate crisis resources. Use when user expresses distress, mentions self-harm, abuse, or severe mental health struggles. ALWAYS provide these when safety is a concern.',
+      description: getToolDescription('provideCrisisResources'),
       parameters: z.object({
         crisisType: z
           .enum([
@@ -374,8 +374,7 @@ const guideGroundingExerciseDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Guide user through a grounding exercise when they are feeling overwhelmed, dissociated, or experiencing anxiety or panic.',
+      description: getToolDescription('guideGroundingExercise'),
       parameters: z.object({
         technique: z
           .enum(['5-4-3-2-1', 'breathing-4-7-8', 'box-breathing', 'body-scan', 'safe-place'])
@@ -451,8 +450,7 @@ const deEscalateAnxietyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help de-escalate acute anxiety or panic. Use when user is experiencing intense anxiety symptoms.',
+      description: getToolDescription('deEscalateAnxiety'),
       parameters: z.object({
         symptoms: z
           .array(
@@ -531,8 +529,7 @@ const createSafetyPlanDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user create a personal safety plan. Important: This is a supportive tool, not a replacement for professional safety planning.',
+      description: getToolDescription('createSafetyPlan'),
       parameters: z.object({
         context: z
           .enum(['mental-health', 'domestic-safety', 'self-harm-prevention', 'general'])
@@ -644,8 +641,7 @@ const findSafeResourcesDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user find local safety resources. Always recommend calling 211 for localized services.',
+      description: getToolDescription('findSafeResources'),
       parameters: z.object({
         needType: z
           .enum([
@@ -749,8 +745,7 @@ const supportRecoveryJourneyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Provide supportive check-ins for someone in addiction recovery. Not a replacement for sponsor/professional support.',
+      description: getToolDescription('supportRecoveryJourney'),
       parameters: z.object({
         recoveryType: z
           .enum(['alcohol', 'substances', 'behavioral', 'general'])
@@ -832,7 +827,7 @@ const trackSobrietyMilestoneDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Celebrate and acknowledge recovery milestones.',
+      description: getToolDescription('trackSobrietyMilestone'),
       parameters: z.object({
         milestone: z
           .enum([
@@ -901,8 +896,7 @@ const findFinancialAssistanceDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help find emergency financial assistance resources for rent, utilities, food, etc.',
+      description: getToolDescription('findFinancialAssistance'),
       parameters: z.object({
         needType: z
           .enum(['rent', 'utilities', 'food', 'medical', 'transportation', 'general'])

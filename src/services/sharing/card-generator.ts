@@ -477,7 +477,12 @@ function generateCardId(): string {
 // MAIN GENERATOR
 // ============================================================================
 
-export type CardData = MusicalDNACardData | DesertIslandCardData | GameVictoryCardData | WeeklyRecapCardData | CreativeProfileCardData;
+export type CardData =
+  | MusicalDNACardData
+  | DesertIslandCardData
+  | GameVictoryCardData
+  | WeeklyRecapCardData
+  | CreativeProfileCardData;
 
 /**
  * Generate SVG for a shareable card
@@ -544,4 +549,3 @@ export default {
   getCardDimensions,
   createShareableCard,
 };
-

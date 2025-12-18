@@ -38,6 +38,36 @@ const log = createLogger('AdminUI');
 const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
+// ICONS (Lucide SVG - 2px stroke, rounded corners)
+// ============================================================================
+
+const ICONS = {
+  edit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+  </svg>`,
+  sage: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313-12.454z"/>
+    <path d="M17 4a2 2 0 0 0 2 2a2 2 0 0 0-2 2a2 2 0 0 0-2-2a2 2 0 0 0 2-2"/>
+  </svg>`,
+  target: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+  </svg>`,
+  drama: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+    <line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
+  </svg>`,
+  user: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+    <circle cx="12" cy="7" r="4"/>
+  </svg>`,
+  sparkles: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+  </svg>`,
+};
+
+// ============================================================================
 // STATE
 // ============================================================================
 
@@ -240,7 +270,7 @@ function renderAgentCard(agent: ApiAgent, isCoordinator: boolean): string {
           data-agent-id="${agent.id}"
           aria-label="Edit ${agent.name}"
         >
-          ✏️
+          <span class="admin-edit-icon">${ICONS.edit}</span>
         </button>
         <button 
           class="admin-agent-preview" 
@@ -274,7 +304,7 @@ function renderTemplateCard(id: string, name: string, description: string): stri
   return `
     <div class="admin-template-card" data-template="${id}">
       <div class="admin-template-icon">
-        ${id === 'sage' ? '🧙' : id === 'specialist' ? '🎯' : id === 'coordinator' ? '🎭' : '👤'}
+        ${id === 'sage' ? ICONS.sage : id === 'specialist' ? ICONS.target : id === 'coordinator' ? ICONS.drama : ICONS.user}
       </div>
       <div class="admin-template-info">
         <div class="admin-template-name">${name}</div>
@@ -426,7 +456,7 @@ function escapeHtml(text: string): string {
 function renderAvatarSoulLab(): string {
   return `
     <section class="admin-section admin-soul-lab">
-      <h2>✨ Avatar Soul Lab</h2>
+      <h2><span class="admin-sparkles-icon">${ICONS.sparkles}</span> Avatar Soul Lab</h2>
       <p class="admin-hint">Test "Better Than Human" emotional animations in real-time</p>
 
       <!-- Live Avatar Preview -->
@@ -811,7 +841,7 @@ function updateSoulPreview(action: string, value: string): void {
 async function handleSoulAction(action: string, value: string): Promise<void> {
   const soul = await getAvatarSoul();
   if (!soul) {
-    toast.info('Avatar Soul not available');
+    toast.info('Avatar Soul unavailable');
     return;
   }
 
@@ -894,7 +924,7 @@ async function handleSoulAction(action: string, value: string): Promise<void> {
     }
   } catch (err) {
     log.error('Soul action failed:', err);
-    toast.info('Action failed - check console');
+    toast.error('Action failed (see console)');
   }
 }
 
@@ -1115,7 +1145,7 @@ async function previewVoice(agentId: string): Promise<void> {
     // Open Cartesia playground in new tab
     window.open(data.previewUrl, '_blank');
   } catch (err) {
-    toast.info('Failed to get voice preview URL');
+    toast.error("Couldn't get voice URL");
   }
 }
 
@@ -1132,10 +1162,10 @@ async function toggleAgentEnabled(agentId: string, enabled: boolean): Promise<vo
     if (data.success) {
       toast.info(`${enabled ? 'Enabled' : 'Disabled'} ${agentId}`);
     } else {
-      toast.info(`Failed to update agent`);
+      toast.error("Couldn't update agent");
     }
   } catch (err) {
-    toast.info('Failed to update agent status');
+    toast.error("Couldn't update status");
   }
 }
 
@@ -1164,10 +1194,10 @@ async function saveAgentChanges(agentId: string): Promise<void> {
       closeDetailPanel();
       await refreshAgents();
     } else {
-      toast.info('Failed to save changes');
+      toast.error("Couldn't save changes");
     }
   } catch (err) {
-    toast.info('Failed to save agent changes');
+    toast.error("Couldn't save agent");
   }
 }
 
@@ -1191,10 +1221,10 @@ async function saveNewOrder(): Promise<void> {
     if (data.success) {
       toast.info('Team order saved');
     } else {
-      toast.info('Failed to save team order');
+      toast.error("Couldn't save order");
     }
   } catch (err) {
-    toast.info('Failed to save team order');
+    toast.error("Couldn't save order");
   }
 }
 
@@ -1222,12 +1252,12 @@ async function validateAllAgents(): Promise<void> {
     if (data.success) {
       toast.info('✓ All agents valid!');
     } else {
-      toast.info('⚠ Validation found issues - check console');
+      toast.warning('Issues found (see console)');
       log.debug('Validation output:', data.output);
       if (data.errors) log.error('Validation errors:', data.errors);
     }
   } catch (err) {
-    toast.info('Failed to run validation');
+    toast.error("Couldn't run validation");
   }
 }
 
@@ -1505,7 +1535,40 @@ export function injectAdminStyles(): void {
     }
 
     .admin-template-icon {
-      font-size: 2rem;
+      width: 32px;
+      height: 32px;
+      color: var(--persona-primary, #4a6741);
+    }
+
+    .admin-template-icon svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .admin-edit-icon {
+      display: inline-flex;
+      width: 16px;
+      height: 16px;
+      color: var(--color-text-secondary, #6b5b4f);
+    }
+
+    .admin-edit-icon svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .admin-sparkles-icon {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      vertical-align: middle;
+      margin-right: var(--space-2, 8px);
+      color: var(--persona-primary, #4a6741);
+    }
+
+    .admin-sparkles-icon svg {
+      width: 100%;
+      height: 100%;
     }
 
     .admin-template-info {

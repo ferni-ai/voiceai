@@ -31,8 +31,8 @@ const rootDir = path.join(__dirname, '..');
 const CONFIG = {
   // Directories to scan for CSS-in-JS patterns
   scanDirs: [
-    'frontend-typescript/src/ui',
-    'frontend-typescript/src/components',
+    'apps/web/src/ui',
+    'apps/web/src/components',
   ],
   
   // File extensions to check

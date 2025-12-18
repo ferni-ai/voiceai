@@ -17,6 +17,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { IntelligentTask } from './intelligent-task.js';
 
+import { getToolDescription } from '../tools/utils/tool-descriptions.js';
 // ============================================================================
 // QUICK ACKNOWLEDGE TASK
 // ============================================================================
@@ -64,7 +65,7 @@ export class QuickAcknowledgeTask extends IntelligentTask<AcknowledgeResult> {
       },
       tools: {
         acknowledge: llm.tool({
-          description: 'Acknowledge what they shared.',
+          description: getToolDescription('acknowledge'),
           parameters: z.object({
             acknowledgment: z.string().describe('Your brief acknowledgment'),
             whatWasAcknowledged: z.string().describe('What you acknowledged'),
@@ -121,7 +122,7 @@ export class QuickCelebrateTask extends IntelligentTask<QuickCelebrateResult> {
       },
       tools: {
         celebrate: llm.tool({
-          description: 'Celebrate their achievement briefly.',
+          description: getToolDescription('celebrate'),
           parameters: z.object({
             celebration: z.string().describe('Your brief celebration'),
             achievement: z.string().describe("What you're celebrating"),
@@ -188,7 +189,7 @@ export class QuickValidateTask extends IntelligentTask<ValidateResult> {
       },
       tools: {
         validate: llm.tool({
-          description: 'Validate their feeling.',
+          description: getToolDescription('validate'),
           parameters: z.object({
             validation: z.string().describe('Your validation statement'),
             feeling: z.string().describe('The feeling you validated'),
@@ -246,7 +247,7 @@ export class QuickCuriosityTask extends IntelligentTask<CuriosityResult> {
       },
       tools: {
         askFollowUp: llm.tool({
-          description: 'Ask one curious follow-up question.',
+          description: getToolDescription('askFollowUp'),
           parameters: z.object({
             question: z.string().describe('Your follow-up question'),
             topicExplored: z.string().describe('What topic this explores'),
@@ -301,7 +302,7 @@ export class ActiveListeningTask extends IntelligentTask<ListeningResult> {
       },
       tools: {
         reflectBack: llm.tool({
-          description: 'Reflect back what you heard.',
+          description: getToolDescription('reflectBack'),
           parameters: z.object({
             reflection: z.string().describe('Your reflection of what they said'),
           }),
@@ -311,7 +312,7 @@ export class ActiveListeningTask extends IntelligentTask<ListeningResult> {
         }),
 
         confirmUnderstanding: llm.tool({
-          description: 'Complete the listening task.',
+          description: getToolDescription('confirmUnderstanding'),
           parameters: z.object({
             reflectedBack: z.string().describe('What you reflected'),
             userConfirmed: z.boolean().describe('Whether they confirmed your understanding'),
@@ -362,7 +363,7 @@ export class PauseTask extends IntelligentTask<PauseResult> {
       },
       tools: {
         pause: llm.tool({
-          description: 'Take a meaningful pause.',
+          description: getToolDescription('pause'),
           parameters: z.object({
             pausePhrase: z.string().describe('What to say (or "..." for silence)'),
             reason: z.string().describe("Why you're pausing"),

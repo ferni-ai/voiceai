@@ -1239,9 +1239,19 @@ const MEMORABLE_PATTERNS = [
 /**
  * Extract memorable moments from user message
  * Returns details worth remembering/referencing later
+ *
+ * NOTE: This now delegates to the unified moment detection system
+ * for consistency across all moment detection in the codebase.
  */
+import { extractMemorableMoments as extractFromUnified } from './unified-moment-detection.js';
+
 export function extractMemorableMoments(message: string): string[] {
-  const moments: string[] = [];
+  // Delegate to unified moment detection
+  const unifiedDetails = extractFromUnified(message);
+
+  // Supplement with local patterns for more specific detail extraction
+  // that the unified system might miss
+  const localMoments: string[] = [];
   const messageLower = message.toLowerCase();
 
   for (const { pattern, category } of MEMORABLE_PATTERNS) {
@@ -1251,30 +1261,30 @@ export function extractMemorableMoments(message: string): string[] {
       switch (category) {
         case 'family':
           if (match[1]) {
-            moments.push(`your ${match[1].toLowerCase()}`);
+            localMoments.push(`your ${match[1].toLowerCase()}`);
           }
           break;
         case 'name':
           // They mentioned a name - probably family
           if (match[1] && match[1].length > 2) {
-            moments.push(match[1]);
+            localMoments.push(match[1]);
           }
           break;
         case 'life_event':
           if (messageLower.includes('married') || messageLower.includes('engaged')) {
-            moments.push('getting married');
+            localMoments.push('getting married');
           } else if (messageLower.includes('baby') || messageLower.includes('pregnant')) {
-            moments.push('the baby');
+            localMoments.push('the baby');
           } else if (messageLower.includes('retir')) {
-            moments.push('retirement');
+            localMoments.push('retirement');
           } else if (messageLower.includes('mov')) {
-            moments.push('the move');
+            localMoments.push('the move');
           } else if (messageLower.includes('job') || messageLower.includes('business')) {
-            moments.push('the new job');
+            localMoments.push('the new job');
           }
           break;
         case 'loss':
-          moments.push('your loss');
+          localMoments.push('your loss');
           break;
         case 'fear': {
           // Extract what they're worried about
@@ -1282,7 +1292,7 @@ export function extractMemorableMoments(message: string): string[] {
             /(?:worried|scared|afraid|anxious|nervous)\s+(?:about|that)\s+(.{10,50})/i
           );
           if (fearMatch) {
-            moments.push(fearMatch[1].replace(/[.,!?].*/, '').trim());
+            localMoments.push(fearMatch[1].replace(/[.,!?].*/, '').trim());
           }
           break;
         }
@@ -1291,7 +1301,7 @@ export function extractMemorableMoments(message: string): string[] {
             /(?:dream|hope|wish|want)\s+(?:to|is|was)\s+(.{10,50})/i
           );
           if (dreamMatch) {
-            moments.push(`wanting to ${dreamMatch[1].replace(/[.,!?].*/, '').trim()}`);
+            localMoments.push(`wanting to ${dreamMatch[1].replace(/[.,!?].*/, '').trim()}`);
           }
           break;
         }
@@ -1299,7 +1309,7 @@ export function extractMemorableMoments(message: string): string[] {
           if (messageLower.includes('first')) {
             const firstMatch = message.match(/first\s+(\w+)/i);
             if (firstMatch) {
-              moments.push(`your first ${firstMatch[1].toLowerCase()}`);
+              localMoments.push(`your first ${firstMatch[1].toLowerCase()}`);
             }
           }
           break;
@@ -1307,8 +1317,9 @@ export function extractMemorableMoments(message: string): string[] {
     }
   }
 
-  // Deduplicate and limit
-  return [...new Set(moments)].slice(0, 3);
+  // Combine unified + local, deduplicate and limit
+  const combined = [...unifiedDetails, ...localMoments];
+  return [...new Set(combined)].slice(0, 5);
 }
 
 /**

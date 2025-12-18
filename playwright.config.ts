@@ -50,7 +50,7 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'cd frontend-typescript && npx vite --port 5173',
+    command: 'cd apps/web && npx vite --port 5173',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,

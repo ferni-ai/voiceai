@@ -33,7 +33,7 @@ export default [
       'coverage/**',
       '*.config.js',
       '*.config.mjs',
-      'frontend-typescript/**',
+      'apps/web/**',
       'functions/**',
       'design-system/**',
       'apps/**',
@@ -390,7 +390,7 @@ export default [
   // FRONTEND FILES - ADJUSTED RULES
   // ============================================================================
   {
-    files: ['frontend-typescript/**/*.ts'],
+    files: ['apps/web/**/*.ts'],
     rules: {
       // Frontend often needs DOM manipulation with any-like patterns
       '@typescript-eslint/no-unsafe-assignment': 'off',
@@ -406,7 +406,7 @@ export default [
   // Prevent hardcoded CSS values that should use design tokens
   // ============================================================================
   {
-    files: ['frontend-typescript/src/ui/**/*.ts'],
+    files: ['apps/web/src/ui/**/*.ts'],
     rules: {
       'no-restricted-syntax': [
         'warn',

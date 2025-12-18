@@ -1,5 +1,5 @@
 {
-  "layout": "layouts/blog-post.njk",
+  "layout": "layouts/building-post.njk",
   "tags": "buildStories",
   "permalink": "/building/{{ page.fileSlug }}/",
   "eleventyComputed": {

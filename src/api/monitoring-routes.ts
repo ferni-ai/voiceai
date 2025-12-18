@@ -10,7 +10,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
-import { handleCorsPreflightIfNeeded } from './helpers.js';
+import { handleCorsPreflightIfNeeded, parseBody, sendJSON } from './helpers.js';
 
 import {
   acknowledgeAlert,
@@ -28,24 +28,13 @@ const log = createLogger({ module: 'MonitoringRoutes' });
 // UTILITIES
 // ============================================================================
 
-async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => (body += chunk.toString()));
-    req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : {});
-      } catch {
-        resolve({});
-      }
-    });
-    req.on('error', reject);
-  });
-}
+// parseBody and sendJSON imported from './helpers.js'
 
+/**
+ * Legacy wrapper for sendJSON with (res, status, data) signature.
+ */
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
+  sendJSON(res, data, status);
 }
 
 // ============================================================================
@@ -140,7 +129,7 @@ export async function handleMonitoringRoutes(
     }
 
     if (pathname === '/api/monitoring/alerts/acknowledge' && method === 'POST') {
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       const alertId = body.alertId as string;
 
       if (!alertId) {

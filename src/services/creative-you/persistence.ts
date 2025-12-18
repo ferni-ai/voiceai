@@ -10,6 +10,7 @@
  * Falls back to in-memory storage when Firestore is unavailable.
  */
 
+import { removeUndefined } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { CreativeDNA, CreativeInsight, CreativeJourneyStats } from './creative-dna.js';
 
@@ -169,10 +170,7 @@ class CreativeYouPersistence {
 
     if (this.db) {
       try {
-        const doc = await this.db
-          .collection(this.COLLECTION_CREATIVE_DNA)
-          .doc(userId)
-          .get();
+        const doc = await this.db.collection(this.COLLECTION_CREATIVE_DNA).doc(userId).get();
 
         if (doc.exists) {
           return doc.data() as unknown as CreativeDNA;
@@ -200,10 +198,12 @@ class CreativeYouPersistence {
         await this.db
           .collection(this.COLLECTION_INSIGHTS)
           .doc(insight.id)
-          .set({
-            ...insight,
-            savedAt: new Date().toISOString(),
-          });
+          .set(
+            removeUndefined({
+              ...insight,
+              savedAt: new Date().toISOString(),
+            })
+          );
         log.debug({ insightId: insight.id }, '💾 Insight saved to Firestore');
       } catch (error) {
         log.error({ error: String(error) }, 'Failed to save insight');
@@ -311,10 +311,7 @@ class CreativeYouPersistence {
 
     if (this.db) {
       try {
-        await this.db
-          .collection(this.COLLECTION_WATCH_HISTORY)
-          .doc(record.id)
-          .set(record);
+        await this.db.collection(this.COLLECTION_WATCH_HISTORY).doc(record.id).set(record);
         log.debug({ recordId: record.id }, '💾 Watch record saved');
       } catch (error) {
         log.error({ error: String(error) }, 'Failed to save watch record');
@@ -394,4 +391,3 @@ export function getCreativeYouPersistence(): CreativeYouPersistence {
 }
 
 export { CreativeYouPersistence };
-

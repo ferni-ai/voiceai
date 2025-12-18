@@ -20,6 +20,7 @@ import { llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // LIFE EVENT TYPES
 // ============================================================================
@@ -323,8 +324,7 @@ export function respondToLifeEvent(situation: string): string {
 export function createLifeEventsTools() {
   return {
     respondToLifeEvent: llm.tool({
-      description:
-        'Respond with empathy and wisdom to major life events. Use when someone shares news about jobs, family, loss, milestones, or financial changes.',
+      description: getToolDescription('respondToLifeEvent'),
       parameters: z.object({
         situation: z.string().describe('What the user shared about their life situation'),
         category: z
@@ -351,8 +351,7 @@ export function createLifeEventsTools() {
     }),
 
     getLifeEventAdvice: llm.tool({
-      description:
-        'Get practical next steps for a life event. Use after acknowledging the emotional aspect.',
+      description: getToolDescription('getLifeEventAdvice'),
       parameters: z.object({
         eventType: z
           .enum([
@@ -395,7 +394,7 @@ export function createLifeEventsTools() {
     }),
 
     celebrateMilestone: llm.tool({
-      description: "Celebrate a user's milestone or achievement with genuine warmth.",
+      description: getToolDescription('celebrateMilestone'),
       parameters: z.object({
         milestone: z.string().describe('What milestone or achievement they reached'),
         magnitude: z

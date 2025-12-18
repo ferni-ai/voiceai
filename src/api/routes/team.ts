@@ -24,16 +24,31 @@ const log = createLogger({ module: 'TeamAPI' });
 
 const PERSONAS = [
   { id: 'ferni', name: 'Ferni', specialty: 'Life coaching, overall guidance', initials: 'F' },
-  { id: 'maya-santos', name: 'Maya Santos', specialty: 'Habits, routines, consistency', initials: 'MS' },
+  {
+    id: 'maya-santos',
+    name: 'Maya Santos',
+    specialty: 'Habits, routines, consistency',
+    initials: 'MS',
+  },
   { id: 'peter-john', name: 'Peter John', specialty: 'Research, patterns, data', initials: 'PJ' },
   { id: 'alex-chen', name: 'Alex Chen', specialty: 'Communication, productivity', initials: 'AC' },
-  { id: 'jordan-taylor', name: 'Jordan Taylor', specialty: 'Planning, events, milestones', initials: 'JT' },
-  { id: 'nayan-patel', name: 'Nayan Patel', specialty: 'Mindfulness, meditation, wisdom', initials: 'NP' },
+  {
+    id: 'jordan-taylor',
+    name: 'Jordan Taylor',
+    specialty: 'Planning, events, milestones',
+    initials: 'JT',
+  },
+  {
+    id: 'nayan-patel',
+    name: 'Nayan Patel',
+    specialty: 'Mindfulness, meditation, wisdom',
+    initials: 'NP',
+  },
 ];
 
 // Persona colors from design system
 const PERSONA_COLORS: Record<string, string> = {
-  'ferni': 'var(--persona-ferni-primary, #4a6741)',
+  ferni: 'var(--persona-ferni-primary, #4a6741)',
   'maya-santos': 'var(--persona-maya-primary, #a67a6a)',
   'peter-john': 'var(--persona-peter-primary, #3a6b73)',
   'alex-chen': 'var(--persona-alex-primary, #5a6b8a)',
@@ -145,8 +160,10 @@ function selectParticipants(topic: string): string[] {
 
 function getPersonaComment(personaId: string, topic: string): string {
   const scripts = TEAM_HUDDLE_SCRIPTS.personaComments;
-  const personaScripts = scripts[personaId as keyof typeof scripts] as Record<string, string[]> | undefined;
-  
+  const personaScripts = scripts[personaId as keyof typeof scripts] as
+    | Record<string, string[]>
+    | undefined;
+
   if (!personaScripts) {
     return "I'm glad to be part of this discussion.";
   }
@@ -192,7 +209,9 @@ function getPersonaComment(personaId: string, topic: string): string {
 
   if (commentPool.length === 0) {
     // Fallback to any available comments
-    const allComments = Object.values(personaScripts).flat().filter((c): c is string => typeof c === 'string');
+    const allComments = Object.values(personaScripts)
+      .flat()
+      .filter((c): c is string => typeof c === 'string');
     commentPool = allComments;
   }
 
@@ -214,12 +233,14 @@ function generateRecommendations(topic: string, participants: string[]): string[
   // Topic-aware recommendations
   if (participants.includes('ferni')) {
     if (topicLower.includes('stuck') || topicLower.includes('overwhelm')) {
-      recommendations.push('Start with the smallest possible step. What\'s one thing you could do in the next 5 minutes?');
+      recommendations.push(
+        "Start with the smallest possible step. What's one thing you could do in the next 5 minutes?"
+      );
     } else {
       recommendations.push('Consider breaking this down into smaller, actionable steps.');
     }
   }
-  
+
   if (participants.includes('maya-santos')) {
     if (topicLower.includes('habit')) {
       recommendations.push('Attach this to an existing habit—habit stacking makes it stick.');
@@ -227,23 +248,25 @@ function generateRecommendations(topic: string, participants: string[]): string[
       recommendations.push('Build this into your daily routine for consistency. Start tiny.');
     }
   }
-  
+
   if (participants.includes('peter-john')) {
     if (topicLower.includes('pattern')) {
       recommendations.push('Track this for a week. The patterns will reveal themselves.');
     } else {
-      recommendations.push('Track your progress with measurable metrics. Data doesn\'t lie.');
+      recommendations.push("Track your progress with measurable metrics. Data doesn't lie.");
     }
   }
-  
+
   if (participants.includes('alex-chen')) {
     if (topicLower.includes('communicate') || topicLower.includes('relationship')) {
-      recommendations.push('Have the conversation sooner rather than later. Clarity prevents misunderstanding.');
+      recommendations.push(
+        'Have the conversation sooner rather than later. Clarity prevents misunderstanding.'
+      );
     } else {
       recommendations.push('Communicate your goals with people who can support you.');
     }
   }
-  
+
   if (participants.includes('jordan-taylor')) {
     if (topicLower.includes('goal') || topicLower.includes('milestone')) {
       recommendations.push('Set a specific date for your milestone. Put it on the calendar now.');
@@ -251,12 +274,14 @@ function generateRecommendations(topic: string, participants: string[]): string[
       recommendations.push('Create a timeline with specific milestones to celebrate.');
     }
   }
-  
+
   if (participants.includes('nayan-patel')) {
     if (topicLower.includes('stress') || topicLower.includes('anxious')) {
-      recommendations.push('Before acting, pause. Three breaths. The answer often comes in stillness.');
+      recommendations.push(
+        'Before acting, pause. Three breaths. The answer often comes in stillness.'
+      );
     } else {
-      recommendations.push('Remember to check in with how you\'re feeling along the way.');
+      recommendations.push("Remember to check in with how you're feeling along the way.");
     }
   }
 
@@ -386,12 +411,19 @@ async function handleStartHuddle(
     // Also record in TeamEngagementService for persistence
     try {
       const teamService = getTeamEngagementService();
-      await teamService.generateTeamHuddle(userId, null, type as 'weekly' | 'milestone' | 'special');
+      await teamService.generateTeamHuddle(
+        userId,
+        null,
+        type as 'weekly' | 'milestone' | 'special'
+      );
     } catch (persistErr) {
       log.warn({ error: persistErr }, 'Failed to persist huddle to TeamEngagementService');
     }
 
-    log.info({ userId, huddleId: huddle.id, topic, participants: participantIds }, 'Team huddle started');
+    log.info(
+      { userId, huddleId: huddle.id, topic, participants: participantIds },
+      'Team huddle started'
+    );
 
     // Return in format compatible with frontend TeamHuddleData
     sendJSON(res, {

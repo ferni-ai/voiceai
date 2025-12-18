@@ -16,6 +16,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // ORGANIZATION TOOLS
 // ============================================================================
@@ -29,7 +30,7 @@ const systemDesignDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Design a clean, sustainable system for managing recurring tasks or processes.',
+      description: getToolDescription('systemDesign'),
       parameters: z.object({
         problem: z.string().describe('What needs organizing'),
         frequency: z
@@ -77,7 +78,7 @@ const chaosToOrderDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help transform an overwhelming, chaotic situation into structured action.',
+      description: getToolDescription('chaosToOrder'),
       parameters: z.object({
         chaos: z.string().describe('The chaotic situation'),
         urgency: z.enum(['crisis', 'pressing', 'building', 'chronic']).describe('Urgency level'),
@@ -128,7 +129,7 @@ const calendarArchitectureDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help design a calendar structure that protects what matters.',
+      description: getToolDescription('calendarArchitecture'),
       parameters: z.object({
         currentProblem: z.string().describe('What is not working about current calendar'),
         priorities: z.string().describe('What should be protected'),
@@ -178,7 +179,7 @@ const messageCraftingDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help craft a clear, effective message for a specific situation.',
+      description: getToolDescription('messageCrafting'),
       parameters: z.object({
         context: z.string().describe('The situation requiring communication'),
         recipient: z.string().describe('Who the message is for'),
@@ -231,7 +232,7 @@ const difficultEmailDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help draft a difficult or sensitive email.',
+      description: getToolDescription('difficultEmailDraft'),
       parameters: z.object({
         situation: z.string().describe('The difficult situation'),
         difficulty: z
@@ -274,16 +275,16 @@ const difficultEmailDef: ToolDefinition = {
   },
 };
 
-const communicationStrategyDef: ToolDefinition = {
-  id: 'communicationStrategy',
-  name: 'Communication Strategy',
-  description: 'Plan communication approach for complex situations',
+const planStakeholderCommunicationDef: ToolDefinition = {
+  id: 'planStakeholderCommunication',
+  name: 'Plan Stakeholder Communication',
+  description: 'Plan multi-stakeholder communication approach for complex situations',
   domain: 'workflow-mastery',
-  tags: ['communication', 'strategy', 'planning'],
+  tags: ['communication', 'strategy', 'planning', 'stakeholders', 'workflow'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Develop a strategic communication plan for complex situations.',
+      description: getToolDescription('planStakeholderCommunication'),
       parameters: z.object({
         situation: z.string().describe('The complex situation'),
         stakeholders: z.string().describe('Who needs to be communicated with'),
@@ -336,7 +337,7 @@ const workflowMasteryTools: ToolDefinition[] = [
   calendarArchitectureDef,
   messageCraftingDef,
   difficultEmailDef,
-  communicationStrategyDef,
+  planStakeholderCommunicationDef,
 ];
 
 // ============================================================================

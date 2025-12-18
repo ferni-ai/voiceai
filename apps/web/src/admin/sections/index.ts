@@ -36,3 +36,7 @@ export { render as renderMoreDashboards } from './MoreDashboardsSection.js';
 export { render as renderOperations } from './OperationsSection.js';
 export { render as renderSpeechMetrics } from './SpeechMetricsSection.js';
 export { render as renderTrust } from './TrustSection.js';
+export {
+  render as renderModelConfig,
+  setupEvents as setupModelConfigEvents,
+} from './ModelConfigSection.js';

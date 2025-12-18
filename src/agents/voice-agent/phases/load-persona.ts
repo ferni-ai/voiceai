@@ -165,7 +165,11 @@ export async function loadPersonaPhase(ctx: JobContext): Promise<PersonaPhaseRes
     thinkingPhrases: ['Let me think about that...', 'Hmm...'],
     listeningCues: ['I hear you', 'Go on...'],
     backchannels: { neutral: ['mm-hmm'], engaged: ['right'], empathetic: ['I understand'] },
-    silenceFillers: { early: ['Take your time'], mid: ['I\'m here'], late: ['Whenever you\'re ready'] },
+    silenceFillers: {
+      early: ['Take your time'],
+      mid: ["I'm here"],
+      late: ["Whenever you're ready"],
+    },
     selfCorrections: ['Actually, let me rephrase that...'],
     trailingOffs: ['You know...'],
     interruptionRecoveries: ['Sorry, go ahead'],
@@ -174,7 +178,7 @@ export async function loadPersonaPhase(ctx: JobContext): Promise<PersonaPhaseRes
       laughter: ['haha'],
       surprise: ['Oh!'],
       concern: ['Oh no...'],
-      joy: ['That\'s wonderful!'],
+      joy: ["That's wonderful!"],
       empathy: ['I understand...'],
     },
   };

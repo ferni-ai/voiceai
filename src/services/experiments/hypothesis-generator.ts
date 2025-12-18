@@ -13,6 +13,7 @@
 
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
+import { removeUndefined } from '../../utils/firestore-utils.js';
 import { quickValidate } from '../brand/index.js';
 import { HERO_CTA_VARIANTS, HERO_HEADLINE_VARIANTS } from './variant-library.js';
 import { getWebExperiments, type WebExperiment } from './web-experiments.js';
@@ -574,10 +575,12 @@ export async function saveHypothesis(hypothesis: GeneratedHypothesis): Promise<v
   await db
     .collection('generated_hypotheses')
     .doc(hypothesis.id)
-    .set({
-      ...hypothesis,
-      createdAt: FieldValue.serverTimestamp(),
-    });
+    .set(
+      removeUndefined({
+        ...hypothesis,
+        createdAt: FieldValue.serverTimestamp(),
+      })
+    );
 
   log.info({ hypothesisId: hypothesis.id }, 'Hypothesis saved');
 }
@@ -633,10 +636,13 @@ export async function savePatterns(patterns: ExperimentPattern[]): Promise<void>
     const id = `${pattern.attribute}-${pattern.winningValue}`.replace(/\./g, '-');
     const ref = db.collection('experiment_patterns').doc(id);
 
-    batch.set(ref, {
-      ...pattern,
-      discoveredAt: FieldValue.serverTimestamp(),
-    });
+    batch.set(
+      ref,
+      removeUndefined({
+        ...pattern,
+        discoveredAt: FieldValue.serverTimestamp(),
+      })
+    );
   }
 
   await batch.commit();

@@ -16,6 +16,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { getProductivityStore } from '../services/productivity-store.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // BADGE SYSTEM
 // ============================================================================
@@ -661,8 +662,7 @@ export function createGamificationTools() {
      * Get user's gamification profile
      */
     getGamificationProfile: llm.tool({
-      description: `Get the user's complete gamification profile including XP, level, title, and badges.
-Use at the start of conversations to see their status, or when they ask about progress.`,
+      description: getToolDescription('getGamificationProfile'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userData = ctx.userData as { userId?: string };
@@ -720,8 +720,7 @@ Use at the start of conversations to see their status, or when they ask about pr
      * Award XP for an action
      */
     awardXP: llm.tool({
-      description: `Award XP to the user for completing an action.
-Use when user completes habits, challenges, or other achievements.`,
+      description: getToolDescription('awardXP'),
       parameters: z.object({
         action: z
           .enum([
@@ -816,8 +815,7 @@ Use when user completes habits, challenges, or other achievements.`,
      * Check and award badges
      */
     checkBadges: llm.tool({
-      description: `Check if user has earned any new badges based on their activity.
-Call after significant actions to see if badges should be awarded.`,
+      description: getToolDescription('checkBadges'),
       parameters: z.object({
         checkTypes: z
           .array(
@@ -925,8 +923,7 @@ Call after significant actions to see if badges should be awarded.`,
      * View all badges and progress
      */
     viewBadgeCollection: llm.tool({
-      description: `View all available badges and the user's progress toward each.
-Use when user asks about badges or achievements.`,
+      description: getToolDescription('viewBadgeCollection'),
       parameters: z.object({
         category: z
           .enum([
@@ -1018,8 +1015,7 @@ Use when user asks about badges or achievements.`,
      * Get leaderboard/progress celebration
      */
     celebrateProgress: llm.tool({
-      description: `Generate a celebration of the user's overall progress.
-Use for milestone moments or when user wants to see how far they've come.`,
+      description: getToolDescription('celebrateProgress'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userData = ctx.userData as { userId?: string };
@@ -1098,8 +1094,7 @@ Use for milestone moments or when user wants to see how far they've come.`,
      * Update stats after an action
      */
     updateStats: llm.tool({
-      description: `Update gamification stats after user actions.
-Call after habit completions, challenge progress, etc.`,
+      description: getToolDescription('updateStats'),
       parameters: z.object({
         statType: z
           .enum([

@@ -85,8 +85,8 @@ async function rebuild(changedFile) {
     const generatedFiles = [
       'design-system/dist/tokens.css',
       'design-system/dist/tokens.ts',
-      'frontend-typescript/src/config/animation-constants.generated.ts',
-      'frontend-typescript/src/config/persona-colors.generated.ts',
+      'apps/web/src/config/animation-constants.generated.ts',
+      'apps/web/src/config/persona-colors.generated.ts',
     ];
     
     for (const file of generatedFiles) {

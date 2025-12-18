@@ -155,7 +155,6 @@ export {
   detectEnergyLevel,
   determineTopicWeight,
   getSessionWPMTracker,
-  getWPMTracker,
   removeSessionWPMTracker,
   resetSessionWPMTracker, // Preferred naming alias
   type EnergyLevel,
@@ -188,11 +187,8 @@ export {
 } from './adaptive-ssml.js';
 
 // Re-export SSML functions from canonical source (src/ssml/)
-export { sanitizeSsml, tagTextWithSsmlPersonaAware } from '../ssml/index.js';
-
-// Legacy tagTextWithSsml (Jack Bogle-specific) - deprecated
-// Use tagTextWithSsmlPersonaAware from '../ssml/index.js' instead
-export { tagTextWithSsml } from './ssml-tagger/index.js';
+// The ssml module now has an alias: tagTextWithSsml → tagTextWithSsmlPersonaAware
+export { sanitizeSsml, tagTextWithSsml, tagTextWithSsmlPersonaAware } from '../ssml/index.js';
 
 // ============================================================================
 // RESPONSE NATURALNESS
@@ -222,7 +218,6 @@ export {
 export {
   AudioProsodyAnalyzer,
   clearProsodyMetrics,
-  getAudioProsodyAnalyzer,
   // Prosody metrics
   getProsodyMetrics,
   getSessionAudioProsodyAnalyzer,
@@ -257,7 +252,6 @@ export {
 
 export {
   BackchannelingSystem,
-  getBackchannelingSystem,
   getSessionBackchannelingSystem,
   removeSessionBackchannelingSystem,
   resetSessionBackchannelingSystem, // Preferred naming alias
@@ -426,9 +420,6 @@ export {
   getCartesiaContextOptions,
   getOrCreateContextId,
   getSessionContextId,
-  isCartesiaPatched,
-  // Legacy (deprecated)
-  patchCartesiaForPersistentContext,
   // Context ID management
   setSessionContextId,
   type CartesiaContextOptions,

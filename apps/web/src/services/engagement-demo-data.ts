@@ -209,27 +209,37 @@ export function calculateDemoPredictionAccuracy(): number | null {
 // DEMO TEAM HUDDLES
 // ============================================================================
 
+// Persona colors from design system - use CSS variable references
+const PERSONA_COLORS: Record<string, string> = {
+  'ferni': 'var(--persona-ferni-primary, #4a6741)',
+  'maya-santos': 'var(--persona-maya-primary, #a67a6a)',
+  'peter-john': 'var(--persona-peter-primary, #3a6b73)',
+  'alex-chen': 'var(--persona-alex-primary, #5a6b8a)',
+  'jordan-taylor': 'var(--persona-jordan-primary, #c4856a)',
+  'nayan-patel': 'var(--persona-nayan-primary, #b8956a)',
+};
+
 const DEMO_TEAM_HUDDLE_PARTICIPANTS: TeamHuddleParticipant[] = [
   {
     personaId: 'ferni',
     name: 'Ferni',
     initials: 'F',
     comment: "I've watched you grow. The person I'm talking to now has more confidence than a month ago.",
-    avatarColor: '#3d5a35',
+    avatarColor: PERSONA_COLORS['ferni'],
   },
   {
     personaId: 'alex-chen',
     name: 'Alex Chen',
     initials: 'AC',
     comment: 'Your calendar discipline has improved. I see fewer scattered meetings.',
-    avatarColor: '#4a6b8a',
+    avatarColor: PERSONA_COLORS['alex-chen'],
   },
   {
     personaId: 'maya-santos',
     name: 'Maya Santos',
     initials: 'MS',
     comment: 'Compound and Interest are proud. Your habit consistency is up this week.',
-    avatarColor: '#8b6b5a',
+    avatarColor: PERSONA_COLORS['maya-santos'],
   },
 ];
 
@@ -253,21 +263,21 @@ export const DEMO_TEAM_HUDDLES: TeamHuddleData[] = [
         name: 'Ferni',
         initials: 'F',
         comment: "21 days of showing up. That's not luck—that's character.",
-        avatarColor: '#3d5a35',
+        avatarColor: PERSONA_COLORS['ferni'],
       },
       {
         personaId: 'jordan-taylor',
         name: 'Jordan Taylor',
         initials: 'JT',
         comment: "Looking at your life arc—you're in a growth chapter. Lean into it.",
-        avatarColor: '#7a5a5a',
+        avatarColor: PERSONA_COLORS['jordan-taylor'],
       },
       {
         personaId: 'peter-john',
         name: 'Peter John',
         initials: 'PJ',
         comment: "The data tells a story: your energy correlates with your morning routine quality.",
-        avatarColor: '#4a7a7a',
+        avatarColor: PERSONA_COLORS['peter-john'],
       },
     ],
     outro: "Milestones matter. Take a moment to acknowledge how far you've come.",
@@ -282,7 +292,7 @@ export const DEMO_TEAM_HUDDLES: TeamHuddleData[] = [
 export function getDemoTeamHuddle(type: 'weekly' | 'milestone' | 'special' = 'weekly'): TeamHuddleData {
   const huddle = DEMO_TEAM_HUDDLES.find(h => h.type === type) ?? DEMO_TEAM_HUDDLES[0];
   // Assert non-null since we have a fallback
-  const baseHuddle = huddle as TeamHuddleData;
+  const baseHuddle = huddle;
   return {
     id: baseHuddle.id,
     title: baseHuddle.title,

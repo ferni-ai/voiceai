@@ -6,7 +6,6 @@
  */
 
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import {
   getLocale,
   setLocale,
@@ -91,17 +90,17 @@ export function createLanguageSelector(): HTMLElement {
 function setupEventHandlers(container: HTMLElement): void {
   const trigger = container.querySelector('.lang-selector-trigger') as HTMLButtonElement;
   const dropdown = container.querySelector('.lang-dropdown') as HTMLUListElement;
-  const options = container.querySelectorAll('.lang-option') as NodeListOf<HTMLButtonElement>;
+  const options = container.querySelectorAll<HTMLButtonElement>('.lang-option');
 
-  // Toggle dropdown (iOS-compatible)
-  addTapListener(trigger, (e) => {
+  // Toggle dropdown
+  trigger.addEventListener('click', (e) => {
     e.stopPropagation();
     toggleDropdown(container, trigger, !isOpen);
   });
 
-  // Handle option selection (iOS-compatible)
-  options.forEach((option) => {
-    addTapListener(option, async (e) => {
+  // Handle option selection
+  options.forEach((option: HTMLButtonElement) => {
+    option.addEventListener('click', async (e) => {
       e.stopPropagation();
       const locale = option.dataset.locale as SupportedLocale;
       await setLocale(locale);
@@ -139,7 +138,7 @@ function setupEventHandlers(container: HTMLElement): void {
         nextIndex = currentIndex > 0 ? currentIndex - 1 : optionsList.length - 1;
       }
 
-      optionsList[nextIndex].focus();
+      optionsList[nextIndex]?.focus();
     }
   });
 

@@ -18,6 +18,7 @@ import { z } from 'zod';
 import { getLogger } from '../utils/safe-logger.js';
 import { IntelligentTask } from './intelligent-task.js';
 
+import { getToolDescription } from '../tools/utils/tool-descriptions.js';
 // ============================================================================
 // LIFE CHANGE TASK
 // ============================================================================
@@ -152,7 +153,7 @@ export class LifeChangeTask extends IntelligentTask<LifeChangeResult> {
       },
       tools: {
         provideEmpathy: llm.tool({
-          description: 'Provide empathetic response to their life event.',
+          description: getToolDescription('provideEmpathy'),
           parameters: z.object({
             response: z.string().describe('Your empathetic response'),
             askedHowTheyAreDoing: z.boolean().describe('Did you ask how they are doing?'),
@@ -164,7 +165,7 @@ export class LifeChangeTask extends IntelligentTask<LifeChangeResult> {
         }),
 
         offerPracticalHelp: llm.tool({
-          description: "Offer practical guidance when they're ready.",
+          description: getToolDescription('offerPracticalHelp'),
           parameters: z.object({
             guidance: z.string().describe('Your practical guidance'),
             theyAskedForIt: z.boolean().describe('Did they ask for practical help?'),
@@ -178,7 +179,7 @@ export class LifeChangeTask extends IntelligentTask<LifeChangeResult> {
         }),
 
         completeLifeChange: llm.tool({
-          description: 'Complete the life change task.',
+          description: getToolDescription('offerPracticalHelp'),
           parameters: z.object({
             emotionalSupportProvided: z.boolean(),
             practicalGuidanceOffered: z.boolean(),
@@ -264,7 +265,7 @@ export class PanicPreventionTask extends IntelligentTask<PanicPreventionResult> 
       },
       tools: {
         validateFear: llm.tool({
-          description: 'Validate their fear without dismissing it.',
+          description: getToolDescription('completeLifeChange'),
           parameters: z.object({
             validation: z.string().describe('Your validation of their fear'),
           }),
@@ -274,7 +275,7 @@ export class PanicPreventionTask extends IntelligentTask<PanicPreventionResult> 
         }),
 
         provideContext: llm.tool({
-          description: 'Provide context and perspective.',
+          description: getToolDescription('validateFear'),
           parameters: z.object({
             context: z.string().describe('Context or perspective to share'),
             source: z.string().optional().describe('Source of this perspective'),
@@ -286,7 +287,7 @@ export class PanicPreventionTask extends IntelligentTask<PanicPreventionResult> 
         }),
 
         slowThemDown: llm.tool({
-          description: 'Encourage them to slow down and not act impulsively.',
+          description: getToolDescription('provideContext'),
           parameters: z.object({
             message: z.string().describe('Your slowing-down message'),
             suggestWaiting: z.boolean().describe('Did you suggest waiting before acting?'),
@@ -297,7 +298,7 @@ export class PanicPreventionTask extends IntelligentTask<PanicPreventionResult> 
         }),
 
         completePanicPrevention: llm.tool({
-          description: 'Complete the panic prevention task.',
+          description: getToolDescription('slowThemDown'),
           parameters: z.object({
             panicLevel: z.enum(['low', 'medium', 'high', 'crisis']),
             calmingProvided: z.boolean(),
@@ -379,7 +380,7 @@ export class GriefSupportTask extends IntelligentTask<GriefSupportResult> {
       },
       tools: {
         offerPresence: llm.tool({
-          description: 'Simply be present with them in their grief.',
+          description: getToolDescription('completePanicPrevention'),
           parameters: z.object({
             message: z.string().describe('Your presence message'),
           }),
@@ -389,7 +390,7 @@ export class GriefSupportTask extends IntelligentTask<GriefSupportResult> {
         }),
 
         honorSilence: llm.tool({
-          description: 'Honor a moment of silence.',
+          description: getToolDescription('offerPresence'),
           parameters: z.object({
             transitionBack: z.string().optional().describe('How to transition back gently'),
           }),
@@ -399,7 +400,7 @@ export class GriefSupportTask extends IntelligentTask<GriefSupportResult> {
         }),
 
         inviteSharing: llm.tool({
-          description: 'Invite them to share about what they lost.',
+          description: getToolDescription('honorSilence'),
           parameters: z.object({
             invitation: z.string().describe('Your invitation to share'),
           }),
@@ -409,7 +410,7 @@ export class GriefSupportTask extends IntelligentTask<GriefSupportResult> {
         }),
 
         completeGriefSupport: llm.tool({
-          description: 'Complete the grief support task.',
+          description: getToolDescription('inviteSharing'),
           parameters: z.object({
             presenceOffered: z.boolean(),
             silenceHonored: z.boolean(),
@@ -485,7 +486,7 @@ export class MilestoneTask extends IntelligentTask<MilestoneResult> {
       },
       tools: {
         celebrate: llm.tool({
-          description: 'Celebrate their milestone.',
+          description: getToolDescription('completeGriefSupport'),
           parameters: z.object({
             celebration: z.string().describe('Your celebration message'),
             celebrationLevel: z.enum(['small', 'medium', 'big']),
@@ -496,7 +497,7 @@ export class MilestoneTask extends IntelligentTask<MilestoneResult> {
         }),
 
         highlightProgress: llm.tool({
-          description: "Highlight how far they've come.",
+          description: getToolDescription('highlightProgress'),
           parameters: z.object({
             progressMessage: z.string().describe('Message about their progress'),
           }),
@@ -506,7 +507,7 @@ export class MilestoneTask extends IntelligentTask<MilestoneResult> {
         }),
 
         completeMilestone: llm.tool({
-          description: 'Complete the milestone celebration.',
+          description: getToolDescription('celebrate'),
           parameters: z.object({
             celebrationLevel: z.enum(['small', 'medium', 'big']),
             achievementAcknowledged: z.boolean(),

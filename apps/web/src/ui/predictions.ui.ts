@@ -22,9 +22,9 @@ import {
 } from './engagement-components.js';
 import { engagementService, type PredictionData } from '../services/engagement.service.js';
 import { isDemoDataEnabled, getDemoPredictions, calculateDemoPredictionAccuracy } from '../services/engagement-demo-data.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { playMicroExpression } from './better-than-human.ui.js';
 
 const log = createLogger('PredictionsUI');
 
@@ -121,15 +121,12 @@ export class PredictionsUI {
 
     document.body.appendChild(this.container);
 
-    // Bind events (iOS-compatible)
-    addTapListener(
-      this.container.querySelector('.predictions-panel__backdrop'),
-      () => this.hide()
-    );
-    addTapListener(
-      this.container.querySelector('.engagement-close-btn'),
-      () => this.hide()
-    );
+    // Bind events
+    const backdrop = this.container.querySelector('.predictions-panel__backdrop');
+    backdrop?.addEventListener('click', () => this.hide());
+    
+    const closeBtn = this.container.querySelector('.engagement-close-btn');
+    closeBtn?.addEventListener('click', () => this.hide());
     
     // Close on escape
     document.addEventListener('keydown', (e) => {
@@ -201,9 +198,9 @@ export class PredictionsUI {
 
     content.innerHTML = sections.join('');
 
-    // Bind resolve buttons (iOS-compatible)
+    // Bind resolve buttons
     content.querySelectorAll('.prediction-resolve-btn').forEach(btn => {
-      addTapListener(btn, (e) => {
+      btn.addEventListener('click', (e) => {
         const predictionId = (e.currentTarget as HTMLElement).dataset.predictionId;
         if (predictionId) {
           this.showResolutionModal(predictionId);
@@ -268,21 +265,20 @@ export class PredictionsUI {
       modal.classList.add('prediction-resolution-modal--visible');
     });
 
-    // Bind events (iOS-compatible)
+    // Bind events
     const closeModal = () => {
       modal.classList.remove('prediction-resolution-modal--visible');
-      cleanupTapListeners(modal);
       trackedTimeout(() => modal.remove(), prefersReducedMotion() ? 0 : DURATION.NORMAL);
     };
 
-    addTapListener(modal.querySelector('.prediction-resolution-modal__backdrop'), closeModal);
-    addTapListener(modal.querySelector('.engagement-close-btn'), closeModal);
-    addTapListener(modal.querySelector('.prediction-resolution-modal__cancel'), closeModal);
+    modal.querySelector('.prediction-resolution-modal__backdrop')?.addEventListener('click', closeModal);
+    modal.querySelector('.engagement-close-btn')?.addEventListener('click', closeModal);
+    modal.querySelector('.prediction-resolution-modal__cancel')?.addEventListener('click', closeModal);
 
     const input = modal.querySelector('#actual-result') as HTMLInputElement;
     const submitBtn = modal.querySelector('.prediction-resolution-modal__submit');
 
-    addTapListener(submitBtn, async () => {
+    submitBtn?.addEventListener('click', async () => {
       const actualValue = parseInt(input.value, 10);
       if (isNaN(actualValue)) {
         input.classList.add('prediction-resolution-modal__input--error');
@@ -292,9 +288,13 @@ export class PredictionsUI {
       if (this.onResolutionSubmit) {
         submitBtn.textContent = t('common.saving');
         (submitBtn as HTMLButtonElement).disabled = true;
-        
+
         try {
           await this.onResolutionSubmit(predictionId, actualValue);
+
+          // Trigger EQ response based on prediction accuracy
+          this.triggerResolutionEQ(prediction.userPrediction, actualValue);
+
           closeModal();
         } catch (err) {
           submitBtn.textContent = t('common.errorRetry');
@@ -307,6 +307,29 @@ export class PredictionsUI {
 
     // Focus input
     input.focus();
+  }
+
+  /**
+   * Trigger EQ micro-expression based on prediction accuracy
+   * Better than Human: Celebrates self-awareness wins
+   */
+  private triggerResolutionEQ(predicted: number, actual: number): void {
+    const error = Math.abs(predicted - actual);
+
+    // Priority 1: Very accurate prediction (within 10) → pride for calibrated intuition
+    if (error <= 10) {
+      trackedTimeout(() => playMicroExpression('pride_flash'), 200);
+      return;
+    }
+
+    // Priority 2: Close prediction (within 25) → warmth for effort
+    if (error <= 25) {
+      trackedTimeout(() => playMicroExpression('warmth_pulse'), 200);
+      return;
+    }
+
+    // Priority 3: Any resolution → understanding (engagement is valuable)
+    trackedTimeout(() => playMicroExpression('understanding'), 200);
   }
 
   /**
@@ -493,9 +516,6 @@ export class PredictionsUI {
 
     this.panelVisible = false;
     this.container.setAttribute('aria-hidden', 'true');
-    
-    // Clean up iOS tap listeners
-    cleanupTapListeners(this.container);
     
     // Wait for animation before hiding
     trackedTimeout(() => {
@@ -1009,36 +1029,16 @@ export class PredictionsUI {
       /* Responsive */
       @media (max-width: 480px) {
         .predictions-panel {
-          /* Safe area padding for notched devices */
-          padding: max(var(--space-4, 16px), env(safe-area-inset-top, 0))
-                   max(var(--space-4, 16px), env(safe-area-inset-right, 0))
-                   max(var(--space-4, 16px), env(safe-area-inset-bottom, 0))
-                   max(var(--space-4, 16px), env(safe-area-inset-left, 0));
+          padding: var(--space-4, 16px);
         }
 
         .predictions-panel__card {
-          max-height: calc(100vh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0) - 32px);
-          max-height: calc(100dvh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0) - 32px);
+          max-height: 90vh;
           border-radius: var(--radius-xl, 1.25rem);
         }
 
         .predictions-panel__header {
           padding: var(--space-4, 16px);
-        }
-        
-        .predictions-panel__content {
-          /* iOS smooth scrolling */
-          -webkit-overflow-scrolling: touch;
-          overscroll-behavior: contain;
-        }
-      }
-      
-      /* iOS Safari specific fixes */
-      @supports (-webkit-touch-callout: none) {
-        @media (max-width: 480px) {
-          .predictions-panel__card {
-            max-height: -webkit-fill-available;
-          }
         }
       }
 

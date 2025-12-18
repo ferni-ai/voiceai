@@ -20,33 +20,16 @@ import {
   trackExposure,
 } from '../../../services/experiments/web-experiments.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { parseBody } from '../../helpers.js';
 
 const log = createLogger({ module: 'PublicExperimentsAPI' });
 
 const BASE_PATH = '/api/v1/public/experiments';
 
-/**
- * Parse JSON body from request
- */
-async function parseBody(req: IncomingMessage): Promise<unknown> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => {
-      body += chunk.toString();
-    });
-    req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : {});
-      } catch (e) {
-        reject(new Error('Invalid JSON'));
-      }
-    });
-    req.on('error', reject);
-  });
-}
+// parseBody imported from '../../helpers.js'
 
 /**
- * Send JSON response
+ * Send JSON response with CORS headers for public experiments API (cross-origin for landing pages)
  */
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.writeHead(status, {

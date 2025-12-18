@@ -187,7 +187,7 @@ View feedback in App Store Connect → TestFlight → Feedback
 ### Quick Update Workflow
 
 ```bash
-# 1. Make code changes in frontend-typescript
+# 1. Make code changes in apps/web
 
 # 2. Rebuild
 cd apps/ios

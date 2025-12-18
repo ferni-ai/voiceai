@@ -77,17 +77,14 @@ export function initProgressiveFeatures(): void {
 }
 
 /**
- * Manually record a conversation for relationship tracking.
- * Call this when a meaningful conversation ends.
+ * @deprecated Use event-driven tracking instead.
+ * Conversation recording is now automatic via ferni:conversation-start event.
+ * Stage changes are broadcast via ferni:stage-change event.
  */
 export function recordConversation(): void {
-  const stageChange = relationshipStageService.recordConversation();
-  if (stageChange) {
-    log.info('Relationship stage advanced!', { 
-      from: stageChange.previousStage, 
-      to: stageChange.newStage 
-    });
-  }
+  // DEPRECATED: This function is no longer needed.
+  // relationshipStageService now listens to ferni:conversation-start directly.
+  log.debug('recordConversation() is deprecated - use event-driven tracking');
 }
 
 /**

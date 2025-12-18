@@ -400,15 +400,15 @@ function startMusicMode() {
 
 | System | File Path |
 |--------|-----------|
-| **Emotion State** | `frontend-typescript/src/emotion/emotion-state.ts` |
-| **Pixar Emotions** | `frontend-typescript/src/ui/pixar-emotions.ui.ts` |
-| **Avatar Feedback** | `frontend-typescript/src/ui/avatar-feedback.ui.ts` |
-| **Presence UI** | `frontend-typescript/src/ui/presence.ui.ts` |
-| **Waveform UI** | `frontend-typescript/src/ui/waveform.ui.ts` |
-| **Ferni Logo** | `frontend-typescript/src/ui/ferni-logo.ui.ts` |
-| **Animation Constants** | `frontend-typescript/src/config/animation-constants.ts` |
-| **GSAP Animations** | `frontend-typescript/src/utils/gsap-animations.ts` |
-| **Orchestrator** | `frontend-typescript/src/animation/ferni-orchestrator.ts` |
+| **Emotion State** | `apps/web/src/emotion/emotion-state.ts` |
+| **Pixar Emotions** | `apps/web/src/ui/pixar-emotions.ui.ts` |
+| **Avatar Feedback** | `apps/web/src/ui/avatar-feedback.ui.ts` |
+| **Presence UI** | `apps/web/src/ui/presence.ui.ts` |
+| **Waveform UI** | `apps/web/src/ui/waveform.ui.ts` |
+| **Ferni Logo** | `apps/web/src/ui/ferni-logo.ui.ts` |
+| **Animation Constants** | `apps/web/src/config/animation-constants.ts` |
+| **GSAP Animations** | `apps/web/src/utils/gsap-animations.ts` |
+| **Orchestrator** | `apps/web/src/animation/ferni-orchestrator.ts` |
 | **Choreographies** | `design-system/choreography/*.ts` |
 
 ---

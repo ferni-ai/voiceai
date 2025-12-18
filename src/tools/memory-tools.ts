@@ -13,6 +13,7 @@ import { z } from 'zod';
 import type { SessionServices } from '../services/types.js';
 import { getLogger as getLoggerUtil } from './utils/tool-helpers.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 const getLogger = () => {
   try {
     return log();
@@ -44,8 +45,7 @@ export function createMemoryTools() {
   return {
     // Remember something important about the user
     rememberAboutUser: llm.tool({
-      description:
-        'Store an important fact about the user for future recall. DO NOT read tool output verbatim - respond naturally.',
+      description: getToolDescription('rememberAboutUser'),
       parameters: z.object({
         fact: z
           .string()
@@ -98,8 +98,7 @@ export function createMemoryTools() {
 
     // Recall something from past conversations
     recallFromMemory: llm.tool({
-      description:
-        'Try to recall something from previous conversations with this user. Use when you want to show you remember them or connect to past discussions.',
+      description: getToolDescription('recallFromMemory'),
       parameters: z.object({
         topic: z
           .string()
@@ -144,8 +143,7 @@ export function createMemoryTools() {
 
     // Recall previous conversation semantically
     recallPreviousConversation: llm.tool({
-      description:
-        'Search your memory for relevant past conversations with this user based on a topic or theme.',
+      description: getToolDescription('recallPreviousConversation'),
       parameters: z.object({
         query: z
           .string()
@@ -177,8 +175,7 @@ export function createMemoryTools() {
 
     // Remember an important fact to save to profile
     rememberImportantFact: llm.tool({
-      description:
-        'Save a critically important fact that should be remembered forever. Use for life-changing information like major life events, key decisions, or breakthrough moments.',
+      description: getToolDescription('rememberImportantFact'),
       parameters: z.object({
         fact: z.string().describe('The critically important fact'),
         type: z
@@ -266,8 +263,7 @@ export function createMemoryTools() {
 
     // Get relationship summary
     getRelationshipSummary: llm.tool({
-      description:
-        "Get a summary of your relationship with this user - how long you've known them, key moments, what you've discussed.",
+      description: getToolDescription('getRelationshipSummary'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         getLogger().info('Getting relationship summary');

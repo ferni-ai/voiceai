@@ -21,7 +21,6 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { appState } from '../state/app.state.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { getStatus, loadStatus, type SubscriptionStatus } from './subscription.ui.js';
@@ -169,9 +168,6 @@ export async function openSupportFerni(): Promise<void> {
 export function closeSupportFerni(): void {
   if (!overlay) return;
 
-  // Clean up iOS tap listeners
-  cleanupTapListeners(overlay);
-
   overlay.classList.remove('support-ferni-overlay--open');
 
   trackedTimeout(
@@ -241,9 +237,9 @@ function createOverlay(status: SubscriptionStatus | null): HTMLElement {
     </div>
   `;
 
-  // Bind events (iOS-compatible)
-  addTapListener(container.querySelector('.support-ferni-backdrop'), closeSupportFerni);
-  addTapListener(container.querySelector('.support-ferni-close'), closeSupportFerni);
+  // Bind events
+  container.querySelector('.support-ferni-backdrop')?.addEventListener('click', closeSupportFerni);
+  container.querySelector('.support-ferni-close')?.addEventListener('click', closeSupportFerni);
 
   // Escape key closes
   container.addEventListener('keydown', (e) => {
@@ -252,7 +248,7 @@ function createOverlay(status: SubscriptionStatus | null): HTMLElement {
 
   // Upgrade buttons
   container.querySelectorAll('[data-upgrade-tier]').forEach((btn) => {
-    addTapListener(btn, () => {
+    btn.addEventListener('click', () => {
       const tier = (btn as HTMLElement).dataset.upgradeTier;
       if (tier) void handleUpgrade(tier);
     });
@@ -260,7 +256,7 @@ function createOverlay(status: SubscriptionStatus | null): HTMLElement {
 
   // Tip amount buttons
   container.querySelectorAll('[data-tip-amount]').forEach((btn) => {
-    addTapListener(btn, () => {
+    btn.addEventListener('click', () => {
       const amount = parseInt((btn as HTMLElement).dataset.tipAmount || '0', 10);
       selectTipAmount(container, amount);
     });
@@ -274,10 +270,12 @@ function createOverlay(status: SubscriptionStatus | null): HTMLElement {
   });
 
   // Plant seed button
-  addTapListener(container.querySelector('[data-action="plant-seed"]'), () => void handlePlantSeed());
+  const plantBtn = container.querySelector('[data-action="plant-seed"]');
+  plantBtn?.addEventListener('click', () => void handlePlantSeed());
 
   // Billing portal link
-  addTapListener(container.querySelector('[data-action="billing"]'), () => void openBillingPortal());
+  const billingLink = container.querySelector('[data-action="billing"]');
+  billingLink?.addEventListener('click', () => void openBillingPortal());
 
   return container;
 }
@@ -409,7 +407,7 @@ function selectTipAmount(container: HTMLElement, amount: number, isCustom = fals
 async function handleUpgrade(tier: string): Promise<void> {
   const deviceId = appState.getState().deviceId;
   if (!deviceId) {
-    toast.error('Something went wrong. Please try again.');
+    toast.error("Hmm, that didn't work. Try again?");
     return;
   }
 
@@ -434,11 +432,11 @@ async function handleUpgrade(tier: string): Promise<void> {
     if (response.ok && result.url) {
       window.location.href = result.url;
     } else {
-      toast.error('Something went sideways. Want to try again?');
+      toast.error("That didn't go through. Try again?");
     }
   } catch (error) {
     log.error('Upgrade failed:', error);
-    toast.error('Something went wrong. Please try again.');
+    toast.error("Hmm, that didn't work. Try again?");
   } finally {
     isLoading = false;
     updateLoadingState(false);
@@ -450,7 +448,7 @@ async function handlePlantSeed(): Promise<void> {
 
   const deviceId = appState.getState().deviceId;
   if (!deviceId) {
-    toast.error('Something went wrong. Please try again.');
+    toast.error("Hmm, that didn't work. Try again?");
     return;
   }
 
@@ -474,11 +472,11 @@ async function handlePlantSeed(): Promise<void> {
     if (response.ok && result.url) {
       window.location.href = result.url;
     } else {
-      toast.error('Something went wrong. Please try again.');
+      toast.error("Hmm, that didn't work. Try again?");
     }
   } catch (error) {
     log.error('Plant seed failed:', error);
-    toast.error('Something went wrong. Please try again.');
+    toast.error("Hmm, that didn't work. Try again?");
   } finally {
     isLoading = false;
     updateLoadingState(false);
@@ -504,11 +502,11 @@ async function openBillingPortal(): Promise<void> {
     if (response.ok && result.url) {
       window.open(result.url, '_blank');
     } else {
-      toast.error('Unable to open billing. Please try again.');
+      toast.error("Couldn't open billing. Try again?");
     }
   } catch (error) {
     log.error('Billing portal failed:', error);
-    toast.error('Something went wrong. Please try again.');
+    toast.error("Hmm, that didn't work. Try again?");
   }
 }
 
@@ -1068,22 +1066,11 @@ function injectStyles(): void {
       background: var(--color-background-secondary);
     }
 
-    /* Responsive - Mobile */
+    /* Responsive */
     @media (max-width: 480px) {
-      .support-ferni-overlay {
-        /* Safe area padding for notched devices */
-        padding: max(var(--space-4, 16px), env(safe-area-inset-top, 0))
-                 max(var(--space-4, 16px), env(safe-area-inset-right, 0))
-                 max(var(--space-4, 16px), env(safe-area-inset-bottom, 0))
-                 max(var(--space-4, 16px), env(safe-area-inset-left, 0));
-      }
-
       .support-ferni-card {
         padding: var(--space-5, 20px);
-        max-height: 90vh;
-        max-height: 90dvh;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
+        max-height: 85vh;
       }
 
       .support-ferni-title {
@@ -1092,15 +1079,6 @@ function injectStyles(): void {
 
       .support-ferni-tip-amounts {
         grid-template-columns: repeat(2, 1fr);
-      }
-    }
-    
-    /* iOS Safari specific */
-    @supports (-webkit-touch-callout: none) {
-      @media (max-width: 480px) {
-        .support-ferni-card {
-          max-height: -webkit-fill-available;
-        }
       }
     }
   `;

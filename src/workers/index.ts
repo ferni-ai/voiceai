@@ -26,10 +26,16 @@
 export * from './analytics-worker.js';
 export * from './base-worker.js';
 export * from './trust-worker.js';
+export * from './embedding-worker.js';
+export * from './summarization-worker.js';
+export * from './audio-analysis-pool.js';
 
 import { createLogger } from '../utils/safe-logger.js';
 import { getAnalyticsWorker, startAnalyticsWorker } from './analytics-worker.js';
 import { getTrustWorker, startTrustWorker } from './trust-worker.js';
+import { getEmbeddingWorker, startEmbeddingWorker } from './embedding-worker.js';
+import { getSummarizationWorker, startSummarizationWorker } from './summarization-worker.js';
+import { initializeAudioAnalysisPool, shutdownAudioAnalysisPool } from './audio-analysis-pool.js';
 
 const log = createLogger({ module: 'Workers' });
 
@@ -53,7 +59,25 @@ export async function startAllWorkers(): Promise<void> {
   const start = Date.now();
 
   try {
-    await Promise.all([startTrustWorker(), startAnalyticsWorker()]);
+    // Start all event-based workers in parallel
+    await Promise.all([
+      startTrustWorker(),
+      startAnalyticsWorker(),
+      startEmbeddingWorker(),
+      startSummarizationWorker(),
+    ]);
+
+    // Initialize audio analysis worker pool (uses worker_threads)
+    try {
+      await initializeAudioAnalysisPool();
+      log.info('Audio analysis worker pool initialized');
+    } catch (audioPoolError) {
+      // Non-critical - fallback to main thread analysis
+      log.debug(
+        { error: String(audioPoolError) },
+        'Audio analysis pool init skipped (non-critical)'
+      );
+    }
 
     workersStarted = true;
     log.info({ elapsedMs: Date.now() - start }, 'Background workers started');
@@ -71,7 +95,13 @@ export async function stopAllWorkers(): Promise<void> {
 
   log.info('Stopping background workers');
 
-  await Promise.all([getTrustWorker().stop(), getAnalyticsWorker().stop()]);
+  await Promise.all([
+    getTrustWorker().stop(),
+    getAnalyticsWorker().stop(),
+    getEmbeddingWorker().stop(),
+    getSummarizationWorker().stop(),
+    shutdownAudioAnalysisPool(),
+  ]);
 
   workersStarted = false;
   log.info('Background workers stopped');

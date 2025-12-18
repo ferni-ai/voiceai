@@ -720,6 +720,9 @@ export function shouldUseHighEmotionMode(analysis: ConversationAnalysis): boolea
  */
 const CORE_CATEGORIES: BC[] = [BC.SAFETY, BC.CONTEXT];
 
+// Import optimized fast conditional loading
+import { determineActiveCategoriesFast as fastDetermineCategories } from './fast-conditional-loading.js';
+
 /**
  * Determine which builder categories should be active for this turn
  *
@@ -939,8 +942,9 @@ export async function buildConversationContext(
   let activeCategories: BC[] | undefined;
 
   if (conditionalLoadingConfig.enabled && !conditionalLoadingConfig.forceCategories) {
-    // Determine which categories are relevant for this turn
-    activeCategories = determineActiveCategories(input);
+    // PERFORMANCE: Use fast conditional loading for optimized category detection
+    // This uses tiered execution and fast-path detection for common scenarios
+    activeCategories = fastDetermineCategories(input);
     buildersToRun = getBuildersByActiveCategories(activeCategories);
 
     if (conditionalLoadingConfig.logActiveCategories) {

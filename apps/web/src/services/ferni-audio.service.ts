@@ -249,28 +249,52 @@ export class FerniAudioEngine {
     }
   }
   
+  // Track sounds that failed to load so we don't retry them
+  private failedSounds: Set<string> = new Set();
+
   private async loadSoundBuffer(soundId: string, definition: SoundDefinition): Promise<void> {
     if (!this.audioContext) {
       log.warn('Audio context not initialized');
       return;
     }
-    
+
+    // Skip sounds that already failed - don't retry
+    if (this.failedSounds.has(soundId)) {
+      return;
+    }
+
     try {
       const url = `${this.config.basePath}${definition.file}`;
       const response = await fetch(url);
-      
+
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        // Mark as failed and log only once at debug level
+        this.failedSounds.add(soundId);
+        log.debug('Sound file not found (expected in dev)', { soundId, file: definition.file });
+        return;
       }
-      
+
+      // Check content type - Vite returns HTML for 404s
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('audio') && !contentType.includes('octet-stream')) {
+        this.failedSounds.add(soundId);
+        log.debug('Sound file not valid audio (expected in dev)', { soundId, contentType });
+        return;
+      }
+
       const arrayBuffer = await response.arrayBuffer();
       const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
-      
+
       this.loadedSounds.set(soundId, { buffer: audioBuffer, definition });
       log.debug('Sound loaded', { soundId, duration: audioBuffer.duration });
-      
+
     } catch (error) {
-      log.error('Failed to load sound', { soundId, error });
+      // Mark as failed so we don't spam the console
+      this.failedSounds.add(soundId);
+      // Only log at debug level - missing sounds are expected in development
+      if (import.meta.env?.DEV) {
+        log.debug('Sound unavailable (expected in dev)', { soundId });
+      }
     }
   }
   

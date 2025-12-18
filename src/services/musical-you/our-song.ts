@@ -233,7 +233,9 @@ export function getSongSuggestions(
           break;
 
         case 'keyword':
-          if (context.keywords?.some((k) => k.toLowerCase().includes(trigger.value.toLowerCase()))) {
+          if (
+            context.keywords?.some((k) => k.toLowerCase().includes(trigger.value.toLowerCase()))
+          ) {
             confidence += trigger.weight * 0.2;
             contextMatches.push(`Keyword: ${trigger.value}`);
           }
@@ -472,9 +474,7 @@ export function getOurSongCardData(userId: string): OurSongCardData {
   const firstSong = soundtrack[0];
   let relationshipDuration = 'Just started';
   if (stats.firstSongDate) {
-    const days = Math.floor(
-      (Date.now() - stats.firstSongDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
+    const days = Math.floor((Date.now() - stats.firstSongDate.getTime()) / (1000 * 60 * 60 * 24));
     if (days > 365) {
       relationshipDuration = `${Math.floor(days / 365)} year${days >= 730 ? 's' : ''} of music`;
     } else if (days > 30) {
@@ -497,4 +497,3 @@ export function getOurSongCardData(userId: string): OurSongCardData {
     relationshipDuration,
   };
 }
-

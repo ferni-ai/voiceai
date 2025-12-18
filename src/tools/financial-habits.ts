@@ -48,6 +48,7 @@ import {
 
 // Import extracted types and helpers
 import type { SpendingCategory } from './financial-habits/types.js';
+import { getToolDescription } from './utils/tool-descriptions.js';
 import {
   analyzeSpendingFromBudget,
   findSpendingLeaksFromStore,
@@ -72,11 +73,7 @@ export function createFinancialHabitsTools() {
     // ========== SPENDING ANALYSIS ==========
 
     analyzeSpending: llm.tool({
-      description: `Analyze the user's spending patterns.
-Use when the user asks about:
-- Where their money is going
-- Spending breakdown
-- Category spending`,
+      description: getToolDescription('analyzeSpending'),
       parameters: z.object({
         timeframe: z
           .enum(['week', 'month', 'quarter', 'year'])
@@ -114,11 +111,7 @@ Use when the user asks about:
     }),
 
     findSpendingLeaks: llm.tool({
-      description: `Find areas where the user might be overspending or wasting money.
-Use when the user wants to:
-- Cut expenses
-- Find savings opportunities
-- Audit their spending`,
+      description: getToolDescription('findSpendingLeaks'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userId = getUserId({ ctx });
@@ -145,11 +138,7 @@ Use when the user wants to:
     // ========== BUDGET MANAGEMENT ==========
 
     getBudgetStatus: llm.tool({
-      description: `Get the current budget status and remaining amounts.
-Use when the user asks:
-- How much can I spend?
-- What's left in my budget?
-- Am I on track?`,
+      description: getToolDescription('getBudgetStatus'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userId = getUserId({ ctx });
@@ -185,11 +174,7 @@ Use when the user asks:
     }),
 
     createBudget: llm.tool({
-      description: `Create or update a budget category.
-Use when the user wants to:
-- Set spending limits
-- Create a new budget
-- Adjust budget amounts`,
+      description: getToolDescription('createBudget'),
       parameters: z.object({
         category: z.string().describe('Budget category name'),
         monthlyLimit: z.number().positive().describe('Monthly spending limit'),
@@ -249,11 +234,7 @@ Use when the user wants to:
     // ========== SAVINGS GOALS ==========
 
     getSavingsGoals: llm.tool({
-      description: `Get status of all savings goals.
-Use when the user asks about:
-- Savings progress
-- Goal status
-- Emergency fund`,
+      description: getToolDescription('getSavingsGoals'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userId = getUserId({ ctx });
@@ -293,11 +274,7 @@ Use when the user asks about:
     }),
 
     createSavingsGoal: llm.tool({
-      description: `Create a new savings goal.
-Use when the user wants to:
-- Save for something specific
-- Set up an emergency fund
-- Plan for a big purchase`,
+      description: getToolDescription('createSavingsGoal'),
       parameters: z.object({
         name: z.string().describe('Name of the goal (e.g., "Emergency Fund", "Vacation")'),
         targetAmount: z.number().positive().describe('Target amount to save'),
@@ -357,11 +334,7 @@ Use when the user wants to:
     // ========== SUBSCRIPTION MANAGEMENT ==========
 
     auditSubscriptions: llm.tool({
-      description: `Audit all subscriptions and recurring charges.
-Use when the user wants to:
-- Review subscriptions
-- Find things to cancel
-- See recurring expenses`,
+      description: getToolDescription('auditSubscriptions'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userId = getUserId({ ctx });
@@ -431,8 +404,7 @@ Use when the user wants to:
     // ========== 50/30/20 RULE ==========
 
     apply503020Rule: llm.tool({
-      description: `Apply the 50/30/20 budgeting rule to the user's income.
-50% needs, 30% wants, 20% savings.`,
+      description: getToolDescription('apply503020Rule'),
       parameters: z.object({
         monthlyIncome: z.number().positive().describe('Monthly take-home income'),
       }),
@@ -461,12 +433,7 @@ Use when the user wants to:
     // ========== REAL SPENDING DATA (PLAID INTEGRATION) ==========
 
     getActualSpending: llm.tool({
-      description: `Get REAL spending data from linked bank accounts.
-Use when user wants:
-- Actual spending breakdown
-- Where their money really goes
-- Real transaction analysis
-Falls back to sample data if no accounts linked.`,
+      description: getToolDescription('getActualSpending'),
       parameters: z.object({
         userId: z.string().describe('User identifier'),
         period: z.enum(['week', 'month', 'quarter']).default('month'),
@@ -532,11 +499,7 @@ Falls back to sample data if no accounts linked.`,
     // ========== DEBT PAYOFF STRATEGIES ==========
 
     compareDebtStrategies: llm.tool({
-      description: `Compare debt payoff strategies: Snowball (smallest first) vs Avalanche (highest interest first).
-Use when user:
-- Has multiple debts
-- Wants to know best payoff order
-- Asks about debt strategies`,
+      description: getToolDescription('compareDebtStrategies'),
       parameters: z.object({
         debts: z
           .array(
@@ -627,11 +590,7 @@ Use when user:
     // ========== IMPULSE SPENDING TOOLS ==========
 
     impulseSpendingCheck: llm.tool({
-      description: `Help user evaluate an impulse purchase before making it.
-Use when user mentions:
-- Wanting to buy something
-- Thinking about a purchase
-- "Should I buy..."`,
+      description: getToolDescription('impulseSpendingCheck'),
       parameters: z.object({
         item: z.string().describe('What they want to buy'),
         cost: z.number().describe('How much it costs'),
@@ -666,11 +625,7 @@ Use when user mentions:
     // ========== SAVINGS CHALLENGES ==========
 
     startSavingsChallenge: llm.tool({
-      description: `Set up a savings challenge to gamify saving money.
-Use when user wants to:
-- Make saving fun
-- Start a challenge
-- Build savings habit`,
+      description: getToolDescription('startSavingsChallenge'),
       parameters: z.object({
         challengeType: z
           .enum([
@@ -769,11 +724,7 @@ Use when user wants to:
     // ========== CASH FLOW ANALYSIS ==========
 
     analyzeCashFlow: llm.tool({
-      description: `Analyze cash flow timing - when money comes in vs when bills go out.
-Use when user mentions:
-- Running low before payday
-- Bill timing issues
-- Paycheck-to-paycheck feeling`,
+      description: getToolDescription('analyzeCashFlow'),
       parameters: z.object({
         payFrequency: z
           .enum(['weekly', 'biweekly', 'semi-monthly', 'monthly'])
@@ -831,11 +782,7 @@ Use when user mentions:
     // ========== WEEKLY MONEY CHECK-IN ==========
 
     weeklyCheckIn: llm.tool({
-      description: `Guided weekly money check-in to build awareness.
-Use when:
-- User wants to review their week
-- Sunday/Monday check-in
-- Building financial habits`,
+      description: getToolDescription('weeklyCheckIn'),
       parameters: z.object({
         weekNumber: z.number().optional().describe('Week number of the year'),
       }),
@@ -877,11 +824,7 @@ Use when:
     // ========== SPENDING TRIGGERS JOURNAL ==========
 
     logSpendingTrigger: llm.tool({
-      description: `Help user identify and log emotional spending triggers.
-Use when:
-- User regrets a purchase
-- User mentions stress/emotional spending
-- User wants to understand spending patterns`,
+      description: getToolDescription('logSpendingTrigger'),
       parameters: z.object({
         purchase: z.string().describe('What they bought'),
         amount: z.number().describe('How much they spent'),
@@ -972,8 +915,7 @@ Use when:
     }),
 
     getSpendingTriggerPatterns: llm.tool({
-      description: `Analyze spending trigger patterns over time.
-Use when user wants to understand their spending triggers.`,
+      description: getToolDescription('getSpendingTriggerPatterns'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userId = getUserId({ ctx });
@@ -1046,11 +988,7 @@ Use when user wants to understand their spending triggers.`,
     // ========== BILL NEGOTIATION SCRIPTS ==========
 
     getBillNegotiationScript: llm.tool({
-      description: `Get a script to negotiate lower bills.
-Use when user wants to:
-- Lower their bills
-- Negotiate with providers
-- Save money on recurring costs`,
+      description: getToolDescription('getBillNegotiationScript'),
       parameters: z.object({
         billType: z
           .enum([
@@ -1145,12 +1083,7 @@ Use when user wants to:
     // ========== ACCOUNT RECOMMENDATIONS ==========
 
     recommendSavingsAccounts: llm.tool({
-      description: `Recommend savings account types based on user's goals.
-Use when user asks about:
-- Where to put savings
-- Best savings accounts
-- HYSA recommendations
-- Emergency fund placement`,
+      description: getToolDescription('recommendSavingsAccounts'),
       parameters: z.object({
         savingsGoal: z
           .enum([
@@ -1282,11 +1215,7 @@ Use when user asks about:
     // ========== SPENDING LIMITS & ALERTS ==========
 
     setSpendingLimit: llm.tool({
-      description: `Set up spending limits and alerts for categories.
-Use when user wants to:
-- Limit spending in a category
-- Get alerted when overspending
-- Set guardrails`,
+      description: getToolDescription('setSpendingLimit'),
       parameters: z.object({
         category: z
           .string()
@@ -1351,11 +1280,7 @@ Use when user wants to:
     }),
 
     checkSpendingAgainstLimits: llm.tool({
-      description: `Check current spending against set limits.
-Use when user asks:
-- How am I doing on my limits?
-- Am I over budget?
-- Spending check`,
+      description: getToolDescription('checkSpendingAgainstLimits'),
       parameters: z.object({
         category: z.string().optional().describe('Specific category to check, or all'),
       }),
@@ -1417,8 +1342,7 @@ Use when user asks:
     }),
 
     logSpendingAgainstLimit: llm.tool({
-      description: `Log a purchase against a spending limit.
-Use when user tells you about a purchase in a limited category.`,
+      description: getToolDescription('logSpendingAgainstLimit'),
       parameters: z.object({
         category: z.string().describe('Which category'),
         amount: z.number().describe('Amount spent'),
@@ -1476,12 +1400,7 @@ Use when user tells you about a purchase in a limited category.`,
     // ========== PARTNER/FAMILY BUDGETING ==========
 
     createSharedBudget: llm.tool({
-      description: `Help set up budgeting for couples or families.
-Use when user mentions:
-- Budgeting with partner/spouse
-- Family budget
-- Shared expenses
-- Money conversations with partner`,
+      description: getToolDescription('createSharedBudget'),
       parameters: z.object({
         budgetType: z
           .enum([
@@ -1583,8 +1502,7 @@ Use when user mentions:
     }),
 
     getPartnerMoneyTalkGuide: llm.tool({
-      description: `Get guidance for having money conversations with a partner.
-Use when user needs help talking about money with partner.`,
+      description: getToolDescription('getPartnerMoneyTalkGuide'),
       parameters: z.object({
         topic: z
           .enum([

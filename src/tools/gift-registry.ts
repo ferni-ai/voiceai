@@ -9,6 +9,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger, generateId } from './utils/tool-helpers.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -180,8 +181,7 @@ export function createGiftRegistryTools() {
   return {
     // ========== LOG A GIFT ==========
     logGiftReceived: llm.tool({
-      description: `Log a gift that was received at an event.
-Use when someone mentions receiving a gift and wants to track it for thank-you notes.`,
+      description: getToolDescription('logGiftReceived'),
       parameters: z.object({
         from: z.string().describe('Who gave the gift'),
         description: z.string().describe('What the gift was'),
@@ -208,7 +208,7 @@ Use when someone mentions receiving a gift and wants to track it for thank-you n
 
     // ========== MARK THANK YOU SENT ==========
     markThankYouSent: llm.tool({
-      description: `Mark that a thank-you note was sent for a gift.`,
+      description: getToolDescription('markThankYouSent'),
       parameters: z.object({
         giftFrom: z.string().describe('Who the gift was from'),
       }),
@@ -231,7 +231,7 @@ Use when someone mentions receiving a gift and wants to track it for thank-you n
 
     // ========== GET PENDING THANK YOUS ==========
     getPendingThankYous: llm.tool({
-      description: `Get a list of thank-you notes that still need to be sent.`,
+      description: getToolDescription('getPendingThankYous'),
       parameters: z.object({}),
       execute: async () => {
         const pending = Array.from(gifts.values()).filter((g) => !g.thankYouSent);
@@ -258,7 +258,7 @@ Use when someone mentions receiving a gift and wants to track it for thank-you n
 
     // ========== GENERATE THANK YOU NOTE ==========
     generateThankYouNote: llm.tool({
-      description: `Generate a thank-you note template for a gift.`,
+      description: getToolDescription('generateThankYouNote'),
       parameters: z.object({
         giftFrom: z.string().describe('Who the gift was from'),
         giftDescription: z.string().describe('What the gift was'),
@@ -282,7 +282,7 @@ Use when someone mentions receiving a gift and wants to track it for thank-you n
 
     // ========== GET GIFT IDEAS ==========
     getGiftIdeas: llm.tool({
-      description: `Get gift ideas for creating a registry or suggesting gifts.`,
+      description: getToolDescription('getGiftIdeas'),
       parameters: z.object({
         eventType: z.enum(['wedding', 'baby-shower', 'housewarming']).describe('Type of event'),
         category: z.string().optional().describe('Specific category'),
@@ -316,7 +316,7 @@ Use when someone mentions receiving a gift and wants to track it for thank-you n
 
     // ========== CREATE REGISTRY ==========
     createRegistry: llm.tool({
-      description: `Create a new gift registry for an event.`,
+      description: getToolDescription('createRegistry'),
       parameters: z.object({
         eventName: z.string().describe('Name of the event'),
         eventType: z
@@ -340,7 +340,7 @@ Use when someone mentions receiving a gift and wants to track it for thank-you n
 
     // ========== ADD REGISTRY ITEM ==========
     addToRegistry: llm.tool({
-      description: `Add an item to a gift registry.`,
+      description: getToolDescription('addToRegistry'),
       parameters: z.object({
         registryName: z.string().describe('Name of the registry/event'),
         itemName: z.string().describe('Name of the item'),
@@ -381,7 +381,7 @@ Use when someone mentions receiving a gift and wants to track it for thank-you n
 
     // ========== VIEW REGISTRY ==========
     viewRegistry: llm.tool({
-      description: `View items in a gift registry.`,
+      description: getToolDescription('viewRegistry'),
       parameters: z.object({
         registryName: z.string().describe('Name of the registry/event'),
       }),

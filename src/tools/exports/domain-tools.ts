@@ -12,7 +12,7 @@
 export {
   createCommunicationCoachingTools,
   createCommunicationTools,
-} from '../communication-tools.js';
+} from '../domains/communication/communication-tools.js';
 
 export { sendEmail, sendReminder, sendSMS } from '../../services/communication-service.js';
 
@@ -44,14 +44,14 @@ export { createProactiveCoachingTools } from '../proactive-coaching.js';
 // GAMIFICATION DOMAIN
 // ============================================================================
 
-export { createGamificationToolsV2 } from '../gamification-v2.js';
+export { createGamificationToolsV2 } from '../domains/habits/gamification-v2.js';
 export { BADGE_DEFINITIONS, TITLE_PROGRESSION } from '../gamification.js';
 
 // ============================================================================
 // NOTIFICATIONS & EVENTS
 // ============================================================================
 
-export { createEventPlanningTools } from '../event-planning.js';
+export { createEventPlanningTools } from '../domains/life-planning/event-planning.js';
 export { createNotificationTools } from '../notifications.js';
 
 // ============================================================================
@@ -61,8 +61,8 @@ export { createNotificationTools } from '../notifications.js';
 export { createCulturalCelebrationTools } from '../cultural-celebrations.js';
 export { createFirstTimePlanningTools } from '../first-time-planning.js';
 export { createGiftRegistryTools } from '../gift-registry.js';
-export { createGoalManagementTools } from '../goal-management.js';
-export { createLifeFirstsTools } from '../life-firsts-tracker.js';
+export { createGoalManagementTools } from '../domains/life-planning/goal-management.js';
+export { createLifeFirstsTools } from '../domains/life-planning/life-firsts-tracker.js';
 export { createMilestoneProactiveTools } from '../milestone-proactive.js';
 export { createRetirementPlanningTools } from '../retirement-planning.js';
 export { createTeamIntegrationTools } from '../team-integration.js';
@@ -73,7 +73,7 @@ export { createTeamIntegrationTools } from '../team-integration.js';
 
 export { createBillTools } from '../bills.js';
 export { createDailyBriefingTools } from '../daily-briefing.js';
-export { createHabitTools } from '../habits.js';
+export { createHabitTools } from '../domains/habits/habits.js';
 export { createMedicationTools } from '../medications.js';
 export { createNotesTools } from '../notes.js';
 export { createPackageTools } from '../packages.js';
@@ -120,7 +120,7 @@ export { createPlaidTools } from '../plaid.js';
 // ============================================================================
 
 export { createHandoffTools } from '../handoff/index.js';
-export { createInsightsAnalysisTools } from '../insights-analysis.js';
+export { createInsightsAnalysisTools } from '../domains/research/insights-analysis.js';
 export { createTelephonyTools } from '../telephony.js';
 
 // ============================================================================

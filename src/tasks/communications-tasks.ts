@@ -10,6 +10,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { IntelligentTask } from './intelligent-task.js';
 
+import { getToolDescription } from '../tools/utils/tool-descriptions.js';
 // ============================================================================
 // DIFFICULT CONVERSATION PREP TASK
 // ============================================================================
@@ -70,7 +71,7 @@ export class DifficultConversationTask extends IntelligentTask<DifficultConversa
       },
       tools: {
         clarifyGoal: llm.tool({
-          description: 'Clarify the conversation goal.',
+          description: getToolDescription('clarifyGoal'),
           parameters: z.object({
             primaryGoal: z.string().describe('What they most want to achieve'),
             secondaryGoal: z.string().optional().describe('Nice-to-have outcome'),
@@ -85,7 +86,7 @@ export class DifficultConversationTask extends IntelligentTask<DifficultConversa
         }),
 
         anticipateResponse: llm.tool({
-          description: 'Anticipate how the other person might respond.',
+          description: getToolDescription('anticipateResponse'),
           parameters: z.object({
             likelyResponse: z.string().describe('How they might initially react'),
             theirConcerns: z.array(z.string()).describe('What they might be worried about'),
@@ -97,7 +98,7 @@ export class DifficultConversationTask extends IntelligentTask<DifficultConversa
         }),
 
         craftOpening: llm.tool({
-          description: 'Help craft an opening line.',
+          description: getToolDescription('craftOpening'),
           parameters: z.object({
             opening: z.string().describe('The opening line'),
             tone: z.string().describe('The intended tone'),
@@ -109,7 +110,7 @@ export class DifficultConversationTask extends IntelligentTask<DifficultConversa
         }),
 
         planBackup: llm.tool({
-          description: 'Plan backup approaches if it goes sideways.',
+          description: getToolDescription('planBackup'),
           parameters: z.object({
             ifDefensive: z.string().describe('What to say if they get defensive'),
             ifEmotional: z.string().describe('What to say if emotions run high'),
@@ -121,7 +122,7 @@ export class DifficultConversationTask extends IntelligentTask<DifficultConversa
         }),
 
         completePrep: llm.tool({
-          description: 'Complete the conversation prep.',
+          description: getToolDescription('completePrep'),
           parameters: z.object({
             topic: z.string(),
             recipient: z.string(),
@@ -207,7 +208,7 @@ export class MessageCraftingTask extends IntelligentTask<MessageCraftingResult> 
       },
       tools: {
         gatherContext: llm.tool({
-          description: 'Gather context for the message.',
+          description: getToolDescription('gatherContext'),
           parameters: z.object({
             messageType: z.enum(['email', 'text', 'chat', 'letter']),
             recipient: z.string(),
@@ -231,7 +232,7 @@ export class MessageCraftingTask extends IntelligentTask<MessageCraftingResult> 
         }),
 
         draftMessage: llm.tool({
-          description: 'Help draft the message.',
+          description: getToolDescription('draftMessage'),
           parameters: z.object({
             draft: z.string().describe('The drafted message'),
             keyElements: z.array(z.string()).describe('Key elements included'),
@@ -242,7 +243,7 @@ export class MessageCraftingTask extends IntelligentTask<MessageCraftingResult> 
         }),
 
         refineMessage: llm.tool({
-          description: 'Refine the message based on feedback.',
+          description: getToolDescription('refineMessage'),
           parameters: z.object({
             revisedDraft: z.string(),
             changesExplained: z.string(),
@@ -253,7 +254,7 @@ export class MessageCraftingTask extends IntelligentTask<MessageCraftingResult> 
         }),
 
         completeMessage: llm.tool({
-          description: 'Complete the message crafting.',
+          description: getToolDescription('completeMessage'),
           parameters: z.object({
             messageType: z.enum(['email', 'text', 'chat', 'letter']),
             recipient: z.string(),
@@ -326,7 +327,7 @@ export class BoundarySettingTask extends IntelligentTask<BoundarySettingResult> 
       },
       tools: {
         clarifyBoundary: llm.tool({
-          description: 'Clarify exactly what the boundary is.',
+          description: getToolDescription('clarifyBoundary'),
           parameters: z.object({
             specificBoundary: z.string().describe('The specific behavior/situation'),
             person: z.string().describe('Who this is with'),
@@ -339,7 +340,7 @@ export class BoundarySettingTask extends IntelligentTask<BoundarySettingResult> 
         }),
 
         createScript: llm.tool({
-          description: 'Create a script for setting the boundary.',
+          description: getToolDescription('createScript'),
           parameters: z.object({
             script: z.string().describe('What to say'),
             tone: z.string().describe('The tone to use'),
@@ -351,7 +352,7 @@ export class BoundarySettingTask extends IntelligentTask<BoundarySettingResult> 
         }),
 
         handlePushback: llm.tool({
-          description: 'Prepare for pushback.',
+          description: getToolDescription('handlePushback'),
           parameters: z.object({
             anticipatedPushback: z.string().describe('How they might push back'),
             response: z.string().describe('How to respond'),
@@ -363,7 +364,7 @@ export class BoundarySettingTask extends IntelligentTask<BoundarySettingResult> 
         }),
 
         completeBoundary: llm.tool({
-          description: 'Complete the boundary-setting prep.',
+          description: getToolDescription('completeBoundary'),
           parameters: z.object({
             boundary: z.string(),
             person: z.string(),
@@ -442,7 +443,7 @@ export class SchedulingTask extends IntelligentTask<SchedulingResult> {
       },
       tools: {
         gatherConstraints: llm.tool({
-          description: 'Gather scheduling constraints.',
+          description: getToolDescription('gatherConstraints'),
           parameters: z.object({
             participants: z.array(z.string()).describe('Who needs to attend'),
             constraints: z.array(z.string()).describe('Known scheduling constraints'),
@@ -455,7 +456,7 @@ export class SchedulingTask extends IntelligentTask<SchedulingResult> {
         }),
 
         proposeTimes: llm.tool({
-          description: 'Help propose meeting times.',
+          description: getToolDescription('proposeTimes'),
           parameters: z.object({
             proposedTimes: z.array(z.string()).describe('Time options to propose'),
             rationale: z.string().describe('Why these times'),
@@ -466,7 +467,7 @@ export class SchedulingTask extends IntelligentTask<SchedulingResult> {
         }),
 
         draftInvite: llm.tool({
-          description: 'Draft the scheduling message/invite.',
+          description: getToolDescription('draftInvite'),
           parameters: z.object({
             message: z.string().describe('The scheduling message'),
             includesAllDetails: z.boolean(),
@@ -482,7 +483,7 @@ export class SchedulingTask extends IntelligentTask<SchedulingResult> {
         }),
 
         completeScheduling: llm.tool({
-          description: 'Complete the scheduling task.',
+          description: getToolDescription('completeScheduling'),
           parameters: z.object({
             eventType: z.string(),
             participants: z.array(z.string()),

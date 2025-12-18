@@ -2,7 +2,7 @@
 /**
  * Generate Animation Constants TypeScript
  * 
- * Auto-generates frontend-typescript/src/config/animation-constants.ts
+ * Auto-generates apps/web/src/config/animation-constants.ts
  * from design-system/tokens/animation.json
  * 
  * Usage:
@@ -23,7 +23,7 @@ const PROJECT_ROOT = path.dirname(__dirname);
 
 const CONFIG = {
   source: path.join(__dirname, 'tokens/animation.json'),
-  output: path.join(PROJECT_ROOT, 'frontend-typescript/src/config/animation-constants.generated.ts'),
+  output: path.join(PROJECT_ROOT, 'apps/web/src/config/animation-constants.generated.ts'),
 };
 
 // ============================================================================

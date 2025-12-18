@@ -455,7 +455,7 @@ router.get('/branding', async (req, res) => {
 
 ### 3.1 Create Branding Configuration
 
-**File**: `frontend-typescript/src/config/branding.ts`
+**File**: `apps/web/src/config/branding.ts`
 
 ```typescript
 export interface BrandingConfig {
@@ -520,7 +520,7 @@ export function getBranding(): BrandingConfig {
 
 ### 3.2 Create UI Text Abstraction
 
-**File**: `frontend-typescript/src/config/ui-text.ts`
+**File**: `apps/web/src/config/ui-text.ts`
 
 ```typescript
 import { getBranding } from './branding.js';
@@ -554,7 +554,7 @@ export const UI_TEXT = {
 
 ### 3.3 Update HTML Template
 
-**File**: `frontend-typescript/index.html`
+**File**: `apps/web/index.html`
 
 ```html
 <!doctype html>
@@ -594,7 +594,7 @@ export const UI_TEXT = {
 
 ### 3.4 Update App Initialization
 
-**File**: `frontend-typescript/src/app.ts`
+**File**: `apps/web/src/app.ts`
 
 ```typescript
 import { loadBranding, getBranding } from './config/branding.js';

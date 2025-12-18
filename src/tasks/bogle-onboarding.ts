@@ -10,6 +10,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { AgentTask, TaskGroup } from './agent-task.js';
 
+import { getToolDescription } from '../tools/utils/tool-descriptions.js';
 // ============================================================================
 // RESULT TYPES
 // ============================================================================
@@ -105,7 +106,7 @@ export class FinancialSituationTask extends AgentTask<FinancialSituationResult> 
       `,
       tools: {
         recordSituation: llm.tool({
-          description: "Record the user's financial situation after understanding it.",
+          description: getToolDescription('recordFinancialSituation'),
           parameters: z.object({
             hasInvestments: z.boolean().describe('Whether they currently have investments'),
             primaryConcern: z
@@ -124,7 +125,7 @@ export class FinancialSituationTask extends AgentTask<FinancialSituationResult> 
           },
         }),
         skipFinancials: llm.tool({
-          description: "Use if the user doesn't want to discuss finances right now.",
+          description: getToolDescription('deferFinanceConversation'),
           parameters: z.object({}),
           execute: async () => {
             this.complete({
@@ -166,7 +167,7 @@ export class GoalsTask extends AgentTask<GoalsResult> {
       `,
       tools: {
         recordGoals: llm.tool({
-          description: "Record the user's financial goals.",
+          description: getToolDescription('recordGoals'),
           parameters: z.object({
             shortTermGoal: z.string().optional().describe('What they want in the next 1-5 years'),
             longTermGoal: z.string().optional().describe('What they want for the long term'),
@@ -183,7 +184,7 @@ export class GoalsTask extends AgentTask<GoalsResult> {
           },
         }),
         noGoalsYet: llm.tool({
-          description: "Use if they're not sure about their goals.",
+          description: getToolDescription('noGoalsYet'),
           parameters: z.object({}),
           execute: async () => {
             this.complete({ timeHorizon: 'unknown' });
@@ -217,17 +218,17 @@ export function createOnboardingFlow(): TaskGroup {
 
   group.add(() => new WelcomeTask(), {
     id: 'welcome',
-    description: 'Warm greeting and getting to know the user',
+    description: getToolDescription('recordIntroduction'),
   });
 
   group.add(() => new FinancialSituationTask(), {
     id: 'situation',
-    description: 'Understanding their current financial situation',
+    description: getToolDescription('recordSituation'),
   });
 
   group.add(() => new GoalsTask(), {
     id: 'goals',
-    description: 'Exploring their financial goals',
+    description: getToolDescription('skipFinancials'),
   });
 
   return group;

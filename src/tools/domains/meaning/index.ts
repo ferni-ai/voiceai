@@ -19,6 +19,7 @@ import { llm, log as _log } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // PURPOSE TOOLS
 // ============================================================================
@@ -32,8 +33,7 @@ const explorePurposeDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Guide the user through an exploration of their sense of purpose and what gives their life meaning.',
+      description: getToolDescription('explorePurpose'),
       parameters: z.object({
         currentState: z
           .enum(['searching', 'questioning', 'lost', 'curious', 'refining'])
@@ -94,8 +94,7 @@ const alignActionsWithPurposeDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user examine how well their current actions and choices align with their sense of purpose.',
+      description: getToolDescription('alignActionsWithPurpose'),
       parameters: z.object({
         statedPurpose: z.string().describe('What they believe their purpose to be'),
         areaToExamine: z
@@ -162,8 +161,7 @@ const clarifyValuesDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Guide the user through a process of identifying and articulating their core values.',
+      description: getToolDescription('clarifyValues'),
       parameters: z.object({
         approach: z
           .enum(['from-admiration', 'from-anger', 'from-joy', 'from-regret', 'comprehensive'])
@@ -226,8 +224,7 @@ const valueConflictResolutionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user navigate a situation where two or more of their values are in conflict.',
+      description: getToolDescription('valueConflictResolution'),
       parameters: z.object({
         situation: z.string().describe('The situation creating the conflict'),
         value1: z.string().describe('First value in tension'),
@@ -271,8 +268,7 @@ const sitWithBigQuestionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Create space to sit with a big existential question without needing to resolve it.',
+      description: getToolDescription('sitWithBigQuestion'),
       parameters: z.object({
         question: z
           .enum([
@@ -324,8 +320,7 @@ const exploreMortalityDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user explore mortality awareness as a source of meaning and clarity, not just fear.',
+      description: getToolDescription('exploreMortality'),
       parameters: z.object({
         prompt: z
           .enum(['facing-fear', 'as-teacher', 'how-to-live', 'what-matters', 'legacy'])
@@ -396,8 +391,7 @@ const findMeaningInSufferingDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user explore meaning-making around suffering without toxic positivity or minimizing their pain.',
+      description: getToolDescription('findMeaningInSuffering'),
       parameters: z.object({
         nature: z.string().describe('What they are suffering from/with'),
         stage: z
@@ -457,8 +451,7 @@ const spiritualPracticeSupportDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Support the user in establishing or deepening spiritual or contemplative practices.',
+      description: getToolDescription('spiritualPracticeSupport'),
       parameters: z.object({
         practiceType: z
           .enum(['meditation', 'prayer', 'gratitude', 'contemplation', 'ritual', 'nature', 'other'])
@@ -528,7 +521,7 @@ const exploreLifePhilosophyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user explore different life philosophies and find what resonates.',
+      description: getToolDescription('exploreLifePhilosophy'),
       parameters: z.object({
         interest: z
           .enum(['stoicism', 'buddhism', 'existentialism', 'humanism', 'taoism', 'explore-many'])
@@ -570,7 +563,7 @@ const createPersonalMissionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Guide the user in crafting a personal mission statement.',
+      description: getToolDescription('createPersonalMission'),
       parameters: z.object({
         stage: z.enum(['discover', 'draft', 'refine']).describe('Stage of the process'),
         existingDraft: z.string().optional().describe('If refining, the current draft'),
@@ -640,7 +633,7 @@ const findMeaningInWorkDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user find or create meaning in their work.',
+      description: getToolDescription('findMeaningInWork'),
       parameters: z.object({
         workSituation: z
           .enum(['love-it', 'tolerate-it', 'hate-it', 'searching', 'unsure'])
@@ -705,7 +698,7 @@ const dailyMeaningPracticeDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help establish daily meaning-making practices.',
+      description: getToolDescription('dailyMeaningPractice'),
       parameters: z.object({
         timeOfDay: z.enum(['morning', 'evening', 'anytime']).describe('When they want to practice'),
         durationMinutes: z.number().optional().describe('How much time they have'),

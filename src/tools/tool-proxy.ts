@@ -26,6 +26,63 @@ import type { Tool, ToolContext, ToolDefinition } from './registry/types.js';
 const log = getLogger().child({ module: 'tool-proxy' });
 
 // ============================================================================
+// DIAGNOSTIC TOOL SEQUENCE TRACKER
+// ============================================================================
+
+interface ToolExecutionEvent {
+  timestamp: string;
+  toolName: string;
+  status: 'start' | 'success' | 'error';
+  elapsedMs?: number;
+  error?: string;
+}
+
+// Track recent tool executions to diagnose cross-tool issues
+const recentToolExecutions: ToolExecutionEvent[] = [];
+const MAX_TRACKED_EXECUTIONS = 20;
+
+function trackToolExecution(event: ToolExecutionEvent): void {
+  recentToolExecutions.push(event);
+  if (recentToolExecutions.length > MAX_TRACKED_EXECUTIONS) {
+    recentToolExecutions.shift();
+  }
+
+  // Log the sequence when we detect potential issues (e.g., error followed by music tool)
+  if (event.status === 'error') {
+    log.warn(
+      {
+        currentTool: event.toolName,
+        recentSequence: recentToolExecutions.slice(-5).map((e) => `${e.toolName}:${e.status}`),
+        timestamp: event.timestamp,
+      },
+      '🔍 [DIAG] Tool execution FAILED - check if this affects subsequent tools!'
+    );
+  }
+
+  // Special logging for music tool to see what happened before
+  if (event.toolName.includes('music') || event.toolName.includes('play')) {
+    const previousTools = recentToolExecutions.slice(-6, -1);
+    const hadRecentError = previousTools.some((e) => e.status === 'error');
+
+    if (hadRecentError) {
+      log.warn(
+        {
+          musicTool: event.toolName,
+          musicStatus: event.status,
+          previousErrors: previousTools.filter((e) => e.status === 'error'),
+          fullSequence: previousTools.map((e) => `${e.toolName}:${e.status}`),
+        },
+        '🔍 [DIAG] Music tool called AFTER a recent error - check if error affected music state!'
+      );
+    }
+  }
+}
+
+export function getRecentToolExecutions(): ToolExecutionEvent[] {
+  return [...recentToolExecutions];
+}
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -220,16 +277,24 @@ function createRemoteProxyTool(
 
         if (result.error) {
           log.warn({ toolId: toolDef.id, error: result.error }, 'Tool execution failed');
-          return result.error.userMessage || 'Something went wrong. Let me try again.';
+          // Humanize generic errors
+          const humanErrors = [
+            `Hmm, that didn't work. Let me try something else.`,
+            `Okay, that's being weird. Give me a sec.`,
+            `Ugh, technology. Let me figure this out.`,
+          ];
+          return (
+            result.error.userMessage || humanErrors[Math.floor(Math.random() * humanErrors.length)]
+          );
         }
 
-        return 'I completed that action.';
+        return 'Done!';
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
 
         if (err.name === 'AbortError') {
           log.error({ toolId: toolDef.id }, 'Tool execution timed out');
-          return 'That took too long. Let me try a simpler approach.';
+          return `That's taking forever. Let me try another way.`;
         }
 
         log.error({ toolId: toolDef.id, error: err.message }, 'Tool proxy error');
@@ -248,7 +313,12 @@ function createRemoteProxyTool(
           }
         }
 
-        return 'I had trouble with that. Let me try something else.';
+        const fallbackErrors = [
+          `That's not cooperating. Let me try a different approach.`,
+          `Hmm, hitting a wall there. One sec.`,
+          `Well that didn't work. Let me think of another way.`,
+        ];
+        return fallbackErrors[Math.floor(Math.random() * fallbackErrors.length)];
       }
     },
   });

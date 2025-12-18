@@ -84,6 +84,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY package.json pnpm-lock.yaml* package-lock.json* ./
 COPY .npmrc .pnpmrc* ./
 
+# Copy patches directory (required for pnpm patched packages)
+COPY patches/ ./patches/
+
 # Install production dependencies only (no devDependencies)
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     --mount=type=cache,target=/root/.npm \
@@ -145,7 +148,7 @@ COPY --from=builder /app/src/tasks/wisdom/*.json ./dist/tasks/wisdom/
 
 # Copy sound effects for session intro/outro (connect.mp3, disconnect.mp3, etc.)
 # These are used by the DJ system for "opening the show" moments
-COPY frontend-typescript/public/sounds/ ./sounds/
+COPY apps/web/public/sounds/ ./sounds/
 
 # Install Ferni CLI for in-container ops
 # The bundle was built in the builder stage and copied with dist/

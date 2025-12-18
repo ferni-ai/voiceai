@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { getDefaultModel } from '../model-config.js';
 
 // Dynamic import for optional Gemini dependency
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -59,7 +60,11 @@ const log = createLogger({ module: 'LandingGemini' });
 // ============================================================================
 
 const GEMINI_API_KEY = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-const MODEL_NAME = 'gemini-2.0-flash-exp'; // Fast model for landing page
+
+// Use centralized model config (toggle via admin UI or model-config.json)
+function getModelName(): string {
+  return getDefaultModel();
+}
 
 // Safety settings - created dynamically when SDK is loaded
 function getSafetySettings() {
@@ -205,7 +210,7 @@ export async function generateJSON<T>(
     }
 
     const model = client.getGenerativeModel({
-      model: MODEL_NAME,
+      model: getModelName(),
       safetySettings: getSafetySettings(),
       generationConfig: {
         ...GENERATION_CONFIG,
@@ -261,7 +266,7 @@ export async function generateText(
     }
 
     const model = client.getGenerativeModel({
-      model: MODEL_NAME,
+      model: getModelName(),
       safetySettings: getSafetySettings(),
       generationConfig: {
         ...GENERATION_CONFIG,

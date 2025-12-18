@@ -14,6 +14,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 
 // ============================================================================
 // TYPES
@@ -907,14 +908,19 @@ export async function saveCommunityInsightsToFirestore(): Promise<void> {
       global.store as { getFirestore: () => FirebaseFirestore.Firestore }
     ).getFirestore();
 
-    await firestore.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOC_ID).set({
-      patterns: data.patterns,
-      journeyPatterns: data.journeyPatterns,
-      effectiveQuestions: data.effectiveQuestions,
-      storyResonance: data.storyResonance,
-      updatedAt: new Date(),
-      version: 1,
-    });
+    await firestore
+      .collection(FIRESTORE_COLLECTION)
+      .doc(FIRESTORE_DOC_ID)
+      .set(
+        removeUndefined({
+          patterns: data.patterns,
+          journeyPatterns: data.journeyPatterns,
+          effectiveQuestions: data.effectiveQuestions,
+          storyResonance: data.storyResonance,
+          updatedAt: new Date(),
+          version: 1,
+        })
+      );
 
     getLogger().info(
       {

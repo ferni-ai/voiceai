@@ -240,13 +240,14 @@ export class ParallelExecutor<T> {
   private async executeWithTimeout(op: ParallelOperation<T>): Promise<ParallelResult<T>> {
     const startTime = Date.now();
     const timeout = op.timeout ?? this.defaultTimeout;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
     try {
       const result = await Promise.race([
         op.execute(),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error(`Timeout after ${timeout}ms`)), timeout)
-        ),
+        new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error(`Timeout after ${timeout}ms`)), timeout);
+        }),
       ]);
 
       return {
@@ -264,6 +265,11 @@ export class ParallelExecutor<T> {
         error: error instanceof Error ? error : new Error(String(error)),
         durationMs: Date.now() - startTime,
       };
+    } finally {
+      // FIX BUG: Always clear timeout to prevent timer leak
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId);
+      }
     }
   }
 
@@ -297,26 +303,47 @@ export async function parallelMap<T, R>(
   options: { concurrency?: number; timeout?: number } = {}
 ): Promise<R[]> {
   const { concurrency = 10, timeout = 5000 } = options;
-  const results: R[] = [];
-  let index = 0;
+  const results: R[] = new Array(items.length);
+
+  // FIX BUG: Use a proper work queue instead of non-atomic index++
+  // The previous implementation had a race condition where multiple workers
+  // could read the same index value before any incremented it.
+  const workQueue: Array<{ item: T; index: number }> = items.map((item, index) => ({
+    item,
+    index,
+  }));
+  let queueIndex = 0;
+
+  // Simple mutex for atomic queue access
+  const getNextWork = (): { item: T; index: number } | null => {
+    if (queueIndex >= workQueue.length) return null;
+    return workQueue[queueIndex++];
+  };
 
   const workers = Array(Math.min(concurrency, items.length))
     .fill(null)
     .map(async () => {
-      while (index < items.length) {
-        const currentIndex = index++;
-        const item = items[currentIndex];
+      let work: { item: T; index: number } | null;
+      while ((work = getNextWork()) !== null) {
+        const { item, index } = work;
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
         try {
           const result = await Promise.race([
-            fn(item, currentIndex),
-            new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error('Timeout')), timeout)
-            ),
+            fn(item, index),
+            new Promise<never>((_, reject) => {
+              timeoutId = setTimeout(() => reject(new Error('Timeout')), timeout);
+            }),
           ]);
-          results[currentIndex] = result;
-        } catch {
-          // Error handling - could throw or continue based on requirements
+          results[index] = result;
+        } catch (error) {
+          // Log error but continue processing other items
+          log.debug({ index, error: String(error) }, 'parallelMap item failed');
+        } finally {
+          // FIX BUG: Always clear timeout to prevent timer leak
+          if (timeoutId !== undefined) {
+            clearTimeout(timeoutId);
+          }
         }
       }
     });
@@ -337,14 +364,35 @@ export async function parallelCollect<T>(
   const successes: T[] = [];
   const errors: Error[] = [];
 
-  const wrapped = fns.map((fn) =>
-    Promise.race([
-      fn(),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeout)),
-    ])
-  );
+  // FIX BUG: Track timeouts so we can clear them to prevent timer leaks
+  const timeoutIds: Array<ReturnType<typeof setTimeout>> = [];
+
+  const wrapped = fns.map((fn, index) => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('Timeout')), timeout);
+      timeoutIds[index] = timeoutId;
+    });
+
+    return Promise.race([
+      fn().finally(() => {
+        // Clear timeout when the actual function completes (success or error)
+        if (timeoutIds[index]) {
+          clearTimeout(timeoutIds[index]);
+        }
+      }),
+      timeoutPromise,
+    ]);
+  });
 
   const results = await Promise.allSettled(wrapped);
+
+  // Clean up any remaining timeouts (in case Promise.allSettled returns before all timeouts fire)
+  for (const timeoutId of timeoutIds) {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
 
   for (const result of results) {
     if (result.status === 'fulfilled') {

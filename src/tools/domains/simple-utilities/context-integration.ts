@@ -99,7 +99,7 @@ export async function loadLifeContext(userId: string): Promise<LifeContext> {
 
 async function loadLifePlanningContext(userId: string, context: LifeContext): Promise<void> {
   try {
-    const { getActiveGoals, getUpcomingMilestones } = await import('../../goal-management.js');
+    const { getActiveGoals, getUpcomingMilestones } = await import('../life-planning/goal-management.js');
 
     // Load active goals
     const activeGoals = getActiveGoals(userId);
@@ -209,7 +209,7 @@ function extractDate(text: string, keyword: string): Date | undefined {
 async function loadHabitsContext(userId: string, context: LifeContext): Promise<void> {
   try {
     // Dynamic import
-    const habitsModule = await import('../../habits.js');
+    const habitsModule = await import('../habits/habits.js');
 
     const habits = habitsModule.getUserHabits(userId);
 

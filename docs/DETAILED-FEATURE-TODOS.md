@@ -15,7 +15,7 @@
 
 | Component    | Status       | File                                                |
 | ------------ | ------------ | --------------------------------------------------- |
-| UI           | ✅ Complete  | `frontend-typescript/src/ui/voice-enrollment.ui.ts` |
+| UI           | ✅ Complete  | `apps/web/src/ui/voice-enrollment.ui.ts` |
 | Backend APIs | ✅ Exist     | `src/api/voice-auth-handler.ts`                     |
 | Service      | ✅ Exist     | `src/services/voice-enrollment.ts`                  |
 | Orchestrator | ✅ Complete  | `src/services/trust-and-identity/identity-orchestrator.ts` |
@@ -69,7 +69,7 @@
 
 | Component      | Status       | File                                                 |
 | -------------- | ------------ | ---------------------------------------------------- |
-| UI             | ✅ Complete  | `frontend-typescript/src/ui/household-manager.ui.ts` |
+| UI             | ✅ Complete  | `apps/web/src/ui/household-manager.ui.ts` |
 | Backend API    | ✅ Exists    | `src/api/household-routes.ts`                        |
 | Firestore      | ✅ Ready     | `households/{userId}` collection                     |
 | Voice Identity | 🔄 Dependent | Needs Voice ID for multi-user                        |
@@ -124,7 +124,7 @@
 
 | Component    | Status         | File                                                  |
 | ------------ | -------------- | ----------------------------------------------------- |
-| UI           | ✅ Exists      | `frontend-typescript/src/ui/calendar-settings.ui.ts`  |
+| UI           | ✅ Exists      | `apps/web/src/ui/calendar-settings.ui.ts`  |
 | Backend APIs | ✅ Exist       | `src/api/v1/integrations/calendar.ts`                 |
 | OAuth Flow   | 🔄 Code exists | Needs Google credentials                              |
 | Service      | ✅ Exists      | `src/services/context-awareness/location-calendar.js` |
@@ -182,7 +182,7 @@
 
 | Component        | Status      | File                                                          |
 | ---------------- | ----------- | ------------------------------------------------------------- |
-| UI               | ✅ Complete | `frontend-typescript/src/ui/wellbeing-dashboard.ui.ts`        |
+| UI               | ✅ Complete | `apps/web/src/ui/wellbeing-dashboard.ui.ts`        |
 | Backend APIs     | ✅ Exist    | `src/api/wellbeing-handler.ts`, `src/api/wellbeing-routes.ts` |
 | Tracking Service | ✅ Exists   | `src/services/wellbeing-tracking/`                            |
 | Data Aggregation | 🔄 Partial  | Needs conversation→wellbeing pipeline                         |
@@ -240,7 +240,7 @@
 
 | Component    | Status      | File                                                   |
 | ------------ | ----------- | ------------------------------------------------------ |
-| UI           | ✅ Complete | `frontend-typescript/src/ui/analytics-dashboard.ui.ts` |
+| UI           | ✅ Complete | `apps/web/src/ui/analytics-dashboard.ui.ts` |
 | Backend API  | ✅ Exists   | `src/api/routes/analytics.ts`                          |
 | Data Sources | 🔄 Partial  | Needs aggregation from multiple sources                |
 
@@ -380,7 +380,7 @@
 
 | Component   | Status    | File                                                     |
 | ----------- | --------- | -------------------------------------------------------- |
-| UI          | ✅ Exists | `frontend-typescript/src/ui/outreach-schedule.ui.ts`     |
+| UI          | ✅ Exists | `apps/web/src/ui/outreach-schedule.ui.ts`     |
 | Backend API | ✅ Exists | `src/api/outreach-handler.ts` → `/api/outreach/upcoming` |
 | Scheduling  | ✅ Works  | Proactive outreach system                                |
 

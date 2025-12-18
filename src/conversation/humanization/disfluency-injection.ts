@@ -154,10 +154,10 @@ const PERSONA_DISFLUENCY_PREFERENCES: Record<
   }
 > = {
   ferni: {
-    preferredTypes: ['discourse_marker', 'filled_pause'],
+    preferredTypes: ['discourse_marker', 'filled_pause', 'false_start'],
     filledPauseStyle: ['Um', 'Hmm'],
-    discourseMarkers: ['Well', 'You know', 'So'],
-    probabilityMultiplier: 1.0,
+    discourseMarkers: ['Well', 'You know', 'So', 'I mean', 'Okay'],
+    probabilityMultiplier: 1.3, // Ferni should sound natural and human
   },
 
   'nayan-patel': {
@@ -404,6 +404,14 @@ export class DisfluencyEngine {
 
     // Calculate probability
     let probability = patternConfig.probability * personaPrefs.probabilityMultiplier;
+
+    // EARLY TURN BOOST: First few turns are CRITICAL for setting human tone
+    // Boost probability on turns 1-3 to make Ferni feel more natural from the start
+    if (context.turnCount <= 3) {
+      const earlyTurnBoost = 1.5 - context.turnCount * 0.15; // 1.35x on turn 1, 1.2x on turn 2, 1.05x on turn 3
+      probability *= earlyTurnBoost;
+      logger.debug({ turnCount: context.turnCount, earlyTurnBoost }, 'Applied early turn boost');
+    }
 
     // Adjust for context appropriateness
     const contextMatch = patternConfig.contexts.some((c) => contexts.includes(c));

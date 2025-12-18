@@ -5,7 +5,7 @@ import AppKit
 
 /// Main floating window showing the active voice session
 struct VoiceWindowView: View {
-    @ObservedObject var voiceManager: VoiceSessionManager
+    @ObservedObject var voiceManager: DualModeVoiceManager
     @State private var isHoveringEnd = false
     
     var body: some View {
@@ -24,61 +24,68 @@ struct VoiceWindowView: View {
                 cornerRadius: 24
             )
             
-            VStack(spacing: 16) {
-                // Avatar with full Pixar animation suite
-                PixarAvatar(
+            VStack(spacing: 12) {
+                // Full avatar composite with text initials, halo, and waveform
+                FullAvatarComposite(
                     persona: voiceManager.currentPersona,
                     voiceState: voiceManager.state,
-                    size: 80
+                    size: 70,
+                    showName: false,  // We show name separately below
+                    showWaveform: true
                 )
-                .frame(height: 140)
+                .frame(height: 160)
                 
-                // Status text
-                VStack(spacing: 4) {
-                    HStack(spacing: 6) {
-                        Text(voiceManager.state.title)
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.white)
-                        
-                        // Claude Code indicator
-                        if voiceManager.isClaudeCodeActive {
-                            HStack(spacing: 4) {
-                                Circle()
-                                    .fill(Color(hex: 0xda7756))  // Claude orange
-                                    .frame(width: 6, height: 6)
-                                Text("Claude")
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(Color(hex: 0xda7756))
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(
-                                Capsule()
-                                    .fill(Color(hex: 0xda7756).opacity(0.2))
-                            )
+                // Status with Claude indicator and handoff state
+                HStack(spacing: 6) {
+                    if voiceManager.isHandoffInProgress, let target = voiceManager.handoffTargetPersona {
+                        // Handoff in progress indicator
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.right.circle.fill")
+                                .foregroundColor(PersonaRegistry.get(target).primaryColor)
+                            Text("Switching to \(PersonaRegistry.get(target).name)...")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.white.opacity(0.9))
                         }
+                    } else {
+                        Text(voiceManager.state.title)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white)
                     }
                     
-                    Text(statusSubtitle)
-                        .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.6))
+                    // Claude Code indicator (CLI mode only)
+                    if voiceManager.isClaudeCodeActive {
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(Color(hex: 0xda7756))  // Claude orange
+                                .frame(width: 6, height: 6)
+                            Text("Claude")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(Color(hex: 0xda7756))
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(
+                            Capsule()
+                                .fill(Color(hex: 0xda7756).opacity(0.2))
+                        )
+                    }
                 }
                 
-                // Waveform bars (when connected)
-                if voiceManager.state.showWaveform {
-                    WaveformView(
-                        persona: voiceManager.currentPersona,
-                        isActive: true,
-                        barCount: 8
-                    )
-                    .frame(height: 24)
-                    .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                // Persona name and subtitle
+                VStack(spacing: 2) {
+                    Text(voiceManager.currentPersona.name)
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white)
+                    
+                    Text(statusSubtitle)
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.6))
                 }
                 
                 // End button
                 Button(action: {
-                    withAnimation(.spring(response: 0.3)) {
-                        voiceManager.stop()
+                    Task {
+                        await voiceManager.stop()
                     }
                 }) {
                     HStack(spacing: 6) {
@@ -110,18 +117,26 @@ struct VoiceWindowView: View {
     private var statusSubtitle: String {
         switch voiceManager.state {
         case .connecting:
-            return "Setting up \(voiceManager.currentPersona.name)"
+            // Show detailed progress if available
+            if !voiceManager.connectionProgress.isEmpty {
+                return voiceManager.connectionProgress
+            }
+            return "Connecting..."
         case .connected:
-            return "\(voiceManager.currentPersona.name) is here"
+            return "Ready to chat"
         case .listening:
-            return "Listening to you"
+            return "Listening..."
         case .speaking:
-            return "\(voiceManager.currentPersona.name) is speaking"
+            return "Speaking..."
         case .thinking:
             return "Thinking..."
         case .disconnected:
-            return "Click menubar to restart"
+            return "Tap to connect"
         case .error(let msg):
+            // Show retry count if retrying
+            if voiceManager.retryCount > 0 {
+                return "\(msg) (retry \(voiceManager.retryCount)/3)"
+            }
             return msg
         }
     }
@@ -130,9 +145,9 @@ struct VoiceWindowView: View {
 // MARK: - Voice Window Controller
 
 class VoiceWindowController: NSWindowController {
-    private let voiceManager: VoiceSessionManager
+    private let voiceManager: DualModeVoiceManager
     
-    init(voiceManager: VoiceSessionManager) {
+    init(voiceManager: DualModeVoiceManager) {
         self.voiceManager = voiceManager
         
         let hostingController = NSHostingController(
@@ -192,7 +207,7 @@ class VoiceWindowController: NSWindowController {
 // MARK: - Preview
 
 #Preview {
-    let manager = VoiceSessionManager()
+    let manager = DualModeVoiceManager()
     return VoiceWindowView(voiceManager: manager)
         .frame(width: 220, height: 320)
 }

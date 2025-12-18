@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { sanitizePlainText, parseAmount, isValidAmount } from './validation.js';
 import { getLogger, generateId } from './utils/tool-helpers.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // VALIDATION HELPERS
 // ============================================================================
@@ -535,9 +536,7 @@ export function createRetirementPlanningTools() {
   return {
     // ========== CREATE RETIREMENT PLAN ==========
     createRetirementPlan: llm.tool({
-      description: `Create a comprehensive retirement plan with timeline, checklists, and vision.
-Use when the user wants to start planning for retirement or update their retirement goals.
-Jordan coordinates with Maya for savings goals and Jack for investment strategy.`,
+      description: getToolDescription('createRetirementPlan'),
       parameters: z.object({
         currentAge: z.number().min(18).max(100).describe("User's current age"),
         targetAge: z.number().min(30).max(100).describe('Desired retirement age'),
@@ -597,7 +596,7 @@ Jordan coordinates with Maya for savings goals and Jack for investment strategy.
 
     // ========== GET RETIREMENT STATUS ==========
     getRetirementStatus: llm.tool({
-      description: `Get the current status of the user's retirement plan including progress, timeline, and next steps.`,
+      description: getToolDescription('getRetirementStatus'),
       parameters: z.object({
         userId: z.string().optional().default('default').describe('User identifier'),
       }),
@@ -641,8 +640,7 @@ Jordan coordinates with Maya for savings goals and Jack for investment strategy.
 
     // ========== ADD VISION ITEM ==========
     addRetirementVisionItem: llm.tool({
-      description: `Add a retirement vision item - what does your ideal retirement look like?
-Categories: location, activities, travel, family, health, legacy, work`,
+      description: getToolDescription('addRetirementVisionItem'),
       parameters: z.object({
         category: z
           .enum(['location', 'activities', 'travel', 'family', 'health', 'legacy', 'work'])
@@ -693,7 +691,7 @@ Categories: location, activities, travel, family, health, legacy, work`,
 
     // ========== UPDATE SAVINGS PROGRESS ==========
     updateRetirementSavings: llm.tool({
-      description: `Update retirement savings progress. Jordan coordinates with Maya to track this.`,
+      description: getToolDescription('updateRetirementSavings'),
       parameters: z.object({
         currentSavings: z.number().min(0).describe('Total current retirement savings'),
         monthlySavingsTarget: z.number().min(0).optional().describe('Monthly savings goal'),
@@ -732,7 +730,7 @@ Categories: location, activities, travel, family, health, legacy, work`,
 
     // ========== COMPLETE CHECKLIST ITEM ==========
     completeRetirementTask: llm.tool({
-      description: `Mark a retirement planning task as complete.`,
+      description: getToolDescription('completeRetirementTask'),
       parameters: z.object({
         taskDescription: z
           .string()
@@ -768,7 +766,7 @@ Categories: location, activities, travel, family, health, legacy, work`,
 
     // ========== GET RETIREMENT VISION PROMPTS ==========
     getRetirementVisionPrompts: llm.tool({
-      description: `Get thought-provoking questions to help envision retirement.`,
+      description: getToolDescription('getRetirementVisionPrompts'),
       parameters: z.object({
         category: z
           .enum(['location', 'activities', 'travel', 'family', 'health', 'legacy', 'work'])
@@ -800,8 +798,7 @@ Categories: location, activities, travel, family, health, legacy, work`,
 
     // ========== COORDINATE WITH MAYA ==========
     requestMayaRetirementHelp: llm.tool({
-      description: `Request Maya's help with retirement savings, budget allocation, or financial planning.
-This creates a handoff context for Maya to pick up.`,
+      description: getToolDescription('requestMayaRetirementHelp'),
       parameters: z.object({
         helpType: z
           .enum(['savings-goal', 'budget-allocation', 'expense-reduction', 'investment-review'])

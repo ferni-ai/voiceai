@@ -1,5 +1,5 @@
 {
-  "generated": "2025-12-14T13:00:59.975Z",
+  "generated": "2025-12-15T21:43:39.609Z",
   "tokens": {
     "css": "tokens.css",
     "ts": "tokens.ts"
@@ -128,6 +128,33 @@
     "FERNI-UNIVERSE-BIBLE.md",
     "README.md",
     "SOUND-ASSET-MANIFEST.md",
-    "brand-book.html"
+    "brand-book.html",
+    "exports",
+    "favicons",
+    "ferni-design-tokens.css",
+    "ferni-fe-ai-aurora.svg",
+    "ferni-fe-ai-gradient-dark.svg",
+    "ferni-fe-ai-gradient.svg",
+    "ferni-fe-ai-logo-minimal.svg",
+    "ferni-fe-ai-logo-with-wordmark.svg",
+    "ferni-fe-ai-logo.svg",
+    "ferni-fe-ai-neon.svg",
+    "ferni-fe-ai-ocean.svg",
+    "ferni-fe-ai-sunset.svg",
+    "ferni-robot-celebrating.svg",
+    "ferni-robot-hugging.svg",
+    "ferni-robot-icon.svg",
+    "ferni-robot-listening.svg",
+    "ferni-robot-mascot.svg",
+    "ferni-robot-thinking.svg",
+    "ferni-walle-bot.svg",
+    "ferni-walle-curious.svg",
+    "ferni-walle-happy.svg",
+    "ferni-walle-icon.svg",
+    "ferni-walle-sage.svg",
+    "ferni-walle-sticker.svg",
+    "icons",
+    "logos",
+    "social"
   ]
 }

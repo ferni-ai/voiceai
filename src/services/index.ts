@@ -131,22 +131,12 @@ export {
 } from './session-manager.js';
 
 // ============================================================================
-// SESSION CONTEXT (Unified session state management)
-// Provides a single source of truth for session state, replacing fragmented singletons.
-// See src/services/session-context.ts for full architecture documentation.
+// SESSION CONTEXT (DEPRECATED - REMOVED)
+// This module was an abandoned architecture draft. Use these alternatives:
+// - ContextManager (src/context/) - For conversation context and prompt building
+// - SessionStateManager (src/agents/session/) - For session lifecycle and state
+// - Trust Systems (src/services/trust-systems/) - For relationship context
 // ============================================================================
-
-export {
-  // Factory function
-  createSessionContext,
-  type EnhancedAnalysis,
-  type SessionCleanupResult,
-  // Types
-  type SessionContext,
-  type SessionContextConfig,
-  type SessionStats,
-  type ThreadWithStarter,
-} from './session-context.js';
 
 // ============================================================================
 // SHUTDOWN

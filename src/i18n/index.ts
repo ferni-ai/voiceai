@@ -34,9 +34,12 @@ import {
   FALLBACK_CHAIN,
   RTL_LOCALES,
 } from './types.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 // Import source translations (en-US is always bundled)
 import enUS from './locales/en-US.json' with { type: 'json' };
+
+const log = getLogger();
 
 // ============================================================================
 // STATE
@@ -107,7 +110,10 @@ async function loadTranslations(locale: SupportedLocale): Promise<void> {
     const module = await import(`./locales/${locale}.json`);
     loadedTranslations.set(locale, module.default as Translations);
   } catch (error) {
-    console.warn(`Failed to load translations for ${locale}, using fallback`);
+    log.warn(
+      { locale, error: String(error) },
+      `Failed to load translations for ${locale}, using fallback`
+    );
     // Try fallback chain
     for (const fallback of FALLBACK_CHAIN[locale] || []) {
       if (loadedTranslations.has(fallback)) {
@@ -207,7 +213,7 @@ export function t(key: string, params?: TranslationParams): string {
   }
 
   // Return key if nothing found
-  console.warn(`Missing translation: ${key}`);
+  log.warn({ key }, `Missing translation: ${key}`);
   return key;
 }
 

@@ -70,9 +70,9 @@ npm run open   # Open in Android Studio
 
 ## Shared Web Assets
 
-All native apps use the same web frontend from `frontend-typescript/`. The build process:
+All native apps use the same web frontend from `apps/web/`. The build process:
 
-1. Builds the TypeScript frontend (`npm run build` in frontend-typescript)
+1. Builds the TypeScript frontend (`npm run build` in apps/web)
 2. Copies/references the built assets
 3. Packages with the native wrapper
 

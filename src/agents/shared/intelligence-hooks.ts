@@ -194,5 +194,3 @@ export default {
   enhanceSystemPrompt,
   getQuickPromptEnhancement,
 };
-
-

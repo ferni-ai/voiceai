@@ -66,14 +66,18 @@ export class ResponseAnticipationService {
     let template = '';
     let isComplete = false;
 
-    if (pattern && pattern.templates.length > 0) {
-      // Select random template for variety
-      const templateIdx = Math.floor(Math.random() * pattern.templates.length);
-      template = pattern.templates[templateIdx];
+    if (pattern) {
+      if (pattern.templates.length > 0) {
+        // Select random template for variety
+        const templateIdx = Math.floor(Math.random() * pattern.templates.length);
+        template = pattern.templates[templateIdx];
+        // Fill simple variables
+        template = this.fillVariables(template, pattern.variables);
+      }
+      // isComplete means we have a pattern (even with empty template)
+      // and no variables to fill. Empty templates are intentional - they signal
+      // "intent detected, use LLM with contextHint"
       isComplete = pattern.variables.length === 0;
-
-      // Fill simple variables
-      template = this.fillVariables(template, pattern.variables);
     }
 
     const anticipation: AnticipatedResponse = {
@@ -90,6 +94,7 @@ export class ResponseAnticipationService {
 
     // Update stats
     const latency = Date.now() - startTime;
+    // Track hits for all successful intent predictions (even with empty templates)
     if (isComplete) {
       this.stats.hits++;
       this.stats.avgHitLatencyMs =
@@ -131,6 +136,12 @@ export class ResponseAnticipationService {
    */
   getCompleteResponse(): { response: string; ssml: string } | null {
     if (!this.lastAnticipation || !this.lastAnticipation.isComplete) {
+      return null;
+    }
+
+    // If template is empty (intentional design), return null
+    // Empty templates mean "use LLM with contextHint, not cached response"
+    if (!this.lastAnticipation.template || this.lastAnticipation.template.length === 0) {
       return null;
     }
 

@@ -226,7 +226,12 @@ export interface ShareableCard {
   userId: string;
 
   // Card data (varies by type)
-  data: MusicalDNACardData | DesertIslandCardData | GameVictoryCardData | WeeklyRecapCardData | CreativeProfileCardData;
+  data:
+    | MusicalDNACardData
+    | DesertIslandCardData
+    | GameVictoryCardData
+    | WeeklyRecapCardData
+    | CreativeProfileCardData;
 
   // Generated assets
   imageUrl: string | null;
@@ -486,4 +491,3 @@ export interface MusicTriviaQuestion {
   funFact?: string;
   points: number;
 }
-

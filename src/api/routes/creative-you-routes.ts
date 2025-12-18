@@ -74,7 +74,12 @@ export async function handleCreativeYouRoutes(
     // GET /api/creative/videos/recommendations?userId=xxx&mood=learn&maxResults=5
     if (pathname === '/api/creative/videos/recommendations' && method === 'GET') {
       const userId = searchParams.get('userId') || '';
-      const mood = searchParams.get('mood') as 'learn' | 'chill' | 'inspire' | 'reflect' | undefined;
+      const mood = searchParams.get('mood') as
+        | 'learn'
+        | 'chill'
+        | 'inspire'
+        | 'reflect'
+        | undefined;
       const maxResults = parseInt(searchParams.get('maxResults') || '5');
       const topic = searchParams.get('topic') || undefined;
 
@@ -220,7 +225,12 @@ export async function handleCreativeYouRoutes(
     // GET /api/creative/podcasts/recommendations?userId=xxx&mood=learn
     if (pathname === '/api/creative/podcasts/recommendations' && method === 'GET') {
       const userId = searchParams.get('userId') || '';
-      const mood = searchParams.get('mood') as 'learn' | 'chill' | 'inspire' | 'reflect' | undefined;
+      const mood = searchParams.get('mood') as
+        | 'learn'
+        | 'chill'
+        | 'inspire'
+        | 'reflect'
+        | undefined;
       const maxResults = parseInt(searchParams.get('maxResults') || '5');
       const maxDurationParam = searchParams.get('maxDuration');
       const maxDuration = maxDurationParam ? parseInt(maxDurationParam) : undefined;
@@ -360,11 +370,13 @@ export async function handleCreativeYouRoutes(
       const body = await parseBody(req);
       const userId = body.userId as string | undefined;
       const content = body.content as string | undefined;
-      const source = body.source as {
-        type: 'video' | 'podcast' | 'conversation';
-        id: string;
-        title: string;
-      } | undefined;
+      const source = body.source as
+        | {
+            type: 'video' | 'podcast' | 'conversation';
+            id: string;
+            title: string;
+          }
+        | undefined;
       const tags = (body.tags as string[]) || [];
 
       if (!userId || !content || !source) {
@@ -434,4 +446,3 @@ async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>>
     req.on('error', reject);
   });
 }
-

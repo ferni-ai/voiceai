@@ -14,6 +14,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { recordPredictiveInsightFeedback } from '../services/predictive-insights/feedback-store.js';
 import { runPredictiveAnalysis } from '../services/predictive-insights/index.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { parseBody, sendJSON, sendError } from './helpers.js';
 
 const log = getLogger().child({ module: 'PredictiveInsightsAPI' });
 
@@ -21,29 +22,13 @@ const log = getLogger().child({ module: 'PredictiveInsightsAPI' });
 // HELPERS
 // ============================================================================
 
+// parseBody, sendJSON, sendError imported from './helpers.js'
+
+/**
+ * Legacy wrapper for sendJSON with (res, data, status) signature.
+ */
 function sendJson(res: ServerResponse, data: unknown, status = 200): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
-}
-
-function sendError(res: ServerResponse, message: string, status = 400): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ error: message }));
-}
-
-async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => (body += chunk));
-    req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : {});
-      } catch {
-        reject(new Error('Invalid JSON'));
-      }
-    });
-    req.on('error', reject);
-  });
+  sendJSON(res, data, status);
 }
 
 // ============================================================================
@@ -99,7 +84,7 @@ async function handleDismissInsight(
   userId: string
 ): Promise<void> {
   try {
-    const body = await parseBody(req);
+    const body = await parseBody<Record<string, unknown>>(req);
     const insightId = body.insightId as string;
 
     if (!insightId) {
@@ -128,7 +113,7 @@ async function handleInsightFeedback(
   userId: string
 ): Promise<void> {
   try {
-    const body = await parseBody(req);
+    const body = await parseBody<Record<string, unknown>>(req);
     const insightId = body.insightId as string;
     const helpful = body.helpful as boolean | undefined;
     const accurate = body.accurate as boolean | undefined;

@@ -69,6 +69,8 @@ export interface UserData {
   turnCount?: number;
   lastTopic?: string;
   recentTopics?: string[];
+  /** Recent user transcripts for multi-turn analysis (e.g., daily check-in) */
+  recentTranscripts?: string[];
 
   // Services reference
   services?: SessionServices;
@@ -77,10 +79,14 @@ export interface UserData {
   voicePreference?: VoicePreference;
   /** Shorthand for voicePreference.accent */
   preferredAccent?: EnglishAccent;
+  /** Preferred language for speech recognition validation (default: 'en') */
+  preferredLanguage?: string;
 
   // Timing
   userSpeakingStartTime?: number;
   userWentSilent?: boolean;
+  /** Whether the user was interrupted (for response recovery) */
+  wasInterrupted?: boolean;
 
   // Voice emotion tracking
   voiceEmotion?: VoiceEmotionResult;
@@ -116,10 +122,12 @@ export interface UserData {
 
   // Conversation context for humanization
   lastUserMessage?: string;
-  lastAgentResponse?: string; // For response quality tracking
+  lastAgentResponse?: string; // For response quality tracking + echo detection
   lastAgentResponseTime?: number; // For engagement scoring
   /** Timestamp when agent finished speaking (for echo prevention cooldown) */
   lastAgentSpeechEndTime?: number;
+  /** Recommended delay before responding (from human turn intelligence) */
+  recommendedResponseDelay?: number;
   lastEmotionAnalysis?: {
     primary: string;
     intensity: number;

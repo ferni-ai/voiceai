@@ -47,7 +47,7 @@ Main validation script that runs these checks:
 Scan all `t('key')` calls in source code and verify keys exist in all locales.
 
 **Sources to scan:**
-- `frontend-typescript/src/ui/**/*.ts` → `frontend-typescript/src/i18n/locales/*.json`
+- `apps/web/src/ui/**/*.ts` → `apps/web/src/i18n/locales/*.json`
 - `promo/ferni-website/src/**/*.njk` → `promo/ferni-website/src/_data/i18n/*.json`
 
 ### Check 2: Unused Keys (WARNING)
@@ -86,7 +86,7 @@ Output:
 ```json
 {
   "frontend": {
-    "sources": ["frontend-typescript/src/ui/**/*.ts"],
+    "sources": ["apps/web/src/ui/**/*.ts"],
     "keys": ["menu.title", "menu.items.playGames", ...]
   },
   "landing": {
@@ -123,8 +123,8 @@ name: i18n Validation
 on:
   pull_request:
     paths:
-      - 'frontend-typescript/src/i18n/**'
-      - 'frontend-typescript/src/ui/**'
+      - 'apps/web/src/i18n/**'
+      - 'apps/web/src/ui/**'
       - 'promo/ferni-website/src/_data/i18n/**'
       - 'promo/ferni-website/src/**/*.njk'
 

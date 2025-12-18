@@ -6,10 +6,9 @@
  * for truly "Better Than Human" speech.
  */
 
-import { tagTextWithSsmlPersonaAware } from '../../ssml/index.js';
+import { sanitizeSsml, tagTextWithSsmlPersonaAware } from '../../ssml/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { SpeechContext } from '../speech-context.js';
-import { sanitizeSsml, tagTextWithSsml } from '../ssml-tagger/index.js';
 import { makeVoiceAlive, type AliveVoiceContext } from './alive-voice.js';
 import {
   applySuperhmanVoice,
@@ -74,29 +73,18 @@ export function tagTextWithSsmlAdaptive(
     return adjustExistingSsml(text, context);
   }
 
-  // Use persona-aware tagger if personaId provided
-  let tagged: string;
-  if (personaId) {
-    tagged = tagTextWithSsmlPersonaAware(text, {
-      personaId,
-      baseSpeed: context.baseSpeed * context.energyMultiplier,
-      baseVolume: 1.0,
-      humanize: true,
-    });
-    getLogger().debug(
-      `Persona-aware SSML (${personaId}): speed=${context.baseSpeed.toFixed(2)}, energy=${context.energyMultiplier.toFixed(2)}`
-    );
-  } else {
-    // Fallback to legacy tagger
-    tagged = tagTextWithSsml(text);
-    // Then apply adaptive adjustments
-    tagged = applySpeedAdaptation(tagged, context);
-    tagged = applyPauseAdaptation(tagged, context);
-    tagged = applyWarmthAdjustment(tagged, context);
-    getLogger().debug(
-      `Legacy SSML: speed=${context.baseSpeed.toFixed(2)}, energy=${context.energyMultiplier.toFixed(2)}`
-    );
-  }
+  // Use persona-aware tagger (now the canonical source)
+  // Default to 'ferni' if no personaId provided for consistent behavior
+  const effectivePersonaId = personaId || 'ferni';
+  let tagged = tagTextWithSsmlPersonaAware(text, {
+    personaId: effectivePersonaId,
+    baseSpeed: context.baseSpeed * context.energyMultiplier,
+    baseVolume: 1.0,
+    humanize: true,
+  });
+  getLogger().debug(
+    `Persona-aware SSML (${effectivePersonaId}): speed=${context.baseSpeed.toFixed(2)}, energy=${context.energyMultiplier.toFixed(2)}`
+  );
 
   // =========================================================================
   // ALIVE VOICE ENHANCEMENTS

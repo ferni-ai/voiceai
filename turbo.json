@@ -44,7 +44,7 @@
       "inputs": ["design-system/tokens/**"],
       "outputs": [
         "design-system/dist/**",
-        "frontend-typescript/src/config/animation-constants.generated.ts",
+        "apps/web/src/config/animation-constants.generated.ts",
         "promo/**/design-tokens.css"
       ],
       "cache": true

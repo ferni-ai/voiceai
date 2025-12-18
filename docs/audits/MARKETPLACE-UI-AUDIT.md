@@ -3,10 +3,10 @@
 **Date:** 2024-12-13
 **Auditor:** Claude AI (Automated Review)
 **Files Audited:**
-- `frontend-typescript/src/ui/marketplace.ui.ts`
-- `frontend-typescript/src/ui/marketplace-billing.ui.ts`
-- `frontend-typescript/src/ui/marketplace-publisher.ui.ts`
-- `frontend-typescript/src/services/marketplace.service.ts`
+- `apps/web/src/ui/marketplace.ui.ts`
+- `apps/web/src/ui/marketplace-billing.ui.ts`
+- `apps/web/src/ui/marketplace-publisher.ui.ts`
+- `apps/web/src/services/marketplace.service.ts`
 
 ---
 

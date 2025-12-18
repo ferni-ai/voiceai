@@ -1,22 +1,137 @@
 /**
- * Performance Optimizations
+ * Performance Optimization Module
  *
- * Centralized performance optimization utilities for the voice agent.
- * Implements 6 key optimizations:
+ * Centralized exports for all performance optimization utilities.
  *
- * 1. Parallel Context Building - Run independent builders concurrently
- * 2. Connection Pooling - Optimize Firestore connections for high load
- * 3. Response Streaming - Begin TTS before full response generated
- * 4. Edge Caching - Cache common persona bundles at edge
- * 5. WebSocket Keep-Alive - Reduce reconnection overhead
- * 6. Batch Analytics - Group non-critical writes for efficiency
+ * Key Features:
+ * - Response streaming for early TTS generation
+ * - Batch Firestore writes for reduced latency
+ * - Turn profiling for bottleneck identification
+ * - Optimized audio processing with frame decimation
+ * - Parallel turn execution with dependency management
  *
- * @module performance
+ * @module agents/shared/performance
  */
 
-export * from './batch-analytics.js';
-export * from './edge-cache.js';
-export * from './firestore-pool.js';
-export * from './parallel-executor.js';
-export * from './response-streaming.js';
-export * from './websocket-keepalive.js';
+// Integration - Central performance setup
+export {
+  initializePerformanceOptimizations,
+  processOptimizedTurn,
+  queueBackgroundTasks,
+  startSpeculativeTTS,
+  getPerformanceMetrics,
+  getPerformanceSummary as getIntegrationPerformanceSummary,
+  resetPerformanceOptimizations,
+  type PerformanceConfig,
+  type PerformanceMetrics,
+} from './integration.js';
+
+// Response Streaming - Early TTS synthesis
+export {
+  ResponseStreamProcessor,
+  LookaheadBuffer,
+  createStreamingSession,
+  getStreamingSession,
+  endStreamingSession,
+  cancelStreamingSession,
+  type StreamingConfig,
+  type StreamChunk,
+  type StreamMetrics,
+  type ChunkCallback,
+} from './response-streaming.js';
+
+// Batch Firestore Writes - Reduced round trips
+export {
+  getBatchWriteManager,
+  queueWrite,
+  queueWrites,
+  flushBatchWrites,
+  getBatchWriteMetrics,
+  clearBatchWrites,
+  queueTurnWrite,
+  queueTrustUpdate,
+  queueSessionUpdate,
+  type WriteOperation,
+  type BatchConfig,
+  type BatchMetrics,
+} from './batch-firestore.js';
+
+// Turn Profiler - Latency tracking
+export {
+  getTurnProfiler,
+  startTurnProfiling,
+  markTurnCheckpoint,
+  completeTurnProfiling,
+  getSessionPerformanceSummary,
+  getGlobalPerformanceSummary,
+  clearSessionProfiling,
+  PERFORMANCE_THRESHOLDS,
+  type TurnTimings,
+  type TurnMetrics,
+  type SessionMetricsSummary,
+} from './turn-profiler.js';
+
+// Optimized Audio Processing - Frame decimation
+export {
+  AudioProcessingOptimizer,
+  getAudioProcessingOptimizer,
+  clearAudioProcessingOptimizer,
+  createLowLatencyOptimizer,
+  createFullProcessingOptimizer,
+  getAllAudioProcessingMetrics,
+  type AudioProcessingConfig,
+  type AudioProcessingMetrics,
+} from './optimized-audio-processing.js';
+
+// Parallel Turn Executor - Dependency-aware parallelization
+export {
+  ParallelTurnExecutor,
+  executeParallel,
+  executeSimpleParallel,
+  executeParallelSafe,
+  TurnOperationTemplates,
+  type TurnOperation,
+  type OperationResult,
+  type ParallelExecutionResult,
+} from './parallel-turn-executor.js';
+
+// ============================================================================
+// PERFORMANCE SUMMARY UTILITIES
+// ============================================================================
+
+// Import for use in utility functions
+import {
+  getGlobalPerformanceSummary as _getGlobalPerformanceSummary,
+  PERFORMANCE_THRESHOLDS as _PERFORMANCE_THRESHOLDS,
+} from './turn-profiler.js';
+import { getBatchWriteMetrics as _getBatchWriteMetrics } from './batch-firestore.js';
+import {
+  getAllAudioProcessingMetrics as _getAllAudioProcessingMetrics,
+  type AudioProcessingMetrics as _AudioProcessingMetrics,
+} from './optimized-audio-processing.js';
+
+/**
+ * Get a comprehensive performance summary across all systems
+ */
+export async function getPerformanceSummary(): Promise<{
+  turnProfiling: ReturnType<typeof _getGlobalPerformanceSummary>;
+  batchWrites: ReturnType<typeof _getBatchWriteMetrics>;
+  audioProcessing: Map<string, _AudioProcessingMetrics>;
+}> {
+  return {
+    turnProfiling: _getGlobalPerformanceSummary(),
+    batchWrites: _getBatchWriteMetrics(),
+    audioProcessing: _getAllAudioProcessingMetrics(),
+  };
+}
+
+/**
+ * Check if performance is within acceptable thresholds
+ */
+export function isPerformanceHealthy(): boolean {
+  const turnMetrics = _getGlobalPerformanceSummary();
+  return (
+    turnMetrics.slowTurnPercentage < 10 &&
+    turnMetrics.avgTurnMs < _PERFORMANCE_THRESHOLDS.ACCEPTABLE_TOTAL_MS
+  );
+}

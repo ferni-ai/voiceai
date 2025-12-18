@@ -126,7 +126,7 @@ Export assets from [`brand/logos/`](../../brand/logos/) and [`brand/icons/`](../
 
 | Doc | Location |
 |-----|----------|
-| Frontend design standards | [`frontend-typescript/CLAUDE.md`](../../frontend-typescript/CLAUDE.md) |
+| Frontend design standards | [`apps/web/CLAUDE.md`](../../apps/web/CLAUDE.md) |
 | Design system architecture | [`docs/architecture/CINEMATIC-DESIGN-SYSTEM.md`](../../docs/architecture/CINEMATIC-DESIGN-SYSTEM.md) |
 | Emotion system | [`docs/architecture/FERNI-EMOTION-SYSTEM.md`](../../docs/architecture/FERNI-EMOTION-SYSTEM.md) |
 | Brand assets | [`brand/README.md`](../../brand/README.md) |

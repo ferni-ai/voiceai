@@ -12,6 +12,10 @@
  * They nod, they react, they show they're with you."
  *
  * @module live-backchanneling-integration
+ *
+ * @note STATUS: IMPLEMENTED BUT NOT INTEGRATED
+ * This integration is complete but not yet wired into the voice agent.
+ * To integrate: export from index.ts and call from voice-agent's audio pipeline.
  */
 
 import type { voice } from '@livekit/agents';

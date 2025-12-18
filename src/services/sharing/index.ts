@@ -34,4 +34,3 @@ export type {
   GameVictoryCardData,
   WeeklyRecapCardData,
 } from '../musical-you/types.js';
-

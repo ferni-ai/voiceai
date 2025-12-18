@@ -260,6 +260,23 @@ export function init(): void {
   // Calculate weeks together
   updateWeeksTogether();
 
+  // Set up event-driven conversation tracking
+  // Listen to conversation END (not start) to count completed conversations
+  window.addEventListener('ferni:conversation-end', () => {
+    const newMilestones = recordConversation();
+    
+    if (newMilestones.length > 0) {
+      log.info({ count: newMilestones.length }, 'New milestones ready to celebrate');
+      
+      // Dispatch event for UI to handle celebrations
+      window.dispatchEvent(
+        new CustomEvent('ferni:milestones-ready', {
+          detail: { milestones: newMilestones },
+        })
+      );
+    }
+  });
+
   log.info('Growth journey initialized');
 }
 

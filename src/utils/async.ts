@@ -395,38 +395,41 @@ export async function parallelLimit<T>(
   tasks: Array<() => Promise<T>>,
   limit: number
 ): Promise<T[]> {
-  const results: T[] = [];
-  const executing: Array<Promise<void>> = [];
+  const results: T[] = new Array(tasks.length);
 
-  for (const [index, task] of tasks.entries()) {
-    const promise = task().then((result) => {
-      results[index] = result;
+  // FIX BUG: The previous implementation had a fundamentally broken pending check.
+  // Promise.resolve(true) ALWAYS wins against any pending promise, so isPending was always true.
+  // This caused memory leaks and the concurrency limit was never respected after the first batch.
+  //
+  // New implementation: Use a proper semaphore-style approach where we track
+  // executing promises with their completion callbacks.
+
+  const executing = new Set<Promise<void>>();
+
+  for (let index = 0; index < tasks.length; index++) {
+    const task = tasks[index];
+    const currentIndex = index; // Capture for closure
+
+    // Create a tracked promise that removes itself from the set when done
+    const promise = (async () => {
+      results[currentIndex] = await task();
+    })();
+
+    // Wrap in a promise that removes itself when settled
+    const trackedPromise = promise.finally(() => {
+      executing.delete(trackedPromise);
     });
 
-    executing.push(promise);
+    executing.add(trackedPromise);
 
-    // If we've hit the limit, wait for one to complete
-    if (executing.length >= limit) {
+    // If we've hit the limit, wait for at least one to complete
+    if (executing.size >= limit) {
       await Promise.race(executing);
-      // Remove completed promises
-      const newExecuting: Array<Promise<void>> = [];
-      for (const p of executing) {
-        // Check if promise is still pending by racing with resolved promise
-        const isPending = await Promise.race([
-          p.then(() => false).catch(() => false),
-          Promise.resolve(true),
-        ]);
-        if (isPending) {
-          newExecuting.push(p);
-        }
-      }
-      executing.length = 0;
-      executing.push(...newExecuting);
     }
   }
 
   // Wait for remaining tasks
-  await Promise.all(executing);
+  await Promise.allSettled(executing);
   return results;
 }
 

@@ -26,6 +26,7 @@ import { getSportScores, getTeamScore } from '../../sports.js';
 import { createSearchTools } from '../../search.js';
 import { createWeatherTools } from '../../weather.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // LEGACY TOOL WRAPPER (for tools that don't need routing)
 // ============================================================================
@@ -64,8 +65,7 @@ function getNewsToolDefinitions(): ToolDefinition[] {
       tags: ['information', 'news', 'headlines', 'finance', 'tech', 'stocks'],
       create: (_ctx: ToolContext) =>
         llm.tool({
-          description:
-            'Get current news headlines. Categories: "general", "finance", "tech", or "stock" (requires ticker symbol).',
+          description: getToolDescription('getNews'),
           parameters: z.object({
             category: z
               .enum(['general', 'finance', 'tech', 'stock'])
@@ -164,7 +164,7 @@ function getSportsToolDefinitions(): ToolDefinition[] {
       ],
       create: (_ctx: ToolContext) =>
         llm.tool({
-          description: 'Get sports scores. Provide either a team name OR a league, not both.',
+          description: getToolDescription('getSports'),
           parameters: z.object({
             team: z
               .string()

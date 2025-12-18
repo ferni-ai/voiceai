@@ -331,18 +331,29 @@ export class EmbeddingCache {
 }
 
 // ============================================================================
-// SINGLETON
+// SINGLETON (Thread-Safe)
 // ============================================================================
 
 let defaultCache: EmbeddingCache | null = null;
+let defaultCacheConfig: Partial<EmbeddingCacheConfig> | undefined;
 
 /**
- * Get the default embedding cache instance
+ * Get the default embedding cache instance (thread-safe)
+ * Uses synchronous singleton pattern - safe because EmbeddingCache
+ * constructor is synchronous. Multiple concurrent calls will get
+ * the same instance after the first call completes.
  */
 export function getEmbeddingCache(config?: Partial<EmbeddingCacheConfig>): EmbeddingCache {
-  if (!defaultCache) {
-    defaultCache = new EmbeddingCache(config);
+  // Fast path: instance already exists
+  if (defaultCache) {
+    return defaultCache;
   }
+
+  // Slow path: create instance (synchronous, so thread-safe in JS)
+  // Store config for potential future use
+  defaultCacheConfig = config;
+  defaultCache = new EmbeddingCache(config);
+
   return defaultCache;
 }
 
@@ -354,6 +365,7 @@ export function resetEmbeddingCache(): void {
     defaultCache.clear();
     defaultCache = null;
   }
+  defaultCacheConfig = undefined;
 }
 
 // ============================================================================

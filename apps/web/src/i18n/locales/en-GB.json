@@ -67,7 +67,7 @@
       "voiceAccent": "Voice & Accent",
       "guidedPractices": "Guided Practices",
       "createPractice": "Create Practice",
-      "healthFitness": "Health & Fitness",
+      "wearables": "Wearables",
       "calendar": "Calendar",
       "notifications": "Notifications",
       "toggleTheme": "Light / Dark",
@@ -83,8 +83,7 @@
       "supportFerni": "Support Ferni",
       "takeTour": "Take the Tour",
       "language": "Language",
-      "whatsGrowing": "What's Growing",
-      "supportFerniExpanded": "Support Ferni"
+      "whatsGrowing": "What's Growing"
     },
     "pinItem": "Pin to top",
     "unpinItem": "Unpin",
@@ -133,6 +132,88 @@
     "endConversation": "End conversation",
     "endConversationGoodbye": "End conversation - Goodbye",
     "agentEndingConversation": "Agent ending conversation"
+  },
+  "trustJourney": {
+    "eyebrow": "Our Story",
+    "title": "Your Trust Journey",
+    "subtitle": "How we've grown together",
+    "loading": "Loading your journey",
+    "loadingText": "Gathering your journey...",
+    "trustScore": "Trust Score",
+    "exportSuccess": "Journey exported!",
+    "offlineBanner": "You're offline - showing cached data",
+    "loadMore": "Load {count} more",
+    "strengthLabel": "Trust score: {value}%",
+    "timelineLabel": "Journey timeline",
+    "filterLabel": "Filter timeline",
+    "filters": {
+      "all": "All",
+      "growth": "Growth",
+      "win": "Wins",
+      "callback": "Callbacks",
+      "boundary": "Boundaries",
+      "outreach": "Outreach"
+    },
+    "sections": {
+      "strength": "Relationship Strength",
+      "stats": "Journey Stats",
+      "boundaries": "Boundaries Respected",
+      "growth": "How you've grown",
+      "timeline": "Our journey together"
+    },
+    "stats": {
+      "growthMoments": "Growth Moments",
+      "winsCelebrated": "Wins Celebrated",
+      "sharedMoments": "Shared Moments"
+    },
+    "strengthDescriptions": {
+      "deep": "We have built something real together. I know you, and you trust me.",
+      "growing": "Our connection is growing deeper. I'm learning what matters to you.",
+      "building": "We're building trust. Every conversation helps me understand you better.",
+      "starting": "We're just getting started. Keep talking to me - I'm listening.",
+      "beginning": "Every journey begins with a first step. I'm here whenever you're ready."
+    },
+    "growthTypes": {
+      "emotional_regulation": "Emotional balance",
+      "perspective_shift": "Fresh perspectives",
+      "boundary_setting": "Healthy boundaries",
+      "behavior_change": "New habits",
+      "self_awareness": "Self-awareness",
+      "coping_upgrade": "Better coping",
+      "goal_progress": "Goal progress"
+    },
+    "empty": {
+      "title": "Our story is just beginning",
+      "message": "As we talk more, I'll notice your growth, celebrate your wins, and remember what matters to you. Check back soon."
+    },
+    "errors": {
+      "offline": {
+        "title": "You're offline",
+        "message": "Connect to the internet to see your journey."
+      },
+      "notLoggedIn": {
+        "title": "Not signed in",
+        "message": "Sign in to see your journey with Ferni."
+      },
+      "rateLimited": {
+        "title": "Slow down",
+        "message": "You're checking too often. Wait a moment and try again."
+      },
+      "unauthorized": {
+        "title": "Access denied",
+        "message": "You don't have permission to view this."
+      },
+      "generic": {
+        "title": "Something went wrong",
+        "message": "We couldn't load your journey. Please try again."
+      },
+      "exportFailed": {
+        "message": "Couldn't export your data. Please try again."
+      },
+      "fetchFailedUsingCache": {
+        "message": "Showing saved data - couldn't reach server."
+      }
+    }
   },
   "subscription": {
     "free": "Free",
@@ -412,7 +493,7 @@
     }
   },
   "wearableSettings": {
-    "title": "Health & Fitness",
+    "title": "Wearables",
     "loading": "Loading...",
     "intro": "Connect your wearables to give Ferni context about your health and energy levels.",
     "sections": {
@@ -570,18 +651,5 @@
     "dailyPractice": "Daily Practice",
     "predictions": "Predictions",
     "runScenario": "Run scenario"
-  },
-  "support": {
-    "eyebrow": "GROWING TOGETHER",
-    "title": "Support Ferni",
-    "subtitle": "Choose how our friendship grows. Every way you show up matters.",
-    "growTogether": "Ways to Deepen Our Connection",
-    "plantASeed": "Plant a Seed",
-    "plantDesc": "A small gift that helps Ferni grow. No pressure—our friendship doesn't depend on it.",
-    "plantButton": "Plant This Seed",
-    "thankYouSupporter": "You're amazing",
-    "yourSupport": "Your support keeps Ferni here for everyone",
-    "manageBilling": "Update payment method",
-    "footer": "However you choose to support us, thank you for being here."
   }
 }

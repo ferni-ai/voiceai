@@ -48,8 +48,8 @@ Run `npm run debt` to regenerate this report.
 - 📝 `src/services/trust-systems/rollout.ts:118` - Get real metrics from monitoring
 - 📝 `src/services/feature-rollout.ts:575` - Integrate with your observability system
 - 📝 `src/services/outreach/decision-engine.ts:795` - Get from profile
-- 📝 `frontend-typescript/src/narrative/story-tracker.ts:492` - Implement Firestore sync
-- 📝 `frontend-typescript/src/services/ritual-engine.service.ts:426` - Add persona-specific haptic signatures
+- 📝 `apps/web/src/narrative/story-tracker.ts:492` - Implement Firestore sync
+- 📝 `apps/web/src/services/ritual-engine.service.ts:426` - Add persona-specific haptic signatures
 - 📦 `src/tools/lifecycle.ts:123` - Legacy team handlers have been removed. Use USE_NEW_TEAM_HAN
 - 📦 `src/utils/logger.ts:14` - Use getLogger() instead
 - 📦 `src/speech/audio-prosody.ts:1013` - Use getSessionAudioProsodyAnalyzer(sessionId) for proper ses
@@ -77,8 +77,8 @@ Run `npm run debt` to regenerate this report.
 - 📦 `apps/cli/src/commands/quality/audit-legacy.ts:68` - ')) {
 - 📦 `apps/cli/src/commands/quality/audit-legacy.ts:105` - // Scan for @deprecated
 - 📦 `apps/cli/src/commands/quality/audit-legacy.ts:106` - ');
-- 📦 `frontend-typescript/src/ui/celebrations.ui.ts:248` - Use warmthGlow() instead - confetti is not aligned with zen 
-- 📦 `frontend-typescript/src/ui/celebrations.ui.ts:261` - Use warmthGlow() instead - sparkles replaced with warmth
-- 📦 `frontend-typescript/src/ui/celebrations.ui.ts:274` - Use connectionWarmth() instead
-- 📦 `frontend-typescript/src/ui/celebrations.ui.ts:281` - Use connectionWarmth() instead
-- 📦 `frontend-typescript/src/ui/celebrations.ui.ts:288` - Use softAcknowledge() instead
+- 📦 `apps/web/src/ui/celebrations.ui.ts:248` - Use warmthGlow() instead - confetti is not aligned with zen 
+- 📦 `apps/web/src/ui/celebrations.ui.ts:261` - Use warmthGlow() instead - sparkles replaced with warmth
+- 📦 `apps/web/src/ui/celebrations.ui.ts:274` - Use connectionWarmth() instead
+- 📦 `apps/web/src/ui/celebrations.ui.ts:281` - Use connectionWarmth() instead
+- 📦 `apps/web/src/ui/celebrations.ui.ts:288` - Use softAcknowledge() instead

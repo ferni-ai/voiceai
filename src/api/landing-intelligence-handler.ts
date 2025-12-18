@@ -39,6 +39,7 @@ import {
 import { getQuickOptimization } from '../services/landing-intelligence/orchestrator.js';
 import { generateVisitorId } from '../services/landing-intelligence/returning-visitor.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { parseBody } from './helpers.js';
 
 const log = createLogger({ module: 'LandingIntelligenceHandler' });
 
@@ -46,6 +47,11 @@ const log = createLogger({ module: 'LandingIntelligenceHandler' });
 // HELPERS
 // ============================================================================
 
+// parseBody imported from './helpers.js'
+
+/**
+ * Local sendJSON with CORS headers for landing pages (cross-origin requests)
+ */
 function sendJSON(res: ServerResponse, data: unknown, statusCode = 200): void {
   res.writeHead(statusCode, {
     'Content-Type': 'application/json',
@@ -57,23 +63,6 @@ function sendJSON(res: ServerResponse, data: unknown, statusCode = 200): void {
 
 function sendError(res: ServerResponse, message: string, statusCode = 500): void {
   sendJSON(res, { error: message }, statusCode);
-}
-
-async function parseBody<T>(req: IncomingMessage): Promise<T> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => {
-      body += chunk;
-    });
-    req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : ({} as T));
-      } catch (e) {
-        reject(new Error('Invalid JSON body'));
-      }
-    });
-    req.on('error', reject);
-  });
 }
 
 // ============================================================================

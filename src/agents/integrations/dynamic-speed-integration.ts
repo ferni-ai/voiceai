@@ -302,17 +302,17 @@ export interface PersonaSpeedProfile {
  */
 const PERSONA_SPEED_PROFILES: Record<string, PersonaSpeedProfile> = {
   ferni: {
-    baseSpeed: 1.0,
+    baseSpeed: 0.85, // Slower, more deliberate (was 1.0)
     emotionalSlowdown: 0.15, // Moderate slowing for emotions
-    complexitySlowdown: 0.1, // Slight slowing for complexity
-    minSpeed: 0.85,
-    maxSpeed: 1.15,
-    pauseProbability: 0.3,
+    complexitySlowdown: 0.15, // More slowing for complex/informational content (was 0.1)
+    minSpeed: 0.7, // Allow slower speech (was 0.85)
+    maxSpeed: 1.0, // Cap maximum speed (was 1.15)
+    pauseProbability: 0.4, // More pauses (was 0.3)
     traits: {
-      reflective: 0.5,
-      energetic: 0.5,
+      reflective: 0.6, // More reflective (was 0.5)
+      energetic: 0.4, // Less rushed (was 0.5)
       empathetic: 0.7,
-      scholarly: 0.4,
+      scholarly: 0.5, // More thoughtful with information (was 0.4)
     },
   },
 

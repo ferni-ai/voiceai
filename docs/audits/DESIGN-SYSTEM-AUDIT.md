@@ -19,7 +19,7 @@
 | `brand/ferni-design-tokens.css` | Zen only | ✅ From sync-promo | 🗑️ **DEPRECATED** |
 | `promo/ferni-website/css/design-tokens.css` | Zen only | ✅ From sync-promo | ⚠️ Outdated |
 | `promo/ferni-website/src/css/_tokens.css` | Zen only | ✅ From sync-promo | ⚠️ Duplicate |
-| `frontend-typescript/public/design-system/tokens.css` | Both | ✅ From build-assets | ⚠️ Needs sync |
+| `apps/web/public/design-system/tokens.css` | Both | ✅ From build-assets | ⚠️ Needs sync |
 
 **Impact:** Changes to tokens require manual runs of multiple scripts. Easy to miss one.
 
@@ -94,7 +94,7 @@ Two separate definitions exist:
 | File | Format | Synced? |
 |------|--------|---------|
 | `design-system/tokens/animation.json` | JSON | Source ✅ |
-| `frontend-typescript/src/config/animation-constants.ts` | TypeScript | ❌ Manual |
+| `apps/web/src/config/animation-constants.ts` | TypeScript | ❌ Manual |
 
 **Impact:** Animation timing changes require manual updates in two places.
 
@@ -134,7 +134,7 @@ colors: {
 |----------|------|---------|
 | `brand/favicons/` | 3 SVGs | Legacy |
 | `design-system/assets/favicons/` | 3 SVGs | Generated from |
-| `frontend-typescript/public/` | favicon-animated.svg | App |
+| `apps/web/public/` | favicon-animated.svg | App |
 | `promo/ferni-website/images/` | favicon.png | Website |
 
 ---

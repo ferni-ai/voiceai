@@ -168,7 +168,7 @@ export interface FeatureFlags {
     enabled: boolean;
     /** Crisis & Safety tools (ALWAYS enabled for safety) */
     crisis: boolean;
-    /** Health & Fitness tools */
+    /** Wearable integration tools */
     health: boolean;
     /** Career & Professional tools */
     career: boolean;

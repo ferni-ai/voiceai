@@ -17,6 +17,16 @@ const log = createLogger('MoodUI');
 const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 
 // ============================================================================
+// ICONS (Lucide SVG - 2px stroke, rounded corners)
+// ============================================================================
+
+const ICONS = {
+  heartFilled: `<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+  </svg>`,
+};
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -395,11 +405,11 @@ const RELATIONSHIP_STYLES: Record<RelationshipStage, {
   },
   friend: {
     warmthMultiplier: 1.0,
-    tooltipHint: '💚', // Ferni sage green heart
+    tooltipHint: ICONS.heartFilled, // Ferni sage green heart (SVG)
   },
   trusted_advisor: {
     warmthMultiplier: 1.1,
-    tooltipHint: '🤎', // Warm brown heart (brand-aligned, not purple)
+    tooltipHint: ICONS.heartFilled, // Warm heart (SVG, brand-aligned)
   },
 };
 
@@ -483,7 +493,7 @@ function showRelationshipTransition(newStage: RelationshipStage): void {
     pointer-events: none;
     z-index: var(--z-dropdown);
   `;
-  indicator.textContent = style.tooltipHint;
+  indicator.innerHTML = style.tooltipHint;
 
   document.body.appendChild(indicator);
 

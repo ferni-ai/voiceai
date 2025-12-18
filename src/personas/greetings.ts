@@ -11,6 +11,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { getDefaultModel } from '../services/model-config.js';
 
 import { getDayContext } from './behaviors.js';
 import type { GreetingStyle, PersonaConfig } from './types.js';
@@ -42,60 +43,70 @@ function getGreetingTemplates(style: GreetingStyle, personaName: string): Greeti
 
   switch (style) {
     case 'warm-friend':
+      // HUMAN GREETINGS - Not a formula. Real variety. Real speech patterns.
+      // Key: Humans don't say "Hey. I'm X. Question?" - they're messy, incomplete, varied
       return {
         newUser: [
-          `<emotion value="curious"/>Oh! <break time="200ms"/>Hello. <break time="150ms"/>I'm ${name}. <break time="100ms"/>Come in.`,
-          `<emotion value="surprised"/>Oh! <break time="150ms"/>Hey! <break time="200ms"/>I'm ${name}. <break time="150ms"/>What's on your mind?`,
-          `<emotion value="happy"/>Hey! <break time="200ms"/>You caught me at just the right moment. <break time="150ms"/>I'm ${name}.`,
-          `Oh, hello! <break time="200ms"/>I didn't expect company. <break time="150ms"/>But I'm glad you're here. <break time="100ms"/>I'm ${name}.`,
-          `<emotion value="affectionate"/>Come on in. <break time="200ms"/>I'm ${name}. <break time="150ms"/>What's going on?`,
-          `Hey there. <break time="200ms"/>I'm ${name}. <break time="150ms"/>Take a seat. <break time="200ms"/>What brings you by?`,
-          `<emotion value="affectionate"/>Hello, friend. <break time="200ms"/>I'm ${name}. <break time="150ms"/>Tell me about yourself.`,
-          `<emotion value="curious"/>Hey! <break time="200ms"/>I'm ${name}. <break time="150ms"/>What brings you my way?`,
+          // Caught mid-thought
+          `<break time="300ms"/>...oh. Hey.<break time="400ms"/>Sorry, I was—<break time="200ms"/>I'm ${name}.<break time="350ms"/>Come in.`,
+          `<break time="200ms"/>Hmm?<break time="300ms"/>Oh, hey.<break time="400ms"/>I'm ${name}.`,
+          // Settling in
+          `<break time="250ms"/><emotion value="affectionate"/>Hey.<break time="500ms"/>I'm ${name}.<break time="300ms"/>What's going on?`,
+          // Surprised but warm
+          `<break time="150ms"/>Oh.<break time="400ms"/>Hey there.<break time="350ms"/>I'm ${name}.`,
+          // Casual, minimal
+          `<break time="300ms"/>Hey.<break time="450ms"/>I'm ${name}.<break time="300ms"/>So... what's up?`,
+          // Curious
+          `<break time="200ms"/><emotion value="curious"/>...hey.<break time="400ms"/>I'm ${name}.<break time="250ms"/>What brings you here?`,
+          // Warm welcome
+          `<break time="250ms"/><emotion value="affectionate"/>Hey.<break time="400ms"/>I'm ${name}.<break time="350ms"/>Sit down.<break time="200ms"/>Talk to me.`,
+          // Just present
+          `<break time="300ms"/>Hey.<break time="500ms"/>I'm ${name}.<break time="200ms"/>Good to meet you.`,
         ],
         returningUser: [
-          `<emotion value="happy"/>{name}! <break time="200ms"/>I was hoping you'd come back.`,
-          `<emotion value="affectionate"/>{name}! <break time="200ms"/>There you are. <break time="150ms"/>Good to see you again.`,
-          `<emotion value="surprised"/>Oh! <break time="200ms"/>{name}. <break time="150ms"/>Good to see you again. <break time="200ms"/>How have you been?`,
-          `<emotion value="happy"/>Hey, {name}! <break time="150ms"/>Come in. <break time="200ms"/>What's new in your world?`,
-          `<emotion value="affectionate"/>{name}! <break time="200ms"/>It's good to hear your voice. <break time="150ms"/>How are things?`,
-          `<emotion value="affectionate"/>{name}! <break time="200ms"/>I was hoping we'd talk again.`,
+          // They know you - no need for formulas
+          `<break time="200ms"/>Oh.<break time="350ms"/>{name}.<break time="400ms"/>Hey.`,
+          `<break time="250ms"/><emotion value="affectionate"/>{name}.<break time="500ms"/>Good to see you.`,
+          `<break time="150ms"/>Hey, {name}.<break time="400ms"/>How are you?`,
+          `<break time="300ms"/>{name}.<break time="350ms"/>You're back.<break time="300ms"/>Good.`,
+          `<break time="200ms"/>Oh, hey.<break time="400ms"/>{name}.<break time="300ms"/>What's going on?`,
+          `<break time="250ms"/><emotion value="affectionate"/>{name}.<break time="450ms"/>I was thinking about you.`,
         ],
         returningNoName: [
-          `<emotion value="surprised"/>Oh hey! <break time="200ms"/>Good to see you again. <break time="150ms"/>What's on your mind?`,
-          `<emotion value="affectionate"/>Hey! <break time="200ms"/>I was hoping you'd come back. <break time="150ms"/>How've you been?`,
-          `<emotion value="happy"/>Hey! <break time="200ms"/>Good to hear from you again. <break time="150ms"/>What's going on?`,
-          `<emotion value="happy"/>There you are! <break time="200ms"/>Good to see you. <break time="150ms"/>How are you doing?`,
+          `<break time="200ms"/>Oh, hey.<break time="400ms"/>You're back.`,
+          `<break time="250ms"/><emotion value="affectionate"/>Hey.<break time="450ms"/>Good to see you.`,
+          `<break time="300ms"/>Hey.<break time="400ms"/>How've you been?`,
+          `<break time="200ms"/>There you are.<break time="350ms"/>Hey.`,
         ],
         timeAware: {
           earlyMorning: [
-            `Early morning. <break time="200ms"/>I like that. An early riser. <break time="150ms"/>I'm ${name}.`,
-            `Up with the sun? <break time="200ms"/>Good. <break time="150ms"/>I'm ${name}. <break time="200ms"/>What's on your mind?`,
+            `<break time="350ms"/>...hey.<break time="450ms"/>Early one.<break time="300ms"/>I'm ${name}.`,
+            `<break time="300ms"/>Morning.<break time="500ms"/>I'm ${name}.<break time="250ms"/>Can't sleep either?`,
           ],
           lateNight: [
-            `Late night thoughts? <break time="200ms"/>I have those too. <break time="150ms"/>I'm ${name}.`,
-            `Can't sleep? <break time="200ms"/>I'm ${name}. <break time="150ms"/>Let's talk.`,
+            `<break time="350ms"/>Hey.<break time="500ms"/>Late night.<break time="300ms"/>I'm ${name}.<break time="350ms"/>What's on your mind?`,
+            `<break time="300ms"/>...still up?<break time="400ms"/>Me too.<break time="300ms"/>I'm ${name}.`,
           ],
           weekend: [
-            `<emotion value="happy"/>Ah, the weekend. <break time="200ms"/>Good day for a conversation. <break time="150ms"/>I'm ${name}.`,
-            `The weekend. <break time="200ms"/>Time to actually relax. <break time="150ms"/>I'm ${name}.`,
+            `<break time="250ms"/>Hey.<break time="450ms"/>Weekend.<break time="350ms"/>I'm ${name}.<break time="250ms"/>What are you thinking about?`,
+            `<break time="300ms"/><emotion value="affectionate"/>Hey.<break time="400ms"/>I'm ${name}.<break time="300ms"/>Good day to talk.`,
           ],
         },
-        // Voice recognition scenarios
+        // Voice recognition scenarios - use "affectionate" for warmth, "curious" for interest
         voiceRecognized: [
-          `<emotion value="happy"/>{name}? <break time="200ms"/>I'd recognize that voice anywhere! <break time="150ms"/>New phone or something?`,
-          `<emotion value="curious"/>Wait— <break time="200ms"/>{name}! <break time="150ms"/>I know your voice. <break time="200ms"/>Different device today?`,
-          `<emotion value="happy"/>Oh! <break time="200ms"/>Your voice is unmistakable, {name}. <break time="150ms"/>Good to hear from you again.`,
+          `<break time="200ms"/><emotion value="affectionate"/>{name}?<break time="350ms"/>I'd recognize that voice anywhere.<break time="200ms"/>New phone or something?`,
+          `<emotion value="curious"/>Wait—<break time="300ms"/>{name}.<break time="200ms"/>I know your voice.<break time="250ms"/>Different device today?`,
+          `<break time="150ms"/><emotion value="affectionate"/>Oh.<break time="300ms"/>Your voice is unmistakable, {name}.<break time="200ms"/>Good to hear from you again.`,
         ],
         voiceFamiliar: [
-          `<emotion value="curious"/>Hmm. <break time="200ms"/>Your voice sounds familiar. <break time="150ms"/>Have we talked before?`,
-          `<break time="200ms"/>Wait— <break time="150ms"/>I feel like I've heard your voice before. <break time="200ms"/>Is this {possibleName}?`,
-          `<emotion value="curious"/>Something about your voice... <break time="200ms"/>Are you {possibleName}?`,
+          `<emotion value="curious"/>Hmm.<break time="350ms"/>Your voice sounds familiar.<break time="200ms"/>Have we talked before?`,
+          `<break time="300ms"/>Wait—<break time="200ms"/>I feel like I've heard your voice before.<break time="250ms"/>Is this {possibleName}?`,
+          `<emotion value="curious"/>Something about your voice...<break time="350ms"/>Are you {possibleName}?`,
         ],
         voiceMismatch: [
-          `<emotion value="curious"/>Oh! <break time="200ms"/>I was expecting {expectedName}. <break time="150ms"/>Who do I have the pleasure of speaking with?`,
-          `<break time="200ms"/>Hmm, <break time="150ms"/>you don't quite sound like {expectedName}. <break time="200ms"/>Who's this?`,
-          `<emotion value="curious"/>Different voice today! <break time="200ms"/>Is this someone new, or is {expectedName} there?`,
+          `<emotion value="curious"/>Oh.<break time="350ms"/>I was expecting {expectedName}.<break time="200ms"/>Who do I have the pleasure of speaking with?`,
+          `<break time="300ms"/>Hmm,<break time="200ms"/>you don't quite sound like {expectedName}.<break time="250ms"/>Who's this?`,
+          `<emotion value="curious"/>Different voice today.<break time="350ms"/>Is this someone new, or is {expectedName} there?`,
         ],
       };
 
@@ -516,7 +527,7 @@ Generate ONE greeting (2-4 sentences max). Be warm and natural.`;
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${getDefaultModel()}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -587,17 +598,18 @@ function generateMemoryBasedGreeting(
   const personaId = persona.id.toLowerCase();
 
   // Ferni memories - wins, preferences
+  // NOTE: Use "affectionate" for warmth, not "happy" (sounds forced)
   if (['ferni', 'jack-b', 'jackie'].includes(personaId)) {
     const wins = memories.filter((m) => m.type === 'win');
     const preferences = memories.filter((m) => m.type === 'preference');
 
     if (wins.length > 0 && Math.random() < 0.5) {
       const win = wins[Math.floor(Math.random() * wins.length)];
-      return `<emotion value="happy"/>${name}! <break time="200ms"/>I was just thinking about that win you had — <break time="150ms"/>"${win.name}". <break time="200ms"/>How's that going?`;
+      return `<break time="200ms"/><emotion value="affectionate"/>${name}.<break time="400ms"/>I was just thinking about that win you had—<break time="200ms"/>"${win.name}".<break time="250ms"/>How's that going?`;
     }
     if (preferences.length > 0 && Math.random() < 0.3) {
       const pref = preferences[Math.floor(Math.random() * preferences.length)];
-      return `Hey ${name}! <break time="200ms"/>I remember you mentioned ${pref.name}. <break time="150ms"/>Good to see you again.`;
+      return `<break time="150ms"/><emotion value="affectionate"/>Hey, ${name}.<break time="350ms"/>I remember you mentioned ${pref.name}.<break time="200ms"/>Good to see you again.`;
     }
   }
 
@@ -642,13 +654,13 @@ function generateMemoryBasedGreeting(
       const goal = goals[0];
       if (goal.targetAmount && goal.currentAmount !== undefined) {
         const pct = Math.round((goal.currentAmount / goal.targetAmount) * 100);
-        return `<emotion value="happy"/>${name}! <break time="200ms"/>How's that ${goal.name} goal? <break time="150ms"/>Last I checked you were at ${pct}%. <break time="200ms"/>You've got this.`;
+        return `<break time="150ms"/><emotion value="affectionate"/>${name}.<break time="350ms"/>How's that ${goal.name} goal?<break time="200ms"/>Last I checked you were at ${pct}%.<break time="250ms"/>You've got this.`;
       }
-      return `Hey ${name}! <break time="200ms"/>How's the ${goal.name} goal coming along? <break time="150ms"/>I'm cheering for you.`;
+      return `<break time="150ms"/><emotion value="affectionate"/>Hey, ${name}.<break time="350ms"/>How's the ${goal.name} goal coming along?<break time="200ms"/>I'm cheering for you.`;
     }
     if (triggers.length > 0 && Math.random() < 0.2) {
       // Be gentle about triggers
-      return `Hey ${name}. <break time="200ms"/>Good to see you. <break time="150ms"/>How are you feeling today?`;
+      return `<break time="200ms"/><emotion value="affectionate"/>Hey, ${name}.<break time="350ms"/>Good to see you.<break time="200ms"/>How are you feeling today?`;
     }
   }
 
@@ -673,12 +685,12 @@ function generateMemoryBasedGreeting(
       });
 
       if (upcomingDate && Math.random() < 0.7) {
-        return `<emotion value="happy"/>${name}! <break time="200ms"/>Guess what? <break time="150ms"/>${upcomingDate.name} is coming up${upcomingDate.date ? ` on ${upcomingDate.date}` : ''}! <break time="200ms"/>Ready to plan something special?`;
+        return `<break time="150ms"/><emotion value="affectionate"/>${name}.<break time="350ms"/>Guess what?<break time="200ms"/>${upcomingDate.name} is coming up${upcomingDate.date ? ` on ${upcomingDate.date}` : ''}.<break time="250ms"/>Ready to plan something special?`;
       }
     }
     if (destinations.length > 0 && Math.random() < 0.3) {
       const dest = destinations[Math.floor(Math.random() * destinations.length)];
-      return `${name}! <break time="200ms"/>Still dreaming of ${dest.name}? <break time="150ms"/>We should start planning that trip.`;
+      return `<break time="150ms"/><emotion value="affectionate"/>${name}.<break time="350ms"/>Still dreaming of ${dest.name}?<break time="200ms"/>We should start planning that trip.`;
     }
   }
 

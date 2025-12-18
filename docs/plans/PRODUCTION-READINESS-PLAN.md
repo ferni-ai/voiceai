@@ -198,14 +198,14 @@ Create `src/tests/outreach-routes.test.ts`:
 
 ### Dev Panel File Size: 6,879 Lines
 
-**File:** `frontend-typescript/src/ui/dev-panel.ui.ts`  
+**File:** `apps/web/src/ui/dev-panel.ui.ts`  
 **Problem:** 14x over 500-line limit, unmaintainable  
 **Effort:** 4 hours
 
 ### Refactoring Plan
 
 ```
-frontend-typescript/src/ui/dev-panel/
+apps/web/src/ui/dev-panel/
 ├── index.ts                 # Main panel shell, exports
 ├── types.ts                 # Shared types
 ├── styles.ts                # CSS injection
@@ -242,7 +242,7 @@ frontend-typescript/src/ui/dev-panel/
 ### 1. Ferni EQ Breath Synchronization
 
 **Current State:** Infrastructure exists but not connected to real input  
-**File:** `frontend-typescript/src/ui/better-than-human.ui.ts`
+**File:** `apps/web/src/ui/better-than-human.ui.ts`
 
 **What's Missing:**
 
@@ -369,8 +369,8 @@ Week 3 (P3 - Feature Completion)
 | `src/tests/subscription-e2e.test.ts`                 | Update test expectations | P0       |
 | `src/api/outreach-routes.ts`                         | Add 6 endpoints          | P1       |
 | `src/tests/outreach-routes.test.ts`                  | New test file            | P1       |
-| `frontend-typescript/src/ui/dev-panel.ui.ts`         | Split into modules       | P2       |
-| `frontend-typescript/src/ui/better-than-human.ui.ts` | Breath sync              | P3       |
+| `apps/web/src/ui/dev-panel.ui.ts`         | Split into modules       | P2       |
+| `apps/web/src/ui/better-than-human.ui.ts` | Breath sync              | P3       |
 
 ---
 

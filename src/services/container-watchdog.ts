@@ -288,7 +288,10 @@ function getMemoryStatus(): MemoryStatus {
   } catch (error) {
     // Silent fallback - only log in debug mode to avoid noise
     if (process.env.DEBUG) {
-      log.debug({ error: String(error), platform: process.platform }, 'System memory detection unavailable');
+      log.debug(
+        { error: String(error), platform: process.platform },
+        'System memory detection unavailable'
+      );
     }
     return {
       totalBytes: 0,

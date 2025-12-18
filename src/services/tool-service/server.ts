@@ -148,7 +148,7 @@ app.post('/ferni.tools.v1.ToolService/Execute', async (req, res) => {
       error: {
         code: 'EXECUTION_ERROR',
         message: err.message,
-        userMessage: 'Something went wrong. Let me try a different approach.',
+        userMessage: `Hmm, that's being stubborn. Let me try another way.`,
         retryable: true,
       },
       metadata: {

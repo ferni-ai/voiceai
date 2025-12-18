@@ -21,21 +21,36 @@ struct FerniVoiceApp: App {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
-    private var voiceManager = VoiceSessionManager()
+    private var voiceManager = DualModeVoiceManager()  // Supports both Native SDK and CLI modes
     private var voiceWindowController: VoiceWindowController?
+    private var settingsWindowController: SettingsWindowController?
     private var eventMonitor: Any?
     private var cancellables = Set<AnyCancellable>()
+    private var loginItemManager = LoginItemManager.shared
+    
+    // User preferences
+    @AppStorage("globalHotkeyEnabled") private var globalHotkeyEnabled = true
+    @AppStorage("showNotifications") private var showNotifications = true
+    @AppStorage("playSounds") private var playSounds = true
+    @AppStorage("defaultPersonaId") private var defaultPersonaId = "ferni"
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         setupMenuBar()
         setupGlobalHotkey()
         requestMicrophonePermission()
+        requestNotificationPermission()
         observeStateChanges()
+        
+        // Set default persona from preferences
+        voiceManager.currentPersonaId = defaultPersonaId
     }
     
     func applicationWillTerminate(_ notification: Notification) {
-        voiceManager.stop()
+        // Stop is async but we're terminating - fire and forget
+        Task { @MainActor in
+            await voiceManager.stop()
+        }
         if let monitor = eventMonitor {
             NSEvent.removeMonitor(monitor)
         }
@@ -58,17 +73,37 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.updateIcon()
             }
             .store(in: &cancellables)
+        
+        // Observe backend mode changes
+        voiceManager.$backendMode
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] mode in
+                self?.updateIcon()
+            }
+            .store(in: &cancellables)
     }
     
     // MARK: - Global Hotkey (Cmd+Shift+F)
     
     private func setupGlobalHotkey() {
         eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard self?.globalHotkeyEnabled == true else { return }
+            
             // Cmd+Shift+F
             if event.modifierFlags.contains([.command, .shift]) && event.keyCode == 3 {
-                DispatchQueue.main.async {
-                    self?.voiceManager.toggle()
+                Task { @MainActor in
+                    await self?.voiceManager.toggle()
                 }
+            }
+        }
+    }
+    
+    // MARK: - Notification Permission
+    
+    private func requestNotificationPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
+            if let error = error {
+                print("[Notifications] Permission error: \(error)")
             }
         }
     }
@@ -93,7 +128,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if event.type == .rightMouseUp {
             showContextMenu()
         } else {
-            voiceManager.toggle()
+            Task { @MainActor in
+                await voiceManager.toggle()
+            }
         }
     }
     
@@ -155,6 +192,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         menu.addItem(NSMenuItem.separator())
         
+        // Backend mode (Native/CLI)
+        let backendIcon = voiceManager.backendMode == .native ? "⚡️" : "🖥️"
+        let backendLabel = "\(backendIcon) \(voiceManager.backendMode.displayName)"
+        let backendItem = NSMenuItem(title: backendLabel, action: nil, keyEquivalent: "")
+        backendItem.isEnabled = false
+        menu.addItem(backendItem)
+        
+        let toggleBackendItem = NSMenuItem(
+            title: voiceManager.backendMode == .native ? "Switch to CLI Mode" : "Switch to Native Mode",
+            action: #selector(toggleBackendMode),
+            keyEquivalent: ""
+        )
+        toggleBackendItem.target = self
+        menu.addItem(toggleBackendItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
         // Cloud/Local toggle
         let modeLabel = voiceManager.useCloudMode ? "☁️ Cloud (app.ferni.ai)" : "🏠 Local (localhost)"
         let modeItem = NSMenuItem(title: modeLabel, action: nil, keyEquivalent: "")
@@ -171,6 +225,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         menu.addItem(NSMenuItem.separator())
         
+        // Launch at Login toggle
+        let launchAtLoginItem = NSMenuItem(
+            title: "Launch at Login",
+            action: #selector(toggleLaunchAtLogin),
+            keyEquivalent: ""
+        )
+        launchAtLoginItem.target = self
+        launchAtLoginItem.state = loginItemManager.isEnabled ? .on : .off
+        menu.addItem(launchAtLoginItem)
+        
+        // Settings
+        let settingsItem = NSMenuItem(
+            title: "Settings...",
+            action: #selector(openSettings),
+            keyEquivalent: ","
+        )
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
         let quitItem = NSMenuItem(
             title: "Quit",
             action: #selector(quitApp),
@@ -184,6 +259,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem?.menu = nil  // Remove menu so left-click works again
     }
     
+    @objc private func toggleLaunchAtLogin() {
+        loginItemManager.toggle()
+        if showNotifications {
+            showNotification(
+                title: "Ferni Voice",
+                message: loginItemManager.isEnabled
+                    ? "Will launch at login"
+                    : "Won't launch at login"
+            )
+        }
+    }
+    
+    @objc private func openSettings() {
+        if settingsWindowController == nil {
+            settingsWindowController = SettingsWindowController(voiceManager: voiceManager)
+        }
+        settingsWindowController?.showWindow()
+    }
+    
     private func updateVoiceWindow() {
         switch voiceManager.state {
         case .connecting, .connected, .listening, .speaking, .thinking:
@@ -192,7 +286,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             voiceWindowController?.showWithAnimation()
             
-        case .disconnected, .error:
+        case .error:
+            // Keep window open to show error - user can click End to close
+            if voiceWindowController == nil {
+                voiceWindowController = VoiceWindowController(voiceManager: voiceManager)
+            }
+            voiceWindowController?.showWithAnimation()
+            
+        case .disconnected:
+            // Only close when explicitly disconnected (not on error)
             voiceWindowController?.closeWithAnimation()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
                 self?.voiceWindowController = nil
@@ -203,6 +305,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func updateIcon() {
         guard let button = statusItem?.button else { return }
         
+        // Use SF Symbols for reliability (ImageRenderer has MainActor constraints)
+        // Custom icons can be enabled later with proper async handling
         let iconName: String
         var isTemplate = true
         
@@ -231,7 +335,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "Ferni Voice")
         button.image?.isTemplate = isTemplate
         
-        // Tint when active
+        // Tint when active with persona color
         if !isTemplate {
             button.contentTintColor = NSColor(voiceManager.currentPersona.primaryColor)
         } else {
@@ -241,7 +345,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     @objc private func selectPersona(_ sender: NSMenuItem) {
         if let personaId = sender.representedObject as? String {
-            voiceManager.switchPersona(personaId)
+            Task { @MainActor in
+                await voiceManager.switchPersona(personaId)
+            }
         }
     }
     
@@ -252,6 +358,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             message: voiceManager.useCloudMode
                 ? "Switched to Cloud Mode (app.ferni.ai)"
                 : "Switched to Local Mode (localhost:3001)"
+        )
+    }
+    
+    @objc private func toggleBackendMode() {
+        voiceManager.backendMode = voiceManager.backendMode == .native ? .cli : .native
+        showNotification(
+            title: "Ferni Voice",
+            message: voiceManager.backendMode == .native
+                ? "Switched to Native SDK (lower latency)"
+                : "Switched to CLI Mode (easier debugging)"
         )
     }
     
@@ -272,8 +388,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @objc private func quitApp() {
-        voiceManager.stop()
-        NSApp.terminate(nil)
+        Task { @MainActor in
+            await voiceManager.stop()
+            NSApp.terminate(nil)
+        }
     }
     
     private func requestMicrophonePermission() {
@@ -296,11 +414,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func showNotification(title: String, message: String) {
+        guard showNotifications else { return }
+        
         // Use UNUserNotificationCenter for macOS 11+
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = message
-        content.sound = .default
+        content.sound = playSounds ? .default : nil
         
         let request = UNNotificationRequest(
             identifier: UUID().uuidString,

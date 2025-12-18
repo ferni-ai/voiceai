@@ -22,6 +22,7 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
+import { getToolDescription } from '../utils/tool-descriptions.js';
 import { isTeamMemberUnlocked } from '../../intelligence/context-builders/team-availability.js';
 // FIX BUG #6: Import normalizeAgentIdSync for robust ID matching
 import { normalizeAgentIdSync } from '../../personas/agent-directory.js';
@@ -79,7 +80,7 @@ function generateHandoffTool(agent: Agent, coordinator: Agent): HandoffToolDefin
   // IMPORTANT: Make it clear this is an ACTION to execute, not something to speak about
   const description =
     `IMMEDIATELY transfer the conversation to ${agent.name} (${agent.roleDescription}). ` +
-    `Call this function directly - do NOT speak about transferring, just execute this tool. ` +
+    `Call silently - do NOT announce the transfer, just execute. After handoff, continue conversation naturally. ` +
     `Use when the user needs help with: ${agent.handoffTriggers.slice(0, 5).join(', ') || agent.roleDescription}.`;
 
   // Parameters schema
@@ -109,7 +110,7 @@ function generateReturnToCoordinatorTool(coordinator: Agent): HandoffToolDefinit
     name: toolName,
     description:
       `IMMEDIATELY return the conversation to ${coordinator.name}, the main coordinator. ` +
-      `Call this function directly - do NOT speak about returning, just execute this tool. ` +
+      `Call silently - do NOT announce the return, just execute. After handoff, continue conversation naturally. ` +
       `Use when: the user's request is outside your expertise, the user asks for another team member, ` +
       `or the conversation naturally concludes your specialty area.`,
     parameters: z.object({
@@ -525,10 +526,7 @@ export async function buildHandoffTools(
   // Add softIntro tool - allows locked teammates to "say hi" without full transfer
   // This is the "soft intro" mechanism: locked members can briefly speak, but conversation stays with current agent
   tools.softTeamIntro = llm.tool({
-    description: `Let a teammate briefly introduce themselves without transferring the conversation.
-Use when: you want to give a taste of a teammate the user hasn't fully unlocked yet, or when a topic comes up
-that a locked teammate specializes in. The teammate will say one thing, then you continue the conversation.
-This is NOT a full handoff - you remain the active speaker.`,
+    description: getToolDescription('softTeamIntro'),
     parameters: z.object({
       teammate_specialty: z
         .string()
@@ -627,17 +625,7 @@ Do NOT try to transfer to them. This was just a quick hello.`,
   // Ferni finishes speaking the introduction. This creates a delightful "reveal"
   // moment - the buildup (speech) followed by the payoff (visual celebration).
   tools.introduceMember = llm.tool({
-    description: `CAMEO UNLOCK: Formally introduce a team member to the user for the FIRST TIME.
-Use ONLY when the cameo_unlock_introduction context hint appears.
-This unlocks the team member so the user can talk to them.
-
-IMPORTANT: Speak your introduction NATURALLY as part of your response, then call this tool.
-The tool will time the visual celebration to appear right after you finish speaking.
-
-Example flow:
-1. You say: "I want you to meet someone special. Maya is incredible at helping people build habits..."
-2. You call this tool with memberId="maya-santos"
-3. The celebration appears as you finish speaking - a delightful reveal!`,
+    description: getToolDescription('introduceMember'),
     parameters: z.object({
       memberId: z
         .string()
@@ -653,9 +641,7 @@ Example flow:
       // FIX BUG #6: Use normalized ID matching for robust ID comparison
       // This handles all ID formats: maya-santos, maya_santos, Maya, etc.
       const normalizedInput = normalizeAgentIdSync(memberId);
-      const member = TEAM_MEMBERS.find(
-        (m) => normalizeAgentIdSync(m.memberId) === normalizedInput
-      );
+      const member = TEAM_MEMBERS.find((m) => normalizeAgentIdSync(m.memberId) === normalizedInput);
 
       if (!member) {
         return {
@@ -736,8 +722,7 @@ Remember: This is a special moment! The user just unlocked a new friend.`,
 
   // Add meetTheTeam tool with unlock awareness
   tools.meetTheTeam = llm.tool({
-    description: `Introduce the user to your team of specialists.
-Use when user asks: "Who's on your team?", "What specialists do you have?", "Who can help me?"`,
+    description: getToolDescription('meetTheTeam'),
     parameters: z.object({}),
     execute: async (_params, runContext) => {
       // Get user profile from RUNTIME context

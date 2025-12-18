@@ -27,37 +27,19 @@ import {
   type WebExperimentVariant,
 } from '../../../services/experiments/web-experiments.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { parseBody, sendJSON } from '../../helpers.js';
 
 const log = createLogger({ module: 'AdminExperimentsAPI' });
 
 const BASE_PATH = '/api/v1/admin/experiments';
 
-/**
- * Parse JSON body from request
- */
-async function parseBody(req: IncomingMessage): Promise<unknown> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => {
-      body += chunk.toString();
-    });
-    req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : {});
-      } catch (e) {
-        reject(new Error('Invalid JSON'));
-      }
-    });
-    req.on('error', reject);
-  });
-}
+// parseBody and sendJSON imported from '../../helpers.js'
 
 /**
- * Send JSON response
+ * Legacy wrapper for sendJSON with (res, status, data) signature.
  */
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
+  sendJSON(res, data, status);
 }
 
 /**

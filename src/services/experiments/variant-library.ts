@@ -10,6 +10,7 @@
  */
 
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { removeUndefined } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'VariantLibrary' });
@@ -418,11 +419,13 @@ export async function addCustomVariant(
     .doc(experimentId)
     .collection('custom_variants')
     .doc(variantId)
-    .set({
-      content,
-      createdAt: FieldValue.serverTimestamp(),
-      source: 'ai-generated',
-    });
+    .set(
+      removeUndefined({
+        content,
+        createdAt: FieldValue.serverTimestamp(),
+        source: 'ai-generated',
+      })
+    );
 
   log.info({ experimentId, variantId }, 'Custom variant added');
 }

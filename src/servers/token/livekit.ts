@@ -4,6 +4,9 @@
 
 import { AccessToken, RoomServiceClient, AgentDispatchClient } from 'livekit-server-sdk';
 import type { RoomMetadata, TokenOptions } from '../shared/types.js';
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'LiveKitToken' });
 
 // Configuration from environment
 const LIVEKIT_URL = process.env.LIVEKIT_URL ?? '';
@@ -23,8 +26,9 @@ let agentDispatch: AgentDispatchClient | null = null;
  */
 export function validateConfig(): boolean {
   if (!LIVEKIT_URL || !LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
-    console.error('❌ Missing required environment variables:');
-    console.error('   LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET');
+    log.error(
+      'Missing required environment variables: LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET'
+    );
     return false;
   }
   return true;
@@ -55,7 +59,7 @@ function getAgentDispatch(): AgentDispatchClient | null {
     try {
       agentDispatch = new AgentDispatchClient(LIVEKIT_HOST, LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
     } catch {
-      console.log('⚠️  AgentDispatchClient not available - using room creation only');
+      log.warn('AgentDispatchClient not available - using room creation only');
       agentDispatch = null;
     }
   }
@@ -105,8 +109,13 @@ export async function createRoomWithAgent(
       metadata: JSON.stringify(metadata),
     });
 
-    console.log(
-      `✅ Room created: ${roomName} (firebase: ${metadata.firebase_uid || 'none'}, device: ${metadata.device_id || 'anonymous'})`
+    log.info(
+      {
+        roomName,
+        firebaseUid: metadata.firebase_uid || 'none',
+        deviceId: metadata.device_id || 'anonymous',
+      },
+      'Room created'
     );
 
     // Try to dispatch agent if available
@@ -116,10 +125,10 @@ export async function createRoomWithAgent(
         await dispatch.createDispatch(roomName, AGENT_NAME, {
           metadata: JSON.stringify(metadata),
         });
-        console.log(`✅ Agent dispatched: ${AGENT_NAME} -> ${roomName}`);
+        log.info({ agentName: AGENT_NAME, roomName }, 'Agent dispatched');
       } catch (dispatchError) {
         const error = dispatchError as Error;
-        console.log(`⚠️  Agent dispatch failed (may auto-dispatch): ${error.message}`);
+        log.debug({ error: error.message }, 'Agent dispatch failed (may auto-dispatch)');
       }
     }
 
@@ -128,10 +137,10 @@ export async function createRoomWithAgent(
     const err = error as Error;
     // Room might already exist, which is fine
     if (err.message?.includes('already exists')) {
-      console.log(`ℹ️  Room already exists: ${roomName}`);
+      log.debug({ roomName }, 'Room already exists');
       return true;
     }
-    console.error(`❌ Error creating room: ${err.message}`);
+    log.error({ error: err.message, roomName }, 'Error creating room');
     return false;
   }
 }

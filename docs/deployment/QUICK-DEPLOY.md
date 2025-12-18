@@ -29,7 +29,7 @@ npm run deploy:backend
 
 ## When to Deploy What
 
-### Changed Frontend Code (`frontend-typescript/src/*`)
+### Changed Frontend Code (`apps/web/src/*`)
 ```bash
 npm run deploy:app
 ```
@@ -46,7 +46,7 @@ This rebuilds and deploys the Cloud Run service.
 npm run deploy:landing
 ```
 
-### Changed Firebase Rewrites (`frontend-typescript/firebase.json`)
+### Changed Firebase Rewrites (`apps/web/firebase.json`)
 ```bash
 npm run deploy:app
 ```
@@ -61,9 +61,9 @@ npm run deploy:all
 
 | Files Changed | Deploy Target |
 |---------------|---------------|
-| `frontend-typescript/src/**` | `deploy:app` |
-| `frontend-typescript/firebase.json` | `deploy:app` |
-| `frontend-typescript/public/**` | `deploy:app` |
+| `apps/web/src/**` | `deploy:app` |
+| `apps/web/firebase.json` | `deploy:app` |
+| `apps/web/public/**` | `deploy:app` |
 | `ui-server.js` | `deploy:backend` |
 | `src/**/*.ts` | `deploy:backend` |
 | `promo/ferni-website/**` | `deploy:landing` |
@@ -78,7 +78,7 @@ npm run deploy:all
 ### 2. Adding API routes without updating rewrites
 If you add a new API route (e.g., `/api/new-feature`), you need to:
 1. Add the route to `ui-server.js`
-2. Add the rewrite to `frontend-typescript/firebase.json`
+2. Add the rewrite to `apps/web/firebase.json`
 3. Deploy BOTH backend AND app
 
 ### 3. Forgetting to copy assets to `_site/` for landing page
@@ -104,7 +104,7 @@ Add these to your root `package.json`:
 ```json
 {
   "scripts": {
-    "deploy:app": "cd frontend-typescript && firebase deploy --only hosting:ferni-prod,hosting:johnb-app --project johnb-2025",
+    "deploy:app": "cd apps/web && firebase deploy --only hosting:ferni-prod,hosting:johnb-app --project johnb-2025",
     "deploy:landing": "cd promo/ferni-website && firebase deploy --only hosting:ferni-landing --project johnb-2025",
     "deploy:backend": "gcloud builds submit --config=cloudbuild-ui.yaml --project=johnb-2025",
     "deploy:all": "npm run deploy:app && npm run deploy:landing && npm run deploy:backend"

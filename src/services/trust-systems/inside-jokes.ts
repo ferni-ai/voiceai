@@ -99,8 +99,9 @@ export interface CallbackOpportunity {
 // DETECTION PATTERNS
 // ============================================================================
 
-/** Phrases that indicate a strong opinion */
+/** Phrases that indicate a strong opinion - "Better than Human" expanded */
 const OPINION_INDICATORS = [
+  // Original
   'i hate when',
   'i love when',
   "i can't stand",
@@ -112,10 +113,28 @@ const OPINION_INDICATORS = [
   'unpopular opinion',
   'hot take',
   'fight me on this',
+  // NEW: More everyday opinions
+  'drives me crazy',
+  'drives me nuts',
+  'makes me so happy',
+  'obsessed with',
+  'in my opinion',
+  'honestly i think',
+  "i'm convinced",
+  'no one can tell me',
+  "i'll die on this hill",
+  'the best is when',
+  'the worst is when',
+  "here's the thing",
+  'let me tell you',
+  'between you and me',
+  'pet peeve',
+  'i firmly believe',
 ];
 
-/** Story starters */
+/** Story starters - "Better than Human" expanded */
 const STORY_INDICATORS = [
+  // Original
   'one time',
   'there was this',
   'i remember when',
@@ -124,10 +143,30 @@ const STORY_INDICATORS = [
   'true story',
   'this is embarrassing but',
   'okay so',
+  // NEW: More story patterns
+  'get this',
+  'wait til you hear',
+  'speaking of which',
+  'that reminds me',
+  'funny story',
+  'so basically',
+  'long story short',
+  "here's what happened",
+  'the craziest thing',
+  'i still remember',
+  'back when i',
+  'when i was',
+  'my [mom|dad|friend|partner] once',
+  'years ago',
+  'the other day',
+  'last night',
+  'this morning',
+  'recently',
 ];
 
-/** Quirk/preference indicators */
+/** Quirk/preference indicators - "Better than Human" expanded */
 const QUIRK_INDICATORS = [
+  // Original
   "i'm the kind of person who",
   "i'm someone who",
   "i've always been",
@@ -135,6 +174,55 @@ const QUIRK_INDICATORS = [
   "i know it's weird but",
   "don't judge me but",
   'guilty pleasure',
+  // NEW: More quirk patterns
+  'my thing is',
+  "i'm big on",
+  "i'm not really into",
+  "i'm super into",
+  "i'm low-key",
+  "i'm high-key",
+  'call me crazy but',
+  "maybe i'm weird but",
+  'is it just me',
+  'am i the only one',
+  'i have this thing where',
+  "it's a me thing",
+  'my secret is',
+  'i have to admit',
+  "okay don't laugh",
+  "i'm that person who",
+];
+
+/** NEW: Callback-worthy emotional moments */
+const EMOTIONAL_MOMENT_INDICATORS = [
+  'this is hard to say',
+  'i never told anyone',
+  'this means a lot',
+  'this is important to me',
+  "i've been thinking",
+  "i've been struggling",
+  "i'm proud of myself",
+  "i'm scared to",
+  "i'm excited about",
+  'finally',
+  'for the first time',
+  'i realized',
+  'it hit me that',
+];
+
+/** NEW: Running gag potential indicators */
+const RUNNING_GAG_INDICATORS = [
+  'every single time',
+  'without fail',
+  'you know me',
+  'classic me',
+  'here we go again',
+  'story of my life',
+  'same old',
+  'typical',
+  'of course',
+  'because why not',
+  'just my luck',
 ];
 
 // ============================================================================
@@ -164,6 +252,10 @@ function getOrCreateProfile(userId: string): InsideJokesProfile {
 
 /**
  * Analyze a user message for callback-worthy moments
+ *
+ * "Better than Human" - We catch and remember the little things that
+ * make someone unique. These become the inside jokes and shared references
+ * that make the relationship feel real.
  */
 export function detectCallbackMoment(
   userId: string,
@@ -172,6 +264,7 @@ export function detectCallbackMoment(
     topic?: string;
     emotion?: string;
     wasLaughing?: boolean;
+    emotionIntensity?: number;
   }
 ): SharedMoment | null {
   const profile = getOrCreateProfile(userId);
@@ -190,6 +283,26 @@ export function detectCallbackMoment(
   // Check for quirks
   if (QUIRK_INDICATORS.some((i) => lower.includes(i))) {
     return createMoment(profile, 'quirk', userMessage, context);
+  }
+
+  // NEW: Check for emotional moments (these become precious callbacks)
+  if (EMOTIONAL_MOMENT_INDICATORS.some((i) => lower.includes(i))) {
+    return createMoment(profile, 'callback_moment', userMessage, context);
+  }
+
+  // NEW: Check for running gag potential
+  if (RUNNING_GAG_INDICATORS.some((i) => lower.includes(i))) {
+    return createMoment(profile, 'running_gag', userMessage, context);
+  }
+
+  // NEW: High-emotion moments are always worth tracking
+  if (context?.emotionIntensity && context.emotionIntensity > 0.7) {
+    return createMoment(profile, 'callback_moment', userMessage, context);
+  }
+
+  // NEW: Laughter + any decent content = callback-worthy
+  if (context?.wasLaughing && userMessage.length > 15) {
+    return createMoment(profile, 'running_gag', userMessage, context);
   }
 
   // Check for memorable phrases (short, punchy, unique)

@@ -6,6 +6,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { getDefaultModel } from '../model-config.js';
 
 const log = createLogger({ module: 'ai-diagnostics' });
 
@@ -584,7 +585,7 @@ Analyze the failure and respond with ONLY valid JSON (no markdown, no explanatio
 }`;
 
   const response = await genai.models.generateContent({
-    model: 'gemini-2.0-flash-exp',
+    model: getDefaultModel(),
     contents: prompt,
   });
 
@@ -601,7 +602,7 @@ Analyze the failure and respond with ONLY valid JSON (no markdown, no explanatio
   return {
     ...parsed,
     metadata: {
-      analyzedBy: 'gemini-2.0-flash-exp',
+      analyzedBy: getDefaultModel(),
       stage: context.stage,
       jobId: context.jobId,
     },

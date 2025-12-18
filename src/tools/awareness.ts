@@ -11,6 +11,7 @@ import { z } from 'zod';
 // Import directly from types to avoid circular dependency through services/index
 import type { SessionServices } from '../services/types.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
@@ -36,8 +37,7 @@ export function createAwarenessTools() {
   return {
     // Detect conversation drift
     detectConversationDrift: llm.tool({
-      description:
-        'Detect if the conversation has drifted from the main topic and suggest refocusing. Use when conversation seems to be wandering.',
+      description: getToolDescription('detectConversationDrift'),
       parameters: z.object({
         currentTopic: z.string().describe('What we seem to be discussing now'),
         originalTopic: z.string().optional().describe('What we started discussing'),
@@ -77,8 +77,7 @@ export function createAwarenessTools() {
 
     // Suggest a relevant topic
     suggestRelevantTopic: llm.tool({
-      description:
-        'Suggest a relevant topic based on user profile, interests, and conversation history.',
+      description: getToolDescription('suggestRelevantTopic'),
       parameters: z.object({
         context: z.string().optional().describe('Current conversation context'),
       }),
@@ -211,8 +210,7 @@ export function createAwarenessTools() {
 
     // Get conversation summary
     getConversationSummary: llm.tool({
-      description:
-        'Get a summary of the current conversation - topics covered, emotional journey, key points.',
+      description: getToolDescription('assessEmotionalState'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         getLogger().info('Getting conversation summary');
@@ -260,8 +258,7 @@ export function createAwarenessTools() {
 
     // Identify user needs
     identifyUserNeeds: llm.tool({
-      description:
-        'Analyze the conversation to identify what the user really needs - information, support, validation, or action.',
+      description: getToolDescription('suggestCircleBack'),
       parameters: z.object({
         recentContext: z.string().describe('Brief summary of what user has been saying'),
       }),

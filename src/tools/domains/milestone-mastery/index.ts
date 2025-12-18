@@ -17,6 +17,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // CELEBRATION TOOLS
 // ============================================================================
@@ -30,7 +31,7 @@ const celebrateWinDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user fully celebrate and savor a win or accomplishment.',
+      description: getToolDescription('celebrateWin'),
       parameters: z.object({
         win: z.string().describe('What was accomplished'),
         size: z.enum(['huge', 'meaningful', 'small-but-real']).describe('Size of win'),
@@ -74,7 +75,7 @@ const markTheMomentDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help create a meaningful way to mark a significant moment in life.',
+      description: getToolDescription('markTheMoment'),
       parameters: z.object({
         moment: z.string().describe('The moment to mark'),
         type: z
@@ -120,7 +121,7 @@ const createTraditionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help create a meaningful tradition or ritual for recurring significance.',
+      description: getToolDescription('createTradition'),
       parameters: z.object({
         occasion: z.string().describe('What the tradition is for'),
         who: z.string().describe('Who participates'),
@@ -172,7 +173,7 @@ const buildCountdownDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help build anticipation through countdown milestones to a big event.',
+      description: getToolDescription('buildCountdown'),
       parameters: z.object({
         event: z.string().describe('The event being counted down to'),
         daysAway: z.number().describe('Days until the event'),
@@ -226,7 +227,7 @@ const anticipationBuilderDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help build positive anticipation and excitement for something upcoming.',
+      description: getToolDescription('anticipationBuilder'),
       parameters: z.object({
         event: z.string().describe('What is coming up'),
         currentFeeling: z
@@ -285,8 +286,7 @@ const navigateFirstTimeDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help navigate the mix of emotions that come with experiencing something for the first time.',
+      description: getToolDescription('navigateFirstTime'),
       parameters: z.object({
         firstTime: z.string().describe('What they are experiencing for the first time'),
         feelings: z.string().describe('How they are feeling about it'),
@@ -328,7 +328,7 @@ const honorEndingDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help honor an ending—a chapter, role, relationship, or phase of life.',
+      description: getToolDescription('honorEnding'),
       parameters: z.object({
         ending: z.string().describe('What is ending'),
         duration: z.string().optional().describe('How long this has been part of life'),
@@ -374,7 +374,7 @@ const embraceBeginningDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help embrace a new beginning with intention and hope.',
+      description: getToolDescription('embraceBeginning'),
       parameters: z.object({
         beginning: z.string().describe('What is beginning'),
         feelings: z

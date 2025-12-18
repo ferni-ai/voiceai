@@ -26,6 +26,7 @@ import type {
   GroupSessionType,
   ParticipantRole,
 } from './types.js';
+import * as livekit from './livekit.js';
 
 const log = createLogger({ module: 'GroupCoaching' });
 
@@ -94,36 +95,62 @@ export class GroupSessionManager {
 
   /**
    * Start a session (transition from waiting to active)
+   * Creates the LiveKit room for participants
    */
-  startSession(sessionId: string): boolean {
+  async startSession(sessionId: string): Promise<{
+    success: boolean;
+    roomName?: string;
+    livekitUrl?: string;
+    error?: string;
+  }> {
     const session = this.sessions.get(sessionId);
-    if (!session) return false;
+    if (!session) {
+      return { success: false, error: 'Session not found' };
+    }
 
     if (session.status !== 'waiting') {
       log.warn({ sessionId }, 'Cannot start session - not in waiting status');
-      return false;
+      return { success: false, error: 'Session not in waiting status' };
+    }
+
+    // Create LiveKit room for the session
+    const roomResult = await livekit.createGroupRoom(session);
+    if (!roomResult.success) {
+      log.error({ sessionId, error: roomResult.error }, 'Failed to create LiveKit room');
+      return { success: false, error: roomResult.error };
     }
 
     session.status = 'active';
     session.startedAt = new Date();
 
-    log.info({ sessionId, participantCount: session.participants.length }, 'Group session started');
+    log.info(
+      { sessionId, participantCount: session.participants.length, roomName: roomResult.roomName },
+      'Group session started with LiveKit room'
+    );
 
-    return true;
+    return {
+      success: true,
+      roomName: roomResult.roomName,
+      livekitUrl: livekit.getLiveKitUrl(),
+    };
   }
 
   /**
    * End a session
+   * Closes the LiveKit room
    */
-  endSession(sessionId: string): {
+  async endSession(sessionId: string): Promise<{
     success: boolean;
     summary?: GroupSessionSummary;
-  } {
+  }> {
     const session = this.sessions.get(sessionId);
     if (!session) return { success: false };
 
     session.status = 'ended';
     session.endedAt = new Date();
+
+    // Close the LiveKit room
+    await livekit.closeGroupRoom(sessionId);
 
     const summary = this.generateSessionSummary(session);
 
@@ -253,12 +280,13 @@ export class GroupSessionManager {
 
   /**
    * Update participant status
+   * Syncs mute state with LiveKit if session is active
    */
-  updateParticipant(
+  async updateParticipant(
     sessionId: string,
     userId: string,
     updates: Partial<Pick<GroupParticipant, 'isActive' | 'isMuted' | 'role'>>
-  ): boolean {
+  ): Promise<boolean> {
     const session = this.sessions.get(sessionId);
     if (!session) return false;
 
@@ -267,7 +295,69 @@ export class GroupSessionManager {
 
     Object.assign(participant, updates);
 
+    // Sync mute state with LiveKit if session is active
+    if (updates.isMuted !== undefined && session.status === 'active') {
+      await livekit.setParticipantMute(sessionId, userId, updates.isMuted);
+    }
+
     return true;
+  }
+
+  // ==========================================================================
+  // LIVEKIT TOKEN GENERATION
+  // ==========================================================================
+
+  /**
+   * Get a LiveKit token for a participant to join the session
+   */
+  async getParticipantToken(
+    sessionId: string,
+    userId: string
+  ): Promise<{ token: string; livekitUrl: string } | null> {
+    const session = this.sessions.get(sessionId);
+    if (!session) return null;
+
+    const participant = session.participants.find((p) => p.userId === userId);
+    if (!participant) return null;
+
+    if (session.status !== 'active') {
+      log.warn({ sessionId, userId }, 'Cannot get token - session not active');
+      return null;
+    }
+
+    const token = await livekit.generateParticipantToken(session, participant);
+
+    return {
+      token,
+      livekitUrl: livekit.getLiveKitUrl(),
+    };
+  }
+
+  /**
+   * Get a LiveKit token for Ferni agent to join the session
+   */
+  async getAgentToken(sessionId: string): Promise<{ token: string; livekitUrl: string } | null> {
+    const session = this.sessions.get(sessionId);
+    if (!session) return null;
+
+    if (session.status !== 'active') {
+      log.warn({ sessionId }, 'Cannot get agent token - session not active');
+      return null;
+    }
+
+    const token = await livekit.generateAgentToken(session);
+
+    return {
+      token,
+      livekitUrl: livekit.getLiveKitUrl(),
+    };
+  }
+
+  /**
+   * Get room info for a session
+   */
+  async getRoomInfo(sessionId: string) {
+    return livekit.getRoomInfo(sessionId);
   }
 
   // ==========================================================================
@@ -489,6 +579,17 @@ export function getGroupSessionManager(): GroupSessionManager {
 // ============================================================================
 
 export type * from './types.js';
+
+// Re-export LiveKit utilities for direct access
+export {
+  validateLiveKitConfig,
+  getLiveKitUrl,
+  getRoomName,
+  broadcastToRoom,
+  sendToParticipants,
+  getRoomParticipants,
+  roomExists,
+} from './livekit.js';
 
 export default {
   getGroupSessionManager,

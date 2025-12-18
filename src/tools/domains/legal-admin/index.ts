@@ -22,6 +22,7 @@ import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // ADMINISTRATIVE CHECKLISTS
 // ============================================================================
@@ -129,7 +130,7 @@ const organizeDocumentsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help organize important documents and create a system.',
+      description: getToolDescription('organizeDocuments'),
       parameters: z.object({
         focus: z
           .enum(['getting-started', 'what-to-keep', 'storage-system', 'digital-backup'])
@@ -237,7 +238,7 @@ const locateDocumentDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help locate or replace important documents.',
+      description: getToolDescription('locateDocument'),
       parameters: z.object({
         documentType: z
           .enum([
@@ -334,7 +335,7 @@ const promptEstatePlanningDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Encourage and guide estate planning basics. Not legal advice.',
+      description: getToolDescription('promptEstatePlanning'),
       parameters: z.object({
         lifeSituation: z
           .enum(['single', 'married', 'has-kids', 'owns-property', 'general'])
@@ -397,7 +398,7 @@ const reviewBeneficiariesDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Remind and guide annual beneficiary review.',
+      description: getToolDescription('reviewBeneficiaries'),
       parameters: z.object({
         lastReview: z.string().optional().describe('When last reviewed'),
         lifeChange: z.string().optional().describe('Recent life change'),
@@ -457,7 +458,7 @@ const reviewInsuranceCoverageDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help review insurance coverage for adequacy.',
+      description: getToolDescription('reviewInsuranceCoverage'),
       parameters: z.object({
         insuranceType: z
           .enum(['health', 'life', 'disability', 'auto', 'home', 'umbrella', 'all'])
@@ -532,7 +533,7 @@ const prepareForTaxSeasonDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help prepare for tax season.',
+      description: getToolDescription('prepareForTaxSeason'),
       parameters: z.object({
         timing: z
           .enum(['year-end', 'jan-feb', 'march-april', 'extension'])
@@ -609,7 +610,7 @@ const reminderAnnualTasksDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Provide reminders for annual administrative tasks.',
+      description: getToolDescription('reminderAnnualTasks'),
       parameters: z.object({
         currentPeriod: z
           .enum(['january', 'spring', 'summer', 'fall', 'december'])

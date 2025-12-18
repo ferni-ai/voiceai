@@ -10,6 +10,7 @@
  * PERSISTENCE: Uses Firestore for cross-session awareness with in-memory caching.
  */
 
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 import type { AgentId } from './agent-bus.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
@@ -325,7 +326,7 @@ export async function acknowledgeTeamNote(
           return n;
         });
 
-        await docRef.set({ notes: firestoreNotes }, { merge: true });
+        await docRef.set(removeUndefined({ notes: firestoreNotes }), { merge: true });
       }
     } catch (err) {
       getLogger().warn({ err, userId }, 'Failed to acknowledge team note in Firestore');
@@ -575,8 +576,13 @@ export async function initializeCrossAgentAwareness(userId: string): Promise<voi
   const firestore = await getFirestore();
   if (firestore) {
     try {
-      // Load conversations
-      const convDoc = await firestore.collection(TEAM_AWARENESS_COLLECTION).doc(userId).get();
+      // Load conversations and notes in parallel (2x faster)
+      const [convDoc, notesDoc] = await Promise.all([
+        firestore.collection(TEAM_AWARENESS_COLLECTION).doc(userId).get(),
+        firestore.collection(TEAM_NOTES_COLLECTION).doc(userId).get(),
+      ]);
+
+      // Process conversations
       if (convDoc.exists) {
         const data = convDoc.data();
         const conversations = (data?.conversations || []).map((c: Record<string, unknown>) => ({
@@ -591,8 +597,7 @@ export async function initializeCrossAgentAwareness(userId: string): Promise<voi
         );
       }
 
-      // Load notes
-      const notesDoc = await firestore.collection(TEAM_NOTES_COLLECTION).doc(userId).get();
+      // Process notes
       if (notesDoc.exists) {
         const data = notesDoc.data();
         const notes = (data?.notes || []).map((n: Record<string, unknown>) => ({

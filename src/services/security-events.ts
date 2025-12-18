@@ -22,6 +22,7 @@ import { createHmac, randomBytes } from 'crypto';
 import * as admin from 'firebase-admin';
 import { getGCPProjectId } from '../config/environment.js';
 import { getRedisCache } from '../memory/redis-cache.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { registerInterval } from '../utils/interval-manager.js';
 
@@ -240,10 +241,12 @@ async function saveEventToFirestore(event: SecurityEvent): Promise<void> {
     await db
       .collection(EVENTS_COLLECTION)
       .doc(event.id)
-      .set({
-        ...event,
-        timestamp: event.timestamp,
-      });
+      .set(
+        removeUndefined({
+          ...event,
+          timestamp: event.timestamp,
+        })
+      );
   } catch (error) {
     log.error({ error, eventId: event.id }, 'Failed to save security event to Firestore');
   }

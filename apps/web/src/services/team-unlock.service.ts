@@ -162,6 +162,17 @@ const STAGE_ORDER: RelationshipStage[] = [
 // STATE
 // ============================================================================
 
+/** FIX: localStorage key for persisting unlock state */
+const STORAGE_KEY = 'ferni_team_unlock_state';
+
+/** FIX: Persisted state structure (serializable subset) */
+interface PersistedUnlockState {
+  unlockedMembers: TeamMemberId[];
+  tier: 'free' | 'friend' | 'partner';
+  almostThereShown: TeamMemberId[];
+  timestamp: number;
+}
+
 let currentState: TeamUnlockState | null = null;
 let subscriptionTier: 'free' | 'friend' | 'partner' = 'free';
 const unlockListeners: Set<(state: TeamUnlockState) => void> = new Set();
@@ -171,6 +182,77 @@ const almostThereListeners: Set<(member: TeamMemberConfig, progress: number) => 
 // Track which members we've already shown "almost there" for (to avoid spam)
 const almostThereShown = new Set<TeamMemberId>();
 const ALMOST_THERE_THRESHOLD = 0.8; // 80%
+
+// ============================================================================
+// PERSISTENCE HELPERS
+// ============================================================================
+
+/**
+ * FIX: Load persisted unlock state from localStorage
+ * Returns null if no valid state exists or on error
+ */
+function loadPersistedState(): PersistedUnlockState | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return null;
+
+    const parsed = JSON.parse(stored) as PersistedUnlockState;
+
+    // Validate structure
+    if (!Array.isArray(parsed.unlockedMembers)) return null;
+
+    // State expires after 24 hours to force refresh from backend
+    const MAX_AGE_MS = 24 * 60 * 60 * 1000;
+    if (Date.now() - (parsed.timestamp || 0) > MAX_AGE_MS) {
+      log.debug('Persisted unlock state expired, clearing');
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+
+    log.debug('Loaded persisted unlock state', {
+      unlockedCount: parsed.unlockedMembers.length,
+      tier: parsed.tier,
+    });
+
+    return parsed;
+  } catch (err) {
+    log.debug('Failed to load persisted unlock state:', String(err));
+    return null;
+  }
+}
+
+/**
+ * FIX: Save unlock state to localStorage for persistence
+ */
+function persistState(): void {
+  if (!currentState) return;
+
+  try {
+    const toPersist: PersistedUnlockState = {
+      unlockedMembers: Array.from(currentState.unlockedMembers),
+      tier: currentState.tier,
+      almostThereShown: Array.from(almostThereShown),
+      timestamp: Date.now(),
+    };
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toPersist));
+    log.debug('Persisted unlock state', { unlockedCount: toPersist.unlockedMembers.length });
+  } catch (err) {
+    // localStorage might be full or disabled - not critical
+    log.debug('Failed to persist unlock state:', String(err));
+  }
+}
+
+/**
+ * FIX: Restore "almost there" tracking from persisted state
+ */
+function restoreAlmostThereTracking(persisted: PersistedUnlockState): void {
+  if (persisted.almostThereShown) {
+    for (const memberId of persisted.almostThereShown) {
+      almostThereShown.add(memberId);
+    }
+  }
+}
 
 // ============================================================================
 // CORE LOGIC
@@ -249,8 +331,19 @@ function getUnlockHint(
 
 /**
  * Initialize team unlock service
+ * FIX: Now loads persisted state from localStorage for immediate UI feedback
  */
 export function initTeamUnlockService(): void {
+  // FIX: Load persisted state first for immediate UI
+  const persisted = loadPersistedState();
+  if (persisted) {
+    // Restore subscription tier from persisted state
+    subscriptionTier = persisted.tier || 'free';
+    // Restore "almost there" tracking
+    restoreAlmostThereTracking(persisted);
+    log.debug('Restored subscription tier from persisted state:', subscriptionTier);
+  }
+
   // Subscribe to relationship stage changes
   relationshipStageService.onStageChange(() => {
     void updateUnlockState();
@@ -354,6 +447,9 @@ export function updateUnlockState(): TeamUnlockState {
       }
     }
   }
+
+  // FIX: Persist state to localStorage for page refresh resilience
+  persistState();
 
   return currentState;
 }

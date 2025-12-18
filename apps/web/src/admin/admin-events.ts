@@ -52,7 +52,7 @@ export async function toggleFlag(flagId: string, enabled: boolean): Promise<bool
     }
   } catch (error) {
     log.error({ error, flagId }, 'Failed to toggle flag');
-    toast.error('Failed to update flag');
+    toast.error("Couldn't update flag");
     return false;
   }
 }
@@ -76,7 +76,7 @@ export async function setFlagRollout(flagId: string, percentage: number): Promis
     }
   } catch (error) {
     log.error({ error, flagId }, 'Failed to set rollout');
-    toast.error('Failed to update rollout');
+    toast.error("Couldn't update rollout");
     return false;
   }
 }
@@ -93,12 +93,12 @@ export async function enableAllFlags(): Promise<boolean> {
       toast.success('All flags enabled');
       return true;
     } else {
-      toast.error('Failed to enable all flags');
+      toast.error("Couldn't enable all flags");
       return false;
     }
   } catch (error) {
     log.error({ error }, 'Failed to enable all flags');
-    toast.error('Failed to enable all flags');
+    toast.error("Couldn't enable all flags");
     return false;
   }
 }
@@ -115,12 +115,12 @@ export async function disableAllFlags(): Promise<boolean> {
       toast.warning('All flags disabled');
       return true;
     } else {
-      toast.error('Failed to disable flags');
+      toast.error("Couldn't disable flags");
       return false;
     }
   } catch (error) {
     log.error({ error }, 'Failed to disable flags');
-    toast.error('Failed to disable flags');
+    toast.error("Couldn't disable flags");
     return false;
   }
 }
@@ -137,12 +137,12 @@ export async function resetFlags(): Promise<boolean> {
       toast.success('Flags reset to defaults');
       return true;
     } else {
-      toast.error('Failed to reset flags');
+      toast.error("Couldn't reset flags");
       return false;
     }
   } catch (error) {
     log.error({ error }, 'Failed to reset flags');
-    toast.error('Failed to reset flags');
+    toast.error("Couldn't reset flags");
     return false;
   }
 }
@@ -170,7 +170,7 @@ export async function toggleAgent(agentId: string, enabled: boolean): Promise<bo
     }
   } catch (error) {
     log.error({ error, agentId }, 'Failed to toggle agent');
-    toast.error('Failed to update agent');
+    toast.error("Couldn't update agent");
     return false;
   }
 }
@@ -182,7 +182,7 @@ export async function editAgent(agentId: string): Promise<void> {
     // Fetch current agent data
     const response = await adminFetch(`/api/v1/admin/agents/${agentId}`);
     if (!response.ok) {
-      toast.error('Failed to load agent');
+      toast.error("Couldn't load agent");
       return;
     }
     
@@ -245,13 +245,13 @@ export async function editAgent(agentId: string): Promise<void> {
           modal.remove();
           window.location.reload();
         } else {
-          toast.error('Failed to save changes');
+          toast.error("Couldn't save changes");
         }
       }
     });
   } catch (error) {
     log.error({ error, agentId }, 'Failed to edit agent');
-    toast.error('Failed to open editor');
+    toast.error("Couldn't open editor");
   }
 }
 
@@ -285,12 +285,12 @@ export async function previewAgentVoice(agentId: string): Promise<void> {
 
       audio.onended = () => {
         URL.revokeObjectURL(audioUrl);
-        toast.success('Voice preview complete');
+        toast.success('Preview done');
       };
 
       audio.onerror = () => {
         URL.revokeObjectURL(audioUrl);
-        toast.error('Failed to play voice preview');
+        toast.error("Couldn't play voice preview");
       };
 
       await audio.play();
@@ -304,13 +304,13 @@ export async function previewAgentVoice(agentId: string): Promise<void> {
 
     audio.onended = () => {
       URL.revokeObjectURL(audioUrl);
-      toast.success('Voice preview complete');
+      toast.success('Preview done');
     };
 
     await audio.play();
   } catch (error) {
     log.error({ error, agentId }, 'Voice preview failed');
-    toast.error('Voice preview not available for this agent');
+    toast.error('Voice not available for this agent');
   }
 }
 
@@ -479,16 +479,16 @@ export async function createAgentFromTemplate(templateId: string): Promise<void>
       const secondary = (document.getElementById('templateAgentSecondaryColor') as HTMLInputElement).value;
 
       if (!id || !name) {
-        toast.error('ID and Name are required');
+        toast.error('ID and Name required');
         return;
       }
 
       if (!/^[a-z0-9-]+$/.test(id)) {
-        toast.error('ID must be lowercase letters, numbers, and hyphens only');
+        toast.error('ID: lowercase letters, numbers, hyphens only');
         return;
       }
 
-      toast.info('Creating agent from template...');
+      toast.info('Creating agent...');
 
       try {
         const response = await adminFetch('/api/v1/admin/agents/create-from-template', {
@@ -512,7 +512,7 @@ export async function createAgentFromTemplate(templateId: string): Promise<void>
           if (result.bundlePath) {
             toast.info(`Bundle scaffolded at: ${result.bundlePath}`);
           } else {
-            toast.info('Note: Configure full persona bundle in /personas directory');
+            toast.info('Configure persona bundle in /personas');
           }
 
           modal.remove();
@@ -523,7 +523,7 @@ export async function createAgentFromTemplate(templateId: string): Promise<void>
         }
       } catch (error) {
         log.error({ error, templateId }, 'Failed to create agent from template');
-        toast.error('Failed to create agent');
+        toast.error("Couldn't create agent");
       }
     }
   });
@@ -531,7 +531,7 @@ export async function createAgentFromTemplate(templateId: string): Promise<void>
 
 export async function validateAgents(): Promise<{ success: boolean; output?: string; errors?: string }> {
   log.debug('Validating all agents');
-  toast.info('Validating agents...');
+  toast.info('Validating...');
   
   try {
     const response = await adminFetch('/api/v1/admin/agents/validate', {
@@ -559,7 +559,7 @@ export async function validateAgents(): Promise<{ success: boolean; output?: str
     return result;
   } catch (error) {
     log.error({ error }, 'Failed to validate agents');
-    toast.error('Failed to validate agents');
+    toast.error("Couldn't validate agents");
     return { success: false, errors: 'Network error' };
   }
 }
@@ -577,12 +577,12 @@ export async function updateAgentOrder(order: string[]): Promise<boolean> {
       toast.success('Team order updated');
       return true;
     } else {
-      toast.error('Failed to update order');
+      toast.error("Couldn't update order");
       return false;
     }
   } catch (error) {
     log.error({ error }, 'Failed to update agent order');
-    toast.error('Failed to update order');
+    toast.error("Couldn't update order");
     return false;
   }
 }
@@ -602,16 +602,16 @@ export async function runQuickAction(action: string): Promise<void> {
       
     case 'run-evalops':
     case 'run-suite':
-      toast.info('Running EvalOps suite...');
+      toast.info('Running EvalOps...');
       try {
         const response = await adminFetch('/api/evalops/run-suite', { method: 'POST' });
         if (response.ok) {
-          toast.success('EvalOps suite completed');
+          toast.success('EvalOps complete');
         } else {
-          toast.warning('EvalOps suite finished with issues');
+          toast.warning('EvalOps found issues');
         }
       } catch {
-        toast.error('Failed to run EvalOps');
+        toast.error("Couldn't run EvalOps");
       }
       break;
       
@@ -624,10 +624,10 @@ export async function runQuickAction(action: string): Promise<void> {
           // Reload the current section to show updated data
           window.location.reload();
         } else {
-          toast.error('Failed to refresh flags');
+          toast.error("Couldn't refresh flags");
         }
       } catch {
-        toast.error('Failed to refresh flags');
+        toast.error("Couldn't refresh flags");
       }
       break;
       
@@ -691,7 +691,7 @@ export async function runQuickAction(action: string): Promise<void> {
         });
         toast.success('Caches cleared');
       } catch {
-        toast.error('Failed to clear caches');
+        toast.error("Couldn't clear caches");
       }
       break;
       
@@ -718,7 +718,7 @@ export async function runQuickAction(action: string): Promise<void> {
 // ============================================================================
 
 export async function runQuickVoiceCheck(): Promise<void> {
-  toast.info('Running quick voice check...');
+  toast.info('Checking voice...');
   
   try {
     const response = await adminFetch('/api/evalops/quick-check', {
@@ -744,12 +744,12 @@ export async function runQuickVoiceCheck(): Promise<void> {
     }
   } catch (error) {
     log.error({ error }, 'Quick voice check failed');
-    toast.error('Failed to run voice check');
+    toast.error("Couldn't run voice check");
   }
 }
 
 export async function exportEvalOpsReport(): Promise<void> {
-  toast.info('Generating report...');
+  toast.info('Generating...');
   
   try {
     // Fetch metrics and flagged responses
@@ -784,7 +784,7 @@ export async function exportEvalOpsReport(): Promise<void> {
     toast.success('Report downloaded');
   } catch (error) {
     log.error({ error }, 'Failed to export report');
-    toast.error('Failed to generate report');
+    toast.error("Couldn't generate report");
   }
 }
 
@@ -801,12 +801,12 @@ export async function updateEvalOpsFlag(flagId: string, enabled: boolean): Promi
       toast.success(`${flagId} ${enabled ? 'enabled' : 'disabled'}`);
       return true;
     } else {
-      toast.error('Failed to update setting');
+      toast.error("Couldn't update setting");
       return false;
     }
   } catch (error) {
     log.error({ error, flagId }, 'Failed to update EvalOps flag');
-    toast.error('Failed to update setting');
+    toast.error("Couldn't update setting");
     return false;
   }
 }
@@ -887,12 +887,12 @@ export async function openCreateAgentModal(): Promise<void> {
       const secondary = (document.getElementById('newAgentSecondaryColor') as HTMLInputElement).value;
       
       if (!id || !name) {
-        toast.error('ID and Name are required');
+        toast.error('ID and Name required');
         return;
       }
       
       if (!/^[a-z0-9-]+$/.test(id)) {
-        toast.error('ID must be lowercase letters, numbers, and hyphens only');
+        toast.error('ID: lowercase letters, numbers, hyphens only');
         return;
       }
       
@@ -912,16 +912,16 @@ export async function openCreateAgentModal(): Promise<void> {
         });
         
         if (response.ok) {
-          toast.success('Agent configuration created');
-          toast.info('Note: Full persona bundle must be created in /personas directory');
+          toast.success('Agent config created');
+          toast.info('Create persona bundle in /personas');
           modal.remove();
           window.location.reload();
         } else {
-          toast.error('Failed to create agent');
+          toast.error("Couldn't create agent");
         }
       } catch (error) {
         log.error({ error }, 'Failed to create agent');
-        toast.error('Failed to create agent');
+        toast.error("Couldn't create agent");
       }
     }
   });

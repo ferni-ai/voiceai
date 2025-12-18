@@ -379,8 +379,8 @@ describe('Location/Calendar Service', () => {
   });
 
   describe('hasCalendarConnected', () => {
-    it('should return false for unconnected user', () => {
-      const connected = locationCalendar.hasCalendarConnected('test-user-cal');
+    it('should return false for unconnected user', async () => {
+      const connected = await locationCalendar.hasCalendarConnected('test-user-cal');
       expect(connected).toBe(false);
     });
   });
@@ -415,15 +415,16 @@ describe('Location/Calendar Service', () => {
 
   describe('updateLocation', () => {
     it('should not throw for user without calendar connection', () => {
-      // updateLocation requires calendar state to exist first (via OAuth)
-      // Without OAuth, it silently returns
+      // updateLocation creates state and stores location regardless of OAuth
       expect(() => {
         locationCalendar.updateLocation('test-user-no-oauth-2', 37.7849, -122.4094, 15);
       }).not.toThrow();
 
-      // getCurrentLocation should still return null for unconnected user
+      // After updateLocation, getCurrentLocation returns the stored location
       const current = locationCalendar.getCurrentLocation('test-user-no-oauth-2');
-      expect(current).toBeNull();
+      expect(current).not.toBeNull();
+      expect(current?.latitude).toBe(37.7849);
+      expect(current?.longitude).toBe(-122.4094);
     });
   });
 

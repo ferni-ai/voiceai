@@ -15,7 +15,6 @@ import { DURATION, EASING, prefersReducedMotion } from '../config/animation-cons
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { t } from '../i18n/index.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 
 const log = createLogger('MusicDashboard');
 
@@ -124,7 +123,6 @@ const ICONS = {
   trending: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
   user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
   play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>',
-  share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>',
 };
 
 // ============================================================================
@@ -137,7 +135,6 @@ class MusicDashboardUI {
   private callbacks: MusicDashboardUICallbacks = {};
   private styleElement: HTMLStyleElement | null = null;
   private isVisible = false;
-  private currentInsights: MusicInsights | null = null;
 
   initialize(): void {
     if (this.panel) return;
@@ -196,7 +193,7 @@ class MusicDashboardUI {
       </div>
     `;
 
-    addTapListener(this.wrapper.querySelector('.music-dashboard__close'), () => this.hide());
+    this.wrapper.querySelector('.music-dashboard__close')?.addEventListener('click', () => this.hide());
     this.panel.classList.add('music-dashboard--visible');
     this.isVisible = true;
   }
@@ -220,8 +217,8 @@ class MusicDashboardUI {
       </div>
     `;
 
-    addTapListener(this.wrapper.querySelector('.music-dashboard__close'), () => this.hide());
-    addTapListener(this.wrapper.querySelector('.music-dashboard__cta'), () => {
+    this.wrapper.querySelector('.music-dashboard__close')?.addEventListener('click', () => this.hide());
+    this.wrapper.querySelector('.music-dashboard__cta')?.addEventListener('click', () => {
       this.hide();
       this.callbacks.onPlayGame?.('name-that-tune');
     });
@@ -229,9 +226,6 @@ class MusicDashboardUI {
 
   hide(): void {
     if (!this.panel) return;
-
-    // Clean up iOS tap listeners
-    cleanupTapListeners(this.panel);
 
     this.panel.classList.remove('music-dashboard--visible');
     this.isVisible = false;
@@ -272,181 +266,8 @@ class MusicDashboardUI {
       </div>
     `;
 
-    // Bind events (iOS-compatible)
-    addTapListener(this.wrapper.querySelector('.music-dashboard__close'), () => this.hide());
-
-    // Store insights for sharing
-    this.currentInsights = insights;
-
-    // Bind share buttons
-    this.bindShareButtons();
-  }
-
-  private bindShareButtons(): void {
-    if (!this.wrapper) return;
-
-    const shareButtons = this.wrapper.querySelectorAll('.music-dashboard__share-btn');
-    shareButtons.forEach((btn) => {
-      const shareType = btn.getAttribute('data-share-type');
-      if (shareType) {
-        addTapListener(btn, () => this.handleShare(shareType));
-      }
-    });
-  }
-
-  private async handleShare(shareType: string): Promise<void> {
-    if (!this.currentInsights) {
-      log.warn('Cannot share - no insights data available');
-      return;
-    }
-
-    log.info({ shareType }, '📤 Sharing Musical You card');
-
-    try {
-      // Build card data based on type
-      let cardData: Record<string, unknown>;
-
-      switch (shareType) {
-        case 'musical-dna':
-          if (!this.currentInsights.personality) {
-            log.warn('No personality data for musical-dna share');
-            return;
-          }
-          const personality = this.currentInsights.personality;
-          cardData = {
-            type: 'musical-dna',
-            personalityLabel: personality.label,
-            personalityDescription: personality.description,
-            topGenres: this.currentInsights.strengths.slice(0, 4).map((s) => ({
-              name: s.displayName,
-              score: Math.round(s.affinityScore * 100),
-            })),
-            totalGames: this.currentInsights.journeyStats.totalGames,
-            currentStreak: this.currentInsights.journeyStats.currentStreak,
-          };
-          break;
-
-        case 'desert-island':
-          // Find desert island moment from memorable moments
-          const desertIslandMoment = this.currentInsights.memorableMoments.find(
-            (m) => m.type === 'desert_island'
-          );
-          if (!desertIslandMoment) {
-            log.warn('No desert island data available');
-            this.showShareError('Play Desert Island Discs first to share your picks!');
-            return;
-          }
-          // Parse the picks from the moment value (format: "Song - Artist")
-          const picks = desertIslandMoment.value.split(', ').map((pick, idx) => {
-            const [trackName, artistName] = pick.split(' - ');
-            return { rank: idx + 1, trackName, artistName: artistName || 'Unknown Artist' };
-          });
-          cardData = {
-            type: 'desert-island',
-            picks,
-            curatedDate: new Date().toISOString(),
-          };
-          break;
-
-        case 'game-victory':
-          // Game victory should be shared from game results, not dashboard
-          log.warn('Game victory share should be triggered from game completion');
-          return;
-
-        default:
-          log.warn({ shareType }, 'Unknown share type');
-          return;
-      }
-
-      // Call the share API
-      const response = await fetch('/api/share/cards/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: shareType,
-          userId: this.getUserId(),
-          data: cardData,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success && result.card) {
-        // Open share dialog or copy link
-        await this.showShareOptions(result.card);
-      } else {
-        log.error({ error: result.error }, 'Failed to generate share card');
-        this.showShareError();
-      }
-    } catch (error) {
-      log.error({ error }, 'Share failed');
-      this.showShareError();
-    }
-  }
-
-  private getUserId(): string {
-    // Get user ID from localStorage or generate device ID
-    return localStorage.getItem('ferni_user_id') || `device_${Date.now()}`;
-  }
-
-  private async showShareOptions(card: { shareUrl: string; imageUrl: string; svgUrl: string }): Promise<void> {
-    // Try native share API first (mobile)
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'My Musical DNA | Ferni',
-          text: 'Check out my musical personality!',
-          url: card.shareUrl,
-        });
-        log.info('Shared via native share API');
-        return;
-      } catch (e) {
-        // User cancelled or share failed, fall back to copy
-        log.debug('Native share cancelled or failed, falling back to copy');
-      }
-    }
-
-    // Fallback: copy link to clipboard
-    try {
-      await navigator.clipboard.writeText(card.shareUrl);
-      this.showShareSuccess();
-    } catch (e) {
-      // Final fallback: open in new tab
-      window.open(card.shareUrl, '_blank');
-    }
-  }
-
-  private showShareSuccess(): void {
-    // Simple toast notification
-    const toast = document.createElement('div');
-    toast.className = 'music-dashboard__toast';
-    toast.textContent = 'Link copied!';
-    document.body.appendChild(toast);
-
-    setTimeout(() => {
-      toast.classList.add('music-dashboard__toast--visible');
-    }, 10);
-
-    setTimeout(() => {
-      toast.classList.remove('music-dashboard__toast--visible');
-      setTimeout(() => toast.remove(), 300);
-    }, 2500);
-  }
-
-  private showShareError(message?: string): void {
-    const toast = document.createElement('div');
-    toast.className = 'music-dashboard__toast music-dashboard__toast--error';
-    toast.textContent = message || 'Could not share. Try again!';
-    document.body.appendChild(toast);
-
-    setTimeout(() => {
-      toast.classList.add('music-dashboard__toast--visible');
-    }, 10);
-
-    setTimeout(() => {
-      toast.classList.remove('music-dashboard__toast--visible');
-      setTimeout(() => toast.remove(), 300);
-    }, 2500);
+    // Bind events
+    this.wrapper.querySelector('.music-dashboard__close')?.addEventListener('click', () => this.hide());
   }
 
   private renderEmptyState(insights: MusicInsights): void {
@@ -472,8 +293,8 @@ class MusicDashboardUI {
       </div>
     `;
 
-    addTapListener(this.wrapper.querySelector('.music-dashboard__close'), () => this.hide());
-    addTapListener(this.wrapper.querySelector('.music-dashboard__cta'), () => {
+    this.wrapper.querySelector('.music-dashboard__close')?.addEventListener('click', () => this.hide());
+    this.wrapper.querySelector('.music-dashboard__cta')?.addEventListener('click', () => {
       this.hide();
       this.callbacks.onPlayGame?.('name-that-tune');
     });
@@ -503,9 +324,6 @@ class MusicDashboardUI {
             <h3 class="music-dashboard__personality-label">${personality.label}</h3>
             <p class="music-dashboard__personality-desc">${personality.description}</p>
           </div>
-          <button class="music-dashboard__share-btn" data-share-type="musical-dna" aria-label="Share Musical DNA">
-            ${ICONS.share}
-          </button>
         </div>
         ${traitsHtml ? `<div class="music-dashboard__traits">${traitsHtml}</div>` : ''}
         <blockquote class="music-dashboard__quote">${personality.coachingQuote}</blockquote>
@@ -711,16 +529,15 @@ class MusicDashboardUI {
     this.panel.setAttribute('role', 'dialog');
     this.panel.setAttribute('aria-label', 'Musical You Dashboard');
 
-    // Backdrop (iOS-compatible)
+    // Backdrop
     const backdrop = document.createElement('div');
     backdrop.className = 'music-dashboard__backdrop';
-    addTapListener(backdrop, () => this.hide());
+    backdrop.addEventListener('click', () => this.hide());
     this.panel.appendChild(backdrop);
 
-    // Wrapper (with aria-live for dynamic content updates)
+    // Wrapper
     this.wrapper = document.createElement('div');
     this.wrapper.className = 'music-dashboard__card';
-    this.wrapper.setAttribute('aria-live', 'polite');
     this.panel.appendChild(this.wrapper);
 
     document.body.appendChild(this.panel);
@@ -876,32 +693,6 @@ class MusicDashboardUI {
         align-items: flex-start;
         gap: var(--space-3, 12px);
         margin-bottom: var(--space-3, 12px);
-      }
-
-      .music-dashboard__share-btn {
-        margin-left: auto;
-        background: transparent;
-        border: none;
-        padding: var(--space-2, 8px);
-        cursor: pointer;
-        border-radius: var(--radius-md, 8px);
-        color: var(--color-text-muted);
-        transition: color 0.2s, background 0.2s, transform 0.15s;
-        flex-shrink: 0;
-      }
-
-      .music-dashboard__share-btn:hover {
-        color: var(--color-ferni);
-        background: var(--color-ferni-subtle, rgba(74, 103, 65, 0.1));
-      }
-
-      .music-dashboard__share-btn:active {
-        transform: scale(0.95);
-      }
-
-      .music-dashboard__share-btn svg {
-        width: 20px;
-        height: 20px;
       }
 
       .music-dashboard__personality-icon {
@@ -1348,58 +1139,6 @@ class MusicDashboardUI {
         .music-dashboard__stats-grid {
           grid-template-columns: repeat(2, 1fr);
         }
-      }
-      
-      /* ========================================
-         ACCESSIBILITY - Focus Styles
-         ======================================== */
-      .music-dashboard__close:focus-visible,
-      .music-dashboard__cta:focus-visible {
-        outline: 2px solid var(--persona-primary, #4a6741);
-        outline-offset: 2px;
-      }
-      
-      /* ========================================
-         ACCESSIBILITY - Reduced Motion
-         ======================================== */
-      @media (prefers-reduced-motion: reduce) {
-        .music-dashboard,
-        .music-dashboard__card,
-        .music-dashboard__close,
-        .music-dashboard__cta,
-        .music-dashboard__loading-spinner {
-          transition: none !important;
-          animation: none !important;
-        }
-      }
-
-      /* ========================================
-         TOAST NOTIFICATIONS
-         ======================================== */
-      .music-dashboard__toast {
-        position: fixed;
-        bottom: 100px;
-        left: 50%;
-        transform: translateX(-50%) translateY(20px);
-        background: var(--color-text-primary, #2c2520);
-        color: white;
-        padding: var(--space-3, 12px) var(--space-5, 20px);
-        border-radius: var(--radius-full, 50px);
-        font-size: 0.9rem;
-        font-weight: 500;
-        opacity: 0;
-        transition: opacity 0.3s, transform 0.3s;
-        z-index: 10001;
-        pointer-events: none;
-      }
-
-      .music-dashboard__toast--visible {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-      }
-
-      .music-dashboard__toast--error {
-        background: var(--color-error, #b44a4a);
       }
     `;
 

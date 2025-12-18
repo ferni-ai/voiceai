@@ -232,7 +232,7 @@ export { getToolDefinitions as getDeveloperToolDefinitions } from './developer/i
 
 export * from './agent.js';
 export * from './banking.js';
-export * from './conversation.js';
+export * from './conversation/index.js';
 export * from './financial.js';
 export * from './human-connection.js';
 export * from './personas.js';
@@ -655,7 +655,8 @@ export const DOMAIN_METADATA = {
   // Developer Tools Domain
   developer: {
     name: 'Developer Tools',
-    description: 'Voice-driven development: Ferni CLI commands, file editing, bash, and code search',
+    description:
+      'Voice-driven development: Ferni CLI commands, file editing, bash, and code search',
     icon: '💻',
     status: 'active',
   },

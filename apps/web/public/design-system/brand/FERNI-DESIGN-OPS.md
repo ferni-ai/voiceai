@@ -370,7 +370,7 @@ on:
   pull_request:
     paths:
       - 'src/**'
-      - 'frontend-typescript/**'
+      - 'apps/web/**'
       - 'design-system/**'
 
 jobs:

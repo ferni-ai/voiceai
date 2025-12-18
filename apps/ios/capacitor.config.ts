@@ -3,7 +3,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.sethdford.voiceai',
   appName: 'Ferni',
-  webDir: '../../frontend-typescript/dist',
+  webDir: '../../apps/web/dist',
 
   // Server configuration for development
   server: {

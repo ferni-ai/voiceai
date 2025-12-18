@@ -17,7 +17,6 @@ import { t } from '../i18n/index.js';
 import { DURATION } from '../config/animation-constants.js';
 import { formatAmount, loadStripe } from '../services/monetization.service.js';
 import { apiFetch } from '../utils/api-helpers.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import type { GardenStatus, PlantSeedResponse, SubscriptionResponse, UserGarden } from '../types/seed-fund.types.js';
@@ -141,10 +140,10 @@ async function createModal(): Promise<HTMLElement> {
     </div>
   `;
 
-  // Event listeners (iOS-compatible)
-  addTapListener(overlay.querySelector('.ferni-fund-backdrop'), close);
-  addTapListener(overlay.querySelector('.ferni-fund-close'), close);
-  addTapListener(overlay.querySelector('.ferni-fund-card'), (e) => e.stopPropagation());
+  // Event listeners
+  overlay.querySelector('.ferni-fund-backdrop')?.addEventListener('click', close);
+  overlay.querySelector('.ferni-fund-close')?.addEventListener('click', close);
+  overlay.querySelector('.ferni-fund-card')?.addEventListener('click', (e) => e.stopPropagation());
 
   document.body.appendChild(overlay);
 
@@ -303,7 +302,7 @@ function setupFormListeners(): void {
   }
 
   buttons.forEach((btn) => {
-    addTapListener(btn, () => {
+    btn.addEventListener('click', () => {
       buttons.forEach((b) => b.classList.remove('selected'));
       btn.classList.add('selected');
       selectedAmount = parseInt(btn.getAttribute('data-amount') || '0', 10);
@@ -322,13 +321,13 @@ function setupFormListeners(): void {
     updateImpact(selectedAmount);
   });
 
-  addTapListener(recurringToggle, () => {
+  recurringToggle?.addEventListener('click', () => {
     isRecurring = !isRecurring;
-    recurringToggle?.classList.toggle('active', isRecurring);
-    recurringToggle?.setAttribute('data-active', String(isRecurring));
+    recurringToggle.classList.toggle('active', isRecurring);
+    recurringToggle.setAttribute('data-active', String(isRecurring));
   });
 
-  addTapListener(submitBtn, async () => {
+  submitBtn.addEventListener('click', async () => {
     if (selectedAmount < 100 || !currentUserId) return;
 
     const message = messageInput?.value || '';
@@ -399,7 +398,7 @@ async function processContribution(
       setupFormListeners();
     }
 
-    toast.error('Payment failed. Please try again.');
+    toast.error("Payment didn't go through. Try again?");
   }
 }
 
@@ -431,9 +430,6 @@ export async function open(userId: string): Promise<void> {
  */
 export function close(): void {
   if (!isOpen || !container) return;
-
-  // Clean up iOS tap listeners
-  cleanupTapListeners(container);
 
   container.classList.remove('open');
   isOpen = false;
@@ -624,16 +620,22 @@ export async function showUserImpact(userId: string): Promise<void> {
     const plantFirstBtn = content.querySelector('[data-action="plant-first"]');
     const closeBtn = content.querySelector('.ferni-fund-close');
 
-    addTapListener(plantMoreBtn, () => {
-      // Switch to the main contribution view
-      void open(userId);
-    });
+    if (plantMoreBtn) {
+      plantMoreBtn.addEventListener('click', () => {
+        // Switch to the main contribution view
+        void open(userId);
+      });
+    }
 
-    addTapListener(plantFirstBtn, () => {
-      void open(userId);
-    });
+    if (plantFirstBtn) {
+      plantFirstBtn.addEventListener('click', () => {
+        void open(userId);
+      });
+    }
 
-    addTapListener(closeBtn, close);
+    if (closeBtn) {
+      closeBtn.addEventListener('click', close);
+    }
   }
 
   log.debug({ userId }, 'User impact view shown');

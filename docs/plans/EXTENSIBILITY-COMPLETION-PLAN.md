@@ -31,7 +31,7 @@ The extensibility system allows marketplace agents to define custom commands, to
 ### Implementation Plan
 
 #### 1.1 Frontend Command Discovery UI
-**File:** `frontend-typescript/src/ui/commands-panel.ui.ts` (NEW)
+**File:** `apps/web/src/ui/commands-panel.ui.ts` (NEW)
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -94,7 +94,7 @@ describe('Slash Commands Integration', () => {
 });
 ```
 
-**File:** `frontend-typescript/src/__tests__/commands-panel.test.ts` (NEW)
+**File:** `apps/web/src/__tests__/commands-panel.test.ts` (NEW)
 
 ```typescript
 describe('Commands Panel UI', () => {
@@ -340,7 +340,7 @@ POST /api/personas/:personaId/mcp/disconnect/:serverId
 ```
 
 #### 4.4 Frontend MCP Status
-**File:** `frontend-typescript/src/ui/mcp-status.ui.ts` (NEW)
+**File:** `apps/web/src/ui/mcp-status.ui.ts` (NEW)
 
 Subtle indicator showing MCP connection status:
 ```
@@ -492,9 +492,9 @@ Located in: `src/tests/extensibility-e2e.test.ts` (NEW)
 
 ### New Files
 ```
-frontend-typescript/src/ui/commands-panel.ui.ts
-frontend-typescript/src/ui/mcp-status.ui.ts
-frontend-typescript/src/__tests__/commands-panel.test.ts
+apps/web/src/ui/commands-panel.ui.ts
+apps/web/src/ui/mcp-status.ui.ts
+apps/web/src/__tests__/commands-panel.test.ts
 src/personas/bundles/mcp-integration.ts
 src/tests/extensibility-commands-integration.test.ts
 src/tests/extensibility-hooks-integration.test.ts

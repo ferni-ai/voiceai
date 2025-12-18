@@ -17,6 +17,7 @@ import Stripe from 'stripe';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { MarketplaceId, UserId } from '../schema/types.js';
 import { calculateRevenueShare, markPayoutComplete, recordUsage } from './index.js';
+import { getPushNotificationsService } from '../../services/push-notifications.js';
 
 // Firestore helpers for marketplace data
 async function savePurchase(purchase: MarketplacePurchase): Promise<void> {
@@ -91,7 +92,7 @@ function getStripeClient(): Stripe {
     if (!secretKey) {
       throw new Error('STRIPE_SECRET_KEY not configured');
     }
-    stripeClient = new Stripe(secretKey, { apiVersion: '2025-11-17.clover' });
+    stripeClient = new Stripe(secretKey, { apiVersion: '2025-12-15.clover' });
   }
   return stripeClient;
 }
@@ -242,7 +243,23 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<void
   log.warn({ invoiceId: invoice.id, itemId, userId }, 'Marketplace invoice payment failed');
 
   // Could suspend access here, but we'll be graceful and let them retry
-  // TODO: Send notification to user about failed payment
+  // Notify user about the failed payment so they can update their payment method
+  try {
+    const pushService = getPushNotificationsService();
+    await pushService.sendNotification(userId, {
+      title: 'Payment Issue',
+      body: "Your payment didn't go through. Update your payment method to keep access.",
+      type: 'general',
+      data: {
+        action: 'update_payment',
+        itemId,
+        invoiceId: invoice.id,
+      },
+    });
+    log.info({ userId, invoiceId: invoice.id }, 'Sent payment failed notification to user');
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Failed to send payment failed notification');
+  }
 }
 
 /**

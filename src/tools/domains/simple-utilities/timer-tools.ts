@@ -20,6 +20,7 @@ import { updateTimerPreferences } from './persistence.js';
 import { onTimerComplete } from './voice-callbacks.js';
 import { activeTimers } from './shared-state.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 const setTimerDef: ToolDefinition = {
   id: 'setTimer',
   name: 'Set Timer',
@@ -29,10 +30,7 @@ const setTimerDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Set a simple timer. Use when someone asks:
-- "Set a timer for 5 minutes"
-- "Timer for 30 seconds"
-- "Remind me in 10 minutes"`,
+      description: getToolDescription('setTimer'),
       parameters: z.object({
         minutes: z.number().optional().describe('Minutes for the timer'),
         seconds: z.number().optional().describe('Seconds for the timer'),
@@ -134,10 +132,7 @@ const cancelTimerDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Cancel an active timer. Use when someone says:
-- "Cancel the timer"
-- "Stop the timer"
-- "Never mind about the timer"`,
+      description: getToolDescription('cancelTimer'),
       parameters: z.object({}),
       execute: async (_, { ctx: toolCtx }) => {
         const userData = toolCtx.userData as { userId?: string };

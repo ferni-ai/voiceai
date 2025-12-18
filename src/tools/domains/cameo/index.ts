@@ -25,6 +25,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 const log = getLogger();
 
 // ============================================================================
@@ -94,42 +95,7 @@ const inviteCameoDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Invite a team member to briefly "pop in" and share a quick insight.
-
-CAMEO vs HANDOFF:
-- Cameo: Quick 1-2 sentence insight, then automatically returns to you (Ferni)
-- Handoff: Full conversation transfer - user stays with that team member
-
-Use CAMEO when:
-- A quick perspective or data point would add value
-- User mentions a topic in someone's domain (Peter for data, Alex for scheduling, etc.)
-- You want to celebrate something (Jordan would love this!)
-- The user could benefit from brief wisdom (Nayan's specialty)
-- You want to introduce a team member the user hasn't met yet
-
-Use HANDOFF when:
-- User needs extended help in that team member's specialty
-- User explicitly asks to talk to that team member
-- The topic requires a deep dive conversation
-
-HOW CAMEO WORKS:
-1. You introduce the cameo naturally ("Let me have Peter share something...")
-2. Call this tool with the personaId
-3. That team member will pop in with a brief insight (avatar appears)
-4. They speak their insight
-5. They automatically hand back to you
-
-IMPORTANT:
-- Use sparingly - cameos are special moments
-- Don't interrupt deep emotional conversations
-- Let the team member know what topic to address via the context parameter
-
-Team members available:
-- peter-john: Research, data, market analysis
-- alex-chen: Scheduling, calendar, communications
-- maya-santos: Habits, routines, budgeting
-- jordan-taylor: Planning, milestones, celebrations
-- nayan-patel: Wisdom, perspective, patience`,
+      description: getToolDescription('inviteCameo'),
       parameters: z.object({
         personaId: z
           .enum(['peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'])
@@ -311,20 +277,7 @@ const completeCameoDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Call this tool AFTER you have spoken your insight and handback phrase.
-
-⚠️ CRITICAL: You MUST call this tool to complete a cameo!
-   - The voice will switch back to Ferni
-   - Your LLM instructions will be restored to Ferni's
-   - The cameo will be recorded as complete
-
-Without calling this tool, the cameo will time out awkwardly.
-
-Example flow:
-1. inviteCameo is called → you receive insightToSpeak and handbackToSpeak
-2. You speak the insight naturally
-3. You speak the handback (e.g., "Back to you, Ferni!")
-4. You call completeCameo → Ferni takes over`,
+      description: getToolDescription('completeCameo'),
       parameters: z.object({
         finalThought: z
           .string()
@@ -404,9 +357,7 @@ const checkCameoOpportunityDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Check if bringing in a team member would add value to the current conversation.
-      
-Use this when you're unsure if a cameo would be appropriate. Returns a suggestion.`,
+      description: getToolDescription('checkCameoOpportunity'),
       parameters: z.object({
         topic: z.string().describe('The current topic being discussed'),
         userState: z.string().optional().describe("User's emotional state (if known)"),

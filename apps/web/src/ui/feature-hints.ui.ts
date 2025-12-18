@@ -166,9 +166,9 @@ export const FEATURE_HINTS: FeatureHint[] = [
 let container: HTMLElement | null = null;
 let styleElement: HTMLStyleElement | null = null;
 let isInitialized = false;
-let activeHints: Map<string, ActiveHint> = new Map();
+const activeHints: Map<string, ActiveHint> = new Map();
 let dismissedHints: Set<string> = new Set();
-let registeredHints: FeatureHint[] = [...FEATURE_HINTS];
+const registeredHints: FeatureHint[] = [...FEATURE_HINTS];
 let checkInterval: ReturnType<typeof setInterval> | null = null;
 
 // ============================================================================

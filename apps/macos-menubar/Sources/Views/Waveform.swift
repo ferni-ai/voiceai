@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Waveform Visualizer
 
 /// Audio waveform visualization with animated bars
-/// Matches frontend-typescript/src/ui/waveform-ring.ui.ts
+/// Matches apps/web/src/ui/waveform-ring.ui.ts
 struct WaveformView: View {
     let persona: Persona
     let isActive: Bool
@@ -127,7 +127,7 @@ struct WaveformBar: View {
 // MARK: - Circular Waveform Ring
 
 /// Ring-style waveform around the avatar
-/// Matches frontend-typescript/src/ui/waveform-ring.ui.ts
+/// Matches apps/web/src/ui/waveform-ring.ui.ts
 struct WaveformRing: View {
     let persona: Persona
     let size: CGFloat

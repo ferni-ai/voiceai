@@ -18,6 +18,7 @@
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { getAgent, getTool } from '../marketplace/index.js';
 import type { AgentManifest, ToolManifest } from '../marketplace/schema/types.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'review-queue' });
@@ -377,10 +378,12 @@ export async function submitForReview(
   };
 
   // Save to Firestore
-  const docRef = await db.collection(COLLECTION).add({
-    ...submission,
-    submittedAt: new Date(), // Firestore timestamp
-  });
+  const docRef = await db.collection(COLLECTION).add(
+    removeUndefined({
+      ...submission,
+      submittedAt: new Date(), // Firestore timestamp
+    })
+  );
 
   const result: ReviewSubmission = {
     id: docRef.id,

@@ -46,17 +46,6 @@ export function removeSessionAudioProsodyAnalyzer(sessionId: string): void {
  */
 export const resetSessionAudioProsodyAnalyzer = removeSessionAudioProsodyAnalyzer;
 
-/**
- * Get or create a global audio prosody analyzer.
- *
- * @deprecated Use getSessionAudioProsodyAnalyzer(sessionId) for proper session isolation.
- * This function creates an analyzer with a synthetic session ID.
- */
-export function getAudioProsodyAnalyzer(): AudioProsodyAnalyzer {
-  log.warn('Using deprecated global prosody analyzer - use getSessionAudioProsodyAnalyzer instead');
-  return getSessionAudioProsodyAnalyzer('__global__');
-}
-
 // ============================================================================
 // PROSODY METRICS TRACKING
 // ============================================================================

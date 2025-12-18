@@ -9,7 +9,7 @@
  *   src/personas/bundles/{persona-id}/persona.manifest.json
  * 
  * GENERATED DATA: Run `npm run generate:personas` to create:
- *   frontend-typescript/src/config/personas.generated.json
+ *   apps/web/src/config/personas.generated.json
  * 
  * This file imports from the generated JSON and enhances with:
  *   - UI-specific configs (colors, theme classes, sound effects)

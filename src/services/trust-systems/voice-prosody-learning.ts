@@ -792,6 +792,10 @@ export function detectVoiceMention(text: string): {
 
 /**
  * Generate context for LLM about voice state
+ *
+ * "Better than Human" - We notice things about their voice that even close
+ * friends might miss. This generates insights that make Ferni feel like
+ * a friend who really knows them.
  */
 export function generateVoiceContext(userId: string): string | null {
   const familiarity = getFamiliarityScore(userId);
@@ -804,7 +808,7 @@ export function generateVoiceContext(userId: string): string | null {
   if (!baseline) return null;
 
   const sections: string[] = [];
-  sections.push(`[VOICE FAMILIARITY: ${familiarity.level}]`);
+  sections.push(`[🎙️ VOICE FAMILIARITY: ${familiarity.level}]`);
   sections.push(familiarity.description);
 
   // Add emotional profiles we know
@@ -813,7 +817,60 @@ export function generateVoiceContext(userId: string): string | null {
     .map((p) => p.emotion);
 
   if (knownEmotions.length > 0) {
-    sections.push(`Known voice patterns for: ${knownEmotions.join(', ')}`);
+    sections.push(`I know how they sound when: ${knownEmotions.join(', ')}`);
+  }
+
+  // "Better than Human" - Surface deviation insights
+  // Check if we have recent samples to compare
+  const samples = voiceSamples.get(userId) || [];
+  const recentSamples = samples.filter(
+    (s: VoiceSample) => Date.now() - s.timestamp.getTime() < 60 * 60 * 1000 // Last hour
+  );
+
+  if (recentSamples.length > 0 && baseline.confidence >= BASELINE_CONFIDENCE_THRESHOLD) {
+    // Analyze the most recent sample
+    const latestSample = recentSamples[recentSamples.length - 1];
+    const deviation = analyzeDeviation(userId, latestSample.characteristics);
+
+    if (deviation && deviation.deviates && deviation.confidence > 0.5) {
+      sections.push('');
+      sections.push(`[⚡ VOICE DEVIATION DETECTED]`);
+      sections.push(`Direction: ${deviation.direction}`);
+      sections.push(`Interpretation: ${deviation.possibleMeaning}`);
+
+      // "Better than Human" - Specific actionable insight
+      if (deviation.direction === 'subdued') {
+        sections.push(
+          `💡 HINT: They sound quieter/slower than usual. Check in gently without asking "are you okay?" directly.`
+        );
+      } else if (deviation.direction === 'elevated') {
+        sections.push(
+          `💡 HINT: They sound more energized than usual. Could be excitement OR stress - listen for which.`
+        );
+      }
+
+      // Add significant factors
+      if (deviation.significantFactors.length > 0) {
+        const factors = deviation.significantFactors
+          .slice(0, 2)
+          .map((f) => f.interpretation)
+          .join('; ');
+        sections.push(`Specific: ${factors}`);
+      }
+    }
+  }
+
+  // Voice evolution insight (if we have enough history)
+  if (samples.length >= MIN_SAMPLES_FOR_BASELINE * 3) {
+    const evolution = getVoiceEvolution(userId, 'week');
+    if (evolution && evolution.changes.length > 0) {
+      const notable = evolution.changes.filter((c) => c.significance === 'notable');
+      if (notable.length > 0) {
+        sections.push('');
+        sections.push(`[📈 VOICE EVOLUTION THIS WEEK]`);
+        sections.push(evolution.interpretation);
+      }
+    }
   }
 
   return sections.join('\n');

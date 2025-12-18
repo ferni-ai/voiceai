@@ -4,7 +4,7 @@ import SwiftUI
 
 /**
  * Pixar-Quality "Better Than Human" Animation System
- * Based on frontend-typescript/src/ui/avatar-soul.ui.ts
+ * Based on apps/web/src/ui/avatar-soul.ui.ts
  *
  * CAPABILITIES:
  * 1. PUPIL DILATION - Interest, connection, cognitive load

@@ -23,15 +23,15 @@ The "Better than Human" EQ system is now **fully integrated and wired up**.
 ### Files Created/Modified
 
 **New Files:**
-- `frontend-typescript/src/services/speech-event-dispatcher.ts` - Central speech event hub
-- `frontend-typescript/src/services/mood-context.service.ts` - Time-based mood
-- `frontend-typescript/src/utils/tone-detection.ts` - Text analysis for micro-expressions
+- `apps/web/src/services/speech-event-dispatcher.ts` - Central speech event hub
+- `apps/web/src/services/mood-context.service.ts` - Time-based mood
+- `apps/web/src/utils/tone-detection.ts` - Text analysis for micro-expressions
 
 **Modified Files:**
-- `frontend-typescript/src/app.ts` - Integration points
-- `frontend-typescript/src/services/voice-analyzer.service.ts` - Pause detection
-- `frontend-typescript/src/app/data-message-handlers.ts` - Voice prosody + micro-expressions
-- `frontend-typescript/src/ui/presence.ui.ts` - Breath sync consumer
+- `apps/web/src/app.ts` - Integration points
+- `apps/web/src/services/voice-analyzer.service.ts` - Pause detection
+- `apps/web/src/app/data-message-handlers.ts` - Voice prosody + micro-expressions
+- `apps/web/src/ui/presence.ui.ts` - Breath sync consumer
 - `src/agents/voice-agent.ts` - Voice prosody data message
 
 ---
@@ -129,7 +129,7 @@ Dispatch all speech events so the EQ system can respond to real-time conversatio
 
 ### 1.1 Create Speech Event Dispatcher
 
-**File:** `frontend-typescript/src/services/speech-event-dispatcher.ts` (NEW)
+**File:** `apps/web/src/services/speech-event-dispatcher.ts` (NEW)
 
 ```typescript
 /**
@@ -163,7 +163,7 @@ export function initSpeechEventDispatcher(): void {
 
 ### 1.2 Integrate with Connection Service
 
-**File:** `frontend-typescript/src/app.ts`
+**File:** `apps/web/src/app.ts`
 
 Add event dispatching in `setupServiceCallbacks()`:
 
@@ -196,7 +196,7 @@ onAudioTrackEnd: (_participantId) => {
 
 ### 1.3 Add Pause Detection to Voice Analyzer
 
-**File:** `frontend-typescript/src/services/voice-analyzer.service.ts`
+**File:** `apps/web/src/services/voice-analyzer.service.ts`
 
 Enhance to detect pauses and dispatch `ferni:user-speech-pause`:
 
@@ -277,7 +277,7 @@ if (voiceEmotion) {
 
 ### 2.2 Handle Voice Prosody in Frontend
 
-**File:** `frontend-typescript/src/app/data-message-handlers.ts`
+**File:** `apps/web/src/app/data-message-handlers.ts`
 
 Add handler for voice prosody:
 
@@ -314,7 +314,7 @@ Trigger micro-expressions from transcripts and anticipation from partial transcr
 
 ### 3.1 Integrate Micro-Expressions with Transcripts
 
-**File:** `frontend-typescript/src/app/data-message-handlers.ts`
+**File:** `apps/web/src/app/data-message-handlers.ts`
 
 In the transcript handler:
 
@@ -336,7 +336,7 @@ case 'transcript':
 
 ### 3.2 Connect Partial Transcripts to Anticipation
 
-**File:** `frontend-typescript/src/app/data-message-handlers.ts`
+**File:** `apps/web/src/app/data-message-handlers.ts`
 
 Handle partial transcripts (if available from LiveKit):
 
@@ -359,7 +359,7 @@ case 'partial_transcript':
 
 ### 3.3 Add Tone Detection Helpers
 
-**File:** `frontend-typescript/src/utils/tone-detection.ts` (NEW)
+**File:** `apps/web/src/utils/tone-detection.ts` (NEW)
 
 ```typescript
 export function detectToneFromText(text: string): 'positive' | 'negative' | 'neutral' | 'emotional' {
@@ -406,7 +406,7 @@ Visual breathing effect that mirrors user's detected breath rate.
 
 ### 4.1 Add Breath Sync Consumer
 
-**File:** `frontend-typescript/src/ui/presence.ui.ts`
+**File:** `apps/web/src/ui/presence.ui.ts`
 
 Add breath rate listener:
 
@@ -431,7 +431,7 @@ function updateBreathingAnimation(rate: number, depth: 'shallow' | 'normal' | 'd
 
 ### 4.2 Connect VoiceAnalyzer Pause Patterns to Breath Detection
 
-**File:** `frontend-typescript/src/services/speech-event-dispatcher.ts`
+**File:** `apps/web/src/services/speech-event-dispatcher.ts`
 
 ```typescript
 // Track pauses for breath sync
@@ -466,7 +466,7 @@ Full concern detection pipeline with visual and voice response.
 
 ### 5.1 Add Gentle Check-In Handler
 
-**File:** `frontend-typescript/src/app.ts`
+**File:** `apps/web/src/app.ts`
 
 ```typescript
 // Listen for gentle check-in events
@@ -484,7 +484,7 @@ document.addEventListener('ferni:gentle-checkin', ((e: CustomEvent) => {
 
 ### 5.2 Integrate Voice + Text Concern Detection
 
-**File:** `frontend-typescript/src/services/eq-integration.service.ts` (NEW)
+**File:** `apps/web/src/services/eq-integration.service.ts` (NEW)
 
 ```typescript
 /**
@@ -529,7 +529,7 @@ Visual representation of Ferni's mood based on time of day and special dates.
 
 ### 6.1 Add Time-Based Mood to Presence
 
-**File:** `frontend-typescript/src/services/mood-context.service.ts` (NEW)
+**File:** `apps/web/src/services/mood-context.service.ts` (NEW)
 
 ```typescript
 export interface MoodContext {
@@ -581,7 +581,7 @@ export function getMoodContext(): MoodContext {
 
 ### 6.2 Apply Mood to Avatar
 
-**File:** `frontend-typescript/src/ui/presence.ui.ts`
+**File:** `apps/web/src/ui/presence.ui.ts`
 
 ```typescript
 import { getMoodContext } from '../services/mood-context.service.js';
@@ -625,7 +625,7 @@ function applyMoodContext(): void {
 
 ### 7.1 Create E2E Test Suite
 
-**File:** `frontend-typescript/e2e/better-than-human.spec.ts`
+**File:** `apps/web/e2e/better-than-human.spec.ts`
 
 ```typescript
 import { test, expect } from '@playwright/test';
@@ -852,19 +852,19 @@ test.describe('Better Than Human EQ System', () => {
 ## 📝 Files to Create/Modify
 
 ### New Files
-- `frontend-typescript/src/services/speech-event-dispatcher.ts`
-- `frontend-typescript/src/services/eq-integration.service.ts`
-- `frontend-typescript/src/services/mood-context.service.ts`
-- `frontend-typescript/src/utils/tone-detection.ts`
-- `frontend-typescript/e2e/better-than-human.spec.ts`
+- `apps/web/src/services/speech-event-dispatcher.ts`
+- `apps/web/src/services/eq-integration.service.ts`
+- `apps/web/src/services/mood-context.service.ts`
+- `apps/web/src/utils/tone-detection.ts`
+- `apps/web/e2e/better-than-human.spec.ts`
 
 ### Modified Files
-- `frontend-typescript/src/app.ts` - Speech event dispatching
-- `frontend-typescript/src/services/voice-analyzer.service.ts` - Pause detection
-- `frontend-typescript/src/services/connection.service.ts` - Event hooks
-- `frontend-typescript/src/app/data-message-handlers.ts` - Voice prosody handler
-- `frontend-typescript/src/ui/presence.ui.ts` - Breath sync consumer, mood context
-- `frontend-typescript/src/ui/better-than-human.ui.ts` - Fix truncated code
+- `apps/web/src/app.ts` - Speech event dispatching
+- `apps/web/src/services/voice-analyzer.service.ts` - Pause detection
+- `apps/web/src/services/connection.service.ts` - Event hooks
+- `apps/web/src/app/data-message-handlers.ts` - Voice prosody handler
+- `apps/web/src/ui/presence.ui.ts` - Breath sync consumer, mood context
+- `apps/web/src/ui/better-than-human.ui.ts` - Fix truncated code
 - `src/agents/voice-agent.ts` - Voice prosody data message
 
 ---

@@ -3,7 +3,7 @@
  * Generate Persona Colors TypeScript from Design Tokens
  *
  * Single source of truth: design-system/tokens/colors.json
- * Output: frontend-typescript/src/config/persona-colors.generated.ts
+ * Output: apps/web/src/config/persona-colors.generated.ts
  *
  * Usage:
  *   node design-system/generate-persona-colors.js
@@ -24,8 +24,8 @@ const PROJECT_ROOT = path.dirname(__dirname);
 const CONFIG = {
   // Source: design-system/tokens/colors.json
   sourceFile: path.join(__dirname, 'tokens/colors.json'),
-  // Output: frontend-typescript/src/config/persona-colors.generated.ts
-  outputFile: path.join(PROJECT_ROOT, 'frontend-typescript/src/config/persona-colors.generated.ts'),
+  // Output: apps/web/src/config/persona-colors.generated.ts
+  outputFile: path.join(PROJECT_ROOT, 'apps/web/src/config/persona-colors.generated.ts'),
 };
 
 // ============================================================================

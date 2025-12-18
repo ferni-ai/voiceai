@@ -16,6 +16,7 @@ import { getGCPProjectId } from '../config/environment.js';
 import { cosineSimilarity } from '../memory/embeddings.js';
 import { getDefaultStore, type MemoryStore } from '../memory/index.js';
 import type { ConversationSummary, UserProfile, VoiceSketch } from '../types/user-profile.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
@@ -77,12 +78,17 @@ export async function savePhoneMapping(phone: string, userId: string): Promise<v
       projectId: getGCPProjectId(),
     });
 
-    await db.collection(PHONE_MAPPINGS_COLLECTION).doc(phone).set({
-      phone,
-      userId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    await db
+      .collection(PHONE_MAPPINGS_COLLECTION)
+      .doc(phone)
+      .set(
+        removeUndefined({
+          phone,
+          userId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+      );
 
     getLogger().debug({ phone, userId }, 'Saved phone mapping to Firestore');
   } catch (error) {

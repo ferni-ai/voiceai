@@ -55,34 +55,6 @@ const DISTRESS_PATTERNS = [
   /\b(i'm breaking|falling apart|can't take it|too much)\b/i,
 ];
 
-/**
- * Setback/failure patterns - for grounding support, not just empathy.
- * Principle: Growth Through Gentleness - normalize setbacks
- */
-const SETBACK_PATTERNS = [
-  /\b(i failed|i messed up|i screwed up|i blew it|i dropped the ball)\b/i,
-  /\b(didn't work out|didn't go well|fell through|fell apart)\b/i,
-  /\b(got rejected|didn't get|they said no|turned down)\b/i,
-  /\b(lost my|missed my|forgot to|let .+ down)\b/i,
-  /\b(back to square one|starting over|have to redo|didn't stick)\b/i,
-  /\b(relapsed|broke my streak|gave in|slipped up)\b/i,
-  /\b(it's my fault|i should have|if only i had)\b/i,
-];
-
-/**
- * Humor patterns - for playful shared moments.
- * Principle: Authentic Personality - use humor naturally
- */
-const HUMOR_PATTERNS = [
-  /\b(lol|lmao|haha|hehe|rofl)\b/i,
-  /\b(just kidding|jk|joking|i kid)\b/i,
-  /\b(funny thing|hilarious|crack me up|made me laugh)\b/i,
-  /\b(you're gonna laugh|don't laugh|is this weird)\b/i,
-  /😂|🤣|😆|😁/,  // Laughing emoji
-  /\b(plot twist|spoiler alert|fun fact)\b/i,
-  /\b(imagine if|what if .+ but .+)\b/i,  // Hypothetical humor setup
-];
-
 // ============================================================================
 // DETECTION FUNCTIONS
 // ============================================================================
@@ -187,9 +159,6 @@ export function analyzeForMicroExpression(text: string): {
   hasInsight: boolean;
   isVulnerable: boolean;
   isProcessingDeep: boolean;
-  isSurprise: boolean;
-  hasSetback: boolean;
-  hasHumor: boolean;
 } {
   return {
     transcript: text,
@@ -201,9 +170,6 @@ export function analyzeForMicroExpression(text: string): {
     hasInsight: hasInsightMarker(text),
     isVulnerable: isVulnerableShare(text),
     isProcessingDeep: isDeepProcessing(text),
-    isSurprise: hasSurpriseMarker(text),
-    hasSetback: hasSetbackMarker(text),
-    hasHumor: hasHumorMarker(text),
   };
 }
 
@@ -226,29 +192,12 @@ function hasAchievementMarker(text: string): boolean {
 
 /**
  * Detect if user had an insight/realization
- * 🎬 Luxo: Triggers realization arc - the "aha!" moment
  */
-export function hasInsightMarker(text: string): boolean {
+function hasInsightMarker(text: string): boolean {
   const patterns = [
     /\b(i (just )?realized|it (just )?hit me|i (just )?understood|now i (get|see|understand))\b/i,
     /\b(that makes sense|oh! |aha|wow,? i|never thought of it)\b/i,
     /\b(i've been thinking|it occurred to me|maybe the reason)\b/i,
-  ];
-  return patterns.some(p => p.test(text));
-}
-
-/**
- * Detect if user is sharing something surprising/unexpected
- * 🎬 Luxo: Triggers surprised investigation
- */
-export function hasSurpriseMarker(text: string): boolean {
-  const patterns = [
-    /\b(you won't believe|guess what|can you believe|i can't believe)\b/i,
-    /\b(oh my god|omg|holy|whoa|what the)\b/i,
-    /\b(unbelievable|incredible|insane|crazy|wild)\b/i,
-    /\b(turns out|apparently|suddenly|out of nowhere)\b/i,
-    /\b(plot twist|you're not gonna believe|so get this)\b/i,
-    /!{2,}/, // Multiple exclamation marks
   ];
   return patterns.some(p => p.test(text));
 }
@@ -277,24 +226,6 @@ function isDeepProcessing(text: string): boolean {
     /\b(bigger picture|in the grand scheme|when i'm gone|legacy)\b/i,
   ];
   return patterns.some(p => p.test(text));
-}
-
-/**
- * Detect if user is sharing a setback or failure
- * 🎬 Luxo: Triggers setback support arc - grounding, "part of the journey"
- * Principle: Growth Through Gentleness
- */
-export function hasSetbackMarker(text: string): boolean {
-  return SETBACK_PATTERNS.some(p => p.test(text));
-}
-
-/**
- * Detect if user is making a joke or being humorous
- * 🎬 Luxo: Triggers humor response arc - playful shared moment
- * Principle: Authentic Personality
- */
-export function hasHumorMarker(text: string): boolean {
-  return HUMOR_PATTERNS.some(p => p.test(text));
 }
 
 // ============================================================================

@@ -14,7 +14,7 @@
  * @module @ferni/choreography/toast
  */
 
-import { DURATION, EASING } from '../../frontend-typescript/src/config/animation-constants.js';
+import { DURATION, EASING } from '../../apps/web/src/config/animation-constants.js';
 
 // ============================================================================
 // TOAST DESIGN TOKENS

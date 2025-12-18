@@ -229,6 +229,7 @@ jobs:
               -e PORT=${TARGET_PORT} \
               -e NODE_ENV=production \
               -e GOOGLE_CLOUD_PROJECT=${{ env.GCP_PROJECT_ID }} \
+              -e PUBSUB_ENABLED=true \
               -e LIVEKIT_API_KEY='${{ steps.secrets.outputs.livekit_api_key }}' \
               -e LIVEKIT_API_SECRET='${{ steps.secrets.outputs.livekit_api_secret }}' \
               -e LIVEKIT_URL='${{ steps.secrets.outputs.livekit_url }}' \

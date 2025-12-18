@@ -33,19 +33,88 @@ import {
 
 // Phase modules (extracted for maintainability)
 import {
-  loadVoiceDeps as loadVoiceDepsPhase,
+  connectToRoom,
   getCachedVoiceDeps,
-  loadPersonaPhase,
   getPrewarmedResources,
   loadPersonaLocally,
-  connectToRoom,
-  waitForParticipant,
-  detectConnectionType,
+  loadVoiceDeps as loadVoiceDepsPhase,
   type VoiceDeps,
 } from './voice-agent/phases/index.js';
 
 // Import the full PersonaConfig type for proper type compatibility
 import type { PersonaConfig } from '../personas/types.js';
+
+// Import VoiceAgentRef type for handoff support
+import type { VoiceAgentRef } from './shared/handoff/types.js';
+
+// Import BundleRuntimeEngine type for bundle state
+import type { BundleRuntimeEngine } from '../personas/bundles/runtime.js';
+
+// Centralized model configuration (toggle models via admin UI or model-config.json)
+import { modelConfig } from '../services/model-config.js';
+
+// ============================================================================
+// LIGHTWEIGHT VOICE AGENT REF (For Handoff Support)
+// ============================================================================
+
+/**
+ * Creates a lightweight VoiceAgentRef wrapper for the agent.
+ * This enables handoffs to update LLM instructions without the full VoiceAgent class.
+ *
+ * FIX: Previously getVoiceAgentRef returned null, breaking handoff identity switching.
+ * Now we create a proper wrapper that implements the required interface.
+ */
+function createLightweightVoiceAgentRef(
+  agent: { _instructions?: string },
+  initialPersona: PersonaConfig
+): VoiceAgentRef {
+  // Mutable state for the wrapper
+  let currentPersona: PersonaConfig = initialPersona;
+  let bundleRuntime: BundleRuntimeEngine | undefined;
+
+  return {
+    setPersona(persona: unknown): void {
+      const p = persona as PersonaConfig;
+      currentPersona = p;
+
+      // CRITICAL: Update the agent's instructions for the new persona
+      if (p.systemPrompt) {
+        agent._instructions = p.systemPrompt;
+        process.stderr.write(
+          `[voice-agent-entry] 🎭 LLM instructions updated for ${p.name} (${p.systemPrompt.length} chars)\n`
+        );
+      } else {
+        process.stderr.write(`[voice-agent-entry] ⚠️ Persona ${p.name} has no systemPrompt!\n`);
+      }
+    },
+
+    getPersona(): { id: string } | undefined {
+      return currentPersona ? { id: currentPersona.id } : undefined;
+    },
+
+    setBundleRuntime(runtime: unknown): void {
+      bundleRuntime = runtime as BundleRuntimeEngine;
+      process.stderr.write(
+        `[voice-agent-entry] 📦 Bundle runtime updated for ${currentPersona?.name}\n`
+      );
+    },
+
+    getBundleRuntime(): { getState: () => { personaId?: string } } | undefined {
+      if (!bundleRuntime) return undefined;
+      return {
+        getState: () => {
+          const state = bundleRuntime?.getState?.();
+          return { personaId: state?.personaId };
+        },
+      };
+    },
+
+    // For validation checks
+    get instructions(): string | undefined {
+      return agent._instructions;
+    },
+  };
+}
 
 // ============================================================================
 // MODULE-LEVEL STATE (Cached voice deps)
@@ -239,16 +308,20 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       (sessionPersona as any).identity = defaultIdentity;
     }
 
-    // ✅ FULL RICH PROMPT - Tools work from definitions, so use all tokens for personality!
-    const fs = await import('fs/promises');
-    const { fileURLToPath } = await import('url');
-    const { dirname, join } = await import('path');
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = dirname(__filename);
-    const richPromptPath = join(__dirname, '../personas/bundles/ferni/identity/system-prompt.md');
-    const systemPrompt = await fs.readFile(richPromptPath, 'utf-8');
+    // ✅ FULL RICH PROMPT - Load persona-specific system prompt from bundles
+    // Uses loadSystemPrompt() which handles all personas (ferni, maya-santos, alex-chen, etc.)
+    const { loadSystemPrompt } = await import('./personas/prompt-loader.js');
+    let systemPrompt = await loadSystemPrompt(sessionPersona.id);
+
+    // Inject thought signature protocol for better function calling (Vertex AI best practice)
+    // @see https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling
+    const { getThoughtSignatureProtocol } =
+      await import('../tools/utils/function-calling-config.js');
+    const thoughtProtocol = getThoughtSignatureProtocol(sessionPersona.id);
+    systemPrompt = `${systemPrompt}\n\n${thoughtProtocol}`;
+
     process.stderr.write(
-      `[voice-agent-entry] Using RICH prompt (${systemPrompt.length} chars, ~${Math.round(systemPrompt.length / 4)} tokens) - tools from definitions only! 🎉\n`
+      `[voice-agent-entry] Using RICH prompt + thought protocol (${systemPrompt.length} chars, ~${Math.round(systemPrompt.length / 4)} tokens) 🎉\n`
     );
 
     process.stderr.write(`[voice-agent-entry] Using persona: ${sessionPersona.name}\n`);
@@ -402,7 +475,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     e2e.resourceLoading('agent-session');
     const sessionStart = Date.now();
 
-    // Load VAD using cached deps
+    // Load external VAD for user activity detection
+    // Note: Gemini also has built-in turn detection, but we need VAD for DJ Booth etc.
     const { silero } = getVoiceDeps();
     type VADType = Awaited<ReturnType<typeof import('@livekit/agents-plugin-silero').VAD.load>>;
     const vad: VADType = await silero.VAD.load();
@@ -455,23 +529,97 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // Get voice deps for session creation
     const { voice, google, genai } = getVoiceDeps();
 
-    // Create FerniAgent - builds tools internally from domain imports
-    // No more buildTools() phase - FerniAgent owns its tools
-    process.stderr.write(`[voice-agent-entry] Creating FerniAgent (tools built internally)\n`);
-    const { FerniAgent } = await import('./personas/ferni-agent.js');
-    const agent = new FerniAgent(systemPrompt, {
-      skipGreeting: true, // Greeting handled by generateAndSpeakGreeting below
+    // Create FerniAgent with ORCHESTRATOR-selected tools (not legacy 89 tools)
+    process.stderr.write(`[voice-agent-entry] Getting tools from orchestrator...\n`);
+
+    // Import and use the tool orchestrator
+    const { getToolsForAgent, initializeToolOrchestrator, isOrchestratorInitialized } =
+      await import('../tools/orchestrator/voice-agent-integration.js');
+
+    // Initialize orchestrator if not already done
+    if (!isOrchestratorInitialized()) {
+      try {
+        await initializeToolOrchestrator();
+      } catch (orchErr) {
+        process.stderr.write(
+          `[voice-agent-entry] Orchestrator init failed (will use legacy): ${orchErr}\n`
+        );
+      }
+    }
+
+    // Get tools from orchestrator
+    const subscriptionTier =
+      (services.userProfile?.subscription?.tier as 'free' | 'friend' | 'partner') || 'free';
+    const { tools: orchestratorTools, meta: toolsMeta } = await getToolsForAgent({
+      persona: { id: sessionPersona.id, displayName: sessionPersona.name },
+      userId: userId || 'anonymous',
+      userProfile: services.userProfile,
+      subscriptionTier,
+      initialTranscript: '', // Session start - no transcript yet
     });
 
+    process.stderr.write(
+      `[voice-agent-entry] Got ${toolsMeta.toolCount} tools from ${toolsMeta.mode} (${toolsMeta.selectionTimeMs}ms)\n`
+    );
+
+    // Create agent with persona-specific system prompt and orchestrator-selected tools
+    // NOTE: FerniAgent is the main agent class used for ALL personas. The persona identity
+    // comes from the system prompt (loaded above via loadSystemPrompt), not the class name.
+    const { FerniAgent } = await import('./personas/ferni-agent.js');
+    process.stderr.write(
+      `[voice-agent-entry] Creating agent for ${sessionPersona.id} with ${toolsMeta.toolCount} orchestrator tools\n`
+    );
+    const agent = new FerniAgent(systemPrompt, {
+      skipGreeting: true, // Greeting handled by generateAndSpeakGreeting below
+      tools: orchestratorTools, // Use orchestrator-selected tools
+    });
+
+    // FIX: Create lightweight VoiceAgentRef for handoff support
+    // This enables LLM instruction updates during persona handoffs
+    const voiceAgentRef = createLightweightVoiceAgentRef(
+      agent as unknown as { _instructions?: string },
+      sessionPersona
+    );
+    process.stderr.write(
+      `[voice-agent-entry] 🎭 VoiceAgentRef created for handoff support\n`
+    );
+
     // Agent owns instructions and tools - don't duplicate instructions on RealtimeModel
+    // Import function calling config following Vertex AI best practices
+    const { buildToolConfig } = await import('../tools/utils/function-calling-config.js');
+
+    // Build tool config based on context (crisis mode, new user, etc.)
+    const isNewUser = !services.userProfile || (services.userProfile.totalConversations ?? 0) < 3;
+    const isCrisis = userData.lastEmotionAnalysis?.distressLevel
+      ? userData.lastEmotionAnalysis.distressLevel > 0.7
+      : false;
+
+    const toolConfig = buildToolConfig({
+      environment: 'production',
+      isNewUser,
+      isCrisis,
+    });
+
+    process.stderr.write(
+      `[voice-agent-entry] 🔧 Function calling config: mode=${toolConfig.functionCallingConfig.mode}, isNewUser=${isNewUser}, isCrisis=${isCrisis}\n`
+    );
+
+    // Get centralized model config (toggle via admin UI or model-config.json)
+    const geminiConfig = modelConfig.getDefault();
+    process.stderr.write(`[voice-agent-entry] 🤖 Using model: ${geminiConfig.model}\n`);
+
     session = new voice.AgentSession({
       vad,
       llm: new google.beta.realtime.RealtimeModel({
-        model: 'gemini-2.0-flash-exp',
+        model: geminiConfig.model,
         modalities: [genai.Modality.TEXT],
-        temperature: 0.8,
-        language: 'en-US',
-      }),
+        temperature: geminiConfig.temperature,
+        language: geminiConfig.language,
+        // Vertex AI Function Calling best practice: explicit toolConfig
+        // @see https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling
+        toolConfig: toolConfig,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any),
       tts,
       userData,
       voiceOptions: {
@@ -642,43 +790,25 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     );
 
     // =========================================================================
-    // 🔍 DEBUG: Comprehensive event logging to capture Gemini responses
+    // DEBUG LOGGING (disabled in production for performance)
+    // Set DEBUG_VOICE_AGENT=true to enable verbose logging
     // =========================================================================
-    process.stderr.write(`[voice-agent-entry] 🔍 Setting up Gemini debug logging...\n`);
+    const debugEnabled = process.env.DEBUG_VOICE_AGENT === 'true';
 
-    // Log ALL session events for debugging
-    const debugEvents = [
-      'agent_state_changed',
-      'user_state_changed',
-      'function_calls_collected',
-      'function_tools_executed',
-      'agent_speech_started',
-      'agent_speech_stopped',
-      'user_input_transcribed',
-    ];
+    if (debugEnabled) {
+      process.stderr.write(`[voice-agent-entry] 🔍 Debug logging ENABLED\n`);
 
-    // Try to hook into raw LLM events if available
-    if (session.llm && typeof session.llm.on === 'function') {
-      process.stderr.write(`[voice-agent-entry] 🔍 Hooking into LLM events...\n`);
-      session.llm.on('response', (resp: unknown) => {
-        process.stderr.write(`\n${'='.repeat(70)}\n`);
-        process.stderr.write(`🤖 [RAW LLM RESPONSE]:\n`);
-        process.stderr.write(`${JSON.stringify(resp, null, 2)}\n`);
-        process.stderr.write(`${'='.repeat(70)}\n\n`);
+      // Hook into function calls collected (before execution)
+      const fnCallsHandler = (event: unknown) => {
+        const eventData = event as { calls?: Array<{ name: string }> };
+        const callNames = eventData?.calls?.map((c) => c.name).join(', ') || 'unknown';
+        process.stderr.write(`📥 [FUNCTION CALLS] ${callNames}\n`);
+      };
+      session.on('function_calls_collected' as Parameters<typeof session.on>[0], fnCallsHandler);
+      cleanupTracker.register('event', 'function_calls_collected handler', () => {
+        session.off?.('function_calls_collected', fnCallsHandler);
       });
     }
-
-    // Hook into function calls collected (before execution)
-    const fnCallsHandler = (event: unknown) => {
-      process.stderr.write(`\n${'='.repeat(70)}\n`);
-      process.stderr.write(`📥 [FUNCTION CALLS COLLECTED] (Gemini wants to call these tools):\n`);
-      process.stderr.write(`${JSON.stringify(event, null, 2)}\n`);
-      process.stderr.write(`${'='.repeat(70)}\n\n`);
-    };
-    session.on('function_calls_collected' as Parameters<typeof session.on>[0], fnCallsHandler);
-    cleanupTracker.register('event', 'function_calls_collected handler', () => {
-      session.off?.('function_calls_collected', fnCallsHandler);
-    });
 
     // TOOL TRACKING HANDLER
     setupToolTrackingHandler({
@@ -719,19 +849,26 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       autoOptimizer,
     });
     session.on(voice.AgentSessionEventTypes.UserInputTranscribed, (event: unknown) => {
+      const evt = event as { transcript?: string; isFinal?: boolean };
+      if (evt.isFinal) {
+        process.stderr.write(`\n📝 [STT] FINAL: "${evt.transcript}"\n`);
+      } else if (evt.transcript && evt.transcript.length > 5) {
+        process.stderr.write(`📝 [STT] partial: "${evt.transcript}"\n`);
+      }
       transcriptHandler.handler(
         event as import('./voice-agent/transcript-handler.js').TranscriptEvent
       );
     });
 
     // HANDOFF HANDLER
+    // FIX: Now using voiceAgentRef to enable LLM instruction updates during handoffs
     const handoffHandler = createHandoffHandler({
       ctx,
       session,
       tts: session.tts as { switchVoice?: (name: string, id: string) => void },
       services,
       userData,
-      getVoiceAgentRef: () => null, // Simplified - no VoiceAgent class in lightweight entry
+      getVoiceAgentRef: () => voiceAgentRef, // FIX: Enable persona/instruction switching
     });
     const wrappedHandoffHandler = (data: Parameters<typeof handoffHandler>[0]) => {
       void handoffHandler(data).catch((err) => {
@@ -744,6 +881,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     });
 
     // CAMEO HANDLERS
+    // FIX: Now using voiceAgentRef to enable LLM instruction updates during cameos
     try {
       const cleanupCameoHandlers = await registerCameoHandlers({
         ctx,
@@ -751,7 +889,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         tts: session.tts as { switchVoice?: (name: string, id: string) => void },
         hostPersonaId: sessionPersona.id,
         hostVoiceId: sessionPersona.voice.voiceId,
-        getVoiceAgentRef: () => null,
+        getVoiceAgentRef: () => voiceAgentRef as unknown as import('./shared/cameo-handler.js').CameoVoiceAgentRef,
         hostPersona: sessionPersona,
       });
       if (cleanupCameoHandlers) {

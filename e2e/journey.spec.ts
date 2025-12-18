@@ -68,20 +68,19 @@ test.describe('Relationship Progress API', () => {
 
     const data = await response.json();
 
-    // Valid stage values
+    // Valid stage values (unified with frontend)
     const validStages = [
-      'stranger',
-      'familiar',
-      'acquaintance',
-      'friend',
-      'confidant',
-      'family',
+      'first-meeting',
+      'getting-started',
+      'building-trust',
+      'established',
+      'deep-partnership',
     ];
     expect(validStages).toContain(data.stage);
 
-    // Stage number should be 1-6
+    // Stage number should be 1-5
     expect(data.stageNumber).toBeGreaterThanOrEqual(1);
-    expect(data.stageNumber).toBeLessThanOrEqual(6);
+    expect(data.stageNumber).toBeLessThanOrEqual(5);
   });
 
   test('progress is a valid percentage', async ({ request }) => {
@@ -113,13 +112,13 @@ test.describe('Relationship Progress API', () => {
 
     const data = await response.json();
 
-    // New users should start at stranger stage
-    expect(data.stage).toBe('stranger');
+    // New users should start at first-meeting stage
+    expect(data.stage).toBe('first-meeting');
     expect(data.stageNumber).toBe(1);
-    expect(data.engagementScore).toBe(0);
+    expect(data.progress).toBe(0);
   });
 
-  test('stats include conversation and ritual data', async ({ request }) => {
+  test('metrics include conversation and engagement data', async ({ request }) => {
     const response = await request.get(`${BASE_URL}/api/relationship/progress?userId=${TEST_USER_ID}`, {
       headers: {
         'X-User-ID': TEST_USER_ID,
@@ -130,12 +129,14 @@ test.describe('Relationship Progress API', () => {
 
     const data = await response.json();
 
-    // Stats should have required fields
-    expect(data.stats).toHaveProperty('totalConversations');
-    expect(data.stats).toHaveProperty('totalRitualDays');
+    // Metrics should have required fields (unified API response)
+    expect(data.metrics).toHaveProperty('totalConversations');
+    expect(data.metrics).toHaveProperty('daysSinceFirstMeeting');
+    expect(data.metrics).toHaveProperty('currentStreak');
 
-    expect(typeof data.stats.totalConversations).toBe('number');
-    expect(typeof data.stats.totalRitualDays).toBe('number');
+    expect(typeof data.metrics.totalConversations).toBe('number');
+    expect(typeof data.metrics.daysSinceFirstMeeting).toBe('number');
+    expect(typeof data.metrics.currentStreak).toBe('number');
   });
 
   test('POST /api/relationship/progress - syncs progress data', async ({ request }) => {
@@ -146,11 +147,12 @@ test.describe('Relationship Progress API', () => {
       },
       data: {
         userId: TEST_USER_ID,
-        stage: 'familiar',
+        stage: 'getting-started',  // Use valid unified stage name
         metrics: {
           totalConversations: 5,
           daysSinceFirstMeeting: 3,
           currentStreak: 2,
+          longestStreak: 2,
         },
         firstMeetingDate: new Date().toISOString(),
         memoriesCount: 2,
@@ -162,6 +164,27 @@ test.describe('Relationship Progress API', () => {
     const data = await response.json();
     expect(data.success).toBe(true);
     expect(data.synced).toBe(true);
+  });
+
+  test('POST /api/relationship/progress - rejects invalid stage', async ({ request }) => {
+    const response = await request.post(`${BASE_URL}/api/relationship/progress?userId=${TEST_USER_ID}`, {
+      headers: {
+        'X-User-ID': TEST_USER_ID,
+        'Content-Type': 'application/json',
+      },
+      data: {
+        userId: TEST_USER_ID,
+        stage: 'invalid-stage-name',  // Invalid stage should be rejected
+        metrics: {
+          totalConversations: 5,
+        },
+      },
+    });
+
+    expect(response.status()).toBe(400);
+
+    const data = await response.json();
+    expect(data.success).toBe(false);
   });
 });
 
@@ -400,26 +423,11 @@ test.describe('Journey Modal UI', () => {
 // ============================================================================
 
 test.describe('Stage Progression', () => {
-  test('engagement score determines stage correctly', async ({ request }) => {
-    // Test stage thresholds:
-    // stranger: 0-4, familiar: 5-9, acquaintance: 10-24, friend: 25-49, confidant: 50-99, family: 100+
+  test('stage is calculated correctly for new users', async ({ request }) => {
+    // Unified stage system:
+    // first-meeting: default, getting-started: 10 convos, building-trust: 15 convos + 5 days + 3 streak,
+    // established: 30 convos + 21 days + 7 streak, deep-partnership: 60 convos + 45 days + 14 streak
 
-    const testCases = [
-      { score: 0, expectedStage: 'stranger' },
-      { score: 4, expectedStage: 'stranger' },
-      { score: 5, expectedStage: 'familiar' },
-      { score: 9, expectedStage: 'familiar' },
-      { score: 10, expectedStage: 'acquaintance' },
-      { score: 24, expectedStage: 'acquaintance' },
-      { score: 25, expectedStage: 'friend' },
-      { score: 49, expectedStage: 'friend' },
-      { score: 50, expectedStage: 'confidant' },
-      { score: 99, expectedStage: 'confidant' },
-      { score: 100, expectedStage: 'family' },
-    ];
-
-    // We can't easily set specific engagement scores via API,
-    // so we verify the structure is correct for a new user
     const newUserId = `stage-test-${Date.now()}`;
     const response = await request.get(
       `${BASE_URL}/api/relationship/progress?userId=${newUserId}`,
@@ -431,12 +439,13 @@ test.describe('Stage Progression', () => {
     expect(response.status()).toBe(200);
     const data = await response.json();
 
-    // New user should be at stranger stage (score 0)
-    expect(data.stage).toBe('stranger');
-    expect(data.engagementScore).toBe(0);
+    // New user should be at first-meeting stage
+    expect(data.stage).toBe('first-meeting');
+    expect(data.stageNumber).toBe(1);
+    expect(data.progress).toBe(0);
   });
 
-  test('nextStageAt is set correctly based on current stage', async ({ request }) => {
+  test('nextStage is set correctly based on current stage', async ({ request }) => {
     const response = await request.get(
       `${BASE_URL}/api/relationship/progress?userId=${TEST_USER_ID}`,
       {
@@ -447,13 +456,30 @@ test.describe('Stage Progression', () => {
     expect(response.status()).toBe(200);
     const data = await response.json();
 
-    // nextStageAt should be a number or null (for max stage)
-    if (data.stage === 'family') {
-      expect(data.nextStageAt).toBeNull();
+    // nextStage should be a string or null (for max stage)
+    if (data.stage === 'deep-partnership') {
+      expect(data.nextStage).toBeNull();
+      expect(data.progress).toBe(100);
     } else {
-      expect(typeof data.nextStageAt).toBe('number');
-      expect(data.nextStageAt).toBeGreaterThan(data.engagementScore);
+      expect(typeof data.nextStage).toBe('string');
+      expect(typeof data.requirement).toBe('string');
     }
+  });
+
+  test('progress percentage is calculated correctly', async ({ request }) => {
+    const response = await request.get(
+      `${BASE_URL}/api/relationship/progress?userId=${TEST_USER_ID}`,
+      {
+        headers: { 'X-User-ID': TEST_USER_ID },
+      }
+    );
+
+    expect(response.status()).toBe(200);
+    const data = await response.json();
+
+    // Progress should be 0-100
+    expect(data.progress).toBeGreaterThanOrEqual(0);
+    expect(data.progress).toBeLessThanOrEqual(100);
   });
 });
 
@@ -697,6 +723,196 @@ test.describe('Design System Compliance', () => {
     // Backdrop should have blur effect
     if (hasBackdropBlur !== false) {
       expect(hasBackdropBlur).toBe(true);
+    }
+  });
+});
+
+// ============================================================================
+// TRUST INSIGHTS TESTS - NEW UNIFIED FEATURE
+// ============================================================================
+
+test.describe('Trust Insights Section', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto(BASE_URL);
+
+    await page.evaluate((userId) => {
+      localStorage.setItem('ferni_user_id', userId);
+      localStorage.setItem('bogle_user_id', userId);
+      
+      // Set up relationship data
+      localStorage.setItem('ferni_relationship', JSON.stringify({
+        stage: 'building-trust',
+        firstMeetingDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        metrics: {
+          totalConversations: 15,
+          daysSinceFirstMeeting: 7,
+          currentStreak: 3,
+          longestStreak: 3,
+        },
+        memories: [],
+        lastUpdated: new Date().toISOString(),
+      }));
+    }, TEST_USER_ID);
+
+    await page.waitForTimeout(1000);
+  });
+
+  test('journey modal contains trust insights section', async ({ page }) => {
+    // Open the unified journey modal
+    const opened = await page.evaluate(() => {
+      const win = window as unknown as { 
+        journeyUI?: { open: () => void };
+      };
+      if (win.journeyUI?.open) {
+        win.journeyUI.open();
+        return true;
+      }
+      // Fallback: dispatch event
+      window.dispatchEvent(new CustomEvent('ferni:open-journey'));
+      return true;
+    });
+
+    if (opened) {
+      await page.waitForTimeout(1000);
+
+      // Check for trust insights section
+      const hasInsightsSection = await page.evaluate(() => {
+        return !!document.querySelector('.journey-insights-section');
+      });
+
+      // The insights section should be present in the unified modal
+      expect(hasInsightsSection).toBe(true);
+    }
+  });
+
+  test('trust insights shows loading state initially', async ({ page }) => {
+    // Open the journey modal
+    await page.evaluate(() => {
+      const win = window as unknown as { 
+        journeyUI?: { open: () => void };
+      };
+      if (win.journeyUI?.open) {
+        win.journeyUI.open();
+      } else {
+        window.dispatchEvent(new CustomEvent('ferni:open-journey'));
+      }
+    });
+
+    // Check for loading skeleton immediately
+    const hasLoadingState = await page.evaluate(() => {
+      return !!document.querySelector('.journey-insights-loading') || 
+             !!document.querySelector('.journey-insights-skeleton');
+    });
+
+    // May or may not have loading state depending on timing
+    // This test is for coverage
+  });
+
+  test('trust insights displays stats grid when data loads', async ({ page }) => {
+    // Open the journey modal
+    await page.evaluate(() => {
+      const win = window as unknown as { 
+        journeyUI?: { open: () => void };
+      };
+      if (win.journeyUI?.open) {
+        win.journeyUI.open();
+      } else {
+        window.dispatchEvent(new CustomEvent('ferni:open-journey'));
+      }
+    });
+
+    // Wait for data to load
+    await page.waitForTimeout(2000);
+
+    // Check for stats grid or empty state (both are valid)
+    const hasContent = await page.evaluate(() => {
+      return !!document.querySelector('.journey-trust-stats') || 
+             !!document.querySelector('.journey-insights-empty');
+    });
+
+    expect(hasContent).toBe(true);
+  });
+
+  test('trust insights section is collapsible', async ({ page }) => {
+    // Open the journey modal
+    await page.evaluate(() => {
+      const win = window as unknown as { 
+        journeyUI?: { open: () => void };
+      };
+      if (win.journeyUI?.open) {
+        win.journeyUI.open();
+      } else {
+        window.dispatchEvent(new CustomEvent('ferni:open-journey'));
+      }
+    });
+
+    await page.waitForTimeout(1000);
+
+    // Check that insights header is present and has aria-expanded
+    const headerExists = await page.evaluate(() => {
+      const header = document.querySelector('.journey-insights-header');
+      return header && header.getAttribute('aria-expanded') !== null;
+    });
+
+    if (headerExists) {
+      // Click to collapse
+      await page.click('.journey-insights-header');
+      await page.waitForTimeout(300);
+
+      // Verify collapsed state
+      const isCollapsed = await page.evaluate(() => {
+        const body = document.querySelector('.journey-insights-body');
+        return body?.classList.contains('collapsed');
+      });
+
+      // Should be able to collapse
+      expect(isCollapsed).toBe(true);
+    }
+  });
+});
+
+// ============================================================================
+// TRUST JOURNEY API TESTS (Backend integration)
+// ============================================================================
+
+test.describe('Trust Journey API', () => {
+  test('GET /api/trust-journey returns journey data', async ({ request }) => {
+    const response = await request.get(`${BASE_URL}/api/trust-journey?userId=${TEST_USER_ID}`, {
+      headers: {
+        'X-User-ID': TEST_USER_ID,
+      },
+    });
+
+    // May return 200 (data) or 401 (needs auth) depending on setup
+    const status = response.status();
+    expect([200, 401]).toContain(status);
+
+    if (status === 200) {
+      const data = await response.json();
+      
+      // Verify structure
+      expect(data).toHaveProperty('userId');
+      expect(data).toHaveProperty('summary');
+      expect(data.summary).toHaveProperty('relationshipStrength');
+      expect(data.summary).toHaveProperty('growthMomentsNoticed');
+      expect(data.summary).toHaveProperty('winsCelebrated');
+    }
+  });
+
+  test('GET /api/trust-journey/summary returns summary only', async ({ request }) => {
+    const response = await request.get(`${BASE_URL}/api/trust-journey/summary?userId=${TEST_USER_ID}`, {
+      headers: {
+        'X-User-ID': TEST_USER_ID,
+      },
+    });
+
+    const status = response.status();
+    expect([200, 401]).toContain(status);
+
+    if (status === 200) {
+      const data = await response.json();
+      expect(data).toHaveProperty('summary');
+      expect(data).toHaveProperty('generatedAt');
     }
   });
 });

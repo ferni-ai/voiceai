@@ -468,7 +468,7 @@ function generateInsights(snapshots: WellbeingSnapshotSimple[]): DashboardRespon
   if (currentState.mood > 0.7) {
     insights.push({
       type: 'celebration',
-      message: 'Your mood has been great lately! 🎉',
+      message: 'Your mood has been great lately!',
       dimension: 'mood',
     });
   }

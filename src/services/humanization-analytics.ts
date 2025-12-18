@@ -15,6 +15,7 @@
 
 import * as admin from 'firebase-admin';
 import { getLogger } from '../utils/safe-logger.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 
 // ============================================================================
 // FIRESTORE SETUP
@@ -188,12 +189,14 @@ class HumanizationAnalyticsService {
       await db
         .collection(SESSION_ANALYTICS_COLLECTION)
         .doc(session.sessionId)
-        .set({
-          ...session,
-          // Only save summary and key stats, not raw events (too much data)
-          events: session.events.slice(-50), // Keep last 50 events
-          signals: session.signals.slice(-50),
-        });
+        .set(
+          removeUndefined({
+            ...session,
+            // Only save summary and key stats, not raw events (too much data)
+            events: session.events.slice(-50), // Keep last 50 events
+            signals: session.signals.slice(-50),
+          })
+        );
     } catch (error) {
       getLogger().error(
         { error, sessionId: session.sessionId },

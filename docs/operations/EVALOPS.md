@@ -428,7 +428,7 @@ src/services/evalops/
 src/api/
 └── evalops-handler.ts       # Raw HTTP handler (used by ui-server.js)
 
-frontend-typescript/src/ui/
+apps/web/src/ui/
 └── evalops-dashboard.ui.ts  # Dashboard UI component
 
 data/

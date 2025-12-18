@@ -11,7 +11,6 @@
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { appleIAPService, type SubscriptionStatus } from '../services/apple-iap.service.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { t } from '../i18n/index.js';
@@ -83,8 +82,6 @@ class ManageSubscriptionUI {
   close(): void {
     if (this.container) {
       this.container.classList.add('manage-sub--closing');
-      // Clean up iOS tap listeners before removing
-      cleanupTapListeners(this.container);
       trackedTimeout(() => {
         this.container?.remove();
         this.container = null;
@@ -173,33 +170,27 @@ class ManageSubscriptionUI {
       </div>
     `;
 
-    // Bind events (iOS-compatible)
-    addTapListener(
-      this.container.querySelector('.manage-sub__backdrop'),
-      () => this.close()
-    );
-    addTapListener(
-      this.container.querySelector('.manage-sub__close'),
-      () => this.close()
-    );
+    // Bind events
+    this.container
+      .querySelector('.manage-sub__backdrop')
+      ?.addEventListener('click', () => this.close());
+    this.container
+      .querySelector('.manage-sub__close')
+      ?.addEventListener('click', () => this.close());
 
-    // Action buttons (iOS-compatible)
-    addTapListener(
-      this.container.querySelector('[data-action="billing-portal"]'),
-      () => this.openBillingPortal()
-    );
-    addTapListener(
-      this.container.querySelector('[data-action="apple-manage"]'),
-      () => this.openAppleManagement()
-    );
-    addTapListener(
-      this.container.querySelector('[data-action="upgrade"]'),
-      () => this.handleUpgrade()
-    );
-    addTapListener(
-      this.container.querySelector('[data-action="restore"]'),
-      () => this.handleRestore()
-    );
+    // Action buttons
+    this.container
+      .querySelector('[data-action="billing-portal"]')
+      ?.addEventListener('click', () => this.openBillingPortal());
+    this.container
+      .querySelector('[data-action="apple-manage"]')
+      ?.addEventListener('click', () => this.openAppleManagement());
+    this.container
+      .querySelector('[data-action="upgrade"]')
+      ?.addEventListener('click', () => this.handleUpgrade());
+    this.container
+      .querySelector('[data-action="restore"]')
+      ?.addEventListener('click', () => this.handleRestore());
 
     document.body.appendChild(this.container);
 

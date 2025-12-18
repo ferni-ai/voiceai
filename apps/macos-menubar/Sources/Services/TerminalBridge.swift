@@ -328,12 +328,9 @@ extension TerminalBridge {
     
     /// Clean up the command before sending to Claude
     private func cleanCommandForClaude(_ transcript: String) -> String {
-        var command = transcript
-        
         // Don't strip anything - send the full natural language request
         // Claude understands natural language better than stripped commands
-        
-        return command.trimmingCharacters(in: .whitespacesAndNewlines)
+        return transcript.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
     /// Summarize a command for speech feedback

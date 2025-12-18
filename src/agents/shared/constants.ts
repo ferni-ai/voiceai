@@ -38,8 +38,12 @@ export const SILENCE_THRESHOLDS = {
   /**
    * Early silence threshold for quick acknowledgment (seconds)
    * DEAD AIR FIX: If processing takes too long, acknowledge at this point
+   *
+   * NOTE: This MUST be > TURN_PROCESSING_SOFT_TIMEOUT to avoid duplicate fillers!
+   * turn-handler.ts fires at 2.5s - this acts as a backup fallback only.
+   * See turn-handler.ts:148 and session-state-handler.ts:451
    */
-  EARLY_ACKNOWLEDGMENT_SECONDS: 2.5,
+  EARLY_ACKNOWLEDGMENT_SECONDS: 4.0,
 } as const;
 
 // ============================================================================

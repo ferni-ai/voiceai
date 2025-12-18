@@ -23,7 +23,6 @@
  */
 
 import { t } from '../i18n/index.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
@@ -141,8 +140,8 @@ function createIndicator(): void {
   
   document.body.appendChild(indicator);
   
-  // Click handler (iOS-compatible)
-  addTapListener(indicator, toggleExpanded);
+  // Click handler
+  indicator.addEventListener('click', toggleExpanded);
   indicator.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -337,9 +336,9 @@ function renderExpanded(
     </div>
   `;
   
-  // Collapse button handler (iOS-compatible)
+  // Collapse button handler
   const collapseBtn = indicator.querySelector('.progress-collapse-btn');
-  addTapListener(collapseBtn, (e) => {
+  collapseBtn?.addEventListener('click', (e) => {
     e.stopPropagation();
     toggleExpanded();
   });

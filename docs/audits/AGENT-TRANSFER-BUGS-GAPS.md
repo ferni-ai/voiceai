@@ -38,7 +38,7 @@
 
 ### 2. Marketplace Handoff Bypasses handoffService Rate Limiting
 
-**File:** `frontend-typescript/src/ui/marketplace.ui.ts` (Lines 1071-1104)
+**File:** `apps/web/src/ui/marketplace.ui.ts` (Lines 1071-1104)
 
 The marketplace sends handoff requests directly via `room.localParticipant.publishData()` instead of going through the `handoffService.triggerHandoff()` method.
 
@@ -131,7 +131,7 @@ While handoffs have rate limiting (`DEBOUNCE_MS: 800`), cameos rely only on fron
 
 ### 6. Handoff Timeout Not Configurable Per-Environment
 
-**File:** `frontend-typescript/src/services/handoff.service.ts` (Line 101)
+**File:** `apps/web/src/services/handoff.service.ts` (Line 101)
 
 ```typescript
 readonly HANDOFF_TIMEOUT_MS = 15_000;
@@ -149,7 +149,7 @@ Hardcoded timeout doesn't account for:
 
 ### 7. Cameo Cleanup Timer Doesn't Cancel Active Speech
 
-**File:** `frontend-typescript/src/services/cameo.service.ts` (Lines 500-520)
+**File:** `apps/web/src/services/cameo.service.ts` (Lines 500-520)
 
 The 30-second safety cleanup timer resets state but doesn't:
 
@@ -162,7 +162,7 @@ The 30-second safety cleanup timer resets state but doesn't:
 
 ### 8. Energy Transfer Animation Not Synced With Sound
 
-**File:** `frontend-typescript/src/ui/team.ui.ts`
+**File:** `apps/web/src/ui/team.ui.ts`
 
 The energy transfer animation (450ms) plays independently of the handoff sound effect. No synchronization ensures they complete together.
 
@@ -246,7 +246,7 @@ Needs full implementation of visual coordination.
 
 ### 2. REFACTOR TODOs in Handoff Service
 
-**File:** `frontend-typescript/src/services/handoff.service.ts` (Line 13)
+**File:** `apps/web/src/services/handoff.service.ts` (Line 13)
 
 ```typescript
 // REFACTOR TODO #96: Consider extracting state management into a HandoffStateManager
@@ -258,7 +258,7 @@ State management is complex and scattered. Should be centralized.
 
 ### 3. Audio Service Handoff Logic Extraction
 
-**File:** `frontend-typescript/src/services/audio.service.ts` (Line 7)
+**File:** `apps/web/src/services/audio.service.ts` (Line 7)
 
 ```typescript
 // REFACTOR TODO #90: Consider extracting handoff-specific audio logic into
@@ -272,7 +272,7 @@ Handoff-specific audio logic should be in its own module.
 
 ### 1. `soft_open_complete` Before `handoff_started`
 
-**File:** `frontend-typescript/src/services/handoff.service.ts` (Lines 365-395)
+**File:** `apps/web/src/services/handoff.service.ts` (Lines 365-395)
 
 **Status:** HANDLED ✅
 
@@ -282,7 +282,7 @@ The service queues `soft_open_complete` callbacks if they arrive before `handoff
 
 ### 2. Handoff Acknowledgment Race
 
-**File:** `frontend-typescript/src/services/handoff.service.ts`
+**File:** `apps/web/src/services/handoff.service.ts`
 
 If `handoff_acknowledged` arrives before the local state is set up (e.g., during `triggerHandoff`), callbacks might not fire.
 
@@ -326,7 +326,7 @@ When preserving bundle runtime state across handoffs, if a second handoff starts
 
 When a handoff is rate-limited (user clicking too fast), no visual feedback is shown to the user.
 
-**File:** `frontend-typescript/src/ui/team.ui.ts`
+**File:** `apps/web/src/ui/team.ui.ts`
 
 **Fix:** Show toast or shake animation on rate-limited clicks.
 
@@ -334,7 +334,7 @@ When a handoff is rate-limited (user clicking too fast), no visual feedback is s
 
 ### 2. Cameo Roster Animation Missing Reduced Motion Support
 
-**File:** `frontend-typescript/src/ui/cameo-roster.ui.ts`
+**File:** `apps/web/src/ui/cameo-roster.ui.ts`
 
 While handoff animations respect `prefers-reduced-motion`, cameo animations don't fully implement fallbacks.
 
@@ -431,14 +431,14 @@ cameo_starting → cameo_start → (speech) → cameo_ending → cameo_complete
 
 | File                                    | Line     | Value  | Should Be                           |
 | --------------------------------------- | -------- | ------ | ----------------------------------- |
-| `frontend-typescript/src/ui/team.ui.ts` | 613      | `300`  | `DURATION.SLOW`                     |
-| `frontend-typescript/src/ui/team.ui.ts` | 842, 856 | `800`  | `DURATION.CELEBRATION`              |
-| `frontend-typescript/src/ui/team.ui.ts` | 1016     | `300`  | `DURATION.SLOW`                     |
-| `frontend-typescript/src/ui/team.ui.ts` | 1048     | `600`  | `DURATION.DRAMATIC`                 |
-| `frontend-typescript/src/ui/team.ui.ts` | 1195     | `300`  | `DURATION.SLOW`                     |
-| `frontend-typescript/src/ui/team.ui.ts` | 1375     | `600`  | `DURATION.DRAMATIC`                 |
-| `frontend-typescript/src/ui/team.ui.ts` | 1469     | `1000` | Named constant                      |
-| `frontend-typescript/src/ui/team.ui.ts` | 1491     | `500`  | Named constant for `RETRY_DELAY_MS` |
+| `apps/web/src/ui/team.ui.ts` | 613      | `300`  | `DURATION.SLOW`                     |
+| `apps/web/src/ui/team.ui.ts` | 842, 856 | `800`  | `DURATION.CELEBRATION`              |
+| `apps/web/src/ui/team.ui.ts` | 1016     | `300`  | `DURATION.SLOW`                     |
+| `apps/web/src/ui/team.ui.ts` | 1048     | `600`  | `DURATION.DRAMATIC`                 |
+| `apps/web/src/ui/team.ui.ts` | 1195     | `300`  | `DURATION.SLOW`                     |
+| `apps/web/src/ui/team.ui.ts` | 1375     | `600`  | `DURATION.DRAMATIC`                 |
+| `apps/web/src/ui/team.ui.ts` | 1469     | `1000` | Named constant                      |
+| `apps/web/src/ui/team.ui.ts` | 1491     | `500`  | Named constant for `RETRY_DELAY_MS` |
 
 ---
 
@@ -446,9 +446,9 @@ cameo_starting → cameo_start → (speech) → cameo_ending → cameo_complete
 
 | File                                            | Line | Value                      | Should Be                  |
 | ----------------------------------------------- | ---- | -------------------------- | -------------------------- |
-| `frontend-typescript/src/ui/cameo-roster.ui.ts` | 192  | `#4a6741`                  | `var(--persona-primary)`   |
-| `frontend-typescript/src/ui/cameo-roster.ui.ts` | 196  | `#3d5a35`                  | `var(--persona-secondary)` |
-| `frontend-typescript/src/ui/cameo-roster.ui.ts` | 538  | `rgba(255, 255, 255, 0.6)` | `var(--color-glow-white)`  |
+| `apps/web/src/ui/cameo-roster.ui.ts` | 192  | `#4a6741`                  | `var(--persona-primary)`   |
+| `apps/web/src/ui/cameo-roster.ui.ts` | 196  | `#3d5a35`                  | `var(--persona-secondary)` |
+| `apps/web/src/ui/cameo-roster.ui.ts` | 538  | `rgba(255, 255, 255, 0.6)` | `var(--color-glow-white)`  |
 
 ---
 
@@ -457,8 +457,8 @@ cameo_starting → cameo_start → (speech) → cameo_ending → cameo_complete
 | File                                                  | Lines                                              | Context                                   |
 | ----------------------------------------------------- | -------------------------------------------------- | ----------------------------------------- |
 | `src/agents/shared/handoff-handler.ts`                | 261, 290, 529, 541, 604, 742, 960, 998, 1013, 1102 | Multiple empty catches throughout handler |
-| `frontend-typescript/src/services/handoff.service.ts` | 444                                                | Empty catch in recovery sound playback    |
-| `frontend-typescript/src/services/cameo.service.ts`   | 597, 635                                           | Empty catches in sound playback           |
+| `apps/web/src/services/handoff.service.ts` | 444                                                | Empty catch in recovery sound playback    |
+| `apps/web/src/services/cameo.service.ts`   | 597, 635                                           | Empty catches in sound playback           |
 | `src/agents/shared/cameo-handler.ts`                  | 294                                                | Empty catch in event emission             |
 
 **Fix:** At minimum, log the error even if not re-throwing:
@@ -495,8 +495,8 @@ cameo_starting → cameo_start → (speech) → cameo_ending → cameo_complete
 
 | File                                            | Issue                                                                               |
 | ----------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `frontend-typescript/src/ui/cameo-roster.ui.ts` | **No ARIA attributes** - cameo elements have no `role`, `aria-label`, or `tabindex` |
-| `frontend-typescript/src/ui/team.ui.ts`         | **No `:focus-visible` styles** - keyboard navigation has no visible focus indicator |
+| `apps/web/src/ui/cameo-roster.ui.ts` | **No ARIA attributes** - cameo elements have no `role`, `aria-label`, or `tabindex` |
+| `apps/web/src/ui/team.ui.ts`         | **No `:focus-visible` styles** - keyboard navigation has no visible focus indicator |
 
 **Fix for cameo-roster.ui.ts:**
 
@@ -518,7 +518,7 @@ element.setAttribute('aria-label', `${firstName} has joined the conversation`);
 
 ### setTimeout Calls Without Cleanup Tracking
 
-**File:** `frontend-typescript/src/ui/team.ui.ts`
+**File:** `apps/web/src/ui/team.ui.ts`
 
 20+ `setTimeout` calls that are never tracked or cleaned up on component destroy:
 
@@ -542,7 +542,7 @@ timeoutIds.forEach(clearTimeout);
 
 ### Animations Without Reduced Motion Fallback
 
-**File:** `frontend-typescript/src/ui/team.ui.ts`
+**File:** `apps/web/src/ui/team.ui.ts`
 
 Some animations check `prefers-reduced-motion` but not all:
 
@@ -559,7 +559,7 @@ Some animations check `prefers-reduced-motion` but not all:
 
 | File                                    | Line | Value                     |
 | --------------------------------------- | ---- | ------------------------- |
-| `frontend-typescript/src/ui/team.ui.ts` | 1177 | `z-index: 1000` hardcoded |
+| `apps/web/src/ui/team.ui.ts` | 1177 | `z-index: 1000` hardcoded |
 
 Should use `var(--z-index-toast)` or similar from design system.
 
@@ -569,8 +569,8 @@ Should use `var(--z-index-toast)` or similar from design system.
 
 | File                                           | Line | Issue                                               |
 | ---------------------------------------------- | ---- | --------------------------------------------------- |
-| `frontend-typescript/src/ui/marketplace.ui.ts` | 1079 | `toast.error('Connection lost. Please reconnect.')` |
-| `frontend-typescript/src/ui/marketplace.ui.ts` | 1102 | `toast.error('Handoff failed. Please try again.')`  |
+| `apps/web/src/ui/marketplace.ui.ts` | 1079 | `toast.error('Connection lost. Please reconnect.')` |
+| `apps/web/src/ui/marketplace.ui.ts` | 1102 | `toast.error('Handoff failed. Please try again.')`  |
 
 Messages don't match the warm brand voice. Should be:
 
@@ -649,15 +649,15 @@ Messages don't match the warm brand voice. Should be:
 
 **Frontend Services:**
 
-- `frontend-typescript/src/services/handoff.service.ts` - Added `sendHandoffRequest()`, cameo mutex
-- `frontend-typescript/src/services/cameo.service.ts` - Added handoff mutex check, fixed empty catches
+- `apps/web/src/services/handoff.service.ts` - Added `sendHandoffRequest()`, cameo mutex
+- `apps/web/src/services/cameo.service.ts` - Added handoff mutex check, fixed empty catches
 
 **Frontend UI:**
 
-- `frontend-typescript/src/ui/marketplace.ui.ts` - Now routes through handoffService with brand voice
-- `frontend-typescript/src/ui/team.ui.ts` - Refactored handoff, fixed hardcoded timings (8), added reduced motion checks (3)
-- `frontend-typescript/src/ui/cameo-roster.ui.ts` - Added ARIA attributes, CSS var fallbacks
-- `frontend-typescript/public/design-system/app-components.css` - Added focus-visible styles
+- `apps/web/src/ui/marketplace.ui.ts` - Now routes through handoffService with brand voice
+- `apps/web/src/ui/team.ui.ts` - Refactored handoff, fixed hardcoded timings (8), added reduced motion checks (3)
+- `apps/web/src/ui/cameo-roster.ui.ts` - Added ARIA attributes, CSS var fallbacks
+- `apps/web/public/design-system/app-components.css` - Added focus-visible styles
 
 **Backend Handlers:**
 

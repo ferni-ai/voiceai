@@ -56,7 +56,7 @@ vi.mock('../../personas/voice-registry.js', () => ({
   getVoiceId: vi.fn(() => 'alex-voice-id'),
 }));
 
-import { createCommunicationTools } from '../communication-tools.js';
+import { createCommunicationTools } from '../domains/communication/communication-tools.js';
 
 describe('communication-tools voice message', () => {
   beforeEach(() => {

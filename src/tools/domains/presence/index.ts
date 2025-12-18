@@ -18,6 +18,7 @@ import { llm, log as _log } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // GROUNDING TOOLS
 // ============================================================================
@@ -31,7 +32,7 @@ const groundInBodyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user ground in physical, bodily awareness.',
+      description: getToolDescription('groundInBody'),
       parameters: z.object({
         state: z
           .enum(['anxious', 'scattered', 'disconnected', 'overwhelmed', 'neutral'])
@@ -72,7 +73,7 @@ const groundingExerciseDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Guide the user through a grounding exercise.',
+      description: getToolDescription('groundingExercise'),
       parameters: z.object({
         type: z
           .enum(['feet-on-ground', 'body-scan', 'breath', 'anchor'])
@@ -138,7 +139,7 @@ const returnToPresentDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user return to the present moment when lost in past or future.',
+      description: getToolDescription('returnToPresent'),
       parameters: z.object({
         whereLost: z
           .enum(['past', 'future', 'both', 'unsure'])
@@ -196,7 +197,7 @@ const noticeThisMomentDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Guide simple present-moment awareness practice.',
+      description: getToolDescription('noticeThisMoment'),
       parameters: z.object({
         focus: z
           .enum(['open', 'sensory', 'breath', 'body', 'sounds'])
@@ -263,7 +264,7 @@ const breatheWithMeDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Guide the user through breathing for presence and calm.',
+      description: getToolDescription('breatheWithMe'),
       parameters: z.object({
         technique: z.enum(['simple', 'box', '4-7-8', 'coherent']).describe('Breathing technique'),
         purpose: z
@@ -329,7 +330,7 @@ const savorExperienceDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Guide the user in deeply savoring a positive experience.',
+      description: getToolDescription('savorExperience'),
       parameters: z.object({
         experience: z.string().describe('The experience to savor'),
         when: z.enum(['now', 'recent', 'memory']).describe('When this experience is happening'),
@@ -382,7 +383,7 @@ const slowDownDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user slow down and be more present.',
+      description: getToolDescription('slowDown'),
       parameters: z.object({
         rushingBecause: z.string().optional().describe('Why they are rushing'),
       }),
@@ -424,7 +425,7 @@ const recognizeFlowDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user recognize and appreciate flow states.',
+      description: getToolDescription('recognizeFlow'),
       parameters: z.object({
         inFlowNow: z.boolean().describe('Whether they are in flow or reflecting on it'),
         activity: z.string().optional().describe('The activity involved'),
@@ -469,7 +470,7 @@ const protectPresenceDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user protect their presence and attention from fragmentation.',
+      description: getToolDescription('protectPresence'),
       parameters: z.object({
         threat: z
           .enum(['devices', 'overthinking', 'multitasking', 'worry', 'busyness', 'general'])
@@ -506,7 +507,7 @@ const walkingMeditationDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Guide the user through a walking meditation.',
+      description: getToolDescription('walkingMeditation'),
       parameters: z.object({
         setting: z.enum(['indoors', 'outdoors', 'anywhere']).describe('Where they will walk'),
         duration: z.enum(['brief', 'moderate', 'extended']).optional().describe('How long'),
@@ -549,7 +550,7 @@ const mindfulEatingDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Guide the user through mindful eating practice.',
+      description: getToolDescription('mindfulEating'),
       parameters: z.object({
         food: z.string().optional().describe('What they are eating'),
         mode: z.enum(['full-practice', 'quick-reset', 'ongoing']).describe('Type of practice'),
@@ -603,7 +604,7 @@ const naturePrescriptionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Guide the user in using nature for presence and grounding.',
+      description: getToolDescription('naturePrescription'),
       parameters: z.object({
         access: z
           .enum(['full-nature', 'park', 'yard', 'window', 'none'])

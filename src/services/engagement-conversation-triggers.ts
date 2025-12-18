@@ -419,6 +419,94 @@ function createWeatherCheckTrigger(personaId: PersonaIdString): ConversationTrig
 }
 
 // ============================================================================
+// TEAM HUDDLE DETECTION AND TRIGGER
+// ============================================================================
+
+/**
+ * Phrases that indicate user wants team input
+ */
+const TEAM_HUDDLE_PHRASES = [
+  'team huddle',
+  "team's input",
+  'team input',
+  'what does everyone think',
+  'what do the others think',
+  'what does the team think',
+  'what would maya say',
+  'what would alex say',
+  'what would jordan say',
+  'what would peter say',
+  'what would nayan say',
+  'get the team',
+  'ask the team',
+  'hear from the team',
+  'team check-in',
+  "all the team's thoughts",
+  'multiple perspectives',
+  'different perspectives',
+  'hear from everyone',
+  'what do you all think',
+];
+
+/**
+ * Detect if user is requesting a team huddle
+ */
+export function detectTeamHuddleRequest(transcript: string): {
+  detected: boolean;
+  confidence: number;
+  phrase?: string;
+} {
+  const lowerTranscript = transcript.toLowerCase();
+
+  for (const phrase of TEAM_HUDDLE_PHRASES) {
+    if (lowerTranscript.includes(phrase)) {
+      return {
+        detected: true,
+        confidence: 0.9,
+        phrase,
+      };
+    }
+  }
+
+  // Weaker pattern matching
+  if (
+    (lowerTranscript.includes('team') && lowerTranscript.includes('think')) ||
+    (lowerTranscript.includes('everyone') && lowerTranscript.includes('think')) ||
+    (lowerTranscript.includes('all') && lowerTranscript.includes('perspectives'))
+  ) {
+    return {
+      detected: true,
+      confidence: 0.7,
+      phrase: 'team perspective pattern',
+    };
+  }
+
+  return { detected: false, confidence: 0 };
+}
+
+/**
+ * Create a team huddle trigger to send to frontend
+ */
+export function createTeamHuddleTrigger(
+  personaId: PersonaIdString,
+  topic?: string
+): ConversationTrigger {
+  return {
+    type: 'team_suggestion',
+    personaId,
+    priority: 'high',
+    message: topic
+      ? `Starting a team huddle to discuss: ${topic}`
+      : "Let me gather the team's thoughts for you.",
+    contextPrompt:
+      'User requested team input. Initiate a team huddle where multiple personas share their perspectives.',
+    data: {
+      topic: topic || 'General discussion',
+    },
+  };
+}
+
+// ============================================================================
 // CONTEXT BUILDER INTEGRATION
 // ============================================================================
 

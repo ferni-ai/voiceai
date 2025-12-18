@@ -65,9 +65,9 @@
   --color-cinematic-overlay-heavy: rgba(0, 0, 0, 0.7);
   --color-cinematic-overlay-vignette: radial-gradient(circle at center, transparent 30%, rgba(0, 0, 0, 0.4) 100%);
   --color-cinematic-text: #ffffff;
-  --color-cinematic-text-secondary: rgba(255, 255, 255, 0.8);
-  --color-cinematic-text-muted: rgba(255, 255, 255, 0.6);
-  --color-cinematic-text-subtle: rgba(255, 255, 255, 0.4);
+  --color-cinematic-text-secondary: #f0ebe4;
+  --color-cinematic-text-muted: #ddd6cc;
+  --color-cinematic-text-subtle: #c8bfb4;
   
   /* =========================================================================
      COLORS - FERNI WARM CINEMATIC (Brand-aligned)
@@ -79,9 +79,9 @@
   --color-ferni-cinematic-surface: #4a4038;
   --color-ferni-cinematic-elevated: #584840;
   --color-ferni-overlay-vignette: radial-gradient(circle at center, transparent 30%, rgba(44, 37, 32, 0.5) 100%);
-  --color-ferni-cinematic-text: #F5F1E8;
-  --color-ferni-cinematic-text-secondary: #E8E0D5;
-  --color-ferni-cinematic-text-muted: rgba(245, 241, 232, 0.6);
+  --color-ferni-cinematic-text: #ffffff;
+  --color-ferni-cinematic-text-secondary: #f0ebe4;
+  --color-ferni-cinematic-text-muted: #ddd6cc;
   --color-ferni-cinematic-text-accent: #C4A265;
   
   /* =========================================================================

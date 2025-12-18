@@ -12,7 +12,14 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
+import { z } from 'zod';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { parseBody, sendJSON } from '../../helpers.js';
+
+// SECURITY: Schema for validating OAuth state parameter
+const OAuthStateSchema = z.object({
+  userId: z.string().min(1),
+});
 
 // Biometrics
 import {
@@ -38,6 +45,11 @@ const getCalendarServices = async () => {
   return import('../../../services/context-awareness/location-calendar.js');
 };
 
+// Calendar OAuth - direct import for token exchange
+const getCalendarOAuthServices = async () => {
+  return import('../../../services/google-calendar-oauth.js');
+};
+
 // Social Graph - lazy imports
 const getSocialGraphServices = async () => {
   return import('../../../services/social-graph/index.js');
@@ -51,24 +63,13 @@ const BASE_PATH = '/api/v1/integrations';
 // HELPERS
 // ============================================================================
 
-async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => (body += chunk.toString()));
-    req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : {});
-      } catch {
-        resolve({});
-      }
-    });
-    req.on('error', reject);
-  });
-}
+// parseBody and sendJSON imported from '../../helpers.js'
 
+/**
+ * Legacy wrapper for sendJSON with (res, status, data) signature.
+ */
 function sendJson(res: ServerResponse, statusCode: number, data: unknown): void {
-  res.writeHead(statusCode, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
+  sendJSON(res, data, statusCode);
 }
 
 function sendRedirect(res: ServerResponse, url: string): void {
@@ -208,10 +209,17 @@ export async function handleIntegrationsRoutes(
         return true;
       }
 
+      // SECURITY: Decode and validate state parameter with Zod schema
       let userId: string;
       try {
-        const decoded = JSON.parse(Buffer.from(state, 'base64').toString());
-        userId = decoded.userId;
+        const rawDecoded = JSON.parse(Buffer.from(state, 'base64').toString());
+        const parsed = OAuthStateSchema.safeParse(rawDecoded);
+        if (!parsed.success) {
+          log.warn({ issues: parsed.error.issues }, 'Invalid OAuth state structure');
+          sendJson(res, 400, { error: 'Invalid state parameter' });
+          return true;
+        }
+        userId = parsed.data.userId;
       } catch {
         sendJson(res, 400, { error: 'Invalid state parameter' });
         return true;
@@ -229,7 +237,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/biometrics/sync' && method === 'POST') {
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       const userId = body.userId as string;
       if (!userId) {
         sendJson(res, 400, { error: 'userId is required' });
@@ -277,7 +285,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/biometrics/disconnect' && method === 'DELETE') {
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       const userId = body.userId as string;
       if (!userId) {
         sendJson(res, 400, { error: 'userId is required' });
@@ -314,7 +322,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/banking/link-token' && method === 'POST') {
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       const userId = body.userId as string;
       if (!userId) {
         sendJson(res, 400, { error: 'userId is required' });
@@ -335,7 +343,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/banking/exchange-token' && method === 'POST') {
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       const { userId, publicToken, institution } = body as {
         userId: string;
         publicToken: string;
@@ -602,7 +610,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/banking/goals' && method === 'POST') {
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       const { userId, name, targetAmount, targetDate, currentAmount } = body as {
         userId: string;
         name: string;
@@ -633,7 +641,7 @@ export async function handleIntegrationsRoutes(
     const goalMatch = subPath.match(/^\/banking\/goals\/([^/]+)$/);
     if (goalMatch && method === 'PATCH') {
       const goalId = goalMatch[1];
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       const { userId, currentAmount } = body as { userId: string; currentAmount: number };
 
       if (!userId || currentAmount === undefined) {
@@ -684,7 +692,7 @@ export async function handleIntegrationsRoutes(
       }
 
       const cal = await getCalendarServices();
-      const connected = cal.hasCalendarConnected(userId);
+      const connected = await cal.hasCalendarConnected(userId);
       const events = connected ? cal.getUpcomingEvents(userId) : [];
       const location = connected ? cal.getCurrentLocation(userId) : null;
 
@@ -727,23 +735,34 @@ export async function handleIntegrationsRoutes(
         return true;
       }
 
+      // SECURITY: Decode and validate state parameter with Zod schema
       let userId: string;
       try {
-        const decoded = JSON.parse(Buffer.from(state, 'base64').toString());
-        userId = decoded.userId;
+        const rawDecoded = JSON.parse(Buffer.from(state, 'base64').toString());
+        const parsed = OAuthStateSchema.safeParse(rawDecoded);
+        if (!parsed.success) {
+          log.warn({ issues: parsed.error.issues }, 'Invalid OAuth state structure');
+          sendJson(res, 400, { error: 'Invalid state parameter' });
+          return true;
+        }
+        userId = parsed.data.userId;
       } catch {
         sendJson(res, 400, { error: 'Invalid state parameter' });
         return true;
       }
 
       const cal = await getCalendarServices();
-      const success = await cal.exchangeCalendarCode(code, userId);
+      const calOAuth = await getCalendarOAuthServices();
 
-      if (success) {
+      try {
+        const tokens = await calOAuth.exchangeCodeForTokens(code);
+        await calOAuth.storeUserTokens(userId, tokens);
+
         void cal.fetchUpcomingEvents(userId, 48);
         log.info({ userId }, 'Calendar connected successfully');
         sendRedirect(res, '/settings/integrations?success=calendar');
-      } else {
+      } catch (tokenError) {
+        log.error({ error: String(tokenError), userId }, 'Calendar token exchange failed');
         sendRedirect(res, '/settings/integrations?error=token_exchange_failed');
       }
       return true;
@@ -780,7 +799,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/calendar/location' && method === 'POST') {
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       const { userId, latitude, longitude, accuracy } = body as {
         userId: string;
         latitude: number;
@@ -802,7 +821,7 @@ export async function handleIntegrationsRoutes(
     }
 
     if (subPath === '/calendar/location/save' && method === 'POST') {
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       const { userId, name, type, latitude, longitude } = body as {
         userId: string;
         name: string;
@@ -893,7 +912,7 @@ export async function handleIntegrationsRoutes(
     const confirmMatch = subPath.match(/^\/social-graph\/person\/([^/]+)\/confirm$/);
     if (confirmMatch && method === 'POST') {
       const personId = confirmMatch[1];
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       const userId = body.userId as string;
 
       if (!userId) {
@@ -915,7 +934,7 @@ export async function handleIntegrationsRoutes(
 
     const dateMatch = subPath.match(/^\/social-graph\/person\/([^/]+)\/date$/);
     if (dateMatch && method === 'POST') {
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       const { userId, personName, date, type, label } = body as {
         userId: string;
         personName: string;

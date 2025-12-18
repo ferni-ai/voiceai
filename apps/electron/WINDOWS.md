@@ -35,7 +35,7 @@ npm install
 
 # Build frontend (from project root)
 cd ..\..
-cd frontend-typescript
+cd apps/web
 npm install
 npm run build
 
@@ -126,18 +126,18 @@ jobs:
       
       - name: Install dependencies
         run: |
-          cd frontend-typescript
+          cd apps/web
           npm ci
           cd ../apps/electron
           npm ci
       
       - name: Build frontend
         run: |
-          cd frontend-typescript
+          cd apps/web
           npm run build
       
       - name: Copy web assets
-        run: xcopy frontend-typescript\dist\* apps\electron\web\ /E /Y
+        run: xcopy apps/web\dist\* apps\electron\web\ /E /Y
       
       - name: Build Electron
         env:

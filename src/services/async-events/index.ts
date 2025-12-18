@@ -53,7 +53,22 @@ export type EventType =
 
   // Outreach
   | 'outreach:trigger'
-  | 'outreach:scheduled';
+  | 'outreach:scheduled'
+
+  // Embedding (for Pub/Sub workers)
+  | 'embedding:generate'
+  | 'embedding:batch-generate'
+  | 'embedding:index-memory'
+  | 'embedding:cache-warmup'
+
+  // Summarization (for Pub/Sub workers)
+  | 'summarization:conversation'
+  | 'summarization:memory-consolidation'
+  | 'summarization:topic-threading'
+  | 'summarization:emotional-journey'
+
+  // Context (for Pub/Sub workers)
+  | 'context:warmup';
 
 export interface EventPayload {
   type: EventType;
@@ -158,6 +173,16 @@ class AsyncEventBus {
       'user:preference-change',
       'outreach:trigger',
       'outreach:scheduled',
+      // Pub/Sub worker events
+      'embedding:generate',
+      'embedding:batch-generate',
+      'embedding:index-memory',
+      'embedding:cache-warmup',
+      'summarization:conversation',
+      'summarization:memory-consolidation',
+      'summarization:topic-threading',
+      'summarization:emotional-journey',
+      'context:warmup',
     ];
 
     for (const type of types) {
@@ -249,7 +274,7 @@ class AsyncEventBus {
       // Call local handlers
       const handlers = this.handlers.get(payload.type);
       if (handlers) {
-        const promises = Array.from(handlers).map((handler) =>
+        const promises = Array.from(handlers).map(async (handler) =>
           Promise.resolve(handler(payload)).catch((err) => {
             log.warn({ type: payload.type, error: String(err) }, 'Event handler error');
             this.stats.errors++;
@@ -384,6 +409,63 @@ export function emitAnalyticsInteraction(context: {
     },
     context
   );
+}
+
+// ============================================================================
+// PUB/SUB WORKER EMITTERS
+// ============================================================================
+
+/**
+ * Queue embedding generation (processed by Pub/Sub worker).
+ */
+export function queueEmbeddingGeneration(
+  text: string,
+  context?: { userId?: string; sessionId?: string }
+): void {
+  AsyncEvents.emit('embedding:generate', { text, ...context }, context);
+}
+
+/**
+ * Queue batch embedding generation (processed by Pub/Sub worker).
+ */
+export function queueBatchEmbeddings(
+  texts: string[],
+  context?: { userId?: string; sessionId?: string }
+): void {
+  AsyncEvents.emit('embedding:batch-generate', { texts, ...context }, context);
+}
+
+/**
+ * Queue conversation summarization (processed by Pub/Sub worker).
+ */
+export function queueConversationSummary(context: {
+  userId: string;
+  sessionId: string;
+  turns: unknown[];
+  emotionalHighlight?: string;
+}): void {
+  AsyncEvents.emit(
+    'summarization:conversation',
+    {
+      turns: context.turns,
+      emotionalHighlight: context.emotionalHighlight,
+    },
+    context
+  );
+}
+
+/**
+ * Queue memory consolidation (processed by Pub/Sub worker).
+ */
+export function queueMemoryConsolidation(userId: string): void {
+  AsyncEvents.emit('summarization:memory-consolidation', {}, { userId });
+}
+
+/**
+ * Queue context cache warmup (processed by Pub/Sub worker).
+ */
+export function queueContextWarmup(userId: string, personaId: string): void {
+  AsyncEvents.emit('context:warmup', { userId, personaId }, { userId, personaId });
 }
 
 export default AsyncEvents;

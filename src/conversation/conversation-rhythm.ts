@@ -159,16 +159,16 @@ export class ConversationRhythmTracker {
     };
 
     // Adjust length based on user's turn length
+    // NOTE: We intentionally DON'T shorten responses when users send short messages.
+    // Ferni's core value is warmth and presence - short user messages don't mean
+    // they want less from us. They often mean they need MORE engagement and warmth.
     const avgUserWords = this.getAverageUserTurnLength();
-    if (avgUserWords < 15) {
-      // User gives short responses - keep ours shorter too
-      guidance.lengthMultiplier = 0.7;
-      guidance.guidance = "Keep responses concise to match user's brief style.";
-    } else if (avgUserWords > 60) {
-      // User gives long responses - we can expand
+    if (avgUserWords > 60) {
+      // User gives long responses - we can expand to match their depth
       guidance.lengthMultiplier = 1.3;
-      guidance.guidance = 'User is expansive - feel free to elaborate.';
+      guidance.guidance = 'User is expansive - feel free to elaborate and explore deeply.';
     }
+    // Short user messages: keep normal length, stay warm and engaged
 
     // Adjust rate based on pacing
     switch (snapshot.pacing) {

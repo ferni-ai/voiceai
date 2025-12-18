@@ -605,7 +605,7 @@
     },
     "checkCameoOpportunity": {
       "description": "Check if bringing in a team member would add value to the current conversation. Use this when you.",
-      "file": "src/tools/cameo.ts",
+      "file": "src/tools/domains/cameo/index.ts",
       "_original": "Check if bringing in a team member would add value to the current conversation. Use this when you"
     },
     "checkFinancialHealth": {
@@ -2491,7 +2491,7 @@
     },
     "inviteCameo": {
       "description": "Invite a team member to briefly.",
-      "file": "src/tools/cameo.ts",
+      "file": "src/tools/domains/cameo/index.ts",
       "_original": "Invite a team member to briefly"
     },
     "inviteSharing": {

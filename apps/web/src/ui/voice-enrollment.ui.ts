@@ -16,7 +16,6 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './toast.ui.js';
@@ -555,9 +554,6 @@ export async function showVoiceEnrollmentModal(opts: VoiceEnrollmentOptions = {}
 export function hideVoiceEnrollmentModal(): void {
   if (!modal) return;
 
-  // Clean up iOS tap listeners
-  cleanupTapListeners(modal);
-
   // Cancel any in-progress enrollment
   void getVoiceAuthService().cancelEnrollment();
 
@@ -610,9 +606,12 @@ function createModal(): HTMLElement {
     </div>
   `;
 
-  // Event listeners (iOS-compatible)
-  addTapListener(container.querySelector('.voice-enrollment-backdrop'), handleCancel);
-  addTapListener(container.querySelector('.voice-enrollment-close'), handleCancel);
+  // Event listeners
+  const backdrop = container.querySelector('.voice-enrollment-backdrop');
+  const closeBtn = container.querySelector('.voice-enrollment-close');
+
+  backdrop?.addEventListener('click', handleCancel);
+  closeBtn?.addEventListener('click', handleCancel);
 
   return container;
 }
@@ -858,7 +857,7 @@ async function checkStatusAndProfile(): Promise<void> {
     setState('ready');
   } catch (error) {
     log.error('Failed to check status:', error);
-    setState('error', 'Unable to connect to voice system. Please try again.');
+    setState('error', "Couldn't connect to voice system. Try again?");
   }
 }
 
@@ -902,12 +901,19 @@ function setState(state: EnrollmentState, data?: unknown): void {
 }
 
 function attachButtonListeners(): void {
-  addTapListener(modal?.querySelector('#btn-start'), handleStartEnrollment);
-  addTapListener(modal?.querySelector('#btn-cancel'), handleCancel);
-  addTapListener(modal?.querySelector('#btn-close'), handleCancel);
-  addTapListener(modal?.querySelector('#btn-done'), handleComplete);
-  addTapListener(modal?.querySelector('#btn-retry'), handleRetry);
-  addTapListener(modal?.querySelector('#btn-delete'), handleDeleteProfile);
+  const btnStart = modal?.querySelector('#btn-start');
+  const btnCancel = modal?.querySelector('#btn-cancel');
+  const btnClose = modal?.querySelector('#btn-close');
+  const btnDone = modal?.querySelector('#btn-done');
+  const btnRetry = modal?.querySelector('#btn-retry');
+  const btnDelete = modal?.querySelector('#btn-delete');
+
+  btnStart?.addEventListener('click', handleStartEnrollment);
+  btnCancel?.addEventListener('click', handleCancel);
+  btnClose?.addEventListener('click', handleCancel);
+  btnDone?.addEventListener('click', handleComplete);
+  btnRetry?.addEventListener('click', handleRetry);
+  btnDelete?.addEventListener('click', handleDeleteProfile);
 }
 
 // ============================================================================
@@ -944,7 +950,7 @@ async function handleStartEnrollment(): Promise<void> {
 
       if (!sampleResult.success) {
         // Show error but allow retry
-        toast.warning(sampleResult.message || 'Recording failed. Try again.');
+        toast.warning(sampleResult.message || "Didn't catch that. One more time?");
         i--; // Retry this sample
         continue;
       }
@@ -959,7 +965,7 @@ async function handleStartEnrollment(): Promise<void> {
 
       // Small delay between samples
       if (i < requiredSamples - 1) {
-        await new Promise((resolve) => trackedTimeout(resolve, 500));
+        await new Promise<void>((resolve) => setTimeout(resolve, 500));
       }
     }
 
@@ -974,7 +980,7 @@ async function handleStartEnrollment(): Promise<void> {
 
     // Success!
     setState('complete');
-    toast.success('Voice enrollment complete!');
+    toast.success("Got it! I'll know your voice now.");
 
     // Notify callback
     if (completeResult.profile) {
@@ -986,7 +992,7 @@ async function handleStartEnrollment(): Promise<void> {
     }
   } catch (error) {
     log.error('Enrollment failed:', error);
-    setState('error', 'An unexpected error occurred. Please try again.');
+    setState('error', "Something went wrong. Try again?");
   }
 }
 
@@ -1026,10 +1032,10 @@ async function handleDeleteProfile(): Promise<void> {
 
   const success = await voiceAuth.deleteProfile();
   if (success) {
-    toast.success('Voiceprint deleted');
+    toast.success('Voice profile cleared');
     setState('ready');
   } else {
-    toast.error('Failed to delete voiceprint');
+    toast.error("Couldn't delete that. Try again?");
   }
 }
 

@@ -12,6 +12,7 @@ import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js'
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // PARADOX OF THE DAY
 // ============================================================================
@@ -25,8 +26,7 @@ export const paradoxOfTheDayDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Get today's paradox from Nayan. User can respond or just sit with it.
-Paradoxes stretch the mind and create openings for insight.`,
+      description: getToolDescription('paradoxOfTheDay'),
       parameters: z.object({
         action: z.enum(['get-paradox', 'reflect', 'request-new']).describe('Action'),
         reflection: z.string().optional().describe('User reflection on the paradox'),
@@ -99,7 +99,7 @@ export const questionBeneathDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `When user shares a problem or question, Nayan plays "5 Whys" to find the real question beneath.`,
+      description: getToolDescription('questionBeneath'),
       parameters: z.object({
         surfaceQuestion: z.string().describe('The initial question or problem'),
         depth: z.number().min(1).max(5).describe('Current depth (1-5)'),

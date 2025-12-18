@@ -13,6 +13,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 
 import { appleIAP, isAppleConfigured } from '../services/apple-iap.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { parseBody } from './helpers.js';
 
 const log = createLogger({ module: 'AppleIAPRoutes' });
 
@@ -243,25 +244,7 @@ const routes: {
 // REQUEST HANDLER
 // ============================================================================
 
-/**
- * Parse request body as JSON
- */
-async function parseBody(req: IncomingMessage): Promise<unknown> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk: Buffer) => {
-      body += chunk.toString();
-    });
-    req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : undefined);
-      } catch {
-        reject(new Error('Invalid JSON'));
-      }
-    });
-    req.on('error', reject);
-  });
-}
+// parseBody imported from './helpers.js'
 
 /**
  * Parse query string from URL

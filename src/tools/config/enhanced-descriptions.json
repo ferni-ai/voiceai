@@ -144,6 +144,79 @@
       "parameters": {
         "reason": "Why wrapping up. Options: 'user-leaving', 'natural-end', 'time-limit'"
       }
+    },
+    "paradoxOfTheDay": {
+      "description": "Get today's philosophical paradox for contemplation and reflection. Call when user wants philosophical depth, asks about life meaning, seeks wisdom, or seems ready for deeper thinking. Returns a thought-provoking paradox with gentle guidance.",
+      "parameters": {
+        "action": "What to do. Options: 'get-paradox' (receive today's), 'reflect' (share thoughts on it), 'request-new' (get a different one)"
+      }
+    },
+    "questionBeneath": {
+      "description": "Guide user through the '5 Whys' exploration to discover the deeper question beneath their surface concern. Call when user has a question or concern that might have deeper roots, or when helping them understand their true motivations.",
+      "parameters": {
+        "initialQuestion": "The user's starting question or concern. Examples: 'Should I change jobs?', 'Why am I always tired?', 'Is this relationship right for me?'"
+      }
+    },
+    "inboxZeroChallenge": {
+      "description": "Start an inbox management challenge with streak tracking. Call when user wants help managing their email, reducing inbox clutter, or building better email habits.",
+      "parameters": {
+        "action": "What to do. Options: 'start' (begin challenge), 'check-in' (daily progress), 'status' (current streak)"
+      }
+    },
+    "sundayPrepGame": {
+      "description": "Guide user through a weekly planning ritual for the week ahead. Call when user wants to prepare for the week, do weekly planning, or set intentions for upcoming days.",
+      "parameters": {
+        "action": "What to do. Options: 'start' (begin planning), 'review' (check last week), 'complete' (finish session)"
+      }
+    },
+    "lifePortfolioReview": {
+      "description": "Conduct a quarterly review of major life domains (career, relationships, health, finance, personal growth). Call when user wants to reflect on life balance, do a life audit, or assess how different areas are going.",
+      "parameters": {
+        "domain": "Life domain to review. Options: 'all', 'career', 'relationships', 'health', 'finance', 'personal-growth', 'family', 'fun'"
+      }
+    },
+    "predictionMarket": {
+      "description": "Help user predict outcomes in their own life and track accuracy over time. Call when user is making decisions, wants to calibrate their intuition, or enjoys thinking probabilistically about the future.",
+      "parameters": {
+        "action": "What to do. Options: 'predict' (make new prediction), 'review' (check past predictions), 'resolve' (record outcome)"
+      }
+    },
+    "compoundInterestGame": {
+      "description": "Play Maya's habit tracking game that shows compound growth from small daily actions. Call when user wants motivation for habit building, to see how small actions add up, or needs encouragement for consistency.",
+      "parameters": {
+        "action": "What to do. Options: 'start' (begin game), 'track' (record today's action), 'status' (see compound progress)"
+      }
+    },
+    "logMood": {
+      "description": "Record user's current emotional state for tracking over time. Call when user shares how they're feeling and it would be valuable to track the pattern.",
+      "parameters": {
+        "mood": "The mood to log. Examples: 'happy', 'anxious', 'calm', 'stressed', 'grateful', 'tired', 'energetic', 'sad'",
+        "intensity": "How intense the feeling is. Scale 1-10.",
+        "note": "Optional: Context or what triggered the mood. Examples: 'good meeting at work', 'didn't sleep well', 'nice walk outside'"
+      }
+    },
+    "addGoal": {
+      "description": "Create a new goal for the user to track progress toward. Call when user expresses an aspiration, wants to achieve something, or sets an intention.",
+      "parameters": {
+        "title": "Name of the goal. Clear and motivating. Examples: 'Run a 5K', 'Save $10,000', 'Learn Spanish basics', 'Read 24 books this year'",
+        "category": "Goal category. Options: 'health', 'finance', 'career', 'learning', 'relationships', 'personal'",
+        "targetDate": "Optional: When to achieve by. Examples: 'December 2025', 'in 6 months', 'end of year'",
+        "targetValue": "Optional: Numeric target. Examples: 10000 (for saving), 26.2 (for marathon miles)"
+      }
+    },
+    "addTask": {
+      "description": "Create a task or to-do item. Call when user mentions something they need to do, a reminder they want, or an action item.",
+      "parameters": {
+        "title": "What needs to be done. Action-oriented. Examples: 'Call dentist for appointment', 'Buy birthday gift for Mom', 'Review quarterly report'",
+        "dueDate": "When it's due. Natural language. Examples: 'today', 'tomorrow', 'next Friday', 'in 3 days'",
+        "priority": "How urgent. Options: 'low', 'medium', 'high', 'urgent'"
+      }
+    },
+    "trackHabit": {
+      "description": "Record that user completed a habit for today. Call when user mentions they did something that's part of their tracked habits.",
+      "parameters": {
+        "habitName": "Which habit was done. Partial match works. Examples: 'meditation', 'exercise', 'reading', 'water'"
+      }
     }
   }
 }

@@ -19,6 +19,7 @@ import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // MAINTENANCE DATABASES
 // ============================================================================
@@ -100,7 +101,7 @@ const remindHomeMaintenanceDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Provide home maintenance reminders based on season and timing.',
+      description: getToolDescription('remindHomeMaintenance'),
       parameters: z.object({
         season: z
           .enum(['spring', 'summer', 'fall', 'winter'])
@@ -162,7 +163,7 @@ const trackRepairDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help track home repairs needed or completed.',
+      description: getToolDescription('trackRepair'),
       parameters: z.object({
         action: z
           .enum(['log-needed', 'log-completed', 'list', 'prioritize'])
@@ -238,7 +239,7 @@ const coachDeclutteringDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Coach user through decluttering their space.',
+      description: getToolDescription('coachDecluttering'),
       parameters: z.object({
         area: z.string().describe('Area to declutter'),
         overwhelm: z.enum(['low', 'medium', 'high']).optional(),
@@ -313,7 +314,7 @@ const organizeSpaceDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help organize a specific space or area.',
+      description: getToolDescription('organizeSpace'),
       parameters: z.object({
         space: z
           .enum([
@@ -421,7 +422,7 @@ const planMoveDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help plan a residential move.',
+      description: getToolDescription('planMove'),
       parameters: z.object({
         timeUntilMove: z
           .enum(['1-week', '2-weeks', '1-month', '2-months', 'more'])
@@ -511,7 +512,7 @@ const assessEmergencyPreparednessDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help assess and improve household emergency preparedness.',
+      description: getToolDescription('assessEmergencyPreparedness'),
       parameters: z.object({
         focus: z.enum(['supplies', 'documents', 'planning', 'all']).describe('What to focus on'),
         householdSize: z.number().optional().describe('Number of people in household'),
@@ -582,7 +583,7 @@ const planHomeProjectDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help plan a home improvement project.',
+      description: getToolDescription('planHomeProject'),
       parameters: z.object({
         project: z.string().describe('The project'),
         budget: z.string().optional().describe('Budget range'),
@@ -654,7 +655,7 @@ const manageContractorDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help with finding and managing home contractors.',
+      description: getToolDescription('manageContractor'),
       parameters: z.object({
         phase: z
           .enum(['finding', 'vetting', 'contracting', 'during-project', 'issues'])

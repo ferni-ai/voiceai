@@ -49,7 +49,7 @@ async function extractProductionTools(agentId: string): Promise<ToolInfo[]> {
   if (agentId === 'ferni') {
     try {
       // Music tools
-      const { createMusicTools } = await import('../../tools/music.js');
+      const { createMusicTools } = await import('../../tools/domains/entertainment/music.js');
       const musicTools = createMusicTools();
 
       for (const [name, tool] of Object.entries(musicTools)) {

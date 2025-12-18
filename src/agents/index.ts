@@ -12,10 +12,6 @@
  * │   │   ├── errors.ts       - Structured error hierarchy         │
  * │   │   └── pipeline.ts     - Composable pipeline pattern        │
  * │   │                                                             │
- * │   ├── adapters/           - External service adapters          │
- * │   │   ├── livekit.ts      - LiveKit room adapter               │
- * │   │   └── cartesia.ts     - Cartesia TTS adapter               │
- * │   │                                                             │
  * │   ├── worker.ts           - ⭐ UNIFIED: GCE entry point        │
  * │   ├── voice-agent-entry.ts - Session lifecycle management      │
  * │   │                                                             │
@@ -72,21 +68,6 @@ export {
   // Result type
   type Result,
 } from './core/index.js';
-
-// ============================================================================
-// ADAPTERS (External service adapters)
-// ============================================================================
-
-export {
-  CartesiaTTSAdapter,
-  LiveKitRoomAdapter,
-  MockRoomAdapter,
-  MockTTSAdapter,
-  connectToRoom,
-  createLiveKitAdapter,
-  createLocalizedTTSAdapter,
-  createTTSAdapter,
-} from './adapters/index.js';
 
 // ============================================================================
 // SHARED UTILITIES (for any agent)

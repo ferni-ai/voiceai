@@ -248,7 +248,10 @@ async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>>
 /**
  * Check for milestone achievements
  */
-function checkMilestones(stats: { currentStreak: number; totalChallengesCompleted: number }): string[] {
+function checkMilestones(stats: {
+  currentStreak: number;
+  totalChallengesCompleted: number;
+}): string[] {
   const milestones: string[] = [];
 
   // Streak milestones
@@ -265,4 +268,3 @@ function checkMilestones(stats: { currentStreak: number; totalChallengesComplete
 
   return milestones;
 }
-

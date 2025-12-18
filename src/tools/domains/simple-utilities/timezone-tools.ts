@@ -14,6 +14,7 @@ import { enrichTimezoneWithContext, loadLifeContext } from './context-integratio
 import { generateInsight, recordUsage } from './pattern-intelligence.js';
 import { updateTimezonePreferences } from './persistence.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 const timeInCityDef: ToolDefinition = {
   id: 'timeInCity',
   name: 'Time in City',
@@ -23,10 +24,7 @@ const timeInCityDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Get the current time in a city. Use when someone asks:
-- "What time is it in Tokyo?"
-- "Time in London right now"
-- "What's the time in Sydney?"`,
+      description: getToolDescription('timeInCity'),
       parameters: z.object({
         city: z.string().describe('City name'),
       }),
@@ -177,10 +175,7 @@ const bestTimeToCallDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Find a good time to call someone in another timezone. Use when someone asks:
-- "When should I call someone in Tokyo?"
-- "Best time to video chat with London?"
-- "If I call at 9am, what time is it in Sydney?"`,
+      description: getToolDescription('bestTimeToCall'),
       parameters: z.object({
         theirCity: z.string().describe('City where the other person is'),
         yourTime: z.string().optional().describe('Your proposed time (e.g., "9am")'),

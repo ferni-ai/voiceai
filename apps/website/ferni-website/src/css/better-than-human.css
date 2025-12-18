@@ -411,13 +411,13 @@ html.loaded .reveal.visible {
    Dark, emotional, then relief
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Dark theme variables */
+/* Dark theme variables - Bold & Readable */
 .night-section {
   --bg-primary: #1a1512;
   --bg-secondary: #2a2420;
-  --text-primary: rgba(255, 255, 255, 0.9);
-  --text-muted: rgba(255, 255, 255, 0.5);
-  --text-dim: rgba(255, 255, 255, 0.3);
+  --text-primary: #ffffff;
+  --text-muted: #ddd6cc;
+  --text-dim: #c8bfb4;
 }
 
 /* Time display pulsing */

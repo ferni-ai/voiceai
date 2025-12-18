@@ -16,7 +16,6 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { teamUnlockService, TEAM_MEMBERS, type TeamMemberId } from '../services/team-unlock.service.js';
@@ -212,13 +211,13 @@ function createModal(): void {
   
   document.body.appendChild(modal);
   
-  // Event listeners (iOS-compatible)
-  addTapListener(modal.querySelector('.team-intro__backdrop'), hideTeamIntro);
-  addTapListener(modal.querySelector('.team-intro__close'), hideTeamIntro);
+  // Event listeners
+  modal.querySelector('.team-intro__backdrop')?.addEventListener('click', hideTeamIntro);
+  modal.querySelector('.team-intro__close')?.addEventListener('click', hideTeamIntro);
   
   // Add to roster buttons
   modal.querySelectorAll('.team-member-card__action').forEach(btn => {
-    addTapListener(btn, (e) => {
+    btn.addEventListener('click', (e) => {
       const memberId = (btn as HTMLElement).dataset.member as TeamMemberId;
       handleAddToRoster(memberId, btn as HTMLElement);
       e.stopPropagation();

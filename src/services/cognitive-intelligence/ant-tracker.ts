@@ -11,6 +11,7 @@
 
 import * as admin from 'firebase-admin';
 import { getGCPProjectId } from '../../config/environment.js';
+import { removeUndefined } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { CognitiveDistortion, DistortionDetection } from './distortion-detector.js';
 
@@ -23,6 +24,7 @@ const log = getLogger().child({ module: 'ant-tracker' });
 const PATTERNS_COLLECTION = 'ant_patterns';
 const ENTRIES_COLLECTION = 'ant_entries';
 const RETENTION_DAYS = 90; // Keep ANT entries for 90 days
+const FIRESTORE_BATCH_LIMIT = 500; // Firestore batch write limit
 
 let firestoreInstance: admin.firestore.Firestore | null = null;
 let initAttempted = false;
@@ -254,10 +256,12 @@ async function saveEntryToFirestore(entry: ANTEntry): Promise<void> {
       .doc(entry.userId)
       .collection('entries')
       .doc(entry.id)
-      .set({
-        ...entry,
-        timestamp: entry.timestamp,
-      });
+      .set(
+        removeUndefined({
+          ...entry,
+          timestamp: entry.timestamp,
+        })
+      );
     log.debug({ userId: entry.userId, entryId: entry.id }, 'ANT entry saved to Firestore');
   } catch (error) {
     log.error({ error, userId: entry.userId }, 'Failed to save ANT entry to Firestore');
@@ -868,18 +872,24 @@ export async function clearOldANTData(daysToKeep: number = RETENTION_DAYS): Prom
     const usersSnapshot = await db.collection(ENTRIES_COLLECTION).listDocuments();
 
     for (const userDoc of usersSnapshot) {
-      const entriesSnapshot = await userDoc
-        .collection('entries')
-        .where('timestamp', '<', cutoffDate)
-        .limit(500)
-        .get();
+      // Loop to handle users with >500 old entries
+      while (true) {
+        const entriesSnapshot = await userDoc
+          .collection('entries')
+          .where('timestamp', '<', cutoffDate)
+          .limit(FIRESTORE_BATCH_LIMIT)
+          .get();
 
-      if (entriesSnapshot.empty) continue;
+        if (entriesSnapshot.empty) break;
 
-      const batch = db.batch();
-      entriesSnapshot.docs.forEach((doc) => batch.delete(doc.ref));
-      await batch.commit();
-      totalDeleted += entriesSnapshot.size;
+        const batch = db.batch();
+        entriesSnapshot.docs.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
+        totalDeleted += entriesSnapshot.size;
+
+        // If we got fewer than the limit, we're done with this user
+        if (entriesSnapshot.size < FIRESTORE_BATCH_LIMIT) break;
+      }
     }
 
     log.info({ deleted: totalDeleted, daysToKeep }, 'Cleaned up old ANT entries');
@@ -926,16 +936,21 @@ export async function deleteUserANTData(userId: string): Promise<void> {
     // Delete pattern
     await db.collection(PATTERNS_COLLECTION).doc(userId).delete();
 
-    // Delete entries
-    const entriesSnapshot = await db
-      .collection(ENTRIES_COLLECTION)
-      .doc(userId)
-      .collection('entries')
-      .get();
+    // Delete entries in batches to respect Firestore's 500-operation limit
+    const entriesRef = db.collection(ENTRIES_COLLECTION).doc(userId).collection('entries');
 
-    const batch = db.batch();
-    entriesSnapshot.docs.forEach((doc) => batch.delete(doc.ref));
-    await batch.commit();
+    while (true) {
+      const entriesSnapshot = await entriesRef.limit(FIRESTORE_BATCH_LIMIT).get();
+
+      if (entriesSnapshot.empty) break;
+
+      const batch = db.batch();
+      entriesSnapshot.docs.forEach((doc) => batch.delete(doc.ref));
+      await batch.commit();
+
+      // If we got fewer than the limit, we're done
+      if (entriesSnapshot.size < FIRESTORE_BATCH_LIMIT) break;
+    }
 
     // Delete parent doc
     await db.collection(ENTRIES_COLLECTION).doc(userId).delete();

@@ -360,7 +360,7 @@ function pickDailyRandom<T>(items: T[]): T {
   const dayOfYear = Math.floor(
     (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24)
   );
-  return items[dayOfYear % items.length]!;
+  return items[dayOfYear % items.length];
 }
 
 // ============================================================================
@@ -560,13 +560,6 @@ class RelationshipStageService {
         title: 'Welcome back!',
         description: 'You came back after some time away. That means a lot.',
       });
-      
-      // 🎬 Luxo: Dispatch comeback event for welcome back animation
-      document.dispatchEvent(
-        new CustomEvent('ferni:relationship-stage-change', {
-          detail: { stage: this.data.stage, isComeback: true },
-        })
-      );
     }
 
     // Recalculate stage
@@ -596,13 +589,6 @@ class RelationshipStageService {
 
       // Notify stage change listeners
       this.stageChangeListeners.forEach((listener) => listener(stageChangeEvent!));
-      
-      // 🎬 Luxo: Dispatch stage change event for animation scaling
-      document.dispatchEvent(
-        new CustomEvent('ferni:relationship-stage-change', {
-          detail: { stage: newStage, isComeback: false },
-        })
-      );
     }
 
     this.save();
@@ -722,7 +708,7 @@ class RelationshipStageService {
    */
   getRelationshipComment(): string {
     const comments = RELATIONSHIP_COMMENTS[this.data.stage];
-    return comments[Math.floor(Math.random() * comments.length)]!;
+    return comments[Math.floor(Math.random() * comments.length)];
   }
 
   /**
@@ -769,16 +755,12 @@ class RelationshipStageService {
     const metrics = this.data.metrics;
 
     // Calculate progress towards the required stage
-    // FIX: Handle division by zero when threshold is 0 (counts as already met)
-    const convProgress = threshold.minConversations > 0
-      ? Math.min(1, metrics.totalConversations / threshold.minConversations)
-      : 1;
-    const daysProgress = threshold.minDays > 0
-      ? Math.min(1, metrics.daysSinceFirstMeeting / threshold.minDays)
-      : 1;
-    const streakProgress = threshold.minStreak > 0
-      ? Math.min(1, Math.max(metrics.currentStreak, metrics.longestStreak) / threshold.minStreak)
-      : 1;
+    const convProgress = Math.min(1, metrics.totalConversations / threshold.minConversations);
+    const daysProgress = Math.min(1, metrics.daysSinceFirstMeeting / threshold.minDays);
+    const streakProgress = Math.min(
+      1,
+      Math.max(metrics.currentStreak, metrics.longestStreak) / threshold.minStreak
+    );
     const progress = (convProgress + daysProgress + streakProgress) / 3;
 
     // Generate friendly hint
@@ -838,21 +820,17 @@ class RelationshipStageService {
       return { nextStage: null, progress: 1, requirement: "You've reached the deepest level!" };
     }
 
-    const nextStage = stageOrder[currentIndex + 1]!;
+    const nextStage = stageOrder[currentIndex + 1];
     const threshold = STAGE_THRESHOLDS[nextStage];
     const metrics = this.data.metrics;
 
     // Calculate progress as average of all requirements
-    // FIX: Handle division by zero when threshold is 0 (counts as already met)
-    const convProgress = threshold.minConversations > 0
-      ? Math.min(1, metrics.totalConversations / threshold.minConversations)
-      : 1;
-    const daysProgress = threshold.minDays > 0
-      ? Math.min(1, metrics.daysSinceFirstMeeting / threshold.minDays)
-      : 1;
-    const streakProgress = threshold.minStreak > 0
-      ? Math.min(1, Math.max(metrics.currentStreak, metrics.longestStreak) / threshold.minStreak)
-      : 1;
+    const convProgress = Math.min(1, metrics.totalConversations / threshold.minConversations);
+    const daysProgress = Math.min(1, metrics.daysSinceFirstMeeting / threshold.minDays);
+    const streakProgress = Math.min(
+      1,
+      Math.max(metrics.currentStreak, metrics.longestStreak) / threshold.minStreak
+    );
 
     const progress = (convProgress + daysProgress + streakProgress) / 3;
 
@@ -945,14 +923,34 @@ class RelationshipStageService {
       const localDate = new Date(this.data.lastUpdated).getTime();
 
       if (backendDate > localDate) {
-        // Merge backend data into local
-        this.data.stage = backendData.stage || this.data.stage;
-        this.data.metrics = { ...this.data.metrics, ...backendData.metrics };
+        // Validate stage is a valid RelationshipStage before using
+        const validStages: RelationshipStage[] = [
+          'first-meeting',
+          'getting-started',
+          'building-trust',
+          'established',
+          'deep-partnership',
+        ];
+
+        if (backendData.stage && validStages.includes(backendData.stage)) {
+          this.data.stage = backendData.stage;
+        }
+
+        // Merge metrics if provided
+        if (backendData.metrics) {
+          this.data.metrics = { ...this.data.metrics, ...backendData.metrics };
+        }
+
         if (backendData.firstMeetingDate) {
           this.data.firstMeetingDate = backendData.firstMeetingDate;
         }
+
+        this.data.lastUpdated = backendData.lastUpdated;
         saveRelationshipData(this.data);
-        log.info('Loaded newer relationship data from backend');
+        log.info('Loaded newer relationship data from backend', {
+          stage: this.data.stage,
+          conversations: this.data.metrics.totalConversations,
+        });
         return true;
       }
     } catch {
@@ -978,9 +976,47 @@ export const getRelationshipMemories = () => relationshipStageService.getMemorie
 export const getFeatureUnlockProgress = (id: string) =>
   relationshipStageService.getFeatureUnlockProgress(id);
 
+// ============================================================================
+// EVENT-DRIVEN CONVERSATION TRACKING
+// Single source of truth - listens to ferni:conversation-start
+// ============================================================================
+
+let isEventListenerSetup = false;
+
+/**
+ * Set up event listeners for automatic conversation tracking.
+ * This is the single source of truth - all conversation tracking flows through here.
+ */
+function setupEventListeners(): void {
+  if (isEventListenerSetup) return;
+  isEventListenerSetup = true;
+
+  // Listen to conversation start event (the canonical event)
+  window.addEventListener('ferni:conversation-start', () => {
+    const stageChange = relationshipStageService.recordConversation();
+
+    // Dispatch stage change event if stage advanced
+    if (stageChange) {
+      log.info('Relationship stage advanced!', {
+        from: stageChange.previousStage,
+        to: stageChange.newStage,
+      });
+
+      window.dispatchEvent(
+        new CustomEvent('ferni:stage-change', {
+          detail: stageChange,
+        })
+      );
+    }
+  });
+
+  log.debug('Relationship service event listeners initialized');
+}
+
 /**
  * Initialize relationship service and try to sync from backend
  */
 export async function initRelationshipSync(): Promise<void> {
+  setupEventListeners();
   await relationshipStageService.loadFromBackend();
 }

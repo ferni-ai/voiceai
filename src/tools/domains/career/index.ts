@@ -27,6 +27,7 @@ import {
 import { trackToolUsage, isLifeCoachAnalyticsEnabled } from '../shared/index.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // CAREER WISDOM DATABASES
 // ============================================================================
@@ -173,7 +174,7 @@ const assessCareerSatisfactionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user assess their satisfaction with their current career situation.',
+      description: getToolDescription('assessCareerSatisfaction'),
       parameters: z.object({
         currentRole: z.string().optional().describe('Current job title or role'),
         yearsInRole: z.number().optional().describe('Years in current role'),
@@ -244,7 +245,7 @@ const clarifyCareerGoalsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user clarify and articulate their career goals.',
+      description: getToolDescription('clarifyCareerGoals'),
       parameters: z.object({
         timeHorizon: z
           .enum(['1-year', '3-year', '5-year', '10-year', 'unsure'])
@@ -317,7 +318,7 @@ const identifySkillGapsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user explore areas for growth and development in their career journey.',
+      description: getToolDescription('exploreGrowthAreas'),
       parameters: z.object({
         currentRole: z.string().optional().describe('Current role'),
         targetRole: z.string().optional().describe('Role they aspire to'),
@@ -388,7 +389,7 @@ const trackJobApplicationDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user track their job applications and follow-ups.',
+      description: getToolDescription('trackJobApplication'),
       parameters: z.object({
         action: z.enum(['add', 'update', 'review', 'stats']).describe('What to do'),
         company: z.string().optional().describe('Company name'),
@@ -516,7 +517,7 @@ const suggestJobSearchStrategyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user develop an effective job search strategy.',
+      description: getToolDescription('suggestJobSearchStrategy'),
       parameters: z.object({
         currentStatus: z
           .enum(['employed', 'unemployed', 'soon-leaving'])
@@ -630,7 +631,7 @@ const practiceInterviewDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user practice interview questions through role-play.',
+      description: getToolDescription('practiceInterview'),
       parameters: z.object({
         interviewType: z
           .enum(['behavioral', 'technical', 'culture-fit', 'case', 'executive'])
@@ -701,7 +702,7 @@ const prepareSTARStoriesDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user develop strong STAR stories for behavioral interviews.',
+      description: getToolDescription('prepareSTARStories'),
       parameters: z.object({
         storyType: z
           .enum([
@@ -793,7 +794,7 @@ const researchSalaryDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user research and understand compensation for salary negotiation.',
+      description: getToolDescription('researchSalary'),
       parameters: z.object({
         role: z.string().optional().describe('Role title'),
         location: z.string().optional().describe('Location'),
@@ -856,7 +857,7 @@ const rolePlayNegotiationDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Practice salary negotiation through role-play.',
+      description: getToolDescription('rolePlayNegotiation'),
       parameters: z.object({
         scenario: z
           .enum(['initial-offer', 'counter-offer', 'multiple-offers', 'promotion', 'tips-only'])
@@ -932,7 +933,7 @@ const createLearningPathDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user create a learning path to develop career skills.',
+      description: getToolDescription('createLearningPath'),
       parameters: z.object({
         skill: z.string().describe('Skill to develop'),
         currentLevel: z.enum(['beginner', 'intermediate', 'advanced']).describe('Current level'),
@@ -1010,7 +1011,7 @@ const expandNetworkDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user strategically expand their professional network.',
+      description: getToolDescription('expandNetwork'),
       parameters: z.object({
         goal: z
           .enum(['job-search', 'career-advice', 'industry-knowledge', 'general-expansion'])
@@ -1088,7 +1089,7 @@ const assessBurnoutDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user recognize and address signs of burnout.',
+      description: getToolDescription('assessBurnout'),
       parameters: z.object({
         symptoms: z
           .array(
@@ -1177,7 +1178,7 @@ const setWorkBoundaryDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user establish and maintain healthy work boundaries.',
+      description: getToolDescription('setWorkBoundary'),
       parameters: z.object({
         boundaryArea: z
           .enum(['hours', 'availability', 'workload', 'meetings', 'communication', 'emotional'])
@@ -1282,7 +1283,7 @@ const planCareerTransitionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user plan and navigate a career transition.',
+      description: getToolDescription('planCareerTransition'),
       parameters: z.object({
         transitionType: z
           .enum([

@@ -245,17 +245,3 @@ export function removeSessionBackchannelingSystem(sessionId: string): void {
  * Alias for removeSessionBackchannelingSystem (preferred naming)
  */
 export const resetSessionBackchannelingSystem = removeSessionBackchannelingSystem;
-
-// ============================================================================
-// LEGACY COMPATIBILITY (Remove after all callers migrated)
-// ============================================================================
-
-/**
- * Get or create a global backchanneling system.
- *
- * @deprecated Use getSessionBackchannelingSystem(sessionId) for proper session isolation.
- * This function creates a system with a synthetic session ID.
- */
-export function getBackchannelingSystem(): BackchannelingSystem {
-  return getSessionBackchannelingSystem('__global__');
-}

@@ -40,6 +40,7 @@ import {
 import { getProactiveScheduler } from '../services/proactive-scheduler.js';
 import { sanitizePlainText, parseAmount, isValidAmount } from './validation.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // VALIDATION HELPERS
 // ============================================================================
@@ -360,8 +361,7 @@ export function createTeamIntegrationTools() {
   return {
     // ========== CREATE TEAM GOAL ==========
     createTeamGoal: llm.tool({
-      description: `Create a goal that the whole team will work on together.
-Jordan leads planning, Maya handles financial aspects, Alex manages scheduling.`,
+      description: getToolDescription('createTeamGoal'),
       parameters: z.object({
         title: z.string().describe('Goal title'),
         category: z.string().describe('Goal category'),
@@ -409,8 +409,7 @@ Jordan leads planning, Maya handles financial aspects, Alex manages scheduling.`
 
     // ========== REQUEST TEAM HELP ==========
     requestTeamHelp: llm.tool({
-      description: `Request help from a specific team member for a task.
-Jordan coordinates with Maya (financial), Alex (scheduling), or the investment advisors.`,
+      description: getToolDescription('requestTeamHelp'),
       parameters: z.object({
         teamMember: z
           .enum(['maya', 'alex', 'nayan-patel', 'peter-john'])
@@ -444,7 +443,7 @@ Jordan coordinates with Maya (financial), Alex (scheduling), or the investment a
 
     // ========== GET TEAM STATUS ==========
     getTeamStatus: llm.tool({
-      description: `Get the current status of team coordination - shared goals, milestones, and pending handoffs.`,
+      description: getToolDescription('getTeamStatus'),
       parameters: z.object({
         userId: z.string().optional().default('default').describe('User identifier'),
       }),
@@ -494,7 +493,7 @@ Jordan coordinates with Maya (financial), Alex (scheduling), or the investment a
 
     // ========== FIND BEST TEAM MEMBER ==========
     findBestTeamMember: llm.tool({
-      description: `Figure out which team member can best help with a specific need.`,
+      description: getToolDescription('findBestTeamMember'),
       parameters: z.object({
         need: z.string().describe('What you need help with'),
       }),
@@ -517,9 +516,7 @@ Jordan coordinates with Maya (financial), Alex (scheduling), or the investment a
 
     // ========== COORDINATE MILESTONE ==========
     coordinateMilestone: llm.tool({
-      description: `Set up FULL team coordination for a life milestone.
-Jordan plans it, Maya budgets it, Alex schedules it.
-This ACTUALLY creates entries in all team members' systems.`,
+      description: getToolDescription('coordinateMilestone'),
       parameters: z.object({
         milestoneName: z.string().describe('Name of the milestone'),
         milestoneId: z.string().optional().describe('ID of existing Jordan milestone'),
@@ -612,9 +609,7 @@ This ACTUALLY creates entries in all team members' systems.`,
 
     // ========== SYNC WITH MAYA ==========
     syncFinancialsWithMaya: llm.tool({
-      description: `Sync financial goals and budgets with Maya.
-Jordan shares milestone budgets and savings targets with Maya for tracking.
-This ACTUALLY creates a savings goal in Maya's system via the Agent Bus.`,
+      description: getToolDescription('syncFinancialsWithMaya'),
       parameters: z.object({
         goalOrMilestone: z.string().describe('Name of the goal or milestone'),
         targetAmount: z.number().describe('Target amount to save'),
@@ -687,9 +682,7 @@ This ACTUALLY creates a savings goal in Maya's system via the Agent Bus.`,
 
     // ========== SYNC WITH ALEX ==========
     syncScheduleWithAlex: llm.tool({
-      description: `Sync milestone dates and reminders with Alex.
-Jordan shares important dates and Alex sets up the calendar and reminders.
-This ACTUALLY creates calendar events and reminders via the Agent Bus.`,
+      description: getToolDescription('syncScheduleWithAlex'),
       parameters: z.object({
         eventName: z.string().describe('Name of the event or milestone'),
         date: z.string().describe('Event date'),
@@ -763,8 +756,7 @@ This ACTUALLY creates calendar events and reminders via the Agent Bus.`,
 
     // ========== TEAM PLANNING SESSION ==========
     startTeamPlanningSession: llm.tool({
-      description: `Start a comprehensive planning session involving the whole team.
-Great for major life events like weddings, home purchases, or retirement planning.`,
+      description: getToolDescription('startTeamPlanningSession'),
       parameters: z.object({
         topic: z.string().describe('What are we planning?'),
         involveMembers: z

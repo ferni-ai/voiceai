@@ -39,6 +39,8 @@ export interface ToolTrackingContext {
   sessionId: string;
   /** Enable debug logging */
   debugEnabled?: boolean;
+  /** Enable verbose tool result logging (from admin config) */
+  logToolResults?: boolean;
 }
 
 export interface ToolTrackingResult {
@@ -78,18 +80,21 @@ interface ToolInfo {
  * 5. Feeds auto-optimizer
  */
 export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTrackingResult {
-  const { session, userData, services, sessionPersona, sessionId, debugEnabled } = ctx;
+  const { session, userData, services, sessionPersona, sessionId, debugEnabled, logToolResults } =
+    ctx;
   const logger = log();
 
   session.on(voice.AgentSessionEventTypes.FunctionToolsExecuted, (event) => {
     void (async () => {
       const toolStartTime = Date.now();
 
-      // 🔍 DEBUG: Log FULL event to see exact Gemini response
-      process.stderr.write(`\n${'='.repeat(60)}\n`);
-      process.stderr.write(`🔧 [GEMINI TOOL CALL] FunctionToolsExecuted event:\n`);
-      process.stderr.write(`${JSON.stringify(event, null, 2)}\n`);
-      process.stderr.write(`${'='.repeat(60)}\n\n`);
+      // Verbose tool result logging (controlled by admin config)
+      if (logToolResults) {
+        process.stderr.write(`\n${'='.repeat(60)}\n`);
+        process.stderr.write(`🔧 [TOOL RESULT] FunctionToolsExecuted event:\n`);
+        process.stderr.write(`${JSON.stringify(event, null, 2)}\n`);
+        process.stderr.write(`${'='.repeat(60)}\n\n`);
+      }
 
       // Debug logging (can be disabled in production)
       if (debugEnabled) {
@@ -110,12 +115,46 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
 
         for (const tool of toolCalls) {
           const toolName = tool.name || toolInfo.name || toolInfo.toolName || 'unknown';
+          const hasError = !!tool.error || !!toolInfo.error;
           const resultSummary =
             tool.result === undefined
               ? '(no result)'
               : typeof tool.result === 'string'
                 ? tool.result.slice(0, 200)
                 : JSON.stringify(tool.result).slice(0, 200);
+
+          // 🔍 DIAGNOSTIC: Track tool execution sequence for cross-tool debugging
+          const diagTimestamp = new Date().toISOString();
+          const isMusic =
+            toolName.toLowerCase().includes('music') || toolName.toLowerCase().includes('play');
+          const isNewsOrWeather =
+            toolName.toLowerCase().includes('news') || toolName.toLowerCase().includes('weather');
+
+          if (hasError) {
+            logger.warn(
+              {
+                timestamp: diagTimestamp,
+                toolName,
+                error: String(tool.error || toolInfo.error),
+                isNewsOrWeather,
+                sessionId,
+              },
+              '🔍 [DIAG] Tool FAILED - tracking for cross-tool analysis'
+            );
+          }
+
+          if (isMusic) {
+            logger.info(
+              {
+                timestamp: diagTimestamp,
+                toolName,
+                status: hasError ? 'error' : 'success',
+                resultPreview: resultSummary.slice(0, 100),
+                sessionId,
+              },
+              '🔍 [DIAG] Music tool executed - check if previous news/weather errors affected this'
+            );
+          }
 
           // Record in conversation state
           convState.recordToolCall(toolName, resultSummary);
@@ -134,6 +173,7 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
           diag.tool('Tool execution tracked', {
             tool: toolName,
             hasResult: !!tool.result,
+            hasError,
           });
         }
       }

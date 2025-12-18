@@ -452,7 +452,7 @@ export class DynamicToolLoader {
 
   constructor(config: Partial<DynamicLoaderConfig> = {}) {
     this.config = {
-      essentialDomains: ['memory', 'handoff', 'awareness'],
+      essentialDomains: ['memory', 'handoff', 'awareness', 'entertainment'],
       unloadAfterMs: 5 * 60 * 1000, // 5 minutes
       maxLoadedDomains: 8,
       enableAutoUnload: true,

@@ -190,10 +190,7 @@ class SocialPersistence {
 
     if (this.db) {
       try {
-        const doc = await this.db
-          .collection(this.COLLECTION_USER_STATS)
-          .doc(userId)
-          .get();
+        const doc = await this.db.collection(this.COLLECTION_USER_STATS).doc(userId).get();
 
         if (doc.exists) {
           const data = doc.data() as Record<string, unknown>;
@@ -314,10 +311,7 @@ class SocialPersistence {
 
     if (this.db) {
       try {
-        const doc = await this.db
-          .collection(this.COLLECTION_CHALLENGES)
-          .doc(challengeId)
-          .get();
+        const doc = await this.db.collection(this.COLLECTION_CHALLENGES).doc(challengeId).get();
 
         if (doc.exists) {
           const data = doc.data() as Record<string, unknown>;
@@ -372,10 +366,7 @@ class SocialPersistence {
     // Fallback
     return Array.from(this.memoryChallenges.values())
       .filter(
-        (c) =>
-          c.challengeeId === userId &&
-          c.status === 'pending' &&
-          c.expiresAt > new Date()
+        (c) => c.challengeeId === userId && c.status === 'pending' && c.expiresAt > new Date()
       )
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
@@ -417,9 +408,7 @@ class SocialPersistence {
                 createdAt: new Date(data.createdAt as string),
                 expiresAt: new Date(data.expiresAt as string),
                 acceptedAt: data.acceptedAt ? new Date(data.acceptedAt as string) : undefined,
-                completedAt: data.completedAt
-                  ? new Date(data.completedAt as string)
-                  : undefined,
+                completedAt: data.completedAt ? new Date(data.completedAt as string) : undefined,
               } as Challenge);
             }
           });
@@ -463,10 +452,7 @@ class SocialPersistence {
 
     if (this.db) {
       try {
-        await this.db
-          .collection(this.COLLECTION_TASTE_MATCH)
-          .doc(session.id)
-          .set(firestoreSession);
+        await this.db.collection(this.COLLECTION_TASTE_MATCH).doc(session.id).set(firestoreSession);
         log.debug({ sessionId: session.id }, '💾 Taste Match session saved');
       } catch (error) {
         log.error({ error: String(error) }, 'Failed to save Taste Match session');
@@ -485,10 +471,7 @@ class SocialPersistence {
 
     if (this.db) {
       try {
-        const doc = await this.db
-          .collection(this.COLLECTION_TASTE_MATCH)
-          .doc(sessionId)
-          .get();
+        const doc = await this.db.collection(this.COLLECTION_TASTE_MATCH).doc(sessionId).get();
 
         if (doc.exists) {
           const data = doc.data() as Record<string, unknown>;
@@ -583,4 +566,3 @@ export function getSocialPersistence(): SocialPersistence {
 }
 
 export { SocialPersistence };
-

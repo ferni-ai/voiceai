@@ -20,8 +20,9 @@ const log = createLogger({ module: 'tools:daily-briefing' });
 // Note: In production, these would be services
 import { getTodaysTasks, getOverdueTasks, getUpcomingTasks, type Task } from './tasks.js';
 import { getUpcomingBills, calculateMonthlyTotal, type Bill } from './bills.js';
-import { getDueHabits, calculateStreak, type Habit } from './habits.js';
+import { getDueHabits, calculateStreak, type Habit } from './domains/habits/habits.js';
 import { getTodayJournal, getJournalStreak, type JournalEntry } from './notes.js';
+import { getToolDescription } from './utils/tool-descriptions.js';
 import {
   getDueDoses,
   getUpcomingDoses,
@@ -142,12 +143,7 @@ function getFormattedDate(): string {
 export function createDailyBriefingTools() {
   return {
     getMorningBriefing: llm.tool({
-      description: `Get a comprehensive morning briefing.
-Use when user says:
-- "Good morning"
-- "What's on my plate today?"
-- "Brief me"
-- "Start my day"`,
+      description: getToolDescription('getMorningBriefing'),
       parameters: z.object({
         userName: z.string().optional().describe("User's name for personalization"),
       }),
@@ -254,11 +250,7 @@ Use when user says:
     }),
 
     getEveningReflection: llm.tool({
-      description: `Get an end-of-day reflection prompt.
-Use when user says:
-- "End my day"
-- "Daily reflection"
-- "How did I do today?"`,
+      description: getToolDescription('getEveningReflection'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userData = ctx?.userData as { userId?: string } | undefined;
@@ -335,8 +327,7 @@ Use when user says:
     }),
 
     getQuickStatus: llm.tool({
-      description: `Get a quick status check - what needs attention right now.
-Use for "what's up?" or "quick update" requests.`,
+      description: getToolDescription('getQuickStatus'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userData = ctx?.userData as { userId?: string } | undefined;
@@ -398,8 +389,7 @@ Use for "what's up?" or "quick update" requests.`,
     }),
 
     getWeeklyReview: llm.tool({
-      description: `Get a weekly review of progress and accomplishments.
-Use for Sunday/Monday weekly reviews.`,
+      description: getToolDescription('getWeeklyReview'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userData = ctx?.userData as { userId?: string } | undefined;
@@ -459,8 +449,7 @@ Use for Sunday/Monday weekly reviews.`,
     }),
 
     getMotivation: llm.tool({
-      description: `Get a motivational message or quote.
-Use when user needs encouragement.`,
+      description: getToolDescription('getMotivation'),
       parameters: z.object({
         type: z.enum(['quote', 'encouragement', 'reminder']).optional().default('quote'),
       }),

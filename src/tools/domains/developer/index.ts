@@ -28,6 +28,7 @@ import { execSync, spawn, spawnSync, type ChildProcess } from 'child_process';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join, resolve, dirname } from 'path';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 const log = getLogger();
 
 // ============================================================================
@@ -199,10 +200,7 @@ const gitStatusDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Check git status. Use when someone asks:
-- "What's changed?" / "What did I modify?"
-- "Git status" / "Show my changes"
-- "Any uncommitted changes?"`,
+      description: getToolDescription('gitStatus'),
       parameters: z.object({}),
       execute: async () => {
         try {
@@ -261,10 +259,7 @@ const gitDiffDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Show git diff. Use when someone asks:
-- "Show me the changes" / "What did I change?"
-- "Diff" / "Show the diff"
-- "What's different?"`,
+      description: getToolDescription('gitDiff'),
       parameters: z.object({
         file: z.string().optional().describe('Specific file to diff (optional)'),
         staged: z.boolean().optional().describe('Show staged changes only'),
@@ -334,12 +329,7 @@ const gitCommitDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Create a git commit. Use when someone asks:
-- "Commit with message X" / "Save my changes"
-- "Commit these changes" / "Make a commit"
-- "Git commit"
-
-Always requires a commit message.`,
+      description: getToolDescription('gitCommit'),
       parameters: z.object({
         message: z.string().describe('The commit message'),
         addAll: z.boolean().optional().describe('Stage all changes first (git add -A)'),
@@ -398,9 +388,7 @@ const gitLogDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Show recent git commits. Use when someone asks:
-- "Show recent commits" / "Git log"
-- "What was the last commit?" / "Commit history"`,
+      description: getToolDescription('gitLog'),
       parameters: z.object({
         count: z.number().optional().describe('Number of commits to show (default: 5)'),
       }),
@@ -463,14 +451,7 @@ const runFerniCommandDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Run a ferni CLI command. Use when someone asks to:
-- "Deploy the agent" → command: "deploy agent"
-- "Check status" → command: "status"
-- "Show agent logs" → command: "logs agent --tail"
-- "Run the tests" → command: "test quick"
-- "Deploy to production" → command: "deploy ui"
-
-Available: deploy, status, logs, test, quality, doctor, build, metrics`,
+      description: getToolDescription('runFerniCommand'),
       parameters: z.object({
         command: z.string().describe('The ferni command (without "ferni" prefix)'),
         background: z.boolean().optional().describe('Run in background for long commands'),
@@ -547,10 +528,7 @@ const checkJobDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Check on a background job. Use when someone asks:
-- "Check job X" / "How's my deploy going?"
-- "Is my build done?" / "Job status"
-- "What jobs are running?"`,
+      description: getToolDescription('checkBackgroundJob'),
       parameters: z.object({
         jobId: z.string().optional().describe('Job ID to check (optional - shows all if omitted)'),
       }),
@@ -604,9 +582,7 @@ const readFileDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Read a file. Use when someone asks:
-- "Read the README" / "Show me app.ts"
-- "What's in package.json?" / "Look at the config"`,
+      description: getToolDescription('readFile'),
       parameters: z.object({
         path: z.string().describe('File path relative to project root'),
         startLine: z.number().optional().describe('Start line (1-indexed)'),
@@ -658,7 +634,7 @@ const readFileDef: ToolDefinition = {
           return `${path}:\n${result}`;
         } catch (error) {
           log.error({ error: String(error), path }, 'Failed to read file');
-          return `Failed to read: ${(error as Error).message}`;
+          return `Couldn't read that file. Double-check the path?`;
         }
       },
     });
@@ -678,11 +654,7 @@ const editFileDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Edit a file. Use when someone asks to:
-- "Add a console.log to app.ts" / "Fix the typo"
-- "Update the version" / "Change X to Y"
-
-For new files, leave oldText empty.`,
+      description: getToolDescription('editFile'),
       parameters: z.object({
         path: z.string().describe('File path relative to project root'),
         oldText: z.string().describe('Text to find and replace (empty for new file)'),
@@ -730,7 +702,7 @@ For new files, leave oldText empty.`,
           return `Edited ${path}. ${description || 'Done.'}`;
         } catch (error) {
           log.error({ error: String(error), path }, 'Failed to edit');
-          return `Failed: ${(error as Error).message}`;
+          return `Couldn't edit that file. Check if the path is correct?`;
         }
       },
     });
@@ -750,11 +722,7 @@ const runBashDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Run a bash command. Use for:
-- "List files in src" / "Check disk usage"
-- "Install dependencies" / "Run the build"
-
-NOT for git (use git tools) or ferni CLI (use ferni tool).`,
+      description: getToolDescription('runBash'),
       parameters: z.object({
         command: z.string().describe('The bash command'),
         workingDir: z.string().optional().describe('Working directory'),
@@ -805,7 +773,7 @@ NOT for git (use git tools) or ferni CLI (use ferni tool).`,
           return summarizeForVoice(result.stdout || 'Done.', command);
         } catch (error) {
           log.error({ error: String(error), command }, 'Bash failed');
-          return `Failed: ${(error as Error).message}`.slice(0, 200);
+          return `That command didn't work. Maybe check the syntax?`;
         }
       },
     });
@@ -825,9 +793,7 @@ const searchFilesDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Search for text in files. Use when someone asks:
-- "Find where userId is used" / "Search for TODO"
-- "Find the login function"`,
+      description: getToolDescription('searchFiles'),
       parameters: z.object({
         pattern: z.string().describe('Text to search for'),
         filePattern: z.string().optional().describe('File glob (e.g. "*.ts")'),

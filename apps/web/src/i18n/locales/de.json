@@ -67,7 +67,7 @@
       "voiceAccent": "Stimme und Akzent",
       "guidedPractices": "Geführte Übungen",
       "createPractice": "Übung erstellen",
-      "healthFitness": "Gesundheit und Fitness",
+      "wearables": "Wearables",
       "calendar": "Kalender",
       "notifications": "Benachrichtigungen",
       "toggleTheme": "Hell / Dunkel",
@@ -83,8 +83,7 @@
       "supportFerni": "Ferni unterstützen",
       "takeTour": "Tour machen",
       "language": "Sprache",
-      "whatsGrowing": "Was Wächst",
-      "supportFerniExpanded": "Ferni unterstützen"
+      "whatsGrowing": "Was Wächst"
     },
     "pinItem": "Nach oben anheften",
     "unpinItem": "Lösen",
@@ -133,6 +132,88 @@
     "endConversation": "Gespräch beenden",
     "endConversationGoodbye": "Gespräch beenden - Auf Wiedersehen",
     "agentEndingConversation": "Agent beendet das Gespräch"
+  },
+  "trustJourney": {
+    "eyebrow": "Unsere Geschichte",
+    "title": "Deine Vertrauensreise",
+    "subtitle": "Wie wir zusammen gewachsen sind",
+    "loading": "Lade deine Reise",
+    "loadingText": "Sammle deine Reise...",
+    "trustScore": "Vertrauenswert",
+    "exportSuccess": "Reise exportiert!",
+    "offlineBanner": "Du bist offline - zeige gespeicherte Daten",
+    "loadMore": "{count} weitere laden",
+    "strengthLabel": "Vertrauenswert: {value}%",
+    "timelineLabel": "Reise-Zeitleiste",
+    "filterLabel": "Zeitleiste filtern",
+    "filters": {
+      "all": "Alle",
+      "growth": "Wachstum",
+      "win": "Erfolge",
+      "callback": "Rückrufe",
+      "boundary": "Grenzen",
+      "outreach": "Kontakte"
+    },
+    "sections": {
+      "strength": "Beziehungsstärke",
+      "stats": "Reise-Statistiken",
+      "boundaries": "Respektierte Grenzen",
+      "growth": "Wie du gewachsen bist",
+      "timeline": "Unsere gemeinsame Reise"
+    },
+    "stats": {
+      "growthMoments": "Wachstumsmomente",
+      "winsCelebrated": "Gefeierte Erfolge",
+      "sharedMoments": "Geteilte Momente"
+    },
+    "strengthDescriptions": {
+      "deep": "Wir haben etwas Echtes aufgebaut. Ich kenne dich, und du vertraust mir.",
+      "growing": "Unsere Verbindung wird tiefer. Ich lerne, was dir wichtig ist.",
+      "building": "Wir bauen Vertrauen auf. Jedes Gespräch hilft mir, dich besser zu verstehen.",
+      "starting": "Wir fangen gerade erst an. Sprich weiter mit mir - ich höre zu.",
+      "beginning": "Jede Reise beginnt mit einem ersten Schritt. Ich bin hier, wann immer du bereit bist."
+    },
+    "growthTypes": {
+      "emotional_regulation": "Emotionale Balance",
+      "perspective_shift": "Neue Perspektiven",
+      "boundary_setting": "Gesunde Grenzen",
+      "behavior_change": "Neue Gewohnheiten",
+      "self_awareness": "Selbstwahrnehmung",
+      "coping_upgrade": "Bessere Bewältigung",
+      "goal_progress": "Zielfortschritt"
+    },
+    "empty": {
+      "title": "Unsere Geschichte beginnt gerade",
+      "message": "Je mehr wir reden, desto mehr bemerke ich dein Wachstum, feiere deine Erfolge und erinnere mich daran, was dir wichtig ist. Schau bald wieder vorbei."
+    },
+    "errors": {
+      "offline": {
+        "title": "Du bist offline",
+        "message": "Verbinde dich mit dem Internet, um deine Reise zu sehen."
+      },
+      "notLoggedIn": {
+        "title": "Nicht angemeldet",
+        "message": "Melde dich an, um deine Reise mit Ferni zu sehen."
+      },
+      "rateLimited": {
+        "title": "Langsamer",
+        "message": "Du überprüfst zu oft. Warte einen Moment und versuche es erneut."
+      },
+      "unauthorized": {
+        "title": "Zugriff verweigert",
+        "message": "Du hast keine Berechtigung, dies anzusehen."
+      },
+      "generic": {
+        "title": "Etwas ist schiefgelaufen",
+        "message": "Wir konnten deine Reise nicht laden. Bitte versuche es erneut."
+      },
+      "exportFailed": {
+        "message": "Export fehlgeschlagen. Bitte versuche es erneut."
+      },
+      "fetchFailedUsingCache": {
+        "message": "Zeige gespeicherte Daten - Server nicht erreichbar."
+      }
+    }
   },
   "subscription": {
     "free": "Kostenlos",
@@ -412,7 +493,7 @@
     }
   },
   "wearableSettings": {
-    "title": "Gesundheit und Fitness",
+    "title": "Wearables",
     "loading": "Laden...",
     "intro": "Verbinden Sie Ihre tragbaren Geräte, um Ferni Kontext über Ihre Gesundheit und Energielevel zu geben.",
     "sections": {
@@ -570,18 +651,5 @@
     "dailyPractice": "Tägliche Übung",
     "predictions": "Vorhersagen",
     "runScenario": "Szenario ausführen"
-  },
-  "support": {
-    "eyebrow": "GEMEINSAM WACHSEN",
-    "title": "Ferni unterstützen",
-    "subtitle": "Wähle, wie unsere Freundschaft wächst. Jede Art, wie du dabei bist, zählt.",
-    "growTogether": "Wege, unsere Verbindung zu vertiefen",
-    "plantASeed": "Einen Samen pflanzen",
-    "plantDesc": "Ein kleines Geschenk, das Ferni beim Wachsen hilft. Kein Druck – unsere Freundschaft hängt nicht davon ab.",
-    "plantButton": "Diesen Samen pflanzen",
-    "thankYouSupporter": "Du bist großartig",
-    "yourSupport": "Deine Unterstützung hält Ferni für alle am Leben",
-    "manageBilling": "Zahlungsmethode aktualisieren",
-    "footer": "Wie auch immer du uns unterstützen möchtest, danke, dass du hier bist."
   }
 }

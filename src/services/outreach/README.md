@@ -652,7 +652,7 @@ src/api/
 ├── outreach-handler.ts        # REST API endpoints
 └── outreach-webhook-routes.ts # Webhook HTTP handlers
 
-frontend-typescript/src/ui/
+apps/web/src/ui/
 ├── outreach-settings.ui.ts    # User preferences modal
 └── outreach-schedule.ui.ts    # Upcoming outreach viewer
 ```

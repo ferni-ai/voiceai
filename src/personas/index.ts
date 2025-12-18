@@ -90,28 +90,33 @@ export {
 } from './meaningful-silence.js';
 
 // Theatrical personality - entrances, celebrations, goodbyes
+// NOTE: All theatrical content now loaded from persona bundles
 export {
-  CELEBRATION_MOMENTS,
+  // Bundle management
+  clearAllTheatricalRegistries,
   clearBundleBackchannels,
+  clearBundleCelebrations,
   clearBundleEntrances,
-  // Deprecation warnings (for testing)
-  clearHardcodedFallbackWarnings,
-  ENHANCED_BACKCHANNELS,
+  clearBundleGoodbyes,
+  clearBundleStorytelling,
+  // Getters
   getAllBackchannelsForPersona,
   getAllEntrancesForPersona,
+  getBundleStoryMusicOffer,
   getCelebration,
   getEnhancedBackchannel,
   getStoryMusicOffer,
+  getStorytellingConfig,
   getStorytellingIntro,
   getTheatricalEntrance,
   getTheatricalGoodbye,
-  // Bundle backchannel management
+  // Registrations
   registerBundleBackchannels,
-  // Bundle entrance management
+  registerBundleCelebrations,
   registerBundleEntrances,
-  STORYTELLING_CONFIGS,
-  THEATRICAL_ENTRANCES,
-  THEATRICAL_GOODBYES,
+  registerBundleGoodbyes,
+  registerBundleStorytelling,
+  // Types
   type CelebrationType,
   type StorytellingConfig,
 } from './theatrical.js';

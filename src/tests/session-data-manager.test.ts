@@ -16,6 +16,26 @@ vi.mock('../utils/safe-logger.js', () => ({
   }),
 }));
 
+// Mock v8 module
+vi.mock('v8', () => ({
+  getHeapStatistics: vi.fn(() => ({
+    total_heap_size: 500 * 1024 * 1024,
+    total_heap_size_executable: 0,
+    total_physical_size: 500 * 1024 * 1024,
+    total_available_size: 100 * 1024 * 1024,
+    used_heap_size: 100 * 1024 * 1024,
+    heap_size_limit: 500 * 1024 * 1024, // 500MB max heap
+    malloced_memory: 0,
+    peak_malloced_memory: 0,
+    does_zap_garbage: 0,
+    number_of_native_contexts: 1,
+    number_of_detached_contexts: 0,
+    total_global_handles_size: 0,
+    used_global_handles_size: 0,
+    external_memory: 0,
+  })),
+}));
+
 describe('SessionDataManager', () => {
   let SessionDataManager: typeof import('../services/session-data-manager.js');
 

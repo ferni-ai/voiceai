@@ -1107,6 +1107,7 @@ async function buildContextInjections(
   };
 
   // 2a. SAFETY FIRST: Crisis Detection (extracted to injection-builders.ts)
+  // Safety MUST run first and block - this is critical for user safety
   const safetyInjections = await buildSafetyInjections({
     userText,
     services,
@@ -1118,7 +1119,46 @@ async function buildContextInjections(
   });
   injections.push(...safetyInjections);
 
-  const contextInjections = await buildConversationContext(contextInput);
+  // ============================================================================
+  // PARALLELIZED CONTEXT BUILDERS (saves ~200-400ms per turn)
+  // These builders are independent and can run concurrently
+  // ============================================================================
+  const builderInput = {
+    userText,
+    services,
+    userData,
+    persona,
+    analysis,
+    currentTopic,
+    emotionalState,
+  };
+
+  const [
+    contextInjections,
+    scientificResult,
+    coachingInjections,
+    trustInjections,
+    boundaryInjections,
+    healthInjections,
+  ] = await Promise.all([
+    // Main conversation context
+    buildConversationContext(contextInput),
+    // Scientific coaching
+    buildScientificCoachingInjections(builderInput),
+    // Life coaching
+    buildLifeCoachingInjections(builderInput),
+    // Trust systems
+    buildTrustSystemsInjections(builderInput),
+    // Boundary check
+    buildBoundaryCheckInjections({
+      userId: services.userId || 'unknown',
+      currentTopic,
+    }),
+    // Health awareness
+    buildHealthAwarenessInjections(),
+  ]);
+
+  // Process context injections
   if (contextInjections.length > 0) {
     // BETTER-THAN-HUMAN: Reduce context noise in high-emotion moments
     // When the user is distressed, we want the AI to focus on what matters
@@ -1137,16 +1177,7 @@ async function buildContextInjections(
     });
   }
 
-  // 2b. Scientific Coaching Context (extracted to injection-builders.ts)
-  const scientificResult = await buildScientificCoachingInjections({
-    userText,
-    services,
-    userData,
-    persona,
-    analysis,
-    currentTopic,
-    emotionalState,
-  });
+  // Process scientific coaching results
   injections.push(...scientificResult.injections);
 
   // Store adaptive endpointing recommendation in userData for voice agent
@@ -1156,29 +1187,11 @@ async function buildContextInjections(
     diag.debug('Adaptive endpointing updated', scientificResult.endpointingRecommendation);
   }
 
-  // 2c. Life Coaching Context (extracted to injection-builders.ts)
-  const coachingInjections = await buildLifeCoachingInjections({
-    userText,
-    services,
-    userData,
-    persona,
-    analysis,
-    currentTopic,
-    emotionalState,
-  });
+  // Process remaining injection results (already parallelized above)
   injections.push(...coachingInjections);
-
-  // 2d. Trust Systems Context (extracted to injection-builders.ts)
-  const trustInjections = await buildTrustSystemsInjections({
-    userText,
-    services,
-    userData,
-    persona,
-    analysis,
-    currentTopic,
-    emotionalState,
-  });
   injections.push(...trustInjections);
+  injections.push(...boundaryInjections);
+  injections.push(...healthInjections);
 
   // 2d-1. RELATIONSHIP STAGE CONTEXT - "Better than Human" relationship awareness
   // The system knows exactly where it stands with this person
@@ -1315,20 +1328,10 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
   const ambientInjections = buildAmbientAwarenessInjections(userData);
   injections.push(...ambientInjections);
 
-  // 2f. Boundary Check - "Better than Human" detailed boundary guidance
-  // We don't just know what to avoid, we know HOW to approach sensitive areas
-  const boundaryInjections = await buildBoundaryCheckInjections({
-    userId: services.userId || 'unknown',
-    currentTopic,
-  });
-  injections.push(...boundaryInjections);
+  // NOTE: Boundary Check (2f) and Health Awareness (2g) are now parallelized above
+  // with the other context builders - see the Promise.all block
 
-  // 2g. Health Awareness - "Better than Human" service health transparency
-  // A human friend would be honest about technical difficulties. So are we.
-  const healthInjections = await buildHealthAwarenessInjections();
-  injections.push(...healthInjections);
-
-  // 2g. Value Capture - Detect achievements/breakthroughs for optional contribution prompt
+  // 2h. Value Capture - Detect achievements/breakthroughs for optional contribution prompt
   // This runs silently and stores detected events for later potential prompting
   try {
     const userId = services.userId || 'unknown';
@@ -1417,19 +1420,32 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
     });
   }
 
-  // 7. Human-level features (extracted to injection-builders.ts)
-  const humanLevelInjections = await buildHumanLevelInjections({
-    services,
-    userData,
-    userText,
-    analysis,
-    currentTopic,
-    humorGuidance: responseGuidance.humor,
-    logger: ctx.logger,
-  });
-  injections.push(...humanLevelInjections);
+  // ============================================================================
+  // PARALLELIZED ASYNC INJECTION BUILDERS (saves ~30-50ms)
+  // These builders are independent and can run concurrently
+  // ============================================================================
+  const [humanLevelInjections, insightsInjection] = await Promise.all([
+    // 7. Human-level features (extracted to injection-builders.ts)
+    buildHumanLevelInjections({
+      services,
+      userData,
+      userText,
+      analysis,
+      currentTopic,
+      humorGuidance: responseGuidance.humor,
+      logger: ctx.logger,
+    }),
+    // 8b. Cross-persona insights (extracted to injection-builders.ts)
+    buildCrossPersonaInsightsInjection(services, persona.id),
+  ]);
 
-  // 8. Emotional guidance
+  // Process parallelized results
+  injections.push(...humanLevelInjections);
+  if (insightsInjection) {
+    injections.push(insightsInjection);
+  }
+
+  // 8. Emotional guidance (synchronous - no change)
   if (emotionalState.responseGuidance) {
     injections.push({
       category: 'emotional_guidance',
@@ -1444,12 +1460,6 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
       content: `[EMOTIONAL SHIFT DETECTED: Consider acknowledging with something like: "${emotionalState.transitionPhrase}"]`,
       priority: 32,
     });
-  }
-
-  // 8b. Cross-persona insights (extracted to injection-builders.ts)
-  const insightsInjection = await buildCrossPersonaInsightsInjection(services, persona.id);
-  if (insightsInjection) {
-    injections.push(insightsInjection);
   }
 
   // 9. Story opportunity

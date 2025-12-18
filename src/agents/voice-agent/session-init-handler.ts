@@ -118,6 +118,16 @@ export type UserDataInit = UserData;
 export async function initializeSession(ctx: SessionInitContext): Promise<SessionInitResult> {
   const { sessionId, userId, userName, userAccent, sessionPersona, room } = ctx;
   const logger = log();
+  const initStart = Date.now();
+
+  // Import session metrics for phase tracking
+  let recordPhase: ((sessionId: string, phase: string, durationMs: number) => void) | null = null;
+  try {
+    const metrics = await import('../shared/session-metrics.js');
+    recordPhase = metrics.recordPhase;
+  } catch {
+    // Metrics module not available - continue without tracking
+  }
 
   diag.session('Step 2: Creating session services');
 
@@ -170,46 +180,68 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
   );
 
   // ================================================================
-  // LOAD TRUST AND SUPERHUMAN DATA
+  // LOAD TRUST AND SUPERHUMAN DATA (PARALLELIZED for faster startup)
   // ================================================================
   if (userId) {
-    try {
-      await loadTrustProfiles(userId);
-      diag.session('Trust profiles loaded for user', { userId });
-    } catch (trustErr) {
-      diag.warn('Failed to load trust profiles (non-fatal)', { error: String(trustErr) });
-    }
+    const profileLoadStart = Date.now();
 
-    // Load deep understanding profiles (silence, rhythm, relational network, etc.)
-    try {
-      await loadDeepUnderstandingProfiles(userId);
-      diag.session('Deep understanding profiles loaded for user', { userId });
-    } catch (deepErr) {
-      diag.warn('Failed to load deep understanding profiles (non-fatal)', {
-        error: String(deepErr),
-      });
-    }
+    // Run all profile loads in parallel - they're independent
+    const profileLoads: Promise<void>[] = [
+      // Trust profiles
+      loadTrustProfiles(userId)
+        .then(() => diag.session('Trust profiles loaded for user', { userId }))
+        .catch((trustErr) =>
+          diag.warn('Failed to load trust profiles (non-fatal)', { error: String(trustErr) })
+        ),
 
-    try {
-      const { getFirestoreStore } = await import('../../memory/firestore-store.js');
-      const superhumanStore = createFirestoreSuperhumanStore(async () => {
-        const store = getFirestoreStore();
-        if (!store) throw new Error('Firestore not initialized');
-        return store as unknown as {
-          collection: (name: string) => {
-            doc: (id: string) => {
-              get: () => Promise<{ exists: boolean; data: () => unknown }>;
-              set: (data: unknown, opts?: { merge?: boolean }) => Promise<void>;
-              delete: () => Promise<void>;
+      // Deep understanding profiles (silence, rhythm, relational network, etc.)
+      loadDeepUnderstandingProfiles(userId)
+        .then(() => diag.session('Deep understanding profiles loaded for user', { userId }))
+        .catch((deepErr) =>
+          diag.warn('Failed to load deep understanding profiles (non-fatal)', {
+            error: String(deepErr),
+          })
+        ),
+
+      // Superhuman intelligence data
+      (async () => {
+        try {
+          // Use firebase-admin directly (same pattern as humanization/persistence.ts)
+          const admin = await import('firebase-admin');
+
+          // Initialize Firebase Admin if not already done
+          if (admin.apps.length === 0) {
+            admin.initializeApp();
+          }
+          const db = admin.firestore();
+
+          // Cast to the expected interface - firebase-admin Firestore is compatible
+          type FirestoreInterface = {
+            collection: (name: string) => {
+              doc: (id: string) => {
+                get: () => Promise<{ exists: boolean; data: () => unknown }>;
+                set: (data: unknown, opts?: { merge?: boolean }) => Promise<void>;
+                delete: () => Promise<void>;
+              };
             };
           };
-        };
-      });
-      await loadSuperhumanData(userId, sessionId, superhumanStore);
-      diag.session('🧠 Superhuman intelligence loaded', { userId });
-    } catch (superhumanErr) {
-      diag.warn('Superhuman data load failed (non-fatal)', { error: String(superhumanErr) });
-    }
+
+          const superhumanStore = createFirestoreSuperhumanStore(
+            async () => db as unknown as FirestoreInterface
+          );
+          await loadSuperhumanData(userId, sessionId, superhumanStore);
+          diag.session('🧠 Superhuman intelligence loaded', { userId });
+        } catch (superhumanErr) {
+          diag.warn('Superhuman data load failed (non-fatal)', { error: String(superhumanErr) });
+        }
+      })(),
+    ];
+
+    // Wait for all profile loads to complete
+    await Promise.all(profileLoads);
+    const profileDuration = Date.now() - profileLoadStart;
+    logger.info({ durationMs: profileDuration }, '⚡ All profiles loaded in parallel');
+    recordPhase?.(sessionId, 'profile_loading', profileDuration);
   }
 
   const isReturningUser =

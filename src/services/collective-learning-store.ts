@@ -11,6 +11,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import {
   getCommunityInsights,
   getAgentEvolution,
@@ -340,7 +341,7 @@ export class CollectiveLearningStore {
         await this.db
           .collection(this.AGENT_EVOLUTION)
           .doc(personaId)
-          .set({ ...state, updatedAt: new Date().toISOString() }, { merge: true });
+          .set(removeUndefined({ ...state, updatedAt: new Date().toISOString() }), { merge: true });
       }
 
       getLogger().debug({ personaCount: states.size }, 'Agent evolution saved');
@@ -371,13 +372,18 @@ export class CollectiveLearningStore {
 
     try {
       const docId = `${sessionId}_${Date.now()}`;
-      await this.db.collection(this.LEARNING_SIGNALS).doc(docId).set({
-        sessionId,
-        personaId,
-        signals,
-        createdAt: new Date().toISOString(),
-        processed: false,
-      });
+      await this.db
+        .collection(this.LEARNING_SIGNALS)
+        .doc(docId)
+        .set(
+          removeUndefined({
+            sessionId,
+            personaId,
+            signals,
+            createdAt: new Date().toISOString(),
+            processed: false,
+          })
+        );
 
       getLogger().debug({ sessionId, signalCount: signals.length }, 'Learning signals saved');
     } catch (error) {

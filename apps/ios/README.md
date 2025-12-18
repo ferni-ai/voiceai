@@ -42,7 +42,7 @@ npm run build
 
 # Or for live development with hot reload:
 # 1. Start the web dev server
-cd ../../frontend-typescript && npm run dev
+cd ../../apps/web && npm run dev
 
 # 2. Update capacitor.config.ts to use your local IP
 # 3. Run on device/simulator
@@ -194,7 +194,7 @@ The web app uses a Capacitor plugin for StoreKit. Key files:
 
 | File                                                    | Purpose              |
 | ------------------------------------------------------- | -------------------- |
-| `frontend-typescript/src/services/apple-iap.service.ts` | Frontend IAP client  |
+| `apps/web/src/services/apple-iap.service.ts` | Frontend IAP client  |
 | `src/services/apple-iap.ts`                             | Backend verification |
 | `src/api/apple-iap-routes.ts`                           | API endpoints        |
 

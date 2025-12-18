@@ -13,6 +13,7 @@ import {
   getCalendarBusyProfile,
   syncCalendarToOutreach,
 } from '../services/calendar-busy-detection.js';
+import { parseBody, sendJSON, sendError, getUserId as getUserIdFromRequest } from './helpers.js';
 
 const log = getLogger();
 
@@ -20,41 +21,13 @@ const log = getLogger();
 // HELPERS
 // ============================================================================
 
+// parseBody, sendJSON, sendError, getUserId imported from './helpers.js'
+
+/**
+ * Legacy wrapper for sendJSON with (res, data, status) signature.
+ */
 function sendJson(res: ServerResponse, data: unknown, status = 200): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
-}
-
-function sendError(res: ServerResponse, message: string, status = 400): void {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ error: message }));
-}
-
-function getUserIdFromRequest(req: IncomingMessage, parsedUrl: URL): string | null {
-  const headerUserId = req.headers['x-user-id'] as string;
-  if (headerUserId) return headerUserId;
-
-  const queryUserId = parsedUrl.searchParams.get('userId');
-  if (queryUserId) return queryUserId;
-
-  return null;
-}
-
-async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => {
-      body += chunk;
-    });
-    req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : {});
-      } catch {
-        reject(new Error('Invalid JSON'));
-      }
-    });
-    req.on('error', reject);
-  });
+  sendJSON(res, data, status);
 }
 
 // ============================================================================
@@ -182,7 +155,7 @@ export async function handleCalendarRoutes(
 
   if (req.method === 'POST') {
     try {
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       userId = (body.userId as string) || getUserIdFromRequest(req, parsedUrl);
     } catch {
       sendError(res, 'Invalid request body');

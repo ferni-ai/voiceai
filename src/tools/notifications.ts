@@ -15,6 +15,7 @@
 import { llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
+import { getToolDescription } from './utils/tool-descriptions.js';
 import {
   getMayaNotificationService,
   type MayaNotificationType,
@@ -32,8 +33,7 @@ export function createNotificationTools() {
      * Get notification preferences
      */
     getNotificationPreferences: llm.tool({
-      description: `Get the user's Maya notification preferences.
-Shows what notifications are enabled and how they're delivered.`,
+      description: getToolDescription('getNotificationPreferences'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userData = ctx.userData as { userId?: string };
@@ -61,7 +61,7 @@ Shows what notifications are enabled and how they're delivered.`,
      * Enable or disable notifications
      */
     setNotificationsEnabled: llm.tool({
-      description: `Enable or disable Maya's notifications entirely.`,
+      description: getToolDescription('setNotificationsEnabled'),
       parameters: z.object({
         enabled: z.boolean().describe('Whether to enable notifications'),
       }),
@@ -86,7 +86,7 @@ Shows what notifications are enabled and how they're delivered.`,
      * Set preferred notification time
      */
     setPreferredTime: llm.tool({
-      description: `Set the preferred time for daily habit reminders.`,
+      description: getToolDescription('setPreferredTime'),
       parameters: z.object({
         time: z.string().describe('Time in HH:MM format (e.g., "09:00" or "18:30")'),
       }),
@@ -115,7 +115,7 @@ Shows what notifications are enabled and how they're delivered.`,
      * Set notification delivery method
      */
     setDeliveryMethod: llm.tool({
-      description: `Set how notifications should be delivered (SMS or email).`,
+      description: getToolDescription('setDeliveryMethod'),
       parameters: z.object({
         method: z.enum(['sms', 'email']).describe('Delivery method'),
       }),
@@ -141,7 +141,7 @@ Shows what notifications are enabled and how they're delivered.`,
      * Set quiet hours
      */
     setQuietHours: llm.tool({
-      description: `Set quiet hours when notifications won't be sent.`,
+      description: getToolDescription('setQuietHours'),
       parameters: z.object({
         startHour: z.number().min(0).max(23).describe('Hour when quiet hours start (0-23)'),
         endHour: z.number().min(0).max(23).describe('Hour when quiet hours end (0-23)'),
@@ -170,7 +170,7 @@ Shows what notifications are enabled and how they're delivered.`,
      * Enable/disable specific notification types
      */
     configureNotificationTypes: llm.tool({
-      description: `Enable or disable specific types of notifications.`,
+      description: getToolDescription('configureNotificationTypes'),
       parameters: z.object({
         types: z
           .array(
@@ -210,7 +210,7 @@ Shows what notifications are enabled and how they're delivered.`,
      * Schedule a custom reminder
      */
     scheduleCustomReminder: llm.tool({
-      description: `Schedule a custom reminder message at a specific time.`,
+      description: getToolDescription('scheduleCustomReminder'),
       parameters: z.object({
         message: z.string().describe('The reminder message'),
         minutesFromNow: z
@@ -272,7 +272,7 @@ Shows what notifications are enabled and how they're delivered.`,
      * Setup daily habit reminders
      */
     setupDailyReminders: llm.tool({
-      description: `Setup daily reminders for all active habits. Respects preferred time.`,
+      description: getToolDescription('setupDailyReminders'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userData = ctx.userData as { userId?: string };
@@ -294,7 +294,7 @@ Shows what notifications are enabled and how they're delivered.`,
      * Setup weekly reflection reminder
      */
     setupWeeklyReflection: llm.tool({
-      description: `Setup a weekly reflection reminder (Sundays at 7 PM).`,
+      description: getToolDescription('setupWeeklyReflection'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userData = ctx.userData as { userId?: string };

@@ -12,6 +12,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 import { recordUsage, generateInsight } from './pattern-intelligence.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 const flipCoinDef: ToolDefinition = {
   id: 'flipCoin',
   name: 'Flip Coin',
@@ -21,10 +22,7 @@ const flipCoinDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Flip a coin for a random result. Use when someone asks:
-- "Flip a coin"
-- "Heads or tails?"
-- "Coin toss"`,
+      description: getToolDescription('flipCoin'),
       parameters: z.object({
         headsOption: z.string().optional().describe('What heads means'),
         tailsOption: z.string().optional().describe('What tails means'),
@@ -68,10 +66,7 @@ const rollDiceDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Roll dice for random numbers. Use when someone asks:
-- "Roll a dice"
-- "Roll 2d6" (D&D notation)
-- "Give me a random number 1-20"`,
+      description: getToolDescription('rollDice'),
       parameters: z.object({
         numberOfDice: z.number().default(1).describe('How many dice to roll'),
         sides: z.number().default(6).describe('Number of sides (default 6)'),
@@ -104,10 +99,7 @@ const pickRandomDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Pick randomly from options. Use when someone asks:
-- "Pick a number between 1 and 10"
-- "Choose between pizza, tacos, or sushi"
-- "Random selection from these options"`,
+      description: getToolDescription('pickRandom'),
       parameters: z.object({
         options: z.array(z.string()).optional().describe('List of options to pick from'),
         min: z.number().optional().describe('Minimum number (for number range)'),
@@ -139,9 +131,7 @@ const helpMeDecideDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Help with decisions beyond random chance. Use when someone needs to think through a choice:
-- "Help me decide between A and B"
-- "Should I go with option 1 or 2?"`,
+      description: getToolDescription('helpMeDecide'),
       parameters: z.object({
         options: z.array(z.string()).min(2).describe('The options to choose between'),
         context: z.string().optional().describe('Any context about the decision'),

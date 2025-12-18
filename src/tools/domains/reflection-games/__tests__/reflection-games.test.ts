@@ -4,6 +4,10 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+// ============================================================================
+// MOCKS (before imports)
+// ============================================================================
+
 vi.mock('../../../../utils/safe-logger.js', () => ({
   getLogger: () => ({
     debug: vi.fn(),
@@ -26,6 +30,7 @@ vi.mock('../../../../utils/safe-logger.js', () => ({
     child: vi.fn(() => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() })),
   }),
 }));
+
 vi.mock('@livekit/agents', () => ({
   llm: {
     tool: vi.fn((config) => ({
@@ -37,65 +42,118 @@ vi.mock('@livekit/agents', () => ({
   log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
+// ============================================================================
+// IMPORTS (after mocks)
+// ============================================================================
+
+import type { ToolContext, ToolDefinition } from '../../../registry/types.js';
 import { getToolDefinitions } from '../index.js';
 
+// ============================================================================
+// TEST CONTEXT
+// ============================================================================
+
+function createMockContext(): ToolContext {
+  return {
+    userId: 'test-user-123',
+    agentId: 'ferni',
+    agentDisplayName: 'Ferni',
+    services: {
+      has: () => false,
+      get: () => {
+        throw new Error('Not available');
+      },
+      getOptional: () => undefined,
+    },
+  };
+}
+
+// ============================================================================
+// TESTS
+// ============================================================================
+
 describe('Reflection Games Domain Tools', () => {
-  let tools: ReturnType<typeof getToolDefinitions>;
-  beforeEach(() => {
+  let toolDefinitions: ToolDefinition[];
+  let mockContext: ToolContext;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
-    tools = getToolDefinitions();
+    toolDefinitions = await getToolDefinitions();
+    mockContext = createMockContext();
   });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
   describe('Tool Loading', () => {
     it('should load tool definitions', () => {
-      expect(tools).toBeDefined();
-      expect(tools.startReflectionGame).toBeDefined();
+      expect(toolDefinitions).toBeDefined();
+      expect(Array.isArray(toolDefinitions)).toBe(true);
+      expect(toolDefinitions.length).toBeGreaterThan(0);
     });
+
+    it('should have startReflectionGame tool', () => {
+      const tool = toolDefinitions.find((t) => t.id === 'startReflectionGame');
+      expect(tool).toBeDefined();
+      expect(tool?.domain).toBe('reflection-games');
+    });
+
     it('should have tool with execute function', () => {
-      expect(typeof tools.startReflectionGame.execute).toBe('function');
+      const toolDef = toolDefinitions.find((t) => t.id === 'startReflectionGame');
+      expect(toolDef).toBeDefined();
+      const tool = toolDef!.create(mockContext);
+      expect(typeof tool.execute).toBe('function');
     });
   });
 
   describe('startReflectionGame Tool', () => {
-    // Note: llm.tool execute takes (params, context) - we pass undefined for context in tests
     it('should execute two_truths_dream game', async () => {
-      const result = await tools.startReflectionGame.execute(
-        { game: 'two_truths_dream' },
-        undefined as never
-      );
+      const toolDef = toolDefinitions.find((t) => t.id === 'startReflectionGame');
+      const tool = toolDef!.create(mockContext);
+      const result = (await tool.execute({ game: 'two_truths_dream' })) as {
+        success: boolean;
+        game: string;
+        prompt: string;
+      };
       expect(result.success).toBe(true);
       expect(result.game).toBe('two_truths_dream');
       expect(result.prompt).toContain('Two Truths and a Dream');
     });
 
     it('should execute values_auction game', async () => {
-      const result = await tools.startReflectionGame.execute(
-        { game: 'values_auction' },
-        undefined as never
-      );
+      const toolDef = toolDefinitions.find((t) => t.id === 'startReflectionGame');
+      const tool = toolDef!.create(mockContext);
+      const result = (await tool.execute({ game: 'values_auction' })) as {
+        success: boolean;
+        game: string;
+        prompt: string;
+      };
       expect(result.success).toBe(true);
       expect(result.game).toBe('values_auction');
       expect(result.prompt).toContain('$100');
     });
 
     it('should execute rose_thorn_bud game', async () => {
-      const result = await tools.startReflectionGame.execute(
-        { game: 'rose_thorn_bud' },
-        undefined as never
-      );
+      const toolDef = toolDefinitions.find((t) => t.id === 'startReflectionGame');
+      const tool = toolDef!.create(mockContext);
+      const result = (await tool.execute({ game: 'rose_thorn_bud' })) as {
+        success: boolean;
+        game: string;
+        prompt: string;
+      };
       expect(result.success).toBe(true);
       expect(result.game).toBe('rose_thorn_bud');
       expect(result.prompt).toContain('Rose, Thorn, Bud');
     });
 
     it('should include topic in prompt when provided', async () => {
-      const result = await tools.startReflectionGame.execute(
-        { game: 'gratitude_chain', topic: 'family' },
-        undefined as never
-      );
+      const toolDef = toolDefinitions.find((t) => t.id === 'startReflectionGame');
+      const tool = toolDef!.create(mockContext);
+      const result = (await tool.execute({ game: 'gratitude_chain', topic: 'family' })) as {
+        success: boolean;
+        prompt: string;
+      };
       expect(result.success).toBe(true);
       expect(result.prompt).toContain('family');
     });

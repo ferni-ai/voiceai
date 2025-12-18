@@ -12,6 +12,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../utils/safe-logger.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // FRED API key - get a free key at https://fred.stlouisfed.org/docs/api/api_key.html
 // SECURITY: 'DEMO' key only in development - production requires real API key
 const FRED_API_KEY =
@@ -165,8 +166,7 @@ export async function getEconomicSummary(): Promise<string> {
 export function createEconomicTools() {
   return {
     getFedFundsRate: llm.tool({
-      description:
-        'Get current Federal Reserve interest rate. Use when discussing interest rates, borrowing costs, or monetary policy.',
+      description: getToolDescription('getFedFundsRate'),
       parameters: z.object({}),
       execute: async () => {
         getLogger().info('Getting Fed funds rate');
@@ -175,8 +175,7 @@ export function createEconomicTools() {
     }),
 
     getInflationRate: llm.tool({
-      description:
-        'Get current inflation rate (CPI year-over-year). Use when discussing purchasing power, cost of living, or why investing matters.',
+      description: getToolDescription('getInflationRate'),
       parameters: z.object({}),
       execute: async () => {
         getLogger().info('Getting inflation rate');
@@ -185,7 +184,7 @@ export function createEconomicTools() {
     }),
 
     getUnemploymentRate: llm.tool({
-      description: 'Get current unemployment rate. Use when discussing the job market or economy.',
+      description: getToolDescription('getUnemploymentRate'),
       parameters: z.object({}),
       execute: async () => {
         getLogger().info('Getting unemployment rate');
@@ -194,8 +193,7 @@ export function createEconomicTools() {
     }),
 
     getTreasuryYield: llm.tool({
-      description:
-        'Get 10-year Treasury yield. Use when discussing bonds, risk-free rates, or interest rate environment.',
+      description: getToolDescription('getTreasuryYield'),
       parameters: z.object({}),
       execute: async () => {
         getLogger().info('Getting Treasury yield');
@@ -204,8 +202,7 @@ export function createEconomicTools() {
     }),
 
     getMortgageRate: llm.tool({
-      description:
-        'Get average 30-year fixed mortgage rate. Use when discussing home buying or real estate.',
+      description: getToolDescription('getMortgageRate'),
       parameters: z.object({}),
       execute: async () => {
         getLogger().info('Getting mortgage rate');
@@ -214,8 +211,7 @@ export function createEconomicTools() {
     }),
 
     getGDPGrowth: llm.tool({
-      description:
-        'Get GDP growth rate. Use when discussing overall economic health or recession concerns.',
+      description: getToolDescription('getGDPGrowth'),
       parameters: z.object({}),
       execute: async () => {
         getLogger().info('Getting GDP growth');
@@ -224,8 +220,7 @@ export function createEconomicTools() {
     }),
 
     getEconomicSummary: llm.tool({
-      description:
-        'Get comprehensive summary of key economic indicators (Fed rate, inflation, unemployment). Use for broad economic picture.',
+      description: getToolDescription('getEconomicSummary'),
       parameters: z.object({}),
       execute: async () => {
         getLogger().info('Getting economic summary');

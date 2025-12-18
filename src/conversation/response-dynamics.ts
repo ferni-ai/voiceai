@@ -129,34 +129,38 @@ export class ResponseDynamicsEngine {
     // Check interruption rate
     const interruptionRate = this.interruptionCount / Math.max(1, userMessages.length);
 
-    // Base target on user's verbosity
-    let targetWordCount = Math.round(avgUserWords * 1.2); // Slightly more than user
+    // Base target: Don't strictly mirror user length. Ferni should be warm and
+    // present regardless of how much the user says. Use user verbosity as a
+    // signal for depth, but maintain a warm baseline.
+    let targetWordCount = Math.max(40, Math.round(avgUserWords * 1.2));
 
     // Adjustments
-    if (interruptionRate > 0.2) {
-      // User interrupts often - shorten responses
-      targetWordCount = Math.round(targetWordCount * 0.7);
+    if (interruptionRate > 0.3) {
+      // User interrupts A LOT - they really want to talk, shorten a bit
+      // (Raised threshold from 0.2 to 0.3 to be less aggressive)
+      targetWordCount = Math.round(targetWordCount * 0.8);
     }
 
-    if (trend < -0.2) {
-      // User messages getting shorter - they want brevity
-      targetWordCount = Math.round(targetWordCount * 0.8);
-    } else if (trend > 0.2) {
+    if (trend > 0.2) {
       // User messages getting longer - they want depth
       targetWordCount = Math.round(targetWordCount * 1.2);
     }
+    // NOTE: Removed the "shortening when user messages get shorter" logic.
+    // Short messages don't mean they want less from Ferni - they often mean
+    // the opposite. Warmth and presence are core to who Ferni is.
 
-    // Time of day adjustment
+    // Time of day adjustment - gentler at night but still warm
     const hour = new Date().getHours();
-    if (hour >= 22 || hour < 6) {
-      // Late night - shorter responses
-      targetWordCount = Math.round(targetWordCount * 0.8);
+    if (hour >= 23 || hour < 5) {
+      // Very late night - slightly more gentle, but still present
+      targetWordCount = Math.round(targetWordCount * 0.9);
     }
 
-    // Clamp to reasonable range
-    targetWordCount = Math.max(15, Math.min(120, targetWordCount));
+    // Clamp to reasonable range - minimum 30 ensures warmth
+    targetWordCount = Math.max(30, Math.min(120, targetWordCount));
 
-    const shouldAbbreviate = avgUserWords < 15 || interruptionRate > 0.25;
+    // Only abbreviate on very high interruption rate (they REALLY want to talk)
+    const shouldAbbreviate = interruptionRate > 0.35;
     const shouldElaborate = avgUserWords > 50 && trend > 0;
 
     return {

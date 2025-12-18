@@ -49,11 +49,11 @@ echo ""
 echo "📦 Installing dependencies with pnpm..."
 pnpm install
 
-# Also handle frontend-typescript if it exists
-if [ -d "frontend-typescript" ] && [ -f "frontend-typescript/package.json" ]; then
+# Also handle apps/web if it exists
+if [ -d "apps/web" ] && [ -f "apps/web/package.json" ]; then
     echo ""
     echo "📦 Installing frontend dependencies..."
-    cd frontend-typescript
+    cd apps/web
     if [ -f "package-lock.json" ]; then
         pnpm import 2>/dev/null || true
     fi
@@ -92,7 +92,7 @@ echo "╚═══════════════════════�
 echo ""
 echo "Next steps:"
 echo "  1. Commit the new pnpm-lock.yaml files:"
-echo "     git add pnpm-lock.yaml frontend-typescript/pnpm-lock.yaml"
+echo "     git add pnpm-lock.yaml apps/web/pnpm-lock.yaml"
 echo "     git commit -m 'chore: migrate from npm to pnpm'"
 echo ""
 echo "  2. Use pnpm instead of npm:"
@@ -101,7 +101,7 @@ echo "     pnpm build       # Instead of npm run build"
 echo "     pnpm dev         # Instead of npm run dev"
 echo ""
 echo "  3. Optional: Remove package-lock.json files:"
-echo "     rm package-lock.json frontend-typescript/package-lock.json"
+echo "     rm package-lock.json apps/web/package-lock.json"
 echo ""
 echo "Note: CI/CD and Docker builds will automatically use pnpm now."
 echo "The Dockerfiles fall back to npm if pnpm-lock.yaml is missing."

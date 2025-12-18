@@ -113,6 +113,21 @@ export {
   type ResponseProcessorResult,
 } from './response-processor.js';
 
+// Daily check-in handler (emotional weather extraction)
+export {
+  detectDailyCheckIn,
+  extractEmotionalWeather,
+  extractEmotionalWeatherWithLLM,
+  recordDailyCheckIn,
+  processDailyCheckIn,
+  getStreakCelebration,
+  cleanupStaleCheckIns,
+  resetActiveCheckIns,
+  type EmotionalWeather,
+  type DailyCheckInContext,
+  type CheckInDetectionResult,
+} from './daily-checkin-handler.js';
+
 // Constants
 export const VOICE_AGENT_VERSION = '1.0.0';
 

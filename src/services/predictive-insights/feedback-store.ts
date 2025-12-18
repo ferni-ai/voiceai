@@ -12,6 +12,7 @@
  */
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 
+import { removeUndefined } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'PredictiveInsightFeedbackStore' });
@@ -61,17 +62,19 @@ export async function recordPredictiveInsightFeedback(
       .collection('predictiveInsightFeedback')
       .doc(id);
 
-    await ref.set({
-      id,
-      userId,
-      insightId,
-      helpful: helpful ?? null,
-      accurate: accurate ?? null,
-      notes: notes ?? null,
-      source,
-      createdAt: FieldValue.serverTimestamp(),
-      createdAtMs: Date.now(),
-    });
+    await ref.set(
+      removeUndefined({
+        id,
+        userId,
+        insightId,
+        helpful: helpful ?? null,
+        accurate: accurate ?? null,
+        notes: notes ?? null,
+        source,
+        createdAt: FieldValue.serverTimestamp(),
+        createdAtMs: Date.now(),
+      })
+    );
 
     return { ok: true, id };
   } catch (error) {

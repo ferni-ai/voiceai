@@ -56,7 +56,7 @@ RUN npx tsx apps/cli/src/commands/build/build-fast.ts || pnpm build
 
 # ============================================================================
 # Stage 2: Build Frontend (runs in parallel with backend)
-# Note: frontend-typescript uses npm (not pnpm) with package-lock.json
+# Note: apps/web uses npm (not pnpm) with package-lock.json
 # ============================================================================
 FROM node:${NODE_VERSION}-slim AS frontend-builder
 
@@ -69,15 +69,15 @@ WORKDIR /app
 COPY design-system/dist ./design-system/dist/
 
 # Copy frontend package files (npm-based)
-COPY frontend-typescript/package.json frontend-typescript/package-lock.json ./frontend-typescript/
+COPY apps/web/package.json apps/web/package-lock.json ./apps/web/
 
-WORKDIR /app/frontend-typescript
+WORKDIR /app/apps/web
 
 # Install with npm (frontend uses npm, not pnpm)
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --prefer-offline
 
-COPY frontend-typescript/ ./
+COPY apps/web/ ./
 
 # Set env var for Vite build (bakes into the bundle)
 ENV VITE_ADMIN_API_KEY=${VITE_ADMIN_API_KEY}
@@ -113,8 +113,7 @@ COPY patches/ ./patches/
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --prefer-offline --prod || npm ci --omit=dev
 
-# Copy UI server
-COPY ui-server.js ./
+# UI server is compiled from TypeScript (src/servers/api/index.ts → dist/servers/api/index.js)
 
 # Copy built backend (compiled TypeScript)
 COPY --from=backend-builder /app/dist ./dist/
@@ -123,8 +122,8 @@ COPY --from=backend-builder /app/dist ./dist/
 COPY src/personas/bundles ./src/personas/bundles/
 
 # Create frontend directory and copy built frontend
-RUN mkdir -p frontend-typescript/dist
-COPY --from=frontend-builder /app/frontend-typescript/dist ./frontend-typescript/dist/
+RUN mkdir -p apps/web/dist
+COPY --from=frontend-builder /app/apps/web/dist ./apps/web/dist/
 
 # Copy pre-built ferni-speaker (from the pre-built image)
 RUN mkdir -p node_modules/ferni-speaker/models
@@ -143,4 +142,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8080/health || exit 1
 
-CMD ["node", "ui-server.js"]
+CMD ["node", "dist/servers/api/index.js"]

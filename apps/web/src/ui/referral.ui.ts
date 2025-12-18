@@ -17,7 +17,6 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { toast } from './toast.ui.js';
@@ -116,8 +115,6 @@ export function closeReferral(): void {
   if (!isOpen || !modal) return;
 
   soundUI.play('click');
-  // Clean up iOS tap listeners before removing
-  cleanupTapListeners(modal);
   animateOut(modal).then(() => {
     modal?.remove();
     modal = null;
@@ -181,14 +178,14 @@ function createModal(): void {
 
   injectStyles();
 
-  // Event listeners (iOS-compatible)
-  addTapListener(modal.querySelector('.referral-backdrop'), closeReferral);
-  addTapListener(modal.querySelector('.referral-close'), closeReferral);
+  // Event listeners
+  modal.querySelector('.referral-backdrop')?.addEventListener('click', closeReferral);
+  modal.querySelector('.referral-close')?.addEventListener('click', closeReferral);
 
-  addTapListener(modal.querySelector('[data-action="share"]'), handleNativeShare);
-  addTapListener(modal.querySelector('[data-action="copy"]'), handleCopyLink);
-  addTapListener(modal.querySelector('[data-action="email"]'), handleEmailShare);
-  addTapListener(modal.querySelector('[data-action="sms"]'), handleSMSShare);
+  modal.querySelector('[data-action="share"]')?.addEventListener('click', handleNativeShare);
+  modal.querySelector('[data-action="copy"]')?.addEventListener('click', handleCopyLink);
+  modal.querySelector('[data-action="email"]')?.addEventListener('click', handleEmailShare);
+  modal.querySelector('[data-action="sms"]')?.addEventListener('click', handleSMSShare);
 
   // Escape to close
   const handleEscape = (e: KeyboardEvent) => {

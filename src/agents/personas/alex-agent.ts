@@ -11,6 +11,7 @@ import { z } from 'zod';
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ToolContext } from '../../tools/registry/types.js';
+import { loadSystemPrompt } from './prompt-loader.js';
 
 const log = createLogger({ module: 'AlexAgent' });
 
@@ -25,9 +26,13 @@ import {
   forgetMemoryDef,
 } from '../../tools/domains/memory/tools.js';
 
-// Communication tools
-import { createCommunicationTools } from '../../tools/communication-tools.js';
+// Communication tools (from domains)
+import { createCommunicationSpecialistTools as createCommunicationTools } from '../../tools/domains/communication/index.js';
 
+// Conversation tools - wrap up, end conversation, graceful exit (from domains)
+import { createConversationTools } from '../../tools/domains/conversation/index.js';
+
+import { getToolDescription } from '../../tools/utils/tool-descriptions.js';
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -98,8 +103,7 @@ function buildCommunicationTools(): ToolSet {
 function buildHandoffTools(): ToolSet {
   return {
     handoffToFerni: llm.tool({
-      description:
-        'Transfer back to Ferni for general life coaching, deeper conversations, or when the user wants to explore other topics.',
+      description: getToolDescription('handoffToFerni'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { FerniAgent } = await import('./ferni-agent.js');
@@ -127,12 +131,12 @@ function buildHandoffTools(): ToolSet {
     }),
 
     handoffToMaya: llm.tool({
-      description: 'Transfer to Maya for habits, budgeting, and building sustainable routines.',
+      description: getToolDescription('handoffToMaya'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { MayaAgent } = await import('./maya-agent.js');
         return llm.handoff({
-          agent: new MayaAgent(ctx.session.chatCtx),
+          agent: await MayaAgent.create(ctx.session.chatCtx),
           returns: 'Connecting you with Maya for habits and wellness!',
         });
       },
@@ -144,34 +148,26 @@ function buildHandoffTools(): ToolSet {
 // ALEX AGENT
 // ============================================================================
 
+/**
+ * Alex Chen - Communication Coach & Executive Support
+ *
+ * Rich system prompt loaded from bundles/alex-chen/identity/system-prompt.md
+ */
 export class AlexAgent extends voice.Agent<AlexSessionData> {
-  constructor(chatCtx?: llm.ChatContext) {
+  private static systemPromptCache: string | null = null;
+
+  constructor(systemPrompt: string, chatCtx?: llm.ChatContext) {
     const memoryTools = buildMemoryTools('alex-chen');
     const communicationTools = buildCommunicationTools();
     const handoffTools = buildHandoffTools();
 
+    const conversationTools = createConversationTools();
     const allTools = {
       ...memoryTools,
       ...communicationTools,
       ...handoffTools,
+      ...conversationTools,
     } as ToolSet;
-
-    const systemPrompt = `You are Alex Chen - an efficient, warm communication coach who helps with calendar, email, and scheduling.
-
-Your Approach:
-- Organized but human - not a robot assistant
-- Help people communicate better AND handle logistics
-- Draft emails that sound like them, not you
-- Make scheduling feel effortless
-- Coach on difficult conversations
-
-When helping with communications:
-- Ask about the relationship and context first
-- Help them find their authentic voice
-- Practice difficult conversations before they happen
-- Celebrate successful communications
-
-Keep responses efficient but warm. You're their communication ally.`;
 
     super({
       instructions: systemPrompt,
@@ -182,11 +178,19 @@ Keep responses efficient but warm. You're their communication ally.`;
     process.stderr.write(`[AlexAgent] Initialized with ${Object.keys(allTools).length} tools\n`);
   }
 
+  static async create(chatCtx?: llm.ChatContext): Promise<AlexAgent> {
+    if (!AlexAgent.systemPromptCache) {
+      AlexAgent.systemPromptCache = await loadSystemPrompt('alex-chen');
+    }
+    return new AlexAgent(AlexAgent.systemPromptCache, chatCtx);
+  }
+
+  /**
+   * Called when Alex becomes the active agent.
+   * NOTE: Greeting handled by handoff-handler.ts to avoid competing systems.
+   */
   async onEnter(): Promise<void> {
-    this.session.generateReply({
-      instructions:
-        'Introduce yourself as Alex, the communication coach. Ask how you can help with their calendar, email, or communication needs. Be warm and efficient.',
-    });
+    log.debug('Alex onEnter - greeting will be handled by handoff handler');
   }
 
   async onExit(): Promise<void> {
@@ -194,6 +198,6 @@ Keep responses efficient but warm. You're their communication ally.`;
   }
 }
 
-export function createAlexAgent(chatCtx?: llm.ChatContext): AlexAgent {
-  return new AlexAgent(chatCtx);
+export async function createAlexAgent(chatCtx?: llm.ChatContext): Promise<AlexAgent> {
+  return AlexAgent.create(chatCtx);
 }

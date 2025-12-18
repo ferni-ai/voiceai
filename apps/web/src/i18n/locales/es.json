@@ -67,7 +67,7 @@
       "voiceAccent": "Voz y Acento",
       "guidedPractices": "Prácticas Guiadas",
       "createPractice": "Crear Práctica",
-      "healthFitness": "Salud y Fitness",
+      "wearables": "Dispositivos",
       "calendar": "Calendario",
       "notifications": "Notificaciones",
       "toggleTheme": "Claro / Oscuro",
@@ -83,8 +83,7 @@
       "supportFerni": "Apoyar a Ferni",
       "takeTour": "Hacer el Tour",
       "language": "Idioma",
-      "whatsGrowing": "Lo Que Viene",
-      "supportFerniExpanded": "Apoya a Ferni"
+      "whatsGrowing": "Lo Que Viene"
     },
     "pinItem": "Fijar arriba",
     "unpinItem": "Desfijar",
@@ -133,6 +132,88 @@
     "endConversation": "Terminar conversación",
     "endConversationGoodbye": "Terminar conversación - Adiós",
     "agentEndingConversation": "El agente está terminando la conversación"
+  },
+  "trustJourney": {
+    "eyebrow": "Nuestra Historia",
+    "title": "Tu Viaje de Confianza",
+    "subtitle": "Cómo hemos crecido juntos",
+    "loading": "Cargando tu viaje",
+    "loadingText": "Reuniendo tu viaje...",
+    "trustScore": "Puntuación de Confianza",
+    "exportSuccess": "¡Viaje exportado!",
+    "offlineBanner": "Estás desconectado - mostrando datos guardados",
+    "loadMore": "Cargar {count} más",
+    "strengthLabel": "Puntuación de confianza: {value}%",
+    "timelineLabel": "Línea de tiempo del viaje",
+    "filterLabel": "Filtrar línea de tiempo",
+    "filters": {
+      "all": "Todo",
+      "growth": "Crecimiento",
+      "win": "Victorias",
+      "callback": "Callbacks",
+      "boundary": "Límites",
+      "outreach": "Contactos"
+    },
+    "sections": {
+      "strength": "Fortaleza de la Relación",
+      "stats": "Estadísticas del Viaje",
+      "boundaries": "Límites Respetados",
+      "growth": "Cómo has crecido",
+      "timeline": "Nuestro viaje juntos"
+    },
+    "stats": {
+      "growthMoments": "Momentos de Crecimiento",
+      "winsCelebrated": "Victorias Celebradas",
+      "sharedMoments": "Momentos Compartidos"
+    },
+    "strengthDescriptions": {
+      "deep": "Hemos construido algo real juntos. Te conozco, y confías en mí.",
+      "growing": "Nuestra conexión se está profundizando. Estoy aprendiendo lo que te importa.",
+      "building": "Estamos construyendo confianza. Cada conversación me ayuda a entenderte mejor.",
+      "starting": "Apenas estamos comenzando. Sigue hablándome - estoy escuchando.",
+      "beginning": "Todo viaje comienza con un primer paso. Estoy aquí cuando estés listo."
+    },
+    "growthTypes": {
+      "emotional_regulation": "Balance emocional",
+      "perspective_shift": "Nuevas perspectivas",
+      "boundary_setting": "Límites saludables",
+      "behavior_change": "Nuevos hábitos",
+      "self_awareness": "Autoconciencia",
+      "coping_upgrade": "Mejor afrontamiento",
+      "goal_progress": "Progreso de metas"
+    },
+    "empty": {
+      "title": "Nuestra historia apenas comienza",
+      "message": "A medida que hablemos más, notaré tu crecimiento, celebraré tus victorias y recordaré lo que te importa. Vuelve pronto."
+    },
+    "errors": {
+      "offline": {
+        "title": "Estás desconectado",
+        "message": "Conéctate a internet para ver tu viaje."
+      },
+      "notLoggedIn": {
+        "title": "No has iniciado sesión",
+        "message": "Inicia sesión para ver tu viaje con Ferni."
+      },
+      "rateLimited": {
+        "title": "Más despacio",
+        "message": "Estás revisando muy seguido. Espera un momento e intenta de nuevo."
+      },
+      "unauthorized": {
+        "title": "Acceso denegado",
+        "message": "No tienes permiso para ver esto."
+      },
+      "generic": {
+        "title": "Algo salió mal",
+        "message": "No pudimos cargar tu viaje. Por favor, intenta de nuevo."
+      },
+      "exportFailed": {
+        "message": "No se pudo exportar tus datos. Por favor, intenta de nuevo."
+      },
+      "fetchFailedUsingCache": {
+        "message": "Mostrando datos guardados - no se pudo conectar al servidor."
+      }
+    }
   },
   "subscription": {
     "free": "Gratis",
@@ -412,7 +493,7 @@
     }
   },
   "wearableSettings": {
-    "title": "Salud y Fitness",
+    "title": "Dispositivos",
     "loading": "Cargando...",
     "intro": "Conecta tus wearables para darle a Ferni contexto sobre tu salud y niveles de energía.",
     "sections": {
@@ -570,18 +651,5 @@
     "dailyPractice": "Práctica diaria",
     "predictions": "Predicciones",
     "runScenario": "Ejecutar escenario"
-  },
-  "support": {
-    "eyebrow": "CRECIENDO JUNTOS",
-    "title": "Apoya a Ferni",
-    "subtitle": "Elige cómo crece nuestra amistad. Cada forma en que te presentas importa.",
-    "growTogether": "Formas de profundizar nuestra conexión",
-    "plantASeed": "Planta una semilla",
-    "plantDesc": "Un pequeño regalo que ayuda a Ferni a crecer. Sin presión—nuestra amistad no depende de ello.",
-    "plantButton": "Plantar esta semilla",
-    "thankYouSupporter": "Eres increíble",
-    "yourSupport": "Tu apoyo mantiene a Ferni aquí para todos",
-    "manageBilling": "Actualizar método de pago",
-    "footer": "Como sea que elijas apoyarnos, gracias por estar aquí."
   }
 }

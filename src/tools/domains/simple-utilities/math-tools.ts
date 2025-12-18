@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { recordUsage, generateInsight } from './pattern-intelligence.js';
 import { updateTipPreferences } from './persistence.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 const calculateTipDef: ToolDefinition = {
   id: 'calculateTip',
   name: 'Calculate Tip',
@@ -22,10 +23,7 @@ const calculateTipDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Calculate the tip on a bill. Use when someone asks:
-- "What's 20% tip on $47?"
-- "How much should I tip on $85?"
-- "Calculate the tip for dinner"`,
+      description: getToolDescription('calculateTip'),
       parameters: z.object({
         billAmount: z.number().describe('The bill amount in dollars'),
         tipPercent: z.number().default(20).describe('Tip percentage (default 20%)'),
@@ -89,10 +87,7 @@ const splitBillDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Split a bill between multiple people. Use when someone asks:
-- "Split $150 four ways"
-- "How much do we each owe if the bill is $87?"
-- "Divide this bill between 3 people"`,
+      description: getToolDescription('splitBill'),
       parameters: z.object({
         totalAmount: z.number().describe('Total bill amount'),
         numberOfPeople: z.number().min(2).describe('Number of people splitting'),
@@ -136,11 +131,7 @@ const calculatePercentageDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Calculate percentages. Use when someone asks:
-- "What's 15% of 240?"
-- "What percentage is 30 of 120?"
-- "Increase 50 by 20%"
-- "Decrease 80 by 25%"`,
+      description: getToolDescription('calculatePercentage'),
       parameters: z.object({
         operation: z
           .enum(['of', 'is_what_percent', 'increase', 'decrease'])
@@ -186,10 +177,7 @@ const quickMathDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Do quick math calculations. Use for:
-- Basic arithmetic: "What's 247 + 183?"
-- Multiplication: "12 times 15"
-- Division: "Split 847 by 12"`,
+      description: getToolDescription('quickMath'),
       parameters: z.object({
         expression: z.string().describe('The math expression to calculate'),
       }),

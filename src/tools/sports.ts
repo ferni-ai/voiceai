@@ -16,6 +16,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { withRateLimit } from './rate-limiter.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -229,8 +230,7 @@ export async function getEaglesScore(): Promise<string> {
 export function createSportsTools() {
   return {
     getTeamScore: llm.tool({
-      description:
-        'Get the score for any sports team. Works for MLB, NFL, NBA, NHL, MLS, college football, and college basketball.',
+      description: getToolDescription('getTeamScore'),
       parameters: z.object({
         teamName: z
           .string()
@@ -243,8 +243,7 @@ export function createSportsTools() {
     }),
 
     getSportScores: llm.tool({
-      description:
-        'Get all scores for a sport league. Use when user asks "how did baseball do today" or "NBA scores".',
+      description: getToolDescription('getSportScores'),
       parameters: z.object({
         sport: z
           .enum(['mlb', 'nfl', 'nba', 'nhl', 'mls', 'epl', 'ncaaf', 'ncaab'])
@@ -259,7 +258,7 @@ export function createSportsTools() {
     }),
 
     getPhilliesScore: llm.tool({
-      description: 'Get the Philadelphia Phillies score.',
+      description: getToolDescription('getPhilliesScore'),
       parameters: z.object({}),
       execute: async () => {
         getLogger().info('Getting Phillies score');
@@ -268,7 +267,7 @@ export function createSportsTools() {
     }),
 
     getEaglesScore: llm.tool({
-      description: 'Get the Philadelphia Eagles score.',
+      description: getToolDescription('getEaglesScore'),
       parameters: z.object({}),
       execute: async () => {
         getLogger().info('Getting Eagles score');

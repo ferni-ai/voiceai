@@ -25,10 +25,10 @@ import {
 import type { SpotifyTrack } from '../musical-you/types.js';
 
 // Extended game types for library mode (includes future games)
-export type LibraryGameType = 
+export type LibraryGameType =
   | 'name-that-tune'
   | 'this-or-that'
-  | 'decade-challenge'  // Future game
+  | 'decade-challenge' // Future game
   | 'finish-the-lyric'; // Future game
 
 const log = createLogger({ module: 'LibraryGameMode' });
@@ -101,8 +101,7 @@ export async function checkLibraryAvailability(
     };
   }
 
-  const { hasEnough, playableCount, totalCount, percentage } =
-    hasEnoughPlayableContent(userId);
+  const { hasEnough, playableCount, totalCount, percentage } = hasEnoughPlayableContent(userId);
 
   if (!hasEnough) {
     return {
@@ -135,16 +134,11 @@ const activeSessions = new Map<string, LibraryGameSession>();
 /**
  * Create a library game session
  */
-export function createLibraryGameSession(
-  config: LibraryGameConfig
-): LibraryGameSession | null {
+export function createLibraryGameSession(config: LibraryGameConfig): LibraryGameSession | null {
   const { hasEnough } = hasEnoughPlayableContent(config.userId);
 
   if (!hasEnough && config.mode === 'library') {
-    log.warn(
-      { userId: config.userId },
-      '⚠️ Not enough library content for pure library mode'
-    );
+    log.warn({ userId: config.userId }, '⚠️ Not enough library content for pure library mode');
     return null;
   }
 
@@ -481,4 +475,3 @@ export default {
   getSessionStats,
   getLibraryGameSuggestions,
 };
-

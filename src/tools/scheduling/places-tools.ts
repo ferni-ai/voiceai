@@ -10,6 +10,7 @@ import { llm } from '@livekit/agents';
 import { getLogger } from '../../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../utils/tool-descriptions.js';
 export function createPlacesTools() {
   // Lazy import to avoid circular dependencies
   const getPlacesService = async () => {
@@ -33,9 +34,7 @@ export function createPlacesTools() {
     // ========== FIND PHONE NUMBER ==========
 
     lookupBusinessPhone: llm.tool({
-      description: `Look up a business phone number using Google Places API.
-Use when the user asks for a business's phone number.
-Example: "What's the number for Joe's Pizza on Main Street?"`,
+      description: getToolDescription('lookupBusinessPhone'),
       parameters: z.object({
         businessName: z.string().describe('Name of the business to find'),
         location: z.string().optional().describe('City, address, or area to search in'),
@@ -65,8 +64,7 @@ Example: "What's the number for Joe's Pizza on Main Street?"`,
     }),
 
     findNearbyBusinesses: llm.tool({
-      description: `Find nearby businesses using Google Places API.
-Use when the user wants to find businesses near a specific location.`,
+      description: getToolDescription('findNearbyBusinesses'),
       parameters: z.object({
         type: z.string().describe('Type of business (e.g., restaurant, dentist, gym)'),
         keyword: z.string().optional().describe('Additional keyword to filter results'),
@@ -95,8 +93,7 @@ Use when the user wants to find businesses near a specific location.`,
     }),
 
     searchBusinesses: llm.tool({
-      description: `Search for businesses by name or type using Google Places API.
-Use for general business searches.`,
+      description: getToolDescription('searchBusinesses'),
       parameters: z.object({
         query: z.string().describe('Search query (business name or type)'),
         location: z.string().optional().describe('Location to search in'),
@@ -118,8 +115,7 @@ Use for general business searches.`,
     }),
 
     getBusinessDetails: llm.tool({
-      description: `Get detailed information about a specific business.
-Returns hours, phone, address, ratings, and reviews.`,
+      description: getToolDescription('getBusinessDetails'),
       parameters: z.object({
         businessName: z.string().describe('Name of the business'),
         location: z.string().optional().describe('Location to narrow down search'),
@@ -159,8 +155,7 @@ Returns hours, phone, address, ratings, and reviews.`,
     }),
 
     findAndCall: llm.tool({
-      description: `Find a business and offer to call them.
-Combines search with phone lookup and calling capability.`,
+      description: getToolDescription('findAndCall'),
       parameters: z.object({
         businessName: z.string().describe('Name of the business to call'),
         location: z.string().optional().describe('Location to narrow search'),

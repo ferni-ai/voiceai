@@ -16,7 +16,7 @@ System and code quality audits for the Ferni AI project.
 ## Related
 
 - [TECH-DEBT.md](../TECH-DEBT.md) - Auto-generated tech debt report
-- [frontend-typescript/ANIMATION-PRINCIPLES-AUDIT.md](../../frontend-typescript/ANIMATION-PRINCIPLES-AUDIT.md) - Frontend animation audit
+- [apps/web/ANIMATION-PRINCIPLES-AUDIT.md](../../apps/web/ANIMATION-PRINCIPLES-AUDIT.md) - Frontend animation audit
 
 ## Running Audits
 

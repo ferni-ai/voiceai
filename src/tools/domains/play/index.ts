@@ -17,6 +17,7 @@ import { llm, log } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // JOY TOOLS
 // ============================================================================
@@ -30,7 +31,7 @@ const mapJoyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user create a map of what brings them joy.',
+      description: getToolDescription('mapJoy'),
       parameters: z.object({
         category: z
           .enum(['all', 'simple', 'deep', 'unexpected', 'forgotten'])
@@ -94,7 +95,7 @@ const noticeJoyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user notice and savor joy when it appears.',
+      description: getToolDescription('noticeJoy'),
       parameters: z.object({
         joyMoment: z.string().optional().describe('A joy moment to savor'),
         mode: z.enum(['capture', 'amplify', 'practice']).describe('Mode of engagement'),
@@ -148,7 +149,7 @@ const scheduleJoyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user intentionally schedule joy into their life.',
+      description: getToolDescription('scheduleJoy'),
       parameters: z.object({
         timeframe: z.enum(['daily', 'weekly', 'monthly']).describe('Timeframe for joy planning'),
         constraint: z.string().optional().describe('Any constraints to work with'),
@@ -206,7 +207,7 @@ const cultivatePlayfulnessDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user cultivate more playfulness in their life.',
+      description: getToolDescription('cultivatePlayfulness'),
       parameters: z.object({
         currentState: z
           .enum(['forgotten-how', 'rusty', 'want-more', 'blocked'])
@@ -272,7 +273,7 @@ const givePermissionToPlayDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user give themselves permission to play and have fun.',
+      description: getToolDescription('givePermissionToPlay'),
       parameters: z.object({
         whatNeedsPermission: z
           .string()
@@ -314,7 +315,7 @@ const embraceLightnessDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user find lightness when life feels heavy.',
+      description: getToolDescription('embraceLightness'),
       parameters: z.object({
         whatFeelsHeavy: z.string().describe('What feels heavy'),
         openToLightness: z.boolean().describe('Whether they are open to lightness'),
@@ -354,7 +355,7 @@ const noteThatWasFunDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user capture and appreciate a fun moment.',
+      description: getToolDescription('noteThatWasFun'),
       parameters: z.object({
         whatWasFun: z.string().describe('What was fun'),
         whatMadeItFun: z.string().optional().describe('What made it fun'),
@@ -388,7 +389,7 @@ const becomeSillyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Encourage and support silliness and lightheartedness.',
+      description: getToolDescription('becomeSilly'),
       parameters: z.object({
         context: z.enum(['alone', 'with-others', 'general']).describe('Context for silliness'),
       }),
@@ -442,7 +443,7 @@ const spontaneityChallengeDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Offer spontaneity challenges to break routine.',
+      description: getToolDescription('spontaneityChallenge'),
       parameters: z.object({
         intensity: z.enum(['tiny', 'small', 'medium', 'bold']).describe('How adventurous'),
         context: z
@@ -536,7 +537,7 @@ const playfulCreativityDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Guide playful, low-stakes creative expression.',
+      description: getToolDescription('playfulCreativity'),
       parameters: z.object({
         mode: z
           .enum(['no-talent-needed', 'with-constraints', 'collaborative', 'spontaneous'])
@@ -601,7 +602,7 @@ const reclaimLostHobbyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user reconnect with activities they used to love.',
+      description: getToolDescription('reclaimLostHobby'),
       parameters: z.object({
         hobby: z.string().optional().describe('The hobby they miss'),
         mode: z

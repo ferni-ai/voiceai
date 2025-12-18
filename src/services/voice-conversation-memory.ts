@@ -17,6 +17,7 @@
 import * as admin from 'firebase-admin';
 import pino from 'pino';
 import { getGCPProjectId } from '../config/environment.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 
 const log = pino({ name: 'voice-memory' });
 
@@ -231,17 +232,21 @@ async function saveConversation(conversation: ConversationRecord): Promise<void>
     await db
       .collection(CONVERSATIONS_COLLECTION)
       .doc(conversation.id)
-      .set({
-        ...conversation,
-        startedAt: admin.firestore.Timestamp.fromDate(conversation.startedAt),
-        endedAt: conversation.endedAt
-          ? admin.firestore.Timestamp.fromDate(conversation.endedAt)
-          : null,
-        turns: conversation.turns.map((t) => ({
-          ...t,
-          timestamp: admin.firestore.Timestamp.fromDate(t.timestamp),
-        })),
-      });
+      .set(
+        removeUndefined({
+          ...conversation,
+          startedAt: admin.firestore.Timestamp.fromDate(conversation.startedAt),
+          endedAt: conversation.endedAt
+            ? admin.firestore.Timestamp.fromDate(conversation.endedAt)
+            : null,
+          turns: conversation.turns.map((t) =>
+            removeUndefined({
+              ...t,
+              timestamp: admin.firestore.Timestamp.fromDate(t.timestamp),
+            })
+          ),
+        })
+      );
   } catch (error) {
     log.error({ error, conversationId: conversation.id }, 'Failed to save conversation');
   }
@@ -381,23 +386,31 @@ async function saveUserMemory(memory: ConversationMemory): Promise<void> {
     await db
       .collection(MEMORIES_COLLECTION)
       .doc(memory.userId)
-      .set({
-        ...memory,
-        firstConversation: admin.firestore.Timestamp.fromDate(memory.firstConversation),
-        lastConversation: admin.firestore.Timestamp.fromDate(memory.lastConversation),
-        topics: memory.topics.map((t) => ({
-          ...t,
-          lastMentioned: admin.firestore.Timestamp.fromDate(t.lastMentioned),
-        })),
-        importantMoments: memory.importantMoments.map((m) => ({
-          ...m,
-          date: admin.firestore.Timestamp.fromDate(m.date),
-        })),
-        relationshipMilestones: memory.relationshipMilestones.map((m) => ({
-          ...m,
-          date: admin.firestore.Timestamp.fromDate(m.date),
-        })),
-      });
+      .set(
+        removeUndefined({
+          ...memory,
+          firstConversation: admin.firestore.Timestamp.fromDate(memory.firstConversation),
+          lastConversation: admin.firestore.Timestamp.fromDate(memory.lastConversation),
+          topics: memory.topics.map((t) =>
+            removeUndefined({
+              ...t,
+              lastMentioned: admin.firestore.Timestamp.fromDate(t.lastMentioned),
+            })
+          ),
+          importantMoments: memory.importantMoments.map((m) =>
+            removeUndefined({
+              ...m,
+              date: admin.firestore.Timestamp.fromDate(m.date),
+            })
+          ),
+          relationshipMilestones: memory.relationshipMilestones.map((m) =>
+            removeUndefined({
+              ...m,
+              date: admin.firestore.Timestamp.fromDate(m.date),
+            })
+          ),
+        })
+      );
   } catch (error) {
     log.error({ error, userId: memory.userId }, 'Failed to save user memory');
   }

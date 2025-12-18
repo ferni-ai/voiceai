@@ -12,7 +12,6 @@
  */
 
 import { t } from '../i18n/index.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { apiGet, apiPost, apiDelete } from '../utils/api.js';
@@ -878,11 +877,6 @@ export async function showHouseholdManager(options?: HouseholdManagerCallbacks):
  * Hide the household manager modal.
  */
 export function hideHouseholdManager(): void {
-  // Clean up iOS tap listeners
-  if (modal) {
-    cleanupTapListeners(modal);
-  }
-  
   modal?.classList.remove('visible');
   document.body.style.overflow = '';
 
@@ -920,10 +914,10 @@ function createModal(): void {
     </div>
   `;
 
-  // Event listeners (iOS-compatible)
-  addTapListener(modal.querySelector('.household-modal-backdrop'), hideHouseholdManager);
-  addTapListener(modal.querySelector('.household-modal__close'), hideHouseholdManager);
-  addTapListener(modal.querySelector('[data-action="close"]'), hideHouseholdManager);
+  // Event listeners
+  modal.querySelector('.household-modal-backdrop')?.addEventListener('click', hideHouseholdManager);
+  modal.querySelector('.household-modal__close')?.addEventListener('click', hideHouseholdManager);
+  modal.querySelector('[data-action="close"]')?.addEventListener('click', hideHouseholdManager);
 
   // Keyboard close
   modal.addEventListener('keydown', (e) => {
@@ -989,7 +983,7 @@ function renderMainView(content: HTMLElement): void {
       </div>
     `;
 
-    addTapListener(content.querySelector('[data-action="show-create"]'), () => {
+    content.querySelector('[data-action="show-create"]')?.addEventListener('click', () => {
       currentView = 'create';
       renderContent();
     });
@@ -1055,9 +1049,9 @@ function renderMainView(content: HTMLElement): void {
     </section>
   `;
 
-  // Attach event listeners (iOS-compatible)
+  // Attach event listeners
   content.querySelectorAll('[data-action="remove-member"]').forEach((btn) => {
-    addTapListener(btn, (e) => {
+    btn.addEventListener('click', (e) => {
       const userId = (e.currentTarget as HTMLElement).dataset.userId;
       const member = household?.members.find((m) => m.userId === userId);
       if (member) {
@@ -1068,7 +1062,7 @@ function renderMainView(content: HTMLElement): void {
     });
   });
 
-  addTapListener(content.querySelector('[data-action="add-member"]'), handleAddMember);
+  content.querySelector('[data-action="add-member"]')?.addEventListener('click', handleAddMember);
 
   // Handle enter key in input
   content.querySelector('#member-name')?.addEventListener('keydown', (e) => {
@@ -1120,13 +1114,13 @@ function renderCreateForm(content: HTMLElement): void {
     (document.getElementById('household-name') as HTMLInputElement)?.focus();
   }, DURATION.FAST);
 
-  // Event listeners (iOS-compatible)
-  addTapListener(content.querySelector('[data-action="cancel-create"]'), () => {
+  // Event listeners
+  content.querySelector('[data-action="cancel-create"]')?.addEventListener('click', () => {
     currentView = 'main';
     renderContent();
   });
 
-  addTapListener(content.querySelector('[data-action="confirm-create"]'), handleCreateHousehold);
+  content.querySelector('[data-action="confirm-create"]')?.addEventListener('click', handleCreateHousehold);
 
   // Handle enter key
   content.querySelector('#household-name')?.addEventListener('keydown', (e) => {
@@ -1162,13 +1156,13 @@ function renderConfirmRemove(content: HTMLElement): void {
     </div>
   `;
 
-  addTapListener(content.querySelector('[data-action="cancel-remove"]'), () => {
+  content.querySelector('[data-action="cancel-remove"]')?.addEventListener('click', () => {
     memberToRemove = null;
     currentView = 'main';
     renderContent();
   });
 
-  addTapListener(content.querySelector('[data-action="confirm-remove"]'), async () => {
+  content.querySelector('[data-action="confirm-remove"]')?.addEventListener('click', async () => {
     if (memberToRemove) {
       await handleRemoveMember(memberToRemove.userId);
     }
@@ -1243,7 +1237,7 @@ async function handleCreateHousehold(): Promise<void> {
 
   if (!name) {
     nameInput?.focus();
-    toast.warning('Please enter a name');
+    toast.warning('Add a name first');
     return;
   }
 
@@ -1260,7 +1254,7 @@ async function handleCreateHousehold(): Promise<void> {
     log.info('Household created:', household.name);
     toast.success(`${household.name} created!`);
   } else {
-    toast.error('Could not create household');
+    toast.error("Couldn't create that. Try again?");
   }
 }
 
@@ -1273,7 +1267,7 @@ async function handleAddMember(): Promise<void> {
 
   if (!displayName) {
     nameInput?.focus();
-    toast.warning('Please enter a name');
+    toast.warning('Add a name first');
     return;
   }
 
@@ -1303,7 +1297,7 @@ async function handleAddMember(): Promise<void> {
     }
   } else {
     // Show error toast
-    toast.error(result.error || 'Could not add member');
+    toast.error(result.error || "Couldn't add them. Try again?");
     log.warn('Failed to add member:', result.error);
   }
 
@@ -1324,7 +1318,7 @@ async function handleRemoveMember(userId: string): Promise<void> {
     log.info('Member removed:', userId);
     toast.success(`${memberName} removed`);
   } else {
-    toast.error('Could not remove member');
+    toast.error("Couldn't remove them. Try again?");
   }
 
   memberToRemove = null;

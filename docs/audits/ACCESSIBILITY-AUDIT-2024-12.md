@@ -160,7 +160,7 @@ bash scripts/a11y-audit.sh
 ### HTML Dashboards
 - `apps/web/public/*-dashboard.html` (20 files)
 - `apps/web/public/observability-hub.html`
-- `frontend-typescript/public/*-dashboard.html` (synced copies)
+- `apps/web/public/*-dashboard.html` (synced copies)
 
 ### TypeScript UI Dashboards
 - `apps/web/src/ui/trust-dashboard.ui.ts`

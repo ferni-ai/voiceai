@@ -33,7 +33,7 @@ gcloud run deploy ferni-backend \
   --set-env-vars "NODE_ENV=production"
 
 # 5. Deploy frontend to Firebase Hosting
-cd frontend-typescript
+cd apps/web
 firebase deploy --only hosting
 ```
 
@@ -152,7 +152,7 @@ gcloud run domain-mappings describe \
 Firebase Hosting setup:
 
 ```bash
-cd frontend-typescript
+cd apps/web
 
 # Initialize Firebase
 firebase init hosting

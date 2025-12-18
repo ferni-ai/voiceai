@@ -16,6 +16,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 import { generateWeatherInsight } from './helpers.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // MORNING SKY CHECK
 // ============================================================================
@@ -30,8 +31,7 @@ export const morningSkyCheckDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     const userId = ctx.userId ?? 'anonymous';
     return llm.tool({
-      description: `Perform Ferni's Morning Sky Check - a 30-second emotional weather report.
-Use this to start conversations with returning users or when they want to check in.`,
+      description: getToolDescription('morningSkyCheck'),
       parameters: z.object({
         mode: z.enum(['start', 'record-weather', 'view-trends']).describe('Mode of sky check'),
         weather: z
@@ -113,8 +113,7 @@ export const kintsugiMomentsDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Help user reframe a setback or failure as a "kintsugi moment" - finding the gold in the cracks.
-Based on Japanese art of repairing pottery with gold.`,
+      description: getToolDescription('kintsugiMoments'),
       parameters: z.object({
         setback: z.string().describe('The setback or failure to reframe'),
         mode: z.enum(['explore', 'find-gold', 'save']).describe('Stage of the exercise'),
@@ -183,7 +182,7 @@ export const questionOfTheWeekDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Get or answer Ferni's Question of the Week - a deep reflection question that changes weekly.`,
+      description: getToolDescription('questionOfTheWeek'),
       parameters: z.object({
         mode: z.enum(['get-question', 'submit-answer', 'view-past']).describe('Mode'),
         answer: z.string().optional().describe('User answer to the question'),

@@ -99,6 +99,15 @@ vi.mock('../utils/safe-logger.js', () => ({
   }),
 }));
 
+vi.mock('../services/cartesia-voice-localization.js', () => ({
+  getLocalizedVoiceId: vi.fn((personaId: string, accent: string) => {
+    return Promise.resolve({
+      voiceId: `${personaId}-${accent}-voice-id`,
+      isLocalized: accent !== 'american',
+    });
+  }),
+}));
+
 import {
   createPersonaAwareTTS,
   getVoiceManager,
@@ -655,7 +664,7 @@ describe('PersonaAwareTTS', () => {
       }
     });
 
-    it('should switch accent with switchAccent()', () => {
+    it('should switch accent with switchAccent()', async () => {
       const tts = createPersonaAwareTTS('Ferni', {
         voiceId: 'ferni-voice-id',
         accent: 'american',
@@ -663,8 +672,8 @@ describe('PersonaAwareTTS', () => {
 
       expect(tts.getAccent()).toBe('american');
 
-      // Switch to british
-      tts.switchAccent('british');
+      // Switch to british (using async method since switchAccent is deprecated)
+      await tts.switchToLocalizedAccent('british', 'ferni');
       expect(tts.getAccent()).toBe('british');
     });
 

@@ -93,6 +93,12 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   let lastBackchannelAt = 0;
   let pendingBackchannelReaction = false;
 
+  // Timer tracking for cleanup (prevents memory leaks on disconnect)
+  let earlyAckTimer: ReturnType<typeof setTimeout> | null = null;
+  let earlyAckCleanupTimer: ReturnType<typeof setTimeout> | null = null;
+  let liveBackchannelInterval: ReturnType<typeof setInterval> | null = null;
+  let liveBackchannelFailsafeTimer: ReturnType<typeof setTimeout> | null = null;
+
   // Backchannel timing constants
   const BACKCHANNEL_MIN_INTERVAL_MS = 4000; // 4s feels more natural than 5s
   const BACKCHANNEL_TRIGGER_MS = 3000; // 3s better than 3.5s for responsiveness
@@ -392,23 +398,37 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       // 🎤 LIVE BACKCHANNELING: Start polling for breath pauses
       // Checks every 200ms while user is speaking for natural backchannel opportunities
       if (liveBackchannelService && (userData.turnCount || 0) >= 2) {
-        const liveBackchannelInterval = setInterval(() => {
+        // Clear any existing interval before creating new one
+        if (liveBackchannelInterval) {
+          clearInterval(liveBackchannelInterval);
+        }
+        if (liveBackchannelFailsafeTimer) {
+          clearTimeout(liveBackchannelFailsafeTimer);
+        }
+
+        liveBackchannelInterval = setInterval(() => {
           // Stop polling if user stopped speaking
           if (!userData.userSpeakingStartTime) {
-            clearInterval(liveBackchannelInterval);
+            if (liveBackchannelInterval) {
+              clearInterval(liveBackchannelInterval);
+              liveBackchannelInterval = null;
+            }
             return;
           }
           void attemptLiveBackchannel();
         }, 200); // Check every 200ms for breath pauses
 
-        // Store interval reference for cleanup (will be cleared when user stops speaking)
-        // Using a closure to track the interval
+        // Failsafe: Clear interval after 30s max to prevent memory leaks
         const originalUserSpeakingStart = userData.userSpeakingStartTime;
-        setTimeout(() => {
-          // Failsafe: Clear interval after 30s max to prevent memory leaks
-          if (userData.userSpeakingStartTime === originalUserSpeakingStart) {
+        liveBackchannelFailsafeTimer = setTimeout(() => {
+          if (
+            userData.userSpeakingStartTime === originalUserSpeakingStart &&
+            liveBackchannelInterval
+          ) {
             clearInterval(liveBackchannelInterval);
+            liveBackchannelInterval = null;
           }
+          liveBackchannelFailsafeTimer = null;
         }, 30000);
       }
     }
@@ -446,7 +466,16 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
 
       // DEAD AIR FIX: Early silence detection
       const userStoppedAt = Date.now();
-      let earlyAckTimer: ReturnType<typeof setTimeout> | null = null;
+
+      // Clear any existing early ack timers before creating new ones
+      if (earlyAckTimer) {
+        clearTimeout(earlyAckTimer);
+        earlyAckTimer = null;
+      }
+      if (earlyAckCleanupTimer) {
+        clearTimeout(earlyAckCleanupTimer);
+        earlyAckCleanupTimer = null;
+      }
 
       earlyAckTimer = setTimeout(() => {
         if (!conversationManager.isAgentSpeaking()) {
@@ -484,9 +513,10 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
       session.on(voice.AgentSessionEventTypes.AgentStateChanged, agentStateHandler);
 
       // Clean up after 10 seconds regardless (prevents memory leaks)
-      setTimeout(() => {
+      earlyAckCleanupTimer = setTimeout(() => {
         cleanupEarlyAck();
         session.off(voice.AgentSessionEventTypes.AgentStateChanged, agentStateHandler);
+        earlyAckCleanupTimer = null;
       }, 10000);
 
       // GAME UNDUCK: Restore music volume after user finishes speaking
@@ -670,12 +700,28 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   });
 
   // ============================================================
-  // CLEANUP
+  // CLEANUP - Clear all timers to prevent memory leaks on disconnect
   // ============================================================
   const clearTimers = () => {
     if (backchannelTimer) {
       clearTimeout(backchannelTimer);
       backchannelTimer = null;
+    }
+    if (earlyAckTimer) {
+      clearTimeout(earlyAckTimer);
+      earlyAckTimer = null;
+    }
+    if (earlyAckCleanupTimer) {
+      clearTimeout(earlyAckCleanupTimer);
+      earlyAckCleanupTimer = null;
+    }
+    if (liveBackchannelInterval) {
+      clearInterval(liveBackchannelInterval);
+      liveBackchannelInterval = null;
+    }
+    if (liveBackchannelFailsafeTimer) {
+      clearTimeout(liveBackchannelFailsafeTimer);
+      liveBackchannelFailsafeTimer = null;
     }
   };
 

@@ -316,7 +316,7 @@ describe('Dynamic Speed Integration', () => {
 
   describe('Persona Base Speeds', () => {
     it('should return appropriate base speeds for personas', () => {
-      expect(getPersonaBaseSpeed('ferni')).toBe(1.0);
+      expect(getPersonaBaseSpeed('ferni')).toBe(0.85); // Slower, more deliberate
       expect(getPersonaBaseSpeed('peter')).toBe(0.95);
       expect(getPersonaBaseSpeed('alex')).toBe(1.05);
       expect(getPersonaBaseSpeed('nayan')).toBe(0.9);
@@ -514,7 +514,7 @@ describe('Persona Speed Profiles', () => {
     const ferniProfile = getPersonaSpeedProfile('ferni');
     const nayanProfile = getPersonaSpeedProfile('nayan');
 
-    expect(ferniProfile.baseSpeed).toBe(1.0);
+    expect(ferniProfile.baseSpeed).toBe(0.85); // Slower, more deliberate
     expect(nayanProfile.baseSpeed).toBe(0.9);
     expect(nayanProfile.traits.reflective).toBeGreaterThan(ferniProfile.traits.reflective);
   });

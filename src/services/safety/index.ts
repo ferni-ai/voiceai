@@ -71,6 +71,7 @@ export type {
 // ============================================================================
 
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { removeUndefined } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { detectCrisis, type CrisisDetectionResult, type CrisisSignal } from './crisis-detection.js';
 import { generateCrisisResponse, type CrisisResponseContent } from './crisis-response.js';
@@ -286,10 +287,12 @@ export async function recordCrisisEvent(event: {
   if (db) {
     try {
       // Store the crisis event
-      await db.collection(CRISIS_EVENTS_COLLECTION).add({
-        ...eventWithTimestamp,
-        createdAt: new Date(),
-      });
+      await db.collection(CRISIS_EVENTS_COLLECTION).add(
+        removeUndefined({
+          ...eventWithTimestamp,
+          createdAt: new Date(),
+        })
+      );
 
       // Update user's historical signals
       await updateUserCrisisSignals(db, event.userId, {

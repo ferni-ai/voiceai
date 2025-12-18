@@ -103,12 +103,7 @@ export type CreativeTraitType =
 // VIDEO / WATCH TOGETHER
 // ============================================================================
 
-export type ContentType =
-  | 'video'
-  | 'podcast'
-  | 'article'
-  | 'course'
-  | 'short-form';
+export type ContentType = 'video' | 'podcast' | 'article' | 'course' | 'short-form';
 
 export interface VideoContent {
   id: string;
@@ -576,4 +571,3 @@ export type RecommendationSource =
   | 'trending' // Popular with similar users
   | 'seasonal' // Timely content
   | 'persona-pick'; // Curated by persona
-

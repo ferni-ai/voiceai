@@ -81,7 +81,7 @@
 }
 
 .section-features.is-dark .eyebrow {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-dark-text-muted, #ddd6cc);
 }
 
 .section-features.is-dark .headline-lg {

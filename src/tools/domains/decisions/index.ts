@@ -18,6 +18,7 @@ import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // DECISION FRAMEWORKS
 // ============================================================================
@@ -90,7 +91,7 @@ const frameMajorDecisionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user frame and structure a major decision with clarity.',
+      description: getToolDescription('frameMajorDecision'),
       parameters: z.object({
         decision: z.string().describe('The decision they are facing'),
         category: z
@@ -167,7 +168,7 @@ const walkThroughDecisionFrameworkDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Walk user through a specific decision-making framework.',
+      description: getToolDescription('walkThroughDecisionFramework'),
       parameters: z.object({
         framework: z
           .enum(['10-10-10', 'regret-minimization', 'reversibility', 'pre-mortem', 'values-first'])
@@ -217,7 +218,7 @@ const analyzeProsAndConsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user analyze pros and cons of a decision in a structured way.',
+      description: getToolDescription('analyzeProsAndCons'),
       parameters: z.object({
         decision: z.string().describe('The decision'),
         option: z.string().describe('Specific option to analyze'),
@@ -281,7 +282,7 @@ const scoreOptionsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user score options based on weighted criteria.',
+      description: getToolDescription('scoreOptions'),
       parameters: z.object({
         decision: z.string().describe('The decision'),
         options: z.array(z.string()).describe('Options to compare'),
@@ -349,7 +350,7 @@ const assessRiskDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user assess risks associated with a decision and plan mitigation.',
+      description: getToolDescription('assessRisk'),
       parameters: z.object({
         decision: z.string().describe('The decision'),
         option: z.string().describe('Option being assessed'),
@@ -429,7 +430,7 @@ const checkValuesAlignmentDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user evaluate how decision options align with their values.',
+      description: getToolDescription('checkValuesAlignment'),
       parameters: z.object({
         decision: z.string().describe('The decision'),
         options: z.array(z.string()).describe('Options being considered'),
@@ -500,7 +501,7 @@ const prepareSecondOpinionQuestionsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user prepare to get useful input from others on their decision.',
+      description: getToolDescription('prepareSecondOpinionQuestions'),
       parameters: z.object({
         decision: z.string().describe('The decision'),
         whoToAsk: z.array(z.string()).optional().describe('Who they plan to consult'),
@@ -570,7 +571,7 @@ const reflectOnPastDecisionsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user learn from past decisions to inform current ones.',
+      description: getToolDescription('reflectOnPastDecisions'),
       parameters: z.object({
         currentDecision: z.string().optional().describe('Current decision being considered'),
         pastDecision: z.string().optional().describe('Past decision to reflect on'),

@@ -305,7 +305,7 @@ const session = await stripe.checkout.sessions.create({
 | `src/types/subscription.ts` | Multi-currency TIER_CONFIGS, updated formatPrice |
 | `src/services/stripe-subscription.ts` | Currency-aware checkout |
 | `promo/ferni-website/src/pricing.njk` | Dynamic price display |
-| `frontend-typescript/src/ui/subscription.ui.ts` | Locale-aware pricing |
+| `apps/web/src/ui/subscription.ui.ts` | Locale-aware pricing |
 
 ---
 
@@ -316,7 +316,7 @@ const session = await stripe.checkout.sessions.create({
 **Recommendation**: Use a lightweight custom solution (not i18next) to avoid bundle bloat.
 
 ```typescript
-// frontend-typescript/src/i18n/index.ts
+// apps/web/src/i18n/index.ts
 import type { TranslationKey } from './types';
 import enUS from './locales/en-US.json';
 
@@ -390,7 +390,7 @@ button.textContent = t('controls.buttons.endCall');
 ### 4.5 RTL Support
 
 ```typescript
-// frontend-typescript/src/i18n/rtl.ts
+// apps/web/src/i18n/rtl.ts
 import { getCurrentLocale } from './detection';
 
 export function getDirection(): 'ltr' | 'rtl' {
@@ -408,7 +408,7 @@ export function applyDirection(): void {
 ### 4.6 Date/Time Formatting
 
 ```typescript
-// frontend-typescript/src/i18n/formatters/date.ts
+// apps/web/src/i18n/formatters/date.ts
 import i18nTokens from '../../../design-system/tokens/i18n.json';
 
 export function formatDate(date: Date, locale: string): string {
@@ -429,11 +429,11 @@ export function formatRelativeTime(date: Date, locale: string): string {
 
 | File | Type | Purpose |
 |------|------|---------|
-| `frontend-typescript/src/i18n/index.ts` | New | Core t() function |
-| `frontend-typescript/src/i18n/types.ts` | New | Type-safe keys |
-| `frontend-typescript/src/i18n/locales/*.json` | New | Translation files |
-| `frontend-typescript/src/i18n/rtl.ts` | New | RTL support |
-| `frontend-typescript/src/i18n/formatters/*.ts` | New | Formatters |
+| `apps/web/src/i18n/index.ts` | New | Core t() function |
+| `apps/web/src/i18n/types.ts` | New | Type-safe keys |
+| `apps/web/src/i18n/locales/*.json` | New | Translation files |
+| `apps/web/src/i18n/rtl.ts` | New | RTL support |
+| `apps/web/src/i18n/formatters/*.ts` | New | Formatters |
 | All `ui/*.ts` files | Modify | Use t() function |
 
 ---

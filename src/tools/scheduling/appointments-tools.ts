@@ -28,6 +28,7 @@ import {
 } from './appointment-core.js';
 import type { AppointmentType, AppointmentStatus, ScheduledAppointment } from './types.js';
 
+import { getToolDescription } from '../utils/tool-descriptions.js';
 // Helper aliases
 const _getAppointmentsForUser = getUserAppointments;
 const _getAppointmentById = getAppointment;
@@ -37,13 +38,7 @@ export function createAppointmentTools() {
     // ========== RESTAURANT RESERVATIONS ==========
 
     makeReservation: llm.tool({
-      description: `Make a restaurant reservation - tries online booking first (OpenTable/Resy), falls back to phone call.
-Use when the user wants to:
-- Book a table at a restaurant
-- Make a dinner/lunch reservation
-- Reserve for a special occasion
-
-Alex will try to book instantly online, or call if needed.`,
+      description: getToolDescription('makeReservation'),
       parameters: z.object({
         restaurantName: z.string().describe('Name of the restaurant'),
         restaurantPhone: z.string().optional().describe('Phone number (if known)'),
@@ -195,11 +190,7 @@ Alex will try to book instantly online, or call if needed.`,
     }),
 
     searchRestaurantsNearby: llm.tool({
-      description: `Search for restaurants that take reservations.
-Use when:
-- User wants suggestions for where to eat
-- User wants to know what's available in an area
-- Need to find a restaurant's booking options`,
+      description: getToolDescription('searchRestaurantsNearby'),
       parameters: z.object({
         query: z.string().describe('Type of food or restaurant name'),
         location: z.string().describe('City, neighborhood, or area'),
@@ -243,16 +234,7 @@ Use when:
     // ========== APPOINTMENTS (DOCTOR, DENTIST, ETC.) ==========
 
     scheduleAppointment: llm.tool({
-      description: `Schedule an appointment by calling the business.
-Use for:
-- Doctor appointments
-- Dentist appointments
-- Salon/spa bookings
-- Service appointments
-- Consultations
-- Any appointment that needs a phone call to book
-
-Alex will call on behalf of the user.`,
+      description: getToolDescription('scheduleAppointment'),
       parameters: z.object({
         appointmentType: z
           .enum(['doctor', 'dentist', 'salon', 'spa', 'vet', 'service', 'consultation', 'other'])
@@ -311,13 +293,7 @@ Alex will call on behalf of the user.`,
     // ========== CHECK AVAILABILITY ==========
 
     checkAvailability: llm.tool({
-      description: `Call a business to check if they have availability.
-Use when:
-- User wants to know if a restaurant has openings
-- Checking if a service is available
-- Seeing if appointments are open before committing
-
-This is a quick call to check, not book.`,
+      description: getToolDescription('checkAvailability'),
       parameters: z.object({
         businessName: z.string().describe('Business to check'),
         businessPhone: z.string().describe('Phone number'),
@@ -362,8 +338,7 @@ This is a quick call to check, not book.`,
     // ========== CONFIRM/CANCEL APPOINTMENTS ==========
 
     confirmAppointment: llm.tool({
-      description: `Confirm a scheduled appointment by calling.
-Use to verify an existing appointment is still on.`,
+      description: getToolDescription('confirmAppointment'),
       parameters: z.object({
         appointmentId: z.string().optional().describe('Appointment ID if known'),
         businessName: z.string().describe('Business name'),
@@ -400,7 +375,7 @@ Use to verify an existing appointment is still on.`,
     }),
 
     cancelAppointment: llm.tool({
-      description: `Cancel an appointment by calling the business.`,
+      description: getToolDescription('cancelAppointment'),
       parameters: z.object({
         businessName: z.string().describe('Business name'),
         businessPhone: z.string().describe('Phone number'),
@@ -438,8 +413,7 @@ Use to verify an existing appointment is still on.`,
     // ========== APPOINTMENT STATUS ==========
 
     getAppointmentStatus: llm.tool({
-      description: `Get the status of scheduled appointments.
-Shows pending, confirmed, and recent appointments.`,
+      description: getToolDescription('getAppointmentStatus'),
       parameters: z.object({
         includeCompleted: z.boolean().default(false).describe('Include past appointments'),
       }),
@@ -502,13 +476,7 @@ Shows pending, confirmed, and recent appointments.`,
     // ========== LIFE EVENT SCHEDULING (JORDAN COORDINATION) ==========
 
     scheduleLifeEventAppointment: llm.tool({
-      description: `Schedule appointments related to a life event/milestone.
-Used when Jordan passes event details and Alex needs to make calls.
-Examples:
-- Wedding: venue tours, catering tastings, dress fittings
-- Baby: doctor appointments, pediatrician meet-and-greets
-- Home: inspection, appraisal, moving company
-- Party: venue, caterer, entertainment`,
+      description: getToolDescription('scheduleLifeEventAppointment'),
       parameters: z.object({
         eventName: z.string().describe('The life event (e.g., "Wedding", "Baby Shower")'),
         milestoneId: z.string().optional().describe('Jordan milestone ID if linked'),
@@ -566,12 +534,7 @@ Examples:
     // ========== QUICK CALL ==========
 
     quickCall: llm.tool({
-      description: `Make a quick call to any number for a simple inquiry.
-Use for:
-- Checking store hours
-- Quick questions
-- General inquiries
-- Any call that doesn't need formal appointment tracking`,
+      description: getToolDescription('quickCall'),
       parameters: z.object({
         phoneNumber: z.string().describe('Phone number to call'),
         businessName: z.string().optional().describe('Who you are calling'),
@@ -600,11 +563,7 @@ Use for:
     // ========== APPOINTMENT FOLLOW-UP TOOLS ==========
 
     markAppointmentConfirmed: llm.tool({
-      description: `Mark an appointment as confirmed after receiving confirmation.
-Use when:
-- User says "they confirmed my reservation"
-- User got a confirmation number
-- The business called back to confirm`,
+      description: getToolDescription('markAppointmentConfirmed'),
       parameters: z.object({
         businessName: z.string().describe('Business name'),
         confirmationNumber: z.string().optional().describe('Confirmation number if given'),
@@ -676,8 +635,7 @@ Use when:
     }),
 
     retryAppointmentCall: llm.tool({
-      description: `Retry calling for an appointment that's still pending.
-Use when user asks to try calling again.`,
+      description: getToolDescription('retryAppointmentCall'),
       parameters: z.object({
         businessName: z.string().describe('Business to call again'),
       }),
@@ -704,8 +662,7 @@ Use when user asks to try calling again.`,
     }),
 
     getFollowUpStatus: llm.tool({
-      description: `Check the status of appointment follow-ups.
-Shows which appointments are pending, being called, or need attention.`,
+      description: getToolDescription('getFollowUpStatus'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userData = ctx?.userData as { userId?: string } | undefined;
@@ -749,8 +706,7 @@ Shows which appointments are pending, being called, or need attention.`,
     // ========== SET REMINDER FOR APPOINTMENT ==========
 
     setAppointmentReminder: llm.tool({
-      description: `Set a reminder before an upcoming appointment.
-Alex will remind via text/call before the appointment.`,
+      description: getToolDescription('setAppointmentReminder'),
       parameters: z.object({
         appointmentDescription: z.string().describe('What the appointment is'),
         appointmentDateTime: z.string().describe('When the appointment is'),

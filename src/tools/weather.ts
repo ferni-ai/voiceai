@@ -13,6 +13,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../utils/safe-logger.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -84,18 +85,38 @@ const WEATHER_CODES: Record<number, string> = {
  * Geocode a location name to coordinates
  */
 async function geocodeLocation(location: string): Promise<GeocodingResult | null> {
+  const startTime = Date.now();
+  const log = getLogger();
+  
   try {
+    log.debug({ location }, '🌍 [DIAG] Geocoding location...');
     const response = await fetch(
       `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1`,
       { signal: AbortSignal.timeout(8000) }
     );
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      log.warn({ location, status: response.status, elapsed: Date.now() - startTime }, '🌍 [DIAG] Geocoding returned non-OK');
+      return null;
+    }
 
     const data = (await response.json()) as { results?: GeocodingResult[] };
-    return data.results?.[0] || null;
+    const result = data.results?.[0] || null;
+    log.debug({ location, found: !!result, elapsed: Date.now() - startTime }, '🌍 [DIAG] Geocoding complete');
+    return result;
   } catch (error) {
-    getLogger().warn(`Geocoding error for ${location}: ${error}`);
+    const elapsed = Date.now() - startTime;
+    const isTimeout = String(error).includes('timeout') || String(error).includes('AbortError');
+    log.warn(
+      { 
+        location, 
+        error: String(error), 
+        elapsed,
+        isTimeout,
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+      },
+      '🌍 [DIAG] Geocoding FAILED - may affect subsequent tools!'
+    );
     return null;
   }
 }
@@ -115,9 +136,18 @@ function getWeatherDescription(code: number): string {
  * Get current weather for a location
  */
 export async function getCurrentWeather(location: string): Promise<string> {
+  const startTime = Date.now();
+  const log = getLogger();
+  
+  log.info(
+    { timestamp: new Date().toISOString(), location },
+    '🌤️ [DIAG] getCurrentWeather START'
+  );
+  
   const geo = await geocodeLocation(location);
 
   if (!geo) {
+    log.warn({ location, elapsed: Date.now() - startTime }, '🌤️ [DIAG] getCurrentWeather: Geocoding failed');
     return `I couldn't find weather data for "${location}". Try a major city name?`;
   }
 
@@ -128,9 +158,11 @@ export async function getCurrentWeather(location: string): Promise<string> {
       `&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,apparent_temperature` +
       `&temperature_unit=fahrenheit&wind_speed_unit=mph`;
 
+    log.debug({ location, geo: geo.name }, '🌤️ [DIAG] Fetching weather data...');
     const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
 
     if (!response.ok) {
+      log.warn({ location, status: response.status, elapsed: Date.now() - startTime }, '🌤️ [DIAG] Weather API returned non-OK');
       return `Couldn't get current weather for ${geo.name}.`;
     }
 
@@ -138,6 +170,7 @@ export async function getCurrentWeather(location: string): Promise<string> {
     const { current } = data;
 
     if (!current) {
+      log.warn({ location, elapsed: Date.now() - startTime }, '🌤️ [DIAG] Weather API returned no current data');
       return `No weather data available for ${geo.name}.`;
     }
 
@@ -148,12 +181,24 @@ export async function getCurrentWeather(location: string): Promise<string> {
 
     const locationName = geo.admin1 ? `${geo.name}, ${geo.admin1}` : geo.name;
 
+    log.info({ location, elapsed: Date.now() - startTime }, '🌤️ [DIAG] getCurrentWeather SUCCESS');
     return (
       `Right now in ${locationName}: ${Math.round(current.temperature_2m)}°F with ${condition}${feelsLike}. ` +
       `Humidity is ${current.relative_humidity_2m}% and winds are ${Math.round(current.wind_speed_10m)} mph.`
     );
   } catch (error) {
-    getLogger().warn(`Weather API error: ${error}`);
+    const elapsed = Date.now() - startTime;
+    const isTimeout = String(error).includes('timeout') || String(error).includes('AbortError');
+    log.warn(
+      { 
+        location, 
+        error: String(error), 
+        elapsed,
+        isTimeout,
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+      },
+      '🌤️ [DIAG] getCurrentWeather FAILED - check if this correlates with music issues!'
+    );
     return `I had trouble checking the weather. The service might be temporarily unavailable.`;
   }
 }
@@ -224,8 +269,7 @@ export function createWeatherTools() {
 
   return {
     getWeather: llm.tool({
-      description:
-        'Get current weather for a city or location. Use when user asks about the weather anywhere.',
+      description: getToolDescription('getWeather'),
       parameters: z.object({
         location: z
           .string()
@@ -251,8 +295,7 @@ export function createWeatherTools() {
     }),
 
     getWeatherForecast: llm.tool({
-      description:
-        'Get weather forecast for upcoming days. Use when user asks about weekend weather or future conditions.',
+      description: getToolDescription('getWeatherForecast'),
       parameters: z.object({
         location: z.string().describe('City name'),
         days: z.number().optional().describe('Number of days to forecast (1-7), defaults to 5'),

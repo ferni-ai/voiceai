@@ -635,7 +635,7 @@ async function playDramaticIconMoment(iconSvg: string, config: MomentConfig): Pr
   const holdDuration = Math.max(config.duration - DURATION.MODERATE - DURATION.MODERATE, 300);
 
   // Wait for hold, then morph back
-  await new Promise((resolve) => trackedTimeout(resolve, holdDuration));
+  await new Promise<void>((resolve) => setTimeout(resolve, holdDuration));
 
   // Morph icon → text with spring physics
   await morphIconToText(iconElement);

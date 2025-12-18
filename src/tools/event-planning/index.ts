@@ -32,4 +32,4 @@ export {
 } from './storage.js';
 
 // Re-export the main tools from parent (for convenience)
-export { createEventPlanningTools } from '../event-planning.js';
+export { createEventPlanningTools } from '../domains/life-planning/event-planning.js';

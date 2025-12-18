@@ -33,26 +33,26 @@ const ROOT = path.resolve(__dirname, '..');
 const CONFIG = {
   // Directories to scan
   scanDirs: [
-    'frontend-typescript/src/ui',
-    'frontend-typescript/src/services',
-    'frontend-typescript/src/narrative',
+    'apps/web/src/ui',
+    'apps/web/src/services',
+    'apps/web/src/narrative',
   ],
   
   // Priority files to fix first (core user-facing UI)
   priorityFiles: [
-    'frontend-typescript/src/ui/coach.ui.ts',
-    'frontend-typescript/src/ui/waveform.ui.ts',
-    'frontend-typescript/src/ui/avatar-feedback.ui.ts',
-    'frontend-typescript/src/ui/avatar-soul.ui.ts',
-    'frontend-typescript/src/ui/message.ui.ts',
-    'frontend-typescript/src/ui/toast.ui.ts',
-    'frontend-typescript/src/ui/celebration.ui.ts',
-    'frontend-typescript/src/ui/team.ui.ts',
-    'frontend-typescript/src/ui/greeting.ui.ts',
-    'frontend-typescript/src/ui/subscription.ui.ts',
-    'frontend-typescript/src/ui/connection-heart.ui.ts',
-    'frontend-typescript/src/ui/contact-settings.ui.ts',
-    'frontend-typescript/src/ui/account-button.ui.ts',
+    'apps/web/src/ui/coach.ui.ts',
+    'apps/web/src/ui/waveform.ui.ts',
+    'apps/web/src/ui/avatar-feedback.ui.ts',
+    'apps/web/src/ui/avatar-soul.ui.ts',
+    'apps/web/src/ui/message.ui.ts',
+    'apps/web/src/ui/toast.ui.ts',
+    'apps/web/src/ui/celebration.ui.ts',
+    'apps/web/src/ui/team.ui.ts',
+    'apps/web/src/ui/greeting.ui.ts',
+    'apps/web/src/ui/subscription.ui.ts',
+    'apps/web/src/ui/connection-heart.ui.ts',
+    'apps/web/src/ui/contact-settings.ui.ts',
+    'apps/web/src/ui/account-button.ui.ts',
   ],
   
   // Files/patterns to ignore

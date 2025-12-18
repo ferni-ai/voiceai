@@ -86,14 +86,38 @@ export { buildReasoningChain, getReasoningChainGuidance } from './cognitive-adva
 // Cognitive conflict resolution
 export { detectCognitiveConflict } from './cognitive-advanced.js';
 
-// Cognitive learning
-export { CognitiveLearningTracker, getCognitiveLearningTracker } from './cognitive-advanced.js';
+// Cognitive learning (NOW WITH PERSISTENCE!)
+export {
+  CognitiveLearningTracker,
+  getCognitiveLearningTracker,
+  initializeCognitiveLearning,
+  flushCognitiveLearning,
+} from './cognitive-advanced.js';
 
-// Knowledge state persistence
-export { KnowledgeStateTracker, getKnowledgeStateTracker } from './cognitive-advanced.js';
+// Knowledge state persistence (NOW WITH PERSISTENCE!)
+export {
+  KnowledgeStateTracker,
+  getKnowledgeStateTracker,
+  initializeKnowledgeState,
+  flushKnowledgeState,
+} from './cognitive-advanced.js';
 
 // Cognitive growth arc
 export { getCognitiveGrowthProfile, buildCognitiveGrowthContext } from './cognitive-advanced.js';
+
+// Persistence types and functions
+export type {
+  PersistedCognitiveLearning,
+  PersistedKnowledgeState,
+} from './cognitive-persistence.js';
+
+export {
+  saveCognitiveLearning,
+  loadCognitiveLearning,
+  loadAllCognitiveLearning,
+  saveKnowledgeState,
+  loadKnowledgeState,
+} from './cognitive-persistence.js';
 
 // ============================================================================
 // COLLABORATIVE COGNITION

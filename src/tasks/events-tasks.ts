@@ -10,6 +10,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { IntelligentTask } from './intelligent-task.js';
 
+import { getToolDescription } from '../tools/utils/tool-descriptions.js';
 // ============================================================================
 // EVENT PLANNING TASK
 // ============================================================================
@@ -67,7 +68,7 @@ export class EventPlanningTask extends IntelligentTask<EventPlanningResult> {
       },
       tools: {
         captureVision: llm.tool({
-          description: 'Capture their vision for the event.',
+          description: getToolDescription('captureVision'),
           parameters: z.object({
             eventName: z.string().describe('What to call this event'),
             vibe: z.string().describe('The feeling they want'),
@@ -85,7 +86,7 @@ export class EventPlanningTask extends IntelligentTask<EventPlanningResult> {
         }),
 
         setDateVenue: llm.tool({
-          description: 'Lock in date and venue.',
+          description: getToolDescription('setDateVenue'),
           parameters: z.object({
             date: z.string().describe('Event date'),
             dateFlexible: z.boolean(),
@@ -105,7 +106,7 @@ export class EventPlanningTask extends IntelligentTask<EventPlanningResult> {
         }),
 
         setBudget: llm.tool({
-          description: 'Set and break down budget.',
+          description: getToolDescription('setBudget'),
           parameters: z.object({
             totalBudget: z.number(),
             breakdown: z.array(
@@ -129,7 +130,7 @@ export class EventPlanningTask extends IntelligentTask<EventPlanningResult> {
         }),
 
         createChecklist: llm.tool({
-          description: 'Create a planning checklist.',
+          description: getToolDescription('createChecklist'),
           parameters: z.object({
             checklist: z.array(
               z.object({
@@ -154,7 +155,7 @@ export class EventPlanningTask extends IntelligentTask<EventPlanningResult> {
         }),
 
         completeEventPlan: llm.tool({
-          description: 'Complete the event planning session.',
+          description: getToolDescription('completeEventPlan'),
           parameters: z.object({
             eventName: z.string(),
             eventType: z.string(),
@@ -241,7 +242,7 @@ export class SpecialDateTask extends IntelligentTask<SpecialDateResult> {
       },
       tools: {
         gatherContext: llm.tool({
-          description: 'Gather context about the person and date.',
+          description: getToolDescription('gatherContext'),
           parameters: z.object({
             person: z.string().describe('Who this is for'),
             relationship: z.string().describe('Their relationship'),
@@ -259,7 +260,7 @@ export class SpecialDateTask extends IntelligentTask<SpecialDateResult> {
         }),
 
         brainstormGifts: llm.tool({
-          description: 'Brainstorm gift ideas.',
+          description: getToolDescription('brainstormGifts'),
           parameters: z.object({
             giftIdeas: z.array(
               z.object({
@@ -276,7 +277,7 @@ export class SpecialDateTask extends IntelligentTask<SpecialDateResult> {
         }),
 
         brainstormCelebration: llm.tool({
-          description: 'Brainstorm celebration ideas.',
+          description: getToolDescription('brainstormCelebration'),
           parameters: z.object({
             celebrationIdeas: z.array(
               z.object({
@@ -292,7 +293,7 @@ export class SpecialDateTask extends IntelligentTask<SpecialDateResult> {
         }),
 
         completeSpecialDate: llm.tool({
-          description: 'Complete the special date planning.',
+          description: getToolDescription('completeSpecialDate'),
           parameters: z.object({
             dateName: z.string(),
             date: z.string(),
@@ -367,7 +368,7 @@ export class TravelPlanningTask extends IntelligentTask<TravelPlanningResult> {
       },
       tools: {
         captureVision: llm.tool({
-          description: 'Capture their trip vision.',
+          description: getToolDescription('captureVision'),
           parameters: z.object({
             dates: z.string().describe('Travel dates'),
             duration: z.string().describe('Trip length'),
@@ -381,7 +382,7 @@ export class TravelPlanningTask extends IntelligentTask<TravelPlanningResult> {
         }),
 
         planAccommodation: llm.tool({
-          description: 'Discuss accommodation options.',
+          description: getToolDescription('captureVision'),
           parameters: z.object({
             accommodationType: z.string().describe('Type of accommodation'),
             location: z.string().describe('Where to stay'),
@@ -398,7 +399,7 @@ export class TravelPlanningTask extends IntelligentTask<TravelPlanningResult> {
         }),
 
         planActivities: llm.tool({
-          description: 'Plan activities and experiences.',
+          description: getToolDescription('planAccommodation'),
           parameters: z.object({
             mustDo: z.array(z.string()).describe("Can't miss experiences"),
             maybeActivities: z.array(z.string()).describe("If there's time"),
@@ -418,7 +419,7 @@ export class TravelPlanningTask extends IntelligentTask<TravelPlanningResult> {
         }),
 
         completeTravelPlan: llm.tool({
-          description: 'Complete the travel planning session.',
+          description: getToolDescription('planActivities'),
           parameters: z.object({
             destination: z.string(),
             dates: z.string(),
@@ -517,7 +518,7 @@ export class LifeMilestoneTask extends IntelligentTask<LifeMilestoneResult> {
       },
       tools: {
         acknowledgeSignificance: llm.tool({
-          description: 'Acknowledge the significance of the milestone.',
+          description: getToolDescription('completeTravelPlan'),
           parameters: z.object({
             milestone: z.string(),
             whatItMeans: z.string().describe('What this represents'),
@@ -530,7 +531,7 @@ export class LifeMilestoneTask extends IntelligentTask<LifeMilestoneResult> {
         }),
 
         planCelebration: llm.tool({
-          description: 'Plan how to celebrate.',
+          description: getToolDescription('acknowledgeSignificance'),
           parameters: z.object({
             celebrationIdea: z.string(),
             solo: z.boolean().describe('Solo or with others'),
@@ -543,7 +544,7 @@ export class LifeMilestoneTask extends IntelligentTask<LifeMilestoneResult> {
         }),
 
         planDocumentation: llm.tool({
-          description: 'Plan how to document/remember this moment.',
+          description: getToolDescription('planCelebration'),
           parameters: z.object({
             documentationIdea: z.string().describe('How to capture it'),
             whyMatters: z.string().describe('Why documenting matters'),
@@ -554,7 +555,7 @@ export class LifeMilestoneTask extends IntelligentTask<LifeMilestoneResult> {
         }),
 
         completeMilestone: llm.tool({
-          description: 'Complete the milestone acknowledgment.',
+          description: getToolDescription('planDocumentation'),
           parameters: z.object({
             milestone: z.string(),
             significance: z.string(),

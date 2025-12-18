@@ -27,7 +27,6 @@ import {
   renderCloseButton,
   STAGGER_DELAYS,
 } from './engagement-components.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 
 // Track setTimeout calls for memory leak prevention
 const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
@@ -188,9 +187,6 @@ class CognitiveInsightsUI {
   hide(): void {
     if (!this.panel) return;
 
-    // Clean up iOS tap listeners
-    cleanupTapListeners(this.panel);
-
     this.panel.classList.remove('cognitive-insights--visible');
     this.isVisible = false;
 
@@ -232,9 +228,12 @@ class CognitiveInsightsUI {
 
     document.body.appendChild(this.panel);
 
-    // Bind events (iOS-compatible)
-    addTapListener(this.panel.querySelector('.cognitive-insights__backdrop'), () => this.hide());
-    addTapListener(this.panel.querySelector('.engagement-close-btn'), () => this.hide());
+    // Bind events
+    const backdrop = this.panel.querySelector('.cognitive-insights__backdrop');
+    backdrop?.addEventListener('click', () => this.hide());
+
+    const closeBtn = this.panel.querySelector('.engagement-close-btn');
+    closeBtn?.addEventListener('click', () => this.hide());
 
     // Close on escape
     document.addEventListener('keydown', (e) => {
@@ -321,9 +320,9 @@ class CognitiveInsightsUI {
       }
     `;
 
-    // Bind delete buttons (iOS-compatible)
+    // Bind delete buttons
     content.querySelectorAll('.cognitive-insights__memory-delete').forEach((btn) => {
-      addTapListener(btn, (e) => {
+      btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const id = (btn as HTMLElement).dataset.id;
         if (id) this.callbacks.onDeleteMemory?.(id);
@@ -445,12 +444,13 @@ class CognitiveInsightsUI {
       comfort_application: 'How to Help',
     };
 
-    const toneEmoji: Record<string, string> = {
-      celebratory: '🎉',
-      gentle: '💙',
-      curious: '🤔',
-      warm: '🌱',
-      supportive: '💪',
+    // Use SVG icons instead of emojis (brand-compliant)
+    const toneIcons: Record<string, string> = {
+      celebratory: ICONS.sparkles,
+      gentle: ICONS.heart,
+      curious: ICONS.questionMark,
+      warm: ICONS.sprout,
+      supportive: ICONS.flexBicep,
     };
 
     return `
@@ -461,7 +461,7 @@ class CognitiveInsightsUI {
         <div class="cognitive-insights__superhuman-insight-content">
           <div class="cognitive-insights__superhuman-insight-header">
             <span class="cognitive-insights__superhuman-insight-type">${typeLabels[insight.type] || insight.type}</span>
-            <span class="cognitive-insights__superhuman-insight-tone">${toneEmoji[insight.tone] || ''}</span>
+            <span class="cognitive-insights__superhuman-insight-tone">${toneIcons[insight.tone] || ''}</span>
           </div>
           <p class="cognitive-insights__superhuman-insight-phrase">${escapeHtml(insight.naturalPhrase)}</p>
         </div>
@@ -1005,7 +1005,15 @@ class CognitiveInsightsUI {
       }
 
       .cognitive-insights__superhuman-insight-tone {
-        font-size: var(--text-sm);
+        display: inline-flex;
+        width: 16px;
+        height: 16px;
+        color: var(--persona-primary, #4a6741);
+      }
+
+      .cognitive-insights__superhuman-insight-tone svg {
+        width: 100%;
+        height: 100%;
       }
 
       .cognitive-insights__superhuman-insight-phrase {

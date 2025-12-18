@@ -3,9 +3,27 @@
  *
  * Generates text embeddings for semantic search and similarity matching.
  * Uses OpenAI's embedding API by default, but supports other providers.
+ * Protected by circuit breaker to prevent cascading failures.
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { getCircuitBreaker } from '../utils/circuit-breaker.js';
+
+// ============================================================================
+// CIRCUIT BREAKERS
+// ============================================================================
+
+const openaiEmbeddingBreaker = getCircuitBreaker('openai-embeddings', {
+  failureThreshold: 5,
+  resetTimeout: 30000,
+  successThreshold: 2,
+});
+
+const googleEmbeddingBreaker = getCircuitBreaker('google-embeddings', {
+  failureThreshold: 5,
+  resetTimeout: 30000,
+  successThreshold: 2,
+});
 
 // ============================================================================
 // TYPES
@@ -93,46 +111,55 @@ export class OpenAIEmbeddings extends EmbeddingProvider {
       throw new Error('OpenAI API key not configured');
     }
 
+    // Check circuit breaker before making request
+    if (!openaiEmbeddingBreaker.canRequest()) {
+      throw new Error('OpenAI embedding service unavailable (circuit breaker open)');
+    }
+
     try {
-      const response = await fetch('https://api.openai.com/v1/embeddings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: this._model,
-          input: texts,
-        }),
-      });
+      return await openaiEmbeddingBreaker.execute(async () => {
+        const response = await fetch('https://api.openai.com/v1/embeddings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: this._model,
+            input: texts,
+          }),
+        });
 
-      if (!response.ok) {
-        const error = await response.text();
+        if (!response.ok) {
+          const error = await response.text();
 
-        // Retry on rate limit (429) errors
-        if (response.status === 429 && retryCount < MAX_RETRIES) {
-          getLogger().warn(
-            `Rate limited, retrying in ${RETRY_DELAY_MS}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`
-          );
-          await new Promise<void>((resolve) => {
-            setTimeout(resolve, RETRY_DELAY_MS * (retryCount + 1));
-          });
-          return this.embedBatch(texts, retryCount + 1);
+          // Retry on rate limit (429) errors
+          if (response.status === 429 && retryCount < MAX_RETRIES) {
+            getLogger().warn(
+              `Rate limited, retrying in ${RETRY_DELAY_MS}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`
+            );
+            await new Promise<void>((resolve) => {
+              setTimeout(resolve, RETRY_DELAY_MS * (retryCount + 1));
+            });
+            return this.embedBatch(texts, retryCount + 1);
+          }
+
+          throw new Error(`OpenAI API error: ${response.status} - ${error}`);
         }
 
-        throw new Error(`OpenAI API error: ${response.status} - ${error}`);
-      }
+        const data = (await response.json()) as {
+          data: Array<{ embedding: number[]; index: number }>;
+          usage: { total_tokens: number };
+        };
 
-      const data = (await response.json()) as {
-        data: Array<{ embedding: number[]; index: number }>;
-        usage: { total_tokens: number };
-      };
+        // Sort by index to maintain order
+        const sorted = data.data.sort((a, b) => a.index - b.index);
 
-      // Sort by index to maintain order
-      const sorted = data.data.sort((a, b) => a.index - b.index);
-
-      getLogger().debug(`Generated ${texts.length} embeddings, ${data.usage.total_tokens} tokens`);
-      return sorted.map((d) => d.embedding);
+        getLogger().debug(
+          `Generated ${texts.length} embeddings, ${data.usage.total_tokens} tokens`
+        );
+        return sorted.map((d) => d.embedding);
+      });
     } catch (error) {
       getLogger().error(`Embedding error: ${error}`);
       throw error;
@@ -186,36 +213,43 @@ export class GoogleEmbeddings extends EmbeddingProvider {
       throw new Error('Google API key not configured');
     }
 
+    // Check circuit breaker before making request
+    if (!googleEmbeddingBreaker.canRequest()) {
+      throw new Error('Google embedding service unavailable (circuit breaker open)');
+    }
+
     try {
-      // Use Google AI Generative Language API (simpler, API key auth)
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${this._model}:batchEmbedContents?key=${this.apiKey}`;
+      return await googleEmbeddingBreaker.execute(async () => {
+        // Use Google AI Generative Language API (simpler, API key auth)
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${this._model}:batchEmbedContents?key=${this.apiKey}`;
 
-      const requests = texts.map((text) => ({
-        model: `models/${this._model}`,
-        content: { parts: [{ text }] },
-      }));
+        const requests = texts.map((text) => ({
+          model: `models/${this._model}`,
+          content: { parts: [{ text }] },
+        }));
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ requests }),
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ requests }),
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`Google AI API error: ${response.status} - ${error}`);
+        }
+
+        const data = (await response.json()) as {
+          embeddings: Array<{ values: number[] }>;
+        };
+
+        getLogger().debug(
+          `Generated ${texts.length} Google AI embeddings (${this._model}), ${this._dimensions}d`
+        );
+        return data.embeddings.map((e) => e.values);
       });
-
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Google AI API error: ${response.status} - ${error}`);
-      }
-
-      const data = (await response.json()) as {
-        embeddings: Array<{ values: number[] }>;
-      };
-
-      getLogger().debug(
-        `Generated ${texts.length} Google AI embeddings (${this._model}), ${this._dimensions}d`
-      );
-      return data.embeddings.map((e) => e.values);
     } catch (error) {
       getLogger().error(`Google embedding error: ${error}`);
       throw error;

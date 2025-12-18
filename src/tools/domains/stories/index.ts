@@ -17,6 +17,7 @@ import { llm, log } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // LIFE STORY TOOLS
 // ============================================================================
@@ -30,7 +31,7 @@ const captureLifeStoryDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user capture and preserve a meaningful part of their life story.',
+      description: getToolDescription('captureLifeStory'),
       parameters: z.object({
         focus: z
           .enum([
@@ -123,7 +124,7 @@ const exploreLifeChapterDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user explore and reflect on a specific chapter or era of their life.',
+      description: getToolDescription('exploreLifeChapter'),
       parameters: z.object({
         chapterName: z.string().describe('Name or description of this life chapter'),
         timeframe: z.string().optional().describe('When this chapter took place'),
@@ -165,8 +166,7 @@ const defineLegacyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user think deeply about their legacy - what they want to leave behind.',
+      description: getToolDescription('defineLegacy'),
       parameters: z.object({
         approach: z
           .enum(['values', 'impact', 'wisdom', 'relationships', 'comprehensive'])
@@ -216,8 +216,7 @@ const writeEthicalWillDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user write an ethical will - a letter of values, hopes, and wisdom for loved ones.',
+      description: getToolDescription('writeEthicalWill'),
       parameters: z.object({
         forWhom: z.string().describe('Who this is for'),
         section: z
@@ -259,8 +258,7 @@ const findNarrativeThreadDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user discover the recurring themes and narrative threads in their life.',
+      description: getToolDescription('findNarrativeThread'),
       parameters: z.object({
         lookedFor: z
           .enum(['patterns', 'themes', 'heroes-journey', 'central-question'])
@@ -313,8 +311,7 @@ const rewriteStoryDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user reframe a painful or limiting story into a more empowering narrative.',
+      description: getToolDescription('rewriteStory'),
       parameters: z.object({
         oldStory: z.string().describe('The story as currently told'),
         whatHurts: z.string().describe('What about this story is painful or limiting'),
@@ -352,7 +349,7 @@ const createTimeCapsuleDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Guide creation of a time capsule message.',
+      description: getToolDescription('createTimeCapsule'),
       parameters: z.object({
         recipient: z
           .enum(['future-self', 'children', 'grandchildren', 'unborn', 'world'])
@@ -407,7 +404,7 @@ const familyStoryPromptsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Provide prompts for interviewing family members about their stories.',
+      description: getToolDescription('familyStoryPrompts'),
       parameters: z.object({
         relationship: z
           .enum(['parent', 'grandparent', 'elder', 'sibling', 'other-relative'])
@@ -504,7 +501,7 @@ const recordOralHistoryDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Guide the user in recording and preserving oral history.',
+      description: getToolDescription('recordOralHistory'),
       parameters: z.object({
         subject: z.string().describe('Whose history to record'),
         purpose: z

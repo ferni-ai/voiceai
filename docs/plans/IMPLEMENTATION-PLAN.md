@@ -191,7 +191,7 @@ async sendCustomEvent(eventType: string, data: Record<string, unknown>): Promise
 ```
 
 ### 2.4 Frontend Event Handler
-**File**: `frontend-typescript/src/app/data-message-handlers.ts`
+**File**: `apps/web/src/app/data-message-handlers.ts`
 
 Add handler for custom_event type:
 
@@ -399,8 +399,8 @@ event-driven system.
 - `src/agents/realtime/emotion-event-dispatcher.ts` - Sends to frontend
 
 **Frontend** (visual response):
-- `frontend-typescript/src/ui/better-than-human.ui.ts` - EQ capabilities
-- `frontend-typescript/src/ui/avatar-soul.ui.ts` - Visual animations
+- `apps/web/src/ui/better-than-human.ui.ts` - EQ capabilities
+- `apps/web/src/ui/avatar-soul.ui.ts` - Visual animations
 
 ### Five Capabilities
 
@@ -679,7 +679,7 @@ After verification:
 - `src/agents/realtime/frontend-publisher.ts` - Add custom event method
 - `src/tools/utils/tool-wrapper.ts` - Add humanization
 - `src/personality/relationship-memory.ts` - Add Firestore
-- `frontend-typescript/src/app/data-message-handlers.ts` - Handle custom events
+- `apps/web/src/app/data-message-handlers.ts` - Handle custom events
 - `CLAUDE.md` - Update EQ documentation
 
 ### Files to Archive

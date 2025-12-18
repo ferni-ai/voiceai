@@ -271,7 +271,7 @@ Instead of "Coming Soon" (tech speak), we use:
 Replace locked feature clicks with a beautiful roadmap modal:
 
 ```typescript
-// frontend-typescript/src/ui/roadmap-panel.ui.ts
+// apps/web/src/ui/roadmap-panel.ui.ts
 
 interface RoadmapFeature {
   id: string;
@@ -437,7 +437,7 @@ Display aggregate interest:
 - `design-system/brand/FERNI-BRAND-GUIDELINES.md`
 - `design-system/brand/BETTER-THAN-HUMAN.md`
 - `.cursorrules` - Brand language section
-- `frontend-typescript/src/ui/settings-menu.ui.ts`
+- `apps/web/src/ui/settings-menu.ui.ts`
 
 ---
 

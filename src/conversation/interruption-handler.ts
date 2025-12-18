@@ -59,34 +59,40 @@ export class InterruptionHandler {
   /**
    * Get a natural recovery phrase after being interrupted
    * Now with SSML tags for natural delivery
+   *
+   * Design: Soft, unhurried transitions - never jarring
+   * - Longer initial pauses (300-500ms) for breathing room
+   * - Lower volume (0.6-0.7) feels gentler
+   * - Slower speech rate (0.85-0.9) is more calming
+   * - Avoid exclamations - use gentle openers
    */
   getRecoveryPhrase(): string {
     const isFrequentInterrupter = this.interruptionCount > 3;
 
-    // If user interrupts frequently, agent should be more yielding
-    // SSML: Softer volume, slight pause, warmer tone
+    // If user interrupts frequently, agent should be very yielding
+    // SSML: Much softer volume, longer pause, warm and unhurried
     if (isFrequentInterrupter) {
       const yieldingPhrases = [
-        '<volume ratio="0.75"/><break time="100ms"/>No, please—<break time="50ms"/>go ahead.',
-        '<volume ratio="0.75"/><break time="100ms"/>I\'m listening. <break time="100ms"/>What\'s on your mind?',
-        '<break time="100ms"/><speed ratio="0.9"/>Tell me what you\'re thinking.',
-        '<volume ratio="0.75"/><break time="100ms"/>Yes, <break time="50ms"/>I want to hear this.',
-        '<break time="100ms"/><speed ratio="0.9"/>Please, continue.',
+        '<break time="400ms"/><volume ratio="0.65"/><speed ratio="0.85"/>Please, go ahead.',
+        '<break time="350ms"/><volume ratio="0.6"/><speed ratio="0.9"/>I\'m listening.',
+        '<break time="400ms"/><volume ratio="0.65"/><speed ratio="0.85"/>Tell me.',
+        '<break time="350ms"/><volume ratio="0.6"/><speed ratio="0.9"/>Yes, what\'s on your mind?',
+        '<break time="400ms"/><volume ratio="0.65"/>Mm-hmm, go on.',
       ];
       return yieldingPhrases[Math.floor(Math.random() * yieldingPhrases.length)];
     }
 
-    // Standard recovery phrases with SSML for natural delivery
-    // Include pauses, softened volume, and natural pacing
+    // Standard recovery phrases with SSML for soft, natural delivery
+    // Design: Gentle breathing room, never reactive
     const recoveries = [
-      '<break time="100ms"/>Oh! <break time="150ms"/>Go ahead, what were you saying?',
-      '<volume ratio="0.75"/><break time="100ms"/>Sorry, I was rambling. <break time="100ms"/>What\'s on your mind?',
-      '<break time="100ms"/>Yes, yes—<break time="100ms"/>please, go ahead.',
-      '<break time="150ms"/>Oh, excuse me. <break time="100ms"/>You go first.',
-      '<break time="200ms"/><speed ratio="0.9"/>Right, right. <break time="100ms"/>Tell me.',
-      '<volume ratio="0.75"/><break time="100ms"/>I\'m sorry, I interrupted your thought. <break time="100ms"/>Please continue.',
-      '<break time="100ms"/>No, no—<break time="100ms"/>what were you going to say?',
-      '<speed ratio="0.9"/><break time="100ms"/>I should let you talk. <break time="100ms"/>Go ahead.',
+      '<break time="350ms"/><volume ratio="0.7"/><speed ratio="0.9"/>Go ahead.',
+      '<break time="400ms"/><volume ratio="0.65"/><speed ratio="0.85"/>Mm, what were you saying?',
+      '<break time="350ms"/><volume ratio="0.7"/>Please, go on.',
+      '<break time="400ms"/><volume ratio="0.65"/><speed ratio="0.9"/>Yes?',
+      '<break time="350ms"/><volume ratio="0.7"/><speed ratio="0.85"/>I\'m listening.',
+      '<break time="400ms"/><volume ratio="0.65"/>What\'s on your mind?',
+      '<break time="350ms"/><volume ratio="0.7"/><speed ratio="0.9"/>Go ahead, tell me.',
+      '<break time="400ms"/><volume ratio="0.65"/><speed ratio="0.85"/>Mm-hmm.',
     ];
 
     return recoveries[Math.floor(Math.random() * recoveries.length)];
@@ -95,39 +101,45 @@ export class InterruptionHandler {
   /**
    * Get persona-specific recovery phrase with SSML
    * Uses canonical ID resolution for consistent persona matching
+   *
+   * Design: Each persona's voice, but all soft and unhurried
+   * - 350-450ms initial pause for breathing room
+   * - Volume 0.6-0.7 for gentle presence
+   * - Slower speech rate for calm energy
+   * - Avoid exclamations - gentle acknowledgments
    */
   getPersonaRecoveryPhrase(personaId: string): string {
-    // Map using canonical IDs
+    // Map using canonical IDs - all softened for gentle transitions
     const personaRecoveries: Record<string, string[]> = {
       'nayan-patel': [
-        '<volume ratio="0.75"/><break time="150ms"/>No, no—<break time="100ms"/>you go first. <break time="100ms"/>I\'m all ears.',
-        '<break time="100ms"/><speed ratio="0.85"/>Oh! <break time="150ms"/>Forgive me. <break time="100ms"/>Please, continue.',
-        '<volume ratio="0.75"/><break time="200ms"/>I\'m sorry. <break time="100ms"/>What were you saying?',
+        '<break time="400ms"/><volume ratio="0.65"/><speed ratio="0.85"/>Please, go ahead. I\'m listening.',
+        '<break time="350ms"/><volume ratio="0.6"/><speed ratio="0.9"/>Mm, forgive me. Continue.',
+        '<break time="400ms"/><volume ratio="0.65"/>What were you saying?',
       ],
       'peter-john': [
-        '<break time="100ms"/>Oh! <break time="100ms"/>Go ahead, go ahead!',
-        '<break time="150ms"/>Wait, <break time="100ms"/>tell me what you\'re thinking!',
-        '<volume ratio="0.75"/><break time="100ms"/>Sorry! <break time="100ms"/>I got excited. <break time="100ms"/>Go on.',
+        '<break time="300ms"/><volume ratio="0.7"/><speed ratio="0.9"/>Go ahead, go ahead.',
+        '<break time="350ms"/><volume ratio="0.65"/>Tell me what you\'re thinking.',
+        '<break time="300ms"/><volume ratio="0.7"/><speed ratio="0.9"/>Sorry, go on.',
       ],
       ferni: [
-        '<break time="100ms"/>Oh! <break time="100ms"/>What\'s on your mind?',
-        '<volume ratio="0.75"/><break time="150ms"/>No, go ahead—<break time="100ms"/>I want to hear this.',
-        '<break time="100ms"/>Wait, <break time="100ms"/>tell me what you\'re thinking.',
+        '<break time="350ms"/><volume ratio="0.65"/><speed ratio="0.9"/>What\'s on your mind?',
+        '<break time="400ms"/><volume ratio="0.6"/>Go ahead, I want to hear this.',
+        '<break time="350ms"/><volume ratio="0.65"/><speed ratio="0.85"/>Tell me.',
       ],
       'maya-santos': [
-        '<volume ratio="0.75"/><break time="150ms"/>Oh, <break time="100ms"/>I\'m sorry. <break time="100ms"/>Please, go ahead.',
-        '<break time="100ms"/><speed ratio="0.9"/>No, no—<break time="100ms"/>I want to hear this.',
-        '<volume ratio="0.75"/><break time="200ms"/>Take your time. <break time="100ms"/>I\'m listening.',
+        '<break time="400ms"/><volume ratio="0.6"/><speed ratio="0.85"/>Please, go ahead.',
+        '<break time="350ms"/><volume ratio="0.65"/><speed ratio="0.9"/>Mm, I want to hear this.',
+        '<break time="400ms"/><volume ratio="0.6"/>Take your time. I\'m listening.',
       ],
       'alex-chen': [
-        '<break time="100ms"/>Got it—<break time="100ms"/>go ahead.',
-        '<break time="100ms"/>Yes? <break time="100ms"/>What were you saying?',
-        '<volume ratio="0.75"/><break time="100ms"/>I\'m listening.',
+        '<break time="350ms"/><volume ratio="0.7"/><speed ratio="0.9"/>Go ahead.',
+        '<break time="300ms"/><volume ratio="0.65"/>Yes? What were you saying?',
+        '<break time="350ms"/><volume ratio="0.7"/>I\'m listening.',
       ],
       'jordan-taylor': [
-        '<break time="100ms"/>Oh! <break time="100ms"/>Tell me!',
-        '<break time="100ms"/>Wait, <break time="100ms"/>what is it?',
-        '<volume ratio="0.75"/><break time="100ms"/>Go ahead! <break time="100ms"/>I want to hear.',
+        '<break time="300ms"/><volume ratio="0.7"/><speed ratio="0.9"/>Tell me.',
+        '<break time="350ms"/><volume ratio="0.65"/>What is it?',
+        '<break time="300ms"/><volume ratio="0.7"/>Go ahead, I want to hear.',
       ],
     };
 

@@ -25,6 +25,106 @@ import { createLogger } from '../utils/safe-logger.js';
 const log = createLogger({ module: 'TeamUnlocks' });
 
 // ============================================================================
+// BYPASS CONFIGURATION
+// ============================================================================
+
+/**
+ * Parse BYPASS_TEAM_UNLOCKS environment variable.
+ *
+ * Supports flexible unlock bypass for testing/demo:
+ * - "all" or "true"     → Unlock all team members
+ * - "1", "2", "3", etc. → Unlock first N team members (after Ferni)
+ * - "maya"              → Unlock specific member by first name
+ * - "maya,peter,alex"   → Comma-separated list of members
+ *
+ * @returns Set of member IDs to bypass, or null if no bypass
+ */
+export function parseBypassConfig(): Set<TeamMemberId> | 'all' | null {
+  const bypassValue = process.env['BYPASS_TEAM_UNLOCKS'];
+
+  if (!bypassValue) return null;
+
+  const normalized = bypassValue.toLowerCase().trim();
+
+  // "all" or "true" means unlock everyone
+  if (normalized === 'all' || normalized === 'true') {
+    return 'all';
+  }
+
+  // Numeric value: unlock first N members (e.g., "2" = Maya + Peter)
+  const numericMatch = normalized.match(/^(\d+)$/);
+  if (numericMatch) {
+    const count = parseInt(numericMatch[1], 10);
+    // Skip Ferni (index 0), take next N members
+    const membersToUnlock = TEAM_MEMBER_ORDER.slice(0, count);
+    return new Set(['ferni', ...membersToUnlock] as TeamMemberId[]);
+  }
+
+  // Comma-separated list of names (e.g., "maya,peter" or "maya-santos,peter-john")
+  const names = normalized.split(',').map((n) => n.trim());
+  const memberIds = new Set<TeamMemberId>(['ferni']); // Ferni always unlocked
+
+  for (const name of names) {
+    const memberId = resolveMemberName(name);
+    if (memberId) {
+      memberIds.add(memberId);
+    } else {
+      log.warn({ name }, 'Unknown team member in BYPASS_TEAM_UNLOCKS');
+    }
+  }
+
+  return memberIds.size > 1 ? memberIds : null;
+}
+
+/**
+ * Resolve a member name/alias to their canonical ID.
+ * Supports: "maya", "maya-santos", "peter", "peter-john", etc.
+ */
+function resolveMemberName(name: string): TeamMemberId | null {
+  const normalized = name.toLowerCase().replace(/[-_\s]/g, '');
+
+  const nameMap: Record<string, TeamMemberId> = {
+    maya: 'maya-santos',
+    mayasantos: 'maya-santos',
+    peter: 'peter-john',
+    peterjohn: 'peter-john',
+    alex: 'alex-chen',
+    alexchen: 'alex-chen',
+    jordan: 'jordan-taylor',
+    jordantaylor: 'jordan-taylor',
+    nayan: 'nayan-patel',
+    nayanpatel: 'nayan-patel',
+    ferni: 'ferni',
+  };
+
+  return nameMap[normalized] || null;
+}
+
+/**
+ * Order of team members for numeric bypass (after Ferni).
+ * 1 = Maya, 2 = Maya + Peter, 3 = Maya + Peter + Alex, etc.
+ */
+const TEAM_MEMBER_ORDER: TeamMemberId[] = [
+  'maya-santos',
+  'peter-john',
+  'alex-chen',
+  'jordan-taylor',
+  'nayan-patel',
+];
+
+/**
+ * Check if a member is bypassed via env config.
+ */
+export function isMemberBypassed(memberId: TeamMemberId): boolean {
+  const bypass = parseBypassConfig();
+
+  if (bypass === null) return false;
+  if (bypass === 'all') return true;
+
+  return bypass.has(memberId);
+}
+
+// ============================================================================
 // STREAK CALCULATION
 // ============================================================================
 
@@ -432,16 +532,47 @@ export function getTeamUnlockState(
   profile: UserProfile | null,
   tier: 'free' | 'friend' | 'partner' = 'free'
 ): TeamUnlockState {
-  // BYPASS: When env var is set, return all members unlocked (for testing/demo)
-  // FIX BUG: This bypass was missing, causing context builder to tell Ferni
-  // "no team members available" even when BYPASS_TEAM_UNLOCKS=true
-  if (process.env['BYPASS_TEAM_UNLOCKS'] === 'true') {
+  // BYPASS: Check for flexible team unlock bypass (for testing/demo)
+  // Supports: "all", "true", "1", "2", "3", "maya", "maya,peter", etc.
+  const bypass = parseBypassConfig();
+
+  if (bypass === 'all') {
+    // Full bypass - all members unlocked
     return {
-      stage: 'deep-partnership', // Full access stage (highest level)
+      stage: 'deep-partnership',
       tier,
       unlockedMembers: TEAM_MEMBERS.map((m) => m.memberId),
       newlyUnlocked: undefined,
       nextUnlock: undefined,
+    };
+  }
+
+  if (bypass instanceof Set) {
+    // Partial bypass - specific members unlocked
+    const bypassedMembers = TEAM_MEMBERS.filter((m) => bypass.has(m.memberId)).map(
+      (m) => m.memberId
+    );
+
+    // Find next unlock (first non-bypassed member)
+    const nextMember = TEAM_MEMBERS.find((m) => !bypass.has(m.memberId) && m.memberId !== 'ferni');
+
+    log.info(
+      { bypassedMembers, bypassValue: process.env['BYPASS_TEAM_UNLOCKS'] },
+      '🔓 Team unlock bypass active (partial)'
+    );
+
+    return {
+      stage: 'established', // Assume mid-level stage for partial bypass
+      tier,
+      unlockedMembers: bypassedMembers,
+      newlyUnlocked: undefined,
+      nextUnlock: nextMember
+        ? {
+            member: nextMember,
+            conversationsNeeded: 0,
+            daysNeeded: 0,
+          }
+        : undefined,
     };
   }
 
@@ -517,8 +648,9 @@ export function isFullTeamUnlocked(
   profile: UserProfile | null,
   tier: 'free' | 'friend' | 'partner' = 'free'
 ): boolean {
-  // BYPASS: When env var is set, full team is considered unlocked (for testing/demo)
-  if (process.env['BYPASS_TEAM_UNLOCKS'] === 'true') {
+  // BYPASS: When env var is set to "all" or "true", full team is considered unlocked
+  const bypass = parseBypassConfig();
+  if (bypass === 'all') {
     return true;
   }
 

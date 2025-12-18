@@ -33,10 +33,14 @@
 
 import * as admin from 'firebase-admin';
 import { FieldValue, Timestamp, type Firestore } from 'firebase-admin/firestore';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 import type { EnrollmentSample, VoiceProfile } from './voice-enrollment.js';
 
 const log = getLogger().child({ module: 'VoiceProfileStore' });
+
+/** Firestore batch write limit */
+const FIRESTORE_BATCH_LIMIT = 500;
 
 // ============================================================================
 // Firebase Initialization
@@ -187,29 +191,36 @@ export async function saveVoiceProfile(profile: VoiceProfile): Promise<void> {
 
     // Save profile document
     const profileRef = db.doc(getProfilePath(profile.userId));
-    await profileRef.set(firestoreProfile);
+    await profileRef.set(removeUndefined(firestoreProfile));
 
     // Save samples in subcollection
     const samplesRef = db.collection(getSamplesPath(profile.userId));
 
-    // Delete existing samples
+    // Delete existing samples in batches to respect Firestore's 500-operation limit
     const existingSamples = await samplesRef.listDocuments();
-    const batch = db.batch();
-    existingSamples.forEach((doc) => batch.delete(doc));
-
-    // Add new samples
-    for (const sample of profile.embeddings) {
-      const sampleDoc: FirestoreEnrollmentSample = {
-        embedding: sample.embedding,
-        collectedAt: Timestamp.fromDate(sample.collectedAt),
-        durationMs: sample.durationMs,
-        quality: sample.quality,
-        context: sample.context,
-      };
-      batch.set(samplesRef.doc(), sampleDoc);
+    for (let i = 0; i < existingSamples.length; i += FIRESTORE_BATCH_LIMIT) {
+      const chunk = existingSamples.slice(i, i + FIRESTORE_BATCH_LIMIT);
+      const deleteBatch = db.batch();
+      chunk.forEach((doc) => deleteBatch.delete(doc));
+      await deleteBatch.commit();
     }
 
-    await batch.commit();
+    // Add new samples in batches to respect Firestore's 500-operation limit
+    for (let i = 0; i < profile.embeddings.length; i += FIRESTORE_BATCH_LIMIT) {
+      const chunk = profile.embeddings.slice(i, i + FIRESTORE_BATCH_LIMIT);
+      const addBatch = db.batch();
+      for (const sample of chunk) {
+        const sampleDoc: FirestoreEnrollmentSample = {
+          embedding: sample.embedding,
+          collectedAt: Timestamp.fromDate(sample.collectedAt),
+          durationMs: sample.durationMs,
+          quality: sample.quality,
+          context: sample.context,
+        };
+        addBatch.set(samplesRef.doc(), removeUndefined(sampleDoc));
+      }
+      await addBatch.commit();
+    }
 
     log.info({ userId: profile.userId }, 'Voice profile saved');
   } catch (error) {
@@ -321,18 +332,20 @@ export async function deleteVoiceProfile(userId: string): Promise<void> {
   }
 
   try {
-    // Delete samples first
+    // Delete samples first in batches to respect Firestore's 500-operation limit
     const samplesRef = db.collection(getSamplesPath(userId));
     const samples = await samplesRef.listDocuments();
 
-    const batch = db.batch();
-    samples.forEach((doc) => batch.delete(doc));
+    for (let i = 0; i < samples.length; i += FIRESTORE_BATCH_LIMIT) {
+      const chunk = samples.slice(i, i + FIRESTORE_BATCH_LIMIT);
+      const batch = db.batch();
+      chunk.forEach((doc) => batch.delete(doc));
+      await batch.commit();
+    }
 
-    // Delete profile
+    // Delete profile (single operation, no batching needed)
     const profileRef = db.doc(getProfilePath(userId));
-    batch.delete(profileRef);
-
-    await batch.commit();
+    await profileRef.delete();
 
     log.info({ userId }, 'Voice profile deleted');
   } catch (error) {
@@ -527,7 +540,7 @@ export async function updateVoiceProfileIndex(profile: VoiceProfile): Promise<vo
       updatedAt: Timestamp.fromDate(profile.updatedAt),
     };
 
-    await indexRef.set(indexEntry);
+    await indexRef.set(removeUndefined(indexEntry));
 
     log.debug({ userId: profile.userId }, 'Updated voice profile index');
   } catch (error) {

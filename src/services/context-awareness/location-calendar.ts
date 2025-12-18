@@ -14,6 +14,15 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  getUserTokens,
+  refreshAccessToken,
+  isCalendarConfigured,
+  getEvents,
+  generateAuthUrl,
+  exchangeCodeForTokens,
+  type CalendarEvent as GoogleCalendarEvent,
+} from '../google-calendar-oauth.js';
 
 const log = createLogger({ module: 'LocationCalendar' });
 
@@ -96,26 +105,17 @@ export interface AnticipationInsight {
 // ============================================================================
 
 const config = {
-  google: {
-    clientId: process.env.GOOGLE_CALENDAR_CLIENT_ID || '',
-    clientSecret: process.env.GOOGLE_CALENDAR_CLIENT_SECRET || '',
-    redirectUri: process.env.GOOGLE_CALENDAR_REDIRECT_URI || '',
-  },
   maps: {
     apiKey: process.env.GOOGLE_MAPS_API_KEY || '',
   },
 };
 
 // ============================================================================
-// STATE
+// STATE - Location and context only (OAuth handled by google-calendar-oauth.ts)
 // ============================================================================
 
 interface UserContextState {
   userId: string;
-  platform: 'google' | 'apple';
-  accessToken: string;
-  refreshToken: string;
-  tokenExpiry: Date;
   currentLocation: Location | null;
   savedLocations: Map<string, Location>; // home, work, etc.
   upcomingEvents: CalendarEvent[];
@@ -127,67 +127,14 @@ interface UserContextState {
 
 const userStates = new Map<string, UserContextState>();
 
-// ============================================================================
-// OAUTH FLOWS
-// ============================================================================
-
 /**
- * Get Google Calendar OAuth authorization URL
+ * Get or create context state for a user
  */
-export function getCalendarAuthUrl(userId: string): string {
-  const state = Buffer.from(JSON.stringify({ userId, service: 'calendar' })).toString('base64');
-
-  const scopes = [
-    'https://www.googleapis.com/auth/calendar.readonly',
-    'https://www.googleapis.com/auth/calendar.events.readonly',
-  ].join(' ');
-
-  return (
-    `https://accounts.google.com/o/oauth2/v2/auth?` +
-    `client_id=${config.google.clientId}&` +
-    `redirect_uri=${encodeURIComponent(config.google.redirectUri)}&` +
-    `response_type=code&` +
-    `scope=${encodeURIComponent(scopes)}&` +
-    `state=${state}&` +
-    `access_type=offline&` +
-    `prompt=consent`
-  );
-}
-
-/**
- * Exchange authorization code for tokens
- */
-export async function exchangeCalendarCode(code: string, userId: string): Promise<boolean> {
-  try {
-    const response = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: config.google.clientId,
-        client_secret: config.google.clientSecret,
-        code,
-        grant_type: 'authorization_code',
-        redirect_uri: config.google.redirectUri,
-      }),
-    });
-
-    if (!response.ok) {
-      log.error({ status: response.status }, 'Calendar token exchange failed');
-      return false;
-    }
-
-    const tokens = (await response.json()) as {
-      access_token: string;
-      refresh_token: string;
-      expires_in: number;
-    };
-
-    userStates.set(userId, {
+function getOrCreateState(userId: string): UserContextState {
+  let state = userStates.get(userId);
+  if (!state) {
+    state = {
       userId,
-      platform: 'google',
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token,
-      tokenExpiry: new Date(Date.now() + tokens.expires_in * 1000),
       currentLocation: null,
       savedLocations: new Map(),
       upcomingEvents: [],
@@ -195,14 +142,52 @@ export async function exchangeCalendarCode(code: string, userId: string): Promis
       eventPatterns: [],
       stressTriggers: [],
       lastSync: new Date(0),
-    });
-
-    log.info({ userId }, 'Calendar connected');
-    return true;
-  } catch (error) {
-    log.error({ error: String(error) }, 'Calendar token exchange error');
-    return false;
+    };
+    userStates.set(userId, state);
   }
+  return state;
+}
+
+// ============================================================================
+// OAUTH - Delegated to google-calendar-oauth.ts
+// ============================================================================
+
+/**
+ * Get Google Calendar OAuth authorization URL
+ * @deprecated Use generateAuthUrl() from google-calendar-oauth.ts instead
+ */
+export { generateAuthUrl as getCalendarAuthUrl } from '../google-calendar-oauth.js';
+
+/**
+ * Exchange authorization code for tokens
+ * @deprecated Use exchangeCodeForTokens() from google-calendar-oauth.ts instead
+ */
+export { exchangeCodeForTokens as exchangeCalendarCode } from '../google-calendar-oauth.js';
+
+// Re-import for default export
+const getCalendarAuthUrl = generateAuthUrl;
+const exchangeCalendarCode = exchangeCodeForTokens;
+
+/**
+ * Get a valid access token for calendar API calls
+ */
+async function getValidAccessToken(userId: string): Promise<string | null> {
+  const tokens = await getUserTokens(userId);
+  if (!tokens) return null;
+
+  // Check if token needs refresh
+  if (tokens.expiry_date && tokens.expiry_date < Date.now() + 60000) {
+    if (!tokens.refresh_token) return null;
+    try {
+      const refreshed = await refreshAccessToken(tokens.refresh_token);
+      return refreshed?.access_token || null;
+    } catch (error) {
+      log.debug({ error, userId }, 'Failed to refresh calendar token');
+      return null;
+    }
+  }
+
+  return tokens.access_token;
 }
 
 // ============================================================================
@@ -210,61 +195,48 @@ export async function exchangeCalendarCode(code: string, userId: string): Promis
 // ============================================================================
 
 /**
- * Fetch upcoming calendar events
+ * Fetch upcoming calendar events using shared OAuth service
  */
 export async function fetchUpcomingEvents(
   userId: string,
   hoursAhead: number = 24
 ): Promise<CalendarEvent[]> {
-  const state = userStates.get(userId);
-  if (!state) return [];
+  // Check if calendar is connected via shared OAuth service
+  if (!(await isCalendarConfigured(userId))) {
+    log.debug({ userId }, 'Calendar not configured');
+    return [];
+  }
+
+  // Get valid access token
+  const accessToken = await getValidAccessToken(userId);
+  if (!accessToken) {
+    log.debug({ userId }, 'No valid calendar token');
+    return [];
+  }
 
   try {
     const now = new Date();
     const later = new Date(now.getTime() + hoursAhead * 60 * 60 * 1000);
 
-    const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
-        `timeMin=${now.toISOString()}&` +
-        `timeMax=${later.toISOString()}&` +
-        `singleEvents=true&` +
-        `orderBy=startTime`,
-      {
-        headers: { Authorization: `Bearer ${state.accessToken}` },
-      }
-    );
+    // Use the shared getEvents function from google-calendar-oauth
+    const googleEvents = await getEvents(accessToken, 'primary', now, later);
 
-    if (!response.ok) {
-      log.warn({ status: response.status }, 'Calendar fetch failed');
-      return [];
-    }
-
-    const data = (await response.json()) as {
-      items: Array<{
-        id: string;
-        summary: string;
-        description?: string;
-        start: { dateTime?: string; date?: string };
-        end: { dateTime?: string; date?: string };
-        location?: string;
-        attendees?: Array<{ email: string; displayName?: string }>;
-        recurrence?: string[];
-      }>;
-    };
-
-    const events: CalendarEvent[] = data.items.map((item) => ({
-      id: item.id,
+    // Transform to our CalendarEvent type with stress analysis
+    const events: CalendarEvent[] = googleEvents.map((item) => ({
+      id: item.id || crypto.randomUUID(),
       title: item.summary,
       description: item.description,
-      startTime: new Date(item.start.dateTime || item.start.date || now),
-      endTime: new Date(item.end.dateTime || item.end.date || now),
+      startTime: new Date(item.start.dateTime || item.start.date || now.toISOString()),
+      endTime: new Date(item.end.dateTime || item.end.date || now.toISOString()),
       location: item.location,
       attendees: item.attendees?.map((a) => a.displayName || a.email),
-      isRecurring: !!item.recurrence,
+      isRecurring: false, // getEvents returns singleEvents, so all are false
       eventType: classifyEventType(item.summary, item.description),
       stressWeight: estimateStressWeight(item.summary, item.attendees?.length || 0),
     }));
 
+    // Update local state cache
+    const state = getOrCreateState(userId);
     state.upcomingEvents = events;
     state.lastSync = new Date();
 
@@ -321,9 +293,7 @@ export function updateLocation(
   longitude: number,
   accuracy: number
 ): void {
-  const state = userStates.get(userId);
-  if (!state) return;
-
+  const state = getOrCreateState(userId);
   const locationType = classifyLocation(userId, latitude, longitude);
 
   state.currentLocation = {
@@ -366,8 +336,7 @@ export function saveLocation(
   latitude: number,
   longitude: number
 ): void {
-  const state = userStates.get(userId);
-  if (!state) return;
+  const state = getOrCreateState(userId);
 
   state.savedLocations.set(name, {
     latitude,
@@ -605,8 +574,11 @@ export function generateSuperhumanMoment(userId: string): string | null {
 // PUBLIC API
 // ============================================================================
 
-export function hasCalendarConnected(userId: string): boolean {
-  return userStates.has(userId);
+/**
+ * Check if user has calendar connected (delegates to shared OAuth service)
+ */
+export async function hasCalendarConnected(userId: string): Promise<boolean> {
+  return isCalendarConfigured(userId);
 }
 
 export function getCurrentLocation(userId: string): Location | null {

@@ -14,6 +14,7 @@
 
 import { EventEmitter } from 'events';
 import * as admin from 'firebase-admin';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 import { getAgentBus } from './agent-bus.js';
 
@@ -166,15 +167,17 @@ class AppointmentFollowUpService extends EventEmitter {
       await db
         .collection(APPOINTMENTS_COLLECTION)
         .doc(appointment.id)
-        .set({
-          ...appointment,
-          requestedDateTime: appointment.requestedDateTime,
-          confirmedDateTime: appointment.confirmedDateTime || null,
-          lastCallAt: appointment.lastCallAt || null,
-          nextFollowUpAt: appointment.nextFollowUpAt || null,
-          createdAt: appointment.createdAt,
-          updatedAt: appointment.updatedAt,
-        });
+        .set(
+          removeUndefined({
+            ...appointment,
+            requestedDateTime: appointment.requestedDateTime,
+            confirmedDateTime: appointment.confirmedDateTime || null,
+            lastCallAt: appointment.lastCallAt || null,
+            nextFollowUpAt: appointment.nextFollowUpAt || null,
+            createdAt: appointment.createdAt,
+            updatedAt: appointment.updatedAt,
+          })
+        );
     } catch (error) {
       getLogger().error(
         { error, appointmentId: appointment.id },

@@ -13,6 +13,11 @@ A beautiful, native macOS menubar app for voice conversations with Ferni and the
 - **🔮 6 Personas** - Full team: Ferni, Maya, Alex, Jordan, Peter, Nayan
 - **⌨️ Global Hotkey** - `Cmd+Shift+F` works from anywhere
 - **☁️ Cloud/Local Mode** - Connect to app.ferni.ai or localhost
+- **🚀 Launch at Login** - Start automatically when you log in
+- **⚙️ Settings Window** - Configure audio, personas, and preferences
+- **🎨 Custom Menubar Icon** - Beautiful Ferni eye icon in your menubar
+- **🔊 Real Audio Levels** - Waveform responds to actual audio
+- **📦 DMG Installer** - Professional distribution with notarization
 
 ## Quick Start
 
@@ -25,6 +30,12 @@ swift run
 # Or build the .app bundle
 ./build.sh
 open .build/Ferni\ Voice.app
+
+# Create DMG installer
+./create-dmg.sh
+
+# Sign and notarize for distribution (requires Apple Developer account)
+./sign-and-notarize.sh
 ```
 
 ## Architecture
@@ -40,14 +51,27 @@ Sources/
 │   ├── GlowHalo.swift           # Animated halo effects
 │   ├── Waveform.swift           # Audio waveform bars
 │   ├── AvatarComposite.swift    # Combined avatar view
-│   └── VoiceWindow.swift        # Floating window UI
-└── Services/
-    └── VoiceSession.swift       # Voice session manager
+│   ├── VoiceWindow.swift        # Floating window UI
+│   ├── SettingsWindow.swift     # Preferences window
+│   ├── MenubarIcon.swift        # Custom Ferni menubar icon
+│   └── TextAvatar.swift         # Text-based avatar (initials)
+├── Animation/
+│   ├── AvatarLamp.swift         # Pixar lamp animations
+│   ├── AvatarSoul.swift         # Soul/emotional animations
+│   └── PixarAnimations.swift    # Animation constants
+├── Services/
+│   ├── VoiceSession.swift       # Voice session manager
+│   ├── LoginItemManager.swift   # Launch at login
+│   ├── ClaudeCodeBridge.swift   # Claude Code integration
+│   └── TerminalBridge.swift     # Terminal control
+└── Widget/
+    └── FerniWidget.swift        # macOS Widget extension
 
 Tests/
 ├── PersonaTests.swift           # Persona model tests
 ├── VoiceStateTests.swift        # State machine tests
 ├── VoiceSessionTests.swift      # Session manager tests
+├── VoiceBinaryTests.swift       # Binary/environment tests
 └── E2ETests.swift               # Integration tests
 ```
 
@@ -89,8 +113,20 @@ The app implements the same animation system as the web frontend:
 | Toggle from anywhere | `Cmd+Shift+F` |
 | Switch persona | Right-click menubar icon |
 | Toggle cloud/local | Right-click → Switch mode |
+| Open settings | Right-click → Settings (⌘,) |
+| Launch at login | Right-click → Launch at Login |
 | End session | Click "End" button |
 | Quit | Right-click → Quit |
+
+## Settings
+
+Access settings via right-click → Settings or `⌘,`:
+
+- **General**: Launch at login, global hotkey, notifications, sounds
+- **Audio**: Input/output device selection
+- **Personas**: Set default persona, view all team members
+- **Advanced**: Cloud/local mode, data location, reset
+- **About**: Version info, links, copyright
 
 ## Requirements
 
@@ -182,10 +218,153 @@ rm -rf .build
 
 The app uses the same `voice-live.ts` CLI that powers `ferni voice`, ensuring consistent behavior across platforms.
 
+## Distribution
+
+### Development Build
+
+```bash
+./build.sh
+open ".build/Ferni Voice.app"
+```
+
+### DMG Installer
+
+```bash
+./create-dmg.sh
+# Creates .build/FerniVoice-1.0.0.dmg
+```
+
+### Signed & Notarized (Production)
+
+Requires Apple Developer account ($99/year):
+
+```bash
+# Set environment variables
+export FERNI_DEVELOPER_ID="Developer ID Application: Your Name (TEAMID)"
+export FERNI_APPLE_ID="your@email.com"
+export FERNI_TEAM_ID="XXXXXXXXXX"
+export FERNI_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx"  # App-specific password
+
+# Sign, notarize, and staple
+./sign-and-notarize.sh
+```
+
+The resulting DMG can be distributed without Gatekeeper warnings.
+
 ## Design System Integration
 
 Colors and animations are sourced from:
 - `design-system/tokens/colors.json` - Persona colors
 - `design-system/tokens/animation.json` - Timing & easing
-- `frontend-typescript/src/ui/ferni-logo.ui.ts` - Eye avatar design
-- `frontend-typescript/src/ui/avatar-soul.ui.ts` - Soul animations
+- `apps/web/src/ui/ferni-logo.ui.ts` - Eye avatar design
+- `apps/web/src/ui/avatar-soul.ui.ts` - Soul animations
+
+## Widget
+
+A macOS Widget is available showing:
+- Current persona with avatar
+- Connection status
+- Quick start/end button
+
+Add from Control Center → Edit Widgets → Ferni Voice
+
+## Dual-Mode Voice Backend
+
+The app supports **two voice backends** that you can switch between at runtime:
+
+### 🚀 Native SDK Mode (Default)
+
+Direct LiveKit Swift SDK integration for the best performance:
+
+```
+macOS App → LiveKit Swift SDK → Server
+     ↓
+AVAudioEngine (native)
+```
+
+**Benefits:**
+- Direct WebRTC connection
+- Native AVAudioEngine (no sox)
+- ~100ms lower latency
+- Better battery/memory
+- No subprocess overhead
+- Proper audio device selection
+
+### 🔧 CLI Mode (Development/Debugging)
+
+Uses a CLI subprocess for voice streaming:
+
+```
+macOS App → spawns → CLI Process → @livekit/rtc-node → Server
+                           ↓
+                     sox (audio I/O)
+```
+
+**Benefits:**
+- Easy to debug (see subprocess output)
+- Shares code with `ferni voice` CLI
+- Works without LiveKit Swift dependency
+
+### Switching Modes
+
+**Via Menu:**
+1. Right-click the menubar icon
+2. Look for "⚡️ Native SDK" or "🖥️ CLI Subprocess"
+3. Click "Switch to CLI Mode" or "Switch to Native Mode"
+
+**Via Settings:**
+1. Right-click → Settings (or `⌘,`)
+2. Go to Advanced tab
+3. Select your preferred backend mode
+
+### Feature Comparison
+
+| Feature | Native SDK | CLI Subprocess |
+|---------|------------|----------------|
+| Latency | ~100ms | ~200ms |
+| Memory | ~20MB | ~100MB |
+| Dependencies | None | sox, node |
+| Debugging | Harder | Easy (text logs) |
+| Audio levels | State-based | Parsed from CLI |
+| Battery | Lower | Higher |
+| Subprocess | None | 85MB process |
+
+### All TypeScript Capabilities Work in Both Modes
+
+Both modes connect to the **same TypeScript voice agent**, so all these features work identically:
+
+- 🎭 **6 Personas** - Ferni, Maya, Alex, Jordan, Peter, Nayan
+- 🔄 **Handoffs** - Seamless persona switching mid-conversation
+- 💭 **Trust Systems** - Memory, relationship building
+- 🛠️ **Tools** - Calendar, web search, reminders
+- 😊 **Emotions** - Mood detection, concern analysis
+- 📊 **Data Channels** - Real-time state sync
+
+The client (this app) is just a "dumb pipe" for audio - all intelligence lives on the server!
+
+### Data Channel Messages
+
+The native SDK listens for these events from the TypeScript agent:
+
+```swift
+// Handoff events
+case .handoffStarted  // Persona is changing
+case .handoffComplete // New persona ready
+case .handoffFailed   // Handoff cancelled
+
+// Emotional intelligence
+case .mood           // Energy level, relationship stage
+case .emotionEvent   // Detected emotions (concern, joy, etc.)
+
+// Transcription
+case .partialTranscript // Real-time speech-to-text
+```
+
+These update the UI in real-time - the avatar changes color during handoffs, shows appropriate expressions, etc.
+
+### Why Support Both Modes?
+
+1. **Development** - CLI mode shows logs, easier to debug agent issues
+2. **Fallback** - If native SDK has issues, CLI is proven stable
+3. **Testing** - Verify behavior is identical in both modes
+4. **Offline** - CLI can work with local agent; native needs token server

@@ -70,7 +70,7 @@ The landing page has **significant drift** from the brand guidelines and design 
 ├── design-system/dist/tokens.css           ← Build output
 ├── brand/ferni-design-tokens.css           ← DEPRECATED (should delete)
 ├── promo/ferni-website/css/design-tokens.css  ← Auto-synced
-├── frontend-typescript/public/design-system/tokens.css  ← App tokens
+├── apps/web/public/design-system/tokens.css  ← App tokens
 └── promo/ferni-website/tailwind.config.js  ← HARDCODED (not synced!)
 ```
 

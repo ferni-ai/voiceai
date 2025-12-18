@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { recordUsage, generateInsight } from './pattern-intelligence.js';
 import { loadLifeContext } from './context-integration.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 const daysUntilDef: ToolDefinition = {
   id: 'daysUntil',
   name: 'Days Until',
@@ -22,11 +23,7 @@ const daysUntilDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Calculate how many days until a specific date or event. Use when someone asks:
-- "How many days until Christmas?"
-- "Days until my birthday on March 15"
-- "When is Thanksgiving?"
-- "How many sleeps until vacation?"`,
+      description: getToolDescription('daysUntil'),
       parameters: z.object({
         targetDate: z.string().optional().describe('Target date (YYYY-MM-DD) if specific'),
         event: z
@@ -203,11 +200,7 @@ const dateFromNowDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Calculate what date will be X days/weeks/months from now. Use when someone asks:
-- "What's 90 days from today?"
-- "What day is 3 weeks from now?"
-- "6 months from now"
-- "2 weeks ago was what date?"`,
+      description: getToolDescription('dateFromNow'),
       parameters: z.object({
         amount: z.number().describe('Number of units'),
         unit: z.enum(['days', 'weeks', 'months', 'years']).describe('Time unit'),
@@ -257,10 +250,7 @@ const calculateAgeDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Calculate age from a birth year or date. Use when someone asks:
-- "How old am I if I was born in 1987?"
-- "What's my age if my birthday is March 15, 1990?"
-- "Someone born in 2005 is how old?"`,
+      description: getToolDescription('calculateAge'),
       parameters: z.object({
         birthYear: z.number().optional().describe('Birth year'),
         birthMonth: z.number().optional().describe('Birth month (1-12)'),

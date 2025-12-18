@@ -14,6 +14,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { generateDomainInsight } from './helpers.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // FUTURE SELF LETTER
 // ============================================================================
@@ -27,8 +28,7 @@ export const futureSelfLetterDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Write a letter to your future self. Jordan seals it and delivers it at the specified time.
-Creates anticipation and a powerful moment when delivered.`,
+      description: getToolDescription('futureSelfLetter'),
       parameters: z.object({
         action: z.enum(['write', 'seal', 'check-pending', 'deliver']).describe('Action'),
         content: z.string().optional().describe('Letter content'),
@@ -105,8 +105,7 @@ export const lifePorfolioReviewDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Quarterly review of all life domains. Rate each area 1-10 and track over time.
-Jordan helps identify where to focus next.`,
+      description: getToolDescription('lifePortfolioReview'),
       parameters: z.object({
         action: z
           .enum(['start-review', 'rate-domain', 'complete-review', 'view-history'])
@@ -187,8 +186,7 @@ export const predictionMarketDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Make predictions about your own life. Jordan tracks accuracy over time.
-Fun way to build self-knowledge about what you'll actually do.`,
+      description: getToolDescription('predictionMarket'),
       parameters: z.object({
         action: z.enum(['make-prediction', 'check-prediction', 'view-accuracy']).describe('Action'),
         prediction: z.string().optional().describe('The prediction'),

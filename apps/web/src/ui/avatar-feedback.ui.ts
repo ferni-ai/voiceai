@@ -837,11 +837,10 @@ export function feedbackStopThinking(): void {
 // ============================================================================
 
 /**
- * LISTENING TO MUSIC: Expressive Bass Speaker Animation
+ * LISTENING TO MUSIC: Bass Speaker Reverberation
  *
- * The avatar comes ALIVE when music plays - like it's feeling the beat.
- * More expressive than idle breathing, showing genuine enjoyment.
- * The halo dances too via CSS animations.
+ * The avatar pulses like an old-time bass speaker cone.
+ * Halo stays static - no movement, just the avatar responds.
  */
 export function feedbackMusicPresence(): void {
   if (!avatarContainer || !avatar) return;
@@ -857,26 +856,27 @@ export function feedbackMusicPresence(): void {
   feedbackStopThinking();
   feedbackStopConnecting();
 
-  // Add music class for CSS hooks (enables ring animation via CSS)
+  // Add music class for CSS hooks
   avatarContainer.classList.add('is-listening-music');
 
-  // Avatar: Expressive bass speaker pulse with movement
-  // More dynamic than before - the avatar really feels the music!
+  // Avatar: Bass speaker cone pulse - subtle scale breathing
+  // Like the paper cone of a vintage speaker responding to bass
   dancingAnimation = avatar.animate(
     [
-      { transform: 'scale(1) translateY(0) rotate(0deg)', filter: 'brightness(1) saturate(1)' },
-      { transform: 'scale(1.03) translateY(-2px) rotate(0.5deg)', filter: 'brightness(1.05) saturate(1.1)' },
-      { transform: 'scale(0.98) translateY(1px) rotate(-0.3deg)', filter: 'brightness(0.98) saturate(1.05)' },
-      { transform: 'scale(1.02) translateY(-1px) rotate(0.3deg)', filter: 'brightness(1.03) saturate(1.08)' },
-      { transform: 'scale(0.99) translateY(0.5px) rotate(-0.2deg)', filter: 'brightness(1) saturate(1.02)' },
-      { transform: 'scale(1) translateY(0) rotate(0deg)', filter: 'brightness(1) saturate(1)' },
+      { transform: 'scale(1)', filter: 'brightness(1)' },
+      { transform: 'scale(1.012)', filter: 'brightness(1.015)' },
+      { transform: 'scale(0.997)', filter: 'brightness(0.995)' },
+      { transform: 'scale(1.008)', filter: 'brightness(1.01)' },
+      { transform: 'scale(1)', filter: 'brightness(1)' },
     ],
     {
-      duration: 1200, // Rhythm that feels musical
+      duration: 800, // Quick bass pulse rhythm
       iterations: Infinity,
-      easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+      easing: 'ease-in-out',
     }
   );
+
+  // Halo stays static - no animation
 }
 
 /**
@@ -995,20 +995,19 @@ export function feedbackUnduck(): void {
     dancingAnimation = null;
   }
 
-  // Restore expressive music animation
+  // Restore full bass pulse
   dancingAnimation = avatar.animate(
     [
-      { transform: 'scale(1) translateY(0) rotate(0deg)', filter: 'brightness(1) saturate(1)' },
-      { transform: 'scale(1.03) translateY(-2px) rotate(0.5deg)', filter: 'brightness(1.05) saturate(1.1)' },
-      { transform: 'scale(0.98) translateY(1px) rotate(-0.3deg)', filter: 'brightness(0.98) saturate(1.05)' },
-      { transform: 'scale(1.02) translateY(-1px) rotate(0.3deg)', filter: 'brightness(1.03) saturate(1.08)' },
-      { transform: 'scale(0.99) translateY(0.5px) rotate(-0.2deg)', filter: 'brightness(1) saturate(1.02)' },
-      { transform: 'scale(1) translateY(0) rotate(0deg)', filter: 'brightness(1) saturate(1)' },
+      { transform: 'scale(1)', filter: 'brightness(1)' },
+      { transform: 'scale(1.012)', filter: 'brightness(1.015)' },
+      { transform: 'scale(0.997)', filter: 'brightness(0.995)' },
+      { transform: 'scale(1.008)', filter: 'brightness(1.01)' },
+      { transform: 'scale(1)', filter: 'brightness(1)' },
     ],
     {
-      duration: 1200,
+      duration: 800,
       iterations: Infinity,
-      easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+      easing: 'ease-in-out',
     }
   );
 }

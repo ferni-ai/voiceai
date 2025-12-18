@@ -137,9 +137,16 @@ export abstract class BaseWorker {
    */
   private async listen(): Promise<void> {
     const projectId = this.config.projectId || process.env.GOOGLE_CLOUD_PROJECT;
+    const isDev = process.env.NODE_ENV === 'development';
 
     if (!projectId) {
       this.log.warn('No project ID - running in local mode');
+      return;
+    }
+
+    // Skip Pub/Sub in development - use LocalWorker's in-memory events instead
+    if (isDev) {
+      this.log.debug('Development mode - skipping Pub/Sub connection');
       return;
     }
 

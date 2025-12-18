@@ -146,19 +146,48 @@ vi.mock('../../../services/team-unlocks.js', () => ({
   ],
 }));
 
-// Mock personas index module - provides getPersona used by types.ts
+// Mock personas index module - provides getPersona and getPersonaAsync used by types.ts
 vi.mock('../../../personas/index.js', () => {
-  const mockPersonas: Record<string, { id: string; name: string; displayName: string }> = {
-    'peter-john': { id: 'peter-john', name: 'Peter John', displayName: 'Peter' },
-    'maya-santos': { id: 'maya-santos', name: 'Maya Santos', displayName: 'Maya' },
-    'alex-chen': { id: 'alex-chen', name: 'Alex Chen', displayName: 'Alex' },
-    'jordan-taylor': { id: 'jordan-taylor', name: 'Jordan Taylor', displayName: 'Jordan' },
-    'nayan-patel': { id: 'nayan-patel', name: 'Nayan Patel', displayName: 'Nayan' },
-    ferni: { id: 'ferni', name: 'Ferni', displayName: 'Ferni' },
+  const mockPersonas: Record<
+    string,
+    { id: string; name: string; displayName: string; voice?: { voiceId: string } }
+  > = {
+    'peter-john': {
+      id: 'peter-john',
+      name: 'Peter John',
+      displayName: 'Peter',
+      voice: { voiceId: 'voice-peter-john' },
+    },
+    'maya-santos': {
+      id: 'maya-santos',
+      name: 'Maya Santos',
+      displayName: 'Maya',
+      voice: { voiceId: 'voice-maya-santos' },
+    },
+    'alex-chen': {
+      id: 'alex-chen',
+      name: 'Alex Chen',
+      displayName: 'Alex',
+      voice: { voiceId: 'voice-alex-chen' },
+    },
+    'jordan-taylor': {
+      id: 'jordan-taylor',
+      name: 'Jordan Taylor',
+      displayName: 'Jordan',
+      voice: { voiceId: 'voice-jordan-taylor' },
+    },
+    'nayan-patel': {
+      id: 'nayan-patel',
+      name: 'Nayan Patel',
+      displayName: 'Nayan',
+      voice: { voiceId: 'voice-nayan-patel' },
+    },
+    ferni: { id: 'ferni', name: 'Ferni', displayName: 'Ferni', voice: { voiceId: 'voice-ferni' } },
   };
 
   return {
     getPersona: (id: string) => mockPersonas[id] || null,
+    getPersonaAsync: async (id: string) => mockPersonas[id] || null,
     getAllPersonaIds: () => Object.keys(mockPersonas),
     getCanonicalPersonaId: (id: string) => {
       const mapping: Record<string, string> = {

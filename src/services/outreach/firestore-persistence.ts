@@ -11,6 +11,7 @@
  * - outreach_context/{userId} - User life context
  */
 
+import { removeUndefined } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { ChannelProfile } from './channel-selector.js';
 import type { UserLifeContext } from './context-aggregator.js';
@@ -67,8 +68,52 @@ const COLLECTIONS = {
   PENDING_MESSAGES: 'pending_inapp_messages',
 } as const;
 
+// Firestore batch write limit
+const FIRESTORE_BATCH_LIMIT = 500;
+
+/**
+ * FIX: Helper to delete documents in batches respecting Firestore's 500-operation limit
+ * Prevents silent failures when deleting large collections
+ */
+async function batchDeleteDocs(
+  docs: Array<{ ref: FirebaseFirestore.DocumentReference }>,
+  operationName: string
+): Promise<{ deleted: number; failed: number }> {
+  if (!firestoreClient || docs.length === 0) {
+    return { deleted: 0, failed: 0 };
+  }
+
+  let deleted = 0;
+  let failed = 0;
+
+  // Process in chunks of FIRESTORE_BATCH_LIMIT
+  for (let i = 0; i < docs.length; i += FIRESTORE_BATCH_LIMIT) {
+    const chunk = docs.slice(i, i + FIRESTORE_BATCH_LIMIT);
+    const batch = firestoreClient.batch();
+
+    for (const doc of chunk) {
+      batch.delete(doc.ref);
+    }
+
+    try {
+      await batch.commit();
+      deleted += chunk.length;
+    } catch (error) {
+      log.error({ error, operation: operationName, chunkStart: i }, 'Batch delete failed');
+      failed += chunk.length;
+    }
+  }
+
+  if (deleted > 0) {
+    log.info({ deleted, failed, operation: operationName }, 'Batch delete completed');
+  }
+
+  return { deleted, failed };
+}
+
 /**
  * Initialize Firestore for outreach persistence
+ * FIX: Added connection validation to verify credentials actually work
  */
 export async function initializeFirestore(): Promise<boolean> {
   try {
@@ -88,7 +133,19 @@ export async function initializeFirestore(): Promise<boolean> {
       }
     }
 
-    firestoreClient = admin.firestore();
+    const db = admin.firestore();
+
+    // FIX: Verify connection actually works by testing a simple operation
+    try {
+      // Test read operation to verify credentials
+      await db.collection('_health_check').limit(1).get();
+    } catch (connError) {
+      log.error({ error: connError }, 'Firestore credentials invalid or connection failed');
+      firestoreAvailable = false;
+      return false;
+    }
+
+    firestoreClient = db;
     firestoreAvailable = true;
     log.info('✅ Firestore initialized for outreach persistence');
     return true;
@@ -310,6 +367,7 @@ export async function deleteTrigger(triggerId: string): Promise<void> {
 
 /**
  * Clean up old processed triggers
+ * FIX: Now handles batch limit properly and supports larger cleanups
  */
 export async function cleanupOldTriggers(maxAgeDays = 7): Promise<number> {
   if (!isFirestoreAvailable()) {
@@ -320,19 +378,21 @@ export async function cleanupOldTriggers(maxAgeDays = 7): Promise<number> {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - maxAgeDays);
 
+    // FIX: Query up to 1000 docs but process in safe batches
     const snapshot = await firestoreClient!
       .collection(TRIGGERS_COLLECTION)
       .where('status', 'in', ['sent', 'cancelled', 'failed'])
       .where('createdAt', '<', cutoff)
-      .limit(500)
+      .limit(1000)
       .get();
 
-    const batch = firestoreClient!.batch();
-    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
-    await batch.commit();
+    if (snapshot.empty) {
+      return 0;
+    }
 
-    log.info({ deleted: snapshot.size }, 'Cleaned up old triggers');
-    return snapshot.size;
+    // FIX: Use batch helper that respects 500-doc limit
+    const { deleted } = await batchDeleteDocs(snapshot.docs, 'cleanupOldTriggers');
+    return deleted;
   } catch (error) {
     log.error({ error }, 'Failed to cleanup old triggers');
     return 0;
@@ -400,6 +460,7 @@ export async function loadHistory(userId: string, limit = 50): Promise<OutreachD
 
 /**
  * Delete user history (for GDPR)
+ * FIX: Now handles batch limit properly for users with large history
  */
 export async function deleteUserHistory(userId: string): Promise<void> {
   if (!isFirestoreAvailable()) {
@@ -413,14 +474,15 @@ export async function deleteUserHistory(userId: string): Promise<void> {
       .collection('records')
       .get();
 
-    const batch = firestoreClient!.batch();
-    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
-    await batch.commit();
+    // FIX: Use batch helper that respects 500-doc limit
+    if (!snapshot.empty) {
+      await batchDeleteDocs(snapshot.docs, `deleteUserHistory:${userId}`);
+    }
 
     // Delete the parent document
     await firestoreClient!.collection(HISTORY_COLLECTION).doc(userId).delete();
 
-    log.info({ userId }, 'Deleted user history');
+    log.info({ userId, recordsDeleted: snapshot.size }, 'Deleted user history');
   } catch (error) {
     log.error({ error, userId }, 'Failed to delete user history');
   }
@@ -441,11 +503,16 @@ export async function saveContext(userId: string, context: UserLifeContext): Pro
   }
 
   try {
-    await firestoreClient!.collection(CONTEXT_COLLECTION).doc(userId).set({
-      userId,
-      context,
-      updatedAt: new Date(),
-    });
+    await firestoreClient!
+      .collection(CONTEXT_COLLECTION)
+      .doc(userId)
+      .set(
+        removeUndefined({
+          userId,
+          context,
+          updatedAt: new Date(),
+        })
+      );
   } catch (error) {
     log.error({ error, userId }, 'Failed to save context');
   }
@@ -494,6 +561,7 @@ export async function deleteUserContext(userId: string): Promise<void> {
 
 /**
  * Delete all outreach data for a user
+ * FIX: Now handles batch limit properly for users with many triggers
  */
 export async function deleteAllUserOutreachData(userId: string): Promise<void> {
   log.info({ userId }, 'Deleting all outreach data for user');
@@ -513,9 +581,10 @@ export async function deleteAllUserOutreachData(userId: string): Promise<void> {
         .where('userId', '==', userId)
         .get();
 
-      const batch = firestoreClient!.batch();
-      triggersSnapshot.docs.forEach((doc) => batch.delete(doc.ref));
-      await batch.commit();
+      // FIX: Use batch helper that respects 500-doc limit
+      if (!triggersSnapshot.empty) {
+        await batchDeleteDocs(triggersSnapshot.docs, `deleteUserTriggers:${userId}`);
+      }
     } catch (error) {
       log.error({ error, userId }, 'Failed to delete user triggers');
     }
@@ -623,12 +692,14 @@ export async function saveDeliveryRecord(record: DeliveryRecordDocument): Promis
       .collection('deliveries')
       .doc(record.id);
 
-    await ref.set({
-      ...record,
-      queuedAt: record.queuedAt,
-      sentAt: record.sentAt || null,
-      deliveredAt: record.deliveredAt || null,
-    });
+    await ref.set(
+      removeUndefined({
+        ...record,
+        queuedAt: record.queuedAt,
+        sentAt: record.sentAt || null,
+        deliveredAt: record.deliveredAt || null,
+      })
+    );
   } catch (error) {
     log.error({ error, deliveryId: record.id }, 'Failed to save delivery record');
   }
@@ -943,6 +1014,7 @@ export async function deletePendingInAppMessage(messageId: string): Promise<void
 
 /**
  * Delete all pending messages for a user (for GDPR)
+ * FIX: Now handles batch limit properly for users with many pending messages
  */
 export async function deleteUserPendingMessages(userId: string): Promise<void> {
   if (!isFirestoreAvailable()) {
@@ -957,11 +1029,8 @@ export async function deleteUserPendingMessages(userId: string): Promise<void> {
 
     if (snapshot.empty) return;
 
-    const batch = firestoreClient!.batch();
-    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
-    await batch.commit();
-
-    log.info({ userId, count: snapshot.size }, 'Deleted pending messages for user');
+    // FIX: Use batch helper that respects 500-doc limit
+    await batchDeleteDocs(snapshot.docs, `deleteUserPendingMessages:${userId}`);
   } catch (error) {
     log.error({ error, userId }, 'Failed to delete pending messages');
   }
@@ -969,6 +1038,7 @@ export async function deleteUserPendingMessages(userId: string): Promise<void> {
 
 /**
  * Cleanup expired pending messages (run periodically)
+ * FIX: Now handles batch limit properly and supports larger cleanups
  */
 export async function cleanupExpiredPendingMessages(): Promise<number> {
   if (!isFirestoreAvailable()) {
@@ -978,20 +1048,18 @@ export async function cleanupExpiredPendingMessages(): Promise<number> {
   try {
     const now = new Date();
 
+    // FIX: Query up to 1000 docs but process in safe batches
     const snapshot = await firestoreClient!
       .collection(COLLECTIONS.PENDING_MESSAGES)
       .where('expiresAt', '<', now)
-      .limit(500)
+      .limit(1000)
       .get();
 
     if (snapshot.empty) return 0;
 
-    const batch = firestoreClient!.batch();
-    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
-    await batch.commit();
-
-    log.info({ deleted: snapshot.size }, 'Cleaned up expired pending messages');
-    return snapshot.size;
+    // FIX: Use batch helper that respects 500-doc limit
+    const { deleted } = await batchDeleteDocs(snapshot.docs, 'cleanupExpiredPendingMessages');
+    return deleted;
   } catch (error) {
     log.error({ error }, 'Failed to cleanup expired pending messages');
     return 0;

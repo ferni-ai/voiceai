@@ -348,6 +348,65 @@ async function handleCrashAnalyticsAPI(url: string, res: ServerResponse): Promis
 }
 
 /**
+ * Handle session metrics API requests
+ */
+async function handleSessionMetricsAPI(url: string, res: ServerResponse): Promise<void> {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  try {
+    const { getSessionMetricsSummary, getRawSessionMetrics } = await import('./session-metrics.js');
+
+    if (url === '/api/session-metrics' || url === '/api/session-metrics/summary') {
+      const summary = getSessionMetricsSummary();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(summary, null, 2));
+      return;
+    }
+
+    if (url === '/api/session-metrics/raw') {
+      const raw = getRawSessionMetrics(20);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(raw, null, 2));
+      return;
+    }
+
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Unknown session metrics endpoint' }));
+  } catch (error) {
+    log.error({ error: String(error) }, 'Session metrics API error');
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Session metrics unavailable' }));
+  }
+}
+
+/**
+ * Handle warmup API request - keeps worker hot for faster connections
+ */
+async function handleWarmupAPI(res: ServerResponse): Promise<void> {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+
+  try {
+    const { warmupWorker } = await import('./session-metrics.js');
+    const result = await warmupWorker();
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        status: result.warmedUp ? 'warmed_up' : 'already_warm',
+        ...result,
+        timestamp: new Date().toISOString(),
+      })
+    );
+  } catch (error) {
+    log.error({ error: String(error) }, 'Warmup API error');
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Warmup failed', details: String(error) }));
+  }
+}
+
+/**
  * Handle Prometheus metrics export
  */
 async function handlePrometheusMetrics(res: ServerResponse): Promise<void> {
@@ -516,6 +575,18 @@ export function startHealthCheckServer(serviceName = 'voice-agent'): void {
       // Crash analytics API endpoints
       if (url.startsWith('/health/crash-analytics') || url.startsWith('/api/crash-analytics')) {
         await handleCrashAnalyticsAPI(url, res);
+        return;
+      }
+
+      // Session metrics API endpoints
+      if (url.startsWith('/api/session-metrics')) {
+        await handleSessionMetricsAPI(url, res);
+        return;
+      }
+
+      // Warmup endpoint - keeps worker hot for faster connections
+      if (url === '/health/warmup' || url === '/api/warmup') {
+        await handleWarmupAPI(res);
         return;
       }
 

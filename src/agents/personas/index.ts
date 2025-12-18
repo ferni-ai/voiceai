@@ -24,33 +24,51 @@
 // Main orchestrator
 export { FerniAgent, createFerniAgent } from './ferni-agent.js';
 
-// Team members
-export { MayaAgent } from './maya-agent.js';
-export { AlexAgent } from './alex-agent.js';
-export { PeterAgent } from './peter-agent.js';
-export { JordanAgent } from './jordan-agent.js';
-export { NayanAgent } from './nayan-agent.js';
+// Team members - export both classes and async factory functions
+export { MayaAgent, createMayaAgent } from './maya-agent.js';
+export { AlexAgent, createAlexAgent } from './alex-agent.js';
+export { PeterAgent, createPeterAgent } from './peter-agent.js';
+export { JordanAgent, createJordanAgent } from './jordan-agent.js';
+export { NayanAgent, createNayanAgent } from './nayan-agent.js';
+
+// Prompt utilities
+export { loadSystemPrompt, preloadPrompts, getCachedPrompt } from './prompt-loader.js';
 
 // Factory function to create the right agent by persona ID
+// All agents now load their rich system prompts from bundles automatically
 export async function createAgentForPersona(
   personaId: string,
-  systemPrompt: string
+  systemPrompt?: string
 ): Promise<import('@livekit/agents').voice.Agent> {
   switch (personaId) {
     case 'ferni':
+      // Ferni requires system prompt parameter (loaded externally for first agent)
+      if (!systemPrompt) {
+        const { loadSystemPrompt } = await import('./prompt-loader.js');
+        systemPrompt = await loadSystemPrompt('ferni');
+      }
       return new (await import('./ferni-agent.js')).FerniAgent(systemPrompt);
     case 'maya-santos':
-      return new (await import('./maya-agent.js')).MayaAgent();
+    case 'maya':
+      return (await import('./maya-agent.js')).MayaAgent.create();
     case 'alex-chen':
-      return new (await import('./alex-agent.js')).AlexAgent();
+    case 'alex':
+      return (await import('./alex-agent.js')).AlexAgent.create();
     case 'peter-john':
-      return new (await import('./peter-agent.js')).PeterAgent();
+    case 'peter':
+      return (await import('./peter-agent.js')).PeterAgent.create();
     case 'jordan-taylor':
-      return new (await import('./jordan-agent.js')).JordanAgent();
+    case 'jordan':
+      return (await import('./jordan-agent.js')).JordanAgent.create();
     case 'nayan-patel':
-      return new (await import('./nayan-agent.js')).NayanAgent();
+    case 'nayan':
+      return (await import('./nayan-agent.js')).NayanAgent.create();
     default:
       // Default to Ferni
+      if (!systemPrompt) {
+        const { loadSystemPrompt } = await import('./prompt-loader.js');
+        systemPrompt = await loadSystemPrompt('ferni');
+      }
       return new (await import('./ferni-agent.js')).FerniAgent(systemPrompt);
   }
 }

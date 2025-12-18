@@ -12,6 +12,7 @@
 import { llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
+import { getToolDescription } from './utils/tool-descriptions.js';
 import {
   getBackgroundTaskService,
   type BackgroundTask,
@@ -34,8 +35,7 @@ export function createBackgroundTools() {
      * Schedule a task to run in the background
      */
     scheduleBackgroundTask: llm.tool({
-      description:
-        'Schedule a task to run in the background, either immediately or at a specific time. Use for async operations like sending messages, checking status, or processing data.',
+      description: getToolDescription('scheduleBackgroundTask'),
       parameters: z.object({
         taskType: z
           .string()
@@ -81,8 +81,7 @@ export function createBackgroundTools() {
      * Create a multi-step workflow
      */
     createWorkflow: llm.tool({
-      description:
-        'Create a multi-step workflow for complex operations that require sequential steps. Each step can depend on previous results.',
+      description: getToolDescription('createWorkflow'),
       parameters: z.object({
         name: z.string().describe('Name of the workflow (e.g., "Book Trip to NYC")'),
         description: z.string().describe('What this workflow accomplishes'),
@@ -134,8 +133,7 @@ export function createBackgroundTools() {
      * Watch for an external event
      */
     watchForEvent: llm.tool({
-      description:
-        'Set up a watcher for an external event (like package delivery or flight status change). When the event occurs, take action automatically.',
+      description: getToolDescription('watchForEvent'),
       parameters: z.object({
         waitingFor: z.string().describe('What event to watch for (e.g., "package_delivered")'),
         description: z.string().describe("Description of what we're watching"),
@@ -205,8 +203,7 @@ export function createBackgroundTools() {
      * Schedule a recurring job
      */
     scheduleRecurringJob: llm.tool({
-      description:
-        'Schedule a recurring job like daily briefings, weekly summaries, or monthly check-ins.',
+      description: getToolDescription('scheduleRecurringJob'),
       parameters: z.object({
         name: z.string().describe('Name of the job (e.g., "Morning Briefing")'),
         schedule: z.enum(['daily', 'weekly', 'monthly']).describe('How often to run'),
@@ -236,7 +233,7 @@ export function createBackgroundTools() {
      * Check status of background tasks
      */
     checkBackgroundTasks: llm.tool({
-      description: 'Check the status of pending background tasks and workflows.',
+      description: getToolDescription('checkBackgroundTasks'),
       parameters: z.object({
         includeCompleted: z.boolean().optional().describe('Include completed tasks'),
       }),
@@ -286,8 +283,7 @@ export function createBackgroundTools() {
      * Delegate a task to another persona
      */
     delegateTask: llm.tool({
-      description:
-        'Delegate a task to another team member (persona). Use when a task is better handled by a specialist.',
+      description: getToolDescription('delegateTask'),
       parameters: z.object({
         taskDescription: z.string().describe('What needs to be done'),
         toPersona: z

@@ -83,10 +83,7 @@ function getBaseUrl(req: IncomingMessage): string {
  * POST /api/share/cards/generate
  * Generate a new shareable card
  */
-async function handleGenerateCard(
-  req: IncomingMessage,
-  res: ServerResponse
-): Promise<void> {
+async function handleGenerateCard(req: IncomingMessage, res: ServerResponse): Promise<void> {
   try {
     const body = (await parseBody(req)) as {
       type: CardType;
@@ -140,11 +137,7 @@ async function handleGenerateCard(
  * GET /api/share/cards/:cardId
  * Get card metadata
  */
-function handleGetCard(
-  req: IncomingMessage,
-  res: ServerResponse,
-  cardId: string
-): void {
+function handleGetCard(req: IncomingMessage, res: ServerResponse, cardId: string): void {
   const card = cardStore.get(cardId);
 
   if (!card) {
@@ -172,11 +165,7 @@ function handleGetCard(
  * GET /api/share/cards/:cardId/svg
  * Get card as SVG
  */
-function handleGetCardSVG(
-  req: IncomingMessage,
-  res: ServerResponse,
-  cardId: string
-): void {
+function handleGetCardSVG(req: IncomingMessage, res: ServerResponse, cardId: string): void {
   const svg = cardSVGCache.get(cardId);
 
   if (!svg) {
@@ -204,11 +193,7 @@ function handleGetCardSVG(
  * For now, we return the SVG with PNG content-type headers that browsers
  * can still render, or use a client-side conversion.
  */
-function handleGetCardImage(
-  req: IncomingMessage,
-  res: ServerResponse,
-  cardId: string
-): void {
+function handleGetCardImage(req: IncomingMessage, res: ServerResponse, cardId: string): void {
   const svg = cardSVGCache.get(cardId);
 
   if (!svg) {
@@ -235,11 +220,7 @@ function handleGetCardImage(
  * GET /share/:cardId (public share page)
  * Returns an HTML page with Open Graph meta tags for social sharing
  */
-function handleSharePage(
-  req: IncomingMessage,
-  res: ServerResponse,
-  cardId: string
-): void {
+function handleSharePage(req: IncomingMessage, res: ServerResponse, cardId: string): void {
   const card = cardStore.get(cardId);
 
   if (!card) {
@@ -419,4 +400,3 @@ export async function handleShareRoutes(
 // ============================================================================
 
 export default handleShareRoutes;
-

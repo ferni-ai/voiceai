@@ -14,6 +14,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../utils/safe-logger.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
@@ -223,12 +224,7 @@ function suggestCuisine(mood: string): string[] {
 export function createRestaurantTools() {
   return {
     searchRestaurants: llm.tool({
-      description: `Find restaurants near a location. Use when someone asks:
-- "Find Italian restaurants near me"
-- "Where should we eat in downtown?"
-- "Good sushi places open now"
-- "Cheap eats near Times Square"
-- "Best rated restaurants in my area"`,
+      description: getToolDescription('searchRestaurants'),
       parameters: z.object({
         location: z.string().describe('Location to search (city, neighborhood, or address)'),
         cuisine: z.string().optional().describe('Type of cuisine (e.g., Italian, Mexican, Sushi)'),
@@ -258,10 +254,7 @@ export function createRestaurantTools() {
     }),
 
     makeReservation: llm.tool({
-      description: `Help make a restaurant reservation. Use when someone wants to:
-- Book a table
-- Make a dinner reservation
-- Reserve for a party`,
+      description: getToolDescription('makeReservation'),
       parameters: z.object({
         restaurantName: z.string().describe('Name of the restaurant'),
         partySize: z.number().describe('Number of people'),
@@ -274,10 +267,7 @@ export function createRestaurantTools() {
     }),
 
     suggestRestaurant: llm.tool({
-      description: `Get restaurant suggestions based on mood or occasion. Use when someone says:
-- "I don't know what I'm in the mood for"
-- "Suggest somewhere for a date night"
-- "Where should we go for a birthday dinner?"`,
+      description: getToolDescription('suggestRestaurant'),
       parameters: z.object({
         location: z.string().describe('Location to search'),
         occasion: z

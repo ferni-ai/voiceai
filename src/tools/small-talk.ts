@@ -19,6 +19,7 @@ import { llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // HOLIDAYS & SEASONS
 // ============================================================================
@@ -256,9 +257,11 @@ function getJackMood(): { mood: string; expression: string } {
     };
   }
 
+  // Default: Be present and curious rather than generic
+  // NEVER say "I'm doing well, thanks for asking" - that's AI slop
   return {
-    mood: 'pleasant',
-    expression: "I'm doing well, thanks for asking. Ready to help however I can.",
+    mood: 'present',
+    expression: "I'm here. What's on your mind?",
   };
 }
 
@@ -268,10 +271,11 @@ function getJackMood(): { mood: string; expression: string } {
 
 const RECIPROCAL_QUESTIONS = {
   how_are_you: [
-    "How about you? How's your day going?",
-    'Thanks for asking! How are things on your end?',
-    'I appreciate you asking. What about you - how are you doing today?',
-    "Doing well! But enough about me - what's going on in your world?",
+    // Focus on them, be genuinely curious - not generic AI reciprocation
+    'But more importantly - how are YOU doing? Actually, not the polite version.',
+    "What about you? How's life treating you?",
+    "What's going on in your world?",
+    "Enough about me. What's happening with you?",
   ],
 
   general_interest: [
@@ -297,7 +301,7 @@ export function createSmallTalkTools() {
   return {
     acknowledgeHoliday: llm.tool({
       description:
-        "Acknowledge current or upcoming holiday with Jack's personal touch. Use when holiday is relevant or user mentions it.",
+        "EXECUTE SILENTLY to get holiday acknowledgment. DO NOT announce 'let me check the calendar' - call and speak the result naturally.",
       parameters: z.object({}),
       execute: async () => {
         getLogger().info('Checking for holiday');
@@ -318,7 +322,7 @@ export function createSmallTalkTools() {
 
     sharePhillyFact: llm.tool({
       description:
-        "Share a fact or story about Philadelphia - Jack's hometown. Use for small talk or when Philly comes up.",
+        'EXECUTE SILENTLY to get a Philly fact. DO NOT announce - call and speak the returned fact naturally in conversation.',
       parameters: z.object({}),
       execute: async () => {
         getLogger().info('Sharing Philly fact');
@@ -327,7 +331,7 @@ export function createSmallTalkTools() {
     }),
 
     recommendPhilly: llm.tool({
-      description: 'Give Philadelphia recommendations for food, sights, or experiences.',
+      description: getToolDescription('acknowledgeHoliday'),
       parameters: z.object({
         category: z.enum(['food', 'sights', 'experience']).describe('What type of recommendation'),
       }),
@@ -339,8 +343,7 @@ export function createSmallTalkTools() {
     }),
 
     expressJackMood: llm.tool({
-      description:
-        'Express how Jack is feeling right now, based on time of day. Use when asked "how are you".',
+      description: getToolDescription('sharePhillyFact'),
       parameters: z.object({
         reciprocate: z
           .boolean()
@@ -364,7 +367,7 @@ export function createSmallTalkTools() {
     }),
 
     askFollowUp: llm.tool({
-      description: 'Ask a follow-up question to show genuine interest. Use to deepen conversation.',
+      description: getToolDescription('recommendPhilly'),
       parameters: z.object({
         type: z.enum(['general_interest', 'follow_up']).optional().describe('Type of follow-up'),
       }),
@@ -376,8 +379,7 @@ export function createSmallTalkTools() {
     }),
 
     sharePersonalReflection: llm.tool({
-      description:
-        'Share a personal reflection or thought. Use to add depth and humanity to conversation.',
+      description: getToolDescription('expressJackMood'),
       parameters: z.object({
         topic: z
           .enum(['life', 'wisdom', 'gratitude', 'aging', 'legacy'])

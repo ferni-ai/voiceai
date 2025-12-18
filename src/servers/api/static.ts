@@ -8,6 +8,9 @@ import fs from 'fs';
 import path from 'path';
 import zlib from 'zlib';
 import type { IncomingMessage, ServerResponse } from 'http';
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'StaticFiles' });
 
 /**
  * MIME type mapping
@@ -101,7 +104,7 @@ export function serveStaticFile(
       stream.pipe(gzip).pipe(res);
 
       stream.on('error', (error) => {
-        console.error(`❌ Stream error for ${filePath}:`, error);
+        log.error({ error: (error as Error).message, filePath }, 'Stream error');
         if (!res.headersSent) {
           res.writeHead(500);
           res.end('Internal Server Error');
@@ -116,7 +119,7 @@ export function serveStaticFile(
       stream.pipe(res);
 
       stream.on('error', (error) => {
-        console.error(`❌ Stream error for ${filePath}:`, error);
+        log.error({ error: (error as Error).message, filePath }, 'Stream error');
         if (!res.headersSent) {
           res.writeHead(500);
           res.end('Internal Server Error');

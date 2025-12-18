@@ -18,7 +18,6 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet } from '../utils/api.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 
 const log = createLogger('TrustDashboardUI');
 
@@ -183,9 +182,6 @@ export async function showTrustDashboard(): Promise<void> {
 export function hideTrustDashboard(): void {
   if (!container) return;
 
-  // Clean up iOS tap listeners
-  cleanupTapListeners(container);
-
   container.classList.remove('visible');
   trackedTimeout(() => {
     container?.remove();
@@ -200,53 +196,53 @@ export function hideTrustDashboard(): void {
 function createDashboardHTML(): string {
   return `
     <div class="trust-dashboard-backdrop"></div>
-    <div class="trust-dashboard-modal" role="dialog" aria-labelledby="trust-dashboard-title" aria-modal="true">
+    <div class="trust-dashboard-modal">
       <header class="trust-dashboard-header">
         <div class="header-left">
           <span class="eyebrow">YOUR JOURNEY</span>
-          <h2 id="trust-dashboard-title">Trust & Growth</h2>
+          <h2>Trust & Growth</h2>
         </div>
         <button class="close-btn" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
       </header>
       
-      <nav class="trust-dashboard-tabs" role="tablist" aria-label="Dashboard sections">
-        <button class="tab-btn active" data-tab="health" role="tab" aria-selected="true" aria-controls="tab-health">
+      <nav class="trust-dashboard-tabs">
+        <button class="tab-btn active" data-tab="health">
           ${ICONS.heart}
           <span>Health</span>
         </button>
-        <button class="tab-btn" data-tab="timeline" role="tab" aria-selected="false" aria-controls="tab-timeline">
+        <button class="tab-btn" data-tab="timeline">
           ${ICONS.timeline}
           <span>Timeline</span>
         </button>
-        <button class="tab-btn" data-tab="events" role="tab" aria-selected="false" aria-controls="tab-events">
+        <button class="tab-btn" data-tab="events">
           ${ICONS.calendar}
           <span>Events</span>
         </button>
-        <button class="tab-btn" data-tab="journal" role="tab" aria-selected="false" aria-controls="tab-journal">
+        <button class="tab-btn" data-tab="journal">
           ${ICONS.journal}
           <span>Journal</span>
         </button>
-        <button class="tab-btn" data-tab="media" role="tab" aria-selected="false" aria-controls="tab-media">
+        <button class="tab-btn" data-tab="media">
           ${ICONS.music}
           <span>Media</span>
         </button>
-        <button class="tab-btn" data-tab="insights" role="tab" aria-selected="false" aria-controls="tab-insights">
+        <button class="tab-btn" data-tab="insights">
           ${ICONS.chart}
           <span>Insights</span>
         </button>
       </nav>
       
-      <main class="trust-dashboard-content" role="tabpanel" aria-live="polite">
-        <div class="content-loading" role="status" aria-label="Loading content">
-          <div class="spinner" aria-hidden="true"></div>
+      <main class="trust-dashboard-content">
+        <div class="content-loading">
+          <div class="spinner"></div>
           <p>Loading...</p>
         </div>
       </main>
       
       <footer class="trust-dashboard-footer">
-        <button class="refresh-btn" aria-label="Refresh dashboard data">
+        <button class="refresh-btn">
           ${ICONS.refresh}
           <span>Refresh</span>
         </button>
@@ -587,15 +583,15 @@ function renderContent(): void {
 function setupEventListeners(): void {
   if (!container) return;
 
-  // Close button (iOS-compatible)
-  addTapListener(container.querySelector('.close-btn'), hideTrustDashboard);
+  // Close button
+  container.querySelector('.close-btn')?.addEventListener('click', hideTrustDashboard);
 
-  // Backdrop click (iOS-compatible)
-  addTapListener(container.querySelector('.trust-dashboard-backdrop'), hideTrustDashboard);
+  // Backdrop click
+  container.querySelector('.trust-dashboard-backdrop')?.addEventListener('click', hideTrustDashboard);
 
-  // Tab buttons (iOS-compatible)
+  // Tab buttons
   container.querySelectorAll('.tab-btn').forEach((btn) => {
-    addTapListener(btn, (e) => {
+    btn.addEventListener('click', (e) => {
       const tab = (e.currentTarget as HTMLElement).dataset.tab as DashboardState['activeTab'];
       if (tab) {
         // Update active state
@@ -607,8 +603,8 @@ function setupEventListeners(): void {
     });
   });
 
-  // Refresh button (iOS-compatible)
-  addTapListener(container.querySelector('.refresh-btn'), () => {
+  // Refresh button
+  container.querySelector('.refresh-btn')?.addEventListener('click', () => {
     loadTabData(state.activeTab);
   });
 
@@ -1139,33 +1135,6 @@ function addStyles(): void {
     .refresh-btn svg {
       width: 16px;
       height: 16px;
-    }
-    
-    /* ========================================
-       ACCESSIBILITY - Focus Styles
-       ======================================== */
-    .close-btn:focus-visible,
-    .tab-btn:focus-visible,
-    .refresh-btn:focus-visible,
-    .generate-report-btn:focus-visible {
-      outline: 2px solid var(--persona-primary);
-      outline-offset: 2px;
-    }
-    
-    /* ========================================
-       ACCESSIBILITY - Reduced Motion
-       ======================================== */
-    @media (prefers-reduced-motion: reduce) {
-      .trust-dashboard-overlay,
-      .trust-dashboard-modal,
-      .close-btn,
-      .tab-btn,
-      .refresh-btn,
-      .generate-report-btn,
-      .spinner {
-        transition: none !important;
-        animation: none !important;
-      }
     }
   `;
   document.head.appendChild(style);

@@ -14,6 +14,7 @@
 
 import crypto from 'node:crypto';
 import { getCircuitBreaker } from '../utils/circuit-breaker.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
@@ -185,10 +186,12 @@ export async function storeUserTokens(userId: string, tokens: GoogleTokens): Pro
       await firestore
         .collection(OAUTH_TOKENS_COLLECTION)
         .doc(userId)
-        .set({
-          ...tokens,
-          updatedAt: new Date(),
-        });
+        .set(
+          removeUndefined({
+            ...tokens,
+            updatedAt: new Date(),
+          })
+        );
       getLogger().info(
         { userId, hasRefreshToken: !!tokens.refresh_token },
         'Stored Google tokens in Firestore'

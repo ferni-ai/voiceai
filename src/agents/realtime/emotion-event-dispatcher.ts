@@ -56,7 +56,7 @@ export interface EmotionDispatchOptions {
 
 /**
  * Humanization signal types that match frontend expectations
- * @see frontend-typescript/src/services/humanization-bridge.service.ts
+ * @see apps/web/src/services/humanization-bridge.service.ts
  */
 export type HumanizationSignalType =
   | 'concern_detected'

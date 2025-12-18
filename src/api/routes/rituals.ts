@@ -156,7 +156,7 @@ export async function handleCompleteRitual(
 
     // Check if ritual exists
     const streak = await store.getRitualStreak(userId, ritualId);
-    
+
     // For known persona rituals, auto-activate if not exists
     const isKnownRitual = ritualId in PERSONA_RITUALS;
     if (!streak && !isKnownRitual) {
@@ -181,11 +181,18 @@ export async function handleCompleteRitual(
 
     // Use DailyRitualsService for consolidated streak logic
     const service = getDailyRitualsService();
-    
+
     // Build emotional weather data if provided
     const emotionalWeather = body.weather
       ? {
-          primary: body.weather.primary as 'sunny' | 'partly-cloudy' | 'cloudy' | 'rainy' | 'stormy' | 'foggy' | 'rainbow',
+          primary: body.weather.primary as
+            | 'sunny'
+            | 'partly-cloudy'
+            | 'cloudy'
+            | 'rainy'
+            | 'stormy'
+            | 'foggy'
+            | 'rainbow',
           energy: body.weather.energy as 'high' | 'medium' | 'low',
           note: body.weather.note,
         }
@@ -219,7 +226,8 @@ export async function handleCompleteRitual(
           ? {
               type: isMilestone ? 'milestone' : 'personal_best',
               milestone: result.newStreak,
-              message: result.celebration || 
+              message:
+                result.celebration ||
                 (isMilestone
                   ? getMilestoneMessage(result.newStreak)
                   : `New personal best: ${result.newStreak} days!`),

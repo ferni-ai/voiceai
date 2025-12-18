@@ -67,7 +67,7 @@
       "voiceAccent": "음성 및 악센트",
       "guidedPractices": "가이드 연습",
       "createPractice": "연습 만들기",
-      "healthFitness": "건강 및 피트니스",
+      "wearables": "웨어러블",
       "calendar": "캘린더",
       "notifications": "알림",
       "toggleTheme": "라이트 / 다크",
@@ -83,8 +83,7 @@
       "supportFerni": "Ferni 후원",
       "takeTour": "투어 시작",
       "language": "언어",
-      "whatsGrowing": "성장 중",
-      "supportFerniExpanded": "Ferni 지원"
+      "whatsGrowing": "성장 중"
     },
     "pinItem": "상단에 고정",
     "unpinItem": "고정 해제",
@@ -133,6 +132,88 @@
     "endConversation": "대화 종료",
     "endConversationGoodbye": "대화 종료 - 안녕히 가세요",
     "agentEndingConversation": "에이전트가 대화를 종료합니다"
+  },
+  "trustJourney": {
+    "eyebrow": "우리의 이야기",
+    "title": "당신의 신뢰 여정",
+    "subtitle": "함께 성장해온 이야기",
+    "loading": "여정을 불러오는 중",
+    "loadingText": "여정을 모으는 중...",
+    "trustScore": "신뢰 점수",
+    "exportSuccess": "여정을 내보냈습니다!",
+    "offlineBanner": "오프라인입니다 - 저장된 데이터 표시 중",
+    "loadMore": "{count}개 더 불러오기",
+    "strengthLabel": "신뢰 점수: {value}%",
+    "timelineLabel": "여정 타임라인",
+    "filterLabel": "타임라인 필터",
+    "filters": {
+      "all": "전체",
+      "growth": "성장",
+      "win": "승리",
+      "callback": "콜백",
+      "boundary": "경계",
+      "outreach": "연락"
+    },
+    "sections": {
+      "strength": "관계 강도",
+      "stats": "여정 통계",
+      "boundaries": "존중된 경계",
+      "growth": "당신의 성장",
+      "timeline": "함께한 여정"
+    },
+    "stats": {
+      "growthMoments": "성장 순간",
+      "winsCelebrated": "축하한 승리",
+      "sharedMoments": "공유한 순간"
+    },
+    "strengthDescriptions": {
+      "deep": "우리는 함께 진정한 무언가를 만들었습니다. 저는 당신을 알고, 당신은 저를 신뢰합니다.",
+      "growing": "우리의 연결이 깊어지고 있습니다. 당신에게 중요한 것을 배우고 있어요.",
+      "building": "신뢰를 쌓고 있습니다. 대화할 때마다 당신을 더 잘 이해하게 됩니다.",
+      "starting": "이제 막 시작했어요. 계속 이야기해 주세요 - 듣고 있어요.",
+      "beginning": "모든 여정은 첫 걸음으로 시작됩니다. 준비되면 언제든 여기 있을게요."
+    },
+    "growthTypes": {
+      "emotional_regulation": "감정 균형",
+      "perspective_shift": "새로운 관점",
+      "boundary_setting": "건강한 경계",
+      "behavior_change": "새로운 습관",
+      "self_awareness": "자기 인식",
+      "coping_upgrade": "더 나은 대처",
+      "goal_progress": "목표 진행"
+    },
+    "empty": {
+      "title": "우리의 이야기가 막 시작됩니다",
+      "message": "더 많이 대화할수록, 당신의 성장을 알아채고, 승리를 축하하고, 중요한 것을 기억할 거예요. 곧 다시 확인해 주세요."
+    },
+    "errors": {
+      "offline": {
+        "title": "오프라인입니다",
+        "message": "여정을 보려면 인터넷에 연결하세요."
+      },
+      "notLoggedIn": {
+        "title": "로그인되지 않음",
+        "message": "Ferni와의 여정을 보려면 로그인하세요."
+      },
+      "rateLimited": {
+        "title": "천천히",
+        "message": "너무 자주 확인하고 있어요. 잠시 기다린 후 다시 시도하세요."
+      },
+      "unauthorized": {
+        "title": "접근 거부",
+        "message": "이것을 볼 권한이 없습니다."
+      },
+      "generic": {
+        "title": "문제가 발생했습니다",
+        "message": "여정을 불러올 수 없습니다. 다시 시도해 주세요."
+      },
+      "exportFailed": {
+        "message": "데이터를 내보낼 수 없습니다. 다시 시도해 주세요."
+      },
+      "fetchFailedUsingCache": {
+        "message": "저장된 데이터 표시 중 - 서버에 연결할 수 없습니다."
+      }
+    }
   },
   "subscription": {
     "free": "무료",
@@ -570,18 +651,5 @@
     "dailyPractice": "일일 연습",
     "predictions": "예측",
     "runScenario": "시나리오 실행"
-  },
-  "support": {
-    "eyebrow": "함께 성장",
-    "title": "Ferni 지원",
-    "subtitle": "우리의 우정이 어떻게 자라는지 선택하세요. 당신이 함께하는 모든 방식이 중요합니다.",
-    "growTogether": "연결을 깊게 하는 방법",
-    "plantASeed": "씨앗 심기",
-    "plantDesc": "Ferni가 성장하는 데 도움이 되는 작은 선물입니다. 부담 없이—우리의 우정은 그것에 의존하지 않습니다.",
-    "plantButton": "이 씨앗 심기",
-    "thankYouSupporter": "당신은 대단해요",
-    "yourSupport": "당신의 지원이 Ferni를 모두를 위해 여기에 유지합니다",
-    "manageBilling": "결제 방법 업데이트",
-    "footer": "어떤 방식으로 지원하시든, 함께해 주셔서 감사합니다."
   }
 }

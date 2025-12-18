@@ -255,7 +255,10 @@ export function getSessionState(sessionId: string): HandoffSessionState {
         }
         sessionStates.delete(oldestKey);
         clearHandoffSessionState(oldestKey);
-        getLogger().debug({ evictedSession: oldestKey, reason: 'capacity' }, 'Evicted oldest session state');
+        getLogger().debug(
+          { evictedSession: oldestKey, reason: 'capacity' },
+          'Evicted oldest session state'
+        );
       }
     }
 
@@ -577,5 +580,3 @@ export function getSessionAnalytics(state: HandoffSessionState): {
     avgDuration: durationCount > 0 ? totalDuration / durationCount : 0,
   };
 }
-
-

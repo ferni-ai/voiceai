@@ -278,45 +278,45 @@ interface PersonaHapticProfile {
 
 const PERSONA_HAPTICS: Record<PersonaId, PersonaHapticProfile> = {
   ferni: {
-    speaking: HAPTIC_PATTERNS.ferniBreath!,
-    acknowledgment: HAPTIC_PATTERNS.doubleTap!,
-    signature: HAPTIC_PATTERNS.warmWelcome!,
+    speaking: HAPTIC_PATTERNS.ferniBreath,
+    acknowledgment: HAPTIC_PATTERNS.doubleTap,
+    signature: HAPTIC_PATTERNS.warmWelcome,
     intensityModifier: 1.0,
   },
   jack: {
-    speaking: { ...HAPTIC_PATTERNS.ferniBreath!, events: HAPTIC_PATTERNS.ferniBreath!.events.map(e => ({ ...e, intensity: e.intensity * 0.8 })) },
-    acknowledgment: HAPTIC_PATTERNS.tap!,
-    signature: HAPTIC_PATTERNS.presence!,
+    speaking: { ...HAPTIC_PATTERNS.ferniBreath, events: HAPTIC_PATTERNS.ferniBreath.events.map(e => ({ ...e, intensity: e.intensity * 0.8 })) },
+    acknowledgment: HAPTIC_PATTERNS.tap,
+    signature: HAPTIC_PATTERNS.presence,
     intensityModifier: 0.85,
   },
   peter: {
-    speaking: { ...HAPTIC_PATTERNS.ferniBreath!, totalDuration: 200, events: HAPTIC_PATTERNS.ferniBreath!.events.map(e => ({ ...e, duration: 200, intensity: e.intensity * 1.1 })) },
-    acknowledgment: HAPTIC_PATTERNS.doubleTap!,
-    signature: HAPTIC_PATTERNS.sparkle!,
+    speaking: { ...HAPTIC_PATTERNS.ferniBreath, totalDuration: 200, events: HAPTIC_PATTERNS.ferniBreath.events.map(e => ({ ...e, duration: 200, intensity: e.intensity * 1.1 })) },
+    acknowledgment: HAPTIC_PATTERNS.doubleTap,
+    signature: HAPTIC_PATTERNS.sparkle,
     intensityModifier: 1.1,
   },
   alex: {
-    speaking: HAPTIC_PATTERNS.ferniBreath!,
-    acknowledgment: HAPTIC_PATTERNS.softTap!,
-    signature: HAPTIC_PATTERNS.empathy!,
+    speaking: HAPTIC_PATTERNS.ferniBreath,
+    acknowledgment: HAPTIC_PATTERNS.softTap,
+    signature: HAPTIC_PATTERNS.empathy,
     intensityModifier: 0.9,
   },
   maya: {
-    speaking: { ...HAPTIC_PATTERNS.tap!, events: [{ type: 'transient', startTime: 0, intensity: 0.4 }] },
-    acknowledgment: HAPTIC_PATTERNS.tap!,
-    signature: HAPTIC_PATTERNS.tap!,
+    speaking: { ...HAPTIC_PATTERNS.tap, events: [{ type: 'transient', startTime: 0, intensity: 0.4 }] },
+    acknowledgment: HAPTIC_PATTERNS.tap,
+    signature: HAPTIC_PATTERNS.tap,
     intensityModifier: 1.0,
   },
   jordan: {
-    speaking: HAPTIC_PATTERNS.sparkle!,
-    acknowledgment: HAPTIC_PATTERNS.doubleTap!,
-    signature: HAPTIC_PATTERNS.celebration!,
+    speaking: HAPTIC_PATTERNS.sparkle,
+    acknowledgment: HAPTIC_PATTERNS.doubleTap,
+    signature: HAPTIC_PATTERNS.celebration,
     intensityModifier: 1.15,
   },
   nayan: {
-    speaking: HAPTIC_PATTERNS.ferniBreath!,
-    acknowledgment: HAPTIC_PATTERNS.presence!,
-    signature: HAPTIC_PATTERNS.milestone!,
+    speaking: HAPTIC_PATTERNS.ferniBreath,
+    acknowledgment: HAPTIC_PATTERNS.presence,
+    signature: HAPTIC_PATTERNS.milestone,
     intensityModifier: 0.95,
   },
 };
@@ -329,10 +329,13 @@ export class HapticsService {
   private config: HapticConfig;
   private platform: 'ios' | 'android' | 'web' | 'unsupported';
   private currentPersona: PersonaId = 'ferni';
-  
+
   // Web Vibration API
   private vibrator?: Navigator['vibrate'];
-  
+
+  // Track user interaction to avoid browser vibrate() errors
+  private hasUserInteracted: boolean = false;
+
   constructor(config: Partial<HapticConfig> = {}) {
     this.config = {
       enabled: true,
@@ -341,11 +344,31 @@ export class HapticsService {
       respectSystemSettings: true,
       ...config,
     };
-    
+
     this.platform = this.detectPlatform();
     this.initializePlatform();
-    
+    this.setupUserInteractionTracking();
+
     log.info('Haptics service initialized', { platform: this.platform, enabled: this.config.enabled });
+  }
+
+  /**
+   * Track user interaction so we don't try to vibrate before user has tapped
+   */
+  private setupUserInteractionTracking(): void {
+    if (typeof window === 'undefined') return;
+
+    const markInteracted = () => {
+      this.hasUserInteracted = true;
+      // Remove listeners after first interaction
+      window.removeEventListener('click', markInteracted);
+      window.removeEventListener('touchstart', markInteracted);
+      window.removeEventListener('keydown', markInteracted);
+    };
+
+    window.addEventListener('click', markInteracted, { once: true, passive: true });
+    window.addEventListener('touchstart', markInteracted, { once: true, passive: true });
+    window.addEventListener('keydown', markInteracted, { once: true, passive: true });
   }
   
   // ==========================================================================
@@ -537,7 +560,10 @@ export class HapticsService {
   
   private executeWeb(pattern: HapticPattern, intensityMultiplier: number): void {
     if (!this.vibrator) return;
-    
+
+    // Browser requires user interaction before vibrate() can be called
+    if (!this.hasUserInteracted) return;
+
     // Web Vibration API is limited - convert to simple pattern
     const vibrationPattern: number[] = [];
     let currentTime = 0;

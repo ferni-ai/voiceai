@@ -75,23 +75,6 @@ let masterGain: GainNode | null = null;
 let isMuted = false;
 let isInitialized = false;
 
-/**
- * Mobile volume multiplier - sounds are softer on mobile
- * because the speaker is closer to the user's ear
- */
-const MOBILE_VOLUME_MULTIPLIER = 0.6;
-
-/** Detect if running on mobile device */
-function isMobileDevice(): boolean {
-  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
-    (window.matchMedia?.('(max-width: 768px)')?.matches ?? false);
-}
-
-/** Get volume adjusted for device type */
-function getAdjustedVolume(baseVolume: number): number {
-  return isMobileDevice() ? baseVolume * MOBILE_VOLUME_MULTIPLIER : baseVolume;
-}
-
 // ============================================================================
 // DEBOUNCING - Prevents "casino effect" from multiple rapid sounds
 // ============================================================================
@@ -400,8 +383,7 @@ async function playMP3(name: SoundName): Promise<boolean> {
   try {
     // Clone the audio element for overlapping plays
     const clone = audio.cloneNode() as HTMLAudioElement;
-    // Apply mobile volume reduction for softer playback on handheld devices
-    clone.volume = isMuted ? 0 : getAdjustedVolume(0.4);
+    clone.volume = isMuted ? 0 : 0.4;
     await clone.play();
     log.debug(`🔊 Playing MP3: ${name}`);
     return true;
@@ -488,11 +470,8 @@ function playTone(config: SoundConfig): void {
   const gainNode = audioContext.createGain();
   gainNode.gain.setValueAtTime(0, now);
 
-  // Apply mobile volume reduction for softer playback on handheld devices
-  const targetVolume = getAdjustedVolume(config.volume ?? 0.1);
-
   // Attack
-  gainNode.gain.linearRampToValueAtTime(targetVolume, now + (config.attack ?? 0.01));
+  gainNode.gain.linearRampToValueAtTime(config.volume ?? 0.1, now + (config.attack ?? 0.01));
 
   // Decay
   gainNode.gain.exponentialRampToValueAtTime(0.001, now + (config.duration ?? 0.1));

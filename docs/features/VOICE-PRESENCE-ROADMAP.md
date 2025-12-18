@@ -414,7 +414,7 @@ Collects metrics for all voice presence features to enable monitoring and auto-t
 | Turn Prediction | totalPredictions, accuracy, avgLatencySaved, falsePositiveRate |
 | Pronunciation Memory | namesLearned, correctionsReceived, applicationsCount |
 
-### Voice Presence Dashboard (`frontend-typescript/public/voice-presence-dashboard.html`)
+### Voice Presence Dashboard (`apps/web/public/voice-presence-dashboard.html`)
 
 Interactive dashboard for monitoring and tuning voice presence features.
 

@@ -17,6 +17,7 @@ import { sanitizePlainText } from './validation.js';
 import { getProductivityStore, type ShoppingListData } from '../services/productivity-store.js';
 import { getLogger, generateId } from './utils/tool-helpers.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // Bridge function for persistence
 function listToListData(list: ShoppingList): ShoppingListData {
   return {
@@ -390,11 +391,7 @@ export function clearList(userId: string, listType?: ListType): void {
 export function createShoppingTools() {
   return {
     addToShoppingList: llm.tool({
-      description: `Add items to a shopping list.
-Use when user says:
-- "Add milk to my list"
-- "I need eggs and bread"
-- "Put 2 lbs chicken on my grocery list"`,
+      description: getToolDescription('addToShoppingList'),
       parameters: z.object({
         items: z
           .array(z.string())
@@ -424,8 +421,7 @@ Use when user says:
     }),
 
     getShoppingList: llm.tool({
-      description: `Show the current shopping list.
-Use when user asks "what's on my list?" or "read my grocery list"`,
+      description: getToolDescription('getShoppingList'),
       parameters: z.object({
         listType: z
           .enum(['groceries', 'household', 'pharmacy', 'hardware', 'gifts', 'other'])
@@ -469,8 +465,7 @@ Use when user asks "what's on my list?" or "read my grocery list"`,
     }),
 
     checkOffItem: llm.tool({
-      description: `Mark an item as gotten/checked off.
-Use when user says "got the milk" or "check off eggs"`,
+      description: getToolDescription('checkOffItem'),
       parameters: z.object({
         itemName: z.string().describe('Item to check off'),
         listType: z
@@ -504,7 +499,7 @@ Use when user says "got the milk" or "check off eggs"`,
     }),
 
     removeFromList: llm.tool({
-      description: `Remove an item from the shopping list entirely.`,
+      description: getToolDescription('removeFromList'),
       parameters: z.object({
         itemName: z.string().describe('Item to remove'),
         listType: z
@@ -528,7 +523,7 @@ Use when user says "got the milk" or "check off eggs"`,
     }),
 
     clearCheckedItems: llm.tool({
-      description: `Remove all checked-off items from the list.`,
+      description: getToolDescription('clearCheckedItems'),
       parameters: z.object({
         listType: z
           .enum(['groceries', 'household', 'pharmacy', 'hardware', 'gifts', 'other'])
@@ -551,7 +546,7 @@ Use when user says "got the milk" or "check off eggs"`,
     }),
 
     clearShoppingList: llm.tool({
-      description: `Clear the entire shopping list. Use with caution!`,
+      description: getToolDescription('clearShoppingList'),
       parameters: z.object({
         listType: z
           .enum(['groceries', 'household', 'pharmacy', 'hardware', 'gifts', 'other'])
@@ -575,7 +570,7 @@ Use when user says "got the milk" or "check off eggs"`,
     }),
 
     getListSummary: llm.tool({
-      description: `Get a quick summary of all shopping lists.`,
+      description: getToolDescription('getListSummary'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userData = ctx?.userData as { userId?: string } | undefined;
@@ -607,8 +602,7 @@ Use when user says "got the milk" or "check off eggs"`,
     }),
 
     quickAdd: llm.tool({
-      description: `Quick add common items - just say what you need.
-Handles natural language like "I'm out of milk and eggs"`,
+      description: getToolDescription('quickAdd'),
       parameters: z.object({
         statement: z.string().describe("Natural language statement about what's needed"),
       }),

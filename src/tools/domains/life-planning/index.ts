@@ -16,9 +16,9 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext } from '../../registry/types.js';
 
 // Import tool creators
-import { createEventPlanningTools } from '../../event-planning.js';
-import { createGoalManagementTools } from '../../goal-management.js';
-import { createLifeFirstsTools } from '../../life-firsts-tracker.js';
+import { createEventPlanningTools } from './event-planning.js';
+import { createGoalManagementTools } from './goal-management.js';
+import { createLifeFirstsTools } from './life-firsts-tracker.js';
 
 // ============================================================================
 // LEGACY TOOL WRAPPER

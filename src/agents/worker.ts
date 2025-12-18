@@ -226,7 +226,9 @@ async function warmupResources(): Promise<void> {
           const orchestratorWarmupStart = Date.now();
           const { initializeToolOrchestrator } = await import('../tools/orchestrator/index.js');
           await initializeToolOrchestrator();
-          log('✅ Tool orchestrator pre-initialized', { durationMs: Date.now() - orchestratorWarmupStart });
+          log('✅ Tool orchestrator pre-initialized', {
+            durationMs: Date.now() - orchestratorWarmupStart,
+          });
         } catch (e) {
           log('⚠️ Tool orchestrator warmup failed (non-fatal)', { error: String(e) });
         }
@@ -890,7 +892,7 @@ const shutdown = async (signal: string) => {
     return;
   }
   isShuttingDown = true;
-  
+
   log(`Received ${signal}, shutting down...`, { activeJobs });
 
   // 1. Stop watchdog first (prevents new resource monitoring)
@@ -905,7 +907,7 @@ const shutdown = async (signal: string) => {
   markLivekitDisconnected();
   stopPingKeepalive();
   stopPendingJobsCleanup();
-  
+
   // 3. Close WebSocket gracefully
   if (ws) {
     try {
@@ -925,11 +927,13 @@ const shutdown = async (signal: string) => {
   }
 
   log('Shutdown complete', { totalJobs, completedJobs, failedJobs });
-  
+
   // 5. Give native modules time to cleanup before exit
   // This prevents the "mutex lock failed" error from C++ code
-  await new Promise<void>((resolve) => setTimeout(resolve, 100));
-  
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, 100);
+  });
+
   // 6. Exit cleanly
   process.exit(0);
 };

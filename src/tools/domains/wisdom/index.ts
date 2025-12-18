@@ -14,7 +14,7 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext } from '../../registry/types.js';
 
 // Import legacy tool creators
-import { createWisdomTools } from '../../wisdom.js';
+import { createWisdomTools } from './wisdom.js';
 
 // ============================================================================
 // LEGACY TOOL WRAPPER

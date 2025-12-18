@@ -8,10 +8,15 @@
  */
 
 import { Router, type Request, type Response } from 'express';
+import { z } from 'zod';
 import { createLogger } from '../../../utils/safe-logger.js';
+
+// SECURITY: Schema for validating OAuth state parameter
+const OAuthStateSchema = z.object({
+  userId: z.string().min(1),
+});
 import {
   getCalendarAuthUrl,
-  exchangeCalendarCode,
   fetchUpcomingEvents,
   hasCalendarConnected,
   getUpcomingEvents,
@@ -21,6 +26,7 @@ import {
   disconnectCalendar,
   type LocationType,
 } from '../../../services/context-awareness/location-calendar.js';
+import { exchangeCodeForTokens, storeUserTokens } from '../../../services/google-calendar-oauth.js';
 
 const log = createLogger({ module: 'api:calendar' });
 const router = Router();
@@ -37,7 +43,7 @@ router.get('/status', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'userId is required' });
     }
 
-    const connected = hasCalendarConnected(userId);
+    const connected = await hasCalendarConnected(userId);
     const events = connected ? getUpcomingEvents(userId) : [];
     const location = connected ? getCurrentLocation(userId) : null;
 
@@ -93,25 +99,32 @@ router.get('/callback', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Missing code or state parameter' });
     }
 
-    // Decode state to get userId
+    // SECURITY: Decode and validate state parameter with Zod schema
     let userId: string;
     try {
-      const decoded = JSON.parse(Buffer.from(state, 'base64').toString());
-      userId = decoded.userId;
+      const rawDecoded = JSON.parse(Buffer.from(state, 'base64').toString());
+      const parsed = OAuthStateSchema.safeParse(rawDecoded);
+      if (!parsed.success) {
+        log.warn({ issues: parsed.error.issues }, 'Invalid OAuth state structure');
+        return res.status(400).json({ error: 'Invalid state parameter' });
+      }
+      userId = parsed.data.userId;
     } catch {
       return res.status(400).json({ error: 'Invalid state parameter' });
     }
 
-    // Exchange code for tokens
-    const success = await exchangeCalendarCode(code, userId);
+    // Exchange code for tokens and store them
+    try {
+      const tokens = await exchangeCodeForTokens(code);
+      await storeUserTokens(userId, tokens);
 
-    if (success) {
       // Trigger initial event fetch
       void fetchUpcomingEvents(userId, 48);
 
       log.info({ userId }, 'Calendar connected successfully');
       return res.redirect('/settings/integrations?success=calendar');
-    } else {
+    } catch (tokenError) {
+      log.error({ error: String(tokenError), userId }, 'Token exchange failed');
       return res.redirect('/settings/integrations?error=token_exchange_failed');
     }
   } catch (error) {

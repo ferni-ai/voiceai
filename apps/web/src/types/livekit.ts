@@ -72,6 +72,11 @@ export interface TokenRequest {
   /** Firebase UID for cross-device user identification */
   readonly firebaseUid?: string;
   /**
+   * User's preferred voice accent (american, british, australian, indian)
+   * Loaded from user profile or auto-detected from locale
+   */
+  readonly preferredAccent?: string;
+  /**
    * Claimed demo conversation data (Better than human)
    * Set when user came from landing page demo and claimed their conversation
    */

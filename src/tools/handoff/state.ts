@@ -768,9 +768,7 @@ export function getTeamForHandoff(): Array<{ id: AgentId; name: string; specialt
   // This prevents returning a hardcoded full team that could become stale
   // The real team will be loaded shortly from AgentDirectory
   getLogger().warn('Team cache not ready - returning coordinator fallback');
-  return [
-    { id: 'ferni' as AgentId, name: 'Ferni', specialty: 'team coordinator' },
-  ];
+  return [{ id: 'ferni' as AgentId, name: 'Ferni', specialty: 'team coordinator' }];
 }
 
 /**

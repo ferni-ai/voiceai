@@ -8,14 +8,14 @@ import SwiftUI
 @MainActor
 final class E2EIntegrationTests: XCTestCase {
     
-    var voiceManager: VoiceSessionManager!
+    var voiceManager: DualModeVoiceManager!
     
     override func setUp() async throws {
-        voiceManager = VoiceSessionManager()
+        voiceManager = DualModeVoiceManager()
     }
     
     override func tearDown() async throws {
-        voiceManager.stop()
+        await voiceManager.stop()
         voiceManager = nil
     }
     
@@ -25,23 +25,20 @@ final class E2EIntegrationTests: XCTestCase {
     func testSessionStartFlow() async throws {
         XCTAssertEqual(voiceManager.state, .disconnected)
         
-        // Start session
-        voiceManager.start()
+        // Start session (async)
+        await voiceManager.start()
         
-        // Should immediately be connecting
-        XCTAssertEqual(voiceManager.state, .connecting)
-        
-        // Wait briefly
+        // Wait briefly for state to update
         try await Task.sleep(nanoseconds: 100_000_000) // 100ms
         
-        // Should still be in a valid state (may be connecting or error if no server)
-        let validStates: [VoiceState] = [.connecting, .connected, .error("")]
-        XCTAssertTrue(validStates.contains(where: { 
-            if case .error = voiceManager.state { return true }
-            return $0 == voiceManager.state
-        }), "Expected valid transition state, got \(voiceManager.state)")
+        // Should be in a valid state (may be connecting, connected, or error if no server)
+        let state = voiceManager.state
+        let isValidState = state == .connecting || 
+                          state == .connected || 
+                          state.isError
+        XCTAssertTrue(isValidState, "Expected valid transition state, got \(state)")
         
-        voiceManager.stop()
+        await voiceManager.stop()
         
         // After stop, should be disconnected
         try await Task.sleep(nanoseconds: 100_000_000)
@@ -55,7 +52,7 @@ final class E2EIntegrationTests: XCTestCase {
         
         // Switch to each persona
         for persona in PersonaRegistry.all {
-            voiceManager.switchPersona(persona.id)
+            voiceManager.currentPersonaId = persona.id
             XCTAssertEqual(voiceManager.currentPersonaId, persona.id)
             XCTAssertEqual(voiceManager.currentPersona.name, persona.name)
         }
@@ -69,11 +66,27 @@ final class E2EIntegrationTests: XCTestCase {
         XCTAssertNotEqual(voiceManager.useCloudMode, initial)
         
         // Create new manager to verify persistence
-        let newManager = VoiceSessionManager()
+        let newManager = DualModeVoiceManager()
         XCTAssertEqual(newManager.useCloudMode, !initial)
         
         // Reset
         voiceManager.useCloudMode = initial
+    }
+    
+    /// Test backend mode toggle persists
+    func testBackendModeTogglePersistence() {
+        let initial = voiceManager.backendMode
+        let newMode: VoiceBackendMode = initial == .native ? .cli : .native
+        
+        voiceManager.backendMode = newMode
+        XCTAssertEqual(voiceManager.backendMode, newMode)
+        
+        // Create new manager to verify persistence
+        let newManager = DualModeVoiceManager()
+        XCTAssertEqual(newManager.backendMode, newMode)
+        
+        // Reset
+        voiceManager.backendMode = initial
     }
     
     // MARK: - Audio Level Tests

@@ -76,7 +76,7 @@ design-system/
 Running `npm run build:design-system` generates and copies assets to:
 
 ```
-frontend-typescript/public/design-system/
+apps/web/public/design-system/
 ├── tokens.css                # CSS custom properties
 ├── tokens.ts                 # TypeScript utilities
 ├── assets/                   # All brand assets

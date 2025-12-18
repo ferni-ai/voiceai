@@ -31,7 +31,6 @@ import {
   DURATION, 
   EASING, 
 } from '../config/animation-constants.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 
 // ============================================================================
 // LUCIDE ICONS (SVG) - Per Brand Guidelines Section 7
@@ -983,9 +982,9 @@ function createCelebrationOverlay(): void {
   
   document.body.appendChild(celebrationOverlay);
   
-  // Close handlers (iOS-compatible)
-  addTapListener(celebrationOverlay.querySelector('.celebration-backdrop'), hideCelebration);
-  addTapListener(celebrationOverlay.querySelector('.celebration-dismiss'), hideCelebration);
+  // Close handlers
+  celebrationOverlay.querySelector('.celebration-backdrop')?.addEventListener('click', hideCelebration);
+  celebrationOverlay.querySelector('.celebration-dismiss')?.addEventListener('click', hideCelebration);
 }
 
 function handleStageChange(event: StageChangeEvent): void {
@@ -1026,9 +1025,6 @@ export function showCelebration(event: StageChangeEvent): void {
 }
 
 function hideCelebration(): void {
-  if (celebrationOverlay) {
-    cleanupTapListeners(celebrationOverlay);
-  }
   celebrationOverlay?.classList.remove('visible');
 }
 
@@ -1117,13 +1113,13 @@ function createProgressPanel(): void {
   
   document.body.appendChild(progressPanel);
   
-  // Close handlers (iOS-compatible)
-  addTapListener(progressPanel.querySelector('.journey-backdrop'), hideProgressPanel);
-  addTapListener(progressPanel.querySelector('.journey-close'), hideProgressPanel);
+  // Close handlers
+  progressPanel.querySelector('.journey-backdrop')?.addEventListener('click', hideProgressPanel);
+  progressPanel.querySelector('.journey-close')?.addEventListener('click', hideProgressPanel);
   
-  // Memory filter handlers (iOS-compatible)
+  // Memory filter handlers
   progressPanel.querySelectorAll('.memory-filter').forEach(btn => {
-    addTapListener(btn, () => {
+    btn.addEventListener('click', () => {
       const filterType = (btn as HTMLElement).dataset.filter || 'all';
       
       // Update active state
@@ -1147,30 +1143,39 @@ function createProgressPanel(): void {
   cleanupFns.push(() => document.removeEventListener('keydown', handleEscape));
 }
 
+/**
+ * Show progress panel - REDIRECTS TO UNIFIED JOURNEY MODAL
+ * 
+ * This function now opens the consolidated journey.ui.ts modal
+ * which includes all progress, trust insights, and milestones.
+ * Kept for backwards compatibility with E2E tests and existing callers.
+ */
 export function showProgressPanel(): void {
-  if (!progressPanel) return;
-  
-  updateProgressPanel();
-  progressPanel.classList.add('visible');
-  
-  // Focus management for accessibility
-  const closeBtn = progressPanel.querySelector('.journey-close') as HTMLElement;
-  closeBtn?.focus();
+  // Redirect to unified journey modal
+  import('./journey.ui.js').then(({ journeyUI }) => {
+    journeyUI.open();
+  }).catch(() => {
+    // Fallback: dispatch event for journey.ui.ts to handle
+    window.dispatchEvent(new CustomEvent('ferni:open-journey'));
+  });
 }
 
 export function hideProgressPanel(): void {
-  if (progressPanel) {
-    cleanupTapListeners(progressPanel);
-  }
-  progressPanel?.classList.remove('visible');
+  // Redirect to unified journey modal
+  import('./journey.ui.js').then(({ journeyUI }) => {
+    journeyUI.close();
+  }).catch(() => {
+    // Silent - modal might not be open
+  });
 }
 
 export function toggleProgressPanel(): void {
-  if (progressPanel?.classList.contains('visible')) {
-    hideProgressPanel();
-  } else {
-    showProgressPanel();
-  }
+  // Redirect to unified journey modal
+  import('./journey.ui.js').then(({ journeyUI }) => {
+    journeyUI.toggle();
+  }).catch(() => {
+    window.dispatchEvent(new CustomEvent('ferni:open-journey'));
+  });
 }
 
 function updateProgressPanel(): void {
@@ -1179,7 +1184,7 @@ function updateProgressPanel(): void {
   const stage = relationshipStageService.getStage();
   const metrics = relationshipStageService.getMetrics();
   const progress = relationshipStageService.getProgressToNextStage();
-  const stageInfo = STAGE_DESCRIPTIONS[stage] ?? STAGE_DESCRIPTIONS['first-meeting']!;
+  const stageInfo = STAGE_DESCRIPTIONS[stage] ?? STAGE_DESCRIPTIONS['first-meeting'];
   
   // Update stage info
   const stageName = progressPanel.querySelector('.stage-name');

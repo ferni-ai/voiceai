@@ -118,31 +118,50 @@ All phases documented in `docs/TRUST-SYSTEMS.md` are implemented:
 - `BudgetData`, `SavingsGoalData`, etc. unused
 - Not a priority for life coaching focus
 
-### 2. Communication Coaching Frameworks
-- SBI framework imported but not applied
-- Assertion framework unused
-- Follow-up generation incomplete
-
-### 3. Proactive Outreach Execution
-- Decision engine exists but limited
-- **NOT BUILT:** Actual SMS/voice call sending
-- Channel selection not implemented
-- `ThinkingOfYou` detection works, delivery doesn't
-
-### 4. EvalOps
+### 2. EvalOps
 - Temporarily disabled in voice-agent.ts (line 633)
 - TODO: Re-enable when production-ready
 
 ---
 
-## 📊 Technical Debt Summary
+## ✅ Systems Previously Marked Incomplete But ARE Complete (Dec 17 Audit)
+
+### 1. Communication Coaching Frameworks - **COMPLETE**
+- ✅ SBI framework: `applySBIFramework()` in `communication-coaching.ts` (line 62)
+- ✅ Assertion framework: `applyAssertionFramework()` in `communication-coaching.ts` (line 77)
+- ✅ Follow-up generation: `generateFollowUpMessage()` in `communication-coaching.ts`
+- ✅ Used by `draftDifficultMessage` tool with coaching notes
+
+### 2. Proactive Outreach Execution - **COMPLETE**
+- ✅ SMS delivery: `src/services/outreach/delivery/sms-delivery.ts` (553 lines, Twilio integration)
+- ✅ Voice call delivery: `src/services/voice-call.ts` with Twilio 
+- ✅ Push notifications: `src/services/outreach/delivery/push-notifications.ts`
+- ✅ Email delivery: `src/services/outreach/delivery/email-delivery.ts`
+- ✅ Delivery tracking: `src/services/outreach/delivery/delivery-tracker.ts`
+- ✅ Channel selection: `src/services/outreach/channel-selector.ts`
+- ✅ ThinkingOfYou: Detection AND delivery both work
+
+### 3. Memory Management Tools - **COMPLETE**
+- ✅ `updateMemory` tool exposed in all persona agents
+- ✅ `forgetMemory` tool exposed in all persona agents
+- ✅ Backend implementations in `src/services/persona-memories.ts`
+
+---
+
+## 📊 Technical Debt Summary (Updated Dec 17)
 
 | Category | Count | Priority |
 |----------|-------|----------|
 | TODOs | 11 | Medium |
-| @deprecated items | 32 | Low |
-| Files >1500 lines | 9 | High |
+| @deprecated items | ~25 (reduced from 32) | Low |
+| Files >1500 lines | 9 | Medium (most already modularized) |
 | Circular dependencies | 9 | High |
+
+### Dec 17 Cleanup Summary
+- ✅ Removed deprecated speech module globals (6 functions)
+- ✅ Removed hardcoded theatrical content (600+ lines → bundle-loaded)
+- ✅ Removed unused `legacy.ts` exports file
+- ✅ Updated theatrical.ts to bundle-only (924 → 320 lines)
 
 ### High Priority File Splits
 

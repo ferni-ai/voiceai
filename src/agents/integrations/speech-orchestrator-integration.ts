@@ -5,6 +5,10 @@
  * Uses feature flags for safe rollout alongside existing humanization.
  *
  * @module agents/integrations/speech-orchestrator-integration
+ *
+ * @note STATUS: IMPLEMENTED BUT NOT INTEGRATED
+ * This integration is complete but not yet wired into the voice agent.
+ * To integrate: export from index.ts and enable via enableSpeechOrchestrator().
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
@@ -262,4 +266,3 @@ export default {
   getBackchannelDecision,
   signalNewTurn,
 };
-

@@ -13,6 +13,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 import {
   generateApiKey,
@@ -293,7 +294,7 @@ export async function validateApiKey(apiKey: string): Promise<PublisherSession |
   // Update last used timestamp (async, don't wait)
   db.collection('api_keys')
     .doc(keyDoc.id)
-    .set({ lastUsedAt: new Date() }, { merge: true })
+    .set(removeUndefined({ lastUsedAt: new Date() }), { merge: true })
     .catch((error) => {
       const err = error instanceof Error ? error : new Error(String(error));
       log.error({ error: err.message, keyId: keyDoc.id }, 'Failed to update lastUsedAt');

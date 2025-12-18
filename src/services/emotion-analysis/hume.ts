@@ -12,6 +12,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { getDefaultModel } from '../model-config.js';
 
 const logger = getLogger().child({ service: 'VoiceEmotion' });
 
@@ -131,7 +132,11 @@ export interface HumeEmotionPoint {
 // ============================================================================
 
 const GEMINI_API_KEY = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
-const GEMINI_MODEL = 'gemini-2.0-flash-exp'; // Fast multimodal model
+
+// Use centralized model config (toggle via admin UI or model-config.json)
+function getGeminiModel(): string {
+  return getDefaultModel();
+}
 
 // Emotion analysis prompt for Gemini
 const EMOTION_ANALYSIS_PROMPT = `Analyze the emotional content of this audio clip. Focus on voice prosody (tone, pitch, rhythm, energy).
@@ -227,7 +232,7 @@ export async function analyzeVoiceEmotion(
 
   try {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
+    const model = genAI.getGenerativeModel({ model: getGeminiModel() });
 
     // Convert audio buffer to base64
     const base64Audio = Buffer.from(audioBuffer).toString('base64');

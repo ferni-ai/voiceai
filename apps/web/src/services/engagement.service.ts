@@ -9,8 +9,8 @@
  * - HTTP API (initial load and background sync)
  */
 
-import type { EngagementEvent, EngagementTriggerEvent } from '../types/events.js';
-import { isEngagementMessage, isEngagementTriggerMessage } from '../types/events.js';
+import type { EngagementEvent, EngagementTriggerEvent, DailyCheckInRecordedEvent } from '../types/events.js';
+import { isEngagementMessage, isEngagementTriggerMessage, isDailyCheckInRecordedMessage } from '../types/events.js';
 import type { EngagementData, EmotionalWeatherData } from '../ui/engagement.ui.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
@@ -36,7 +36,12 @@ export interface EngagementServiceCallbacks {
   onEngagementUpdate?: (data: EngagementData) => void;
   onEngagementTrigger?: (trigger: EngagementTriggerEvent) => void;
   onPredictionsUpdate?: (predictions: PredictionData[]) => void;
-  onStreakMilestone?: (streak: { ritualName: string; count: number; personaId: string }) => void;
+  onStreakMilestone?: (streak: {
+    ritualName: string;
+    count: number;
+    personaId: string;
+    celebration?: string;
+  }) => void;
 }
 
 // ============================================================================
@@ -69,6 +74,12 @@ class EngagementService {
     // Check for engagement triggers
     if (isEngagementTriggerMessage(data)) {
       this.handleEngagementTrigger(data);
+      return true;
+    }
+
+    // Check for daily check-in recorded (from voice conversation)
+    if (isDailyCheckInRecordedMessage(data)) {
+      this.handleDailyCheckInRecorded(data);
       return true;
     }
 
@@ -123,6 +134,62 @@ class EngagementService {
   private handleEngagementTrigger(event: EngagementTriggerEvent): void {
     log.debug('[Engagement] Trigger received:', event.triggerType, event.message);
     this.callbacks.onEngagementTrigger?.(event);
+  }
+
+  /**
+   * Handle daily check-in recorded from voice conversation.
+   * Updates cached data and triggers UI refresh.
+   */
+  private handleDailyCheckInRecorded(event: DailyCheckInRecordedEvent): void {
+    log.info('[Engagement] Daily check-in recorded via voice:', {
+      weather: event.weather,
+      streak: event.streak,
+      isNewRecord: event.isNewRecord,
+    });
+
+    // Add to weather history in cached data
+    if (this.cachedData) {
+      // Add new weather entry
+      this.cachedData.weatherHistory.unshift({
+        primary: event.weather,
+        energy: event.energy,
+        recordedAt: event.timestamp,
+      });
+
+      // Keep only last 30 entries
+      if (this.cachedData.weatherHistory.length > 30) {
+        this.cachedData.weatherHistory = this.cachedData.weatherHistory.slice(0, 30);
+      }
+
+      // Update streak for the ritual
+      const streakIndex = this.cachedData.ritualStreaks.findIndex(
+        (s) => s.ritualId === event.ritualId
+      );
+      if (streakIndex >= 0) {
+        this.cachedData.ritualStreaks[streakIndex].currentStreak = event.streak;
+        if (event.isNewRecord) {
+          this.cachedData.ritualStreaks[streakIndex].longestStreak = event.streak;
+        }
+        this.cachedData.ritualStreaks[streakIndex].lastCompletedAt = event.timestamp;
+        this.cachedData.ritualStreaks[streakIndex].dueToday = false;
+      }
+
+      // Update stats
+      this.cachedData.lastEngagementAt = event.timestamp;
+      
+      // Notify listeners to refresh UI
+      this.callbacks.onEngagementUpdate?.(this.cachedData);
+    }
+
+    // Check for milestone celebration
+    if (event.streak && this.isStreakMilestone(event.streak)) {
+      this.callbacks.onStreakMilestone?.({
+        ritualName: 'Morning Sky Check', // Default for sky check
+        count: event.streak,
+        personaId: 'ferni',
+        celebration: event.celebration,
+      });
+    }
   }
 
   /**

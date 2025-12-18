@@ -14,7 +14,7 @@ import {
   addMilestoneMemory,
   MILESTONE_TEMPLATES,
   type MilestoneCategory,
-} from '../tools/life-firsts-tracker.js';
+} from '../tools/domains/life-planning/life-firsts-tracker.js';
 
 import { CULTURAL_CELEBRATIONS } from '../tools/cultural-celebrations.js';
 

@@ -10,6 +10,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { IntelligentTask } from './intelligent-task.js';
 
+import { getToolDescription } from '../tools/utils/tool-descriptions.js';
 // ============================================================================
 // FOLLOW-UP TASK (FOR RETURNING USERS)
 // ============================================================================
@@ -63,7 +64,7 @@ export class FollowUpTask extends IntelligentTask<FollowUpResult> {
       },
       tools: {
         acknowledgeReturn: llm.tool({
-          description: 'Acknowledge the returning user and reference past conversations.',
+          description: getToolDescription('acknowledgeReturn'),
           parameters: z.object({
             greeting: z.string().describe('Your personalized greeting'),
             topicToFollowUp: z.string().describe("What you're following up on from last time"),
@@ -75,7 +76,7 @@ export class FollowUpTask extends IntelligentTask<FollowUpResult> {
         }),
 
         recordUpdate: llm.tool({
-          description: 'Record the update they shared about a previous topic.',
+          description: getToolDescription('recordUpdate'),
           parameters: z.object({
             topic: z.string().describe('What topic this update is about'),
             update: z.string().describe('What they shared'),
@@ -105,7 +106,7 @@ export class FollowUpTask extends IntelligentTask<FollowUpResult> {
         }),
 
         completeFollowUp: llm.tool({
-          description: 'Complete the follow-up task with summary.',
+          description: getToolDescription('completeFollowUp'),
           parameters: z.object({
             previousTopicAddressed: z
               .boolean()
@@ -190,7 +191,7 @@ export class StorytellingTask extends IntelligentTask<StoryResult> {
       },
       tools: {
         shareStory: llm.tool({
-          description: 'Share a relevant story.',
+          description: getToolDescription('shareStory'),
           parameters: z.object({
             theme: z.string().describe('The theme of the story'),
             storyText: z.string().describe('The story itself'),
@@ -203,7 +204,7 @@ export class StorytellingTask extends IntelligentTask<StoryResult> {
         }),
 
         gaugeReaction: llm.tool({
-          description: 'Gauge how the user reacted to the story.',
+          description: getToolDescription('gaugeReaction'),
           parameters: z.object({
             reaction: z
               .enum(['moved', 'interested', 'neutral', 'confused', 'connected'])
@@ -290,7 +291,7 @@ export class DeepDiveTask extends IntelligentTask<DeepDiveResult> {
       },
       tools: {
         explainConcept: llm.tool({
-          description: 'Explain a concept as part of the deep dive.',
+          description: getToolDescription('explainConcept'),
           parameters: z.object({
             concept: z.string().describe("What you're explaining"),
             explanation: z.string().describe('Your explanation'),
@@ -304,7 +305,7 @@ export class DeepDiveTask extends IntelligentTask<DeepDiveResult> {
         }),
 
         checkUnderstanding: llm.tool({
-          description: "Check if they're following along.",
+          description: getToolDescription('checkUnderstanding'),
           parameters: z.object({
             checkQuestion: z.string().describe('Question to check understanding'),
           }),
@@ -314,7 +315,7 @@ export class DeepDiveTask extends IntelligentTask<DeepDiveResult> {
         }),
 
         answerQuestion: llm.tool({
-          description: 'Answer a question they asked during the deep dive.',
+          description: getToolDescription('checkUnderstanding'),
           parameters: z.object({
             question: z.string().describe('Their question'),
             answer: z.string().describe('Your answer'),
@@ -327,7 +328,7 @@ export class DeepDiveTask extends IntelligentTask<DeepDiveResult> {
         }),
 
         concludeDeepDive: llm.tool({
-          description: 'Conclude the deep dive with a summary.',
+          description: getToolDescription('answerQuestion'),
           parameters: z.object({
             userUnderstanding: z
               .enum(['beginner', 'intermediate', 'advanced'])
@@ -407,7 +408,7 @@ export class GoodbyeTask extends IntelligentTask<GoodbyeResult> {
       },
       tools: {
         offerTakeaway: llm.tool({
-          description: 'Offer a key takeaway from the conversation.',
+          description: getToolDescription('concludeDeepDive'),
           parameters: z.object({
             takeaway: z.string().describe('The key insight or reminder'),
           }),
@@ -417,7 +418,7 @@ export class GoodbyeTask extends IntelligentTask<GoodbyeResult> {
         }),
 
         suggestNextSteps: llm.tool({
-          description: 'Suggest concrete next steps, if appropriate.',
+          description: getToolDescription('offerTakeaway'),
           parameters: z.object({
             steps: z.array(z.string()).describe('1-3 simple next steps'),
           }),
@@ -430,7 +431,7 @@ export class GoodbyeTask extends IntelligentTask<GoodbyeResult> {
         }),
 
         sayGoodbye: llm.tool({
-          description: 'Say the final goodbye.',
+          description: getToolDescription('suggestNextSteps'),
           parameters: z.object({
             tone: z
               .enum(['warm', 'encouraging', 'thoughtful', 'caring'])
@@ -489,7 +490,7 @@ export class CelebrationTask extends IntelligentTask<CelebrationResult> {
       },
       tools: {
         celebrate: llm.tool({
-          description: 'Share in their celebration.',
+          description: getToolDescription('sayGoodbye'),
           parameters: z.object({
             celebration: z.string().describe('Your celebratory response'),
             connectionToBiggerPicture: z
@@ -503,7 +504,7 @@ export class CelebrationTask extends IntelligentTask<CelebrationResult> {
         }),
 
         concludeCelebration: llm.tool({
-          description: 'Wrap up the celebration moment.',
+          description: getToolDescription('celebrate'),
           parameters: z.object({
             userFeltAcknowledged: z.boolean().describe('Whether they seemed to feel acknowledged'),
           }),

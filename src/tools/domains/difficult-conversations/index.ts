@@ -37,6 +37,7 @@ import {
 } from '../shared/persistence.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // DIFFICULT CONVERSATIONS WISDOM DATABASE
 // ============================================================================
@@ -286,8 +287,7 @@ const prepareHardConversationDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user prepare for a difficult conversation by clarifying their intention, planning what to say, and anticipating challenges.',
+      description: getToolDescription('prepareHardConversation'),
       parameters: z.object({
         conversationType: z
           .enum([
@@ -386,8 +386,7 @@ const clarifyIntentionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user clarify what they really want from a difficult conversation - often different from what they think they want.',
+      description: getToolDescription('clarifyIntention'),
       parameters: z.object({
         whatTheyWantToSay: z.string().describe('What they want to say'),
         whyItMatters: z.string().optional().describe('Why this conversation matters'),
@@ -455,8 +454,7 @@ const anticipateResponsesDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user anticipate and prepare for different ways the other person might respond.',
+      description: getToolDescription('anticipateResponses'),
       parameters: z.object({
         conversation: z.string().describe('What the conversation is about'),
         personDescription: z.string().optional().describe('What the person is like'),
@@ -532,8 +530,7 @@ const practiceConversationDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Provide a safe space to practice what the user wants to say. Ferni can role-play the other person or coach the user through it.',
+      description: getToolDescription('practiceConversation'),
       parameters: z.object({
         whatToPractice: z.string().describe('What they want to practice saying'),
         mode: z
@@ -612,8 +609,7 @@ const buildScriptDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user build a framework or script for their conversation using proven communication frameworks.',
+      description: getToolDescription('buildScript'),
       parameters: z.object({
         situation: z.string().describe('The situation they need to address'),
         framework: z
@@ -692,7 +688,7 @@ const setBoundaryConversationDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user prepare to set or enforce a boundary in a relationship.',
+      description: getToolDescription('setBoundaryConversation'),
       parameters: z.object({
         boundary: z.string().describe('The boundary they need to set'),
         withWhom: z.string().describe('Who they need to set it with'),
@@ -773,7 +769,7 @@ const sayNoWithGraceDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user learn to say no kindly but firmly.',
+      description: getToolDescription('sayNoWithGrace'),
       parameters: z.object({
         whatToDecline: z.string().describe('What they need to say no to'),
         whyItsHard: z.string().optional().describe('Why saying no feels hard'),
@@ -852,8 +848,7 @@ const repairRelationshipRuptureDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user address and repair a rupture or distance in an important relationship.',
+      description: getToolDescription('repairRelationshipRupture'),
       parameters: z.object({
         whatHappened: z.string().describe('What caused the rupture'),
         relationship: z.string().describe('The relationship affected'),
@@ -939,8 +934,7 @@ const makeAmendsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user prepare to make genuine amends - not just apologize, but take accountability and make it right.',
+      description: getToolDescription('makeAmends'),
       parameters: z.object({
         whatYouDid: z.string().describe('What they did that needs amending'),
         whoWasHurt: z.string().describe('Who was affected'),
@@ -1019,8 +1013,7 @@ const endOfLifeConversationDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user prepare for end-of-life conversations with aging parents or loved ones.',
+      description: getToolDescription('endOfLifeConversation'),
       parameters: z.object({
         withWhom: z.string().describe('Who they need to talk to'),
         whatToDiscuss: z
@@ -1131,8 +1124,7 @@ const majorAnnouncementDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user prepare to announce something major - coming out, divorce, career change, moving away, etc.',
+      description: getToolDescription('majorAnnouncement'),
       parameters: z.object({
         announcement: z.string().describe('What they need to announce'),
         toWhom: z.string().describe('Who they need to tell'),
@@ -1216,7 +1208,7 @@ const shareConversationWisdomDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Share relevant wisdom about difficult conversations and communication.',
+      description: getToolDescription('shareConversationWisdom'),
       parameters: z.object({
         context: z
           .enum([

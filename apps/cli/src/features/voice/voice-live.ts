@@ -412,90 +412,206 @@ async function connectToRoom(
     console.log(`${c.yellow}Agent left: ${participant.identity}${c.reset}`);
   });
 
-  // Track audio playback process - PERSISTENT across track subscriptions
-  let audioPlayProcess: ChildProcess | null = null;
+  // Audio playback - buffer complete utterances then play
   const PLAYBACK_SAMPLE_RATE = 48000;
   const PLAYBACK_CHANNELS = 1;
-
-  // Start persistent sox process for audio playback
-  const startAudioPlayback = () => {
-    if (audioPlayProcess && !audioPlayProcess.killed) {
-      return; // Already running
+  
+  // Check which audio player is available (prefer sox's play for pipe support)
+  let audioPlayerType: 'play' | 'afplay' | 'ffplay' = 'ffplay';
+  try {
+    execSync('which play', { stdio: 'pipe' });
+    audioPlayerType = 'play';
+  } catch {
+    try {
+      execSync('which afplay', { stdio: 'pipe' });
+      audioPlayerType = 'afplay';
+    } catch {
+      audioPlayerType = 'ffplay';
     }
-
-    audioPlayProcess = spawn('sox', [
-      '-t', 'raw',              // Input is raw PCM
-      '-b', '16',               // 16-bit
-      '-e', 'signed-integer',   // Signed integers
-      '-r', String(PLAYBACK_SAMPLE_RATE),  // Sample rate (48kHz default for LiveKit)
-      '-c', String(PLAYBACK_CHANNELS),     // Mono
-      '-',                      // Read from stdin
-      '-d',                     // Output to default audio device (speakers)
-    ], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-
-    audioPlayProcess.on('error', (err) => {
-      console.log(`${colors.yellow}Audio playback error: ${err.message}${colors.reset}`);
-    });
-
-    audioPlayProcess.on('close', (code) => {
-      if (options.debug) {
-        console.log(`${c.dim}[sox] Process closed with code ${code}${c.reset}`);
+  }
+  if (options.debug) {
+    console.log(`${colors.dim}[AUDIO] Using player: ${audioPlayerType}${colors.reset}`);
+  }
+  
+  // Temp file counter for afplay fallback
+  let tempFileCounter = 0;
+  
+  // Play a complete audio buffer
+  const playBufferedAudio = (audioData: Buffer): Promise<void> => {
+    return new Promise((resolve) => {
+      if (audioData.length < 1000) {
+        resolve();
+        return;
       }
-      audioPlayProcess = null;
-    });
+      
+      if (audioPlayerType === 'play') {
+        // sox's play command - handles pipes well
+        const player = spawn('play', [
+          '-t', 'raw',
+          '-b', '16',
+          '-e', 'signed-integer',
+          '-r', String(PLAYBACK_SAMPLE_RATE),
+          '-c', String(PLAYBACK_CHANNELS),
+          '-',
+          '-q', // quiet
+        ], { 
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
 
-    audioPlayProcess.stderr?.on('data', (data: Buffer) => {
-      // Suppress sox WARN messages about audio format
-      const msg = data.toString().trim();
-      if (msg && !msg.includes('WARN') && options.debug) {
-        console.log(`${c.dim}[sox] ${msg}${c.reset}`);
+        player.stdin?.on('error', () => {});
+        player.stderr?.on('data', () => {});
+        player.on('close', () => resolve());
+        player.on('error', () => resolve());
+        
+        player.stdin?.write(audioData);
+        player.stdin?.end();
+      } else if (audioPlayerType === 'afplay') {
+        // macOS native - needs temp file
+        const fs = require('fs');
+        const tempFile = `/tmp/ferni-audio-${process.pid}-${tempFileCounter++}.raw`;
+        fs.writeFileSync(tempFile, audioData);
+        
+        // Convert to aiff using sox, then play with afplay
+        const aiffFile = tempFile.replace('.raw', '.aiff');
+        try {
+          execSync(`sox -t raw -r ${PLAYBACK_SAMPLE_RATE} -b 16 -e signed -c ${PLAYBACK_CHANNELS} "${tempFile}" "${aiffFile}"`, { stdio: 'pipe' });
+          const player = spawn('afplay', [aiffFile], { stdio: 'pipe' });
+          player.on('close', () => {
+            try { fs.unlinkSync(tempFile); } catch {}
+            try { fs.unlinkSync(aiffFile); } catch {}
+            resolve();
+          });
+          player.on('error', () => resolve());
+        } catch {
+          try { fs.unlinkSync(tempFile); } catch {}
+          resolve();
+        }
+      } else {
+        // ffplay fallback
+        const player = spawn('ffplay', [
+          '-f', 's16le',
+          '-ar', String(PLAYBACK_SAMPLE_RATE),
+          '-ac', String(PLAYBACK_CHANNELS),
+          '-nodisp',
+          '-autoexit',
+          '-loglevel', 'quiet',
+          '-i', 'pipe:0',
+        ], { 
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
+
+        player.stdin?.on('error', () => {});
+        player.stderr?.on('data', () => {});
+        player.on('close', () => resolve());
+        player.on('error', () => resolve());
+        
+        player.stdin?.write(audioData);
+        player.stdin?.end();
       }
     });
-
-    if (options.debug) {
-      console.log(`${colors.green}Audio playback started${colors.reset}`);
+  };
+  
+  // Track audio collection per utterance
+  let audioCollectors: Map<string, Buffer[]> = new Map();
+  let playbackQueue: Buffer[] = [];
+  let isPlaying = false;
+  
+  // Process playback queue sequentially
+  const processPlaybackQueue = async () => {
+    if (isPlaying || playbackQueue.length === 0) return;
+    isPlaying = true;
+    
+    while (playbackQueue.length > 0) {
+      const audio = playbackQueue.shift();
+      if (audio && audio.length > 0) {
+        const durationMs = (audio.length / (PLAYBACK_SAMPLE_RATE * 2)) * 1000;
+        if (options.debug) {
+          console.log(`${c.dim}[AUDIO] Playing ${durationMs.toFixed(0)}ms${c.reset}`);
+        }
+        // Wait for actual playback to complete
+        await playBufferedAudio(audio);
+      }
+    }
+    
+    isPlaying = false;
+  };
+  
+  // Queue buffered audio for playback
+  const queueAudioForPlayback = (trackId: string) => {
+    const chunks = audioCollectors.get(trackId);
+    if (!chunks || chunks.length === 0) return;
+    
+    const fullAudio = Buffer.concat(chunks);
+    audioCollectors.delete(trackId);
+    
+    if (fullAudio.length > 1000) { // Only queue if substantial audio
+      playbackQueue.push(fullAudio);
+      processPlaybackQueue();
     }
   };
 
-  // Handle audio tracks from agent - PIPE TO SPEAKERS
+  // Handle audio tracks from agent - STREAM and PLAY in real-time
   room.on(RoomEvent.TrackSubscribed, async (track, _publication, participant) => {
     // Only handle audio tracks from the agent
     if (track.kind !== lk.TrackKind.KIND_AUDIO) return;
     if (!participant.identity?.includes('agent')) return;
 
+    const trackId = `${participant.identity}-${track.sid || Date.now()}`;
+    
     if (options.debug) {
-      console.log(`${c.dim}[TRACK] Subscribed to audio from ${participant.identity}${c.reset}`);
+      console.log(`${colors.dim}[AUDIO] Subscribed to audio track: ${trackId}${colors.reset}`);
     }
-
-    // Ensure sox is running
-    startAudioPlayback();
+    
+    // Real-time chunked playback - collect frames for 300ms then play
+    const CHUNK_DURATION_MS = 300;
+    const FRAMES_PER_CHUNK = Math.ceil((PLAYBACK_SAMPLE_RATE * CHUNK_DURATION_MS) / 1000 / 960); // ~15 frames per chunk
+    let audioChunks: Buffer[] = [];
+    let frameCount = 0;
 
     try {
       const { AudioStream } = lk;
+      const audioStream = new AudioStream(track);
 
-      // Create audio stream to receive frames
-      const audioStream = new AudioStream(track, PLAYBACK_SAMPLE_RATE, PLAYBACK_CHANNELS);
-
-      let frameCount = 0;
-
-      // Pipe audio frames to sox
+      // Process frames as they arrive, play in chunks
       for await (const frame of audioStream) {
-        if (audioPlayProcess && !audioPlayProcess.killed && audioPlayProcess.stdin) {
-          // Convert samples to Buffer (16-bit signed PCM)
-          const samples = frame.data;
-          const buffer = Buffer.from(samples.buffer, samples.byteOffset, samples.byteLength);
-          audioPlayProcess.stdin.write(buffer);
-          frameCount++;
+        const samples = frame.data;
+        const buffer = Buffer.from(samples.buffer, samples.byteOffset, samples.byteLength);
+        audioChunks.push(buffer);
+        frameCount++;
+        
+        // Every FRAMES_PER_CHUNK frames, queue for playback
+        if (frameCount >= FRAMES_PER_CHUNK) {
+          const chunk = Buffer.concat(audioChunks);
+          audioChunks = [];
+          frameCount = 0;
+          
+          if (chunk.length > 1000) {
+            playbackQueue.push(chunk);
+            processPlaybackQueue();
+          }
         }
       }
-
-      if (options.debug) {
-        console.log(`${c.dim}[TRACK] Audio stream ended after ${frameCount} frames${c.reset}`);
+      
+      // Flush remaining audio when stream ends
+      if (audioChunks.length > 0) {
+        const finalChunk = Buffer.concat(audioChunks);
+        if (finalChunk.length > 1000) {
+          playbackQueue.push(finalChunk);
+          processPlaybackQueue();
+        }
       }
     } catch (err) {
-      console.log(`${colors.yellow}Audio stream error: ${(err as Error).message}${colors.reset}`);
+      // Stream ended unexpectedly - flush remaining
+      if (audioChunks.length > 0) {
+        const finalChunk = Buffer.concat(audioChunks);
+        if (finalChunk.length > 1000) {
+          playbackQueue.push(finalChunk);
+          processPlaybackQueue();
+        }
+      }
+      if (options.debug) {
+        console.log(`${colors.dim}[AUDIO] Stream ended: ${err}${colors.reset}`);
+      }
     }
   });
 

@@ -36,7 +36,7 @@ const TOKEN_SOURCES = [
 
 const GENERATED_FILES = [
   'design-system/dist/tokens.css',
-  'frontend-typescript/public/design-system/tokens.css',
+  'apps/web/public/design-system/tokens.css',
   'promo/ferni-website/css/design-tokens.css',
   'promo/ferni-website/src/css/_tokens.css',
 ];

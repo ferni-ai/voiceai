@@ -41,7 +41,7 @@ npm run build
 
 # Or for live development with hot reload:
 # 1. Start the web dev server
-cd ../../frontend-typescript && npm run dev
+cd ../../apps/web && npm run dev
 
 # 2. Update capacitor.config.ts with your local IP
 # 3. Run on device/emulator

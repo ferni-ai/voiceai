@@ -9,21 +9,25 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
+import { createDomainExport } from '../../registry/loader.js';
+import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
+import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { getLogger } from '../../../utils/safe-logger.js';
 
 // ============================================================================
 // TOOL DEFINITIONS
 // ============================================================================
 
-export function getToolDefinitions() {
-  return {
-    startReflectionGame: llm.tool({
-      description: `Start a fun reflection game or activity to help the user explore their thoughts, 
-values, or memories in a playful way. Choose from activities like:
-- "Two truths and a dream" - share real experiences and aspirations
-- "Values auction" - prioritize what matters most
-- "Rose, thorn, bud" - reflect on positives, challenges, and potential
-- "Gratitude chain" - build appreciation connections
-- "Life bingo" - celebrate experiences and set intentions`,
+const startReflectionGameDef: ToolDefinition = {
+  id: 'startReflectionGame',
+  name: 'Start Reflection Game',
+  description: 'Start a fun, introspective game to help users learn about themselves',
+  domain: 'reflection-games',
+  tags: ['play', 'reflection', 'games', 'self-discovery'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description: getToolDescription('startReflectionGame'),
       parameters: z.object({
         game: z
           .enum([
@@ -39,6 +43,8 @@ values, or memories in a playful way. Choose from activities like:
         topic: z.string().optional().describe('Optional topic or theme to focus the game'),
       }),
       execute: async ({ game, topic }) => {
+        getLogger().info({ agentId: ctx.agentId, game, topic }, 'Starting reflection game');
+
         const gameDescriptions: Record<string, string> = {
           two_truths_dream:
             "Let's play Two Truths and a Dream! Tell me two things that have actually happened in your life, and one thing you dream of doing. I'll try to guess which is the dream!",
@@ -67,6 +73,14 @@ values, or memories in a playful way. Choose from activities like:
           instructions: 'Start the game with the user in a warm, playful way.',
         };
       },
-    }),
-  };
-}
+    });
+  },
+};
+
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
+export const { getToolDefinitions, domain, definitions } = createDomainExport('reflection-games', [
+  startReflectionGameDef,
+]);

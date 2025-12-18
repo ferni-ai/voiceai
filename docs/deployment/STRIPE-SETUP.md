@@ -250,5 +250,5 @@ Verify `successUrl` and `cancelUrl` in checkout request:
 - `src/services/stripe-subscription.ts` - Core Stripe service
 - `src/api/subscription-routes.ts` - API route handlers
 - `src/types/subscription.ts` - Tier configuration
-- `frontend-typescript/src/ui/subscription.ui.ts` - UI components
-- `frontend-typescript/src/ui/subscription-badge.ui.ts` - Header badge
+- `apps/web/src/ui/subscription.ui.ts` - UI components
+- `apps/web/src/ui/subscription-badge.ui.ts` - Header badge

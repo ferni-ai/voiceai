@@ -16,6 +16,7 @@
 
 import pino from 'pino';
 import * as admin from 'firebase-admin';
+import { removeUndefined } from '../utils/firestore-utils.js';
 
 const log = pino({ name: 'voice-audit' });
 
@@ -96,6 +97,7 @@ export interface AuditStats {
 
 const COLLECTION_NAME = 'voice_auth_audit';
 const RETENTION_DAYS = 90; // Keep audit logs for 90 days
+const FIRESTORE_BATCH_LIMIT = 500; // Firestore batch write limit
 
 let firestoreInstance: admin.firestore.Firestore | null = null;
 let initAttempted = false;
@@ -169,10 +171,12 @@ export async function logVoiceAuthEvent(
 
   if (db) {
     try {
-      const docRef = await db.collection(COLLECTION_NAME).add({
-        ...fullEntry,
-        timestamp: admin.firestore.Timestamp.fromDate(fullEntry.timestamp),
-      });
+      const docRef = await db.collection(COLLECTION_NAME).add(
+        removeUndefined({
+          ...fullEntry,
+          timestamp: admin.firestore.Timestamp.fromDate(fullEntry.timestamp),
+        })
+      );
       return docRef.id;
     } catch (error) {
       log.error({ error }, 'Failed to persist audit log to Firestore');
@@ -577,25 +581,36 @@ export async function checkSuspiciousActivity(userId: string): Promise<{
  */
 export async function cleanupOldAuditLogs(): Promise<number> {
   const cutoffDate = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
+  const cutoffTimestamp = admin.firestore.Timestamp.fromDate(cutoffDate);
 
   const db = getFirestore();
+  let totalDeleted = 0;
 
   if (db) {
     try {
-      const oldLogs = await db
-        .collection(COLLECTION_NAME)
-        .where('timestamp', '<', admin.firestore.Timestamp.fromDate(cutoffDate))
-        .limit(500)
-        .get();
+      // Loop until all old logs are cleaned (handle >500 logs)
+      while (true) {
+        const oldLogs = await db
+          .collection(COLLECTION_NAME)
+          .where('timestamp', '<', cutoffTimestamp)
+          .limit(FIRESTORE_BATCH_LIMIT)
+          .get();
 
-      if (oldLogs.empty) return 0;
+        if (oldLogs.empty) break;
 
-      const batch = db.batch();
-      oldLogs.docs.forEach((doc) => batch.delete(doc.ref));
-      await batch.commit();
+        const batch = db.batch();
+        oldLogs.docs.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
+        totalDeleted += oldLogs.size;
 
-      log.info({ deleted: oldLogs.size }, 'Cleaned up old audit logs');
-      return oldLogs.size;
+        // If we got fewer than the limit, we're done
+        if (oldLogs.size < FIRESTORE_BATCH_LIMIT) break;
+      }
+
+      if (totalDeleted > 0) {
+        log.info({ deleted: totalDeleted }, 'Cleaned up old audit logs');
+      }
+      return totalDeleted;
     } catch (error) {
       log.error({ error }, 'Failed to cleanup audit logs');
     }
@@ -609,7 +624,7 @@ export async function cleanupOldAuditLogs(): Promise<number> {
     inMemoryAuditLog.shift();
   }
 
-  return beforeCount - inMemoryAuditLog.length;
+  return beforeCount - inMemoryAuditLog.length + totalDeleted;
 }
 
 // ============================================================================

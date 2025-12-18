@@ -289,9 +289,8 @@ export async function executeHandoff(
 
   // Team unlock validation - check if this persona is available for the user
   // Skip check for coach (coordinator is always available) or if explicitly skipped
-  // Also skip if BYPASS_TEAM_UNLOCKS env var is set (for testing/demo)
-  const bypassUnlocks = process.env['BYPASS_TEAM_UNLOCKS'] === 'true';
-  if (!options.skipUnlockCheck && !isCoach(canonicalTargetId) && !bypassUnlocks) {
+  // Bypass logic (BYPASS_TEAM_UNLOCKS env var) is handled inside isTeamMemberUnlocked()
+  if (!options.skipUnlockCheck && !isCoach(canonicalTargetId)) {
     const tier = options.subscriptionTier || 'free';
     const targetName = getPersonaDisplayName(canonicalTargetId);
 
@@ -452,6 +451,9 @@ export async function executeHandoff(
     };
 
     // Set up timeout - FIX BUG #8: Remove listener on timeout to prevent leak
+    // 🐛 FIX BUG #5: Timeout should NOT return success:true - that's misleading!
+    // The handoff may have completed but we lost the event, OR it actually failed.
+    // Return a distinct status so callers know this was a timeout.
     const timeoutId = setTimeout(() => {
       getLogger().warn(
         { targetId: canonicalTargetId },
@@ -461,7 +463,13 @@ export async function executeHandoff(
         handoffEvents.off('handoffHandlerComplete', onComplete);
         listenerRemoved = true;
       }
-      resolve({ success: true, greetingSpoken: false, instructionsUpdated: false });
+      // Return success: false with a timeout flag so caller knows what happened
+      resolve({
+        success: false,
+        greetingSpoken: false,
+        instructionsUpdated: false,
+        error: 'timeout',
+      });
     }, HANDOFF_TIMING.HANDOFF_TIMEOUT_MS);
 
     handoffEvents.on('handoffHandlerComplete', onComplete);
@@ -478,14 +486,32 @@ export async function executeHandoff(
   // Wait for handler to complete
   const handlerResult = await handlerCompletePromise;
 
-  getLogger().info(
-    {
-      targetId: canonicalTargetId,
-      handlerResult,
-    },
-    '✅ Handoff handler completed'
-  );
+  // 🐛 FIX: Properly log and handle handler failures/timeouts
+  if (handlerResult.success) {
+    getLogger().info(
+      {
+        targetId: canonicalTargetId,
+        greetingSpoken: handlerResult.greetingSpoken,
+        instructionsUpdated: handlerResult.instructionsUpdated,
+      },
+      '✅ Handoff handler completed successfully'
+    );
+  } else {
+    getLogger().warn(
+      {
+        targetId: canonicalTargetId,
+        error: handlerResult.error,
+        greetingSpoken: handlerResult.greetingSpoken,
+        instructionsUpdated: handlerResult.instructionsUpdated,
+      },
+      '⚠️ Handoff handler did not complete successfully'
+    );
+  }
 
+  // Note: We still return success: true from the executor's perspective because:
+  // 1. The handoff state WAS updated (currentAgent changed)
+  // 2. The voiceSwitch event WAS emitted
+  // The handler result indicates whether greeting/instructions were applied
   return {
     success: true,
     targetAgent: canonicalTargetId,
@@ -738,11 +764,7 @@ INSTRUCTIONS:
 // ============================================================================
 
 // Re-export history functions from state.ts
-export {
-  getHandoffHistory,
-  getLastHandoff,
-  clearHandoffHistory,
-} from './state.js';
+export { getHandoffHistory, getLastHandoff, clearHandoffHistory } from './state.js';
 
 // ============================================================================
 // EXPORTS

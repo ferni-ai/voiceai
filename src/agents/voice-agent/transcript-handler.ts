@@ -47,6 +47,27 @@ import type { ConversationContext as FeedbackContext } from '../../tools/feedbac
 import { trackConversationTurn } from '../integrations/speech-metrics-integration.js';
 import type { IntegrationResult as VoiceHumanizationIntegration } from '../integrations/voice-humanization-integration.js';
 import type { UserData } from '../shared/types.js';
+import {
+  validateTranscript,
+  isLikelyNoise,
+  type ValidationContext,
+} from './transcript-validator.js';
+import {
+  analyzeTurnSignals,
+  updateSessionState,
+  handleInterruption,
+  type TurnContext,
+} from './human-turn-intelligence.js';
+import {
+  processDailyCheckIn,
+  cleanupStaleCheckIns,
+  type DailyCheckInContext,
+} from './daily-checkin-handler.js';
+import {
+  detectTeamHuddleRequest,
+  createTeamHuddleTrigger,
+} from '../../services/engagement-conversation-triggers.js';
+// PersonaIdString is just a string alias, defined locally to avoid import issues
 
 // ============================================================================
 // TYPES
@@ -86,6 +107,8 @@ export interface TranscriptHandlerContext {
       lastToolId: string | undefined
     ) => void;
   };
+  /** Function to send data messages to frontend */
+  sendDataMessage?: (type: string, payload: Record<string, unknown>) => Promise<void>;
 }
 
 /**
@@ -171,6 +194,55 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
     // Enables "reading the future" - responding before user finishes
     // ===============================================
     if (event.transcript && !event.isFinal && event.transcript.length > 10) {
+      // Quick noise check for partials - don't stream obvious noise
+      if (isLikelyNoise(event.transcript)) {
+        return; // Skip this partial - it's noise
+      }
+
+      // ===============================================
+      // 🧠 HUMAN TURN INTELLIGENCE (Partial)
+      // Analyze HOW user is speaking to predict turn state
+      // ===============================================
+      const isAgentCurrentlySpeakingNow = conversationManager.isAgentSpeaking();
+      const turnContext: TurnContext = {
+        transcript: event.transcript,
+        isFinal: false,
+        emotion: userData.voiceEmotion?.primary as TurnContext['emotion'],
+        emotionalIntensity: userData.lastEmotionAnalysis?.intensity,
+        isAgentSpeaking: isAgentCurrentlySpeakingNow,
+        turnCount: userData.turnCount || 0,
+        previousMessage: userData.lastUserMessage,
+      };
+
+      const turnSignals = analyzeTurnSignals(sessionId, turnContext);
+
+      // Handle potential interruption intelligently
+      if (isAgentCurrentlySpeakingNow && turnSignals.shouldYieldFloor) {
+        const interruptDecision = handleInterruption({
+          interruptionText: event.transcript,
+          agentWasSaying: userData.lastAgentResponse || '',
+          agentProgressPercent: 50, // Estimate - could track more precisely
+          userEmotion: userData.voiceEmotion?.primary,
+        });
+
+        if (interruptDecision.shouldYield) {
+          diag.state('🧠 Human intelligence: Yielding floor gracefully', {
+            style: interruptDecision.yieldStyle,
+            trigger: event.transcript.slice(0, 30),
+          });
+          // The micro-interrupt handler above will stop the agent
+        }
+      }
+
+      // If user wants to continue and agent might respond too early, log it
+      if (turnSignals.wantsToContinue || turnSignals.isHesitating) {
+        diag.state('🧠 User may not be done speaking', {
+          confidence: turnSignals.completionConfidence.toFixed(2),
+          isHesitating: turnSignals.isHesitating,
+          wantsToContinue: turnSignals.wantsToContinue,
+        });
+      }
+
       sendPartialTranscript(room, event.transcript);
 
       // ===============================================
@@ -212,6 +284,79 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
     // FINAL TRANSCRIPT PROCESSING
     // ===============================================
     if (event.isFinal && event.transcript) {
+      // ===============================================
+      // 🧠 INTELLIGENT NOISE/ECHO FILTERING
+      // Validate transcript before treating as user turn
+      // Catches: foreign char noise, echo, STT artifacts
+      // ===============================================
+      const lastAgentSpeechEnd = userData.lastAgentSpeechEndTime || 0;
+      const timeSinceAgentSpoke = Date.now() - lastAgentSpeechEnd;
+
+      const validationContext: ValidationContext = {
+        // Use lastAgentResponse for echo detection (already tracked)
+        lastAgentUtterance: userData.lastAgentResponse,
+        timeSinceAgentSpoke,
+        expectedLanguage: userData.preferredLanguage || 'en',
+        isAgentSpeaking: isAgentCurrentlySpeaking,
+      };
+
+      const validation = validateTranscript(event.transcript, validationContext);
+
+      if (!validation.isValid) {
+        diag.state('🚫 Transcript rejected by intelligent filter', {
+          reason: validation.reason,
+          confidence: validation.confidence.toFixed(2),
+          transcript: event.transcript.slice(0, 30),
+          timeSinceAgentSpoke,
+        });
+        // Don't process this as a user turn - it's noise/echo
+        return;
+      }
+
+      // Use cleaned transcript if available
+      const cleanedTranscript = validation.cleanedTranscript || event.transcript;
+
+      // ===============================================
+      // 🧠 HUMAN TURN INTELLIGENCE (Final)
+      // Full analysis now that we have the complete utterance
+      // ===============================================
+      const finalTurnContext: TurnContext = {
+        transcript: cleanedTranscript,
+        isFinal: true,
+        emotion: userData.voiceEmotion?.primary as TurnContext['emotion'],
+        emotionalIntensity: userData.lastEmotionAnalysis?.intensity,
+        isAgentSpeaking: isAgentCurrentlySpeaking,
+        turnCount: userData.turnCount || 0,
+        previousMessage: userData.lastUserMessage,
+        silenceDurationMs: timeSinceAgentSpoke > 5000 ? undefined : timeSinceAgentSpoke,
+      };
+
+      const finalTurnSignals = analyzeTurnSignals(sessionId, finalTurnContext);
+
+      // Store recommended delay for response processor
+      userData.recommendedResponseDelay = finalTurnSignals.recommendedDelay;
+      userData.lastUserMessage = cleanedTranscript;
+
+      // Update session state for learning user's patterns
+      const wordCount = cleanedTranscript.split(/\s+/).filter((w: string) => w.length > 0).length;
+      updateSessionState(sessionId, {
+        sentenceLength: wordCount,
+        emotionalIntensity: userData.lastEmotionAnalysis?.intensity,
+      });
+
+      // Log human intelligence insights
+      if (finalTurnSignals.isUrgent) {
+        diag.state('🧠 Human intelligence: URGENT message detected', {
+          transcript: cleanedTranscript.slice(0, 50),
+        });
+      }
+
+      diag.state('🧠 Turn analysis complete', {
+        completionConfidence: finalTurnSignals.completionConfidence.toFixed(2),
+        recommendedDelay: finalTurnSignals.recommendedDelay,
+        isUrgent: finalTurnSignals.isUrgent,
+      });
+
       // 🚀 RESPONSE ANTICIPATION CACHE BYPASS
       // If we have a high-confidence cached response, say it immediately
       // This provides instant-feeling responses for common patterns (greetings, etc.)
@@ -226,8 +371,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       // - Short greetings where agent finishes before echo is transcribed
       // - STT processing delay
       // - Network latency
-      const lastAgentSpeechEnd = userData.lastAgentSpeechEndTime || 0;
-      const timeSinceAgentSpoke = Date.now() - lastAgentSpeechEnd;
+      // NOTE: lastAgentSpeechEnd and timeSinceAgentSpoke already calculated above
       const isInEchoCooldown = timeSinceAgentSpoke < ECHO_PREVENTION_COOLDOWN_MS;
 
       // Skip cache if currently speaking OR within cooldown window
@@ -508,6 +652,12 @@ function processFinalTranscript(ctx: TranscriptHandlerContext & { event: Transcr
 
   // Collect feedback for tool optimization
   processFeedbackCollection(event.transcript, userData, sessionId, sessionPersona, autoOptimizer);
+
+  // Process daily check-in (extracts weather and records to engagement system)
+  processDailyCheckInTranscript(event.transcript, userData, sessionId, ctx.sendDataMessage);
+
+  // Detect team huddle requests
+  processTeamHuddleDetection(event.transcript, sessionPersona.id, ctx.sendDataMessage);
 }
 
 /**
@@ -772,6 +922,56 @@ function processDJSessionFlow(transcript: string, userData: UserData): void {
 }
 
 /**
+ * Process daily check-in detection and recording
+ * Extracts emotional weather from conversation and persists to engagement system
+ */
+function processDailyCheckInTranscript(
+  transcript: string,
+  userData: UserData,
+  sessionId: string,
+  sendDataMessage?: (type: string, payload: Record<string, unknown>) => Promise<void>
+): void {
+  // Only process if we have a user ID
+  if (!userData.userId) {
+    return;
+  }
+
+  // Build context for check-in detection
+  const checkInCtx: DailyCheckInContext = {
+    sessionId,
+    userId: userData.userId,
+    turnCount: userData.turnCount || 0,
+    recentTranscripts: userData.recentTranscripts || [],
+  };
+
+  // Track recent transcripts for multi-turn check-in detection
+  if (!userData.recentTranscripts) {
+    userData.recentTranscripts = [];
+  }
+  userData.recentTranscripts.push(transcript);
+  // Keep only last 10 transcripts
+  if (userData.recentTranscripts.length > 10) {
+    userData.recentTranscripts.shift();
+  }
+
+  // Process asynchronously (non-blocking)
+  void (async () => {
+    try {
+      const recorded = await processDailyCheckIn(transcript, checkInCtx, sendDataMessage);
+
+      if (recorded) {
+        diag.state('✅ Daily check-in recorded successfully', { sessionId });
+
+        // Clean up stale sessions periodically
+        cleanupStaleCheckIns();
+      }
+    } catch (error) {
+      diag.warn('Daily check-in processing error', { error: String(error) });
+    }
+  })();
+}
+
+/**
  * Process feedback collection for tool optimization
  */
 function processFeedbackCollection(
@@ -807,6 +1007,50 @@ function processFeedbackCollection(
     }
   } catch (feedbackError) {
     diag.warn('Feedback collection error', { error: String(feedbackError) });
+  }
+}
+
+// ============================================================================
+// TEAM HUDDLE DETECTION
+// ============================================================================
+
+/**
+ * Detect and trigger team huddle when user requests team input
+ */
+function processTeamHuddleDetection(
+  transcript: string,
+  personaId: string,
+  sendDataMessage: TranscriptHandlerContext['sendDataMessage']
+): void {
+  try {
+    const detection = detectTeamHuddleRequest(transcript);
+
+    if (detection.detected && detection.confidence >= 0.7) {
+      diag.info('Team huddle request detected', {
+        confidence: detection.confidence,
+        phrase: detection.phrase,
+      });
+
+      // Create and send the team huddle trigger to frontend
+      const trigger = createTeamHuddleTrigger(personaId, transcript);
+
+      // Send via data message to frontend
+      const message = {
+        triggerType: trigger.type,
+        personaId: trigger.personaId,
+        message: trigger.message,
+        data: trigger.data,
+      };
+
+      sendDataMessage?.('engagement_trigger', message);
+
+      diag.info('Team huddle trigger sent', {
+        triggerType: trigger.type,
+        topic: trigger.data?.topic,
+      });
+    }
+  } catch (err) {
+    diag.debug('Team huddle detection error (non-fatal)', { error: String(err) });
   }
 }
 

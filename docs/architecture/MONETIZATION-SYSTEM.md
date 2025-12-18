@@ -735,8 +735,8 @@ See `apps/ios/README.md` for full setup instructions:
 | ------------------------------------------------------- | ---------------------------- |
 | `src/services/apple-iap.ts`                             | Backend verification service |
 | `src/api/apple-iap-routes.ts`                           | API route handlers           |
-| `frontend-typescript/src/services/apple-iap.service.ts` | Frontend client              |
-| `frontend-typescript/src/ui/manage-subscription.ui.ts`  | Management modal             |
+| `apps/web/src/services/apple-iap.service.ts` | Frontend client              |
+| `apps/web/src/ui/manage-subscription.ui.ts`  | Management modal             |
 
 ## Testing Checklist
 
@@ -784,24 +784,24 @@ See `apps/ios/README.md` for full setup instructions:
 
 | File                                                                   | Purpose                          |
 | ---------------------------------------------------------------------- | -------------------------------- |
-| `frontend-typescript/src/services/monetization.service.ts`             | Frontend monetization API client |
-| `frontend-typescript/src/services/cosmetics.service.ts`                | Personalization management       |
-| `frontend-typescript/src/services/growth-journey.service.ts`           | Milestone tracking & celebration |
-| `frontend-typescript/src/services/team-unlock.service.ts`              | Team unlock state                |
-| `frontend-typescript/src/services/monetization-integration.service.ts` | Event triggers & wiring          |
+| `apps/web/src/services/monetization.service.ts`             | Frontend monetization API client |
+| `apps/web/src/services/cosmetics.service.ts`                | Personalization management       |
+| `apps/web/src/services/growth-journey.service.ts`           | Milestone tracking & celebration |
+| `apps/web/src/services/team-unlock.service.ts`              | Team unlock state                |
+| `apps/web/src/services/monetization-integration.service.ts` | Event triggers & wiring          |
 
 ### Frontend UI Components
 
 | File                                                | Purpose               |
 | --------------------------------------------------- | --------------------- |
-| `frontend-typescript/src/ui/subscription.ui.ts`     | Upgrade modals        |
-| `frontend-typescript/src/ui/tip-jar.ui.ts`          | Tip jar modal         |
-| `frontend-typescript/src/ui/ferni-fund.ui.ts`       | Pay-it-forward modal  |
-| `frontend-typescript/src/ui/value-capture.ui.ts`    | Win celebration modal |
-| `frontend-typescript/src/ui/personalize.ui.ts`      | Personalization UI    |
-| `frontend-typescript/src/ui/growth-journey.ui.ts`   | Your Journey UI       |
-| `frontend-typescript/src/ui/b2b-admin.ui.ts`        | B2B admin dashboard   |
-| `frontend-typescript/src/pages/payment-complete.ts` | Payment success pages |
+| `apps/web/src/ui/subscription.ui.ts`     | Upgrade modals        |
+| `apps/web/src/ui/tip-jar.ui.ts`          | Tip jar modal         |
+| `apps/web/src/ui/ferni-fund.ui.ts`       | Pay-it-forward modal  |
+| `apps/web/src/ui/value-capture.ui.ts`    | Win celebration modal |
+| `apps/web/src/ui/personalize.ui.ts`      | Personalization UI    |
+| `apps/web/src/ui/growth-journey.ui.ts`   | Your Journey UI       |
+| `apps/web/src/ui/b2b-admin.ui.ts`        | B2B admin dashboard   |
+| `apps/web/src/pages/payment-complete.ts` | Payment success pages |
 
 ## Brand Compliance
 

@@ -63,6 +63,7 @@ describe('Voice Agent Entry - Module Structure', () => {
 
     // Check that FerniAgent is used (agents now build their own tools internally)
     expect(content).toContain('FerniAgent');
+    // The agent can use orchestrator tools OR internal tools
     expect(content).toContain('tools built internally');
   });
 

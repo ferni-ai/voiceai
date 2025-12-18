@@ -54,8 +54,6 @@ import {
 
 // Avatar Lamp - Pixar Luxo Jr. level body language
 import { avatarLamp, type LampEmotion } from './avatar-lamp.ui.js';
-// Avatar Luxo - Higher-level Pixar spirit behaviors
-import { avatarLuxo } from './avatar-luxo.ui.js';
 
 // Ferni EQ - superhuman emotional intelligence ("Better than Human")
 import { ferni } from './better-than-human.ui.js';
@@ -574,72 +572,6 @@ function createPanel(): HTMLElement {
           <button class="dev-action-btn" data-game="mood-dj">
             ${ICONS.headphones} Mood DJ Challenge
           </button>
-          <button class="dev-action-btn dev-action-btn--secondary" data-game="finish-the-lyric">
-            ${ICONS.music} Finish the Lyric (NEW)
-          </button>
-          <button class="dev-action-btn dev-action-btn--secondary" data-game="decade-challenge">
-            ${ICONS.clock} Decade Challenge (NEW)
-          </button>
-        </div>
-        <div class="dev-subsection">
-          <span class="dev-label">Share Cards (Viral Sharing)</span>
-          <div class="dev-actions">
-            <button class="dev-action-btn dev-action-btn--secondary" data-share-test="musical-dna">
-              ${ICONS.share} Test Musical DNA Card
-            </button>
-            <button class="dev-action-btn dev-action-btn--secondary" data-share-test="desert-island">
-              ${ICONS.share} Test Desert Island Card
-            </button>
-            <button class="dev-action-btn dev-action-btn--secondary" data-share-test="game-victory">
-              ${ICONS.share} Test Victory Card
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- Creative You -->
-      <section class="dev-section">
-        <h3 class="dev-section__title">${ICONS.video} Creative You</h3>
-        <p class="dev-section__desc">Videos, podcasts, and learning tracks</p>
-        <div class="dev-actions">
-          <button class="dev-action-btn dev-action-btn--primary" data-creative="dashboard">
-            ${ICONS.layout} Open Creative Dashboard
-          </button>
-          <button class="dev-action-btn" data-creative="test-videos">
-            ${ICONS.video} Test Video API
-          </button>
-          <button class="dev-action-btn" data-creative="test-podcasts">
-            ${ICONS.headphones} Test Podcast API
-          </button>
-          <button class="dev-action-btn" data-creative="test-dna">
-            ${ICONS.brain} Test Creative DNA
-          </button>
-          <button class="dev-action-btn dev-action-btn--secondary" data-share-test="creative-profile">
-            ${ICONS.share} Test Creative Profile Card
-          </button>
-        </div>
-      </section>
-
-      <!-- Social & Multiplayer -->
-      <section class="dev-section">
-        <h3 class="dev-section__title">${ICONS.users} Social & Multiplayer</h3>
-        <p class="dev-section__desc">Leaderboards, challenges, taste match</p>
-        <div class="dev-actions">
-          <button class="dev-action-btn dev-action-btn--primary" data-social="leaderboard">
-            ${ICONS.trophy} Open Leaderboard
-          </button>
-          <button class="dev-action-btn" data-social="seed-data">
-            ${ICONS.database} Seed Test Data
-          </button>
-          <button class="dev-action-btn" data-social="test-challenge">
-            ${ICONS.sword} Test Challenge API
-          </button>
-          <button class="dev-action-btn" data-social="test-tastematch">
-            ${ICONS.heart} Test Taste Match
-          </button>
-          <button class="dev-action-btn" data-social="test-stats">
-            ${ICONS.chart} Test User Stats
-          </button>
         </div>
       </section>
       
@@ -817,59 +749,6 @@ function createPanel(): HTMLElement {
             </button>
             <button class="dev-lamp-btn" data-lamp="breathing-stop" title="Stop breathing">
               ${ICONS.stop} Stop
-            </button>
-          </div>
-        </div>
-        
-        <!-- Luxo Spirit - Higher-level behaviors -->
-        <div class="dev-subsection">
-          <span class="dev-label">${ICONS.star} Luxo Spirit (Pixar Arcs)</span>
-          <div class="dev-lamp-buttons">
-            <button class="dev-lamp-btn dev-lamp-btn--luxo" data-lamp="pixar-hop" title="The iconic Pixar 'I' hop!">
-              ${ICONS.zap} Pixar Hop!
-            </button>
-            <button class="dev-lamp-btn dev-lamp-btn--luxo" data-lamp="investigate" title="Curious investigation">
-              ${ICONS.search} Investigate
-            </button>
-            <button class="dev-lamp-btn dev-lamp-btn--luxo" data-lamp="investigate-surprise" title="Surprised investigation">
-              ${ICONS.openMouth} Surprise!
-            </button>
-          </div>
-        </div>
-        
-        <div class="dev-subsection">
-          <span class="dev-label">${ICONS.movie} Emotional Arcs</span>
-          <div class="dev-lamp-buttons">
-            <button class="dev-lamp-btn dev-lamp-btn--arc" data-lamp="discovery-arc" title="Finding something wonderful">
-              ${ICONS.lightbulb} Discovery
-            </button>
-            <button class="dev-lamp-btn dev-lamp-btn--arc" data-lamp="realization-arc" title="The aha! moment">
-              ${ICONS.brain} Realization
-            </button>
-            <button class="dev-lamp-btn dev-lamp-btn--arc" data-lamp="empathy-arc" title="Showing deep care">
-              ${ICONS.heart} Empathy
-            </button>
-            <button class="dev-lamp-btn dev-lamp-btn--arc" data-lamp="celebration-arc" title="Pure joy!">
-              ${ICONS.party} Celebration
-            </button>
-          </div>
-        </div>
-        
-        <!-- Special Moments - Principle-aligned behaviors -->
-        <div class="dev-subsection">
-          <span class="dev-label">${ICONS.sparkles} Special Moments (Principles)</span>
-          <div class="dev-lamp-buttons">
-            <button class="dev-lamp-btn dev-lamp-btn--special" data-lamp="welcome-back" title="Relationship Over Transaction - returning friend">
-              ${ICONS.heart} Welcome Back
-            </button>
-            <button class="dev-lamp-btn dev-lamp-btn--special" data-lamp="setback-support" title="Growth Through Gentleness - normalize setbacks">
-              ${ICONS.compass} Setback Support
-            </button>
-            <button class="dev-lamp-btn dev-lamp-btn--special" data-lamp="humor-response" title="Authentic Personality - shared laugh">
-              ${ICONS.smile} Humor Response
-            </button>
-            <button class="dev-lamp-btn dev-lamp-btn--special" data-lamp="late-night" title="2am warmth - gentle presence">
-              ${ICONS.moon} Late Night
             </button>
           </div>
         </div>
@@ -2762,30 +2641,6 @@ function createPanel(): HTMLElement {
     });
   });
 
-  // Share test buttons
-  container.querySelectorAll('[data-share-test]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const shareType = (btn as HTMLElement).dataset.shareTest;
-      void testShareCard(shareType!);
-    });
-  });
-
-  // Creative You buttons
-  container.querySelectorAll('[data-creative]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const action = (btn as HTMLElement).dataset.creative;
-      void handleCreativeAction(action!);
-    });
-  });
-
-  // Social buttons
-  container.querySelectorAll('[data-social]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const action = (btn as HTMLElement).dataset.social;
-      void handleSocialAction(action!);
-    });
-  });
-
   // Music buttons
   container.querySelectorAll('.dev-music-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -3287,280 +3142,9 @@ async function handleGameAction(action: string): Promise<void> {
     case 'desert-island':
     case 'this-or-that':
     case 'mood-dj':
-    case 'finish-the-lyric':
-    case 'decade-challenge':
       // Request game start via voice agent
       await requestGameStart(action);
       break;
-  }
-}
-
-/**
- * Test shareable card generation
- */
-async function testShareCard(cardType: string): Promise<void> {
-  log.info({ cardType }, '📤 Testing share card generation');
-
-  // Create sample data based on card type
-  let cardData: Record<string, unknown>;
-
-  switch (cardType) {
-    case 'musical-dna':
-      cardData = {
-        type: 'musical-dna',
-        personalityLabel: 'The Explorer',
-        personalityDescription: 'You love discovering new genres and artists!',
-        topGenres: [
-          { name: 'Rock', score: 85 },
-          { name: 'Jazz', score: 72 },
-          { name: 'Indie', score: 68 },
-          { name: 'Electronic', score: 55 },
-        ],
-        totalGames: 25,
-        currentStreak: 7,
-      };
-      break;
-
-    case 'desert-island':
-      cardData = {
-        type: 'desert-island',
-        picks: [
-          { rank: 1, trackName: 'Bohemian Rhapsody', artistName: 'Queen', reason: 'Pure magic' },
-          { rank: 2, trackName: 'Imagine', artistName: 'John Lennon' },
-          { rank: 3, trackName: 'Hotel California', artistName: 'Eagles' },
-          { rank: 4, trackName: 'Stairway to Heaven', artistName: 'Led Zeppelin' },
-          { rank: 5, trackName: 'Sweet Child O Mine', artistName: "Guns N' Roses" },
-        ],
-        curatedDate: new Date().toISOString(),
-      };
-      break;
-
-    case 'game-victory':
-      cardData = {
-        type: 'game-victory',
-        gameType: 'name-that-tune',
-        gameDisplayName: 'Name That Tune',
-        score: 950,
-        guessTimeMs: 2340,
-        trackName: 'Billie Jean',
-        artistName: 'Michael Jackson',
-        isPersonalBest: true,
-      };
-      break;
-
-    case 'creative-profile':
-      cardData = {
-        type: 'creative-profile',
-        personalityLabel: 'The Curious Explorer',
-        personalityDescription: 'You dive deep into topics that fascinate you!',
-        topTopics: [
-          { name: 'Psychology', score: 85 },
-          { name: 'Philosophy', score: 78 },
-          { name: 'Science', score: 72 },
-          { name: 'Productivity', score: 65 },
-        ],
-        totalContent: 42,
-        insightsSaved: 15,
-        learningStyle: 'Visual',
-      };
-      break;
-
-    default:
-      log.warn({ cardType }, 'Unknown card type for share test');
-      return;
-  }
-
-  try {
-    // Call the share API
-    const response = await fetch('/api/share/cards/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: cardType,
-        userId: 'dev-test-user',
-        data: cardData,
-      }),
-    });
-
-    const result = await response.json();
-
-    if (result.success && result.card) {
-      log.info({ card: result.card }, '✅ Share card generated');
-      showToast('Card generated! Opening preview...', 'success');
-
-      // Open the share page in a new tab
-      window.open(result.card.shareUrl, '_blank');
-
-      // Also try native share
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: `My ${cardType.replace(/-/g, ' ')} | Ferni`,
-            text: 'Check out my music profile!',
-            url: result.card.shareUrl,
-          });
-        } catch {
-          // User cancelled or not supported
-        }
-      }
-    } else {
-      log.error({ error: result.error }, '❌ Failed to generate share card');
-      showToast(`Failed: ${result.error}`, 'error');
-    }
-  } catch (error) {
-    log.error({ error }, '❌ Share card API error');
-    showToast('API error - check console', 'error');
-  }
-}
-
-/**
- * Handle Creative You actions
- */
-async function handleCreativeAction(action: string): Promise<void> {
-  const baseUrl = window.location.origin;
-
-  switch (action) {
-    case 'dashboard':
-      try {
-        const { openCreativeYouDashboard } = await import('./creative-you-dashboard.ui.js');
-        openCreativeYouDashboard('dev-test-user');
-        log.info('🎨 Opened Creative You dashboard');
-        showToast('Creative dashboard opened', 'success');
-      } catch (e) {
-        log.error('Failed to open Creative dashboard:', e);
-        showToast('Failed to open dashboard', 'error');
-      }
-      break;
-
-    case 'test-videos':
-      try {
-        const res = await fetch(`${baseUrl}/api/creative/videos/recommendations?userId=dev-test&mood=learn&maxResults=3`);
-        const data = await res.json();
-        log.info({ recommendations: data.recommendations }, '🎬 Video recommendations');
-        showToast(`Got ${data.recommendations?.length || 0} video recommendations`, 'success');
-      } catch (e) {
-        log.error('Video API test failed:', e);
-        showToast('Video API error', 'error');
-      }
-      break;
-
-    case 'test-podcasts':
-      try {
-        const res = await fetch(`${baseUrl}/api/creative/podcasts/recommendations?userId=dev-test&mood=reflect&maxResults=3`);
-        const data = await res.json();
-        log.info({ recommendations: data.recommendations }, '🎧 Podcast recommendations');
-        showToast(`Got ${data.recommendations?.length || 0} podcast recommendations`, 'success');
-      } catch (e) {
-        log.error('Podcast API test failed:', e);
-        showToast('Podcast API error', 'error');
-      }
-      break;
-
-    case 'test-dna':
-      try {
-        const res = await fetch(`${baseUrl}/api/creative/dna?userId=dev-test`);
-        const data = await res.json();
-        log.info({ dna: data.dna }, '🧬 Creative DNA');
-        showToast(`Personality: ${data.dna?.personalityLabel || 'Unknown'}`, 'success');
-      } catch (e) {
-        log.error('Creative DNA test failed:', e);
-        showToast('Creative DNA API error', 'error');
-      }
-      break;
-
-    default:
-      log.warn({ action }, 'Unknown creative action');
-  }
-}
-
-/**
- * Handle Social & Multiplayer actions
- */
-async function handleSocialAction(action: string): Promise<void> {
-  const baseUrl = window.location.origin;
-
-  switch (action) {
-    case 'leaderboard':
-      try {
-        const { openLeaderboard } = await import('./leaderboard.ui.js');
-        openLeaderboard('dev-test-user');
-        log.info('🏆 Opened leaderboard');
-        showToast('Leaderboard opened', 'success');
-      } catch (e) {
-        log.error('Failed to open leaderboard:', e);
-        showToast('Failed to open leaderboard', 'error');
-      }
-      break;
-
-    case 'seed-data':
-      try {
-        const res = await fetch(`${baseUrl}/api/social/seed`, { method: 'POST' });
-        const data = await res.json();
-        log.info({ result: data }, '🌱 Seeded test data');
-        showToast('Leaderboard seeded with test data', 'success');
-      } catch (e) {
-        log.error('Seed data failed:', e);
-        showToast('Seed failed', 'error');
-      }
-      break;
-
-    case 'test-challenge':
-      try {
-        const res = await fetch(`${baseUrl}/api/social/challenges/create`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'score-beat',
-            gameType: 'name-that-tune',
-            challengerId: 'dev-user-1',
-            challengerName: 'Dev Tester',
-            challengeeId: 'dev-user-2',
-            challengerScore: 500,
-          }),
-        });
-        const data = await res.json();
-        log.info({ challenge: data.challenge }, '⚔️ Challenge created');
-        showToast(`Challenge created! Code: ${data.challenge?.shareCode}`, 'success');
-      } catch (e) {
-        log.error('Challenge API test failed:', e);
-        showToast('Challenge API error', 'error');
-      }
-      break;
-
-    case 'test-tastematch':
-      try {
-        const res = await fetch(`${baseUrl}/api/social/tastematch/create`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            hostUserId: 'dev-test-user',
-            hostDisplayName: 'Dev Tester',
-            rounds: 5,
-          }),
-        });
-        const data = await res.json();
-        log.info({ session: data.session }, '🎵 Taste Match session created');
-        showToast(`Session: ${data.session?.id?.slice(0, 12)}...`, 'success');
-      } catch (e) {
-        log.error('Taste Match API test failed:', e);
-        showToast('Taste Match API error', 'error');
-      }
-      break;
-
-    case 'test-stats':
-      try {
-        const res = await fetch(`${baseUrl}/api/social/stats?userId=dev-test-user&displayName=DevTester`);
-        const data = await res.json();
-        log.info({ stats: data.stats, rank: data.weeklyRank }, '📊 User stats');
-        showToast(`Level ${data.stats?.level || 1} | XP: ${data.stats?.totalXP || 0}`, 'success');
-      } catch (e) {
-        log.error('User stats test failed:', e);
-        showToast('Stats API error', 'error');
-      }
-      break;
-
-    default:
-      log.warn({ action }, 'Unknown social action');
   }
 }
 
@@ -4066,63 +3650,6 @@ function triggerLampAction(action: string): void {
     case 'breathing-stop':
       avatarLamp.stopBreathing();
       log.info('Avatar Lamp: breathing stopped');
-      break;
-
-    // === AVATAR LUXO - Higher-level Pixar behaviors ===
-    case 'pixar-hop':
-      void avatarLuxo.playPixarHop();
-      log.info('Avatar Luxo: Pixar hop!');
-      break;
-
-    case 'discovery-arc':
-      void avatarLuxo.playDiscoveryArc();
-      log.info('Avatar Luxo: Discovery arc');
-      break;
-
-    case 'realization-arc':
-      void avatarLuxo.playRealizationArc();
-      log.info('Avatar Luxo: Realization arc');
-      break;
-
-    case 'empathy-arc':
-      void avatarLuxo.playEmpathyArc();
-      log.info('Avatar Luxo: Empathy arc');
-      break;
-
-    case 'celebration-arc':
-      void avatarLuxo.playCelebrationArc();
-      log.info('Avatar Luxo: Celebration arc');
-      break;
-
-    case 'investigate':
-      void avatarLuxo.investigate('interesting');
-      log.info('Avatar Luxo: Investigate');
-      break;
-
-    case 'investigate-surprise':
-      void avatarLuxo.investigate('surprising');
-      log.info('Avatar Luxo: Investigate (surprise)');
-      break;
-
-    // === SPECIAL MOMENTS - Principle-aligned behaviors ===
-    case 'welcome-back':
-      void avatarLuxo.playWelcomeBackArc();
-      log.info('Avatar Luxo: Welcome Back (Relationship Over Transaction)');
-      break;
-
-    case 'setback-support':
-      void avatarLuxo.playSetbackSupportArc();
-      log.info('Avatar Luxo: Setback Support (Growth Through Gentleness)');
-      break;
-
-    case 'humor-response':
-      void avatarLuxo.playHumorResponseArc();
-      log.info('Avatar Luxo: Humor Response (Authentic Personality)');
-      break;
-
-    case 'late-night':
-      void avatarLuxo.playLateNightPresence();
-      log.info('Avatar Luxo: Late Night Presence');
       break;
 
     default:
@@ -6252,6 +5779,20 @@ function injectStyles(): void {
       --dev-celebrate-glow: rgba(196, 162, 101, 0.25);
       --dev-text: #e8e2da;
       --dev-text-muted: rgba(232, 226, 218, 0.6);
+      
+      /* Consistent icon sizing - aligned to 4px grid */
+      --dev-icon-xs: 12px;   /* Tiny labels, badges */
+      --dev-icon-sm: 14px;   /* Section titles, inline icons */
+      --dev-icon-md: 16px;   /* Standard button icons */
+      --dev-icon-lg: 18px;   /* Header icons, primary actions */
+      --dev-icon-xl: 20px;   /* Panel title, hero icons */
+      
+      /* Consistent button sizing */
+      --dev-btn-padding-y: 8px;
+      --dev-btn-padding-x: 12px;
+      --dev-btn-gap: 6px;      /* Gap between icon and text */
+      --dev-btn-icon-only: 32px; /* Square icon-only buttons */
+      --dev-btn-icon-only-sm: 28px; /* Small icon-only buttons */
     }
 
     /* Dev Indicator - VISIBLE! */
@@ -6261,8 +5802,8 @@ function injectStyles(): void {
       left: var(--space-4, 16px);
       display: flex;
       align-items: center;
-      gap: var(--space-2, 8px);
-      padding: 10px 16px;
+      gap: var(--dev-btn-gap);
+      padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
       background: linear-gradient(135deg, #3d5a35 0%, #4a6741 100%);
       color: #e8f5e3;
       font-family: 'Plus Jakarta Sans', var(--font-body, system-ui), sans-serif;
@@ -6298,8 +5839,9 @@ function injectStyles(): void {
     }
     
     .dev-indicator svg {
-      width: 16px;
-      height: 16px;
+      width: var(--dev-icon-md);
+      height: var(--dev-icon-md);
+      flex-shrink: 0;
     }
     
     /* Dev Panel */
@@ -6343,7 +5885,7 @@ function injectStyles(): void {
     .dev-panel__title {
       display: flex;
       align-items: center;
-      gap: var(--space-2, 8px);
+      gap: var(--dev-btn-gap);
       color: #e8f5e3;
       font-family: 'Plus Jakarta Sans', var(--font-body, system-ui), sans-serif;
       font-size: 0.9rem;
@@ -6352,14 +5894,15 @@ function injectStyles(): void {
     }
     
     .dev-panel__title svg {
-      width: 20px;
-      height: 20px;
+      width: var(--dev-icon-xl);
+      height: var(--dev-icon-xl);
       color: #9dd690;
+      flex-shrink: 0;
     }
     
     .dev-panel__close {
-      width: 32px;
-      height: 32px;
+      width: var(--dev-btn-icon-only);
+      height: var(--dev-btn-icon-only);
       border: none;
       background: rgba(255, 255, 255, 0.1);
       border-radius: var(--radius-md, 8px);
@@ -6378,8 +5921,8 @@ function injectStyles(): void {
     }
     
     .dev-panel__close svg {
-      width: 16px;
-      height: 16px;
+      width: var(--dev-icon-md);
+      height: var(--dev-icon-md);
     }
     
     .dev-panel__content {
@@ -6406,7 +5949,7 @@ function injectStyles(): void {
     .dev-section__title {
       display: flex;
       align-items: center;
-      gap: var(--space-2, 8px);
+      gap: var(--dev-btn-gap);
       font-size: 0.7rem;
       font-weight: 700;
       color: var(--dev-accent);
@@ -6417,9 +5960,10 @@ function injectStyles(): void {
     }
     
     .dev-section__title svg {
-      width: 14px;
-      height: 14px;
+      width: var(--dev-icon-sm);
+      height: var(--dev-icon-sm);
       opacity: 0.8;
+      flex-shrink: 0;
     }
     
     /* Info Grid */
@@ -6453,12 +5997,12 @@ function injectStyles(): void {
     /* Tier Buttons */
     .dev-tier-buttons {
       display: flex;
-      gap: var(--space-2, 8px);
+      gap: var(--dev-btn-gap);
     }
     
     .dev-tier-btn {
       flex: 1;
-      padding: var(--space-2, 8px) var(--space-3, 12px);
+      padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: var(--radius-md, 8px);
@@ -6484,16 +6028,16 @@ function injectStyles(): void {
     .dev-stage-buttons {
       display: flex;
       flex-wrap: wrap;
-      gap: var(--space-2, 8px);
+      gap: var(--dev-btn-gap);
     }
     
     .dev-stage-btn {
-      padding: var(--space-2, 8px) var(--space-3, 12px);
+      padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: var(--radius-md, 8px);
       color: rgba(255, 255, 255, 0.7);
-      font-size: 0.7rem;
+      font-size: 0.75rem;
       font-weight: 500;
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
@@ -6513,14 +6057,14 @@ function injectStyles(): void {
     .dev-team-grid {
       display: flex;
       flex-direction: column;
-      gap: var(--space-2, 8px);
+      gap: var(--dev-btn-gap);
     }
     
     .dev-team-member {
       display: flex;
       align-items: center;
-      gap: var(--space-3, 12px);
-      padding: var(--space-2, 8px) var(--space-3, 12px);
+      gap: var(--dev-btn-gap);
+      padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
       background: rgba(255, 255, 255, 0.03);
       border-radius: var(--radius-md, 8px);
       border: 1px solid rgba(255, 255, 255, 0.05);
@@ -6532,6 +6076,7 @@ function injectStyles(): void {
     
     .dev-team-member__info {
       flex: 1;
+      min-width: 0;
     }
     
     .dev-team-member__name {
@@ -6548,16 +6093,17 @@ function injectStyles(): void {
     }
     
     .dev-team-member__status {
-      width: 24px;
-      height: 24px;
+      width: var(--dev-btn-icon-only-sm);
+      height: var(--dev-btn-icon-only-sm);
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
     }
     
     .dev-team-member__status svg {
-      width: 16px;
-      height: 16px;
+      width: var(--dev-icon-md);
+      height: var(--dev-icon-md);
     }
     
     .dev-team-member--unlocked .dev-team-member__status {
@@ -6569,8 +6115,8 @@ function injectStyles(): void {
     }
     
     .dev-team-member__celebrate {
-      width: 28px;
-      height: 28px;
+      width: var(--dev-btn-icon-only-sm);
+      height: var(--dev-btn-icon-only-sm);
       border: none;
       background: rgba(255, 255, 255, 0.05);
       border-radius: var(--radius-md, 8px);
@@ -6579,6 +6125,7 @@ function injectStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
     
@@ -6588,27 +6135,27 @@ function injectStyles(): void {
     }
     
     .dev-team-member__celebrate svg {
-      width: 14px;
-      height: 14px;
+      width: var(--dev-icon-sm);
+      height: var(--dev-icon-sm);
     }
     
     /* Action Buttons */
     .dev-actions {
       display: flex;
       flex-direction: column;
-      gap: var(--space-2, 8px);
+      gap: var(--dev-btn-gap);
     }
     
     .dev-action-btn {
       display: flex;
       align-items: center;
-      gap: var(--space-2, 8px);
-      padding: var(--space-2, 8px) var(--space-3, 12px);
+      gap: var(--dev-btn-gap);
+      padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: var(--radius-md, 8px);
       color: rgba(255, 255, 255, 0.8);
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
@@ -6619,14 +6166,36 @@ function injectStyles(): void {
     }
     
     .dev-action-btn svg {
-      width: 14px;
-      height: 14px;
+      width: var(--dev-icon-sm);
+      height: var(--dev-icon-sm);
       color: var(--dev-accent);
+      flex-shrink: 0;
     }
     
     .dev-action-btn--small {
-      padding: var(--space-1, 4px) var(--space-2, 8px);
-      font-size: 0.75rem;
+      padding: 4px 8px;
+      font-size: 0.7rem;
+    }
+    
+    .dev-action-btn--small svg {
+      width: var(--dev-icon-xs);
+      height: var(--dev-icon-xs);
+    }
+    
+    .dev-action-btn--primary {
+      background: rgba(124, 181, 113, 0.2);
+      border-color: rgba(124, 181, 113, 0.3);
+      color: var(--dev-accent-bright);
+      font-weight: 600;
+    }
+    
+    .dev-action-btn--primary:hover {
+      background: rgba(124, 181, 113, 0.3);
+      border-color: rgba(124, 181, 113, 0.4);
+    }
+    
+    .dev-action-btn--primary svg {
+      color: var(--dev-accent-bright);
     }
     
     /* Toggle Switches */
@@ -6744,14 +6313,14 @@ function injectStyles(): void {
     .dev-roster-controls {
       display: flex;
       flex-wrap: wrap;
-      gap: var(--space-2, 8px);
+      gap: var(--dev-btn-gap);
     }
     
     .dev-roster-btn {
       display: flex;
       align-items: center;
-      gap: var(--space-2, 8px);
-      padding: var(--space-2, 8px) var(--space-3, 12px);
+      gap: var(--dev-btn-gap);
+      padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
       background: rgba(100, 200, 150, 0.1);
       border: 1px solid rgba(100, 200, 150, 0.2);
       border-radius: var(--radius-md, 8px);
@@ -6773,8 +6342,9 @@ function injectStyles(): void {
     }
     
     .dev-roster-btn svg {
-      width: 14px;
-      height: 14px;
+      width: var(--dev-icon-sm);
+      height: var(--dev-icon-sm);
+      flex-shrink: 0;
     }
     
     /* Soul & Delight Buttons */
@@ -6789,11 +6359,14 @@ function injectStyles(): void {
     .dev-soul-buttons {
       display: flex;
       flex-wrap: wrap;
-      gap: var(--space-2, 8px);
+      gap: var(--dev-btn-gap);
     }
     
     .dev-soul-btn {
-      padding: var(--space-2, 8px) var(--space-3, 12px);
+      display: flex;
+      align-items: center;
+      gap: var(--dev-btn-gap);
+      padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
       background: rgba(74, 103, 65, 0.25);
       border: 1px solid rgba(74, 103, 65, 0.4);
       border-radius: var(--radius-md, 8px);
@@ -6802,6 +6375,12 @@ function injectStyles(): void {
       font-weight: 500;
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+    
+    .dev-soul-btn svg {
+      width: var(--dev-icon-sm);
+      height: var(--dev-icon-sm);
+      flex-shrink: 0;
     }
     
     .dev-soul-btn:hover {
@@ -6830,11 +6409,11 @@ function injectStyles(): void {
     .dev-soul-ideas {
       display: flex;
       flex-wrap: wrap;
-      gap: var(--space-2, 8px);
+      gap: var(--dev-btn-gap);
     }
     
     .dev-soul-ideas span {
-      padding: var(--space-1, 4px) var(--space-2, 8px);
+      padding: 4px 8px;
       background: rgba(255, 255, 255, 0.05);
       border-radius: var(--radius-sm, 4px);
       font-size: 0.65rem;
@@ -6854,11 +6433,14 @@ function injectStyles(): void {
     .dev-lamp-buttons {
       display: flex;
       flex-wrap: wrap;
-      gap: var(--space-2, 8px);
+      gap: var(--dev-btn-gap);
     }
     
     .dev-lamp-btn {
-      padding: var(--space-2, 8px) var(--space-3, 12px);
+      display: flex;
+      align-items: center;
+      gap: var(--dev-btn-gap);
+      padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
       background: rgba(255, 180, 50, 0.2);
       border: 1px solid rgba(255, 180, 50, 0.35);
       border-radius: var(--radius-md, 8px);
@@ -6867,6 +6449,12 @@ function injectStyles(): void {
       font-weight: 500;
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+    
+    .dev-lamp-btn svg {
+      width: var(--dev-icon-sm);
+      height: var(--dev-icon-sm);
+      flex-shrink: 0;
     }
     
     .dev-lamp-btn:hover {
@@ -6896,11 +6484,14 @@ function injectStyles(): void {
     .dev-handoff-buttons {
       display: flex;
       flex-wrap: wrap;
-      gap: var(--space-2, 8px);
+      gap: var(--dev-btn-gap);
     }
     
     .dev-handoff-btn {
-      padding: var(--space-2, 8px) var(--space-3, 12px);
+      display: flex;
+      align-items: center;
+      gap: var(--dev-btn-gap);
+      padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
       background: rgba(74, 103, 65, 0.2);
       border: 1px solid rgba(74, 103, 65, 0.3);
       border-radius: var(--radius-md, 8px);
@@ -6909,6 +6500,12 @@ function injectStyles(): void {
       font-weight: 500;
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+    
+    .dev-handoff-btn svg {
+      width: var(--dev-icon-sm);
+      height: var(--dev-icon-sm);
+      flex-shrink: 0;
     }
     
     .dev-handoff-btn:hover {
@@ -7016,11 +6613,14 @@ function injectStyles(): void {
     .dev-expression-buttons {
       display: flex;
       flex-wrap: wrap;
-      gap: var(--space-2, 8px);
+      gap: var(--dev-btn-gap);
     }
     
     .dev-expression-btn {
-      padding: var(--space-2, 8px) var(--space-3, 12px);
+      display: flex;
+      align-items: center;
+      gap: var(--dev-btn-gap);
+      padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
       background: rgba(255, 200, 100, 0.15);
       border: 1px solid rgba(255, 200, 100, 0.25);
       border-radius: var(--radius-md, 8px);
@@ -7029,6 +6629,12 @@ function injectStyles(): void {
       font-weight: 500;
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+    
+    .dev-expression-btn svg {
+      width: var(--dev-icon-sm);
+      height: var(--dev-icon-sm);
+      flex-shrink: 0;
     }
     
     .dev-expression-btn:hover {
@@ -7147,21 +6753,27 @@ function injectStyles(): void {
     .dev-dashboard-links {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 6px;
+      gap: var(--dev-btn-gap);
     }
     
     .dev-dashboard-link {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 8px 12px;
+      gap: var(--dev-btn-gap);
+      padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
       background: rgba(74, 103, 65, 0.1);
       border: 1px solid rgba(74, 103, 65, 0.2);
-      border-radius: 6px;
+      border-radius: var(--radius-md, 8px);
       color: var(--color-text-secondary, #a0a0a0);
       text-decoration: none;
-      font-size: 12px;
-      transition: all 0.2s ease;
+      font-size: 0.75rem;
+      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+    
+    .dev-dashboard-link svg {
+      width: var(--dev-icon-sm);
+      height: var(--dev-icon-sm);
+      flex-shrink: 0;
     }
     
     .dev-dashboard-link:hover {
@@ -7210,30 +6822,40 @@ function injectStyles(): void {
     
     /* Subsections in Advanced Behaviors */
     .dev-subsection {
-      margin-bottom: 12px;
+      margin-bottom: var(--space-3, 12px);
     }
     .dev-subsection:last-child {
       margin-bottom: 0;
     }
     .dev-label {
-      display: block;
-      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: var(--dev-btn-gap);
+      font-size: 0.7rem;
       font-weight: 600;
       color: rgba(255, 255, 255, 0.5);
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-bottom: 8px;
+      margin-bottom: var(--dev-btn-padding-y);
+    }
+    .dev-label svg {
+      width: var(--dev-icon-sm);
+      height: var(--dev-icon-sm);
+      flex-shrink: 0;
     }
     
     /* Music Buttons */
     .dev-music-buttons {
       display: flex;
       flex-wrap: wrap;
-      gap: var(--space-2, 8px);
+      gap: var(--dev-btn-gap);
     }
     
     .dev-music-btn {
-      padding: var(--space-2, 8px) var(--space-3, 12px);
+      display: flex;
+      align-items: center;
+      gap: var(--dev-btn-gap);
+      padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
       background: rgba(180, 100, 255, 0.15);
       border: 1px solid rgba(180, 100, 255, 0.25);
       border-radius: var(--radius-md, 8px);
@@ -7242,6 +6864,12 @@ function injectStyles(): void {
       font-weight: 500;
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+    
+    .dev-music-btn svg {
+      width: var(--dev-icon-sm);
+      height: var(--dev-icon-sm);
+      flex-shrink: 0;
     }
     
     .dev-music-btn:hover {
@@ -7318,11 +6946,14 @@ function injectStyles(): void {
     .dev-emotion-buttons {
       display: flex;
       flex-wrap: wrap;
-      gap: var(--space-2, 8px);
+      gap: var(--dev-btn-gap);
     }
     
     .dev-emotion-btn {
-      padding: var(--space-2, 8px) var(--space-3, 12px);
+      display: flex;
+      align-items: center;
+      gap: var(--dev-btn-gap);
+      padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
       background: rgba(74, 103, 65, 0.2);
       border: 1px solid rgba(74, 103, 65, 0.3);
       border-radius: var(--radius-md, 8px);
@@ -7331,6 +6962,12 @@ function injectStyles(): void {
       font-weight: 500;
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+    
+    .dev-emotion-btn svg {
+      width: var(--dev-icon-sm);
+      height: var(--dev-icon-sm);
+      flex-shrink: 0;
     }
     
     .dev-emotion-btn:hover {
@@ -7344,7 +6981,10 @@ function injectStyles(): void {
     }
     
     .dev-reaction-btn {
-      padding: var(--space-2, 8px) var(--space-3, 12px);
+      display: flex;
+      align-items: center;
+      gap: var(--dev-btn-gap);
+      padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
       background: rgba(196, 133, 106, 0.2);
       border: 1px solid rgba(196, 133, 106, 0.3);
       border-radius: var(--radius-md, 8px);
@@ -7355,6 +6995,12 @@ function injectStyles(): void {
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
     }
     
+    .dev-reaction-btn svg {
+      width: var(--dev-icon-sm);
+      height: var(--dev-icon-sm);
+      flex-shrink: 0;
+    }
+    
     .dev-reaction-btn:hover {
       background: rgba(196, 133, 106, 0.35);
       border-color: rgba(196, 133, 106, 0.5);
@@ -7362,7 +7008,10 @@ function injectStyles(): void {
     }
     
     .dev-flash-btn {
-      padding: var(--space-2, 8px) var(--space-3, 12px);
+      display: flex;
+      align-items: center;
+      gap: var(--dev-btn-gap);
+      padding: var(--dev-btn-padding-y) var(--dev-btn-padding-x);
       background: rgba(196, 162, 101, 0.2);
       border: 1px solid rgba(196, 162, 101, 0.3);
       border-radius: var(--radius-md, 8px);
@@ -7371,6 +7020,12 @@ function injectStyles(): void {
       font-weight: 500;
       cursor: pointer;
       transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+    
+    .dev-flash-btn svg {
+      width: var(--dev-icon-sm);
+      height: var(--dev-icon-sm);
+      flex-shrink: 0;
     }
     
     .dev-flash-btn:hover {

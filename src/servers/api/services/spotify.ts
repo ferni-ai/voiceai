@@ -2,10 +2,12 @@
  * Spotify Token Management
  *
  * Manages Spotify Web Playback SDK tokens with auto-refresh.
+ *
+ * STORAGE: Uses Firestore for persistence (Cloud Run compatible).
+ * Falls back to in-memory storage if Firestore is unavailable.
  */
 
-import fs from 'fs';
-import path from 'path';
+import { createPersistenceStore } from '../../../services/persistence/index.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'Spotify' });
@@ -24,12 +26,22 @@ interface SpotifyTokenData {
 // Configuration
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || '';
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || '';
-const SPOTIFY_TOKENS_FILE = path.join(process.cwd(), '.spotify-tokens.json');
 
-// Runtime state
+// Firestore-backed persistence store for Spotify tokens
+// Uses root collection since tokens are global (not per-user)
+const tokenStore = createPersistenceStore<SpotifyTokenData>({
+  collection: 'spotify_tokens',
+  documentId: 'main',
+  useRootCollection: true,
+  syncIntervalMs: 1000, // Quick sync for token updates
+});
+
+// In-memory cache for fast access during request handling
+let cachedTokenData: SpotifyTokenData | null = null;
 let spotifyWebDeviceId: string | null = null;
-let spotifyAccessToken: string | null = null;
-let spotifyTokenExpiry = 0;
+
+// Auto-refresh interval reference for cleanup
+let autoRefreshInterval: NodeJS.Timeout | null = null;
 
 /**
  * Check if Spotify is configured
@@ -50,25 +62,18 @@ export function getConfig(): { clientId: string; hasRefreshToken: boolean; hasWe
 }
 
 /**
- * Get Spotify refresh token from file or .env
+ * Get Spotify refresh token (from cache or Firestore)
  */
 export function getRefreshToken(): string | null {
-  // Try file first (new system)
-  try {
-    if (fs.existsSync(SPOTIFY_TOKENS_FILE)) {
-      const data = JSON.parse(fs.readFileSync(SPOTIFY_TOKENS_FILE, 'utf8')) as SpotifyTokenData;
-      if (data.refresh_token) {
-        return data.refresh_token;
-      }
-    }
-  } catch (err) {
-    log.warn({ error: (err as Error).message }, 'Could not read Spotify tokens file');
+  // Try cached data first
+  if (cachedTokenData?.refresh_token) {
+    return cachedTokenData.refresh_token;
   }
 
-  // Fall back to .env (old system)
+  // Fall back to env var (legacy support)
   const envToken = process.env.SPOTIFY_REFRESH_TOKEN;
   if (envToken) {
-    log.info('Using refresh token from .env (consider running pnpm auth:spotify)');
+    log.info('Using refresh token from .env (consider migrating to Firestore)');
     return envToken;
   }
 
@@ -76,55 +81,57 @@ export function getRefreshToken(): string | null {
 }
 
 /**
- * Save updated tokens to file
+ * Load tokens from Firestore on startup
  */
-export function saveTokens(
-  accessToken: string,
-  refreshToken: string,
-  expiresIn: number,
-  scope = ''
-): void {
+export async function loadTokens(): Promise<void> {
   try {
-    // Preserve existing scope if not provided
-    let existingScope = scope;
-    if (!scope && fs.existsSync(SPOTIFY_TOKENS_FILE)) {
-      try {
-        const existing = JSON.parse(
-          fs.readFileSync(SPOTIFY_TOKENS_FILE, 'utf8')
-        ) as SpotifyTokenData;
-        existingScope = existing.scope || '';
-      } catch {
-        // Ignore parse errors
-      }
+    const data = await tokenStore.get('global');
+    if (data) {
+      cachedTokenData = data;
+      log.info('Loaded Spotify tokens from Firestore');
     }
-
-    const data: SpotifyTokenData = {
-      access_token: accessToken,
-      refresh_token: refreshToken,
-      expires_at: Date.now() + expiresIn * 1000,
-      token_type: 'Bearer',
-      scope: existingScope,
-    };
-    fs.writeFileSync(SPOTIFY_TOKENS_FILE, JSON.stringify(data, null, 2));
-    log.info('Saved updated tokens to .spotify-tokens.json');
   } catch (err) {
-    log.warn({ error: (err as Error).message }, 'Could not save Spotify tokens');
+    log.warn({ error: (err as Error).message }, 'Could not load Spotify tokens from Firestore');
   }
 }
 
 /**
- * Get token expiry time from file
+ * Save updated tokens to Firestore
+ */
+export async function saveTokens(
+  accessToken: string,
+  refreshToken: string,
+  expiresIn: number,
+  scope = ''
+): Promise<void> {
+  // Preserve existing scope if not provided
+  const existingScope = scope || cachedTokenData?.scope || '';
+
+  const data: SpotifyTokenData = {
+    access_token: accessToken,
+    refresh_token: refreshToken,
+    expires_at: Date.now() + expiresIn * 1000,
+    token_type: 'Bearer',
+    scope: existingScope,
+  };
+
+  // Update cache immediately
+  cachedTokenData = data;
+
+  // Persist to Firestore (write-through)
+  try {
+    await tokenStore.setImmediate('global', data);
+    log.info('Saved Spotify tokens to Firestore');
+  } catch (err) {
+    log.warn({ error: (err as Error).message }, 'Could not save Spotify tokens to Firestore');
+  }
+}
+
+/**
+ * Get token expiry time
  */
 export function getTokenExpiry(): number {
-  try {
-    if (fs.existsSync(SPOTIFY_TOKENS_FILE)) {
-      const data = JSON.parse(fs.readFileSync(SPOTIFY_TOKENS_FILE, 'utf8')) as SpotifyTokenData;
-      return data.expires_at || 0;
-    }
-  } catch {
-    return 0;
-  }
-  return 0;
+  return cachedTokenData?.expires_at || 0;
 }
 
 /**
@@ -173,11 +180,9 @@ export async function refreshTokenIfNeeded(): Promise<void> {
       refresh_token?: string;
       expires_in: number;
     };
-    spotifyAccessToken = data.access_token;
-    spotifyTokenExpiry = Date.now() + data.expires_in * 1000;
 
-    // Save to file
-    saveTokens(data.access_token, data.refresh_token || refreshToken, data.expires_in);
+    // Save to Firestore (async, don't block)
+    await saveTokens(data.access_token, data.refresh_token || refreshToken, data.expires_in);
 
     const newMinutes = Math.round(data.expires_in / 60);
     log.info({ validForMinutes: newMinutes }, 'Spotify token auto-refreshed');
@@ -192,19 +197,12 @@ export async function refreshTokenIfNeeded(): Promise<void> {
 export async function getAccessToken(): Promise<string | null> {
   await refreshTokenIfNeeded();
 
-  // Try to get from file
-  try {
-    if (fs.existsSync(SPOTIFY_TOKENS_FILE)) {
-      const data = JSON.parse(fs.readFileSync(SPOTIFY_TOKENS_FILE, 'utf8')) as SpotifyTokenData;
-      if (data.access_token && data.expires_at > Date.now()) {
-        return data.access_token;
-      }
-    }
-  } catch {
-    // Fall through to return cached token
+  // Return cached token if still valid
+  if (cachedTokenData?.access_token && cachedTokenData.expires_at > Date.now()) {
+    return cachedTokenData.access_token;
   }
 
-  return spotifyAccessToken;
+  return null;
 }
 
 /**
@@ -226,10 +224,48 @@ export function getWebDeviceId(): string | null {
  * Start background refresh checker (every 5 minutes)
  */
 export function startAutoRefresh(): void {
+  // Load tokens from Firestore first
+  loadTokens().catch((err) => {
+    log.warn({ error: (err as Error).message }, 'Failed to load tokens on startup');
+  });
+
   // Check immediately on startup
-  refreshTokenIfNeeded();
+  refreshTokenIfNeeded().catch((err) => {
+    log.warn({ error: (err as Error).message }, 'Initial token refresh failed');
+  });
 
   // Then check every 5 minutes
-  setInterval(() => refreshTokenIfNeeded(), 5 * 60 * 1000);
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval);
+  }
+  autoRefreshInterval = setInterval(
+    () => {
+      refreshTokenIfNeeded().catch((err) => {
+        log.warn({ error: (err as Error).message }, 'Periodic token refresh failed');
+      });
+    },
+    5 * 60 * 1000
+  );
+
   log.info('Spotify auto-refresh enabled (checks every 5 min)');
+}
+
+/**
+ * Stop auto-refresh (for graceful shutdown)
+ */
+export function stopAutoRefresh(): void {
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval);
+    autoRefreshInterval = null;
+    log.info('Spotify auto-refresh stopped');
+  }
+}
+
+/**
+ * Shutdown Spotify service (flush tokens and cleanup)
+ */
+export async function shutdown(): Promise<void> {
+  stopAutoRefresh();
+  await tokenStore.shutdown();
+  log.info('Spotify service shutdown complete');
 }

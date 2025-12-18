@@ -92,9 +92,12 @@ test.describe('Team Huddles API', () => {
 
     expect(habitResponse.status()).toBe(200);
     const habitData = await habitResponse.json();
-    const participantIds = habitData.huddle.participants.map((p: { id: string }) => p.id);
-    // Should include maya (habits expert)
-    expect(participantIds).toContain('maya');
+    // Participants are now in UI format with personaId field
+    const participantIds = habitData.huddle.participants.map(
+      (p: { personaId: string }) => p.personaId
+    );
+    // Should include maya-santos (habits expert) - using canonical ID
+    expect(participantIds).toContain('maya-santos');
 
     // Test stress-related topic
     const stressResponse = await request.post(`${BASE_URL}/api/huddles/start`, {
@@ -109,9 +112,11 @@ test.describe('Team Huddles API', () => {
 
     expect(stressResponse.status()).toBe(200);
     const stressData = await stressResponse.json();
-    const stressParticipants = stressData.huddle.participants.map((p: { id: string }) => p.id);
-    // Should include nayan (mindfulness expert)
-    expect(stressParticipants).toContain('nayan');
+    const stressParticipants = stressData.huddle.participants.map(
+      (p: { personaId: string }) => p.personaId
+    );
+    // Should include nayan-patel (mindfulness expert) - using canonical ID
+    expect(stressParticipants).toContain('nayan-patel');
   });
 
   test('GET /api/huddles/:id - returns specific huddle', async ({ request }) => {
@@ -182,10 +187,13 @@ test.describe('Team Huddles API', () => {
     expect(data).toHaveProperty('participants');
     expect(Array.isArray(data.participants)).toBe(true);
 
+    // Participants now use personaId field in UI format
     for (const participant of data.participants) {
-      expect(participant).toHaveProperty('id');
+      expect(participant).toHaveProperty('personaId');
       expect(participant).toHaveProperty('name');
-      expect(participant).toHaveProperty('specialty');
+      expect(participant).toHaveProperty('initials');
+      expect(participant).toHaveProperty('comment');
+      expect(participant).toHaveProperty('avatarColor');
       expect(participant).toHaveProperty('isActive');
     }
   });

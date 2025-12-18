@@ -63,29 +63,6 @@ export {
 } from './avatar-lamp.ui.js';
 export type { LampEmotion } from './avatar-lamp.ui.js';
 
-// Avatar Luxo - Higher-level Pixar lamp behaviors
-export {
-  avatarLuxo,
-  initAvatarLuxo,
-  // Emotional arcs
-  playDiscoveryArc,
-  playRealizationArc,
-  playEmpathyArc,
-  playCelebrationArc,
-  // Special moments (principle-aligned)
-  playWelcomeBackArc,
-  playSetbackSupportArc,
-  playHumorResponseArc,
-  playLateNightPresence,
-  // Signature move
-  playPixarHop,
-  // Investigation
-  investigate as avatarInvestigate,
-  // Relationship awareness
-  setRelationshipStage,
-  markAsComeback,
-} from './avatar-luxo.ui.js';
-
 // Enhanced UI Features
 export { connectionQualityUI, initConnectionQualityUI } from './connection-quality.ui.js';
 export { initKeyboardUI, keyboardUI, setConnected as setKeyboardConnected } from './keyboard.ui.js';

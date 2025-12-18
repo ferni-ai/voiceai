@@ -91,7 +91,7 @@ These classic animation principles guide how Ferni moves and expresses emotion:
 ## 📁 File Structure
 
 ```
-frontend-typescript/src/
+apps/web/src/
 ├── emotion/
 │   ├── emotion-state.ts          # Central emotion state machine
 │   ├── emotion-triggers.ts       # NLP/voice analysis → emotion mapping

@@ -10,6 +10,7 @@
  */
 
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { removeUndefined } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { registerInterval } from '../../utils/interval-manager.js';
 
@@ -118,11 +119,13 @@ export async function createVerificationCode(
   if (db) {
     try {
       const docRef = db.collection(COLLECTION_NAME).doc(userId);
-      await docRef.set({
-        ...verificationCode,
-        createdAt: now,
-        expiresAt,
-      });
+      await docRef.set(
+        removeUndefined({
+          ...verificationCode,
+          createdAt: now,
+          expiresAt,
+        })
+      );
 
       log.info(
         { userId, phone: phone.slice(-4), expiresAt },
@@ -321,6 +324,9 @@ export async function deleteVerificationCode(userId: string): Promise<void> {
   inMemoryStore.delete(userId);
 }
 
+/** Firestore batch write limit */
+const FIRESTORE_BATCH_LIMIT = 500;
+
 /**
  * Cleanup expired codes (called periodically or on startup)
  */
@@ -331,18 +337,34 @@ export async function cleanupExpiredCodes(): Promise<number> {
   if (db) {
     try {
       const now = new Date();
-      const expiredQuery = db.collection(COLLECTION_NAME).where('expiresAt', '<', now);
 
-      const snapshot = await expiredQuery.get();
+      // Loop until all expired codes are cleaned (handle >500 codes)
+      while (true) {
+        const snapshot = await db
+          .collection(COLLECTION_NAME)
+          .where('expiresAt', '<', now)
+          .limit(FIRESTORE_BATCH_LIMIT)
+          .get();
 
-      const batch = db.batch();
-      snapshot.docs.forEach((doc) => {
-        batch.delete(doc.ref);
-        cleanedCount++;
-      });
+        if (snapshot.empty) {
+          break;
+        }
+
+        const batch = db.batch();
+        snapshot.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+        });
+
+        await batch.commit();
+        cleanedCount += snapshot.size;
+
+        // If we got fewer than the limit, we're done
+        if (snapshot.size < FIRESTORE_BATCH_LIMIT) {
+          break;
+        }
+      }
 
       if (cleanedCount > 0) {
-        await batch.commit();
         log.info({ cleanedCount }, 'Expired verification codes cleaned up');
       }
     } catch (error) {

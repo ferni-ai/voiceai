@@ -20,18 +20,18 @@ Both support audio transfers (voice conversation) and app transfers (UI clicks).
 
 **Frontend Services:**
 
-- `frontend-typescript/src/services/handoff.service.ts` - Main handoff state machine
-- `frontend-typescript/src/services/cameo.service.ts` - Cameo state management
-- `frontend-typescript/src/config/handoff-timing.ts` - Timing constants (synced with backend)
-- `frontend-typescript/src/config/cameo-config.ts` - Cameo timing, colors, sounds
+- `apps/web/src/services/handoff.service.ts` - Main handoff state machine
+- `apps/web/src/services/cameo.service.ts` - Cameo state management
+- `apps/web/src/config/handoff-timing.ts` - Timing constants (synced with backend)
+- `apps/web/src/config/cameo-config.ts` - Cameo timing, colors, sounds
 
 **Frontend UI Components:**
 
-- `frontend-typescript/src/ui/team.ui.ts` - Team roster click handlers + animations
-- `frontend-typescript/src/ui/cameo-roster.ui.ts` - Cameo pop-in/pop-out animations
-- `frontend-typescript/src/ui/persona-transition.ui.ts` - Color morph transition overlay
-- `frontend-typescript/src/ui/persona-magic.ui.ts` - Avatar scale/expression animations
-- `frontend-typescript/src/ui/marketplace.ui.ts` - App transfer triggers from marketplace
+- `apps/web/src/ui/team.ui.ts` - Team roster click handlers + animations
+- `apps/web/src/ui/cameo-roster.ui.ts` - Cameo pop-in/pop-out animations
+- `apps/web/src/ui/persona-transition.ui.ts` - Color morph transition overlay
+- `apps/web/src/ui/persona-magic.ui.ts` - Avatar scale/expression animations
+- `apps/web/src/ui/marketplace.ui.ts` - App transfer triggers from marketplace
 
 **Backend Handlers:**
 
@@ -42,7 +42,7 @@ Both support audio transfers (voice conversation) and app transfers (UI clicks).
 
 **Event Types:**
 
-- `frontend-typescript/src/types/events.ts` - Type definitions for all transfer events
+- `apps/web/src/types/events.ts` - Type definitions for all transfer events
 
 ---
 
@@ -413,7 +413,7 @@ if (!isCoach(targetId) && !bypassUnlocks) {
 | Test File                                        | Coverage                                          |
 | ------------------------------------------------ | ------------------------------------------------- |
 | `e2e/persona-handoff.spec.ts`                    | API validation, marketplace UI, team unlock       |
-| `frontend-typescript/tests/e2e/handoffs.test.ts` | Persona normalization, transitions, sound effects |
+| `apps/web/tests/e2e/handoffs.test.ts` | Persona normalization, transitions, sound effects |
 | `src/tests/cameo-e2e.test.ts`                    | Cameo lifecycle                                   |
 | `src/tests/handoff-flow.test.ts`                 | Backend handoff flow                              |
 | `src/tests/handoff-detection.test.ts`            | Event type detection                              |

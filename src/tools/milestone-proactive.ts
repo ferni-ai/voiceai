@@ -14,8 +14,9 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../utils/safe-logger.js';
-import { getUserMilestones, type LifeMilestone } from './life-firsts-tracker.js';
+import { getUserMilestones, type LifeMilestone } from './domains/life-planning/life-firsts-tracker.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // URGENCY LEVELS
 // ============================================================================
@@ -402,9 +403,7 @@ export function createMilestoneProactiveTools() {
   return {
     // ========== CHECK MILESTONE URGENCY ==========
     checkMilestoneUrgency: llm.tool({
-      description: `Check the urgency status of all upcoming milestones.
-Use when starting a conversation or checking in on progress.
-Jordan uses this to proactively help users stay on track.`,
+      description: getToolDescription('checkMilestoneUrgency'),
       parameters: z.object({
         userId: z.string().optional().default('default').describe('User identifier'),
       }),
@@ -443,8 +442,7 @@ Jordan uses this to proactively help users stay on track.`,
 
     // ========== GET PROACTIVE CHECK-IN ==========
     getProactiveCheckIn: llm.tool({
-      description: `Get a proactive check-in message for a specific milestone.
-Use to naturally check in on milestone progress during conversation.`,
+      description: getToolDescription('getProactiveCheckIn'),
       parameters: z.object({
         milestoneName: z.string().describe('Name of the milestone to check in on'),
         userId: z.string().optional().default('default').describe('User identifier'),
@@ -467,8 +465,7 @@ Use to naturally check in on milestone progress during conversation.`,
 
     // ========== MILESTONE COUNTDOWN ==========
     getMilestoneCountdownMessage: llm.tool({
-      description: `Get an encouraging countdown message for a milestone.
-Use to build excitement as milestones approach.`,
+      description: getToolDescription('getMilestoneCountdownMessage'),
       parameters: z.object({
         milestoneName: z.string().describe('Name of the milestone'),
         userId: z.string().optional().default('default').describe('User identifier'),
@@ -501,8 +498,7 @@ Use to build excitement as milestones approach.`,
 
     // ========== GET SUGGESTED TASKS ==========
     getSuggestedTasks: llm.tool({
-      description: `Get the most important tasks to focus on for a milestone.
-Use when user asks what to do next or needs prioritization.`,
+      description: getToolDescription('getSuggestedTasks'),
       parameters: z.object({
         milestoneName: z.string().describe('Name of the milestone'),
         count: z.number().optional().default(3).describe('How many tasks to suggest'),
@@ -544,8 +540,7 @@ Use when user asks what to do next or needs prioritization.`,
 
     // ========== CELEBRATE PROGRESS ==========
     celebrateMilestoneProgress: llm.tool({
-      description: `Celebrate progress made on a milestone.
-Use after user completes tasks or makes progress.`,
+      description: getToolDescription('celebrateMilestoneProgress'),
       parameters: z.object({
         milestoneName: z.string().describe('Name of the milestone'),
         userId: z.string().optional().default('default').describe('User identifier'),
@@ -585,8 +580,7 @@ Use after user completes tasks or makes progress.`,
 
     // ========== ALL MILESTONES SUMMARY ==========
     getAllMilestonesSummary: llm.tool({
-      description: `Get a summary of all upcoming milestones with their status.
-Use for giving an overview of what's on the user's planning plate.`,
+      description: getToolDescription('getAllMilestonesSummary'),
       parameters: z.object({
         userId: z.string().optional().default('default').describe('User identifier'),
       }),
@@ -595,8 +589,7 @@ Use for giving an overview of what's on the user's planning plate.`,
 
     // ========== BIRTHDAY REMINDER CHECK ==========
     checkBirthdayReminders: llm.tool({
-      description: `Check for upcoming birthdays from family members mentioned in conversations.
-Jordan loves celebrating special days and can help plan gifts or parties!`,
+      description: getToolDescription('checkBirthdayReminders'),
       parameters: z.object({
         userId: z.string().optional().default('default').describe('User identifier'),
         daysAhead: z.number().optional().default(30).describe('How many days ahead to check'),
@@ -616,8 +609,7 @@ I can help you plan gifts, parties, or just set reminders so you don't forget!`;
 
     // ========== MILESTONE ANNIVERSARY CHECK-IN ==========
     checkMilestoneAnniversaries: llm.tool({
-      description: `Check for milestone anniversaries - completed life events from past years.
-Use to celebrate and reflect on major life moments (wedding anniversary, home purchase anniversary, etc.)`,
+      description: getToolDescription('checkMilestoneAnniversaries'),
       parameters: z.object({
         userId: z.string().optional().default('default').describe('User identifier'),
         daysAhead: z
@@ -694,8 +686,7 @@ Use to celebrate and reflect on major life moments (wedding anniversary, home pu
 
     // ========== PROACTIVE SCHEDULE CHECK-IN ==========
     scheduleProactiveCheckIn: llm.tool({
-      description: `Schedule a proactive check-in for a milestone.
-Jordan will reach out to the user at the scheduled time with encouragement and progress reminders.`,
+      description: getToolDescription('scheduleProactiveCheckIn'),
       parameters: z.object({
         milestoneName: z.string().describe('Name of the milestone to check in on'),
         checkInDate: z

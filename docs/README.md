@@ -50,7 +50,7 @@ docs/
 
 brand/                     # Brand ASSETS (logos, icons)
 design-system/brand/       # Brand DOCUMENTATION
-frontend-typescript/       # Frontend code & CLAUDE.md
+apps/web/       # Frontend code & CLAUDE.md
 marketplace-agents/        # Agent marketplace
 ```
 
@@ -231,7 +231,7 @@ AI assistant context files form a hierarchy:
 | File                                                                                          | Purpose                                         |
 | --------------------------------------------------------------------------------------------- | ----------------------------------------------- |
 | [CLAUDE.md](../CLAUDE.md)                                                                     | **Root**: Quality gates, architecture, patterns |
-| [frontend-typescript/CLAUDE.md](../frontend-typescript/CLAUDE.md)                             | Frontend patterns, design tokens                |
+| [apps/web/CLAUDE.md](../apps/web/CLAUDE.md)                             | Frontend patterns, design tokens                |
 | [src/tools/CLAUDE.md](../src/tools/CLAUDE.md)                                                 | Tool development                                |
 | [src/personas/CLAUDE.md](../src/personas/CLAUDE.md)                                           | Persona development                             |
 | [src/intelligence/context-builders/CLAUDE.md](../src/intelligence/context-builders/CLAUDE.md) | Context builder patterns                        |

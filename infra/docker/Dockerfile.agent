@@ -140,7 +140,7 @@ COPY --from=builder /app/src/tasks/wisdom/*.json ./dist/tasks/wisdom/
 
 # Copy sound effects for session intro/outro (connect.mp3, disconnect.mp3, etc.)
 # These are used by the DJ system for "opening the show" moments
-COPY frontend-typescript/public/sounds/ ./sounds/
+COPY apps/web/public/sounds/ ./sounds/
 
 # Set environment variables
 ENV NODE_ENV=production

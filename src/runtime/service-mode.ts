@@ -535,7 +535,7 @@ class RemoteToolService implements IToolService {
         error: {
           code: 'NETWORK_ERROR',
           message: err.message,
-          userMessage: 'Having trouble connecting right now.',
+          userMessage: `Connection's being flaky. Give me a sec to sort this out.`,
           retryable: true,
         },
         metadata: {

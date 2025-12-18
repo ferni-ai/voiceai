@@ -28,7 +28,6 @@ import {
 } from './engagement-components.js';
 import { engagementService } from '../services/engagement.service.js';
 import { isDemoDataEnabled, getDemoEngagementData } from '../services/engagement-demo-data.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
@@ -127,16 +126,12 @@ export class EngagementUI {
 
     document.body.appendChild(this.container);
 
-    // Bind events (iOS-compatible)
-    addTapListener(
-      this.container.querySelector('.engagement-panel__backdrop'),
-      () => this.hide()
-    );
+    // Bind events
+    const backdrop = this.container.querySelector('.engagement-panel__backdrop');
+    backdrop?.addEventListener('click', () => this.hide());
     
-    addTapListener(
-      this.container.querySelector('.engagement-close-btn'),
-      () => this.hide()
-    );
+    const closeBtn = this.container.querySelector('.engagement-close-btn');
+    closeBtn?.addEventListener('click', () => this.hide());
     
     // Close on escape
     document.addEventListener('keydown', (e) => {
@@ -473,9 +468,6 @@ export class EngagementUI {
 
     this.panelVisible = false;
     this.container.setAttribute('aria-hidden', 'true');
-    
-    // Clean up iOS tap listeners before hiding
-    cleanupTapListeners(this.container);
     
     // Wait for animation before hiding
     trackedTimeout(() => {
@@ -1016,42 +1008,19 @@ export class EngagementUI {
         color: var(--color-text-muted);
       }
 
-      /* Responsive - Mobile */
+      /* Responsive */
       @media (max-width: 480px) {
         .engagement-panel {
-          /* Safe area padding for notched devices */
-          padding: max(var(--space-4, 16px), env(safe-area-inset-top, 0))
-                   max(var(--space-4, 16px), env(safe-area-inset-right, 0))
-                   max(var(--space-4, 16px), env(safe-area-inset-bottom, 0))
-                   max(var(--space-4, 16px), env(safe-area-inset-left, 0));
+          padding: var(--space-4, 16px);
         }
 
         .engagement-panel__card {
-          max-height: calc(100vh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0) - 32px);
-          max-height: calc(100dvh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0) - 32px);
+          max-height: 90vh;
           border-radius: var(--radius-xl, 1.25rem);
-        }
-
-        .engagement-panel__content {
-          -webkit-overflow-scrolling: touch;
-          overscroll-behavior: contain;
         }
 
         .engagement-stats {
           grid-template-columns: repeat(3, 1fr);
-        }
-      }
-      
-      /* iOS Safari-specific fixes */
-      @supports (-webkit-touch-callout: none) {
-        @media (max-width: 480px) {
-          .engagement-panel__card {
-            max-height: -webkit-fill-available;
-          }
-          
-          .engagement-panel__content {
-            -webkit-overflow-scrolling: touch;
-          }
         }
       }
 
@@ -1071,9 +1040,12 @@ export class EngagementUI {
   }
 
   /**
-   * Cleanup
+   * Cleanup - properly dispose all resources
    */
   destroy(): void {
+    // FIX: Clear all tracked timeouts to prevent memory leaks
+    clearAllTimeouts();
+
     if (this.container) {
       this.container.remove();
       this.container = null;
@@ -1083,6 +1055,10 @@ export class EngagementUI {
       this.styleElement.remove();
       this.styleElement = null;
     }
+
+    // Reset state
+    this.panelVisible = false;
+    this.hasDataLoaded = false;
   }
 }
 

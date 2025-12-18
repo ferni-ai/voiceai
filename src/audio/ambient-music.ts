@@ -290,7 +290,7 @@ export async function playAmbientMusic(): Promise<boolean> {
   // Play at low volume (ambient/background level)
   player.setVolume(0.15); // 15% - very soft
 
-  const previewUrl = track.previewUrl;
+  const { previewUrl } = track;
   if (!previewUrl) {
     return false; // Should never happen due to filter, but satisfies TypeScript
   }

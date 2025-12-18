@@ -17,6 +17,7 @@
 import pino from 'pino';
 import * as admin from 'firebase-admin';
 import { getGCPProjectId } from '../config/environment.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { identifySpeaker, type VoiceProfile } from './voice-enrollment.js';
 import { loadVoiceProfile, saveVoiceProfile, deleteVoiceProfile } from './voice-profile-store.js';
 
@@ -191,16 +192,20 @@ async function saveHousehold(household: Household): Promise<void> {
     await db
       .collection(COLLECTION_NAME)
       .doc(household.id)
-      .set({
-        ...household,
-        createdAt: admin.firestore.Timestamp.fromDate(household.createdAt),
-        updatedAt: admin.firestore.Timestamp.fromDate(household.updatedAt),
-        members: household.members.map((m) => ({
-          ...m,
-          enrolledAt: admin.firestore.Timestamp.fromDate(m.enrolledAt),
-          lastSeen: m.lastSeen ? admin.firestore.Timestamp.fromDate(m.lastSeen) : null,
-        })),
-      });
+      .set(
+        removeUndefined({
+          ...household,
+          createdAt: admin.firestore.Timestamp.fromDate(household.createdAt),
+          updatedAt: admin.firestore.Timestamp.fromDate(household.updatedAt),
+          members: household.members.map((m) =>
+            removeUndefined({
+              ...m,
+              enrolledAt: admin.firestore.Timestamp.fromDate(m.enrolledAt),
+              lastSeen: m.lastSeen ? admin.firestore.Timestamp.fromDate(m.lastSeen) : null,
+            })
+          ),
+        })
+      );
   } catch (error) {
     log.error({ error, householdId: household.id }, 'Failed to save household');
   }

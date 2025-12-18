@@ -11,6 +11,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { quickNotes } from './shared-state.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 const quickNoteDef: ToolDefinition = {
   id: 'quickNote',
   name: 'Quick Note',
@@ -20,11 +21,7 @@ const quickNoteDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Save a quick note for this session. Use when someone says:
-- "Remember I parked in spot B4"
-- "Note: meeting code is 12345"
-- "Quick note: call John back"
-These are temporary - not long-term memory.`,
+      description: getToolDescription('quickNote'),
       parameters: z.object({
         note: z.string().describe('The note to remember'),
       }),
@@ -59,10 +56,7 @@ const recallNoteDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Recall quick notes from this session. Use when someone asks:
-- "What did I note about parking?"
-- "What was that code?"
-- "Show my notes"`,
+      description: getToolDescription('recallNote'),
       parameters: z.object({
         search: z.string().optional().describe('Search term to filter notes'),
       }),
@@ -105,7 +99,7 @@ const clearNotesDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Clear all quick notes from this session.',
+      description: getToolDescription('clearNotes'),
       parameters: z.object({}),
       execute: async (_, { ctx: toolCtx }) => {
         const userData = toolCtx.userData as { userId?: string };

@@ -26,7 +26,7 @@ import {
   getDueHabits,
   calculateStreak,
   getUserHabits,
-} from '../tools/habits.js';
+} from '../tools/domains/habits/habits.js';
 
 // Bills
 import {

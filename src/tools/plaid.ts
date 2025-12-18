@@ -18,6 +18,7 @@ import { llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // Plaid API configuration
 const PLAID_CLIENT_ID = process.env.PLAID_CLIENT_ID || '';
 const PLAID_SECRET = process.env.PLAID_SECRET || '';
@@ -506,7 +507,7 @@ export {
 export function createPlaidTools() {
   return {
     checkBankLinkStatus: llm.tool({
-      description: `Check if user has linked their bank account. Use this before trying to get balances or transactions.`,
+      description: getToolDescription('checkBankLinkStatus'),
       parameters: z.object({
         userId: z.string().describe('Unique identifier for the user'),
       }),
@@ -528,7 +529,7 @@ export function createPlaidTools() {
     }),
 
     unlinkBankAccount: llm.tool({
-      description: `Unlink/disconnect a user's bank account. Use when user wants to remove their bank connection.`,
+      description: getToolDescription('unlinkBankAccount'),
       parameters: z.object({
         userId: z.string().describe('Unique identifier for the user'),
         confirm: z.boolean().describe('User has confirmed they want to unlink'),
@@ -556,12 +557,7 @@ export function createPlaidTools() {
     }),
 
     linkBankAccount: llm.tool({
-      description: `Start the process to link a bank account via SMS or email (required for voice - users can't do visual Plaid Link via voice).
-Use when user wants to:
-- Connect their bank account
-- See their actual balances
-- Track their spending
-IMPORTANT: You MUST ask how they want to receive the link (text or email) and get their contact info.`,
+      description: getToolDescription('linkBankAccount'),
       parameters: z.object({
         userId: z.string().describe('Unique identifier for the user'),
         deliveryMethod: z.enum(['sms', 'email']).describe('How to send the secure link'),
@@ -690,12 +686,7 @@ IMPORTANT: You MUST ask how they want to receive the link (text or email) and ge
     }),
 
     getAccountBalances: llm.tool({
-      description: `Get current balances for all linked bank accounts. Shows checking, savings, and credit card balances.
-Use when user asks:
-- "What's my balance?"
-- "How much money do I have?"
-- "What's in my checking account?"
-- "How much credit card debt do I have?"`,
+      description: getToolDescription('getAccountBalances'),
       parameters: z.object({
         userId: z.string().describe('Unique identifier for the user'),
       }),
@@ -727,13 +718,7 @@ Use when user asks:
     }),
 
     getSpendingAnalysis: llm.tool({
-      description: `Analyze spending patterns from transaction history. Shows spending by category, largest expenses, and recurring charges.
-Use when user asks:
-- "Where is my money going?"
-- "What am I spending on?"
-- "Analyze my spending"
-- "Show me my expenses"
-- "What are my biggest expenses?"`,
+      description: getToolDescription('getSpendingAnalysis'),
       parameters: z.object({
         userId: z.string().describe('Unique identifier for the user'),
         period: z
@@ -805,12 +790,7 @@ Use when user asks:
     }),
 
     getRecentTransactions: llm.tool({
-      description: `Get recent transactions, optionally filtered. Shows merchant, amount, and category.
-Use when user asks:
-- "What did I spend at [merchant]?"
-- "Show me recent transactions"
-- "Did I pay [merchant]?"
-- "What were my [category] expenses?"`,
+      description: getToolDescription('getRecentTransactions'),
       parameters: z.object({
         userId: z.string().describe('Unique identifier for the user'),
         merchantFilter: z.string().optional().describe('Filter by merchant name'),
@@ -894,12 +874,7 @@ Use when user asks:
     }),
 
     checkFinancialHealth: llm.tool({
-      description: `Get a holistic view of financial health based on linked accounts. Includes net worth, savings rate, debt ratios.
-Use when user asks:
-- "How am I doing financially?"
-- "What's my financial health?"
-- "Am I on track?"
-- "Give me a financial checkup"`,
+      description: getToolDescription('checkFinancialHealth'),
       parameters: z.object({
         userId: z.string().describe('Unique identifier for the user'),
       }),

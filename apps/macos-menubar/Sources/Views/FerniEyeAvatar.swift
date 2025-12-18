@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Ferni Eye Avatar
 
 /// The iconic Ferni eye avatar - a "thinking stone" with soul
-/// Matches the SVG from frontend-typescript/src/ui/ferni-logo.ui.ts
+/// Matches the SVG from apps/web/src/ui/ferni-logo.ui.ts
 struct FerniEyeAvatar: View {
     let persona: Persona
     let size: CGFloat
@@ -110,7 +110,7 @@ struct FerniEyeAvatar: View {
         guard isActive else { return }
         
         // Human-like breathing: inhale is slightly faster than exhale
-        // From frontend-typescript/src/ui/presence.ui.ts
+        // From apps/web/src/ui/presence.ui.ts
         withAnimation(
             .easeInOut(duration: breatheDuration * 0.4)
             .repeatForever(autoreverses: true)

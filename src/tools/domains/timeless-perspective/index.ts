@@ -16,6 +16,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // WISDOM TOOLS
 // ============================================================================
@@ -29,7 +30,7 @@ const decadeViewDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user see their situation from a decade-long perspective.',
+      description: getToolDescription('decadeView'),
       parameters: z.object({
         currentSituation: z.string().describe('What they are facing now'),
         concern: z.string().describe('What worries them'),
@@ -80,7 +81,7 @@ const thisTooPasses: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Offer wisdom about impermanence when someone is stuck in a difficult state.',
+      description: getToolDescription('thisTooPasses'),
       parameters: z.object({
         whatTheyreFeeling: z.string().describe('The difficult state'),
         howLong: z.string().optional().describe('How long they have felt this way'),
@@ -135,7 +136,7 @@ const ancientParallelDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Connect the user situation to timeless human experiences across history.',
+      description: getToolDescription('ancientParallel'),
       parameters: z.object({
         experience: z.string().describe('What they are experiencing'),
         feelingAlone: z.boolean().optional().describe('Do they feel alone in this'),
@@ -187,7 +188,7 @@ const zoomOutDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user zoom out from immediate concerns to see the larger picture.',
+      description: getToolDescription('zoomOut'),
       parameters: z.object({
         stuckOn: z.string().describe('What they are focused on'),
         zoomLevel: z
@@ -234,7 +235,7 @@ const whatWillMatterDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user identify what will actually matter in the long run.',
+      description: getToolDescription('whatWillMatter'),
       parameters: z.object({
         decision: z.string().describe('What they are deciding or focused on'),
         stakesFeelLike: z
@@ -278,16 +279,16 @@ const whatWillMatterDef: ToolDefinition = {
   },
 };
 
-const seasonalWisdomDef: ToolDefinition = {
-  id: 'seasonalWisdom',
-  name: 'Seasonal Wisdom',
+const applySeasonalWisdomDef: ToolDefinition = {
+  id: 'applySeasonalWisdom',
+  name: 'Apply Seasonal Wisdom',
   description: 'Apply the wisdom of seasons to life circumstances',
   domain: 'timeless-perspective',
-  tags: ['wisdom', 'seasons', 'cycles'],
+  tags: ['wisdom', 'seasons', 'cycles', 'perspective'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user understand their life season and what it calls for.',
+      description: getToolDescription('applySeasonalWisdom'),
       parameters: z.object({
         situation: z.string().describe('Their current situation'),
         season: z
@@ -330,7 +331,7 @@ const timelessPerspectiveTools: ToolDefinition[] = [
   ancientParallelDef,
   zoomOutDef,
   whatWillMatterDef,
-  seasonalWisdomDef,
+  applySeasonalWisdomDef,
 ];
 
 // ============================================================================

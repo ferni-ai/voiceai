@@ -230,7 +230,7 @@ src/services/experiment-integration.ts  # Core A/B logic
 src/services/experiment-api.ts          # Dashboard API
 src/intelligence/agent-evolution.ts     # Persistence & engine
 src/cli/experiments-cli.ts              # CLI interface
-frontend-typescript/public/experiments-dashboard.html  # Web UI
+apps/web/public/experiments-dashboard.html  # Web UI
 ```
 
 ---

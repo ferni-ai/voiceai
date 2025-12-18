@@ -126,7 +126,7 @@ Export assets from `logos/` and `icons/` directories. See `brand-book.html` for 
 | Doc | Location |
 |-----|----------|
 | Brand Guidelines (Full) | [`design-system/brand/`](../design-system/brand/README.md) |
-| Frontend Design Standards | [`frontend-typescript/CLAUDE.md`](../frontend-typescript/CLAUDE.md) |
+| Frontend Design Standards | [`apps/web/CLAUDE.md`](../apps/web/CLAUDE.md) |
 | Design System Architecture | [`docs/architecture/CINEMATIC-DESIGN-SYSTEM.md`](../docs/architecture/CINEMATIC-DESIGN-SYSTEM.md) |
 
 ---

@@ -1,7 +1,7 @@
 /**
  * Wearable Integration Types
  *
- * Type definitions for health and fitness wearable integrations.
+ * Type definitions for wearable device integrations.
  *
  * @module WearableTypes
  */

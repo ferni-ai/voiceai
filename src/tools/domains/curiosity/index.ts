@@ -17,6 +17,7 @@ import { llm, log } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // QUESTION TOOLS
 // ============================================================================
@@ -30,7 +31,7 @@ const captureQuestionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user capture and save a question they want to explore.',
+      description: getToolDescription('captureQuestion'),
       parameters: z.object({
         question: z.string().describe('The question to capture'),
         context: z.string().optional().describe('What sparked this question'),
@@ -71,7 +72,7 @@ const exploreQuestionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Guide deep exploration of a question without rushing to answers.',
+      description: getToolDescription('exploreQuestion'),
       parameters: z.object({
         question: z.string().describe('The question to explore'),
         approach: z
@@ -130,7 +131,7 @@ const experienceWonderDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user cultivate and capture experiences of wonder and awe.',
+      description: getToolDescription('experienceWonder'),
       parameters: z.object({
         wonderAbout: z.string().optional().describe('What sparked wonder'),
         mode: z
@@ -182,7 +183,7 @@ const cultivateBeginnersMindDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user practice seeing something familiar with fresh, beginner eyes.',
+      description: getToolDescription('cultivateBeginnersMind'),
       parameters: z.object({
         subjectToSee: z.string().describe('What to see with beginner eyes'),
       }),
@@ -219,7 +220,7 @@ const intellectualExplorationDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user follow a thread of intellectual curiosity.',
+      description: getToolDescription('intellectualExploration'),
       parameters: z.object({
         curiosityAbout: z.string().describe('What they are curious about'),
         depth: z.enum(['surface', 'deep', 'comprehensive']).describe('How deep they want to go'),
@@ -270,7 +271,7 @@ const embraceMysteryDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user embrace mystery and find comfort in not-knowing.',
+      description: getToolDescription('embraceMystery'),
       parameters: z.object({
         mystery: z.string().describe('What remains mysterious'),
         struggle: z
@@ -319,7 +320,7 @@ const whatIfDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Explore imaginative "what if" questions playfully.',
+      description: getToolDescription('whatIf'),
       parameters: z.object({
         whatIf: z.string().describe('The what-if question to explore'),
       }),

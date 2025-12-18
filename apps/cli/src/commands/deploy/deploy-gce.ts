@@ -389,6 +389,8 @@ function deployToSlot(
     // Redis connection - using Docker host gateway to reach the Redis sidecar
     REDIS_HOST: '172.17.0.1',
     REDIS_PORT: String(CONFIG.redisPort),
+    // Enable Pub/Sub for background task offloading
+    PUBSUB_ENABLED: 'true',
   });
 
   // Start the new container

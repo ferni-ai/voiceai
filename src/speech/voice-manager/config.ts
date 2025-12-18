@@ -3,14 +3,12 @@
  *
  * Voice configurations for all personas.
  * Voice IDs are loaded dynamically from the voice registry.
- * Model is loaded from environment variable.
+ * Model is imported from config/voice-ids.ts (single source of truth).
  */
 
+import { CARTESIA_MODEL } from '../../config/voice-ids.js';
 import { getVoiceId } from '../../personas/voice-registry.js';
 import type { VoiceAgentId, VoiceConfig } from './types.js';
-
-// Cartesia model from env var - single source of truth
-const CARTESIA_MODEL = process.env.CARTESIA_MODEL || 'sonic-3';
 
 // ============================================================================
 // VOICE CONFIGURATION

@@ -166,14 +166,8 @@ export async function handleSocialRoutes(
       }
 
       // Record challenge results for both users
-      recordChallengeResult(
-        challenge.challengerId,
-        challenge.winnerId === challenge.challengerId
-      );
-      recordChallengeResult(
-        challenge.challengeeId,
-        challenge.winnerId === challenge.challengeeId
-      );
+      recordChallengeResult(challenge.challengerId, challenge.winnerId === challenge.challengerId);
+      recordChallengeResult(challenge.challengeeId, challenge.winnerId === challenge.challengeeId);
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ challenge }));
@@ -376,7 +370,7 @@ export async function handleSocialRoutes(
       const period = (searchParams.get('period') as LeaderboardPeriod) || 'weekly';
       const gameType = searchParams.get('gameType') || 'overall';
       const scope = (searchParams.get('scope') as LeaderboardScope) || 'global';
-      const userId = searchParams.get('userId') | undefined;
+      const userId = searchParams.get('userId') ?? undefined;
 
       const leaderboard = getLeaderboard(period, gameType, scope, userId);
 
@@ -495,4 +489,3 @@ async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>>
     req.on('error', reject);
   });
 }
-

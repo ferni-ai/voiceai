@@ -231,6 +231,69 @@ function sanitizeInput(value: unknown): unknown {
 }
 
 /**
+ * Field-specific character limits for common parameter types
+ * These prevent context overflow and potential abuse
+ */
+const FIELD_LIMITS: Record<string, number> = {
+  // Short fields - names, titles, identifiers
+  name: 200,
+  title: 300,
+  query: 500,
+  search: 500,
+  taskTitle: 300,
+  goalTitle: 300,
+  habitName: 200,
+  medicationName: 200,
+  routineName: 200,
+  billName: 200,
+  packageDescription: 300,
+
+  // Medium fields - descriptions, summaries
+  description: 1000,
+  summary: 1000,
+  context: 1000,
+  reason: 500,
+  reflection: 1500,
+
+  // Long fields - content, notes, messages
+  notes: 2000,
+  content: 3000,
+  message: 2000,
+  text: 3000,
+  body: 5000,
+
+  // Code fields (developer tools)
+  oldText: 5000,
+  newText: 5000,
+  command: 1000,
+  pattern: 500,
+  path: 500,
+};
+
+/** Default max length for unspecified fields */
+const DEFAULT_MAX_LENGTH = 5000;
+
+/** Absolute maximum for any field */
+const ABSOLUTE_MAX_LENGTH = 10000;
+
+/**
+ * Get the max length for a parameter
+ */
+function getMaxLength(paramName: string): number {
+  const lowerName = paramName.toLowerCase();
+
+  // Check exact match
+  if (FIELD_LIMITS[paramName]) return FIELD_LIMITS[paramName];
+
+  // Check if name contains a known suffix
+  for (const [key, limit] of Object.entries(FIELD_LIMITS)) {
+    if (lowerName.includes(key.toLowerCase())) return limit;
+  }
+
+  return DEFAULT_MAX_LENGTH;
+}
+
+/**
  * Validate tool parameters
  */
 function validateParams(
@@ -249,15 +312,22 @@ function validateParams(
     }
   }
 
-  // Check for obviously invalid params
+  // Check string lengths with field-specific limits
   for (const [key, value] of Object.entries(sanitized)) {
-    // Reject extremely long strings (potential abuse)
-    if (typeof value === 'string' && value.length > 10000) {
-      return {
-        valid: false,
-        error: `Parameter '${key}' exceeds maximum length`,
-        sanitized,
-      };
+    if (typeof value === 'string') {
+      const maxLength = Math.min(getMaxLength(key), ABSOLUTE_MAX_LENGTH);
+
+      if (value.length > maxLength) {
+        log.warn(
+          { toolId, param: key, length: value.length, maxLength },
+          'Parameter exceeds length limit'
+        );
+        return {
+          valid: false,
+          error: `That's a bit too long. Try keeping it shorter?`,
+          sanitized,
+        };
+      }
     }
   }
 

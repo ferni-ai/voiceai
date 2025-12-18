@@ -15,6 +15,7 @@
 
 import { log } from '@livekit/agents';
 import { diag } from '../../services/diagnostic-logger.js';
+import { getDefaultModel } from '../../services/model-config.js';
 
 // ============================================================================
 // TYPES
@@ -431,7 +432,7 @@ export async function extractEmotionalWeatherWithLLM(
     }
 
     const genai = new GoogleGenerativeAI(apiKey);
-    const model = genai.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = genai.getGenerativeModel({ model: getDefaultModel() });
 
     const combinedTranscript = transcripts.join('\n\n');
 

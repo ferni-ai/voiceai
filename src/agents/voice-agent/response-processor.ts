@@ -104,6 +104,23 @@ export async function processResponse(
   }
 
   // ============================================================
+  // 0b. TOOL CALL LEAKAGE SANITIZATION (CRITICAL)
+  // Catch malformed function calls: "playMusic query jazz", [INTERNAL:...], etc.
+  // These happen when Gemini outputs tool call syntax as text instead of calling
+  // ============================================================
+  try {
+    const { sanitizeToolCallLeakage, containsToolCallLeakage } =
+      await import('../shared/tool-call-sanitizer.js');
+    if (containsToolCallLeakage(processedText)) {
+      processedText = sanitizeToolCallLeakage(processedText);
+      appliedFeatures.push('tool_call_sanitized');
+      diag.warn('Tool call leakage detected and sanitized', { original: ctx.rawText });
+    }
+  } catch (toolSanitizeErr) {
+    diag.warn('Tool call sanitization failed', { error: String(toolSanitizeErr) });
+  }
+
+  // ============================================================
   // 1. AMBIENT AWARENESS: Prepend offer to pause for noisy environments
   // ============================================================
   if (userData?.pendingAmbientAcknowledgment) {

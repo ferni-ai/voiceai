@@ -12,6 +12,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { removeUndefined } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'TrustAnalytics' });
 
@@ -155,10 +156,12 @@ export function trackEvent(event: Omit<TrustEvent, 'id' | 'timestamp'>): TrustEv
 async function persistEvent(event: TrustEvent): Promise<void> {
   try {
     const db = getFirestore();
-    await db.collection('trust_analytics').add({
-      ...event,
-      timestamp: FieldValue.serverTimestamp(),
-    });
+    await db.collection('trust_analytics').add(
+      removeUndefined({
+        ...event,
+        timestamp: FieldValue.serverTimestamp(),
+      })
+    );
   } catch {
     // Swallow - analytics shouldn't break main flow
   }

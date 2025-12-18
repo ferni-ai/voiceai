@@ -15,7 +15,6 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import type { MusicPlaybackState } from '../types/events.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
@@ -972,8 +971,8 @@ class NowPlayingUI {
       }
     });
 
-    // Touch support - tap to expand (but not on dismiss button) (iOS-compatible)
-    addTapListener(this.container, (e) => {
+    // Touch support - tap to expand (but not on dismiss button)
+    this.container.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
       // Don't expand if clicking the dismiss button
       if (target.closest('.now-playing__dismiss')) return;
@@ -985,10 +984,10 @@ class NowPlayingUI {
       }
     });
 
-    // ✖️ Dismiss button - hide the card (iOS-compatible)
+    // ✖️ Dismiss button - hide the card
     const dismissBtn = this.container.querySelector('.now-playing__dismiss');
     if (dismissBtn) {
-      addTapListener(dismissBtn, (e) => {
+      dismissBtn.addEventListener('click', (e) => {
         e.stopPropagation(); // Don't trigger expand
         log.debug('Now Playing dismissed by user');
         this.hide();

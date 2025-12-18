@@ -284,8 +284,8 @@ All cinematic tokens are available in two variants:
 
 | File | Changes |
 |------|---------|
-| `frontend-typescript/public/design-system/cinematic.css` | **NEW** - Complete cinematic utilities + Ferni brand variants |
-| `frontend-typescript/public/design-system/tokens.css` | Added hero typography tokens |
+| `apps/web/public/design-system/cinematic.css` | **NEW** - Complete cinematic utilities + Ferni brand variants |
+| `apps/web/public/design-system/tokens.css` | Added hero typography tokens |
 | `promo/ferni-website/src/css/tokens.css` | Added all cinematic tokens + Ferni warm variants |
 | `promo/ferni-website/src/css/cinematic-demo.css` | **NEW** - Demo page styles |
 | `promo/ferni-website/src/pages/cinematic-demo.njk` | **NEW** - Live demo page |

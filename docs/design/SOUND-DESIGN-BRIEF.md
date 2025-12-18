@@ -302,7 +302,7 @@ handoff-to-nayan.mp3
 Place final files in:
 
 ```
-frontend-typescript/public/sounds/
+apps/web/public/sounds/
 ```
 
 Then run:
@@ -372,6 +372,21 @@ HANDOFF-NAYAN:
 ---
 
 _Created for Ferni AI - "Better than Human"_
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

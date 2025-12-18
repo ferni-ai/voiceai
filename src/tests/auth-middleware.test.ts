@@ -62,6 +62,7 @@ describe('Auth Middleware', () => {
       // Reset env
       process.env.API_KEYS = 'test-api-key-1,test-api-key-2';
       process.env.ADMIN_API_KEYS = 'admin-key-1';
+      process.env.ADMIN_KEY = 'dev-mode'; // Required for X-Admin-Key header auth
       process.env.NODE_ENV = 'development';
       delete process.env.ALLOW_LEGACY_X_USER_ID_AUTH;
     });
@@ -161,7 +162,9 @@ describe('Auth Middleware', () => {
       expect(auth).toBeNull();
     });
 
-    it('should allow legacy X-User-Id auth only when explicitly enabled', async () => {
+    it('should block legacy X-User-Id auth (security: feature removed)', async () => {
+      // SECURITY: Legacy X-User-Id auth has been removed
+      // Even if env var is set, it should NOT work - this was an auth bypass vulnerability
       process.env.ALLOW_LEGACY_X_USER_ID_AUTH = 'true';
       vi.resetModules();
       const { authenticate } = await import('../api/auth-middleware.js');
@@ -171,10 +174,8 @@ describe('Auth Middleware', () => {
 
       const auth = authenticate(req);
 
-      expect(auth).not.toBeNull();
-      expect(auth?.userId).toBe('legacy-user-123');
-      expect(auth?.authMethod).toBe('api_key');
-      expect(auth?.isAdmin).toBe(false);
+      // Must return null - legacy auth is blocked for security
+      expect(auth).toBeNull();
     });
   });
 

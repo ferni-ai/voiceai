@@ -17,6 +17,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // SUPPORT TOOLS
 // ============================================================================
@@ -30,7 +31,7 @@ const gentleAccountabilityDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Provide warm, shame-free accountability for habit and behavior goals.',
+      description: getToolDescription('gentleAccountability'),
       parameters: z.object({
         habit: z.string().describe('The habit or behavior'),
         status: z
@@ -74,7 +75,7 @@ const compassionateResetDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user reset and restart a habit or goal with self-compassion.',
+      description: getToolDescription('compassionateReset'),
       parameters: z.object({
         whatFellOff: z.string().describe('The habit or goal that fell off'),
         howLong: z.string().optional().describe('How long since they were on track'),
@@ -122,7 +123,7 @@ const celebrateTinyWinDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Celebrate small wins that might otherwise go unnoticed.',
+      description: getToolDescription('celebrateTinyWin'),
       parameters: z.object({
         win: z.string().describe('The small win'),
         theyreMinimizing: z.boolean().optional().describe('Are they downplaying it'),
@@ -178,7 +179,7 @@ const identifyResistanceDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help identify and understand what is driving resistance to a desired change.',
+      description: getToolDescription('identifyResistance'),
       parameters: z.object({
         wantedChange: z.string().describe('What change they want'),
         resistanceLooksLike: z.string().describe('How the resistance shows up'),
@@ -229,7 +230,7 @@ const findSustainablePaceDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user find a sustainable pace for change rather than burning out.',
+      description: getToolDescription('findSustainablePace'),
       parameters: z.object({
         goal: z.string().describe('What they are working toward'),
         currentPace: z
@@ -288,7 +289,7 @@ const behaviorArchitectureDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help design the environment and systems to make desired behaviors easier.',
+      description: getToolDescription('behaviorArchitecture'),
       parameters: z.object({
         behavior: z.string().describe('The behavior to support'),
         currentObstacles: z.string().describe('What currently makes it hard'),

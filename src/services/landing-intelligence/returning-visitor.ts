@@ -8,6 +8,7 @@
  */
 
 import { getFirestore } from 'firebase-admin/firestore';
+import { removeUndefined } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { generateJSON } from './gemini-client.js';
 
@@ -154,11 +155,13 @@ async function persistSession(session: VisitorSession): Promise<void> {
   await db
     .collection('landing_sessions')
     .doc(session.sessionId)
-    .set({
-      ...session,
-      startTime: session.startTime,
-      endTime: session.endTime || new Date(),
-    });
+    .set(
+      removeUndefined({
+        ...session,
+        startTime: session.startTime,
+        endTime: session.endTime || new Date(),
+      })
+    );
 }
 
 function calculateSessionDuration(session: VisitorSession): number {

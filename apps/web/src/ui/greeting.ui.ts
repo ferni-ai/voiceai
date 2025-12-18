@@ -308,6 +308,30 @@ export function getMilestoneMessage(type: string, value: number): string {
 }
 
 // ============================================================================
+// EVENT-DRIVEN CONVERSATION TRACKING
+// ============================================================================
+
+let isEventListenerSetup = false;
+
+/**
+ * Initialize greeting UI with event listeners.
+ * Automatically tracks conversations via ferni:conversation-start event.
+ */
+export function initGreetingUI(): void {
+  if (isEventListenerSetup) return;
+  isEventListenerSetup = true;
+
+  window.addEventListener('ferni:conversation-start', () => {
+    recordConversation();
+  });
+}
+
+// Auto-initialize when module loads
+if (typeof window !== 'undefined') {
+  initGreetingUI();
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -321,4 +345,5 @@ export const greetingUI = {
   getConversationCount,
   getVisitCount,
   getMilestoneMessage,
+  init: initGreetingUI,
 };

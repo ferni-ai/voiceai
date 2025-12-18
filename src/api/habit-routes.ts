@@ -17,6 +17,7 @@
 import * as admin from 'firebase-admin';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import {
   getUserId,
@@ -144,7 +145,7 @@ async function saveHabitsCollection(userId: string, habits: Habit[]): Promise<vo
 
     for (const habit of habits) {
       const docRef = db.collection(HABITS_COLLECTION).doc(habit.id);
-      batch.set(docRef, habit);
+      batch.set(docRef, removeUndefined(habit));
     }
 
     await batch.commit();

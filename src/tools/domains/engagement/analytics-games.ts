@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // PATTERN DETECTIVE
 // ============================================================================
@@ -26,8 +27,7 @@ export const patternDetectiveDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Peter shows user their data and asks them to guess the pattern before revealing his analysis.
-Builds self-knowledge and makes data fun.`,
+      description: getToolDescription('patternDetective'),
       parameters: z.object({
         action: z.enum(['show-data', 'guess-pattern', 'reveal-pattern']).describe('Game stage'),
         dataType: z
@@ -110,14 +110,7 @@ export const weeklyPredictionDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     const userId = ctx.userId ?? 'anonymous';
     return llm.tool({
-      description: `At start of week, user predicts their behavior. At end, Peter compares prediction to reality.
-Builds calibration and self-knowledge over time.
-
-Actions:
-- make-predictions: Start a new prediction for the week
-- save-predictions: Save the user's predictions (after collecting them)
-- get-pending: Check if user has pending predictions to resolve
-- record-actuals: Record actual results and calculate accuracy`,
+      description: getToolDescription('weeklyPrediction'),
       parameters: z.object({
         action: z
           .enum(['make-predictions', 'save-predictions', 'get-pending', 'record-actuals'])

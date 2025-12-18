@@ -24,7 +24,6 @@ import {
   type CosmeticItem,
   type CosmeticType,
 } from '../services/cosmetics.service.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './toast.ui.js';
@@ -474,9 +473,8 @@ function createModal(): HTMLElement {
     </div>
   `;
 
-  // Event listeners (iOS-compatible)
-  addTapListener(overlay.querySelector('.personalize-backdrop'), close);
-  addTapListener(overlay.querySelector('.personalize-close'), close);
+  overlay.querySelector('.personalize-backdrop')?.addEventListener('click', close);
+  overlay.querySelector('.personalize-close')?.addEventListener('click', close);
 
   setupEventListeners(overlay);
 
@@ -678,16 +676,16 @@ function renderItemAction(
 }
 
 function setupEventListeners(overlay: HTMLElement): void {
-  // Category buttons (iOS-compatible)
+  // Category buttons
   overlay.querySelectorAll('.personalize-category-btn').forEach((btn) => {
-    addTapListener(btn, () => {
+    btn.addEventListener('click', () => {
       selectedCategory = (btn.getAttribute('data-category') as CosmeticType | 'all') || 'all';
       refreshUI();
     });
   });
 
-  // Item actions - use event delegation with addTapListener on the container
-  addTapListener(overlay, (e) => {
+  // Item actions
+  overlay.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
     const actionBtn = target.closest('[data-action]');
     if (!actionBtn) return;

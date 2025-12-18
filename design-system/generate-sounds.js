@@ -3,7 +3,7 @@
  * Generate Sounds TypeScript Manifest
  *
  * Single source of truth: design-system/assets/sounds/
- * Output: frontend-typescript/src/config/sounds.generated.ts
+ * Output: apps/web/src/config/sounds.generated.ts
  *
  * Usage:
  *   node design-system/generate-sounds.js
@@ -24,8 +24,8 @@ const PROJECT_ROOT = path.dirname(__dirname);
 const CONFIG = {
   // Source: design-system/assets/sounds/
   sourceDir: path.join(__dirname, 'assets/sounds'),
-  // Output: frontend-typescript/src/config/sounds.generated.ts
-  outputFile: path.join(PROJECT_ROOT, 'frontend-typescript/src/config/sounds.generated.ts'),
+  // Output: apps/web/src/config/sounds.generated.ts
+  outputFile: path.join(PROJECT_ROOT, 'apps/web/src/config/sounds.generated.ts'),
   // Base path for sounds in the app
   basePath: '/sounds',
 };

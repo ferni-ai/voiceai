@@ -12,6 +12,7 @@ import { llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // PURE CALCULATION FUNCTIONS
 // ============================================================================
@@ -160,8 +161,7 @@ export function calculateFIRENumber(
 export function createPersonalFinanceTools() {
   return {
     calculateDebtPayoff: llm.tool({
-      description:
-        'Calculate how long to pay off a debt and total interest cost. Use for credit cards, student loans, car loans.',
+      description: getToolDescription('calculateDebtPayoff'),
       parameters: z.object({
         balance: z.number().describe('Current debt balance in dollars'),
         interestRate: z.number().describe('Annual interest rate as percentage (e.g., 18 for 18%)'),
@@ -184,8 +184,7 @@ export function createPersonalFinanceTools() {
     }),
 
     calculateHomeAffordability: llm.tool({
-      description:
-        'Calculate how much home you can afford based on income and debts using standard 28/36 DTI ratios.',
+      description: getToolDescription('calculateHomeAffordability'),
       parameters: z.object({
         annualIncome: z.number().describe('Annual household income'),
         monthlyDebts: z
@@ -208,8 +207,7 @@ export function createPersonalFinanceTools() {
     }),
 
     calculate5030Budget: llm.tool({
-      description:
-        'Calculate budget allocation using the 50/30/20 rule - 50% needs, 30% wants, 20% savings.',
+      description: getToolDescription('calculate5030Budget'),
       parameters: z.object({
         monthlyIncome: z.number().describe('Monthly take-home income'),
       }),
@@ -222,8 +220,7 @@ export function createPersonalFinanceTools() {
     }),
 
     calculateFIRENumber: llm.tool({
-      description:
-        'Calculate your Financial Independence number - how much you need to retire early.',
+      description: getToolDescription('calculateFIRENumber'),
       parameters: z.object({
         annualExpenses: z.number().describe('Expected annual expenses in retirement'),
         withdrawalRate: z
@@ -240,7 +237,7 @@ export function createPersonalFinanceTools() {
     }),
 
     explainBankingConcepts: llm.tool({
-      description: 'Explain banking and savings concepts in simple terms.',
+      description: getToolDescription('explainBankingConcepts'),
       parameters: z.object({
         concept: z
           .enum([
@@ -278,7 +275,7 @@ export function createPersonalFinanceTools() {
     }),
 
     explainMortgageConcepts: llm.tool({
-      description: 'Explain home loan and mortgage concepts in simple terms.',
+      description: getToolDescription('explainMortgageConcepts'),
       parameters: z.object({
         concept: z
           .enum([
@@ -320,7 +317,7 @@ export function createPersonalFinanceTools() {
     }),
 
     explainRetirementAccounts: llm.tool({
-      description: 'Explain retirement account types and rules.',
+      description: getToolDescription('explainRetirementAccounts'),
       parameters: z.object({
         accountType: z
           .enum([

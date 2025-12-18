@@ -712,20 +712,20 @@ button {
    FEATURE SECTION (Dark)
    ============================================================================ */
 .section-dark {
-  background: var(--color-text-primary);
-  color: var(--color-text-inverse);
+  background: var(--color-dark-bg, var(--color-text-primary));
+  color: var(--color-dark-text, #ffffff);
 }
 
 .section-dark .eyebrow {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-dark-text-muted, #ddd6cc);
 }
 
 .section-dark .section-headline {
-  color: var(--color-text-inverse);
+  color: var(--color-dark-text, #ffffff);
 }
 
 .section-dark .section-body {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-dark-text-secondary, #f0ebe4);
 }
 
 .feature-grid {
@@ -1692,19 +1692,19 @@ button {
 }
 
 .section-voice .feature-text {
-  color: var(--color-text-inverse);
+  color: var(--color-dark-text-secondary, #f0ebe4);
 }
 
 .section-voice .eyebrow {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-dark-text-muted, #ddd6cc);
 }
 
 .section-voice .section-headline {
-  color: var(--color-text-inverse);
+  color: var(--color-dark-text, #ffffff);
 }
 
 .section-voice .section-body {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-dark-text-secondary, #f0ebe4);
 }
 
 /* ============================================================================

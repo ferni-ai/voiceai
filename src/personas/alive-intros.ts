@@ -1,4 +1,12 @@
 /**
+ * @deprecated DISABLED - Use greetings.json instead
+ *
+ * This system was adding too much drama/SSML layering to Ferni's voice.
+ * Kept for reference. Enable with ENABLE_ALIVE_GREETINGS=true env flag.
+ * See: greeting-handler.ts for the feature flag check.
+ *
+ * ============================================================================
+ *
  * Alive Intros - Making Agent Introductions Feel Genuinely Human
  *
  * This system goes beyond "good greetings" to create intros that feel like

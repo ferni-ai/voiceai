@@ -11,7 +11,6 @@
  */
 
 import { getGCPProjectId } from '../config/environment.js';
-import { getLogger } from '../utils/safe-logger.js';
 import type {
   FeedbackRecord,
   FeedbackSummary,
@@ -25,6 +24,8 @@ import type {
   ConsolidationOpportunity,
   SessionData,
 } from '../tools/pattern-analyzer.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
 // TYPES
@@ -106,6 +107,7 @@ class OptimizationPersistenceService {
 
   private readonly BUFFER_SIZE = 100;
   private readonly FLUSH_INTERVAL_MS = 60000; // 1 minute
+  private readonly FIRESTORE_BATCH_LIMIT = 500; // Firestore batch write limit
 
   // ==========================================================================
   // INITIALIZATION
@@ -172,21 +174,29 @@ class OptimizationPersistenceService {
     if (this.feedbackBuffer.length === 0 || !this.db) return;
 
     const toFlush = this.feedbackBuffer.splice(0, this.feedbackBuffer.length);
+    const collection = this.db.collection(this.COLLECTIONS.FEEDBACK);
 
     try {
-      const batch = this.db.batch();
-      const collection = this.db.collection(this.COLLECTIONS.FEEDBACK);
+      // Process in chunks to respect Firestore's 500-operation limit
+      for (let i = 0; i < toFlush.length; i += this.FIRESTORE_BATCH_LIMIT) {
+        const chunk = toFlush.slice(i, i + this.FIRESTORE_BATCH_LIMIT);
+        const batch = this.db.batch();
 
-      for (const feedback of toFlush) {
-        const docRef = collection.doc();
-        batch.set(docRef, {
-          ...feedback,
-          timestamp: feedback.timestamp.toISOString(),
-          createdAt: new Date().toISOString(),
-        });
+        for (const feedback of chunk) {
+          const docRef = collection.doc();
+          // Use removeUndefined to filter out undefined fields (Firestore doesn't accept them)
+          batch.set(
+            docRef,
+            removeUndefined({
+              ...feedback,
+              timestamp: feedback.timestamp.toISOString(),
+              createdAt: new Date().toISOString(),
+            } as Record<string, unknown>)
+          );
+        }
+
+        await batch.commit();
       }
-
-      await batch.commit();
       getLogger().debug({ count: toFlush.length }, '📝 Flushed feedback to Firestore');
     } catch (error) {
       // Re-add to buffer on failure
@@ -271,26 +281,35 @@ class OptimizationPersistenceService {
     if (this.sessionBuffer.length === 0 || !this.db) return;
 
     const toFlush = this.sessionBuffer.splice(0, this.sessionBuffer.length);
+    const collection = this.db.collection(this.COLLECTIONS.SESSIONS);
 
     try {
-      const batch = this.db.batch();
-      const collection = this.db.collection(this.COLLECTIONS.SESSIONS);
+      // Process in chunks to respect Firestore's 500-operation limit
+      for (let i = 0; i < toFlush.length; i += this.FIRESTORE_BATCH_LIMIT) {
+        const chunk = toFlush.slice(i, i + this.FIRESTORE_BATCH_LIMIT);
+        const batch = this.db.batch();
 
-      for (const session of toFlush) {
-        const docRef = collection.doc(session.sessionId);
-        batch.set(docRef, {
-          ...session,
-          startTime: session.startTime.toISOString(),
-          endTime: session.endTime?.toISOString(),
-          toolCalls: session.toolCalls.map((tc) => ({
-            ...tc,
-            timestamp: tc.timestamp.toISOString(),
-          })),
-          createdAt: new Date().toISOString(),
-        });
+        for (const session of chunk) {
+          const docRef = collection.doc(session.sessionId);
+          batch.set(
+            docRef,
+            removeUndefined({
+              ...session,
+              startTime: session.startTime.toISOString(),
+              endTime: session.endTime?.toISOString(),
+              toolCalls: session.toolCalls.map((tc) =>
+                removeUndefined({
+                  ...tc,
+                  timestamp: tc.timestamp.toISOString(),
+                } as Record<string, unknown>)
+              ),
+              createdAt: new Date().toISOString(),
+            } as Record<string, unknown>)
+          );
+        }
+
+        await batch.commit();
       }
-
-      await batch.commit();
       getLogger().debug({ count: toFlush.length }, '📊 Flushed sessions to Firestore');
     } catch (error) {
       this.sessionBuffer.unshift(...toFlush);
@@ -316,10 +335,12 @@ class OptimizationPersistenceService {
       await this.db
         .collection(this.COLLECTIONS.PATTERNS)
         .doc(docId)
-        .set({
-          ...analysis,
-          analyzedAt: analysis.analyzedAt.toISOString(),
-        });
+        .set(
+          removeUndefined({
+            ...analysis,
+            analyzedAt: analysis.analyzedAt.toISOString(),
+          } as Record<string, unknown>)
+        );
 
       getLogger().info('📊 Saved pattern analysis to Firestore');
     } catch (error) {
@@ -386,20 +407,27 @@ class OptimizationPersistenceService {
     if (this.recommendationBuffer.length === 0 || !this.db) return;
 
     const toFlush = this.recommendationBuffer.splice(0, this.recommendationBuffer.length);
+    const collection = this.db.collection(this.COLLECTIONS.RECOMMENDATIONS);
 
     try {
-      const batch = this.db.batch();
-      const collection = this.db.collection(this.COLLECTIONS.RECOMMENDATIONS);
+      // Process in chunks to respect Firestore's 500-operation limit
+      for (let i = 0; i < toFlush.length; i += this.FIRESTORE_BATCH_LIMIT) {
+        const chunk = toFlush.slice(i, i + this.FIRESTORE_BATCH_LIMIT);
+        const batch = this.db.batch();
 
-      for (const rec of toFlush) {
-        const docRef = collection.doc(rec.id);
-        batch.set(docRef, {
-          ...rec,
-          createdAt: rec.createdAt.toISOString(),
-        });
+        for (const rec of chunk) {
+          const docRef = collection.doc(rec.id);
+          batch.set(
+            docRef,
+            removeUndefined({
+              ...rec,
+              createdAt: rec.createdAt.toISOString(),
+            } as Record<string, unknown>)
+          );
+        }
+
+        await batch.commit();
       }
-
-      await batch.commit();
       getLogger().debug({ count: toFlush.length }, '💡 Flushed recommendations to Firestore');
     } catch (error) {
       this.recommendationBuffer.unshift(...toFlush);
@@ -417,10 +445,12 @@ class OptimizationPersistenceService {
       await this.db
         .collection(this.COLLECTIONS.RECOMMENDATIONS)
         .doc(recommendation.id)
-        .set({
-          ...recommendation,
-          createdAt: recommendation.createdAt.toISOString(),
-        });
+        .set(
+          removeUndefined({
+            ...recommendation,
+            createdAt: recommendation.createdAt.toISOString(),
+          } as Record<string, unknown>)
+        );
     } catch (error) {
       getLogger().error({ error }, 'Failed to save recommendation');
     }
@@ -504,12 +534,14 @@ class OptimizationPersistenceService {
       await this.db
         .collection(this.COLLECTIONS.EXPERIMENTS)
         .doc(experiment.id)
-        .set({
-          ...experiment,
-          startedAt: experiment.startedAt?.toISOString(),
-          completedAt: experiment.completedAt?.toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
+        .set(
+          removeUndefined({
+            ...experiment,
+            startedAt: experiment.startedAt?.toISOString(),
+            completedAt: experiment.completedAt?.toISOString(),
+            updatedAt: new Date().toISOString(),
+          } as Record<string, unknown>)
+        );
     } catch (error) {
       getLogger().error({ error, experimentId: experiment.id }, 'Failed to save experiment');
     }

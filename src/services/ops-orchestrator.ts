@@ -117,6 +117,12 @@ const state: OpsState = {
 let intervals: NodeJS.Timeout[] = [];
 let slackService: SlackNotificationService | null = null;
 
+// Log sampling - only log "OK" status every Nth check to reduce noise
+const LOG_SAMPLE_INTERVAL = 10;
+let healthCheckCount = 0;
+let latencyCheckCount = 0;
+let costCheckCount = 0;
+
 // ============================================================================
 // LAZY IMPORTS (Avoid circular dependencies)
 // ============================================================================
@@ -309,10 +315,14 @@ async function checkServiceHealth(): Promise<void> {
     }
   }
 
-  log.debug(
-    { healthy: services.length - unhealthyServices.length, unhealthy: unhealthyServices.length },
-    'Health check complete'
-  );
+  // Only log healthy status every Nth check to reduce noise
+  healthCheckCount++;
+  if (unhealthyServices.length > 0 || healthCheckCount % LOG_SAMPLE_INTERVAL === 0) {
+    log.info(
+      { healthy: services.length - unhealthyServices.length, unhealthy: unhealthyServices.length },
+      'Health check complete'
+    );
+  }
 }
 
 // ============================================================================
@@ -375,10 +385,14 @@ async function checkCosts(): Promise<void> {
     });
   }
 
-  log.debug(
-    { hourly: snapshot.costLastHour.toFixed(2), daily: snapshot.costLast24h.toFixed(2) },
-    'Cost check complete'
-  );
+  // Only log cost status every Nth check to reduce noise
+  costCheckCount++;
+  if (costCheckCount % LOG_SAMPLE_INTERVAL === 0) {
+    log.info(
+      { hourly: snapshot.costLastHour.toFixed(2), daily: snapshot.costLast24h.toFixed(2) },
+      'Cost check complete (sampled)'
+    );
+  }
 }
 
 // ============================================================================
@@ -442,7 +456,11 @@ async function checkLatency(): Promise<void> {
     });
   }
 
-  log.debug({ ...metrics }, 'Latency check complete');
+  // Only log latency status every Nth check to reduce noise
+  latencyCheckCount++;
+  if (latencyCheckCount % LOG_SAMPLE_INTERVAL === 0) {
+    log.info({ ...metrics }, 'Latency check complete (sampled)');
+  }
 }
 
 // ============================================================================
@@ -532,7 +550,7 @@ async function checkExternalStatus(): Promise<void> {
     });
   }
 
-  log.debug({ results }, 'External status check complete');
+  // Don't log external status unless there are issues (checked every 5 min anyway)
 }
 
 // ============================================================================

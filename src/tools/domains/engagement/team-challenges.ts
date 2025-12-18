@@ -16,6 +16,7 @@ import { z } from 'zod';
 import { getDailyRitualsService, PERSONA_RITUALS } from '../../../services/daily-rituals.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // TEAM HUDDLE
 // ============================================================================
@@ -29,8 +30,7 @@ export const teamHuddleDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Initiate a team huddle where multiple personas comment on user's progress.
-Used for weekly check-ins or special celebrations.`,
+      description: getToolDescription('teamHuddle'),
       parameters: z.object({
         type: z.enum(['weekly', 'monthly', 'milestone', 'special']).describe('Type of huddle'),
         topic: z.string().optional().describe('Specific topic to discuss'),
@@ -87,8 +87,7 @@ export const quickChallengesDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Offer quick, fun challenges that take < 5 minutes.
-Good for breaking routine or adding spontaneity.`,
+      description: getToolDescription('quickChallenges'),
       parameters: z.object({
         category: z
           .enum(['gratitude', 'movement', 'creativity', 'connection', 'mindfulness', 'random'])
@@ -158,8 +157,7 @@ export const reflectionPromptsDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Offer thoughtful reflection prompts that invite deeper conversation.
-Good for when user wants to go deeper or seems ready for introspection.`,
+      description: getToolDescription('reflectionPrompts'),
       parameters: z.object({
         theme: z
           .enum([
@@ -247,8 +245,7 @@ export const streakTrackerDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     const userId = ctx.userId ?? 'anonymous';
     return llm.tool({
-      description: `Check on user's various streaks and celebrate milestones.
-Tracks daily rituals, habits, and engagement patterns.`,
+      description: getToolDescription('streakTracker'),
       parameters: z.object({
         action: z.enum(['check', 'celebrate', 'protect']).describe('Action to take'),
         streakType: z.string().optional().describe('Specific streak to check'),
@@ -350,8 +347,7 @@ export const celebrationMomentDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Create a personalized celebration moment for any user achievement.
-Makes wins feel special and memorable.`,
+      description: getToolDescription('celebrationMoment'),
       parameters: z.object({
         achievement: z.string().describe('What the user achieved'),
         scale: z.enum(['small', 'medium', 'big', 'epic']).describe('Scale of celebration'),

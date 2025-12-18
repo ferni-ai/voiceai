@@ -12,7 +12,6 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { addTapListener } from '../utils/ios-touch.js';
 
 // ============================================================================
 // TYPES
@@ -85,8 +84,7 @@ class DataExportUI {
     this.wrapper.className = 'data-export__wrapper';
     this.panel.appendChild(this.wrapper);
 
-    // Backdrop click handler (iOS-compatible)
-    addTapListener(this.panel, (e) => {
+    this.panel.addEventListener('click', (e) => {
       if (e.target === this.panel) this.hide();
     });
 
@@ -134,7 +132,7 @@ class DataExportUI {
       </div>
     `;
 
-    addTapListener(this.wrapper.querySelector('.data-export__close'), () => this.hide());
+    this.wrapper.querySelector('.data-export__close')?.addEventListener('click', () => this.hide());
 
     this.wrapper.querySelectorAll('.data-export__category-checkbox').forEach(checkbox => {
       checkbox.addEventListener('change', () => {
@@ -150,18 +148,18 @@ class DataExportUI {
 
     let selectedFormat: 'json' | 'csv' = 'json';
     this.wrapper.querySelectorAll('.data-export__format-btn').forEach(btn => {
-      addTapListener(btn, () => {
+      btn.addEventListener('click', () => {
         this.wrapper?.querySelectorAll('.data-export__format-btn').forEach(b => b.classList.remove('data-export__format-btn--active'));
         btn.classList.add('data-export__format-btn--active');
         selectedFormat = (btn as HTMLElement).dataset.format as 'json' | 'csv';
       });
     });
 
-    addTapListener(this.wrapper.querySelector('.data-export__btn--primary'), () => {
+    this.wrapper.querySelector('.data-export__btn--primary')?.addEventListener('click', () => {
       this.callbacks.onExport?.(selectedFormat, Array.from(this.selectedCategories));
     });
 
-    addTapListener(this.wrapper.querySelector('.data-export__btn--danger'), () => {
+    this.wrapper.querySelector('.data-export__btn--danger')?.addEventListener('click', () => {
       if (confirm('Are you sure you want to delete all your data? This cannot be undone.')) {
         this.callbacks.onDeleteData?.();
         this.hide();

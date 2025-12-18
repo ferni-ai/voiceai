@@ -19,6 +19,7 @@ import { llm, log as _log } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // RELATIONSHIP HEALTH TOOLS
 // ============================================================================
@@ -32,8 +33,7 @@ const assessRelationshipHealthDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user reflect on the health of a relationship across dimensions like trust, communication, reciprocity, and emotional safety.',
+      description: getToolDescription('assessRelationshipHealth'),
       parameters: z.object({
         personName: z.string().describe('Name of the person in the relationship'),
         relationshipType: z
@@ -95,8 +95,7 @@ const _identifyNeglectedRelationshipsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user recognize relationships they may have unintentionally neglected and explore what reconnection might look like.',
+      description: getToolDescription('identifyNeglectedRelationships'),
       parameters: z.object({
         timeframe: z
           .enum(['weeks', 'months', 'years'])
@@ -150,8 +149,7 @@ const suggestConnectionActionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Suggest thoughtful, personalized ways to connect with or show care for someone specific.',
+      description: getToolDescription('suggestConnectionAction'),
       parameters: z.object({
         personName: z.string().describe('Name of the person'),
         context: z.string().optional().describe('Any context about them or the situation'),
@@ -216,8 +214,7 @@ const _recordMeaningfulMomentDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user capture and preserve a meaningful moment shared with someone important.',
+      description: getToolDescription('recordMeaningfulMoment'),
       parameters: z.object({
         personName: z.string().describe('Person the moment was shared with'),
         moment: z.string().describe('Description of what happened'),
@@ -259,8 +256,7 @@ const navigateConflictDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user think through a conflict or tension in a relationship with wisdom and care.',
+      description: getToolDescription('navigateConflict'),
       parameters: z.object({
         personName: z.string().describe('Person the conflict is with'),
         situation: z.string().describe('What happened or what the tension is about'),
@@ -301,8 +297,7 @@ const prepareForDifficultConversationDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user prepare for a difficult conversation with clarity, courage, and compassion.',
+      description: getToolDescription('prepareForDifficultConversation'),
       parameters: z.object({
         personName: z.string().describe('Person you need to talk to'),
         topic: z.string().describe('What the conversation needs to be about'),
@@ -351,8 +346,7 @@ const _craftApologyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user craft a genuine apology that takes responsibility and opens the door to repair.',
+      description: getToolDescription('craftApology'),
       parameters: z.object({
         personName: z.string().describe('Person to apologize to'),
         whatYouDid: z.string().describe('What you did or said that caused harm'),
@@ -403,8 +397,7 @@ const _expressGratitudeDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user express genuine gratitude to someone in a way that will be meaningful to them.',
+      description: getToolDescription('expressGratitude'),
       parameters: z.object({
         personName: z.string().describe('Person to express gratitude to'),
         whatFor: z.string().describe('What you are grateful for'),
@@ -446,8 +439,7 @@ const _checkInOnSomeoneDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user check in on someone they are concerned about in a supportive, non-intrusive way.',
+      description: getToolDescription('checkInOnSomeone'),
       parameters: z.object({
         personName: z.string().describe('Person to check in on'),
         concern: z.string().describe('What prompted your concern'),
@@ -510,8 +502,7 @@ const mapRelationshipCirclesDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user map out their relationship circles - from innermost intimates to outer acquaintances.',
+      description: getToolDescription('mapRelationshipCircles'),
       parameters: z.object({
         focusArea: z
           .enum(['overview', 'inner-circle', 'support-network', 'community', 'gaps'])
@@ -568,8 +559,7 @@ const _setRelationshipBoundaryDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user think through and articulate a healthy boundary in a relationship.',
+      description: getToolDescription('setRelationshipBoundary'),
       parameters: z.object({
         personName: z.string().describe('Person the boundary is with'),
         situation: z.string().describe('The situation requiring a boundary'),
@@ -614,8 +604,7 @@ const _understandLoveLanguagesDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user understand love languages and how to better give and receive love.',
+      description: getToolDescription('understandLoveLanguages'),
       parameters: z.object({
         mode: z
           .enum(['discover-mine', 'understand-theirs', 'bridge-gap'])
@@ -674,7 +663,7 @@ const _reconnectAfterTimeDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help navigate reconnecting with someone after significant time apart.',
+      description: getToolDescription('reconnectAfterTime'),
       parameters: z.object({
         personName: z.string().describe('Person to reconnect with'),
         timePassed: z.string().describe('How long since connection'),
@@ -727,7 +716,7 @@ const deepenFriendshipDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help the user deepen an existing friendship beyond surface-level connection.',
+      description: getToolDescription('deepenFriendship'),
       parameters: z.object({
         personName: z.string().describe('Friend to deepen connection with'),
         currentLevel: z

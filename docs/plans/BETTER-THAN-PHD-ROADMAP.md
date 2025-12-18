@@ -442,7 +442,7 @@ const NATURAL_ASSESSMENTS: AssessmentOpportunity[] = [
 
 ### Phase 2.3: Progress Visualization
 
-**Files:** `frontend-typescript/src/ui/wellbeing-dashboard.ui.ts`
+**Files:** `apps/web/src/ui/wellbeing-dashboard.ui.ts`
 
 Beautiful "State of Me" dashboard:
 
@@ -1914,7 +1914,7 @@ src/intelligence/context-builders/
 ├── somatic-context.ts          # NEW
 └── wisdom-context.ts           # NEW
 
-frontend-typescript/src/ui/
+apps/web/src/ui/
 ├── wellbeing-dashboard.ui.ts   # NEW
 ├── thought-record.ui.ts        # NEW
 ├── breathing-guide.ui.ts       # NEW

@@ -211,7 +211,11 @@ describe('Environment Validator', () => {
       expect(getFeatureAvailability().plaidBanking).toBe(true);
     });
 
-    it('should require MUSIC_ENABLED flag for music', () => {
+    it('should have musicEnabled true by default (opt-out model)', () => {
+      // Music is enabled by default - you must explicitly set MUSIC_ENABLED=false to disable
+      expect(getFeatureAvailability().musicEnabled).toBe(true);
+
+      process.env.MUSIC_ENABLED = 'false';
       expect(getFeatureAvailability().musicEnabled).toBe(false);
 
       process.env.MUSIC_ENABLED = 'true';

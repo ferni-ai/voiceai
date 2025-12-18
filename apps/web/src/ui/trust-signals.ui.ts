@@ -141,7 +141,7 @@ let styleElement: HTMLStyleElement | null = null;
 let isInitialized = false;
 let config = { ...DEFAULT_CONFIG };
 let signalQueue: TrustSignal[] = [];
-let visibleSignals: Map<string, HTMLElement> = new Map();
+const visibleSignals: Map<string, HTMLElement> = new Map();
 let dismissedSignals: Set<string> = new Set();
 
 // ============================================================================
@@ -350,42 +350,12 @@ function displaySignal(signal: TrustSignal): void {
   // Animate in
   animateIn(element);
 
-  // 🎬 Luxo Spirit: Dispatch events for avatar body language
-  // These trigger investigative and emotional arc behaviors
-  dispatchLuxoEvent(signal.type);
-
   // Auto-hide after delay
   trackedTimeout(() => {
     if (visibleSignals.has(signal.id)) {
       dismissSignal(signal.id);
     }
   }, config.autoHideAfter);
-}
-
-/**
- * 🎬 Dispatch Luxo events based on trust signal type.
- * This makes the avatar come alive with Pixar-style body language.
- */
-function dispatchLuxoEvent(type: TrustSignal['type']): void {
-  switch (type) {
-    case 'growth':
-      // User growth recognized - proud parent moment
-      document.dispatchEvent(new CustomEvent('ferni:growth-recognized'));
-      break;
-    case 'callback':
-      // Shared memory - recognition moment
-      document.dispatchEvent(new CustomEvent('ferni:memory-callback'));
-      break;
-    case 'small_win':
-      // Celebrating effort - celebration moment
-      document.dispatchEvent(new CustomEvent('ferni:celebration'));
-      break;
-    case 'reading_lines':
-      // Reading between lines - empathetic investigation
-      document.dispatchEvent(new CustomEvent('ferni:emotional-content'));
-      break;
-    // boundary and thinking_of_you don't need special avatar reactions
-  }
 }
 
 // ============================================================================

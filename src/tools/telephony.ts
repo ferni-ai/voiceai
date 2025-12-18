@@ -15,6 +15,7 @@ import { llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // Environment variables for SIP configuration
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || '';
@@ -155,13 +156,7 @@ async function createOutboundCall(
 export function createTelephonyTools() {
   return {
     callUser: llm.tool({
-      description: `Make an outbound phone call to the user. Use this when:
-- User asks you to call them about something
-- You need to deliver important market alerts
-- You want to check in with the user
-- Peter wants to talk to them about a stock
-
-IMPORTANT: Only use this if the user has given you their phone number.`,
+      description: getToolDescription('callUser'),
       parameters: z.object({
         phoneNumber: z
           .string()
@@ -183,10 +178,7 @@ IMPORTANT: Only use this if the user has given you their phone number.`,
     }),
 
     scheduleCallback: llm.tool({
-      description: `Schedule Jack to call the user back at a specific time. Use when:
-- User says "call me later" or "call me tomorrow"
-- User wants a reminder call
-- User wants Jack to check in periodically`,
+      description: getToolDescription('scheduleCallback'),
       parameters: z.object({
         phoneNumber: z.string().describe('The phone number to call'),
         when: z

@@ -23,6 +23,7 @@ import {
 } from '../shared/persistence.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // VOLUNTEER & GIVING RESOURCES
 // ============================================================================
@@ -96,7 +97,7 @@ const findVolunteerOpportunityDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help find volunteer opportunities that match interests and availability.',
+      description: getToolDescription('findVolunteerOpportunity'),
       parameters: z.object({
         interests: z.array(z.string()).optional().describe('Areas of interest'),
         skills: z.array(z.string()).optional().describe('Skills to offer'),
@@ -160,7 +161,7 @@ const trackVolunteerHoursDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help track volunteer hours and activities.',
+      description: getToolDescription('trackVolunteerHours'),
       parameters: z.object({
         organization: z.string().describe('Organization volunteered with'),
         activity: z.string().describe('What you did'),
@@ -219,7 +220,7 @@ const planCharitableGivingDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help develop a thoughtful charitable giving strategy.',
+      description: getToolDescription('planCharitableGiving'),
       parameters: z.object({
         currentGiving: z.string().optional().describe('Current giving approach'),
         budget: z.string().optional().describe('Annual giving budget'),
@@ -293,7 +294,7 @@ const alignGivingWithValuesDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help align charitable giving with personal values.',
+      description: getToolDescription('alignGivingWithValues'),
       parameters: z.object({
         values: z.array(z.string()).describe('Core values'),
         currentGiving: z.string().optional().describe('Where they currently give'),
@@ -349,7 +350,7 @@ const findCommunityGroupDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help find community groups and organizations to join.',
+      description: getToolDescription('findCommunityGroup'),
       parameters: z.object({
         interests: z.array(z.string()).optional().describe('Interests'),
         goal: z.enum(['social', 'service', 'learning', 'activism', 'spiritual', 'any']).optional(),
@@ -413,7 +414,7 @@ const engageCivicallyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help with civic engagement and participation.',
+      description: getToolDescription('engageCivically'),
       parameters: z.object({
         interest: z
           .enum(['voting', 'local-government', 'advocacy', 'community-organizing', 'general'])
@@ -507,7 +508,7 @@ const trackImpactDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help track and acknowledge social impact.',
+      description: getToolDescription('trackImpact'),
       parameters: z.object({
         timeframe: z.enum(['this-year', 'all-time', 'recent']).describe('Time period'),
         includeGiving: z.boolean().optional(),
@@ -569,7 +570,7 @@ const reflectOnContributionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Guide reflection on contributions and impact.',
+      description: getToolDescription('reflectOnContribution'),
       parameters: z.object({
         contribution: z.string().optional().describe('Specific contribution to reflect on'),
       }),

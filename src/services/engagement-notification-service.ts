@@ -25,6 +25,7 @@ import { createReminder, type ScheduledReminder } from './reminder-scheduler.js'
 import { getProductivityStore } from './productivity-store.js';
 import { getGamificationStore } from './gamification-store.js';
 import { getDefaultStore } from '../memory/index.js';
+import { isUserBusy, getNextOutreachWindow } from './calendar-busy-detection.js';
 
 // ============================================================================
 // TYPES
@@ -325,6 +326,12 @@ class MayaNotificationService extends EventEmitter {
     if (this.isQuietHours(prefs, request.scheduledFor)) {
       // Reschedule to after quiet hours
       request.scheduledFor = this.adjustForQuietHours(prefs, request.scheduledFor);
+    }
+
+    // Check calendar busy status - don't interrupt meetings
+    const adjustedTime = await this.adjustForCalendarBusy(request.userId, request.scheduledFor);
+    if (adjustedTime) {
+      request.scheduledFor = adjustedTime;
     }
 
     // Generate message
@@ -669,6 +676,62 @@ class MayaNotificationService extends EventEmitter {
     }
 
     return adjusted;
+  }
+
+  /**
+   * Adjust notification time based on calendar busy status.
+   * A good friend doesn't call when you're in a meeting.
+   */
+  private async adjustForCalendarBusy(userId: string, scheduledTime: Date): Promise<Date | null> {
+    try {
+      // Check if user is busy at the scheduled time
+      const busyCheck = await isUserBusy(userId);
+
+      if (!busyCheck.isBusy) {
+        return null; // No adjustment needed
+      }
+
+      // User is busy - try to find next free window
+      const nextWindow = await getNextOutreachWindow(userId, 5);
+
+      if (nextWindow) {
+        getLogger().debug(
+          {
+            userId,
+            originalTime: scheduledTime.toISOString(),
+            newTime: nextWindow.start.toISOString(),
+            reason: busyCheck.reason,
+          },
+          '📅 Rescheduling notification around calendar event'
+        );
+        return nextWindow.start;
+      }
+
+      // If no window found, push to after the busy period ends
+      if (busyCheck.busyUntil) {
+        const adjusted = new Date(busyCheck.busyUntil);
+        adjusted.setMinutes(adjusted.getMinutes() + 5); // 5 minute buffer after meeting
+        getLogger().debug(
+          {
+            userId,
+            originalTime: scheduledTime.toISOString(),
+            newTime: adjusted.toISOString(),
+            reason: busyCheck.reason,
+          },
+          '📅 Rescheduling notification to after meeting'
+        );
+        return adjusted;
+      }
+
+      return null;
+    } catch (error) {
+      // Don't block notifications on calendar errors
+      getLogger().debug(
+        { error, userId },
+        'Calendar busy check failed, proceeding with original time'
+      );
+      return null;
+    }
   }
 }
 

@@ -1,4 +1,12 @@
 /**
+ * @deprecated DISABLED - Use greetings.json instead
+ *
+ * This system was adding too much drama/SSML layering to Ferni's voice.
+ * Kept for reference. Enable with ENABLE_ALIVE_GREETINGS=true env flag.
+ * See: greeting-handler.ts for the feature flag check.
+ *
+ * ============================================================================
+ *
  * Alive Greetings - Making Personas Feel Real
  *
  * This system generates greetings that feel like walking into a room
@@ -113,8 +121,17 @@ function generateCaughtMomentGreeting(
     ],
   };
 
-  const stage = ctx.relationshipStage || (ctx.isReturningUser ? 'acquaintance' : 'stranger');
+  // Validate and normalize relationship stage to a valid key
+  const rawStage = ctx.relationshipStage || (ctx.isReturningUser ? 'acquaintance' : 'stranger');
+  const validStages = ['stranger', 'acquaintance', 'friend', 'trusted_advisor'] as const;
+  const stage = validStages.includes(rawStage as (typeof validStages)[number])
+    ? (rawStage as (typeof validStages)[number])
+    : ctx.isReturningUser
+      ? 'acquaintance'
+      : 'stranger';
+
   const options = framings[stage];
+  if (!options || options.length === 0) return null;
   const greeting = options[Math.floor(Math.random() * options.length)];
 
   return {
@@ -167,6 +184,7 @@ function generatePhysicalAwarenessGreeting(
   };
 
   const options = timePhysical[ctx.timeOfDay] || timePhysical.afternoon;
+  if (!options || options.length === 0) return null;
   const greeting = options[Math.floor(Math.random() * options.length)];
 
   return {
@@ -225,6 +243,7 @@ function generateWarmRecognitionGreeting(
     }
   }
 
+  if (warmBase.length === 0) return null;
   const greeting = warmBase[Math.floor(Math.random() * warmBase.length)];
 
   return {
@@ -280,6 +299,7 @@ function generateCuriousStrangerGreeting(
       : []),
   ];
 
+  if (strangerGreetings.length === 0) return null;
   const greeting = strangerGreetings[Math.floor(Math.random() * strangerGreetings.length)];
 
   return {

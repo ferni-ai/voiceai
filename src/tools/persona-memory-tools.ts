@@ -17,6 +17,7 @@
 import { llm } from '@livekit/agents';
 import { createLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
+import { getToolDescription } from './utils/tool-descriptions.js';
 import {
   getUserId,
   ordinal,
@@ -70,9 +71,7 @@ import {
 export function createFerniMemoryTools() {
   return {
     rememberAboutMe: llm.tool({
-      description: `Remember something the user wants Ferni to know about them.
-Use for preferences, styles, wins, topics they enjoy.
-Examples: "Remember I like morning check-ins", "I had a win today!"`,
+      description: getToolDescription('rememberAboutMe'),
       parameters: z.object({
         type: z
           .enum(['preference', 'win', 'topic', 'style', 'music'])
@@ -94,8 +93,7 @@ Examples: "Remember I like morning check-ins", "I had a win today!"`,
     }),
 
     whatDoYouKnowAboutMe: llm.tool({
-      description: `Recall what Ferni knows about the user.
-Use when user asks what you remember about them.`,
+      description: getToolDescription('whatDoYouKnowAboutMe'),
       parameters: z.object({
         type: z.enum(['all', 'preferences', 'wins']).default('all'),
       }),
@@ -133,8 +131,7 @@ Use when user asks what you remember about them.`,
 export function createBogleMemoryTools() {
   return {
     rememberFund: llm.tool({
-      description: `Remember a fund the user is interested in or owns.
-Jack loves tracking low-cost index funds!`,
+      description: getToolDescription('rememberFund'),
       parameters: z.object({
         name: z.string().describe('Fund name (e.g., "Vanguard Total Stock Market")'),
         ticker: z.string().optional().describe('Ticker symbol (e.g., VTI, VTSAX)'),
@@ -168,7 +165,7 @@ Jack loves tracking low-cost index funds!`,
     }),
 
     rememberMyPhilosophy: llm.tool({
-      description: `Remember the user's investing philosophy or principles.`,
+      description: getToolDescription('rememberMyPhilosophy'),
       parameters: z.object({
         philosophy: z.string().describe('The investing philosophy or principle'),
       }),
@@ -182,7 +179,7 @@ Jack loves tracking low-cost index funds!`,
     }),
 
     whatFundsDoILike: llm.tool({
-      description: `Recall funds and philosophies discussed with the user.`,
+      description: getToolDescription('whatFundsDoILike'),
       parameters: z.object({
         type: z.enum(['all', 'funds', 'philosophy']).default('all'),
       }),
@@ -219,8 +216,7 @@ Jack loves tracking low-cost index funds!`,
 export function createPeterMemoryTools() {
   return {
     addToWatchlist: llm.tool({
-      description: `Add a stock to the user's watchlist.
-Peter loves when people invest in what they know!`,
+      description: getToolDescription('addToWatchlist'),
       parameters: z.object({
         name: z.string().describe('Company name'),
         ticker: z.string().optional().describe('Stock ticker'),
@@ -246,8 +242,7 @@ Peter loves when people invest in what they know!`,
     }),
 
     rememberCompanyIKnow: llm.tool({
-      description: `Remember a company the user knows well through personal experience.
-Peter's "invest in what you know" philosophy!`,
+      description: getToolDescription('rememberCompanyIKnow'),
       parameters: z.object({
         name: z.string().describe('Company name'),
         ticker: z.string().optional().describe('Stock ticker'),
@@ -270,7 +265,7 @@ Peter's "invest in what you know" philosophy!`,
     }),
 
     showMyWatchlist: llm.tool({
-      description: `Show the user's stock watchlist.`,
+      description: getToolDescription('showMyWatchlist'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userId = getUserId({ ctx });
@@ -296,7 +291,7 @@ Peter's "invest in what you know" philosophy!`,
     }),
 
     markAsBigWinner: llm.tool({
-      description: `Mark a stock as a big winner (ten-bagger potential!).`,
+      description: getToolDescription('markAsBigWinner'),
       parameters: z.object({
         name: z.string().describe('Company name or ticker'),
       }),
@@ -323,8 +318,7 @@ Peter's "invest in what you know" philosophy!`,
 export function createMayaMemoryTools() {
   return {
     rememberMerchant: llm.tool({
-      description: `Remember a merchant and the user's relationship with it.
-Good for tracking favorite stores, problem spots, etc.`,
+      description: getToolDescription('rememberMerchant'),
       parameters: z.object({
         name: z.string().describe('Store/merchant name'),
         category: z.string().optional().describe('Category (grocery, clothing, etc.)'),
@@ -348,8 +342,7 @@ Good for tracking favorite stores, problem spots, etc.`,
     }),
 
     rememberMyTrigger: llm.tool({
-      description: `Remember a spending trigger - emotional or situational.
-This helps Maya understand patterns and support the user.`,
+      description: getToolDescription('rememberMyTrigger'),
       parameters: z.object({
         trigger: z
           .string()
@@ -366,7 +359,7 @@ This helps Maya understand patterns and support the user.`,
     }),
 
     rememberBill: llm.tool({
-      description: `Remember a recurring bill.`,
+      description: getToolDescription('rememberBill'),
       parameters: z.object({
         name: z.string().describe('Bill name (e.g., "Netflix", "Electric")'),
         amount: z.number().optional().describe('Monthly amount'),
@@ -390,7 +383,7 @@ This helps Maya understand patterns and support the user.`,
     }),
 
     rememberSavingsGoal: llm.tool({
-      description: `Remember a savings goal.`,
+      description: getToolDescription('rememberSavingsGoal'),
       parameters: z.object({
         name: z.string().describe('Goal name (e.g., "Emergency Fund", "Vacation")'),
         targetAmount: z.number().optional().describe('Target amount'),
@@ -422,7 +415,7 @@ This helps Maya understand patterns and support the user.`,
     }),
 
     whatDoYouKnowAboutMyMoney: llm.tool({
-      description: `Recall what Maya knows about the user's spending patterns.`,
+      description: getToolDescription('whatDoYouKnowAboutMyMoney'),
       parameters: z.object({
         type: z.enum(['all', 'merchants', 'bills', 'triggers', 'goals']).default('all'),
       }),
@@ -479,7 +472,7 @@ This helps Maya understand patterns and support the user.`,
 export function createJordanMemoryTools() {
   return {
     rememberImportantDate: llm.tool({
-      description: `Remember an important date (birthday, anniversary, etc.)`,
+      description: getToolDescription('rememberImportantDate'),
       parameters: z.object({
         name: z.string().describe('What is it? (e.g., "Mom\'s Birthday", "Our Anniversary")'),
         date: z.string().describe('The date (e.g., "June 15", "March 3rd")'),
@@ -500,7 +493,7 @@ export function createJordanMemoryTools() {
     }),
 
     rememberVenue: llm.tool({
-      description: `Remember a venue the user likes or has used.`,
+      description: getToolDescription('rememberVenue'),
       parameters: z.object({
         name: z.string().describe('Venue name'),
         location: z.string().optional().describe('Location/address'),
@@ -525,7 +518,7 @@ export function createJordanMemoryTools() {
     }),
 
     rememberDreamDestination: llm.tool({
-      description: `Remember a dream destination or travel wish.`,
+      description: getToolDescription('rememberDreamDestination'),
       parameters: z.object({
         destination: z.string().describe('Where they want to go'),
         notes: z.string().optional().describe('What they want to do/see there'),
@@ -540,7 +533,7 @@ export function createJordanMemoryTools() {
     }),
 
     showImportantDates: llm.tool({
-      description: `Show all important dates Jordan is tracking.`,
+      description: getToolDescription('showImportantDates'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userId = getUserId({ ctx });
@@ -566,7 +559,7 @@ export function createJordanMemoryTools() {
     }),
 
     whatDoYouKnowAboutMyEvents: llm.tool({
-      description: `Recall what Jordan knows about user's event preferences.`,
+      description: getToolDescription('whatDoYouKnowAboutMyEvents'),
       parameters: z.object({
         type: z.enum(['all', 'dates', 'venues', 'destinations']).default('all'),
       }),
@@ -619,8 +612,7 @@ export function createJordanMemoryTools() {
 export function createAlexMemoryTools() {
   return {
     rememberCommunicationPreference: llm.tool({
-      description: `Remember a user's communication preference.
-Alex tracks how people like to be contacted and communicated with.`,
+      description: getToolDescription('rememberCommunicationPreference'),
       parameters: z.object({
         preference: z
           .string()
@@ -646,8 +638,7 @@ Alex tracks how people like to be contacted and communicated with.`,
     }),
 
     rememberSchedulingNote: llm.tool({
-      description: `Remember a scheduling preference or note.
-Alex tracks when people are available and their scheduling quirks.`,
+      description: getToolDescription('rememberSchedulingNote'),
       parameters: z.object({
         note: z
           .string()
@@ -671,7 +662,7 @@ Alex tracks when people are available and their scheduling quirks.`,
     }),
 
     whatDoYouKnowAboutMyCommunication: llm.tool({
-      description: `Recall what Alex knows about user's communication preferences.`,
+      description: getToolDescription('whatDoYouKnowAboutMyCommunication'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userId = getUserId({ ctx });
@@ -706,8 +697,7 @@ const logger = createLogger({ module: 'MemoryTools' });
 export function createMemoryManagementTools() {
   return {
     forgetThisAboutMe: llm.tool({
-      description: `Delete/forget a specific memory. Use when user wants to remove something you remember about them.
-Examples: "Forget that I like Target", "Delete my savings goal", "Remove that from my watchlist"`,
+      description: getToolDescription('forgetThisAboutMe'),
       parameters: z.object({
         searchTerm: z.string().describe('What to search for and forget'),
         persona: z
@@ -745,8 +735,7 @@ Examples: "Forget that I like Target", "Delete my savings goal", "Remove that fr
     }),
 
     updateWhatYouKnow: llm.tool({
-      description: `Update an existing memory with new information.
-Examples: "Update my savings goal to $10,000", "Change Netflix to $15.99/month"`,
+      description: getToolDescription('updateWhatYouKnow'),
       parameters: z.object({
         searchTerm: z.string().describe('What memory to update'),
         persona: z
@@ -788,8 +777,7 @@ Examples: "Update my savings goal to $10,000", "Change Netflix to $15.99/month"`
     }),
 
     showAllPeterKnowledge: llm.tool({
-      description: `Show all Peter's knowledge about companies and stocks the user knows.
-Use when user asks about their full stock/company knowledge base.`,
+      description: getToolDescription('showAllPeterKnowledge'),
       parameters: z.object({
         type: z.enum(['all', 'watchlist', 'company', 'ten_bagger']).default('all'),
       }),

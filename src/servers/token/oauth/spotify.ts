@@ -1,11 +1,16 @@
 /**
  * Spotify OAuth management
+ *
+ * STORAGE: Uses Firestore for persistence (Cloud Run compatible).
+ * Tokens are encrypted before storage for security.
  */
 
-import fs from 'fs';
-import path from 'path';
 import type { OAuthTokens } from '../../shared/types.js';
 import { encryptData, decryptData } from '../../shared/encryption.js';
+import { createPersistenceStore } from '../../../services/persistence/index.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'SpotifyOAuth' });
 
 // Configuration
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
@@ -13,9 +18,6 @@ const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 const SPOTIFY_REDIRECT_URI =
   process.env.SPOTIFY_REDIRECT_URI ||
   `http://localhost:${process.env.TOKEN_SERVER_PORT || 3001}/spotify/callback`;
-
-// Storage file
-const SPOTIFY_USERS_FILE = path.join(process.cwd(), '.spotify-users.json');
 
 /**
  * Spotify OAuth token response
@@ -25,6 +27,14 @@ interface SpotifyTokenResponse {
   refresh_token?: string;
   expires_in: number;
   scope?: string;
+}
+
+/**
+ * Encrypted token data stored in Firestore
+ */
+interface EncryptedTokenData {
+  encrypted: string;
+  updated_at: number;
 }
 
 // Required scopes for Spotify integration
@@ -38,6 +48,18 @@ export const SPOTIFY_SCOPES = [
   'playlist-read-private',
   'playlist-read-collaborative',
 ];
+
+// Firestore-backed persistence store for encrypted tokens
+// Uses per-user storage under bogle_users/{userId}/spotify_oauth_tokens/data
+const tokenStore = createPersistenceStore<EncryptedTokenData>({
+  collection: 'spotify_oauth_tokens',
+  documentId: 'data',
+  useRootCollection: false, // Per-user storage
+  syncIntervalMs: 2000,
+});
+
+// In-memory cache for decrypted tokens (fast access)
+const tokenCache = new Map<string, OAuthTokens>();
 
 /**
  * Check if Spotify is configured
@@ -62,66 +84,83 @@ export function getConfig(): {
 }
 
 /**
- * Load all Spotify user tokens from storage
+ * Get tokens for a specific device (from cache or Firestore)
  */
-function loadSpotifyUsers(): Record<string, OAuthTokens> {
+export async function getTokens(deviceId: string): Promise<OAuthTokens | null> {
+  // Check cache first
+  const cached = tokenCache.get(deviceId);
+  if (cached) {
+    return cached;
+  }
+
   try {
-    if (fs.existsSync(SPOTIFY_USERS_FILE)) {
-      const content = fs.readFileSync(SPOTIFY_USERS_FILE, 'utf8');
-      return decryptData<Record<string, OAuthTokens>>(content) || {};
+    const data = await tokenStore.get(deviceId);
+    if (data?.encrypted) {
+      const decrypted = decryptData<OAuthTokens>(data.encrypted);
+      if (decrypted) {
+        tokenCache.set(deviceId, decrypted);
+        return decrypted;
+      }
     }
-  } catch {
-    console.error('Error loading Spotify users');
+  } catch (err) {
+    log.error(
+      { error: (err as Error).message, deviceId: deviceId.substring(0, 8) },
+      'Error loading Spotify tokens'
+    );
   }
-  return {};
+  return null;
 }
 
 /**
- * Save all Spotify user tokens to storage
+ * Save tokens for a specific device (encrypted)
  */
-function saveSpotifyUsers(users: Record<string, OAuthTokens>): void {
-  try {
-    const encrypted = encryptData(users);
-    fs.writeFileSync(SPOTIFY_USERS_FILE, encrypted);
-  } catch {
-    console.error('Error saving Spotify users');
-  }
-}
-
-/**
- * Get tokens for a specific device
- */
-export function getTokens(deviceId: string): OAuthTokens | null {
-  const users = loadSpotifyUsers();
-  return users[deviceId] || null;
-}
-
-/**
- * Save tokens for a specific device
- */
-export function saveTokens(deviceId: string, tokens: OAuthTokens): void {
-  const users = loadSpotifyUsers();
-  users[deviceId] = {
+export async function saveTokens(deviceId: string, tokens: OAuthTokens): Promise<void> {
+  const tokensWithTimestamp = {
     ...tokens,
     updated_at: Date.now(),
   };
-  saveSpotifyUsers(users);
+
+  // Update cache
+  tokenCache.set(deviceId, tokensWithTimestamp);
+
+  // Encrypt and persist
+  try {
+    const encrypted = encryptData(tokensWithTimestamp);
+    await tokenStore.setImmediate(deviceId, {
+      encrypted,
+      updated_at: Date.now(),
+    });
+    log.info({ deviceId: deviceId.substring(0, 8) }, 'Saved Spotify OAuth tokens');
+  } catch (err) {
+    log.error(
+      { error: (err as Error).message, deviceId: deviceId.substring(0, 8) },
+      'Error saving Spotify tokens'
+    );
+  }
 }
 
 /**
  * Remove tokens for a specific device
  */
-export function removeTokens(deviceId: string): void {
-  const users = loadSpotifyUsers();
-  delete users[deviceId];
-  saveSpotifyUsers(users);
+export async function removeTokens(deviceId: string): Promise<void> {
+  tokenCache.delete(deviceId);
+
+  try {
+    await tokenStore.delete(deviceId);
+    log.info({ deviceId: deviceId.substring(0, 8) }, 'Removed Spotify OAuth tokens');
+  } catch (err) {
+    log.error(
+      { error: (err as Error).message, deviceId: deviceId.substring(0, 8) },
+      'Error removing Spotify tokens'
+    );
+  }
 }
 
 /**
  * Refresh access token using refresh token
  */
 export async function refreshToken(deviceId: string): Promise<OAuthTokens | null> {
-  const userTokens = getTokens(deviceId);
+  const userTokens = await getTokens(deviceId);
   if (!userTokens?.refresh_token) {
     return null;
   }
@@ -142,7 +181,10 @@ export async function refreshToken(deviceId: string): Promise<OAuthTokens | null
     });
 
     if (!response.ok) {
-      console.error('Spotify token refresh failed');
+      log.error(
+        { status: response.status, deviceId: deviceId.substring(0, 8) },
+        'Spotify token refresh failed'
+      );
       return null;
     }
 
@@ -154,10 +196,14 @@ export async function refreshToken(deviceId: string): Promise<OAuthTokens | null
       scope: data.scope || userTokens.scope,
     };
 
-    saveTokens(deviceId, newTokens);
+    await saveTokens(deviceId, newTokens);
+    log.info({ deviceId: deviceId.substring(0, 8) }, 'Spotify token refreshed');
     return newTokens;
-  } catch {
-    console.error('Error refreshing Spotify token');
+  } catch (err) {
+    log.error(
+      { error: (err as Error).message, deviceId: deviceId.substring(0, 8) },
+      'Error refreshing Spotify token'
+    );
     return null;
   }
 }
@@ -166,7 +212,7 @@ export async function refreshToken(deviceId: string): Promise<OAuthTokens | null
  * Get valid access token for a user (refresh if needed)
  */
 export async function getValidToken(deviceId: string): Promise<string | null> {
-  const userTokens = getTokens(deviceId);
+  const userTokens = await getTokens(deviceId);
   if (!userTokens) {
     return null;
   }
@@ -202,7 +248,7 @@ export async function exchangeCode(code: string): Promise<OAuthTokens | null> {
     });
 
     if (!response.ok) {
-      console.error('Spotify token exchange failed');
+      log.error({ status: response.status }, 'Spotify token exchange failed');
       return null;
     }
 
@@ -213,8 +259,8 @@ export async function exchangeCode(code: string): Promise<OAuthTokens | null> {
       expires_at: Date.now() + data.expires_in * 1000,
       scope: data.scope,
     };
-  } catch {
-    console.error('Error exchanging Spotify code');
+  } catch (err) {
+    log.error({ error: (err as Error).message }, 'Error exchanging Spotify code');
     return null;
   }
 }
@@ -231,4 +277,13 @@ export function buildAuthUrl(state: string): string {
   url.searchParams.set('state', state);
   url.searchParams.set('show_dialog', 'true');
   return url.toString();
+}
+
+/**
+ * Shutdown Spotify OAuth service
+ */
+export async function shutdown(): Promise<void> {
+  await tokenStore.shutdown();
+  tokenCache.clear();
+  log.info('Spotify OAuth service shutdown complete');
 }

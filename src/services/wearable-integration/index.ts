@@ -1,7 +1,7 @@
 /**
  * Wearable Integration Service
  *
- * Foundation for integrating health and fitness data from wearables:
+ * Foundation for integrating data from wearable devices:
  * - Apple Watch / HealthKit
  * - Fitbit
  * - Garmin

@@ -15,6 +15,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { IntelligentTask } from './intelligent-task.js';
 
+import { getToolDescription } from '../tools/utils/tool-descriptions.js';
 // ============================================================================
 // INVESTMENT WISDOM TASK
 // ============================================================================
@@ -79,7 +80,7 @@ export class InvestmentWisdomTask extends IntelligentTask<InvestmentWisdomResult
       },
       tools: {
         shareWisdom: llm.tool({
-          description: 'Share a piece of investment wisdom.',
+          description: getToolDescription('shareWisdom'),
           parameters: z.object({
             wisdom: z.string().describe('The wisdom to share'),
             example: z.string().optional().describe('A concrete example'),
@@ -94,7 +95,7 @@ export class InvestmentWisdomTask extends IntelligentTask<InvestmentWisdomResult
         }),
 
         illustrateWithMath: llm.tool({
-          description: 'Use numbers to make the point concrete.',
+          description: getToolDescription('illustrateWithMath'),
           parameters: z.object({
             scenario: z.string().describe('The scenario to illustrate'),
             numbers: z.string().describe('The mathematical illustration'),
@@ -105,7 +106,7 @@ export class InvestmentWisdomTask extends IntelligentTask<InvestmentWisdomResult
         }),
 
         connectToTheirSituation: llm.tool({
-          description: 'Connect the wisdom to their specific situation.',
+          description: getToolDescription('connectToTheirSituation'),
           parameters: z.object({
             connection: z.string().describe('How this applies to them'),
           }),
@@ -115,7 +116,7 @@ export class InvestmentWisdomTask extends IntelligentTask<InvestmentWisdomResult
         }),
 
         concludeWisdom: llm.tool({
-          description: 'Conclude the wisdom sharing.',
+          description: getToolDescription('concludeWisdom'),
           parameters: z.object({
             principle: z.string().describe('The principle shared'),
             wisdomShared: z.string().describe('Summary of what was shared'),
@@ -196,7 +197,7 @@ export class MarketPanicTask extends IntelligentTask<MarketPanicResult> {
       },
       tools: {
         validateFear: llm.tool({
-          description: 'Validate their fear without dismissing it.',
+          description: getToolDescription('validateFear'),
           parameters: z.object({
             validation: z.string().describe('Your validation of their fear'),
           }),
@@ -206,7 +207,7 @@ export class MarketPanicTask extends IntelligentTask<MarketPanicResult> {
         }),
 
         provideContext: llm.tool({
-          description: 'Provide historical market context.',
+          description: getToolDescription('provideContext'),
           parameters: z.object({
             context: z.string().describe('Historical context to share'),
             crashMentioned: z.string().optional().describe('Which crash you referenced'),
@@ -218,7 +219,7 @@ export class MarketPanicTask extends IntelligentTask<MarketPanicResult> {
         }),
 
         slowThemDown: llm.tool({
-          description: 'Encourage them to slow down and not act impulsively.',
+          description: getToolDescription('slowThemDown'),
           parameters: z.object({
             message: z.string().describe('Your slowing-down message'),
             suggestWaiting: z.boolean().describe('Did you suggest waiting before acting?'),
@@ -229,7 +230,7 @@ export class MarketPanicTask extends IntelligentTask<MarketPanicResult> {
         }),
 
         completeMarketPanic: llm.tool({
-          description: 'Complete the market panic task.',
+          description: getToolDescription('completeMarketPanic'),
           parameters: z.object({
             panicLevel: z.enum(['low', 'medium', 'high', 'crisis']),
             calmingProvided: z.boolean(),
@@ -303,7 +304,7 @@ export class RebalancingTask extends IntelligentTask<RebalancingResult> {
       },
       tools: {
         assessCurrentMix: llm.tool({
-          description: 'Assess their current portfolio mix.',
+          description: getToolDescription('assessCurrentMix'),
           parameters: z.object({
             stockPercent: z.number().optional().describe('Current stock percentage'),
             bondPercent: z.number().optional().describe('Current bond percentage'),
@@ -316,7 +317,7 @@ export class RebalancingTask extends IntelligentTask<RebalancingResult> {
         }),
 
         suggestAllocation: llm.tool({
-          description: 'Suggest an allocation based on their situation.',
+          description: getToolDescription('suggestAllocation'),
           parameters: z.object({
             suggestion: z.string().describe('Your allocation suggestion'),
             rationale: z.string().describe('Why this makes sense for them'),
@@ -327,7 +328,7 @@ export class RebalancingTask extends IntelligentTask<RebalancingResult> {
         }),
 
         concludeRebalancing: llm.tool({
-          description: 'Conclude rebalancing discussion.',
+          description: getToolDescription('concludeRebalancing'),
           parameters: z.object({
             currentAllocation: z.string().optional().describe('Their current allocation'),
             recommendedAllocation: z.string().optional().describe('Recommended allocation'),
@@ -400,7 +401,7 @@ export class FinancialGoalTask extends IntelligentTask<FinancialGoalResult> {
       },
       tools: {
         exploreLifeGoal: llm.tool({
-          description: 'Explore the life goal behind the financial goal.',
+          description: getToolDescription('exploreLifeGoal'),
           parameters: z.object({
             question: z.string().describe('Question about what they really want'),
           }),
@@ -410,7 +411,7 @@ export class FinancialGoalTask extends IntelligentTask<FinancialGoalResult> {
         }),
 
         recordGoal: llm.tool({
-          description: "Record a financial goal they've articulated.",
+          description: getToolDescription('recordFinancialGoal'),
           parameters: z.object({
             name: z.string().describe('Name of the goal'),
             type: z.enum(['short_term', 'medium_term', 'long_term']).describe('Time horizon'),
@@ -438,7 +439,7 @@ export class FinancialGoalTask extends IntelligentTask<FinancialGoalResult> {
         }),
 
         prioritizeGoals: llm.tool({
-          description: 'Help them prioritize multiple goals.',
+          description: getToolDescription('recordGoal'),
           parameters: z.object({
             prioritization: z.string().describe('Your guidance on prioritization'),
           }),
@@ -448,7 +449,7 @@ export class FinancialGoalTask extends IntelligentTask<FinancialGoalResult> {
         }),
 
         realityCheck: llm.tool({
-          description: 'Provide a reality check on their goals.',
+          description: getToolDescription('prioritizeGoals'),
           parameters: z.object({
             assessment: z.string().describe('Your honest assessment'),
             adjustment: z.string().optional().describe('Suggested adjustment'),
@@ -461,7 +462,7 @@ export class FinancialGoalTask extends IntelligentTask<FinancialGoalResult> {
         }),
 
         concludeFinancialGoals: llm.tool({
-          description: 'Conclude the financial goal setting session.',
+          description: getToolDescription('realityCheck'),
           parameters: z.object({
             clarityAchieved: z.boolean().describe('Do they have clear goals now?'),
             nextStepsDefined: z.boolean().describe('Do they know what to do next?'),
@@ -530,7 +531,7 @@ export class MarketFearTask extends IntelligentTask<MarketFearResult> {
       },
       tools: {
         acknowledgeFear: llm.tool({
-          description: 'Acknowledge and validate their fear.',
+          description: getToolDescription('concludeFinancialGoals'),
           parameters: z.object({
             acknowledgment: z.string().describe('Your validation of their fear'),
           }),
@@ -540,7 +541,7 @@ export class MarketFearTask extends IntelligentTask<MarketFearResult> {
         }),
 
         providePerspective: llm.tool({
-          description: 'Provide historical or experiential perspective.',
+          description: getToolDescription('acknowledgeFear'),
           parameters: z.object({
             perspective: z.string().describe('The perspective to share'),
             source: z
@@ -559,7 +560,7 @@ export class MarketFearTask extends IntelligentTask<MarketFearResult> {
         }),
 
         focusOnControl: llm.tool({
-          description: 'Focus on what they can control.',
+          description: getToolDescription('providePerspective'),
           parameters: z.object({
             controllables: z.array(z.string()).describe('Things they can control'),
           }),
@@ -569,7 +570,7 @@ export class MarketFearTask extends IntelligentTask<MarketFearResult> {
         }),
 
         suggestAction: llm.tool({
-          description: 'Suggest a small action to restore agency.',
+          description: getToolDescription('focusOnControl'),
           parameters: z.object({
             action: z.string().describe('A small, concrete action'),
             rationale: z.string().describe('Why this helps'),
@@ -580,7 +581,7 @@ export class MarketFearTask extends IntelligentTask<MarketFearResult> {
         }),
 
         concludeMarketFear: llm.tool({
-          description: 'Conclude addressing the fear.',
+          description: getToolDescription('suggestAction'),
           parameters: z.object({
             fearAddressed: z.boolean().describe('Whether the fear was addressed'),
             perspectiveGiven: z.boolean().describe('Whether perspective was provided'),

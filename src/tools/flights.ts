@@ -15,6 +15,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../utils/safe-logger.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
@@ -444,13 +445,7 @@ export function getAirportInfo(code: string): string {
 export function createFlightTools() {
   return {
     getFlightStatus: llm.tool({
-      description: `Get real-time status of a flight. Use when someone asks:
-- "What's the status of AA 123?"
-- "Is United 456 on time?"
-- "Where is my flight?"
-- "Has Delta 789 landed?"
-
-Provide the flight number (like AA123, UA456, DL789). Works for most major airlines.`,
+      description: getToolDescription('getFlightStatus'),
       parameters: z.object({
         flightNumber: z.string().describe('Flight number (e.g., "AA123", "United 456", "DL789")'),
       }),
@@ -460,7 +455,7 @@ Provide the flight number (like AA123, UA456, DL789). Works for most major airli
     }),
 
     getAirportInfo: llm.tool({
-      description: `Get information about an airport. Use when someone asks about airport amenities, current time at airport, or needs airport details.`,
+      description: getToolDescription('getAirportInfo'),
       parameters: z.object({
         airportCode: z.string().describe('Three-letter airport code (e.g., "JFK", "LAX", "LHR")'),
       }),

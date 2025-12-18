@@ -474,20 +474,241 @@ export function getTeamChemistryConfig(): TeamChemistryConfig {
 }
 
 /**
+ * Context for determining if a team reference is relevant
+ */
+export interface TeamReferenceContext {
+  currentTopic?: string;
+  currentMessage?: string;
+  mentionedTeammate?: string;
+  hasEmotionalMoment?: boolean;
+  isHandoffCandidate?: boolean;
+  sessionNumber: number;
+  lastTeamReferenceSession: number;
+}
+
+/**
+ * Topic keywords that suggest relevance for each team member
+ */
+const TOPIC_RELEVANCE: Record<string, string[]> = {
+  'peter-john': [
+    'research',
+    'numbers',
+    'data',
+    'statistics',
+    'analysis',
+    'market',
+    'invest',
+    'fund',
+    'stock',
+    'portfolio',
+    'benchmark',
+    'risk',
+    'return',
+    'historical',
+    'trend',
+    'compound',
+    'index',
+    'diversif',
+  ],
+  'maya-santos': [
+    'habit',
+    'routine',
+    'daily',
+    'morning',
+    'evening',
+    'schedule',
+    'consistency',
+    'sleep',
+    'exercise',
+    'meditation',
+    'mindful',
+    'wellness',
+    'self-care',
+    'small step',
+    'track',
+    'streak',
+  ],
+  'alex-chen': [
+    'organize',
+    'calendar',
+    'email',
+    'meeting',
+    'task',
+    'todo',
+    'list',
+    'system',
+    'workflow',
+    'productiv',
+    'efficienc',
+    'automate',
+    'schedule',
+    'deadline',
+    'project',
+    'manage',
+  ],
+  'jordan-taylor': [
+    'event',
+    'party',
+    'celebrat',
+    'birthda',
+    'anniversar',
+    'wedding',
+    'gather',
+    'plan',
+    'guest',
+    'venue',
+    'catering',
+    'travel',
+    'trip',
+    'vacation',
+    'occasion',
+  ],
+  'nayan-patel': [
+    'meaning',
+    'purpose',
+    'existence',
+    'philosophy',
+    'wisdom',
+    'life',
+    'death',
+    'spiritual',
+    'soul',
+    'legacy',
+    'contemplat',
+    'existential',
+    'mortality',
+    'deeper',
+    'why',
+  ],
+};
+
+/**
+ * Check if the current context is relevant for mentioning a team member
+ */
+export function isTeamReferenceRelevant(
+  aboutPersona: string,
+  context: TeamReferenceContext
+): { relevant: boolean; reason?: string } {
+  const {
+    currentTopic,
+    currentMessage,
+    mentionedTeammate,
+    hasEmotionalMoment,
+    isHandoffCandidate,
+  } = context;
+
+  // Explicit mention by user is highly relevant
+  if (mentionedTeammate && mentionedTeammate === aboutPersona) {
+    return { relevant: true, reason: 'User mentioned this team member' };
+  }
+
+  // Handoff candidate - definitely mention
+  if (isHandoffCandidate) {
+    return { relevant: true, reason: 'Handoff candidate for topic' };
+  }
+
+  // Check topic relevance
+  const keywords = TOPIC_RELEVANCE[aboutPersona];
+  if (keywords && (currentTopic || currentMessage)) {
+    const searchText = `${currentTopic || ''} ${currentMessage || ''}`.toLowerCase();
+    for (const keyword of keywords) {
+      if (searchText.includes(keyword.toLowerCase())) {
+        return { relevant: true, reason: `Topic matches ${aboutPersona}'s expertise: ${keyword}` };
+      }
+    }
+  }
+
+  // During emotional moments, don't inject team references (stay present)
+  if (hasEmotionalMoment) {
+    return { relevant: false, reason: 'Emotional moment - stay present' };
+  }
+
+  // Not relevant enough
+  return { relevant: false };
+}
+
+/**
+ * Get the most relevant team member to reference based on context
+ */
+export function getMostRelevantTeamMember(
+  fromPersona: string,
+  context: TeamReferenceContext
+): { persona: string; reason: string } | null {
+  const teamMembers = ['peter-john', 'maya-santos', 'alex-chen', 'jordan-taylor', 'nayan-patel'];
+
+  // Don't reference self
+  const otherMembers = teamMembers.filter((m) => m !== fromPersona);
+
+  for (const member of otherMembers) {
+    const result = isTeamReferenceRelevant(member, context);
+    if (result.relevant) {
+      return { persona: member, reason: result.reason || 'Contextually relevant' };
+    }
+  }
+
+  return null;
+}
+
+/**
  * Should we include a team reference in this response?
+ *
+ * NOW CONTEXT-AWARE! No more random probability.
+ * Team references only happen when contextually relevant.
  */
 export function shouldIncludeTeamReference(
   sessionNumber: number,
   lastTeamReferenceSession: number,
-  config: TeamChemistryConfig = getTeamChemistryConfig()
+  config: TeamChemistryConfig = getTeamChemistryConfig(),
+  context?: TeamReferenceContext
 ): boolean {
   if (sessionNumber < config.teamReferenceMinSessions) return false;
 
   // Don't reference team too often
   if (sessionNumber - lastTeamReferenceSession < 2) return false;
 
-  // Random chance based on frequency
-  return Math.random() < config.teamReferenceFrequency;
+  // If no context provided, use conservative probability as fallback
+  if (!context) {
+    // Much lower fallback probability - prefer context-driven references
+    return Math.random() < config.teamReferenceFrequency * 0.3;
+  }
+
+  // Context-aware: Check if any team member is relevant
+  const relevantMember = getMostRelevantTeamMember('ferni', context);
+  return relevantMember !== null;
+}
+
+/**
+ * Get a contextually appropriate team reference
+ *
+ * Returns the reference phrase and which team member, or null if not appropriate.
+ */
+export function getContextualTeamReference(
+  fromPersona: string,
+  context: TeamReferenceContext,
+  config: TeamChemistryConfig = getTeamChemistryConfig()
+): { phrase: string; aboutPersona: string; reason: string } | null {
+  // Check basic requirements
+  if (context.sessionNumber < config.teamReferenceMinSessions) return null;
+  if (context.sessionNumber - context.lastTeamReferenceSession < 2) return null;
+
+  // Find the most relevant team member
+  const relevant = getMostRelevantTeamMember(fromPersona, context);
+  if (!relevant) return null;
+
+  // Get an admiration reference (more natural than teasing for contextual references)
+  const phrase = getTeamReference(fromPersona, relevant.persona, 'admiration');
+  if (!phrase) return null;
+
+  log.debug(
+    { fromPersona, aboutPersona: relevant.persona, reason: relevant.reason },
+    'Generated contextual team reference'
+  );
+
+  return {
+    phrase,
+    aboutPersona: relevant.persona,
+    reason: relevant.reason,
+  };
 }
 
 export default {
@@ -500,4 +721,7 @@ export default {
   generateHandoffNote,
   getTeamChemistryConfig,
   shouldIncludeTeamReference,
+  isTeamReferenceRelevant,
+  getMostRelevantTeamMember,
+  getContextualTeamReference,
 };

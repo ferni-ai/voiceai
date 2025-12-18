@@ -14,7 +14,6 @@
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
 import { modalCoordinator } from '../services/modal-coordinator.service.js';
-import { addTapListener } from '../utils/ios-touch.js';
 
 // ============================================================================
 // TYPES
@@ -222,9 +221,8 @@ class OnboardingUI {
       </div>
     `;
 
-    // Event listeners (iOS-compatible)
     this.overlay.querySelectorAll('button').forEach((btn) => {
-      addTapListener(btn, () => {
+      btn.addEventListener('click', () => {
         const action = btn.getAttribute('data-action');
         if (action === 'next') this.next();
         else if (action === 'prev') this.prev();

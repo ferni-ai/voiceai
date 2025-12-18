@@ -18,7 +18,6 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet } from '../utils/api.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 
 // ============================================================================
 // TYPES
@@ -132,9 +131,6 @@ class IntegrationsSettingsUI {
 
   hide(): void {
     if (!this.panel) return;
-
-    // Clean up iOS tap listeners
-    cleanupTapListeners(this.panel);
 
     this.panel.classList.remove('integrations-settings--visible');
     this.isVisible = false;
@@ -369,44 +365,44 @@ class IntegrationsSettingsUI {
       </div>
     `;
 
-    // Bind events (iOS-compatible)
-    addTapListener(this.panel.querySelector('.integrations-settings__backdrop'), () => this.hide());
-    addTapListener(this.panel.querySelector('.integrations-settings__close'), () => this.hide());
+    // Bind events
+    this.panel.querySelector('.integrations-settings__backdrop')?.addEventListener('click', () => this.hide());
+    this.panel.querySelector('.integrations-settings__close')?.addEventListener('click', () => this.hide());
 
     // Platform connection buttons
     this.panel.querySelectorAll('[data-action="connect-biometrics"]').forEach(btn => {
-      addTapListener(btn, () => {
+      btn.addEventListener('click', () => {
         const platform = (btn as HTMLElement).dataset.platform || '';
         this.callbacks.onConnectBiometrics?.(platform);
       });
     });
 
     // Other actions
-    addTapListener(this.panel.querySelector('[data-action="disconnect-biometrics"]'), () => {
+    this.panel.querySelector('[data-action="disconnect-biometrics"]')?.addEventListener('click', () => {
       this.callbacks.onDisconnectBiometrics?.();
     });
 
-    addTapListener(this.panel.querySelector('[data-action="connect-calendar"]'), () => {
+    this.panel.querySelector('[data-action="connect-calendar"]')?.addEventListener('click', () => {
       this.callbacks.onConnectCalendar?.();
     });
 
-    addTapListener(this.panel.querySelector('[data-action="disconnect-calendar"]'), () => {
+    this.panel.querySelector('[data-action="disconnect-calendar"]')?.addEventListener('click', () => {
       this.callbacks.onDisconnectCalendar?.();
     });
 
-    addTapListener(this.panel.querySelector('[data-action="connect-banking"]'), () => {
+    this.panel.querySelector('[data-action="connect-banking"]')?.addEventListener('click', () => {
       this.callbacks.onConnectBanking?.();
     });
 
-    addTapListener(this.panel.querySelector('[data-action="disconnect-banking"]'), () => {
+    this.panel.querySelector('[data-action="disconnect-banking"]')?.addEventListener('click', () => {
       this.callbacks.onDisconnectBanking?.();
     });
 
-    addTapListener(this.panel.querySelector('[data-action="view-social-graph"]'), () => {
+    this.panel.querySelector('[data-action="view-social-graph"]')?.addEventListener('click', () => {
       this.callbacks.onViewSocialGraph?.();
     });
 
-    addTapListener(this.panel.querySelector('[data-action="clear-social-graph"]'), () => {
+    this.panel.querySelector('[data-action="clear-social-graph"]')?.addEventListener('click', () => {
       if (confirm('Are you sure you want to clear all relationship data? This cannot be undone.')) {
         this.callbacks.onClearSocialGraph?.();
       }

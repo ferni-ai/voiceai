@@ -1,7 +1,7 @@
 # Security Review - OWASP Top 10
 
 **Date:** December 2024
-**Scope:** Ferni Voice AI Platform (frontend-typescript, backend agents, servers)
+**Scope:** Ferni Voice AI Platform (apps/web, backend agents, servers)
 
 ## Summary
 
@@ -127,7 +127,7 @@ res.setHeader('Access-Control-Allow-Origin', '*');
 
 ### npm audit Results
 
-**Frontend (frontend-typescript/):**
+**Frontend (apps/web/):**
 - 6 moderate severity vulnerabilities
 - All in dev dependencies (esbuild, vite toolchain)
 - Not present in production builds
@@ -235,4 +235,4 @@ No significant issues found.
 - `src/agents/shared/health-server.ts` - Health/API endpoints
 - `token-server.js` - Token generation, Spotify OAuth
 - `ui-server.js` - Frontend serving, Plaid integration
-- `frontend-typescript/src/services/*.ts` - Frontend services
+- `apps/web/src/services/*.ts` - Frontend services

@@ -9,7 +9,7 @@
  * DOMAIN: communication
  * TOOLS:
  *   Core: sendMessage (email or SMS), scheduleReminder, scheduleEvent
- *   Coaching: draftMessage, practiceConversation, analyzeMessage, communicationStrategy
+ *   Coaching: draftMessage, rolePlayConversation, analyzeMessage, communicationStrategy
  *   Proactive: proactiveOutreach (save contact, send text/email, schedule reminder, call)
  */
 
@@ -24,10 +24,11 @@ import type { ExternalService, ToolContext, ToolDefinition } from '../../registr
 const STUB_CONTEXT = { ctx: {}, toolCallId: 'internal-routing' } as any;
 
 // Import legacy tool creators
-import { createCommunicationCoachingTools } from '../../communication-coaching.js';
+import { createCommunicationCoachingTools } from './communication-coaching.js';
 import { createCommunicationTools } from '../../communication.js';
 import { proactiveOutreachTools } from '../../proactive-outreach.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // LEGACY TOOL WRAPPER (for tools that don't need routing)
 // ============================================================================
@@ -72,7 +73,7 @@ function getCommunicationToolDefinitions(): ToolDefinition[] {
       requiredServices: ['sendgrid', 'twilio'],
       create: (_ctx: ToolContext) =>
         llm.tool({
-          description: 'Send email or SMS. Channel: "email" or "sms".',
+          description: getToolDescription('sendMessage'),
           parameters: z.object({
             channel: z.enum(['email', 'sms']).describe('Communication channel'),
             to: z.string().describe('Recipient email address or phone number'),
@@ -114,7 +115,7 @@ function getCommunicationToolDefinitions(): ToolDefinition[] {
       tags: ['communication', 'reminder', 'calendar', 'event', 'schedule', 'follow-up'],
       create: (_ctx: ToolContext) =>
         llm.tool({
-          description: 'Schedule reminder or event. Type: "reminder", "event", or "follow-up".',
+          description: getToolDescription('scheduleReminder'),
           parameters: z.object({
             type: z.enum(['reminder', 'event', 'follow-up']).describe('What to schedule'),
             title: z.string().describe('What to be reminded about or event title'),
@@ -177,9 +178,9 @@ function getCoachingToolDefinitions(): ToolDefinition[] {
       { tags: ['coaching', 'draft', 'difficult', 'assertive', 'boundaries'] }
     ),
     wrapLegacyTool(
-      'practiceConversation',
-      'Practice Conversation',
-      "Role-play a difficult conversation before having it. Build confidence by practicing: salary negotiations, difficult feedback, boundary setting, conflict resolution. I'll play the other person.",
+      'rolePlayConversation',
+      'Role-Play Conversation',
+      "Role-play a conversation before having it. Build confidence by practicing: salary negotiations, difficult feedback, boundary setting, conflict resolution. I'll play the other person.",
       legacyTools.practiceConversation,
       { tags: ['coaching', 'practice', 'roleplay', 'confidence'] }
     ),
@@ -192,8 +193,7 @@ function getCoachingToolDefinitions(): ToolDefinition[] {
       tags: ['communication', 'coaching', 'analysis', 'tone', 'review', 'transform'],
       create: (_ctx: ToolContext) =>
         llm.tool({
-          description:
-            'Message analysis. Modes: "review" (feedback on your draft), "incoming" (analyze a message you received), "transform" (rewrite with different tone), "tone_check" (quick tone verification).',
+          description: getToolDescription('analyzeMessage'),
           parameters: z.object({
             mode: z
               .enum(['review', 'incoming', 'transform', 'tone_check'])
@@ -354,5 +354,10 @@ export {
   getCommunicationToolDefinitions,
   getProactiveOutreachToolDefinitions,
 };
+
+// Re-export legacy tool creators for direct use by persona agents
+// NOTE: communication-tools.js is the feature-rich version with real SendGrid/Twilio
+export { createCommunicationTools as createCommunicationSpecialistTools } from './communication-tools.js';
+export { createCommunicationCoachingTools } from './communication-coaching.js';
 
 export default getToolDefinitions;

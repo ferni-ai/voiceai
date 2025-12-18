@@ -18,6 +18,7 @@ import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // HOBBY CATEGORIES
 // ============================================================================
@@ -78,7 +79,7 @@ const trackCreativeProjectDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help track creative projects and their progress.',
+      description: getToolDescription('trackCreativeProject'),
       parameters: z.object({
         action: z.enum(['start', 'update', 'complete', 'review']).describe('What to do'),
         projectName: z.string().describe('Name of the project'),
@@ -150,7 +151,7 @@ const setCreativeGoalDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help set meaningful creative goals.',
+      description: getToolDescription('setCreativeGoal'),
       parameters: z.object({
         goal: z.string().describe('The creative goal'),
         timeframe: z.string().optional().describe('By when'),
@@ -199,7 +200,7 @@ const celebrateCreationDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Celebrate creative work and creation.',
+      description: getToolDescription('celebrateCreation'),
       parameters: z.object({
         creation: z.string().describe('What was created'),
         howItFeels: z.string().optional().describe('How they feel about it'),
@@ -247,7 +248,7 @@ const exploreNewHobbyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user explore and discover new hobbies.',
+      description: getToolDescription('exploreNewHobby'),
       parameters: z.object({
         currentInterests: z.array(z.string()).optional().describe('Current interests'),
         constraints: z.array(z.string()).optional().describe('Constraints (budget, space, time)'),
@@ -299,7 +300,7 @@ const suggestHobbyBasedOnInterestsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Suggest hobbies based on personality and preferences.',
+      description: getToolDescription('suggestHobbyBasedOnInterests'),
       parameters: z.object({
         preferences: z
           .object({
@@ -397,7 +398,7 @@ const navigateCreativeBlockDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help overcome creative blocks and resistance.',
+      description: getToolDescription('navigateCreativeBlock'),
       parameters: z.object({
         blockType: z
           .enum([
@@ -528,7 +529,7 @@ const findInspirationDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help find sources of creative inspiration.',
+      description: getToolDescription('findInspiration'),
       parameters: z.object({
         medium: z.string().optional().describe('Creative medium'),
         mood: z.enum(['energized', 'contemplative', 'playful', 'any']).optional(),
@@ -600,7 +601,7 @@ const buildCreativeHabitDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help build a consistent creative practice.',
+      description: getToolDescription('buildCreativeHabit'),
       parameters: z.object({
         medium: z.string().describe('Creative medium'),
         currentPractice: z.string().optional().describe('Current practice level'),

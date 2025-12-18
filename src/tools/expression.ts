@@ -9,6 +9,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../utils/safe-logger.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // PERSONA EXPRESSIONS - What each agent can express
 // ============================================================================
@@ -140,16 +141,7 @@ export function createExpressionTool() {
 
   return {
     express: llm.tool({
-      description: `Express a meaningful moment visually by morphing the waveform into an emoji shape. 
-Use this sparingly for impactful moments - greetings, achievements, insights, or emotional highlights.
-Available expressions depend on your persona.
-
-Examples of when to use:
-- Greeting a user: "Hello! 👋"
-- User achieves a goal: "Great job! ⭐"
-- Sharing an insight: "Here's a valuable insight 💎"
-- Completing a task: "Done! ✅"
-- Celebrating: "Let's celebrate! 🎉"`,
+      description: getToolDescription('express'),
       parameters: z.object({
         emoji: z.string().describe('The emoji to express (must be from your available set)'),
         meaning: z.string().optional().describe('Optional: what this expression means'),
@@ -194,8 +186,7 @@ Examples of when to use:
 
     // Convenience method: express signature emoji
     expressSignature: llm.tool({
-      description: `Express your signature/default emoji - your visual "calling card".
-Use this for greetings or when you want to show your personality.`,
+      description: getToolDescription('expressSignature'),
       parameters: z.object({
         meaning: z.string().optional().describe('Optional context for the expression'),
       }),

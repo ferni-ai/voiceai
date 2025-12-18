@@ -12,7 +12,6 @@
 
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import { t } from '../i18n/index.js';
 
 // ============================================================================
@@ -120,9 +119,6 @@ class VideoSettingsUI {
   hide(): void {
     if (!this.panel) return;
 
-    // Clean up iOS tap listeners
-    cleanupTapListeners(this.panel);
-
     this.panel.classList.remove('video-settings--visible');
     this.isVisible = false;
     this.callbacks.onClose?.();
@@ -146,8 +142,7 @@ class VideoSettingsUI {
     this.wrapper.className = 'video-settings__wrapper';
     this.panel.appendChild(this.wrapper);
 
-    // iOS-compatible backdrop click
-    addTapListener(this.panel, (e) => {
+    this.panel.addEventListener('click', (e) => {
       if (e.target === this.panel) this.hide();
     });
 
@@ -162,9 +157,9 @@ class VideoSettingsUI {
         config: VideoConfig;
       }>('/api/video/state');
 
-      if (response.success) {
-        this.state = response.state;
-        this.config = response.config;
+      if (response.data?.success) {
+        this.state = response.data.state;
+        this.config = response.data.config;
         this.renderContent();
       } else {
         this.renderError('Unable to load video settings');
@@ -293,46 +288,50 @@ class VideoSettingsUI {
     `;
 
     this.bindCloseButton();
-    addTapListener(this.wrapper?.querySelector('.video-settings__retry'), () => {
+    this.wrapper.querySelector('.video-settings__retry')?.addEventListener('click', () => {
       this.renderLoading();
       this.loadState();
     });
   }
 
   private bindCloseButton(): void {
-    addTapListener(this.wrapper?.querySelector('.video-settings__close'), () => {
+    this.wrapper?.querySelector('.video-settings__close')?.addEventListener('click', () => {
       this.hide();
     });
   }
 
   private bindControls(): void {
-    // Toggle video (iOS-compatible)
-    addTapListener(this.wrapper?.querySelector('[data-action="toggle-video"]'), async () => {
-      if (this.state?.isVideoEnabled) {
-        await apiPost('/api/video/disable', {});
-        this.callbacks.onVideoToggle?.(false);
-      } else {
-        await apiPost('/api/video/enable', {});
-        this.callbacks.onVideoToggle?.(true);
-      }
-      await this.loadState();
-    });
+    // Toggle video
+    this.wrapper
+      ?.querySelector('[data-action="toggle-video"]')
+      ?.addEventListener('click', async () => {
+        if (this.state?.isVideoEnabled) {
+          await apiPost('/api/video/disable', {});
+          this.callbacks.onVideoToggle?.(false);
+        } else {
+          await apiPost('/api/video/enable', {});
+          this.callbacks.onVideoToggle?.(true);
+        }
+        await this.loadState();
+      });
 
     // Toggle screen share
-    addTapListener(this.wrapper?.querySelector('[data-action="toggle-screen"]'), async () => {
-      if (this.state?.isScreenSharing) {
-        await apiPost('/api/video/screen-share/stop', {});
-        this.callbacks.onScreenShareToggle?.(false);
-      } else {
-        await apiPost('/api/video/screen-share/start', {});
-        this.callbacks.onScreenShareToggle?.(true);
-      }
-      await this.loadState();
-    });
+    this.wrapper
+      ?.querySelector('[data-action="toggle-screen"]')
+      ?.addEventListener('click', async () => {
+        if (this.state?.isScreenSharing) {
+          await apiPost('/api/video/screen-share/stop', {});
+          this.callbacks.onScreenShareToggle?.(false);
+        } else {
+          await apiPost('/api/video/screen-share/start', {});
+          this.callbacks.onScreenShareToggle?.(true);
+        }
+        await this.loadState();
+      });
 
     // Mode selection
     this.wrapper?.querySelectorAll('[data-mode]').forEach((btn) => {
-      addTapListener(btn, async () => {
+      btn.addEventListener('click', async () => {
         const mode = (btn as HTMLElement).dataset.mode as VideoMode;
         await apiPost('/api/video/mode', { mode });
         await this.loadState();

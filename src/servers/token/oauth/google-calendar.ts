@@ -1,11 +1,16 @@
 /**
  * Google Calendar OAuth management
+ *
+ * STORAGE: Uses Firestore for persistence (Cloud Run compatible).
+ * Tokens are encrypted before storage for security.
  */
 
-import fs from 'fs';
-import path from 'path';
 import type { OAuthTokens } from '../../shared/types.js';
 import { encryptData, decryptData } from '../../shared/encryption.js';
+import { createPersistenceStore } from '../../../services/persistence/index.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'GoogleCalendarOAuth' });
 
 // Configuration
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID;
@@ -24,14 +29,31 @@ interface GoogleTokenResponse {
   scope?: string;
 }
 
+/**
+ * Encrypted token data stored in Firestore
+ */
+interface EncryptedTokenData {
+  encrypted: string;
+  updated_at: number;
+}
+
 // Required scopes for Google Calendar
 export const GOOGLE_CALENDAR_SCOPES = [
   'https://www.googleapis.com/auth/calendar',
   'https://www.googleapis.com/auth/calendar.events',
 ];
 
-// Storage file
-const GOOGLE_USERS_FILE = path.join(process.cwd(), '.google-calendar-users.json');
+// Firestore-backed persistence store for encrypted tokens
+// Uses per-user storage under bogle_users/{userId}/google_calendar_tokens/data
+const tokenStore = createPersistenceStore<EncryptedTokenData>({
+  collection: 'google_calendar_tokens',
+  documentId: 'data',
+  useRootCollection: false, // Per-user storage
+  syncIntervalMs: 2000,
+});
+
+// In-memory cache for decrypted tokens (fast access)
+const tokenCache = new Map<string, OAuthTokens>();
 
 /**
  * Check if Google Calendar OAuth is configured
@@ -56,66 +78,83 @@ export function getConfig(): {
 }
 
 /**
- * Load all Google Calendar user tokens from storage
+ * Get tokens for a specific user (from cache or Firestore)
  */
-function loadGoogleUsers(): Record<string, OAuthTokens> {
+export async function getTokens(userId: string): Promise<OAuthTokens | null> {
+  // Check cache first
+  const cached = tokenCache.get(userId);
+  if (cached) {
+    return cached;
+  }
+
   try {
-    if (fs.existsSync(GOOGLE_USERS_FILE)) {
-      const content = fs.readFileSync(GOOGLE_USERS_FILE, 'utf8');
-      return decryptData<Record<string, OAuthTokens>>(content) || {};
+    const data = await tokenStore.get(userId);
+    if (data?.encrypted) {
+      const decrypted = decryptData<OAuthTokens>(data.encrypted);
+      if (decrypted) {
+        tokenCache.set(userId, decrypted);
+        return decrypted;
+      }
     }
-  } catch {
-    console.error('Error loading Google Calendar users');
+  } catch (err) {
+    log.error(
+      { error: (err as Error).message, userId: userId.substring(0, 8) },
+      'Error loading Google Calendar tokens'
+    );
   }
-  return {};
+  return null;
 }
 
 /**
- * Save all Google Calendar user tokens to storage
+ * Save tokens for a specific user (encrypted)
  */
-function saveGoogleUsers(users: Record<string, OAuthTokens>): void {
-  try {
-    const encrypted = encryptData(users);
-    fs.writeFileSync(GOOGLE_USERS_FILE, encrypted);
-  } catch {
-    console.error('Error saving Google Calendar users');
-  }
-}
-
-/**
- * Get tokens for a specific user
- */
-export function getTokens(userId: string): OAuthTokens | null {
-  const users = loadGoogleUsers();
-  return users[userId] || null;
-}
-
-/**
- * Save tokens for a specific user
- */
-export function saveTokens(userId: string, tokens: OAuthTokens): void {
-  const users = loadGoogleUsers();
-  users[userId] = {
+export async function saveTokens(userId: string, tokens: OAuthTokens): Promise<void> {
+  const tokensWithTimestamp = {
     ...tokens,
     updated_at: Date.now(),
   };
-  saveGoogleUsers(users);
+
+  // Update cache
+  tokenCache.set(userId, tokensWithTimestamp);
+
+  // Encrypt and persist
+  try {
+    const encrypted = encryptData(tokensWithTimestamp);
+    await tokenStore.setImmediate(userId, {
+      encrypted,
+      updated_at: Date.now(),
+    });
+    log.info({ userId: userId.substring(0, 8) }, 'Saved Google Calendar tokens');
+  } catch (err) {
+    log.error(
+      { error: (err as Error).message, userId: userId.substring(0, 8) },
+      'Error saving Google Calendar tokens'
+    );
+  }
 }
 
 /**
  * Remove tokens for a specific user
  */
-export function removeTokens(userId: string): void {
-  const users = loadGoogleUsers();
-  delete users[userId];
-  saveGoogleUsers(users);
+export async function removeTokens(userId: string): Promise<void> {
+  tokenCache.delete(userId);
+
+  try {
+    await tokenStore.delete(userId);
+    log.info({ userId: userId.substring(0, 8) }, 'Removed Google Calendar tokens');
+  } catch (err) {
+    log.error(
+      { error: (err as Error).message, userId: userId.substring(0, 8) },
+      'Error removing Google Calendar tokens'
+    );
+  }
 }
 
 /**
  * Refresh access token using refresh token
  */
 export async function refreshToken(userId: string): Promise<OAuthTokens | null> {
-  const userTokens = getTokens(userId);
+  const userTokens = await getTokens(userId);
   if (!userTokens?.refresh_token) {
     return null;
   }
@@ -133,7 +172,10 @@ export async function refreshToken(userId: string): Promise<OAuthTokens | null> 
     });
 
     if (!response.ok) {
-      console.error('Google Calendar token refresh failed');
+      log.error(
+        { status: response.status, userId: userId.substring(0, 8) },
+        'Google Calendar token refresh failed'
+      );
       return null;
     }
 
@@ -145,10 +187,14 @@ export async function refreshToken(userId: string): Promise<OAuthTokens | null> 
       scope: data.scope || userTokens.scope,
     };
 
-    saveTokens(userId, newTokens);
+    await saveTokens(userId, newTokens);
+    log.info({ userId: userId.substring(0, 8) }, 'Google Calendar token refreshed');
     return newTokens;
-  } catch {
-    console.error('Error refreshing Google Calendar token');
+  } catch (err) {
+    log.error(
+      { error: (err as Error).message, userId: userId.substring(0, 8) },
+      'Error refreshing Google Calendar token'
+    );
     return null;
   }
 }
@@ -157,7 +203,7 @@ export async function refreshToken(userId: string): Promise<OAuthTokens | null> 
  * Get valid access token for a user (refresh if needed)
  */
 export async function getValidToken(userId: string): Promise<string | null> {
-  const userTokens = getTokens(userId);
+  const userTokens = await getTokens(userId);
   if (!userTokens) {
     return null;
   }
@@ -190,7 +236,7 @@ export async function exchangeCode(code: string): Promise<OAuthTokens | null> {
     });
 
     if (!response.ok) {
-      console.error('Google Calendar token exchange failed');
+      log.error({ status: response.status }, 'Google Calendar token exchange failed');
       return null;
     }
 
@@ -201,8 +247,8 @@ export async function exchangeCode(code: string): Promise<OAuthTokens | null> {
       expires_at: Date.now() + data.expires_in * 1000,
       scope: data.scope,
     };
-  } catch {
-    console.error('Error exchanging Google Calendar code');
+  } catch (err) {
+    log.error({ error: (err as Error).message }, 'Error exchanging Google Calendar code');
     return null;
   }
 }
@@ -220,4 +266,13 @@ export function buildAuthUrl(state: string): string {
   url.searchParams.set('prompt', 'consent');
   url.searchParams.set('state', state);
   return url.toString();
+}
+
+/**
+ * Shutdown Google Calendar OAuth service
+ */
+export async function shutdown(): Promise<void> {
+  await tokenStore.shutdown();
+  tokenCache.clear();
+  log.info('Google Calendar OAuth service shutdown complete');
 }

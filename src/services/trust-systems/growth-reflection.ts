@@ -412,13 +412,26 @@ export function generateGrowthReflection(
   const profile = growthProfiles.get(userId);
   if (!profile || profile.patterns.length === 0) return null;
 
+  // "Better than Human" - Surface growth reflections more generously
+  // Friends notice growth even when it's early. We should too.
+  //
   // Find a pattern that:
   // 1. Hasn't been reflected back yet
-  // 2. Has high enough confidence
-  // 3. Is relevant to current context (if provided)
-  const eligiblePatterns = profile.patterns.filter(
-    (p) => !p.reflectedBack && p.confidence >= 0.6 && p.timesObserved >= 2
-  );
+  // 2. Has decent confidence (lowered from 0.6 to 0.5)
+  // 3. Has been observed at least once (lowered from 2 to 1 for notable+ growth)
+  const eligiblePatterns = profile.patterns.filter((p) => {
+    if (p.reflectedBack) return false;
+    if (p.confidence < 0.5) return false;
+
+    // For transformative growth, share after just 1 observation
+    if (p.significance === 'transformative' && p.timesObserved >= 1) return true;
+    // For notable growth, share after 1-2 observations
+    if (p.significance === 'notable' && p.timesObserved >= 1) return true;
+    // For subtle growth, still require 2+ observations
+    if (p.timesObserved >= 2) return true;
+
+    return false;
+  });
 
   if (eligiblePatterns.length === 0) return null;
 
@@ -631,24 +644,32 @@ export function isGoodMomentForGrowth(
     return { shouldSurface: false, reason: 'no_growth_data', useEarlyThreshold: false };
   }
 
-  // Check for standard milestone turns
-  const milestoneTurns = [10, 25, 50, 75, 100];
+  // "Better than Human" - Surface growth more generously
+  // Friends notice and reflect back growth. We should too.
+
+  // Check for milestone turns (more frequent now: every 5 turns starting at 5)
+  const earlyMilestones = [5, 10, 15, 20, 25, 30];
+  const laterMilestones = [50, 75, 100];
   if (
-    milestoneTurns.includes(context.turnCount) ||
-    (context.turnCount > 100 && context.turnCount % 50 === 0)
+    earlyMilestones.includes(context.turnCount) ||
+    laterMilestones.includes(context.turnCount) ||
+    (context.turnCount > 100 && context.turnCount % 25 === 0)
   ) {
-    return { shouldSurface: true, reason: 'milestone_turn', useEarlyThreshold: false };
+    // Use early thresholds for earlier turns (more forgiving)
+    const useEarly = context.turnCount <= 30;
+    return { shouldSurface: true, reason: 'milestone_turn', useEarlyThreshold: useEarly };
   }
 
   // First returning session - great time for "I noticed something..."
-  if (context.isReturningSession && context.turnCount <= 5) {
+  if (context.isReturningSession && context.turnCount <= 8) {
     return { shouldSurface: true, reason: 'returning_session', useEarlyThreshold: true };
   }
 
-  // Time-based milestones (1 month, 3 months, 6 months, 1 year)
-  const timeMilestones = [30, 90, 180, 365];
+  // Time-based milestones (more frequent: every 2 weeks for first 2 months)
+  const timeMilestones = [7, 14, 21, 30, 60, 90, 180, 365];
   if (context.daysSinceFirstSession && timeMilestones.includes(context.daysSinceFirstSession)) {
-    return { shouldSurface: true, reason: 'time_milestone', useEarlyThreshold: false };
+    const useEarly = context.daysSinceFirstSession <= 30;
+    return { shouldSurface: true, reason: 'time_milestone', useEarlyThreshold: useEarly };
   }
 
   // Topic-relevant growth - if discussing a topic where they've grown
@@ -668,13 +689,39 @@ export function isGoodMomentForGrowth(
     }
   }
 
-  // High emotional moment related to previous struggles
-  if (context.emotionIntensity && context.emotionIntensity > 0.7) {
+  // Emotional moment related to previous struggles (lowered threshold from 0.7 to 0.6)
+  if (context.emotionIntensity && context.emotionIntensity > 0.6) {
     const hasEmotionalGrowth = profile.patterns.some(
       (p) => !p.reflectedBack && p.type === 'emotional_regulation'
     );
     if (hasEmotionalGrowth) {
       return { shouldSurface: true, reason: 'emotional_moment', useEarlyThreshold: true };
+    }
+  }
+
+  // "Better than Human" - NEW: Check for unreflected transformative growth
+  // If we have transformative growth that hasn't been shared, find a natural moment
+  const hasTransformativeGrowth = profile.patterns.some(
+    (p) => !p.reflectedBack && p.significance === 'transformative' && p.confidence >= 0.5
+  );
+  if (hasTransformativeGrowth && context.turnCount > 3 && context.turnCount % 7 === 0) {
+    return { shouldSurface: true, reason: 'transformative_growth', useEarlyThreshold: true };
+  }
+
+  // "Better than Human" - NEW: Emotion matching (when current emotion matches growth pattern)
+  if (context.currentEmotion) {
+    const emotionMatchingGrowth = profile.patterns.some(
+      (p) =>
+        !p.reflectedBack &&
+        p.before.examples.some(
+          (e) =>
+            e.toLowerCase().includes(context.currentEmotion!.toLowerCase()) ||
+            (context.currentEmotion === 'anxious' && e.toLowerCase().includes('stress')) ||
+            (context.currentEmotion === 'sad' && e.toLowerCase().includes('down'))
+        )
+    );
+    if (emotionMatchingGrowth) {
+      return { shouldSurface: true, reason: 'emotion_matching', useEarlyThreshold: true };
     }
   }
 

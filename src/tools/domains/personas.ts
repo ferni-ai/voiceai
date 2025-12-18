@@ -9,7 +9,7 @@
  */
 
 // Communication tools
-export { createCommunicationTools } from '../communication-tools.js';
+export { createCommunicationTools } from './communication/communication-tools.js';
 
 export {
   createAppointmentTools,
@@ -22,7 +22,7 @@ export {
 export { createFinancialHabitsTools } from '../financial-habits.js';
 
 // Event planning tools
-export { createEventPlanningTools } from '../event-planning.js';
+export { createEventPlanningTools } from './life-planning/event-planning.js';
 
 // Persona memory tools
 export {

@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'TaskPersistence' });
 
@@ -252,12 +253,14 @@ export async function saveTaskRecord(record: TaskRecord): Promise<string> {
     await db
       .collection(COLLECTION_NAME)
       .doc(docId)
-      .set({
-        ...recordWithId,
-        startedAt: record.startedAt.toISOString(),
-        completedAt: record.completedAt?.toISOString(),
-        createdAt: new Date().toISOString(),
-      });
+      .set(
+        removeUndefined({
+          ...recordWithId,
+          startedAt: record.startedAt.toISOString(),
+          completedAt: record.completedAt?.toISOString(),
+          createdAt: new Date().toISOString(),
+        })
+      );
 
     // Add to cache
     addToCache(recordWithId);
@@ -439,11 +442,13 @@ async function generateUserSummary(userId: string): Promise<UserTaskSummary> {
     await db
       .collection(SUMMARIES_COLLECTION)
       .doc(userId)
-      .set({
-        ...summary,
-        lastTaskAt: summary.lastTaskAt?.toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+      .set(
+        removeUndefined({
+          ...summary,
+          lastTaskAt: summary.lastTaskAt?.toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+      );
   } catch (error) {
     log.warn({ error, userId }, 'Failed to save user task summary');
   }

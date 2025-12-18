@@ -527,8 +527,8 @@ Create tests for:
 
 | Component            | File Path                                                        |
 | -------------------- | ---------------------------------------------------------------- |
-| Menu UI              | `frontend-typescript/src/ui/settings-menu.ui.ts`                 |
-| Relationship Service | `frontend-typescript/src/services/relationship-stage.service.ts` |
+| Menu UI              | `apps/web/src/ui/settings-menu.ui.ts`                 |
+| Relationship Service | `apps/web/src/services/relationship-stage.service.ts` |
 | Design Tokens        | `design-system/tokens/*.json`                                    |
 | Brand Guidelines     | `design-system/brand/FERNI-BRAND-GUIDELINES.md`                  |
 | E2E Tests            | `e2e/*.spec.ts`                                                  |

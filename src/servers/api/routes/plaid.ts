@@ -7,6 +7,9 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import * as plaidService from '../services/plaid.js';
 import { rateLimit } from '../../../api/auth-middleware.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'PlaidRoutes' });
 
 /**
  * Handle Plaid routes
@@ -27,7 +30,19 @@ export async function handlePlaidRoutes(
     let body = '';
     req.on('data', (chunk: Buffer) => (body += chunk.toString()));
 
+    // FIX BUG: The previous implementation never called reject() and didn't handle 'error' events.
+    // If the request errored out (client disconnect, etc.), the promise would hang forever.
     return new Promise((resolve) => {
+      // Handle request errors to prevent hanging promises
+      req.on('error', (err) => {
+        log.error({ error: err.message }, 'Request error in Plaid exchange');
+        if (!res.headersSent) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Request error' }));
+        }
+        resolve(true);
+      });
+
       req.on('end', async () => {
         try {
           const { public_token, user_id, institution, accounts } = JSON.parse(body) as {
@@ -61,12 +76,17 @@ export async function handlePlaidRoutes(
             return;
           }
 
-          // Store the access token for this user
-          plaidService.storeToken(user_id, result.accessToken, result.itemId, institution);
+          // Store the access token for this user (async - uses Firestore)
+          await plaidService.storeToken(user_id, result.accessToken, result.itemId, institution);
 
-          console.log(`✅ Plaid account linked for user: ${user_id}`);
-          console.log(`   Institution: ${institution?.name || 'Unknown'}`);
-          console.log(`   Accounts: ${accounts?.length || 0}`);
+          log.info(
+            {
+              userId: user_id,
+              institution: institution?.name || 'Unknown',
+              accounts: accounts?.length || 0,
+            },
+            'Plaid account linked'
+          );
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(
@@ -77,9 +97,11 @@ export async function handlePlaidRoutes(
             })
           );
         } catch (err) {
-          console.error('❌ Plaid exchange error:', err);
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Internal server error' }));
+          log.error({ error: (err as Error).message }, 'Plaid exchange error');
+          if (!res.headersSent) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Internal server error' }));
+          }
         }
         resolve(true);
       });
@@ -97,7 +119,7 @@ export async function handlePlaidRoutes(
       return true;
     }
 
-    const tokenData = plaidService.getToken(user_id);
+    const tokenData = await plaidService.getToken(user_id);
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(

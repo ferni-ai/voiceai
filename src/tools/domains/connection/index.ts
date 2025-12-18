@@ -38,6 +38,7 @@ import {
 import { trackToolUsage, isLifeCoachAnalyticsEnabled } from '../shared/index.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // CONNECTION WISDOM DATABASE
 // ============================================================================
@@ -311,8 +312,7 @@ const acknowledgeLonelinessDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        "When user expresses loneliness, first acknowledge it. Don't rush to fix. Loneliness is not a problem to solve - it's a human experience to be witnessed.",
+      description: getToolDescription('acknowledgeLoneliness'),
       parameters: z.object({
         howLonelyFeels: z.string().describe('What their loneliness feels like'),
         howLong: z.string().optional().describe("How long they've felt this way"),
@@ -381,8 +381,7 @@ const exploreLonelinessTypeDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        "Different types of loneliness need different approaches. Help user identify what they're actually missing.",
+      description: getToolDescription('exploreLonelinessType'),
       parameters: z.object({
         symptoms: z.string().describe('How their loneliness manifests'),
         whatsMissing: z.string().optional().describe('What they feel is missing'),
@@ -434,8 +433,7 @@ const sitWithLonelinessDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'For moments of acute loneliness. Ferni offers presence - not solutions, just companionship.',
+      description: getToolDescription('sitWithLoneliness'),
       parameters: z.object({
         rightNow: z.string().describe("What they're feeling right now"),
         timeOfDay: z.enum(['late-night', 'morning', 'afternoon', 'evening']).optional(),
@@ -502,8 +500,7 @@ const makeAdultFriendsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user understand why adult friendship is hard and how to build it. Making friends after school/college requires different strategies.',
+      description: getToolDescription('makeAdultFriends'),
       parameters: z.object({
         mainBarrier: z
           .enum(['time', 'proximity', 'vulnerability', 'depth', 'energy', 'unsure'])
@@ -586,8 +583,7 @@ const maintainFriendshipsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user maintain existing friendships that are drifting due to life circumstances.',
+      description: getToolDescription('maintainFriendships'),
       parameters: z.object({
         friendshipStatus: z.string().describe('Status of friendships they want to maintain'),
         barrier: z.string().optional().describe("What's getting in the way"),
@@ -649,16 +645,16 @@ const maintainFriendshipsDef: ToolDefinition = {
   },
 };
 
-const deepenFriendshipDef: ToolDefinition = {
-  id: 'deepenFriendship',
-  name: 'Deepen Friendship',
-  description: 'Move from acquaintance to real friend',
+const moveFromAcquaintanceToFriendDef: ToolDefinition = {
+  id: 'moveFromAcquaintanceToFriend',
+  name: 'Move From Acquaintance to Friend',
+  description: 'Move from acquaintance to real friend through vulnerability',
   domain: 'connection',
-  tags: ['connection', 'friendship', 'depth', 'vulnerability'],
+  tags: ['connection', 'friendship', 'depth', 'vulnerability', 'acquaintance'],
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user deepen an existing acquaintanceship into a real friendship.',
+      description: getToolDescription('moveFromAcquaintanceToFriend'),
       parameters: z.object({
         currentState: z.string().describe('Current state of the relationship'),
         whatTheyWant: z.string().describe('What they hope the friendship could become'),
@@ -730,7 +726,7 @@ const recognizeToxicFriendshipDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user recognize when a friendship is draining rather than filling them.',
+      description: getToolDescription('recognizeToxicFriendship'),
       parameters: z.object({
         situation: z.string().describe('The friendship situation'),
         howTheyFeel: z.string().describe('How they feel after time with this person'),
@@ -801,8 +797,7 @@ const findYourPeopleDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user think about where they might find their people - those who share their values, interests, or experiences.',
+      description: getToolDescription('findYourPeople'),
       parameters: z.object({
         whatMatters: z.string().describe('What matters most to them'),
         interests: z.array(z.string()).optional().describe('Their interests'),
@@ -888,8 +883,7 @@ const createBelongingDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        "Sometimes belonging isn't found - it's created. Help user build belonging in their current context.",
+      description: getToolDescription('createBelonging'),
       parameters: z.object({
         currentContext: z.string().describe('Where they currently are (work, neighborhood, etc.)'),
         whatsMissing: z.string().describe('What belonging would feel like'),
@@ -966,7 +960,7 @@ const assessConnectionHealthDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user assess the overall health of their social connections.',
+      description: getToolDescription('assessConnectionHealth'),
       parameters: z.object({
         selfAssessment: z
           .enum(['isolated', 'somewhat-connected', 'well-connected', 'unsure'])
@@ -1032,7 +1026,7 @@ const balanceAloneAndTogetherDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user find their personal balance between alone time and social time.',
+      description: getToolDescription('balanceAloneAndTogether'),
       parameters: z.object({
         currentBalance: z.string().describe('Their current balance'),
         energyPattern: z
@@ -1113,7 +1107,7 @@ const smallActsOfConnectionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Provide small, practical acts of connection the user can do today.',
+      description: getToolDescription('smallActsOfConnection'),
       parameters: z.object({
         timeAvailable: z
           .enum(['2-minutes', '15-minutes', '1-hour', 'more'])
@@ -1206,7 +1200,7 @@ const shareConnectionWisdomDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Share relevant wisdom about connection, loneliness, and belonging.',
+      description: getToolDescription('shareConnectionWisdom'),
       parameters: z.object({
         context: z
           .enum([
@@ -1257,7 +1251,7 @@ const connectionTools: ToolDefinition[] = [
   // Friendship
   makeAdultFriendsDef,
   maintainFriendshipsDef,
-  deepenFriendshipDef,
+  moveFromAcquaintanceToFriendDef,
   recognizeToxicFriendshipDef,
   // Belonging
   findYourPeopleDef,

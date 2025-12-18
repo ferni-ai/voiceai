@@ -94,6 +94,6 @@ gcloud logging read "resource.type=cloud_run_revision AND textPayload:games" --p
 - `src/services/games/*` - All game logic
 - `src/api/routes/games.ts` - API endpoints
 - `src/api/engagement-routes.ts` - Route registration
-- `frontend-typescript/src/ui/game-picker.ui.ts` - Game picker modal
-- `frontend-typescript/src/ui/music-dashboard.ui.ts` - Dashboard
+- `apps/web/src/ui/game-picker.ui.ts` - Game picker modal
+- `apps/web/src/ui/music-dashboard.ui.ts` - Dashboard
 

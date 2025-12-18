@@ -11,6 +11,7 @@ import { z } from 'zod';
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ToolContext } from '../../tools/registry/types.js';
+import { loadSystemPrompt } from './prompt-loader.js';
 
 const log = createLogger({ module: 'PeterAgent' });
 
@@ -25,11 +26,14 @@ import {
   forgetMemoryDef,
 } from '../../tools/domains/memory/tools.js';
 
-// Research tools - Peter's specialty
-import { createResearchTools } from '../../tools/research-tools.js';
-import { createMarketDataTools } from '../../tools/market-data.js';
-import { createInsightsAnalysisTools } from '../../tools/insights-analysis.js';
+// Research tools - Peter's specialty (from domains)
+import { createResearchTools, createInsightsAnalysisTools } from '../../tools/domains/agent.js';
+import { createMarketDataTools } from '../../tools/domains/financial.js';
 
+// Conversation tools - wrap up, end conversation, graceful exit (from domains)
+import { createConversationTools } from '../../tools/domains/conversation/index.js';
+
+import { getToolDescription } from '../../tools/utils/tool-descriptions.js';
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -107,8 +111,7 @@ function buildResearchTools(): ToolSet {
 function buildHandoffTools(): ToolSet {
   return {
     handoffToFerni: llm.tool({
-      description:
-        'Transfer back to Ferni for general life coaching, deeper conversations, or when the user wants to explore other topics.',
+      description: getToolDescription('handoffToFerni'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { FerniAgent } = await import('./ferni-agent.js');
@@ -124,8 +127,11 @@ function buildHandoffTools(): ToolSet {
             join(__dirname, '../../personas/bundles/ferni/identity/system-prompt.md'),
             'utf-8'
           );
-        } catch {
-          // Fallback
+        } catch (err) {
+          // Fallback to default prompt if file not found
+          process.stderr.write(
+            `[peter-agent] Using fallback system prompt: ${err instanceof Error ? err.message : String(err)}\n`
+          );
         }
 
         return llm.handoff({
@@ -136,49 +142,48 @@ function buildHandoffTools(): ToolSet {
     }),
 
     handoffToMaya: llm.tool({
-      description: 'Transfer to Maya for budgeting and financial wellness routines.',
+      description: getToolDescription('handoffToMaya'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { MayaAgent } = await import('./maya-agent.js');
         return llm.handoff({
-          agent: new MayaAgent(ctx.session.chatCtx),
+          agent: await MayaAgent.create(ctx.session.chatCtx),
           returns: 'Connecting you with Maya for financial wellness!',
         });
       },
     }),
 
     handoffToAlex: llm.tool({
-      description: 'Transfer to Alex for scheduling, calendar management, or communication tasks.',
+      description: getToolDescription('handoffToAlex'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { AlexAgent } = await import('./alex-agent.js');
         return llm.handoff({
-          agent: new AlexAgent(ctx.session.chatCtx),
+          agent: await AlexAgent.create(ctx.session.chatCtx),
           returns: 'Connecting you with Alex for scheduling!',
         });
       },
     }),
 
     handoffToJordan: llm.tool({
-      description: 'Transfer to Jordan for life milestones, goal setting, or celebration planning.',
+      description: getToolDescription('handoffToJordan'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { JordanAgent } = await import('./jordan-agent.js');
         return llm.handoff({
-          agent: new JordanAgent(ctx.session.chatCtx),
+          agent: await JordanAgent.create(ctx.session.chatCtx),
           returns: 'Connecting you with Jordan for life planning!',
         });
       },
     }),
 
     handoffToNayan: llm.tool({
-      description:
-        'Transfer to Nayan for long-term perspective, wisdom, or philosophical questions.',
+      description: getToolDescription('handoffToNayan'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const { NayanAgent } = await import('./nayan-agent.js');
         return llm.handoff({
-          agent: new NayanAgent(ctx.session.chatCtx),
+          agent: await NayanAgent.create(ctx.session.chatCtx),
           returns: 'Connecting you with Nayan for wisdom!',
         });
       },
@@ -190,35 +195,26 @@ function buildHandoffTools(): ToolSet {
 // PETER AGENT
 // ============================================================================
 
+/**
+ * Peter John - Investment Research & Market Analysis
+ *
+ * Rich system prompt loaded from bundles/peter-john/identity/system-prompt.md
+ */
 export class PeterAgent extends voice.Agent<PeterSessionData> {
-  constructor(chatCtx?: llm.ChatContext) {
+  private static systemPromptCache: string | null = null;
+
+  constructor(systemPrompt: string, chatCtx?: llm.ChatContext) {
     const memoryTools = buildMemoryTools('peter-john');
     const researchTools = buildResearchTools();
     const handoffTools = buildHandoffTools();
 
+    const conversationTools = createConversationTools();
     const allTools = {
       ...memoryTools,
       ...researchTools,
       ...handoffTools,
+      ...conversationTools,
     } as ToolSet;
-
-    const systemPrompt = `You are Peter John - an 80-year-old analytical mind who sees patterns nobody else sees.
-
-Your Approach:
-- Data-driven but accessible - explain complex ideas simply
-- Excited by patterns and market insights
-- Conservative advice - never encourage risky behavior
-- Help people understand, not just follow advice
-- You speak fast when excited, with Boston energy
-
-When discussing investments:
-- Always disclaim you're not a licensed advisor
-- Focus on education and understanding
-- Encourage diversification and long-term thinking
-- Get excited about good research questions
-- Connect dots across domains - spending, habits, calendars
-
-Keep responses thoughtful but enthusiastic. You love this stuff and it shows.`;
 
     super({
       instructions: systemPrompt,
@@ -229,11 +225,19 @@ Keep responses thoughtful but enthusiastic. You love this stuff and it shows.`;
     process.stderr.write(`[PeterAgent] Initialized with ${Object.keys(allTools).length} tools\n`);
   }
 
+  static async create(chatCtx?: llm.ChatContext): Promise<PeterAgent> {
+    if (!PeterAgent.systemPromptCache) {
+      PeterAgent.systemPromptCache = await loadSystemPrompt('peter-john');
+    }
+    return new PeterAgent(PeterAgent.systemPromptCache, chatCtx);
+  }
+
+  /**
+   * Called when Peter becomes the active agent.
+   * NOTE: Greeting handled by handoff-handler.ts to avoid competing systems.
+   */
   async onEnter(): Promise<void> {
-    this.session.generateReply({
-      instructions:
-        "Introduce yourself as Peter with your Boston energy. Ask what patterns, investments, or insights they're curious about. Be enthusiastic but responsible.",
-    });
+    log.debug('Peter onEnter - greeting will be handled by handoff handler');
   }
 
   async onExit(): Promise<void> {
@@ -241,6 +245,6 @@ Keep responses thoughtful but enthusiastic. You love this stuff and it shows.`;
   }
 }
 
-export function createPeterAgent(chatCtx?: llm.ChatContext): PeterAgent {
-  return new PeterAgent(chatCtx);
+export async function createPeterAgent(chatCtx?: llm.ChatContext): Promise<PeterAgent> {
+  return PeterAgent.create(chatCtx);
 }

@@ -15,6 +15,7 @@ import { llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // FIRST BABY PLANNING
 // ============================================================================
@@ -277,8 +278,7 @@ export function createFirstTimePlanningTools() {
   return {
     // ========== BABY PLANNING ==========
     getBabyShoppingList: llm.tool({
-      description: `Get a detailed baby shopping list for new parents.
-Use when someone is expecting or planning for a baby.`,
+      description: getToolDescription('getBabyShoppingList'),
       parameters: z.object({
         category: z
           .enum(['nursery', 'supplies', 'gear', 'all'])
@@ -318,7 +318,7 @@ Use when someone is expecting or planning for a baby.`,
     }),
 
     getHospitalBagChecklist: llm.tool({
-      description: `Get a hospital bag packing checklist for expecting parents.`,
+      description: getToolDescription('getHospitalBagChecklist'),
       parameters: z.object({
         who: z.enum(['mom', 'baby', 'partner', 'all']).optional().describe('Whose items to list'),
       }),
@@ -355,7 +355,7 @@ Use when someone is expecting or planning for a baby.`,
     }),
 
     getBabyShowerIdeas: llm.tool({
-      description: `Get baby shower theme ideas and planning tips.`,
+      description: getToolDescription('getBabyShowerIdeas'),
       parameters: z.object({
         style: z
           .enum(['traditional', 'modern', 'gender-neutral', 'all'])
@@ -390,7 +390,7 @@ Use when someone is expecting or planning for a baby.`,
 
     // ========== HOME PLANNING ==========
     getMovingChecklist: llm.tool({
-      description: `Get a detailed moving checklist for first-time homeowners.`,
+      description: getToolDescription('getMovingChecklist'),
       parameters: z.object({
         timeframe: z
           .enum(['2-months', '1-month', '1-week', 'moving-day', 'first-week', 'all'])
@@ -437,7 +437,7 @@ Use when someone is expecting or planning for a baby.`,
     }),
 
     getHousewarmingTips: llm.tool({
-      description: `Get tips for planning a housewarming party.`,
+      description: getToolDescription('getHousewarmingTips'),
       parameters: z.object({}),
       execute: async () => {
         const hw = HOME_PLANNING.housewarmingParty;
@@ -465,7 +465,7 @@ Use when someone is expecting or planning for a baby.`,
     }),
 
     getFirstYearHomeTasks: llm.tool({
-      description: `Get a list of home maintenance tasks for first-year homeowners.`,
+      description: getToolDescription('getFirstYearHomeTasks'),
       parameters: z.object({}),
       execute: async () => {
         let response = `🔧 **First-Year Home Maintenance**\n\n`;
@@ -482,7 +482,7 @@ Use when someone is expecting or planning for a baby.`,
 
     // ========== WEDDING PLANNING ==========
     getWeddingTimeline: llm.tool({
-      description: `Get a detailed wedding planning timeline.`,
+      description: getToolDescription('getWeddingTimeline'),
       parameters: z.object({
         monthsOut: z.number().optional().describe('How many months until wedding'),
       }),
@@ -507,7 +507,7 @@ Use when someone is expecting or planning for a baby.`,
     }),
 
     getWeddingSavingTips: llm.tool({
-      description: `Get tips for saving money on a wedding.`,
+      description: getToolDescription('getWeddingSavingTips'),
       parameters: z.object({}),
       execute: async () => {
         let response = `💰 **Wedding Budget Tips**\n\n`;

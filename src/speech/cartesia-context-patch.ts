@@ -185,30 +185,3 @@ export function clearAllContexts(): void {
   activeSessionId = null;
   log.info({ clearedCount: count }, 'All Cartesia session contexts cleared');
 }
-
-// ============================================================================
-// LEGACY COMPATIBILITY
-// ============================================================================
-
-/**
- * Legacy patch function - now a no-op.
- *
- * @deprecated The WebSocket monkeypatch approach has been removed.
- * Context IDs are now managed via getCartesiaContextOptions() and should
- * be passed directly to Cartesia TTS configuration.
- */
-export function patchCartesiaForPersistentContext(): void {
-  log.info(
-    'patchCartesiaForPersistentContext() is deprecated. ' +
-      'Use getCartesiaContextOptions(sessionId) when creating TTS instances.'
-  );
-}
-
-/**
- * Legacy check - always returns false since we no longer patch.
- *
- * @deprecated The WebSocket monkeypatch approach has been removed.
- */
-export function isCartesiaPatched(): boolean {
-  return false;
-}

@@ -10,7 +10,6 @@ import type { TrackInfo } from '../services/spotify.service.js';
 import { spotifyService } from '../services/spotify.service.js';
 import { getElementByIdOrNull, setText, addClass, removeClass, setClasses } from '../utils/dom.js';
 import { getDeviceId } from '../state/app.state.js';
-import { addTapListener } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
@@ -63,9 +62,9 @@ export function initSpotifyUI(): void {
   // Handle URL parameters (after OAuth callback)
   void handleOAuthCallback();
 
-  // Set up link button click handler (iOS-compatible)
+  // Set up link button click handler
   if (linkButton) {
-    addTapListener(linkButton, handleLinkClick);
+    linkButton.addEventListener('click', handleLinkClick);
   }
 }
 

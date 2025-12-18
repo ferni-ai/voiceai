@@ -30,6 +30,7 @@ import {
   isHandoffComplete,
   isHandoffFailed,
   isHandoffMessage,
+  isHandoffProgress,
   isHandoffStarted,
   isSoftOpenComplete,
   isStateReset,
@@ -78,6 +79,12 @@ export type HandoffAcknowledgedCallback = (
 ) => void;
 /** FIX BUG #35: Callback for when handoff is rate limited */
 export type HandoffRateLimitedCallback = (remainingMs: number) => void;
+/** Callback for handoff progress heartbeat */
+export type HandoffProgressCallback = (
+  targetPersona: PersonaId,
+  elapsedMs: number,
+  timeoutMs: number
+) => void;
 /** FIX BUG #32: Callback for when handoff is cancelled */
 export type HandoffCancelledCallback = (targetPersona: PersonaId, reason?: string) => void;
 
@@ -118,6 +125,8 @@ class HandoffService {
   private cancelledCallbacks: Set<HandoffCancelledCallback> = new Set();
   /** WARM HANDOFF: Track soft open complete callbacks for voice-to-visual sync */
   private softOpenCompleteCallbacks: Set<SoftOpenCompleteCallback> = new Set();
+  /** Track progress heartbeat callbacks for UI indicators */
+  private progressCallbacks: Set<HandoffProgressCallback> = new Set();
   private lastHandoffTime: number = 0;
   /**
    * FIX BUG #18 & #21: Use configurable constant synchronized with backend.
@@ -141,6 +150,9 @@ class HandoffService {
 
   /** FIX BUG #38: Track whether sound has played for current handoff to handle recovery */
   private _soundPlayedForCurrentHandoff = false;
+
+  /** FIX: Track if sound failed so UI can show visual fallback */
+  private _soundFailedForCurrentHandoff = false;
 
   /**
    * FIX BUG #55: Per-user rate limiting state
@@ -166,6 +178,12 @@ class HandoffService {
    * Used when soft_open_complete arrives before handoff_started (race condition)
    */
   private _pendingSoftOpenCallback: (() => void) | null = null;
+
+  /** FIX: Timeout ID for pending soft_open_complete callback cleanup */
+  private _pendingSoftOpenTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  /** FIX: Max time to wait for handoff_started after soft_open_complete (ms) */
+  private readonly PENDING_SOFT_OPEN_TIMEOUT_MS = 5000;
 
   /**
    * Check if currently transitioning between agents.
@@ -246,6 +264,15 @@ class HandoffService {
   onSoftOpenComplete(callback: SoftOpenCompleteCallback): () => void {
     this.softOpenCompleteCallbacks.add(callback);
     return () => this.softOpenCompleteCallbacks.delete(callback);
+  }
+
+  /**
+   * Register a callback for handoff progress updates.
+   * Called periodically during handoff to show progress indicator.
+   */
+  onHandoffProgress(callback: HandoffProgressCallback): () => void {
+    this.progressCallbacks.add(callback);
+    return () => this.progressCallbacks.delete(callback);
   }
 
   /**
@@ -376,8 +403,10 @@ class HandoffService {
       }
 
       // WARM HANDOFF: Fire any pending soft_open_complete that arrived before us
+      // FIX: Also clear the timeout since handoff_started arrived
       if (this._pendingSoftOpenCallback) {
         log.info('Executing deferred soft_open_complete callback');
+        this.clearPendingSoftOpenTimeout();
         this._pendingSoftOpenCallback();
         this._pendingSoftOpenCallback = null;
       }
@@ -411,6 +440,24 @@ class HandoffService {
         };
         // Store pending soft open to fire after next handoff_started
         this._pendingSoftOpenCallback = pendingCallback;
+
+        // FIX: Add timeout to clear pending callback if handoff_started never arrives
+        this.clearPendingSoftOpenTimeout();
+        this._pendingSoftOpenTimeoutId = setTimeout(() => {
+          if (this._pendingSoftOpenCallback) {
+            log.warn('Pending soft_open_complete timed out - clearing callback', {
+              timeoutMs: this.PENDING_SOFT_OPEN_TIMEOUT_MS,
+            });
+            this._pendingSoftOpenCallback = null;
+            // Dispatch event for UI to show recovery message
+            document.dispatchEvent(
+              new CustomEvent('ferni:handoff-timeout', {
+                detail: { type: 'soft_open_timeout', targetPersona: toPersona },
+              })
+            );
+          }
+        }, this.PENDING_SOFT_OPEN_TIMEOUT_MS);
+
         return true;
       }
 
@@ -422,6 +469,21 @@ class HandoffService {
           callback(toPersona, fromPersona);
         } catch (error) {
           log.error('Soft open complete callback error:', error);
+        }
+      }
+      return true;
+    } else if (isHandoffProgress(message)) {
+      // Progress heartbeat - notify UI to show progress indicator
+      const elapsedMs = event.elapsedMs ?? 0;
+      const timeoutMs = event.timeoutMs ?? 8000;
+
+      log.debug('Handoff progress:', { toPersona, elapsedMs, timeoutMs });
+
+      for (const callback of this.progressCallbacks) {
+        try {
+          callback(toPersona, elapsedMs, timeoutMs);
+        } catch (error) {
+          log.error('Handoff progress callback error:', error);
         }
       }
       return true;
@@ -444,9 +506,21 @@ class HandoffService {
       });
       this._isTransitioning = false;
       this._targetPersona = null;
+      // FIX: Reset to 'idle' after a brief moment so next handoff can start cleanly
+      // This allows any completion callbacks to see 'complete' state briefly
       this._handoffPhase = 'complete';
-      // FIX BUG #38: Reset sound flag on successful completion
+      // FIX BUG #38: Reset sound flags on successful completion
       this._soundPlayedForCurrentHandoff = false;
+      this._soundFailedForCurrentHandoff = false;
+
+      // FIX: Reset handoff phase to idle after completion processing
+      // Use microtask to ensure callbacks see 'complete' state first
+      queueMicrotask(() => {
+        if (this._handoffPhase === 'complete') {
+          this._handoffPhase = 'idle';
+          log.debug('Handoff phase reset to idle');
+        }
+      });
 
       log.debug('State after complete:', {
         isTransitioning: this._isTransitioning,
@@ -612,6 +686,16 @@ class HandoffService {
     if (this._handoffTimeoutId) {
       clearTimeout(this._handoffTimeoutId);
       this._handoffTimeoutId = null;
+    }
+  }
+
+  /**
+   * FIX: Clear the pending soft open timeout.
+   */
+  private clearPendingSoftOpenTimeout(): void {
+    if (this._pendingSoftOpenTimeoutId) {
+      clearTimeout(this._pendingSoftOpenTimeoutId);
+      this._pendingSoftOpenTimeoutId = null;
     }
   }
 
@@ -859,8 +943,9 @@ class HandoffService {
    * Reset session state (call on disconnect).
    */
   resetSession(): void {
-    // FIX BUG: Clear timeout to prevent stuck states
+    // FIX BUG: Clear timeouts to prevent stuck states
     this.clearHandoffTimeout();
+    this.clearPendingSoftOpenTimeout();
 
     this.metPersonas.clear();
     this.metPersonas.add('ferni');
@@ -873,6 +958,7 @@ class HandoffService {
     this._handoffPhase = 'idle';
     // FIX BUG #38: Reset sound tracking
     this._soundPlayedForCurrentHandoff = false;
+    this._soundFailedForCurrentHandoff = false;
     // WARM HANDOFF: Clear pending soft open callback
     this._pendingSoftOpenCallback = null;
   }
@@ -882,8 +968,9 @@ class HandoffService {
    * Call this when the application is shutting down to prevent memory leaks.
    */
   dispose(): void {
-    // FIX BUG: Clear timeout to prevent stuck states
+    // FIX BUG: Clear timeouts to prevent stuck states
     this.clearHandoffTimeout();
+    this.clearPendingSoftOpenTimeout();
 
     this.callbacks.clear();
     this.startCallbacks.clear();
@@ -893,6 +980,7 @@ class HandoffService {
     this.rateLimitedCallbacks.clear();
     this.cancelledCallbacks.clear(); // FIX BUG #32
     this.softOpenCompleteCallbacks.clear(); // WARM HANDOFF
+    this.progressCallbacks.clear();
     this.metPersonas.clear();
     this._isTransitioning = false;
     this._targetPersona = null;
@@ -904,6 +992,7 @@ class HandoffService {
     this._handoffPhase = 'idle';
     // FIX BUG #38: Clear sound tracking on dispose
     this._soundPlayedForCurrentHandoff = false;
+    this._soundFailedForCurrentHandoff = false;
     // WARM HANDOFF: Clear pending soft open callback
     this._pendingSoftOpenCallback = null;
   }
@@ -1056,6 +1145,7 @@ class HandoffService {
   /**
    * Play the appropriate handoff sound effect and wait with proper timing.
    * Returns a promise that resolves after sound + pause.
+   * FIX: Now dispatches event if sound fails so UI can show visual fallback.
    */
   private async playHandoffSoundWithTiming(
     handoff: NormalizedHandoff,
@@ -1092,8 +1182,29 @@ class HandoffService {
       }
     }
 
-    // Play sound, wait for it to finish, then add the pause
-    await audioService.playHandoffSound(soundToPlay, pauseAfterMs);
+    try {
+      // Play sound, wait for it to finish, then add the pause
+      await audioService.playHandoffSound(soundToPlay, pauseAfterMs);
+    } catch (error) {
+      // FIX: Track that sound failed and dispatch event for UI fallback
+      this._soundFailedForCurrentHandoff = true;
+      log.warn('Handoff sound failed - dispatching visual fallback event:', {
+        sound: soundToPlay,
+        error: String(error),
+      });
+
+      // Dispatch event so UI can show visual indicator instead of sound
+      document.dispatchEvent(
+        new CustomEvent('ferni:sound-fallback', {
+          detail: {
+            type: 'handoff',
+            targetPersona: handoff.toPersona,
+            fromPersona: handoff.fromPersona,
+            isFirstMeeting,
+          },
+        })
+      );
+    }
   }
 }
 

@@ -21,9 +21,10 @@
  *   by_domain/{domainId}
  */
 
-import { getLogger } from '../utils/safe-logger.js';
-import { z } from 'zod';
 import { Firestore, FieldValue, Query, DocumentData } from '@google-cloud/firestore';
+import { z } from 'zod';
+import { removeUndefined } from '../utils/firestore-utils.js';
+import { getLogger } from '../utils/safe-logger.js';
 
 // ============================================================================
 // ZOD SCHEMAS - Data Validation
@@ -183,6 +184,9 @@ class MayaGamificationStore {
   private readonly USERS_COLLECTION = 'users';
   private readonly GAMIFICATION_SUBCOLLECTION = 'maya_gamification';
   private readonly LEADERBOARD_COLLECTION = 'maya_leaderboards';
+
+  /** Firestore batch write limit */
+  private readonly FIRESTORE_BATCH_LIMIT = 500;
 
   // ============================================================================
   // INITIALIZATION
@@ -775,7 +779,7 @@ class MayaGamificationStore {
         .doc('monthly')
         .collection('entries')
         .doc(userId)
-        .set({ ...entry, periodStart: monthStart.toISOString() });
+        .set(removeUndefined({ ...entry, periodStart: monthStart.toISOString() }));
 
       // Update all-time leaderboard
       await this.db
@@ -1036,7 +1040,7 @@ class MayaGamificationStore {
             .doc('badges')
             .collection('items')
             .doc(badge.badgeId)
-            .set({ ...badge, userId });
+            .set(removeUndefined({ ...badge, userId }));
           imported.badges++;
         }
       }
@@ -1050,7 +1054,7 @@ class MayaGamificationStore {
           .doc('challenges')
           .collection('items')
           .doc(challenge.id)
-          .set({ ...challenge, userId });
+          .set(removeUndefined({ ...challenge, userId }));
         imported.challenges++;
       }
 
@@ -1063,7 +1067,7 @@ class MayaGamificationStore {
           .doc('behavior_tools')
           .collection('items')
           .doc(tool.id)
-          .set({ ...tool, userId });
+          .set(removeUndefined({ ...tool, userId }));
         imported.behaviorTools++;
       }
 
@@ -1076,7 +1080,7 @@ class MayaGamificationStore {
           .doc('mood_logs')
           .collection('items')
           .doc(log.id)
-          .set({ ...log, userId });
+          .set(removeUndefined({ ...log, userId }));
         imported.moodLogs++;
       }
 
@@ -1097,38 +1101,47 @@ class MayaGamificationStore {
     }
 
     try {
-      const batch = this.db.batch();
       const userGamificationRef = this.db
         .collection(this.USERS_COLLECTION)
         .doc(userId)
         .collection(this.GAMIFICATION_SUBCOLLECTION);
 
-      // Delete profile
-      batch.delete(userGamificationRef.doc('profile'));
-
-      // Delete from subcollections (Firestore doesn't automatically delete subcollection docs)
+      // Delete from subcollections in batches to respect Firestore's 500-operation limit
       const subcollections = ['badges', 'challenges', 'behavior_tools', 'mood_logs'];
       for (const subcol of subcollections) {
         const snapshot = await userGamificationRef.doc(subcol).collection('items').get();
-        snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+        const docs = snapshot.docs;
+
+        for (let i = 0; i < docs.length; i += this.FIRESTORE_BATCH_LIMIT) {
+          const chunk = docs.slice(i, i + this.FIRESTORE_BATCH_LIMIT);
+          const batch = this.db.batch();
+          chunk.forEach((doc) => batch.delete(doc.ref));
+          await batch.commit();
+        }
       }
 
+      // Delete profile and leaderboard entries (these are few, can be in one batch)
+      const finalBatch = this.db.batch();
+
+      // Delete profile
+      finalBatch.delete(userGamificationRef.doc('profile'));
+
       // Remove from leaderboards
-      batch.delete(
+      finalBatch.delete(
         this.db
           .collection(this.LEADERBOARD_COLLECTION)
           .doc('weekly')
           .collection('entries')
           .doc(userId)
       );
-      batch.delete(
+      finalBatch.delete(
         this.db
           .collection(this.LEADERBOARD_COLLECTION)
           .doc('monthly')
           .collection('entries')
           .doc(userId)
       );
-      batch.delete(
+      finalBatch.delete(
         this.db
           .collection(this.LEADERBOARD_COLLECTION)
           .doc('all_time')
@@ -1136,7 +1149,7 @@ class MayaGamificationStore {
           .doc(userId)
       );
 
-      await batch.commit();
+      await finalBatch.commit();
 
       // Clear cache
       this.profileCache.delete(userId);

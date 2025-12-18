@@ -34,7 +34,7 @@ vi.mock('../../utils/safe-logger.js', () => ({
   })),
 }));
 
-import { createConversationTools } from '../conversation.js';
+import { createConversationTools } from '../domains/conversation/conversation-tools.js';
 
 describe('conversation-tools gracefulExit', () => {
   beforeEach(() => {
@@ -183,4 +183,3 @@ describe('conversation-tools gracefulExit', () => {
     expect(result).toContain('[INTERNAL:');
   });
 });
-

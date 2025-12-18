@@ -19,7 +19,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import type { URL } from 'url';
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
-import { handleCorsPreflightIfNeeded, sendError, sendJSON } from './helpers.js';
+import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
 import { perfInstrumentation } from '../services/performance-instrumentation.js';
 import { getLoadedDomains, isDomainLoaded } from '../tools/index.js';
 
@@ -32,20 +32,7 @@ const BASE_PATH = '/api/performance';
 // UTILITIES
 // ============================================================================
 
-async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk: Buffer | string) => (body += chunk.toString()));
-    req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : {});
-      } catch {
-        resolve({});
-      }
-    });
-    req.on('error', reject);
-  });
-}
+// parseBody imported from './helpers.js'
 
 // ============================================================================
 // ROUTE HANDLER
@@ -168,7 +155,7 @@ export async function handlePerformanceRoutes(
     // UPDATE ALERT CONFIG
     // ========================================================================
     if (subPath === '/config' && method === 'POST') {
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
 
       const config: Record<string, unknown> = {};
       if (typeof body.warningThresholdMB === 'number') {
@@ -241,7 +228,7 @@ export async function handlePerformanceRoutes(
     // SNAPSHOT MEMORY (trigger a new snapshot)
     // ========================================================================
     if (subPath === '/snapshot' && method === 'POST') {
-      const body = await parseBody(req);
+      const body = await parseBody<Record<string, unknown>>(req);
       const label = (body.label as string) || `api-snapshot-${Date.now()}`;
       const snapshot = perfInstrumentation.snapshotMemory(label);
       sendJSON(res, { snapshot });

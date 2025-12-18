@@ -14,7 +14,6 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, STAGGER, prefersReducedMotion } from '../config/animation-constants.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 
 // ============================================================================
 // TYPES
@@ -140,9 +139,6 @@ class ConversationHistoryUI {
   hide(): void {
     if (!this.panel) return;
 
-    // Clean up iOS tap listeners
-    cleanupTapListeners(this.panel);
-    
     this.panel.setAttribute('aria-hidden', 'true');
     this.isVisible = false;
     
@@ -177,8 +173,8 @@ class ConversationHistoryUI {
 
     document.body.appendChild(this.panel);
     
-    // Close on backdrop click (iOS-compatible)
-    addTapListener(this.panel, (e) => {
+    // Close on backdrop click
+    this.panel.addEventListener('click', (e) => {
       if (e.target === this.panel) {
         this.hide();
       }
@@ -246,15 +242,17 @@ class ConversationHistoryUI {
       </div>
     `;
 
-    // Bind close button (iOS-compatible)
-    addTapListener(this.panel.querySelector('.history__close'), () => this.hide());
+    // Bind close button
+    const closeBtn = this.panel.querySelector('.history__close');
+    closeBtn?.addEventListener('click', () => this.hide());
     
     // Close on backdrop click
-    addTapListener(this.panel.querySelector('.history__backdrop'), () => this.hide());
+    const backdrop = this.panel.querySelector('.history__backdrop');
+    backdrop?.addEventListener('click', () => this.hide());
 
     // Bind session clicks
     this.panel.querySelectorAll('.history__session').forEach((el) => {
-      addTapListener(el, () => {
+      el.addEventListener('click', () => {
         const sessionId = el.getAttribute('data-session');
         if (sessionId) {
           this.callbacks.onSessionClick?.(sessionId);
@@ -810,40 +808,17 @@ class ConversationHistoryUI {
          ======================================================================== */
       @media (max-width: 480px) {
         .history {
-          /* Safe area padding for notched devices */
-          padding: max(var(--space-4, 16px), env(safe-area-inset-top, 0))
-                   max(var(--space-4, 16px), env(safe-area-inset-right, 0))
-                   max(var(--space-4, 16px), env(safe-area-inset-bottom, 0))
-                   max(var(--space-4, 16px), env(safe-area-inset-left, 0));
+          padding: var(--space-4, 16px);
         }
 
         .history__card {
-          max-height: calc(100vh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0) - 32px);
-          max-height: calc(100dvh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0) - 32px);
+          max-height: 90vh;
           border-radius: var(--radius-xl, 1.25rem);
-        }
-
-        .history__sessions {
-          -webkit-overflow-scrolling: touch;
-          overscroll-behavior: contain;
         }
 
         .history__stats {
           flex-wrap: wrap;
           gap: var(--space-3, 12px);
-        }
-      }
-      
-      /* iOS Safari-specific */
-      @supports (-webkit-touch-callout: none) {
-        @media (max-width: 480px) {
-          .history__card {
-            max-height: -webkit-fill-available;
-          }
-          
-          .history__sessions {
-            -webkit-overflow-scrolling: touch;
-          }
         }
       }
 

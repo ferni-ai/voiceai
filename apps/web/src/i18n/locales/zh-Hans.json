@@ -67,7 +67,7 @@
       "voiceAccent": "语音和口音",
       "guidedPractices": "引导练习",
       "createPractice": "创建练习",
-      "healthFitness": "健康与健身",
+      "wearables": "可穿戴设备",
       "calendar": "日历",
       "notifications": "通知",
       "toggleTheme": "浅色 / 深色",
@@ -83,8 +83,7 @@
       "supportFerni": "支持Ferni",
       "takeTour": "开始导览",
       "language": "语言",
-      "whatsGrowing": "成长中",
-      "supportFerniExpanded": "支持 Ferni"
+      "whatsGrowing": "成长中"
     },
     "pinItem": "固定到顶部",
     "unpinItem": "取消固定",
@@ -133,6 +132,88 @@
     "endConversation": "结束对话",
     "endConversationGoodbye": "结束对话 - 再见",
     "agentEndingConversation": "助手正在结束对话"
+  },
+  "trustJourney": {
+    "eyebrow": "我们的故事",
+    "title": "你的信任之旅",
+    "subtitle": "我们一起成长的历程",
+    "loading": "正在加载你的旅程",
+    "loadingText": "正在收集你的旅程...",
+    "trustScore": "信任分数",
+    "exportSuccess": "旅程已导出！",
+    "offlineBanner": "你处于离线状态 - 显示缓存数据",
+    "loadMore": "加载更多 {count} 项",
+    "strengthLabel": "信任分数：{value}%",
+    "timelineLabel": "旅程时间线",
+    "filterLabel": "筛选时间线",
+    "filters": {
+      "all": "全部",
+      "growth": "成长",
+      "win": "胜利",
+      "callback": "回访",
+      "boundary": "边界",
+      "outreach": "联络"
+    },
+    "sections": {
+      "strength": "关系强度",
+      "stats": "旅程统计",
+      "boundaries": "被尊重的边界",
+      "growth": "你的成长",
+      "timeline": "我们一起的旅程"
+    },
+    "stats": {
+      "growthMoments": "成长时刻",
+      "winsCelebrated": "庆祝的胜利",
+      "sharedMoments": "共享的时刻"
+    },
+    "strengthDescriptions": {
+      "deep": "我们一起建立了真实的东西。我了解你，你信任我。",
+      "growing": "我们的联系正在加深。我正在了解什么对你重要。",
+      "building": "我们正在建立信任。每次对话都帮助我更好地了解你。",
+      "starting": "我们才刚刚开始。继续和我说话 - 我在听。",
+      "beginning": "每段旅程都从第一步开始。当你准备好时，我就在这里。"
+    },
+    "growthTypes": {
+      "emotional_regulation": "情绪平衡",
+      "perspective_shift": "新的视角",
+      "boundary_setting": "健康的边界",
+      "behavior_change": "新习惯",
+      "self_awareness": "自我意识",
+      "coping_upgrade": "更好的应对",
+      "goal_progress": "目标进展"
+    },
+    "empty": {
+      "title": "我们的故事刚刚开始",
+      "message": "随着我们交流更多，我会注意到你的成长，庆祝你的胜利，记住对你重要的事。请很快回来查看。"
+    },
+    "errors": {
+      "offline": {
+        "title": "你处于离线状态",
+        "message": "连接到互联网以查看你的旅程。"
+      },
+      "notLoggedIn": {
+        "title": "未登录",
+        "message": "登录以查看你与 Ferni 的旅程。"
+      },
+      "rateLimited": {
+        "title": "慢一点",
+        "message": "你检查得太频繁了。等一会儿再试。"
+      },
+      "unauthorized": {
+        "title": "访问被拒绝",
+        "message": "你没有权限查看此内容。"
+      },
+      "generic": {
+        "title": "出了点问题",
+        "message": "我们无法加载你的旅程。请重试。"
+      },
+      "exportFailed": {
+        "message": "无法导出你的数据。请重试。"
+      },
+      "fetchFailedUsingCache": {
+        "message": "显示保存的数据 - 无法连接到服务器。"
+      }
+    }
   },
   "subscription": {
     "free": "免费",
@@ -570,18 +651,5 @@
     "dailyPractice": "每日练习",
     "predictions": "预测",
     "runScenario": "运行场景"
-  },
-  "support": {
-    "eyebrow": "一起成长",
-    "title": "支持 Ferni",
-    "subtitle": "选择我们的友谊如何成长。你的每一种方式都很重要。",
-    "growTogether": "深化我们联系的方式",
-    "plantASeed": "种下一颗种子",
-    "plantDesc": "一份帮助 Ferni 成长的小礼物。没有压力——我们的友谊不取决于它。",
-    "plantButton": "种下这颗种子",
-    "thankYouSupporter": "你太棒了",
-    "yourSupport": "你的支持让 Ferni 能为大家服务",
-    "manageBilling": "更新付款方式",
-    "footer": "无论你选择如何支持我们，感谢你在这里。"
   }
 }

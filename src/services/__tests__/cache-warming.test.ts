@@ -34,6 +34,7 @@ vi.mock('../persona-content-loader.js', () => ({
 const mockEmbeddingCache = {
   has: vi.fn().mockReturnValue(false),
   get: vi.fn().mockResolvedValue([0.1, 0.2, 0.3]),
+  getBatch: vi.fn().mockResolvedValue({ ok: true, value: [[0.1, 0.2, 0.3]] }),
 };
 
 vi.mock('../../memory/embedding-cache.js', () => ({
@@ -155,7 +156,7 @@ describe('Cache Warming Service', () => {
 
       // Ferni has 4 queries defined
       expect(result).toBe(4);
-      expect(mockEmbeddingCache.get).toHaveBeenCalled();
+      expect(mockEmbeddingCache.getBatch).toHaveBeenCalled();
     });
 
     it('should skip already cached embeddings', async () => {
@@ -164,7 +165,7 @@ describe('Cache Warming Service', () => {
       const result = await prefetchPersonaEmbeddings('ferni');
 
       expect(result).toBe(0);
-      expect(mockEmbeddingCache.get).not.toHaveBeenCalled();
+      expect(mockEmbeddingCache.getBatch).not.toHaveBeenCalled();
     });
 
     it('should return 0 for unknown personas', async () => {
@@ -175,7 +176,7 @@ describe('Cache Warming Service', () => {
 
     it('should handle embedding fetch errors silently', async () => {
       mockEmbeddingCache.has.mockReturnValue(false);
-      mockEmbeddingCache.get.mockRejectedValue(new Error('Embedding error'));
+      mockEmbeddingCache.getBatch.mockRejectedValueOnce(new Error('Embedding error'));
 
       const result = await prefetchPersonaEmbeddings('ferni');
 

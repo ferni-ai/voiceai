@@ -15,7 +15,7 @@ Native desktop application for Voice AI, built with Electron.
 
 - Node.js 18+
 - npm or yarn
-- Built frontend (from `frontend-typescript/`)
+- Built frontend (from `apps/web/`)
 
 ## Development
 
@@ -27,7 +27,7 @@ npm install
 
 # Start in development mode (connects to Vite dev server)
 # Make sure frontend dev server is running first:
-# cd ../../frontend-typescript && npm run dev
+# cd ../../apps/web && npm run dev
 npm start
 ```
 
@@ -62,7 +62,7 @@ apps/electron/
 │   ├── icon.ico      # Windows icon
 │   ├── icon.png      # Linux/tray icon
 │   └── entitlements.mac.plist
-└── web/              # Built frontend (copied from frontend-typescript/dist)
+└── web/              # Built frontend (copied from apps/web/dist)
 ```
 
 ## Configuration

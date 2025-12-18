@@ -17,6 +17,7 @@ import {
 } from '../../intelligence/superhuman-memory.js';
 import { indexUserMemories, type IndexingResult } from '../../memory/user-memory-indexer.js';
 import type { UserProfile } from '../../types/user-profile.js';
+import { removeUndefined } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { ScheduledJob, type BaseJobConfig, type JobContext } from './base-job.js';
 
@@ -322,21 +323,25 @@ export class SuperhumanContextPrecomputeJob extends ScheduledJob<
       await db
         .collection('superhuman_context')
         .doc(userId)
-        .set({
-          userId,
-          insights: context.insights.map((i) => ({
-            id: i.id,
-            type: i.type,
-            priority: i.priority,
-            naturalPhrase: i.naturalPhrase,
-            context: i.context,
-          })),
-          temporalContext: context.temporalContext,
-          topicAbsenceCount: context.topicAbsences.length,
-          hasComfortGuidance: context.comfortGuidance.stressLevel !== 'none',
-          precomputedAt: new Date().toISOString(),
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-        });
+        .set(
+          removeUndefined({
+            userId,
+            insights: context.insights.map((i) =>
+              removeUndefined({
+                id: i.id,
+                type: i.type,
+                priority: i.priority,
+                naturalPhrase: i.naturalPhrase,
+                context: i.context,
+              })
+            ),
+            temporalContext: context.temporalContext,
+            topicAbsenceCount: context.topicAbsences.length,
+            hasComfortGuidance: context.comfortGuidance.stressLevel !== 'none',
+            precomputedAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+          })
+        );
     } catch (error) {
       log.warn({ error, userId }, 'Could not store precomputed context');
     }
@@ -389,24 +394,37 @@ export class InsightDeliveryCleanupJob extends ScheduledJob<CleanupJobConfig, Cl
   }
 
   private async cleanupExpiredContexts(): Promise<number> {
+    const BATCH_LIMIT = 500; // Firestore batch write limit
+
     try {
       const { getFirestore } = await import('firebase-admin/firestore');
       const db = getFirestore();
 
       const now = new Date().toISOString();
-      const snapshot = await db
-        .collection('superhuman_context')
-        .where('expiresAt', '<', now)
-        .limit(100)
-        .get();
+      let totalDeleted = 0;
 
-      const batch = db.batch();
-      for (const doc of snapshot.docs) {
-        batch.delete(doc.ref);
+      // Loop until all expired contexts are cleaned
+      while (true) {
+        const snapshot = await db
+          .collection('superhuman_context')
+          .where('expiresAt', '<', now)
+          .limit(BATCH_LIMIT)
+          .get();
+
+        if (snapshot.empty) break;
+
+        const batch = db.batch();
+        for (const doc of snapshot.docs) {
+          batch.delete(doc.ref);
+        }
+        await batch.commit();
+        totalDeleted += snapshot.size;
+
+        // If we got fewer than the limit, we're done
+        if (snapshot.size < BATCH_LIMIT) break;
       }
-      await batch.commit();
 
-      return snapshot.size;
+      return totalDeleted;
     } catch (error) {
       log.warn({ error }, 'Could not cleanup expired contexts');
       return 0;

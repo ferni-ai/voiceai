@@ -9,7 +9,6 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { resetPassword } from '../services/firebase-auth.service.js';
-import { addTapListener } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 
@@ -115,11 +114,10 @@ export function showPasswordResetModal(prefillEmail?: string): void {
   const form = overlay.querySelector('#password-reset-form') as HTMLFormElement;
   const retryBtn = overlay.querySelector('.retry-btn') as HTMLElement;
 
-  // Event listeners (iOS-compatible)
-  addTapListener(closeBtn, () => closeResetModal());
-  addTapListener(backdrop, () => closeResetModal());
+  closeBtn.addEventListener('click', () => closeResetModal());
+  backdrop.addEventListener('click', () => closeResetModal());
   form.addEventListener('submit', handleResetSubmit);
-  addTapListener(retryBtn, () => resetModalState(overlay));
+  retryBtn.addEventListener('click', () => resetModalState(overlay));
 
   // Animate in
   document.body.appendChild(overlay);

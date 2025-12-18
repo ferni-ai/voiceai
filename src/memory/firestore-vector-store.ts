@@ -25,6 +25,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { cosineSimilarity, embed, embedBatch } from './embeddings.js';
 import type {
   IVectorStore,
@@ -93,6 +94,50 @@ interface Query {
 // Firestore vector type
 interface FieldVector {
   toArray: () => number[];
+}
+
+/**
+ * FIX: Helper to safely extract embedding array with validation
+ * Returns undefined if embedding is invalid or wrong dimension
+ */
+function extractEmbedding(
+  rawEmbedding: unknown,
+  expectedDimension: number,
+  docId: string
+): number[] | undefined {
+  let embedding: number[] | undefined;
+
+  // Handle Firestore FieldVector type
+  if (rawEmbedding && typeof rawEmbedding === 'object' && 'toArray' in rawEmbedding) {
+    embedding = (rawEmbedding as FieldVector).toArray();
+  }
+  // Handle raw number array
+  else if (Array.isArray(rawEmbedding)) {
+    embedding = rawEmbedding;
+  }
+
+  // Validate the embedding
+  if (!embedding || !Array.isArray(embedding)) {
+    getLogger().warn({ docId }, 'Document has no valid embedding');
+    return undefined;
+  }
+
+  // FIX: Validate dimension to catch data corruption
+  if (embedding.length !== expectedDimension) {
+    getLogger().warn(
+      { docId, expected: expectedDimension, actual: embedding.length },
+      'Embedding dimension mismatch - possible data corruption'
+    );
+    // Still return it but log the warning - caller can decide what to do
+  }
+
+  // Validate all elements are numbers
+  if (!embedding.every((n) => typeof n === 'number' && !isNaN(n))) {
+    getLogger().warn({ docId }, 'Embedding contains non-numeric values');
+    return undefined;
+  }
+
+  return embedding;
 }
 
 // ============================================================================
@@ -231,6 +276,16 @@ export class FirestoreVectorStore implements IVectorStore {
           },
           '✅ FirestoreVectorStore initialized successfully with Firestore backend'
         );
+
+        // FIX: Log index reminder for operators
+        getLogger().info(
+          {
+            collection: this.COLLECTION_NAME,
+            dimension: this.EMBEDDING_DIMENSION,
+            indexCommand: `gcloud firestore indexes composite create --collection-group=${this.COLLECTION_NAME} --query-scope=COLLECTION --field-config=vector-config='{"dimension":"${this.EMBEDDING_DIMENSION}","flat":{}}',field-path=embedding`,
+          },
+          '📋 Ensure vector index exists for optimal search performance'
+        );
       }
     } catch (error) {
       // FIX AUDIT ISSUE: Structured error logging with risk
@@ -287,11 +342,7 @@ export class FirestoreVectorStore implements IVectorStore {
    * FIX AUDIT ISSUE: Add to fallback cache with size limit enforcement
    * Uses LRU-style eviction when cache is full
    */
-  private addToFallbackCache(
-    id: string,
-    doc: VectorDocument,
-    embedding: number[]
-  ): void {
+  private addToFallbackCache(id: string, doc: VectorDocument, embedding: number[]): void {
     // Evict oldest entries if at capacity
     if (this.fallbackCache.size >= this.MAX_FALLBACK_CACHE_SIZE) {
       // Remove oldest entries (first 10% of cache)
@@ -313,6 +364,7 @@ export class FirestoreVectorStore implements IVectorStore {
 
   /**
    * FIX AUDIT ISSUE: Schedule periodic recovery attempts when in fallback mode
+   * FIX: Improved error handling to prevent timer leaks
    */
   private scheduleRecoveryAttempt(): void {
     // Don't schedule if already scheduled or max attempts reached
@@ -321,85 +373,97 @@ export class FirestoreVectorStore implements IVectorStore {
     }
 
     this.recoveryTimer = setInterval(() => {
-      void (async () => {
-        if (!this.useFallback) {
-          // Recovery succeeded, stop the timer
-          if (this.recoveryTimer) {
-            clearInterval(this.recoveryTimer);
-            this.recoveryTimer = null;
-          }
-          return;
-        }
-
-        this.recoveryAttemptCount++;
-        this.lastRecoveryAttempt = Date.now();
-
-        getLogger().info(
-          {
-            attempt: this.recoveryAttemptCount,
-            maxAttempts: this.MAX_RECOVERY_ATTEMPTS,
-            cacheSize: this.fallbackCache.size,
-          },
-          '🔄 Attempting Firestore vector store recovery...'
-        );
-
-        try {
-          // Reset state and try to reinitialize
-          this._initialized = false;
-          this.useFallback = false;
-          this.fallbackReason = null;
-          this.db = null;
-
-          await this.initialize();
-
-          if (!this.useFallback) {
-            getLogger().info(
-              {
-                attempt: this.recoveryAttemptCount,
-                cacheSize: this.fallbackCache.size,
-              },
-              '✅ Firestore vector store recovered successfully!'
-            );
-
-            // Migrate cached data to Firestore
-            if (this.fallbackCache.size > 0) {
-              await this.migrateCacheToFirestore();
-            }
-
-            // Stop recovery timer
-            if (this.recoveryTimer) {
-              clearInterval(this.recoveryTimer);
-              this.recoveryTimer = null;
-            }
-          }
-        } catch (error) {
-          getLogger().warn(
-            { error: String(error), attempt: this.recoveryAttemptCount },
-            'Recovery attempt failed'
-          );
-        }
-
-        // Stop after max attempts
-        if (this.recoveryAttemptCount >= this.MAX_RECOVERY_ATTEMPTS) {
-          getLogger().error(
-            {
-              attempts: this.recoveryAttemptCount,
-              cacheSize: this.fallbackCache.size,
-              risk: 'DATA_LOSS_ON_RESTART',
-            },
-            '❌ Max recovery attempts reached. Vector store stuck in fallback mode. MANUAL INTERVENTION REQUIRED!'
-          );
-          if (this.recoveryTimer) {
-            clearInterval(this.recoveryTimer);
-            this.recoveryTimer = null;
-          }
-        }
-      })();
+      // FIX: Wrap entire async operation in try-catch to prevent unhandled rejections
+      this.attemptRecovery().catch((error) => {
+        getLogger().error({ error: String(error) }, 'Unhandled error in recovery attempt');
+        // FIX: Ensure timer is cleaned up even on unexpected errors
+        this.cleanupRecoveryTimer();
+      });
     }, this.RECOVERY_INTERVAL_MS);
   }
 
   /**
+   * FIX: Separated recovery logic for better error handling and testability
+   */
+  private async attemptRecovery(): Promise<void> {
+    if (!this.useFallback) {
+      // Recovery already succeeded, stop the timer
+      this.cleanupRecoveryTimer();
+      return;
+    }
+
+    this.recoveryAttemptCount++;
+    this.lastRecoveryAttempt = Date.now();
+
+    getLogger().info(
+      {
+        attempt: this.recoveryAttemptCount,
+        maxAttempts: this.MAX_RECOVERY_ATTEMPTS,
+        cacheSize: this.fallbackCache.size,
+      },
+      '🔄 Attempting Firestore vector store recovery...'
+    );
+
+    try {
+      // Reset state and try to reinitialize
+      this._initialized = false;
+      this.useFallback = false;
+      this.fallbackReason = null;
+      this.db = null;
+
+      await this.initialize();
+
+      if (!this.useFallback) {
+        getLogger().info(
+          {
+            attempt: this.recoveryAttemptCount,
+            cacheSize: this.fallbackCache.size,
+          },
+          '✅ Firestore vector store recovered successfully!'
+        );
+
+        // Migrate cached data to Firestore
+        if (this.fallbackCache.size > 0) {
+          await this.migrateCacheToFirestore();
+        }
+
+        // Stop recovery timer
+        this.cleanupRecoveryTimer();
+      }
+    } catch (error) {
+      getLogger().warn(
+        { error: String(error), attempt: this.recoveryAttemptCount },
+        'Recovery attempt failed'
+      );
+    }
+
+    // Stop after max attempts
+    if (this.recoveryAttemptCount >= this.MAX_RECOVERY_ATTEMPTS) {
+      getLogger().error(
+        {
+          attempts: this.recoveryAttemptCount,
+          cacheSize: this.fallbackCache.size,
+          risk: 'DATA_LOSS_ON_RESTART',
+        },
+        '❌ Max recovery attempts reached. Vector store stuck in fallback mode. MANUAL INTERVENTION REQUIRED!'
+      );
+      this.cleanupRecoveryTimer();
+    }
+  }
+
+  /**
+   * FIX: Helper to clean up recovery timer safely
+   */
+  private cleanupRecoveryTimer(): void {
+    if (this.recoveryTimer) {
+      clearInterval(this.recoveryTimer);
+      this.recoveryTimer = null;
+    }
+  }
+
+  /**
    * Migrate cached data to Firestore after recovery
+   * FIX: Now uses batch writes to respect Firestore's 500-operation limit
    */
   private async migrateCacheToFirestore(): Promise<void> {
     if (this.useFallback || !this.db || this.fallbackCache.size === 0) {
@@ -411,29 +475,77 @@ export class FirestoreVectorStore implements IVectorStore {
       '📤 Migrating cached vectors to Firestore...'
     );
 
+    const { FieldValue, WriteBatch } = await import('@google-cloud/firestore');
     const entries = Array.from(this.fallbackCache.entries());
     let migrated = 0;
     let failed = 0;
 
-    for (const [id, { doc }] of entries) {
+    // FIX: Process in batches of 500 (Firestore's limit)
+    const BATCH_SIZE = 500;
+    for (let i = 0; i < entries.length; i += BATCH_SIZE) {
+      const chunk = entries.slice(i, i + BATCH_SIZE);
+      const batch = (this.db as unknown as { batch: () => FirebaseFirestore.WriteBatch }).batch?.();
+
+      // If batch API not available, fall back to individual writes
+      if (!batch) {
+        for (const [id, { doc }] of chunk) {
+          try {
+            const docRef = this.db!.collection(this.COLLECTION_NAME).doc(id);
+            await docRef.set(
+              removeUndefined({
+                text: doc.text,
+                embedding: FieldValue.vector(doc.embedding!),
+                metadata: doc.metadata,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              })
+            );
+            this.fallbackCache.delete(id);
+            migrated++;
+          } catch (error) {
+            failed++;
+            getLogger().warn({ id, error: String(error) }, 'Failed to migrate document');
+          }
+        }
+        continue;
+      }
+
+      // Use batch writes for efficiency
+      const batchIds: string[] = [];
+      for (const [id, { doc }] of chunk) {
+        try {
+          const docRef = this.db!.collection(this.COLLECTION_NAME).doc(id);
+          (batch as unknown as FirebaseFirestore.WriteBatch).set(
+            docRef as unknown as FirebaseFirestore.DocumentReference,
+            removeUndefined({
+              text: doc.text,
+              embedding: FieldValue.vector(doc.embedding!),
+              metadata: doc.metadata,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            })
+          );
+          batchIds.push(id);
+        } catch (error) {
+          failed++;
+          getLogger().warn({ id, error: String(error) }, 'Failed to add document to batch');
+        }
+      }
+
+      // Commit the batch
       try {
-        const docRef = this.db.collection(this.COLLECTION_NAME).doc(id);
-        const { FieldValue } = await import('@google-cloud/firestore');
-
-        await docRef.set({
-          text: doc.text,
-          embedding: FieldValue.vector(doc.embedding!),
-          metadata: doc.metadata,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-
-        // Remove from cache after successful migration
-        this.fallbackCache.delete(id);
-        migrated++;
+        await (batch as unknown as FirebaseFirestore.WriteBatch).commit();
+        // Remove successfully migrated docs from cache
+        for (const id of batchIds) {
+          this.fallbackCache.delete(id);
+          migrated++;
+        }
       } catch (error) {
-        failed++;
-        getLogger().warn({ id, error: String(error) }, 'Failed to migrate document');
+        failed += batchIds.length;
+        getLogger().error(
+          { error: String(error), batchSize: batchIds.length },
+          'Batch commit failed during migration'
+        );
       }
     }
 
@@ -482,13 +594,15 @@ export class FirestoreVectorStore implements IVectorStore {
       // Firestore vector format
       const { FieldValue } = await import('@google-cloud/firestore');
 
-      await docRef.set({
-        text: doc.text,
-        embedding: FieldValue.vector(embedding),
-        metadata: doc.metadata,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      await docRef.set(
+        removeUndefined({
+          text: doc.text,
+          embedding: FieldValue.vector(embedding),
+          metadata: doc.metadata,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+      );
 
       getLogger().debug(`Added document to Firestore vectors: ${doc.id}`);
     } catch (error) {
@@ -569,12 +683,16 @@ export class FirestoreVectorStore implements IVectorStore {
       const data = snapshot.data();
       if (!data) return undefined;
 
-      const embedding = (data.embedding as FieldVector)?.toArray?.() || data.embedding;
+      // FIX: Use validated embedding extraction
+      const embedding = extractEmbedding(data.embedding, this.EMBEDDING_DIMENSION, snapshot.id);
+      if (!embedding) {
+        return undefined;
+      }
 
       return {
         id: snapshot.id,
         text: data.text as string,
-        embedding: embedding as number[],
+        embedding,
         metadata: data.metadata as VectorDocument['metadata'],
       };
     } catch (error) {
@@ -648,15 +766,18 @@ export class FirestoreVectorStore implements IVectorStore {
           const data = doc.data();
           if (!data) continue;
 
-          const docEmbedding = (data.embedding as FieldVector)?.toArray?.() || data.embedding;
-          const score = cosineSimilarity(queryEmbedding, docEmbedding as number[]);
+          // FIX: Use validated embedding extraction
+          const docEmbedding = extractEmbedding(data.embedding, this.EMBEDDING_DIMENSION, doc.id);
+          if (!docEmbedding) continue;
+
+          const score = cosineSimilarity(queryEmbedding, docEmbedding);
 
           if (score >= minScore) {
             results.push({
               document: {
                 id: doc.id,
                 text: data.text as string,
-                embedding: docEmbedding as number[],
+                embedding: docEmbedding,
                 metadata: data.metadata as VectorDocument['metadata'],
               },
               score,
@@ -744,15 +865,18 @@ export class FirestoreVectorStore implements IVectorStore {
           const data = doc.data();
           if (!data) continue;
 
-          const docEmbedding = (data.embedding as FieldVector)?.toArray?.() || data.embedding;
-          const score = cosineSimilarity(queryEmbedding, docEmbedding as number[]);
+          // FIX: Use validated embedding extraction
+          const docEmbedding = extractEmbedding(data.embedding, this.EMBEDDING_DIMENSION, doc.id);
+          if (!docEmbedding) continue;
+
+          const score = cosineSimilarity(queryEmbedding, docEmbedding);
 
           if (score >= minScore) {
             results.push({
               document: {
                 id: doc.id,
                 text: data.text as string,
-                embedding: docEmbedding as number[],
+                embedding: docEmbedding,
                 metadata: data.metadata as VectorDocument['metadata'],
               },
               score,
@@ -771,6 +895,7 @@ export class FirestoreVectorStore implements IVectorStore {
 
   /**
    * Get all documents matching a filter
+   * FIX: Added pagination warning and validated embedding extraction
    */
   async list(filter?: VectorFilter): Promise<VectorDocument[]> {
     const results: VectorDocument[] = [];
@@ -801,18 +926,30 @@ export class FirestoreVectorStore implements IVectorStore {
         query = query.where('metadata.userId', '==', filter.userId);
       }
 
-      const snapshot = await query.limit(1000).get();
+      // FIX: Use a more reasonable limit and warn if truncated
+      const PAGE_SIZE = 500;
+      const snapshot = await query.limit(PAGE_SIZE).get();
+
+      // FIX: Warn if result set may be truncated
+      if (snapshot.size === PAGE_SIZE) {
+        getLogger().warn(
+          { limit: PAGE_SIZE, filter },
+          'list() result may be truncated - consider using pagination'
+        );
+      }
 
       for (const doc of snapshot.docs) {
         const data = doc.data();
         if (!data) continue;
 
-        const embedding = (data.embedding as FieldVector)?.toArray?.() || data.embedding;
+        // FIX: Use validated embedding extraction
+        const embedding = extractEmbedding(data.embedding, this.EMBEDDING_DIMENSION, doc.id);
+        if (!embedding) continue;
 
         results.push({
           id: doc.id,
           text: data.text as string,
-          embedding: embedding as number[],
+          embedding,
           metadata: data.metadata as VectorDocument['metadata'],
         });
       }
@@ -914,13 +1051,11 @@ export class FirestoreVectorStore implements IVectorStore {
 
   /**
    * Close the connection
+   * FIX: Uses helper for timer cleanup
    */
   async close(): Promise<void> {
-    // Clean up recovery timer
-    if (this.recoveryTimer) {
-      clearInterval(this.recoveryTimer);
-      this.recoveryTimer = null;
-    }
+    // FIX: Use helper for consistent cleanup
+    this.cleanupRecoveryTimer();
 
     if (this.db) {
       await this.db.terminate();

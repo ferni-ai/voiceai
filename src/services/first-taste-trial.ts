@@ -327,14 +327,29 @@ export async function isEligibleForTrial(userId: string): Promise<boolean> {
 /**
  * Get a welcome prompt for trial users.
  * This replaces the normal greeting for brand new users.
+ *
+ * HUMAN, not warm-robot. Real speech patterns:
+ * - Incomplete thoughts, natural hesitations
+ * - Not every greeting needs to ask a question
+ * - Variety in length and structure
+ * - Sometimes caught mid-thought
  */
 export function getTrialWelcomePrompt(): string {
   const prompts = [
-    "Hey! I'm Ferni. I'm really glad you're here. Before we dive in - what's your name?",
+    // Settling in - caught arriving
+    '<break time="350ms"/>...hey.<break time="450ms"/>I\'m Ferni.<break time="400ms"/>What\'s your name?',
 
-    "Hi! I'm Ferni. You know what? I'm genuinely excited to meet you. What should I call you?",
+    // Warm, curious
+    '<break time="250ms"/>Oh.<break time="350ms"/>Hey.<break time="400ms"/>I\'m Ferni.<break time="300ms"/>Who\'s this?',
 
-    "Welcome! I'm Ferni, and I've been looking forward to this. First things first - who am I talking to?",
+    // Simple, present
+    '<break time="300ms"/>Hey.<break time="500ms"/>I\'m Ferni.<break time="350ms"/>Good to meet you.',
+
+    // A bit more engaged
+    '<break time="200ms"/><emotion value="curious"/>Hmm.<break time="300ms"/>Hey there.<break time="400ms"/>I\'m Ferni.<break time="250ms"/>What should I call you?',
+
+    // Casual
+    '<break time="350ms"/>Hey.<break time="450ms"/>So, I\'m Ferni.<break time="350ms"/>And you are...?',
   ];
 
   return prompts[Math.floor(Math.random() * prompts.length)];

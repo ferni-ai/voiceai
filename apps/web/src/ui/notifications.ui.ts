@@ -14,7 +14,6 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, prefersReducedMotion } from '../config/animation-constants.js';
-import { addTapListener } from '../utils/ios-touch.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import {
   ICONS,
@@ -259,13 +258,13 @@ class NotificationsUI {
       </button>
     `;
 
-    // Event handlers (iOS-compatible)
+    // Event handlers
     const closeBtn = element.querySelector('.notification__close');
-    addTapListener(closeBtn, () => this.dismiss(notification.id));
+    closeBtn?.addEventListener('click', () => this.dismiss(notification.id));
 
     if (notification.action) {
       const actionBtn = element.querySelector('.notification__action');
-      addTapListener(actionBtn, () => {
+      actionBtn?.addEventListener('click', () => {
         notification.action?.callback();
         this.callbacks.onAction?.(notification);
         this.dismiss(notification.id);

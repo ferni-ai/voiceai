@@ -194,10 +194,7 @@ const WILDCARD_GAMES = [
 /**
  * Get today's challenge
  */
-export function getTodaysChallenge(
-  userId: string,
-  userStats?: UserChallengeStats
-): DailyChallenge {
+export function getTodaysChallenge(userId: string, userStats?: UserChallengeStats): DailyChallenge {
   const today = new Date();
   const dayOfWeek = today.getDay();
   const dateStr = today.toISOString().split('T')[0];
@@ -246,17 +243,14 @@ export function getTodaysChallenge(
     expiresAt: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString(),
   };
 
-  log.debug({ challenge }, '🎯 Generated today\'s challenge');
+  log.debug({ challenge }, "🎯 Generated today's challenge");
   return challenge;
 }
 
 /**
  * Get upcoming challenges for the week
  */
-export function getUpcomingChallenges(
-  userId: string,
-  days: number = 7
-): DailyChallenge[] {
+export function getUpcomingChallenges(userId: string, days: number = 7): DailyChallenge[] {
   const challenges: DailyChallenge[] = [];
   const today = new Date();
 
@@ -297,10 +291,7 @@ const statsStore = new Map<string, UserChallengeStats>();
 /**
  * Start a challenge
  */
-export function startChallenge(
-  userId: string,
-  challengeId: string
-): ChallengeProgress {
+export function startChallenge(userId: string, challengeId: string): ChallengeProgress {
   const progress: ChallengeProgress = {
     challengeId,
     userId,
@@ -364,20 +355,14 @@ export function completeChallenge(
 /**
  * Update user stats after completing a challenge
  */
-function updateStats(
-  userId: string,
-  progress: ChallengeProgress,
-  challenge: DailyChallenge
-): void {
+function updateStats(userId: string, progress: ChallengeProgress, challenge: DailyChallenge): void {
   const stats = statsStore.get(userId) || createInitialStats(userId);
   const today = new Date().toISOString().split('T')[0];
 
   // Check if streak continues
   if (stats.lastCompletedDate) {
     const lastDate = new Date(stats.lastCompletedDate);
-    const diffDays = Math.floor(
-      (Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
+    const diffDays = Math.floor((Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
 
     if (diffDays === 1) {
       // Consecutive day - streak continues
@@ -395,8 +380,7 @@ function updateStats(
   stats.totalChallengesCompleted++;
   stats.totalXpEarned += progress.xpEarned;
   stats.lastCompletedDate = today;
-  stats.completionsByType[challenge.type] =
-    (stats.completionsByType[challenge.type] || 0) + 1;
+  stats.completionsByType[challenge.type] = (stats.completionsByType[challenge.type] || 0) + 1;
 
   // Determine favorite area
   const musicalCount = Object.entries(stats.completionsByType)
@@ -424,19 +408,13 @@ export function hasCompletedTodaysChallenge(userId: string): boolean {
   const today = new Date().toISOString().split('T')[0];
   const userProgress = progressStore.get(userId) || [];
 
-  return userProgress.some(
-    (p) =>
-      p.challengeId.includes(today) && p.completedAt !== undefined
-  );
+  return userProgress.some((p) => p.challengeId.includes(today) && p.completedAt !== undefined);
 }
 
 /**
  * Get user's challenge history
  */
-export function getChallengeHistory(
-  userId: string,
-  limit: number = 30
-): ChallengeProgress[] {
+export function getChallengeHistory(userId: string, limit: number = 30): ChallengeProgress[] {
   const userProgress = progressStore.get(userId) || [];
   return userProgress
     .filter((p) => p.completedAt)
@@ -542,16 +520,14 @@ export function getChallengeNotificationContent(
 /**
  * Get streak at risk notification
  */
-export function getStreakAtRiskNotification(
-  stats: UserChallengeStats
-): {
+export function getStreakAtRiskNotification(stats: UserChallengeStats): {
   title: string;
   body: string;
   data: Record<string, string>;
 } {
   return {
     title: `🔥 Your ${stats.currentStreak} day streak is at risk!`,
-    body: 'Quick! Complete today\'s challenge before midnight.',
+    body: "Quick! Complete today's challenge before midnight.",
     data: {
       type: 'streak_at_risk',
       currentStreak: String(stats.currentStreak),
@@ -604,4 +580,3 @@ function isMusicalChallenge(type: ChallengeType): boolean {
   ];
   return musicalTypes.includes(type);
 }
-

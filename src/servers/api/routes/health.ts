@@ -7,6 +7,11 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import * as spotifyService from '../services/spotify.js';
 import * as plaidService from '../services/plaid.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+import { getAllStats as getPersistenceStats } from '../../../services/persistence/index.js';
+import { persistenceMetrics } from '../../../services/persistence-metrics.js';
+
+const log = createLogger({ module: 'HealthRoutes' });
 
 // Configuration
 const LIVEKIT_URL = process.env.LIVEKIT_URL || '';
@@ -60,6 +65,7 @@ export async function handleHealthRoutes(
         firebase: {
           projectId: process.env.GCP_PROJECT_ID || null,
         },
+        persistence: getPersistenceStats(),
       },
       environment: {
         nodeEnv: process.env.NODE_ENV || 'development',
@@ -70,6 +76,77 @@ export async function handleHealthRoutes(
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(dashboard, null, 2));
+    return true;
+  }
+
+  // Firestore/Persistence health
+  if (pathname === '/health/firestore' || pathname === '/api/diagnostics/persistence') {
+    try {
+      const stats = getPersistenceStats();
+      const storeCount = Object.keys(stats).length;
+      const totalCached = Object.values(stats).reduce((sum, s) => sum + s.cached, 0);
+      const totalDirty = Object.values(stats).reduce((sum, s) => sum + s.dirty, 0);
+
+      // Attempt a quick Firestore connectivity check
+      let firestoreConnected = false;
+      try {
+        const { Firestore } = await import('@google-cloud/firestore');
+        const db = new Firestore({
+          projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+          databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+        });
+        // Quick check - list collections limit 1
+        await db.listCollections().then((cols) => cols.slice(0, 1));
+        firestoreConnected = true;
+      } catch (err) {
+        log.warn({ error: (err as Error).message }, 'Firestore connectivity check failed');
+      }
+
+      const persistenceHealth = {
+        status: firestoreConnected ? (storeCount > 0 ? 'ok' : 'idle') : 'degraded',
+        timestamp: new Date().toISOString(),
+        firestore: {
+          connected: firestoreConnected,
+          projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT || null,
+          databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+        },
+        persistence: {
+          activeStores: storeCount,
+          totalCachedEntries: totalCached,
+          totalPendingWrites: totalDirty,
+          stores: stats,
+          metrics: persistenceMetrics.getSummaryReport(),
+        },
+        alerts: [] as Array<{ level: 'warn' | 'error'; message: string }>,
+      };
+
+      if (!firestoreConnected) {
+        persistenceHealth.alerts.push({
+          level: 'error',
+          message: 'Firestore not connected - data will not persist',
+        });
+      }
+
+      if (totalDirty > 50) {
+        persistenceHealth.alerts.push({
+          level: 'warn',
+          message: `${totalDirty} pending writes - possible write backlog`,
+        });
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(persistenceHealth, null, 2));
+    } catch (err) {
+      log.error({ error: (err as Error).message }, 'Persistence health check error');
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          status: 'error',
+          timestamp: new Date().toISOString(),
+          error: (err as Error).message,
+        })
+      );
+    }
     return true;
   }
 
@@ -213,7 +290,7 @@ export async function handleHealthRoutes(
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(health, null, 2));
     } catch (err) {
-      console.error('❌ Memory health check error:', err);
+      log.error({ error: (err as Error).message }, 'Memory health check error');
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({

@@ -5,14 +5,13 @@
  * Brand-aligned settings panel with toggle controls.
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
 import { t } from '../i18n/index.js';
+import { DURATION, EASING } from '../config/animation-constants.js';
 import { outreachService, type OutreachPreferences } from '../services/outreach.service.js';
 import {
   getPushNotificationsService,
   type NotificationPreferences,
 } from '../services/push-notifications.service.js';
-import { addTapListener } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('NotifySettings');
@@ -72,8 +71,7 @@ class NotificationSettingsUI {
     this.panel.setAttribute('role', 'dialog');
     this.panel.setAttribute('aria-label', 'Notification settings');
 
-    // Backdrop click handler (iOS-compatible)
-    addTapListener(this.panel, (e) => {
+    this.panel.addEventListener('click', (e) => {
       if (e.target === this.panel) this.hide();
     });
 
@@ -251,8 +249,10 @@ class NotificationSettingsUI {
       </div>
     `;
 
-    // Bind events (iOS-compatible)
-    addTapListener(this.panel.querySelector('.notif-settings__close'), () => this.hide());
+    // Bind events
+    this.panel
+      .querySelector('.notif-settings__close')
+      ?.addEventListener('click', () => this.hide());
 
     this.panel.querySelectorAll('[data-pref]').forEach((input) => {
       input.addEventListener('change', () => this.handlePrefChange(input as HTMLInputElement));
@@ -262,8 +262,10 @@ class NotificationSettingsUI {
       input.addEventListener('change', () => this.handleOutreachChange(input as HTMLInputElement));
     });
 
-    addTapListener(this.panel.querySelector('[data-action="cancel"]'), () => this.hide());
-    addTapListener(this.panel.querySelector('[data-action="save"]'), () => this.save());
+    this.panel
+      .querySelector('[data-action="cancel"]')
+      ?.addEventListener('click', () => this.hide());
+    this.panel.querySelector('[data-action="save"]')?.addEventListener('click', () => this.save());
 
     // Update disabled state based on master toggle
     this.updateDependentSections();

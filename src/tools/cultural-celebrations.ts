@@ -10,6 +10,7 @@ import { llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // CULTURAL CELEBRATION DETAILS
 // ============================================================================
@@ -335,8 +336,7 @@ export function createCulturalCelebrationTools() {
   return {
     // ========== CULTURAL CELEBRATION INFO ==========
     getCulturalCelebrationInfo: llm.tool({
-      description: `Get detailed information about a specific cultural celebration.
-Use when someone mentions planning a Quinceañera, Bar/Bat Mitzvah, Sweet Sixteen, or other cultural coming-of-age celebration.`,
+      description: getToolDescription('getCulturalCelebrationInfo'),
       parameters: z.object({
         celebrationType: z
           .enum([
@@ -387,8 +387,7 @@ Use when someone mentions planning a Quinceañera, Bar/Bat Mitzvah, Sweet Sixtee
 
     // ========== CULTURAL TRADITIONS ==========
     getCulturalTraditions: llm.tool({
-      description: `Get specific traditions for a cultural celebration.
-Use when someone asks about traditions, customs, or what's expected.`,
+      description: getToolDescription('getCulturalTraditions'),
       parameters: z.object({
         celebrationType: z
           .enum([
@@ -443,8 +442,7 @@ Use when someone asks about traditions, customs, or what's expected.`,
 
     // ========== SUGGEST CELEBRATION TYPE ==========
     suggestCelebration: llm.tool({
-      description: `Suggest cultural celebration types based on criteria.
-Use when someone isn't sure what type of celebration or wants ideas.`,
+      description: getToolDescription('suggestCelebration'),
       parameters: z.object({
         age: z.number().describe('Age of the person being celebrated'),
         culture: z.string().optional().describe('Cultural background if mentioned'),

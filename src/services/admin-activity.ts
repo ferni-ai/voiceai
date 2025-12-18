@@ -259,8 +259,12 @@ export async function getActivityCounts(): Promise<Record<ActivityEvent['type'],
   return counts;
 }
 
+/** Firestore batch write limit */
+const FIRESTORE_BATCH_LIMIT = 500;
+
 /**
  * Clean up old events (can be run periodically)
+ * Now loops until all old events are cleaned to handle >500 events
  */
 export async function cleanupOldEvents(): Promise<number> {
   if (!firestoreAvailable || !firestoreClient) {
@@ -279,24 +283,40 @@ export async function cleanupOldEvents(): Promise<number> {
     cutoffDate.setDate(cutoffDate.getDate() - TTL_DAYS);
 
     const admin = await import('firebase-admin');
-    const snapshot = await firestoreClient
-      .collection(COLLECTION)
-      .where('timestamp', '<', admin.firestore.Timestamp.fromDate(cutoffDate))
-      .limit(500) // Batch delete
-      .get();
+    const cutoffTimestamp = admin.firestore.Timestamp.fromDate(cutoffDate);
 
-    if (snapshot.empty) {
-      return 0;
+    let totalDeleted = 0;
+
+    // Loop until all old events are cleaned (handle >500 events)
+    while (true) {
+      const snapshot = await firestoreClient
+        .collection(COLLECTION)
+        .where('timestamp', '<', cutoffTimestamp)
+        .limit(FIRESTORE_BATCH_LIMIT)
+        .get();
+
+      if (snapshot.empty) {
+        break;
+      }
+
+      const batch = firestoreClient.batch();
+      snapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+
+      await batch.commit();
+      totalDeleted += snapshot.size;
+
+      // If we got fewer than the limit, we're done
+      if (snapshot.size < FIRESTORE_BATCH_LIMIT) {
+        break;
+      }
     }
 
-    const batch = firestoreClient.batch();
-    snapshot.docs.forEach((doc) => {
-      batch.delete(doc.ref);
-    });
-
-    await batch.commit();
-    log.info({ deleted: snapshot.size }, 'Cleaned up old activity events');
-    return snapshot.size;
+    if (totalDeleted > 0) {
+      log.info({ deleted: totalDeleted }, 'Cleaned up old activity events');
+    }
+    return totalDeleted;
   } catch (error) {
     log.error({ error }, 'Failed to cleanup old events');
     return 0;

@@ -14,6 +14,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { removeUndefined } from '../../utils/firestore-utils.js';
 
 // Trust system imports
 import { exportBoundaries, importBoundaries, type BoundaryProfile } from './boundary-memory.js';
@@ -175,7 +176,7 @@ async function saveSystemProfile<T>(
       version: CURRENT_VERSION,
     };
 
-    await getTrustDoc(userId, systemName).set(doc, { merge: true });
+    await getTrustDoc(userId, systemName).set(removeUndefined(doc), { merge: true });
     log.debug({ userId, systemName }, 'Trust profile saved');
     return true;
   } catch (error) {
@@ -515,24 +516,39 @@ export async function migrateTrustData(userId: string): Promise<void> {
 // CLEANUP
 // ============================================================================
 
+/** Firestore batch write limit */
+const FIRESTORE_BATCH_LIMIT = 500;
+
 /**
  * Delete all trust profiles for a user (for GDPR deletion)
  */
 export async function deleteTrustProfiles(userId: string): Promise<void> {
   try {
-    const batch = getDb().batch();
-    const trustCollection = getDb()
-      .collection('bogle_users')
-      .doc(userId)
-      .collection(TRUST_COLLECTION);
+    const db = getDb();
+    const trustCollection = db.collection('bogle_users').doc(userId).collection(TRUST_COLLECTION);
 
     const docs = await trustCollection.listDocuments();
-    for (const doc of docs) {
-      batch.delete(doc);
+
+    if (docs.length === 0) {
+      log.info({ userId }, '🗑️ No trust profiles to delete');
+      return;
     }
 
-    await batch.commit();
-    log.info({ userId }, '🗑️ Trust profiles deleted');
+    // Process in batches to respect Firestore's 500-operation limit
+    let deleted = 0;
+    for (let i = 0; i < docs.length; i += FIRESTORE_BATCH_LIMIT) {
+      const chunk = docs.slice(i, i + FIRESTORE_BATCH_LIMIT);
+      const batch = db.batch();
+
+      for (const doc of chunk) {
+        batch.delete(doc);
+      }
+
+      await batch.commit();
+      deleted += chunk.length;
+    }
+
+    log.info({ userId, deleted }, '🗑️ Trust profiles deleted');
   } catch (error) {
     log.error({ error, userId }, 'Failed to delete trust profiles');
     throw error;

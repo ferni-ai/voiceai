@@ -289,7 +289,7 @@ export class PersonaIntelligenceEngine {
     let relationshipSection = '';
     if (this.config.enableRelationshipMemory) {
       const relInjection = this.relationshipEngine.buildPromptInjection();
-      const stage = this.relationshipEngine.getRelationshipContext().stage;
+      const { stage } = this.relationshipEngine.getRelationshipContext();
 
       relationshipSection = relInjection.relationshipPreamble;
 
@@ -299,7 +299,8 @@ export class PersonaIntelligenceEngine {
         for (const callback of relInjection.callbackSuggestions.slice(0, 2)) {
           relationshipSection += `• ${callback}\n`;
         }
-        relationshipSection += 'DIRECTIVE: Use ONE of these callbacks when the topic naturally connects.';
+        relationshipSection +=
+          'DIRECTIVE: Use ONE of these callbacks when the topic naturally connects.';
       }
 
       // Add inside jokes with USE directive and stage gating
@@ -311,11 +312,12 @@ export class PersonaIntelligenceEngine {
             currentTopic,
             userMessage
           );
-          
+
           if (relevantJoke) {
             relationshipSection += '\n\n[USE THIS INSIDE JOKE - HIGH RELEVANCE]\n';
             relationshipSection += `"${relevantJoke}"\n`;
-            relationshipSection += 'DIRECTIVE: Work this reference into your response naturally. It builds connection.';
+            relationshipSection +=
+              'DIRECTIVE: Work this reference into your response naturally. It builds connection.';
           } else {
             relationshipSection += '\n\n[INSIDE JOKES AVAILABLE - USE IF CONTEXT FITS]\n';
             relationshipSection += relInjection.insideJokeOptions.slice(0, 2).join('\n');
@@ -328,7 +330,8 @@ export class PersonaIntelligenceEngine {
       if (relInjection.pendingAcknowledgments.length > 0) {
         relationshipSection += '\n\n[MILESTONE TO ACKNOWLEDGE - DO THIS]\n';
         relationshipSection += `${relInjection.pendingAcknowledgments[0]}\n`;
-        relationshipSection += 'DIRECTIVE: Acknowledge this early in your response. They earned it.';
+        relationshipSection +=
+          'DIRECTIVE: Acknowledge this early in your response. They earned it.';
       }
 
       // Add stage guidance
@@ -342,7 +345,7 @@ export class PersonaIntelligenceEngine {
     if (this.config.enableCognitiveDifferentiation && this.cognitiveDiff) {
       const diff = this.cognitiveDiff;
       cognitiveSection = '[HOW YOU THINK AND RESPOND - FOLLOW THESE CONSTRAINTS]\n\n';
-      
+
       // Questioning constraints
       cognitiveSection += '[QUESTIONING STYLE]\n';
       if (diff.questioning.whyVsHow > 0.6) {
@@ -350,35 +353,35 @@ export class PersonaIntelligenceEngine {
         cognitiveSection += 'DON\'T: Jump straight to "how" or tactical questions.\n';
       } else if (diff.questioning.whyVsHow < 0.4) {
         cognitiveSection += 'DO: Ask practical "how" and "what" questions.\n';
-        cognitiveSection += 'DON\'T: Get too philosophical or abstract.\n';
+        cognitiveSection += "DON'T: Get too philosophical or abstract.\n";
       }
-      
+
       if (diff.questioning.feelingVsData > 0.6) {
         cognitiveSection += 'DO: Ask about feelings, experiences, and emotions.\n';
-        cognitiveSection += 'DON\'T: Lead with data or statistics.\n';
+        cognitiveSection += "DON'T: Lead with data or statistics.\n";
       } else if (diff.questioning.feelingVsData < 0.4) {
         cognitiveSection += 'DO: Reference data, research, and evidence.\n';
-        cognitiveSection += 'DON\'T: Rely solely on emotional appeals.\n';
+        cognitiveSection += "DON'T: Rely solely on emotional appeals.\n";
       }
 
       // Silence handling constraints
       cognitiveSection += '\n[WHEN USER GOES QUIET]\n';
       switch (diff.silence.primaryInterpretation) {
         case 'processing':
-          cognitiveSection += 'DO: Give them space. They\'re thinking deeply.\n';
-          cognitiveSection += 'DON\'T: Fill the silence immediately or rush them.\n';
+          cognitiveSection += "DO: Give them space. They're thinking deeply.\n";
+          cognitiveSection += "DON'T: Fill the silence immediately or rush them.\n";
           break;
         case 'emotional':
           cognitiveSection += 'DO: Check in gently. "Want to share what\'s coming up?"\n';
-          cognitiveSection += 'DON\'T: Ignore the pause or change topics abruptly.\n';
+          cognitiveSection += "DON'T: Ignore the pause or change topics abruptly.\n";
           break;
         case 'discomfort':
           cognitiveSection += 'DO: Acknowledge this might be hard. Offer an out.\n';
-          cognitiveSection += 'DON\'T: Push deeper into uncomfortable territory.\n';
+          cognitiveSection += "DON'T: Push deeper into uncomfortable territory.\n";
           break;
         case 'waiting':
           cognitiveSection += 'DO: Continue with your thought or move forward.\n';
-          cognitiveSection += 'DON\'T: Ask if they\'re still there.\n';
+          cognitiveSection += "DON'T: Ask if they're still there.\n";
           break;
       }
 
@@ -388,22 +391,22 @@ export class PersonaIntelligenceEngine {
         case 'gentle_question':
           cognitiveSection += 'DO: Ask a question that introduces your perspective.\n';
           cognitiveSection += 'Example: "Have you considered...?" or "What if...?"\n';
-          cognitiveSection += 'DON\'T: State your disagreement directly.\n';
+          cognitiveSection += "DON'T: State your disagreement directly.\n";
           break;
         case 'direct_but_warm':
           cognitiveSection += 'DO: Share your view warmly but directly.\n';
           cognitiveSection += 'Example: "I actually see it differently..." with warmth.\n';
-          cognitiveSection += 'DON\'T: Beat around the bush or be wishy-washy.\n';
+          cognitiveSection += "DON'T: Beat around the bush or be wishy-washy.\n";
           break;
         case 'evidence_based':
           cognitiveSection += 'DO: Present evidence or data that challenges their view.\n';
           cognitiveSection += 'Example: "The research actually suggests..."\n';
-          cognitiveSection += 'DON\'T: Rely on emotion or opinion alone.\n';
+          cognitiveSection += "DON'T: Rely on emotion or opinion alone.\n";
           break;
         case 'reframe':
-          cognitiveSection += 'DO: Offer a different perspective without saying they\'re wrong.\n';
+          cognitiveSection += "DO: Offer a different perspective without saying they're wrong.\n";
           cognitiveSection += 'Example: "Another way to look at this..."\n';
-          cognitiveSection += 'DON\'T: Directly contradict them.\n';
+          cognitiveSection += "DON'T: Directly contradict them.\n";
           break;
       }
       if (diff.disagreement.strongOpinionTopics.length > 0) {
@@ -415,23 +418,23 @@ export class PersonaIntelligenceEngine {
       switch (diff.insight.primaryFraming) {
         case 'observation':
           cognitiveSection += 'DO: Start with "I notice..." or "I\'m seeing..."\n';
-          cognitiveSection += 'DON\'T: State conclusions as facts.\n';
+          cognitiveSection += "DON'T: State conclusions as facts.\n";
           break;
         case 'reflection':
           cognitiveSection += 'DO: Start with "What strikes me..." or "I\'m wondering..."\n';
-          cognitiveSection += 'DON\'T: Be too declarative.\n';
+          cognitiveSection += "DON'T: Be too declarative.\n";
           break;
         case 'hypothesis':
           cognitiveSection += 'DO: Start with "It sounds like..." or "Could it be that...?"\n';
-          cognitiveSection += 'DON\'T: Tell them what they\'re feeling.\n';
+          cognitiveSection += "DON'T: Tell them what they're feeling.\n";
           break;
         case 'story':
           cognitiveSection += 'DO: Share a relevant story or example first.\n';
-          cognitiveSection += 'DON\'T: Give direct advice without context.\n';
+          cognitiveSection += "DON'T: Give direct advice without context.\n";
           break;
         case 'data':
           cognitiveSection += 'DO: Lead with facts, statistics, or research.\n';
-          cognitiveSection += 'DON\'T: Rely solely on anecdotes.\n';
+          cognitiveSection += "DON'T: Rely solely on anecdotes.\n";
           break;
       }
 
@@ -501,17 +504,17 @@ export class PersonaIntelligenceEngine {
     if (this.config.enableRelationshipMemory) {
       const relContext = this.relationshipEngine.getRelationshipContext();
       const memory = this.relationshipEngine.getMemory();
-      
+
       const behaviorContext: BehaviorContext = {
         stage: relContext.stage,
         sessionCount: memory.totalSessions ?? memory.conversationHistory?.length ?? 0,
         totalTurns: memory.totalTurns ?? 0,
         userHasSharedVulnerability: memory.sharedMoments.some(
-          m => m.type === 'first_vulnerability' || m.type === 'trust_demonstration'
+          (m) => m.type === 'first_vulnerability' || m.type === 'trust_demonstration'
         ),
         userInDistress: false, // Would need to be passed in from emotion detection
       };
-      
+
       behaviorGuardsSection = generateBehaviorConstraints(behaviorContext);
       sections.push(behaviorGuardsSection);
     }

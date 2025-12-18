@@ -26,7 +26,7 @@ This document outlines all phases needed to deploy the Proactive Outreach System
 
 ### 1.1 Build Verification
 - [ ] `npm run build` passes with 0 errors
-- [ ] Frontend builds: `cd frontend-typescript && npm run build`
+- [ ] Frontend builds: `cd apps/web && npm run build`
 - [ ] No TypeScript errors in outreach modules
 
 ### 1.2 Environment Variables

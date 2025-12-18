@@ -26,6 +26,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { toolOrchestrator, type ToolSelectionContext } from './unified-tool-orchestrator.js';
 import { buildAgentTools, buildEssentialTools } from '../builder.js';
 import { buildHandoffTools } from '../handoff/handoff-factory.js';
+import { autoRegisterAllDomains } from '../registry/loader.js';
 import type { Tool, ToolContext } from '../registry/types.js';
 import type { UserProfile } from '../../types/user-profile.js';
 
@@ -103,6 +104,11 @@ export async function initializeToolOrchestrator(): Promise<void> {
   log.info('🚀 Initializing tool orchestrator for voice agent...');
 
   try {
+    // CRITICAL: Register domain loaders BEFORE initializing orchestrator
+    // This is required for tool definitions to be discoverable
+    await autoRegisterAllDomains();
+    log.info('📦 Domain loaders registered');
+
     await toolOrchestrator.initialize();
     initialized = true;
 
@@ -150,10 +156,7 @@ export async function getToolsForAgent(options: GetToolsForAgentOptions): Promis
       subscriptionTier: options.subscriptionTier,
       context: options.context,
       forceInclude: options.forceInclude,
-      forceExclude: [
-        ...(options.forceExclude || []),
-        ...(options.persona.tools?.forbidden || []),
-      ],
+      forceExclude: [...(options.forceExclude || []), ...(options.persona.tools?.forbidden || [])],
     });
 
     // Add handoff tools (handled separately due to unlock logic)
@@ -404,4 +407,3 @@ export default {
   getToolSelectionDiagnostics,
   explainToolSelection,
 };
-

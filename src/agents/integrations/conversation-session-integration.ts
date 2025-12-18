@@ -42,11 +42,20 @@ import {
   type TurnInput,
   type TurnResult,
 } from '../../conversation/unified-integration.js';
+import {
+  initializeSessionIntelligence,
+  processMessageWithIntelligence,
+  endSessionIntelligence,
+  type IntelligenceIntegration,
+} from '../shared/intelligence-hooks.js';
 
 // Also export types for voice agent use
 export type { ConversationSession, TurnResult };
 
 const log = createLogger({ module: 'ConversationSessionIntegration' });
+
+// Store intelligence integrations per session
+const intelligenceStore = new Map<string, IntelligenceIntegration>();
 
 // ============================================================================
 // TYPES
@@ -101,10 +110,13 @@ export interface HumanizedResponse {
  * Initialize a conversation session for the voice agent
  *
  * Call this at session start (STEP 7a2 in voice-agent.ts)
+ *
+ * NOW WITH INTELLIGENCE! This also initializes the persona intelligence
+ * system for moment detection, predictive analysis, and relationship memory.
  */
-export function initConversationSession(
+export async function initConversationSession(
   config: VoiceAgentSessionConfig
-): ConversationSession | null {
+): Promise<ConversationSession | null> {
   try {
     const session = createConversationSession({
       sessionId: config.sessionId,
@@ -114,11 +126,25 @@ export function initConversationSession(
       relationshipStage: config.relationshipStage,
     });
 
+    // Initialize intelligence integration (for moment detection, predictive analysis)
+    if (config.userId) {
+      const intelligence = await initializeSessionIntelligence(config.personaId, config.userId);
+      if (intelligence) {
+        intelligenceStore.set(config.sessionId, intelligence);
+        intelligence.startSession();
+        log.info(
+          { sessionId: config.sessionId, personaId: config.personaId },
+          '🧠 Intelligence integration initialized'
+        );
+      }
+    }
+
     log.info(
       {
         sessionId: config.sessionId,
         personaId: config.personaId,
         hasUserId: !!config.userId,
+        hasIntelligence: intelligenceStore.has(config.sessionId),
       },
       '🎭 Conversation session initialized for voice agent'
     );
@@ -140,15 +166,59 @@ export function getVoiceAgentConversationSession(sessionId: string): Conversatio
 /**
  * Cleanup a conversation session
  *
- * Call this at session end
+ * Call this at session end. Also ends intelligence session and persists relationship memory.
  */
-export function cleanupConversationSession(sessionId: string): void {
+export async function cleanupConversationSession(
+  sessionId: string,
+  sessionMood?: 'positive' | 'neutral' | 'struggling' | 'crisis',
+  topics?: string[]
+): Promise<void> {
   try {
     endConversationSession(sessionId);
+
+    // End intelligence session and persist memory
+    const intelligence = intelligenceStore.get(sessionId);
+    if (intelligence) {
+      await endSessionIntelligence(intelligence, sessionMood, topics);
+      intelligenceStore.delete(sessionId);
+      log.info({ sessionId }, '🧠 Intelligence session ended and memory persisted');
+    }
+
     log.info({ sessionId }, '🎭 Conversation session cleaned up');
   } catch (error) {
     log.warn({ error: String(error), sessionId }, 'Error during conversation session cleanup');
   }
+}
+
+/**
+ * Process a user message through the intelligence system for moment detection
+ *
+ * Call this after each user turn to detect and record moments.
+ * Returns analysis including detected moments and concerns.
+ */
+export async function processMessageWithIntelligenceSystem(
+  sessionId: string,
+  userMessage: string,
+  aiResponse?: string,
+  topic?: string
+): Promise<{
+  shouldAcknowledge: boolean;
+  concerns: Array<{ severity: string; detection: string }>;
+  suggestedResponse?: string;
+} | null> {
+  const intelligence = intelligenceStore.get(sessionId);
+  if (!intelligence) {
+    return null;
+  }
+
+  return processMessageWithIntelligence(intelligence, userMessage, aiResponse, topic);
+}
+
+/**
+ * Get intelligence integration for a session (for advanced usage)
+ */
+export function getIntelligence(sessionId: string): IntelligenceIntegration | null {
+  return intelligenceStore.get(sessionId) || null;
 }
 
 // ============================================================================

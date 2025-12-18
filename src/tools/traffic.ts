@@ -16,6 +16,7 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../utils/safe-logger.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
@@ -467,13 +468,7 @@ export function getSavedLocation(userId: string, name: string): SavedLocation | 
 export function createTrafficTools() {
   return {
     getCommuteTime: llm.tool({
-      description: `Get current traffic and commute time between two locations. Use when someone asks:
-- "How long to get to work?"
-- "What's traffic like to the airport?"
-- "How long will it take to drive to mom's house?"
-- "Traffic to downtown?"
-
-Provide specific addresses or well-known locations for best results.`,
+      description: getToolDescription('getCommuteTime'),
       parameters: z.object({
         origin: z
           .string()
@@ -488,11 +483,7 @@ Provide specific addresses or well-known locations for best results.`,
     }),
 
     getDirections: llm.tool({
-      description: `Get turn-by-turn directions between two locations. Use when someone asks:
-- "How do I get to..."
-- "Directions to the airport"
-- "Navigate to..."
-- "What's the best way to get to..."`,
+      description: getToolDescription('getDirections'),
       parameters: z.object({
         origin: z.string().describe('Starting location'),
         destination: z.string().describe('Destination'),
@@ -508,7 +499,7 @@ Provide specific addresses or well-known locations for best results.`,
     }),
 
     saveLocation: llm.tool({
-      description: `Save a frequently used location (like home or work) for quick reference.`,
+      description: getToolDescription('saveLocation'),
       parameters: z.object({
         name: z.string().describe('Name for this location (e.g., "home", "work", "gym")'),
         address: z.string().describe('Full address'),

@@ -22,6 +22,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 import { isLifeCoachAnalyticsEnabled, trackToolUsage } from '../shared/index.js';
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 import {
   persistKeyMoment,
   persistTrackedItem,
@@ -200,8 +201,7 @@ const logExerciseDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user log physical activity. Celebrate their effort and track progress toward goals.',
+      description: getToolDescription('logExercise'),
       parameters: z.object({
         activityType: z
           .enum([
@@ -295,8 +295,7 @@ const suggestWorkoutDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        "Suggest a workout based on user's current energy level, available time, and goals.",
+      description: getToolDescription('suggestWorkout'),
       parameters: z.object({
         energyLevel: z.enum(['low', 'moderate', 'high']).describe('Current energy level'),
         availableMinutes: z.number().optional().describe('Time available for workout'),
@@ -370,7 +369,7 @@ const trackFitnessGoalDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user set and track fitness goals.',
+      description: getToolDescription('trackFitnessGoal'),
       parameters: z.object({
         action: z.enum(['set', 'check', 'update', 'celebrate']).describe('What action to take'),
         goalType: z
@@ -469,8 +468,7 @@ const coachOnNutritionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Provide general nutrition guidance. Not medical or dietary advice - encourage consulting professionals for specific needs.',
+      description: getToolDescription('coachOnNutrition'),
       parameters: z.object({
         topic: z
           .enum([
@@ -606,7 +604,7 @@ const trackHydrationDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user track their water intake and remind them to stay hydrated.',
+      description: getToolDescription('trackHydration'),
       parameters: z.object({
         action: z.enum(['log', 'check', 'remind', 'tips']).describe('What to do'),
         amount: z.number().optional().describe('Amount in ounces'),
@@ -669,7 +667,7 @@ const analyzeSleepPatternDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user understand their sleep patterns and identify areas for improvement.',
+      description: getToolDescription('analyzeSleepPattern'),
       parameters: z.object({
         averageHours: z.number().optional().describe('Average hours of sleep'),
         sleepQuality: z.enum(['poor', 'fair', 'good', 'excellent']).optional(),
@@ -790,7 +788,7 @@ const suggestSleepHygieneDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Provide sleep hygiene recommendations for better sleep.',
+      description: getToolDescription('suggestSleepHygiene'),
       parameters: z.object({
         focus: z.enum(['environment', 'routine', 'daytime', 'all']).describe('Area to focus on'),
         currentChallenges: z.array(z.string()).optional().describe('Current sleep challenges'),
@@ -845,8 +843,7 @@ const logSymptomDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user log symptoms to track patterns. This is for personal tracking, not medical diagnosis.',
+      description: getToolDescription('logSymptom'),
       parameters: z.object({
         symptom: z.string().describe('The symptom being logged'),
         severity: z.enum(['mild', 'moderate', 'severe']).optional(),
@@ -890,8 +887,7 @@ const prepareForDoctorVisitDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user prepare for a doctor appointment with questions and information to bring.',
+      description: getToolDescription('prepareForDoctorVisit'),
       parameters: z.object({
         visitType: z
           .enum(['annual-physical', 'specific-concern', 'follow-up', 'specialist', 'mental-health'])
@@ -978,8 +974,7 @@ const remindPreventiveCareDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Provide reminders about preventive health screenings and checkups based on age.',
+      description: getToolDescription('remindPreventiveCare'),
       parameters: z.object({
         ageRange: z.enum(['under-30', '30-39', '40-49', '50-plus']).describe('Age range'),
         lastPhysical: z.string().optional().describe('When was last annual physical'),
@@ -1046,7 +1041,7 @@ const assessEnergyLevelDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user assess their current energy and understand patterns.',
+      description: getToolDescription('assessEnergyLevel'),
       parameters: z.object({
         currentLevel: z
           .enum(['depleted', 'low', 'moderate', 'good', 'high'])
@@ -1118,7 +1113,7 @@ const suggestEnergyBoostDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Suggest healthy ways to boost energy levels.',
+      description: getToolDescription('suggestEnergyBoost'),
       parameters: z.object({
         availableTime: z
           .enum(['1-minute', '5-minutes', '15-minutes', '30-plus'])

@@ -7,4 +7,4 @@
  */
 
 export { createSpotifyTools } from '../spotify.js';
-export { default as createMusicTools } from '../music.js';
+export { default as createMusicTools } from './entertainment/music.js';

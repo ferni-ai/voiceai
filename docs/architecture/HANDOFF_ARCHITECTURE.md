@@ -23,7 +23,7 @@ src/
 ### 2. Frontend (TypeScript)
 
 ```
-frontend-typescript/src/
+apps/web/src/
 ├── services/
 │   ├── handoff.service.ts   # Processes handoff events, rate limiting
 │   ├── audio.service.ts     # Handoff sound effects
@@ -248,7 +248,7 @@ if (handoffFailed) {
 
 ```bash
 # Run handoff tests
-cd frontend-typescript
+cd apps/web
 npm test -- --run tests/e2e/handoffs.test.ts
 
 # All 38+ handoff-related tests should pass

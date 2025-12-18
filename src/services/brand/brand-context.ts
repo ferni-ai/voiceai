@@ -404,12 +404,12 @@ async function loadBrandLearnings(): Promise<BrandLearnings> {
   try {
     const db = getFirestore();
 
-    // Load winning patterns from completed experiments
-    const patternsSnap = await db.collection('brand_learnings').doc('winning_patterns').get();
-
-    const failedSnap = await db.collection('brand_learnings').doc('failed_approaches').get();
-
-    const prefsSnap = await db.collection('brand_learnings').doc('user_preferences').get();
+    // Load all brand learnings in parallel (3x faster)
+    const [patternsSnap, failedSnap, prefsSnap] = await Promise.all([
+      db.collection('brand_learnings').doc('winning_patterns').get(),
+      db.collection('brand_learnings').doc('failed_approaches').get(),
+      db.collection('brand_learnings').doc('user_preferences').get(),
+    ]);
 
     return {
       winningPatterns: (patternsSnap.data()?.patterns as ExperimentPattern[]) || [],

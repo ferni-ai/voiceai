@@ -48,7 +48,7 @@ team.ui.ts::onTeamMemberClick(personaId)
             })
 ```
 
-**Files**: `frontend-typescript/src/ui/team.ui.ts`
+**Files**: `apps/web/src/ui/team.ui.ts`
 
 ### 2. Backend Receives Request
 
@@ -147,7 +147,7 @@ handoff.service.ts::processDataMessage()
          └─ Reset state, notify callbacks
 ```
 
-**Files**: `frontend-typescript/src/services/handoff.service.ts`
+**Files**: `apps/web/src/services/handoff.service.ts`
 
 ### 5. Visual Updates (Team UI)
 
@@ -173,7 +173,7 @@ team.ui.ts event handlers
          └─ clearSwitchingFeedback(target)
 ```
 
-**Files**: `frontend-typescript/src/ui/team.ui.ts`
+**Files**: `apps/web/src/ui/team.ui.ts`
 
 ---
 
@@ -203,7 +203,7 @@ team.ui.ts event handlers
 
 ## Tests Added (Dec 14, 2025)
 
-The following tests were added to `frontend-typescript/tests/unit/services/handoff.service.test.ts`:
+The following tests were added to `apps/web/tests/unit/services/handoff.service.test.ts`:
 
 ### 1. Soft-Open Timing Sync (3 tests)
 
@@ -401,13 +401,13 @@ test('should allow handoff after team member unlocked', async () => {
 
 ```bash
 # Run frontend handoff tests
-cd frontend-typescript && pnpm test -- handoff
+cd apps/web && pnpm test -- handoff
 
 # Run backend handoff tests
 pnpm test -- handoff
 
 # Run Playwright roster tests
-cd frontend-typescript && pnpm test:e2e -- dynamic-roster
+cd apps/web && pnpm test:e2e -- dynamic-roster
 
 # Run all handoff-related tests
 pnpm test -- --grep "handoff|roster|team"
@@ -419,10 +419,10 @@ pnpm test -- --grep "handoff|roster|team"
 
 ### Frontend
 
-- `frontend-typescript/src/ui/team.ui.ts` - Roster UI component
-- `frontend-typescript/src/services/handoff.service.ts` - Handoff state management
-- `frontend-typescript/tests/e2e/handoffs.test.ts` - Handoff unit tests
-- `frontend-typescript/tests/e2e/dynamic-roster.spec.ts` - Playwright tests
+- `apps/web/src/ui/team.ui.ts` - Roster UI component
+- `apps/web/src/services/handoff.service.ts` - Handoff state management
+- `apps/web/tests/e2e/handoffs.test.ts` - Handoff unit tests
+- `apps/web/tests/e2e/dynamic-roster.spec.ts` - Playwright tests
 
 ### Backend
 
@@ -434,4 +434,4 @@ pnpm test -- --grep "handoff|roster|team"
 ### Shared
 
 - `src/config/handoff-timing.ts` - Timing constants
-- `frontend-typescript/src/config/handoff-timing.ts` - Frontend timing (mirrored)
+- `apps/web/src/config/handoff-timing.ts` - Frontend timing (mirrored)

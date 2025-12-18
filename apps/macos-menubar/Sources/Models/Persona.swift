@@ -28,6 +28,11 @@ struct Persona: Identifiable, Equatable {
         default: return "#4a6741"
         }
     }
+    
+    /// Short tagline for display (alias for role)
+    var tagline: String {
+        role
+    }
 }
 
 // MARK: - Persona Registry

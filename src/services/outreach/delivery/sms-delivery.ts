@@ -336,11 +336,24 @@ export async function sendSMSWithRetry(
       '🔄 Scheduling SMS retry'
     );
 
-    // Schedule retry
-    return new Promise((resolve) => {
+    // FIX BUG: The previous implementation had two issues:
+    // 1. Used `void` to ignore the retry promise, so errors went unhandled
+    // 2. Never called reject(), so if the retry failed the promise would hang
+    // New implementation properly chains promises and handles errors
+    return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         pendingRetries.delete(message.outreachId);
-        void sendSMSWithRetry(message, retryCount + 1).then(resolve);
+        sendSMSWithRetry(message, retryCount + 1)
+          .then(resolve)
+          .catch((error) => {
+            // Log the error but resolve with a failure result instead of rejecting
+            // This ensures the caller always gets a result, not an exception
+            log.error({ error, userId: message.userId, retryCount }, 'SMS retry failed');
+            resolve({
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          });
       }, delay);
 
       pendingRetries.set(message.outreachId, timeout);

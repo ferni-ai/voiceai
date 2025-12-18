@@ -28,7 +28,6 @@ import {
   STAGE_NAMES,
 } from '../services/relationship-stage.service.js';
 import { trapFocus } from '../utils/accessibility.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { getConnectionState } from './connection-heart.ui.js';
 import {
@@ -40,10 +39,27 @@ import {
 import { shareJourneySummaryCard } from './milestone-card.ui.js';
 import { soundUI } from './sound.ui.js';
 import { toast } from './toast.ui.js';
+import { fetchJourneyData, loadFromCache } from './trust-journey/data.js';
+import type { TrustJourneyData } from './trust-journey/types.js';
 
 const log = createLogger('JourneyUI');
 
 type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'speaking' | 'error';
+
+// ============================================================================
+// TRUST JOURNEY DATA TYPES
+// ============================================================================
+
+interface TrustInsights {
+  trustScore: number;
+  growthMoments: number;
+  winsCelebrated: number;
+  boundariesRespected: number;
+  sharedMoments: number;
+  growthPatterns: Array<{ type: string; count: number }>;
+  recentWins: Array<{ type: string; description: string }>;
+  timeline: Array<{ date: string; type: string; title: string; description: string }>;
+}
 
 // ============================================================================
 // STATE
@@ -53,6 +69,8 @@ let journeyModal: HTMLElement | null = null;
 let isOpen = false;
 let focusTrapCleanup: (() => void) | null = null;
 let previousActiveElement: HTMLElement | null = null;
+let trustInsightsData: TrustInsights | null = null;
+let isLoadingTrustData = false;
 
 // ============================================================================
 // ICONS (Lucide-style)
@@ -144,6 +162,9 @@ const ICONS = {
     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
     <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
   </svg>`,
+  star: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+  </svg>`,
   check: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <polyline points="20 6 9 17 4 12"/>
   </svg>`,
@@ -160,6 +181,31 @@ const ICONS = {
   </svg>`,
   chevronDown: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="m6 9 6 6 6-6"/>
+  </svg>`,
+  // Trust Journey icons
+  sparkles: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+    <path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>
+  </svg>`,
+  trophy: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+    <path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+  </svg>`,
+  leaf: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/>
+    <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>
+  </svg>`,
+  shield: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>
+  </svg>`,
+  messageHeart: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>
+    <path d="M12 9c-.5-1-1.5-1.5-2.5-1.5-1.4 0-2.5 1-2.5 2.5 0 2.5 5 5 5 5s5-2.5 5-5c0-1.5-1.1-2.5-2.5-2.5-1 0-2 .5-2.5 1.5Z"/>
+  </svg>`,
+  clock: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
   </svg>`,
 };
 
@@ -236,9 +282,6 @@ export function closeJourney(): void {
     focusTrapCleanup();
     focusTrapCleanup = null;
   }
-
-  // Clean up iOS tap listeners
-  cleanupTapListeners(journeyModal);
 
   // Clean up event listener
   window.removeEventListener(
@@ -341,7 +384,7 @@ function createModal(): void {
   const stage = relationshipStageService.getStage();
   const stageMetrics = relationshipStageService.getMetrics();
   const stageProgress = relationshipStageService.getProgressToNextStage();
-  const stageInfo = STAGE_DESCRIPTIONS[stage] ?? STAGE_DESCRIPTIONS['first-meeting']!;
+  const stageInfo = STAGE_DESCRIPTIONS[stage] ?? STAGE_DESCRIPTIONS['first-meeting'];
   const stageName = STAGE_NAMES[stage] ?? 'First Meeting';
   const progressPercent = Math.round(stageProgress.progress * 100);
 
@@ -360,7 +403,7 @@ function createModal(): void {
   const grouped: Record<string, typeof milestones> = {};
   for (const m of milestones) {
     if (!grouped[m.category]) grouped[m.category] = [];
-    grouped[m.category]!.push(m);
+    grouped[m.category].push(m);
   }
 
   // Calculate streak info
@@ -431,12 +474,31 @@ function createModal(): void {
             </div>
           ` : `
             <div class="journey-next-stage journey-next-stage--max">
-              <span class="journey-next-stage__label">Max level reached! 🌟</span>
+              <span class="journey-next-stage__label">Max level reached! <span class="journey-next-stage__icon">${ICONS.star}</span></span>
             </div>
           `}
         </section>
         
         ${renderConnectionBanner(connectionState)}
+        
+        <!-- Trust Insights Section - THE MEANINGFUL STORY -->
+        <section class="journey-insights-section" id="journey-insights">
+          <div class="journey-insights-header" role="button" tabindex="0" aria-expanded="true">
+            <h3 class="journey-insights-title">
+              ${ICONS.sparkles}
+              <span>What I've Noticed</span>
+            </h3>
+            <span class="journey-insights-toggle">${ICONS.chevronDown}</span>
+          </div>
+          <div class="journey-insights-body">
+            <!-- Loading state - will be replaced with actual data -->
+            <div class="journey-insights-loading">
+              <div class="journey-insights-skeleton"></div>
+              <div class="journey-insights-skeleton journey-insights-skeleton--short"></div>
+              <p class="journey-insights-loading-text">Loading your story...</p>
+            </div>
+          </div>
+        </section>
         
         <!-- Milestones Section -->
         <section class="journey-milestones-section">
@@ -465,11 +527,14 @@ function createModal(): void {
 
   // Inject styles
   injectStyles();
+  
+  // Load trust insights data asynchronously
+  void loadTrustInsights();
 
-  // Add event listeners (iOS-compatible)
-  addTapListener(journeyModal.querySelector('.journey-backdrop'), closeJourney);
-  addTapListener(journeyModal.querySelector('.journey-close'), closeJourney);
-  addTapListener(journeyModal.querySelector('.journey-share'), () => {
+  // Add event listeners
+  journeyModal.querySelector('.journey-backdrop')?.addEventListener('click', closeJourney);
+  journeyModal.querySelector('.journey-close')?.addEventListener('click', closeJourney);
+  journeyModal.querySelector('.journey-share')?.addEventListener('click', () => {
     shareJourney(celebrated, total, streak, totalDays);
   });
 
@@ -483,7 +548,7 @@ function createModal(): void {
       milestonesBody.classList.toggle('collapsed', isExpanded);
       milestonesHeader.classList.toggle('collapsed', isExpanded);
     };
-    addTapListener(milestonesHeader, toggleMilestones);
+    milestonesHeader.addEventListener('click', toggleMilestones);
     milestonesHeader.addEventListener('keydown', (e) => {
       if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') {
         e.preventDefault();
@@ -493,7 +558,7 @@ function createModal(): void {
   }
 
   // Connect button handler
-  addTapListener(journeyModal.querySelector('.journey-connect-btn'), handleConnectClick);
+  journeyModal.querySelector('.journey-connect-btn')?.addEventListener('click', handleConnectClick);
 
   // Listen for connection state changes
   window.addEventListener(
@@ -604,17 +669,315 @@ function updateConnectionBanner(state: ConnectionState): void {
     if (newBanner) {
       existingBanner.replaceWith(newBanner);
 
-      // Re-attach connect button handler (iOS-compatible)
-      addTapListener(
-        journeyModal.querySelector('.journey-connect-btn'),
-        handleConnectClick
-      );
+      // Re-attach connect button handler
+      journeyModal
+        .querySelector('.journey-connect-btn')
+        ?.addEventListener('click', handleConnectClick);
     }
   }
 }
 
+// ============================================================================
+// TRUST INSIGHTS - THE MEANINGFUL STORY
+// ============================================================================
+
+/**
+ * Load trust insights data from backend or cache
+ */
+async function loadTrustInsights(): Promise<void> {
+  if (isLoadingTrustData) return;
+  isLoadingTrustData = true;
+
+  try {
+    // Try cache first
+    const cached = loadFromCache();
+    if (cached) {
+      trustInsightsData = transformTrustData(cached);
+      renderTrustInsights();
+      isLoadingTrustData = false;
+      return;
+    }
+
+    // Fetch from backend
+    // Create minimal state object for fetchJourneyData
+    const fetchState = {
+      isInitialized: true,
+      journeyPanel: null,
+      styleElement: null,
+      cachedData: null,
+      isLoading: false,
+      error: null,
+      timelineOffset: 0,
+      timelineFilter: 'all' as const,
+      focusCleanup: null,
+    };
+    
+    const { data, error } = await fetchJourneyData(fetchState, false);
+    
+    if (error && !data) {
+      renderTrustInsightsEmpty();
+      isLoadingTrustData = false;
+      return;
+    }
+
+    if (data) {
+      trustInsightsData = transformTrustData(data);
+      renderTrustInsights();
+    } else {
+      renderTrustInsightsEmpty();
+    }
+  } catch (err) {
+    log.warn('Failed to load trust insights:', err);
+    renderTrustInsightsEmpty();
+  }
+
+  isLoadingTrustData = false;
+}
+
+/**
+ * Transform backend TrustJourneyData into our TrustInsights format
+ */
+function transformTrustData(data: TrustJourneyData): TrustInsights {
+  return {
+    trustScore: data.summary.relationshipStrength,
+    growthMoments: data.summary.growthMomentsNoticed,
+    winsCelebrated: data.summary.winsCelebrated,
+    boundariesRespected: data.summary.boundariesRespected,
+    sharedMoments: data.summary.sharedMomentsCount,
+    growthPatterns: data.growth.patterns.slice(0, 5).map(p => ({
+      type: formatGrowthType(p.type),
+      count: p.count,
+    })),
+    recentWins: data.celebrations.wins.slice(0, 3).map(w => ({
+      type: formatWinType(w.type),
+      description: w.description || w.whatHappened || 'A moment worth celebrating',
+    })),
+    timeline: data.timeline.slice(0, 5).map(t => ({
+      date: t.date,
+      type: t.type,
+      title: t.title,
+      description: t.description,
+    })),
+  };
+}
+
+/**
+ * Format growth type for display
+ */
+function formatGrowthType(type: string): string {
+  const labels: Record<string, string> = {
+    emotional_regulation: 'Managing emotions better',
+    perspective_shift: 'Seeing things differently',
+    boundary_setting: 'Setting healthy boundaries',
+    behavior_change: 'Making real changes',
+    self_awareness: 'Knowing yourself deeper',
+    coping_upgrade: 'Better coping strategies',
+    goal_progress: 'Moving toward goals',
+  };
+  return labels[type] || 'Personal growth';
+}
+
+/**
+ * Format win type for display
+ */
+function formatWinType(type: string): string {
+  const labels: Record<string, string> = {
+    followed_through: 'Followed through',
+    courage_moment: 'Showed courage',
+    self_care: 'Took care of yourself',
+    boundary_held: 'Held a boundary',
+    hard_conversation: 'Had a hard talk',
+    showed_up: 'Showed up anyway',
+    tried_new_thing: 'Tried something new',
+    asked_for_help: 'Asked for help',
+    let_it_go: 'Let something go',
+    effort_made: 'Made an effort',
+  };
+  return labels[type] || 'Small win';
+}
+
+/**
+ * Render trust insights section with data
+ */
+function renderTrustInsights(): void {
+  if (!journeyModal || !trustInsightsData) return;
+
+  const insightsBody = journeyModal.querySelector('.journey-insights-body');
+  if (!insightsBody) return;
+
+  const { trustScore, growthMoments, winsCelebrated, boundariesRespected, sharedMoments, growthPatterns, recentWins, timeline } = trustInsightsData;
+
+  // Check if we have any meaningful data
+  const hasData = growthMoments > 0 || winsCelebrated > 0 || sharedMoments > 0 || growthPatterns.length > 0;
+
+  if (!hasData) {
+    renderTrustInsightsEmpty();
+    return;
+  }
+
+  insightsBody.innerHTML = `
+    <!-- Trust Stats Grid -->
+    <div class="journey-trust-stats">
+      <div class="journey-trust-stat">
+        <span class="journey-trust-stat__icon">${ICONS.leaf}</span>
+        <span class="journey-trust-stat__value">${growthMoments}</span>
+        <span class="journey-trust-stat__label">Growth moments</span>
+      </div>
+      <div class="journey-trust-stat">
+        <span class="journey-trust-stat__icon">${ICONS.trophy}</span>
+        <span class="journey-trust-stat__value">${winsCelebrated}</span>
+        <span class="journey-trust-stat__label">Wins celebrated</span>
+      </div>
+      <div class="journey-trust-stat">
+        <span class="journey-trust-stat__icon">${ICONS.shield}</span>
+        <span class="journey-trust-stat__value">${boundariesRespected}</span>
+        <span class="journey-trust-stat__label">Boundaries honored</span>
+      </div>
+      <div class="journey-trust-stat">
+        <span class="journey-trust-stat__icon">${ICONS.messageHeart}</span>
+        <span class="journey-trust-stat__value">${sharedMoments}</span>
+        <span class="journey-trust-stat__label">Shared moments</span>
+      </div>
+    </div>
+
+    ${growthPatterns.length > 0 ? `
+      <!-- Growth Patterns -->
+      <div class="journey-trust-section">
+        <h4 class="journey-trust-section__title">How you've grown</h4>
+        <div class="journey-growth-patterns">
+          ${growthPatterns.map(p => `
+            <span class="journey-growth-tag">
+              ${p.type}
+              <span class="journey-growth-tag__count">${p.count}x</span>
+            </span>
+          `).join('')}
+        </div>
+      </div>
+    ` : ''}
+
+    ${recentWins.length > 0 ? `
+      <!-- Recent Wins -->
+      <div class="journey-trust-section">
+        <h4 class="journey-trust-section__title">Recent wins</h4>
+        <div class="journey-wins-list">
+          ${recentWins.map(w => `
+            <div class="journey-win-item">
+              <span class="journey-win-item__icon">${ICONS.trophy}</span>
+              <div class="journey-win-item__content">
+                <span class="journey-win-item__type">${w.type}</span>
+                <p class="journey-win-item__desc">${escapeHtml(w.description)}</p>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : ''}
+
+    ${timeline.length > 0 ? `
+      <!-- Timeline Peek -->
+      <div class="journey-trust-section">
+        <h4 class="journey-trust-section__title">Our story so far</h4>
+        <div class="journey-timeline-peek">
+          ${timeline.slice(0, 3).map(t => `
+            <div class="journey-timeline-item journey-timeline-item--${t.type}">
+              <span class="journey-timeline-item__date">${formatRelativeDate(t.date)}</span>
+              <span class="journey-timeline-item__title">${escapeHtml(t.title)}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : ''}
+  `;
+
+  // Set up toggle for insights section
+  setupInsightsToggle();
+}
+
+/**
+ * Render empty state for trust insights
+ */
+function renderTrustInsightsEmpty(): void {
+  if (!journeyModal) return;
+
+  const insightsBody = journeyModal.querySelector('.journey-insights-body');
+  if (!insightsBody) return;
+
+  insightsBody.innerHTML = `
+    <div class="journey-insights-empty">
+      <span class="journey-insights-empty__icon">${ICONS.sparkles}</span>
+      <h4 class="journey-insights-empty__title">Our story is just beginning</h4>
+      <p class="journey-insights-empty__text">
+        As we talk more, I'll notice your growth, celebrate your wins, 
+        and remember what matters to you. Check back soon.
+      </p>
+    </div>
+  `;
+
+  setupInsightsToggle();
+}
+
+/**
+ * Set up toggle for insights section
+ */
+function setupInsightsToggle(): void {
+  if (!journeyModal) return;
+
+  const insightsHeader = journeyModal.querySelector('.journey-insights-header');
+  const insightsBody = journeyModal.querySelector('.journey-insights-body');
+
+  if (insightsHeader && insightsBody) {
+    // Remove existing listeners before adding by replacing with clone
+    insightsHeader.replaceWith(insightsHeader.cloneNode(true));
+    const newHeader = journeyModal.querySelector('.journey-insights-header');
+    
+    if (newHeader) {
+      // Toggle function must use newHeader (not the replaced insightsHeader)
+      const toggle = () => {
+        const isExpanded = newHeader.getAttribute('aria-expanded') === 'true';
+        newHeader.setAttribute('aria-expanded', String(!isExpanded));
+        insightsBody.classList.toggle('collapsed', isExpanded);
+        newHeader.classList.toggle('collapsed', isExpanded);
+      };
+
+      newHeader.addEventListener('click', toggle);
+      newHeader.addEventListener('keydown', (e) => {
+        if ((e as KeyboardEvent).key === 'Enter' || (e as KeyboardEvent).key === ' ') {
+          e.preventDefault();
+          toggle();
+        }
+      });
+    }
+  }
+}
+
+/**
+ * Format date to relative string
+ */
+function formatRelativeDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+}
+
+/**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 function renderCategory(category: string, items: ReturnType<typeof getMilestones>): string {
-  const meta = CATEGORY_META[category] ?? CATEGORY_META.relationship!;
+  const meta = CATEGORY_META[category] ?? CATEGORY_META.relationship;
   if (!meta) return '';
 
   const celebratedInCategory = items.filter((m) => m.celebrated).length;
@@ -1024,6 +1387,20 @@ function injectStyles(): void {
         color-mix(in srgb, var(--persona-primary) 8%, transparent) 0%,
         color-mix(in srgb, var(--persona-primary) 3%, transparent) 100%
       );
+    }
+
+    .journey-next-stage__icon {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      vertical-align: middle;
+      margin-left: var(--space-1, 4px);
+      color: var(--persona-primary, #4a6741);
+    }
+
+    .journey-next-stage__icon svg {
+      width: 100%;
+      height: 100%;
     }
 
     @supports not (background: color-mix(in srgb, red 50%, blue)) {
@@ -1590,33 +1967,368 @@ function injectStyles(): void {
 
       .journey-content {
         max-height: 90vh;
-        max-height: 90dvh;
         border-radius: var(--radius-2xl, 20px) var(--radius-2xl, 20px) 0 0;
-        /* Safe area for notched devices - bottom sheet pattern */
-        padding-bottom: env(safe-area-inset-bottom, 0);
       }
 
       .journey-header {
         padding: var(--space-4, 16px);
-        /* Safe area for Dynamic Island / notch */
-        padding-top: max(var(--space-4, 16px), env(safe-area-inset-top, 0));
       }
 
       .journey-body {
         padding: var(--space-3, 12px) var(--space-4, 16px);
-        /* iOS smooth scrolling */
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
       }
     }
-    
-    /* iOS Safari specific fixes */
-    @supports (-webkit-touch-callout: none) {
-      @media (max-width: 640px) {
-        .journey-content {
-          max-height: -webkit-fill-available;
-        }
+
+    /* ===== TRUST INSIGHTS SECTION ===== */
+    .journey-insights-section {
+      margin-bottom: var(--space-4, 16px);
+    }
+
+    .journey-insights-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3, 12px);
+      padding: var(--space-3, 12px) var(--space-4, 16px);
+      background: var(--color-background-elevated, rgba(255, 255, 255, 0.5));
+      border-radius: var(--radius-lg, 12px);
+      cursor: pointer;
+      transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+    }
+
+    .journey-insights-header:hover {
+      background: var(--color-background-hover, rgba(0, 0, 0, 0.03));
+    }
+
+    .journey-insights-header:focus-visible {
+      outline: 2px solid var(--persona-primary, #4a6741);
+      outline-offset: 2px;
+    }
+
+    .journey-insights-title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2, 8px);
+      flex: 1;
+      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+      font-size: var(--text-base, 1rem);
+      font-weight: 600;
+      color: var(--color-text-primary, #2c2520);
+      margin: 0;
+    }
+
+    .journey-insights-title svg {
+      color: var(--persona-primary, #4a6741);
+    }
+
+    .journey-insights-toggle {
+      color: var(--color-text-muted, #70605a);
+      transition: transform ${DURATION.NORMAL}ms ${EASING.STANDARD};
+    }
+
+    .journey-insights-header.collapsed .journey-insights-toggle {
+      transform: rotate(-90deg);
+    }
+
+    .journey-insights-body {
+      padding: var(--space-4, 16px) 0;
+      transition: all ${DURATION.NORMAL}ms ${EASING.STANDARD};
+    }
+
+    .journey-insights-body.collapsed {
+      display: none;
+    }
+
+    /* Loading state */
+    .journey-insights-loading {
+      text-align: center;
+      padding: var(--space-4, 16px);
+    }
+
+    .journey-insights-skeleton {
+      height: 20px;
+      background: linear-gradient(90deg, 
+        var(--color-background-subtle, rgba(0,0,0,0.05)) 25%, 
+        var(--color-background-hover, rgba(0,0,0,0.1)) 50%, 
+        var(--color-background-subtle, rgba(0,0,0,0.05)) 75%
+      );
+      background-size: 200% 100%;
+      border-radius: var(--radius-sm, 4px);
+      animation: skeleton-shimmer 1.5s infinite;
+      margin-bottom: var(--space-2, 8px);
+    }
+
+    .journey-insights-skeleton--short {
+      width: 60%;
+      margin: 0 auto;
+    }
+
+    @keyframes skeleton-shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    .journey-insights-loading-text {
+      font-size: var(--text-sm, 0.875rem);
+      color: var(--color-text-muted, #70605a);
+      margin-top: var(--space-3, 12px);
+    }
+
+    /* Empty state */
+    .journey-insights-empty {
+      text-align: center;
+      padding: var(--space-6, 24px) var(--space-4, 16px);
+    }
+
+    .journey-insights-empty__icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-full, 9999px);
+      background: color-mix(in srgb, var(--persona-primary, #4a6741) 12%, transparent);
+      color: var(--persona-primary, #4a6741);
+      margin-bottom: var(--space-3, 12px);
+    }
+
+    @supports not (background: color-mix(in srgb, red 50%, blue)) {
+      .journey-insights-empty__icon {
+        background: rgba(74, 103, 65, 0.12);
       }
+    }
+
+    .journey-insights-empty__title {
+      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+      font-size: var(--text-lg, 1.125rem);
+      font-weight: 600;
+      color: var(--color-text-primary, #2c2520);
+      margin: 0 0 var(--space-2, 8px);
+    }
+
+    .journey-insights-empty__text {
+      font-size: var(--text-sm, 0.875rem);
+      color: var(--color-text-muted, #70605a);
+      line-height: 1.5;
+      max-width: 280px;
+      margin: 0 auto;
+    }
+
+    /* Trust Stats Grid */
+    .journey-trust-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-3, 12px);
+      margin-bottom: var(--space-5, 20px);
+    }
+
+    .journey-trust-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: var(--space-3, 12px);
+      background: var(--color-background-elevated, rgba(255, 255, 255, 0.5));
+      border-radius: var(--radius-lg, 12px);
+      text-align: center;
+    }
+
+    .journey-trust-stat__icon {
+      color: var(--persona-primary, #4a6741);
+      margin-bottom: var(--space-2, 8px);
+    }
+
+    .journey-trust-stat__icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .journey-trust-stat__value {
+      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+      font-size: var(--text-xl, 1.25rem);
+      font-weight: 700;
+      color: var(--color-text-primary, #2c2520);
+      line-height: 1;
+    }
+
+    .journey-trust-stat__label {
+      font-size: var(--text-xs, 0.75rem);
+      color: var(--color-text-muted, #70605a);
+      margin-top: var(--space-1, 4px);
+    }
+
+    /* Trust Sections */
+    .journey-trust-section {
+      margin-bottom: var(--space-4, 16px);
+    }
+
+    .journey-trust-section__title {
+      font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+      font-size: var(--text-sm, 0.875rem);
+      font-weight: 600;
+      color: var(--color-text-secondary, #5a4d47);
+      margin: 0 0 var(--space-3, 12px);
+    }
+
+    /* Growth Patterns */
+    .journey-growth-patterns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2, 8px);
+    }
+
+    .journey-growth-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1, 4px);
+      padding: var(--space-2, 8px) var(--space-3, 12px);
+      background: color-mix(in srgb, var(--persona-primary, #4a6741) 10%, transparent);
+      color: var(--persona-primary, #4a6741);
+      border-radius: var(--radius-full, 9999px);
+      font-size: var(--text-sm, 0.875rem);
+      font-weight: 500;
+    }
+
+    @supports not (background: color-mix(in srgb, red 50%, blue)) {
+      .journey-growth-tag {
+        background: rgba(74, 103, 65, 0.1);
+      }
+    }
+
+    .journey-growth-tag__count {
+      font-size: var(--text-xs, 0.75rem);
+      opacity: 0.7;
+    }
+
+    /* Recent Wins */
+    .journey-wins-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3, 12px);
+    }
+
+    .journey-win-item {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3, 12px);
+      padding: var(--space-3, 12px);
+      background: var(--color-background-elevated, rgba(255, 255, 255, 0.5));
+      border-radius: var(--radius-lg, 12px);
+    }
+
+    .journey-win-item__icon {
+      color: var(--color-warning, #d4a574);
+      flex-shrink: 0;
+    }
+
+    .journey-win-item__content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .journey-win-item__type {
+      display: block;
+      font-size: var(--text-sm, 0.875rem);
+      font-weight: 600;
+      color: var(--color-text-primary, #2c2520);
+    }
+
+    .journey-win-item__desc {
+      font-size: var(--text-sm, 0.875rem);
+      color: var(--color-text-muted, #70605a);
+      margin: var(--space-1, 4px) 0 0;
+      line-height: 1.4;
+    }
+
+    /* Timeline Peek */
+    .journey-timeline-peek {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2, 8px);
+    }
+
+    .journey-timeline-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3, 12px);
+      padding: var(--space-2, 8px) var(--space-3, 12px);
+      background: var(--color-background-elevated, rgba(255, 255, 255, 0.3));
+      border-radius: var(--radius-md, 8px);
+      border-left: 3px solid var(--persona-primary, #4a6741);
+    }
+
+    .journey-timeline-item--win { border-left-color: var(--color-warning, #d4a574); }
+    .journey-timeline-item--boundary { border-left-color: var(--color-info, #3a6b73); }
+    .journey-timeline-item--callback { border-left-color: var(--color-maya, #a67a6a); }
+    .journey-timeline-item--outreach { border-left-color: var(--color-nayan, #b8956a); }
+
+    .journey-timeline-item__date {
+      font-size: var(--text-xs, 0.75rem);
+      color: var(--color-text-muted, #70605a);
+      white-space: nowrap;
+      min-width: 80px;
+    }
+
+    .journey-timeline-item__title {
+      font-size: var(--text-sm, 0.875rem);
+      color: var(--color-text-primary, #2c2520);
+      font-weight: 500;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Dark theme - Trust Insights */
+    [data-theme="midnight"] .journey-insights-header {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    [data-theme="midnight"] .journey-insights-header:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    [data-theme="midnight"] .journey-insights-title {
+      color: var(--color-text-primary, #faf6f0);
+    }
+
+    [data-theme="midnight"] .journey-insights-empty__icon {
+      background: rgba(107, 143, 94, 0.15);
+    }
+
+    [data-theme="midnight"] .journey-insights-empty__title {
+      color: var(--color-text-primary, #faf6f0);
+    }
+
+    [data-theme="midnight"] .journey-trust-stat {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    [data-theme="midnight"] .journey-trust-stat__value {
+      color: var(--color-text-primary, #faf6f0);
+    }
+
+    [data-theme="midnight"] .journey-trust-section__title {
+      color: var(--color-text-secondary, #c0b8b0);
+    }
+
+    [data-theme="midnight"] .journey-growth-tag {
+      background: rgba(107, 143, 94, 0.15);
+      color: var(--persona-primary, #6b8f5e);
+    }
+
+    [data-theme="midnight"] .journey-win-item {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    [data-theme="midnight"] .journey-win-item__type {
+      color: var(--color-text-primary, #faf6f0);
+    }
+
+    [data-theme="midnight"] .journey-timeline-item {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    [data-theme="midnight"] .journey-timeline-item__title {
+      color: var(--color-text-primary, #faf6f0);
     }
 
     /* Reduced motion */
@@ -1626,8 +2338,10 @@ function injectStyles(): void {
       .journey-share,
       .journey-connection,
       .journey-connect-btn,
-      .journey-milestone__progress-bar {
+      .journey-milestone__progress-bar,
+      .journey-insights-skeleton {
         transition: none;
+        animation: none;
       }
       
       .journey-connection__icon--spin svg {
@@ -1637,6 +2351,25 @@ function injectStyles(): void {
   `;
 
   document.head.appendChild(style);
+}
+
+// ============================================================================
+// GLOBAL EVENT LISTENER - For backwards compatibility
+// ============================================================================
+
+// Listen for ferni:open-journey event (fired by relationship-progress.ui.ts fallback)
+if (typeof window !== 'undefined') {
+  window.addEventListener('ferni:open-journey', () => {
+    openJourney();
+  });
+  
+  // Expose journeyUI on window for E2E tests and external access
+  (window as unknown as { journeyUI: typeof journeyUI }).journeyUI = {
+    open: openJourney,
+    close: closeJourney,
+    toggle: toggleJourney,
+    isOpen: () => isOpen,
+  };
 }
 
 // ============================================================================

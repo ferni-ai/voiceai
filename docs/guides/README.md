@@ -38,7 +38,7 @@ These files define coding standards for both humans and AI assistants:
 | **[Tool Guide](../src/tools/CLAUDE.md)**                                    | How to create tools                 | src/tools/                         |
 | **[Persona Guide](../src/personas/CLAUDE.md)**                              | How to create personas              | src/personas/                      |
 | **[Context Builder Guide](../src/intelligence/context-builders/CLAUDE.md)** | Context builder patterns            | src/intelligence/context-builders/ |
-| **[Frontend Guide](../frontend-typescript/CLAUDE.md)**                      | Frontend design standards           | frontend-typescript/               |
+| **[Frontend Guide](../apps/web/CLAUDE.md)**                      | Frontend design standards           | apps/web/               |
 
 ---
 

@@ -18,6 +18,7 @@ import { sanitizePlainText } from './validation.js';
 import { getProductivityStore, type TaskData } from '../services/productivity-store.js';
 import { getLogger, generateId } from './utils/tool-helpers.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // Bridge function to convert TaskData to Task
 function taskDataToTask(data: TaskData & { userId?: string }, userId: string): Task {
   return {
@@ -519,12 +520,7 @@ export function getUpcomingTasks(userId: string, days = 7): Task[] {
 export function createTaskTools() {
   return {
     addTask: llm.tool({
-      description: `Add a new task to the user's to-do list.
-Use when the user says things like:
-- "Remind me to..."
-- "I need to..."
-- "Add to my list..."
-- "Don't let me forget..."`,
+      description: getToolDescription('addTask'),
       parameters: z.object({
         title: z.string().describe('What needs to be done'),
         dueDate: z
@@ -588,7 +584,7 @@ Use when the user says things like:
     }),
 
     completeTask: llm.tool({
-      description: `Mark a task as done. Use when user says "done", "finished", "completed", etc.`,
+      description: getToolDescription('completeTask'),
       parameters: z.object({
         taskTitle: z.string().describe('Which task to complete (partial match OK)'),
         notes: z.string().optional().describe('Any completion notes'),
@@ -608,7 +604,7 @@ Use when the user says things like:
         }
 
         const result = completeTask(task.id, notes);
-        if (!result) return `Error completing task.`;
+        if (!result) return `Hmm, I had trouble marking that done. Want to try again?`;
 
         let response = `🎉 Done! "${result.task.title}" is complete!`;
         if (result.nextInstance) {
@@ -633,7 +629,7 @@ Use when the user says things like:
     }),
 
     getTasks: llm.tool({
-      description: `Show the user's tasks. Use when they ask "what's on my list?" or "what do I need to do?"`,
+      description: getToolDescription('getTasks'),
       parameters: z.object({
         filter: z
           .enum(['all', 'today', 'overdue', 'upcoming', 'completed'])
@@ -712,7 +708,7 @@ Use when the user says things like:
     }),
 
     updateTaskPriority: llm.tool({
-      description: `Change a task's priority. Use when user wants to make something more/less urgent.`,
+      description: getToolDescription('updateTaskPriority'),
       parameters: z.object({
         taskTitle: z.string().describe('Which task'),
         priority: z.enum(['low', 'medium', 'high', 'urgent']).describe('New priority'),
@@ -730,7 +726,7 @@ Use when the user says things like:
         }
 
         const updated = updateTask(task.id, { priority });
-        if (!updated) return `Error updating task.`;
+        if (!updated) return `Couldn't update that task. Want to try again?`;
 
         const emoji = { low: '🟢', medium: '🟡', high: '🟠', urgent: '🔴' }[priority];
         return `${emoji} Updated "${updated.title}" to ${priority} priority.`;
@@ -738,7 +734,7 @@ Use when the user says things like:
     }),
 
     rescheduleTask: llm.tool({
-      description: `Change when a task is due. Use when user wants to postpone or move a task.`,
+      description: getToolDescription('rescheduleTask'),
       parameters: z.object({
         taskTitle: z.string().describe('Which task'),
         newDueDate: z.string().describe('New due date (e.g., "tomorrow", "next Monday")'),
@@ -761,7 +757,7 @@ Use when the user says things like:
         }
 
         const updated = updateTask(task.id, { dueDate: parsedDate });
-        if (!updated) return `Error updating task.`;
+        if (!updated) return `Couldn't reschedule that task. Try again?`;
 
         const dateStr = parsedDate.toLocaleDateString('en-US', {
           weekday: 'long',
@@ -774,7 +770,7 @@ Use when the user says things like:
     }),
 
     deleteTask: llm.tool({
-      description: `Remove a task from the list entirely. Different from completing.`,
+      description: getToolDescription('deleteTask'),
       parameters: z.object({
         taskTitle: z.string().describe('Which task to delete'),
         confirm: z.boolean().describe('User has confirmed deletion'),
@@ -801,7 +797,7 @@ Use when the user says things like:
     }),
 
     getTaskSummary: llm.tool({
-      description: `Get a quick summary of task status. Good for daily check-ins.`,
+      description: getToolDescription('getTaskSummary'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userData = ctx?.userData as { userId?: string } | undefined;

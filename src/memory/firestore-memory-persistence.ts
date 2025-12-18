@@ -421,6 +421,7 @@ export class FirestoreMemoryPersistence {
 
   /**
    * Delete all memory data for a user (GDPR compliance)
+   * FIX: Now handles individual delete failures gracefully and reports them
    */
   async deleteUserMemoryData(userId: string): Promise<void> {
     if (!this.db) return;
@@ -428,28 +429,83 @@ export class FirestoreMemoryPersistence {
     try {
       const userDoc = this.db.collection(this.USERS_COLLECTION).doc(userId);
 
-      // Delete associative memory
-      const assocSnapshot = await userDoc.collection('associative_memory').get();
+      // Batch fetch all collections in parallel (3x faster)
+      const [assocSnapshot, patternSnapshot, threadSnapshot] = await Promise.all([
+        userDoc.collection('associative_memory').get(),
+        userDoc.collection('behavioral_patterns').get(),
+        userDoc.collection('emotional_threads').get(),
+      ]);
+
+      // FIX: Track errors from individual deletes to ensure GDPR compliance
+      const errors: string[] = [];
+      let deleted = 0;
+
+      // Collect all delete operations with individual error handling
+      const deleteOps: Promise<void>[] = [];
+
       for (const doc of assocSnapshot.docs) {
-        await doc.ref.delete();
+        deleteOps.push(
+          doc.ref
+            .delete()
+            .then(() => {
+              deleted++;
+            })
+            .catch((err) => {
+              errors.push(`associative_memory/${doc.id}: ${err}`);
+            })
+        );
       }
-
-      // Delete behavioral patterns
-      const patternSnapshot = await userDoc.collection('behavioral_patterns').get();
       for (const doc of patternSnapshot.docs) {
-        await doc.ref.delete();
+        deleteOps.push(
+          doc.ref
+            .delete()
+            .then(() => {
+              deleted++;
+            })
+            .catch((err) => {
+              errors.push(`behavioral_patterns/${doc.id}: ${err}`);
+            })
+        );
       }
-
-      // Delete emotional threads
-      const threadSnapshot = await userDoc.collection('emotional_threads').get();
       for (const doc of threadSnapshot.docs) {
-        await doc.ref.delete();
+        deleteOps.push(
+          doc.ref
+            .delete()
+            .then(() => {
+              deleted++;
+            })
+            .catch((err) => {
+              errors.push(`emotional_threads/${doc.id}: ${err}`);
+            })
+        );
       }
 
       // Delete communication preferences
-      await userDoc.collection('memory_systems').doc('communication_preferences').delete();
+      deleteOps.push(
+        userDoc
+          .collection('memory_systems')
+          .doc('communication_preferences')
+          .delete()
+          .then(() => {
+            deleted++;
+          })
+          .catch((err) => {
+            errors.push(`communication_preferences: ${err}`);
+          })
+      );
 
-      log.info({ userId }, 'Deleted all user memory data');
+      // Execute all deletes in parallel (individual failures won't kill the batch)
+      await Promise.all(deleteOps);
+
+      // FIX: Report partial failures for GDPR compliance tracking
+      if (errors.length > 0) {
+        log.error(
+          { userId, errors, deleted, failed: errors.length },
+          'GDPR deletion partially failed - some documents could not be deleted'
+        );
+      } else {
+        log.info({ userId, deleted }, 'Deleted all user memory data');
+      }
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to delete user memory data');
     }

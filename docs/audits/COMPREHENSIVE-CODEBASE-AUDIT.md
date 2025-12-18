@@ -1,7 +1,7 @@
 # Comprehensive Codebase Audit Report
 
 **Date**: 2024-12-14
-**Scope**: frontend-typescript/src/
+**Scope**: apps/web/src/
 **Focus**: Bugs, gaps, hacks, incomplete features, technical debt
 
 ---

@@ -45,7 +45,7 @@ const log = createLogger({ module: 'context-builder-loader' });
  */
 export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
   // SAFETY - Runs first, can override everything
-  [BuilderCategory.SAFETY]: ['crisis', 'wellbeing-context'],
+  [BuilderCategory.SAFETY]: ['crisis', 'wellbeing-context', 'principal-alignment'],
 
   // EMOTIONAL - Core emotion handling
   [BuilderCategory.EMOTIONAL]: [

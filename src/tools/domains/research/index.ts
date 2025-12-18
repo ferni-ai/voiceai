@@ -15,9 +15,9 @@ import { createDomainExport } from '../../registry/loader.js';
 import type { ToolDefinition, ToolContext, ExternalService } from '../../registry/types.js';
 
 // Import tool creators
-import { createResearchTools } from '../../research-tools.js';
-import { createInsightsAnalysisTools } from '../../insights-analysis.js';
-import { createMarketDataTools } from '../../market-data.js';
+import { createResearchTools } from './research-tools.js';
+import { createInsightsAnalysisTools } from './insights-analysis.js';
+import { createMarketDataTools } from '../finance/market-data.js';
 
 // ============================================================================
 // LEGACY TOOL WRAPPER

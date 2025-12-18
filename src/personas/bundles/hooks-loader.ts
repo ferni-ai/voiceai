@@ -115,7 +115,15 @@ export async function loadHooks(bundlePath: string): Promise<BundleAgentHooks | 
       'on_command',
     ];
 
+    // JSON schema metadata fields to ignore (not hook events)
+    const metadataFields = ['$schema', '_description', '_comment'];
+
     for (const [event, hook] of Object.entries(hooks)) {
+      // Skip JSON schema metadata fields
+      if (metadataFields.includes(event)) {
+        continue;
+      }
+
       if (!validEvents.includes(event as HookEvent)) {
         log.warn({ event }, 'Unknown hook event');
         continue;
@@ -126,7 +134,9 @@ export async function loadHooks(bundlePath: string): Promise<BundleAgentHooks | 
       }
     }
 
-    log.info({ bundlePath, hookCount: Object.keys(hooks).length }, 'Loaded agent hooks');
+    // Count only actual hooks, not metadata fields
+    const actualHookCount = Object.keys(hooks).filter((k) => !metadataFields.includes(k)).length;
+    log.info({ bundlePath, hookCount: actualHookCount }, 'Loaded agent hooks');
     return hooks;
   } catch (error) {
     log.error({ error, bundlePath }, 'Failed to load hooks');

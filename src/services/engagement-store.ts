@@ -12,6 +12,7 @@
  * - engagement_profiles/{userId}/team_huddles/{huddleId} - Team huddle history
  */
 
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 import type { EmotionalWeather, RitualStreak, UserRitualProfile } from './daily-rituals.js';
 
@@ -551,10 +552,12 @@ export class EngagementStore {
     try {
       const docRef = this.db.collection(this.COLLECTION).doc(userId);
       const sessionsRef = docRef.collection('conversation_sessions');
-      await sessionsRef.add({
-        ...session,
-        createdAt: new Date().toISOString(),
-      });
+      await sessionsRef.add(
+        removeUndefined({
+          ...session,
+          createdAt: new Date().toISOString(),
+        })
+      );
     } catch (error) {
       getLogger().warn({ error, userId }, 'Failed to add conversation session');
     }
@@ -650,6 +653,9 @@ export class EngagementStore {
     return this.getAllStreaks(userId);
   }
 
+  /** Firestore batch write limit */
+  private readonly FIRESTORE_BATCH_LIMIT = 500;
+
   async deleteUserData(userId: string): Promise<void> {
     if (!this.db) {
       // Clear from memory cache
@@ -669,9 +675,15 @@ export class EngagementStore {
       ];
       for (const subcol of subcollections) {
         const snapshot = await docRef.collection(subcol).get();
-        const batch = this.db.batch();
-        snapshot.docs.forEach((doc) => batch.delete(doc.ref));
-        await batch.commit();
+
+        // Process in batches to respect Firestore's 500-operation limit
+        const docs = snapshot.docs;
+        for (let i = 0; i < docs.length; i += this.FIRESTORE_BATCH_LIMIT) {
+          const chunk = docs.slice(i, i + this.FIRESTORE_BATCH_LIMIT);
+          const batch = this.db.batch();
+          chunk.forEach((doc) => batch.delete(doc.ref));
+          await batch.commit();
+        }
       }
 
       // Delete main document

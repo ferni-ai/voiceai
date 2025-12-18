@@ -86,6 +86,12 @@ export {
 export { CleanupManager, addAutoCleanupListener, addOnceListener } from './cleanup-patterns.js';
 
 // ============================================================================
+// FIRESTORE UTILITIES
+// ============================================================================
+
+export { cleanForFirestore, deepRemoveUndefined, removeUndefined } from './firestore-utils.js';
+
+// ============================================================================
 // DEFAULT EXPORT
 // ============================================================================
 

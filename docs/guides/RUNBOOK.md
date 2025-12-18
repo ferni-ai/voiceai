@@ -279,7 +279,7 @@ firebase firestore:indexes
 # Run all services locally
 npm run token-server &
 PORT=3002 node ui-server.js &
-cd frontend-typescript && npm run dev
+cd apps/web && npm run dev
 
 # Run smoke tests locally
 npx tsx scripts/smoke-test.ts --url=http://localhost:3001

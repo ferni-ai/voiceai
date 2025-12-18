@@ -15,11 +15,12 @@
  * chapter from launching to legacy.
  */
 
-export { createLifeFirstsTools } from '../life-firsts-tracker.js';
+export { createLifeFirstsTools } from './life-planning/life-firsts-tracker.js';
 export { createCulturalCelebrationTools } from '../cultural-celebrations.js';
 export { createFirstTimePlanningTools } from '../first-time-planning.js';
 export { createGiftRegistryTools } from '../gift-registry.js';
 export { createMilestoneProactiveTools } from '../milestone-proactive.js';
 export { createRetirementPlanningTools } from '../retirement-planning.js';
-export { createGoalManagementTools } from '../goal-management.js';
+export { createGoalManagementTools } from './life-planning/goal-management.js';
 export { createTeamIntegrationTools } from '../team-integration.js';
+export { createEventPlanningTools } from './life-planning/event-planning.js';

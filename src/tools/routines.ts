@@ -21,6 +21,7 @@ import {
 } from '../services/productivity-store.js';
 import { getLogger, generateId } from './utils/tool-helpers.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // Bridge functions for persistence
 function routineDataToRoutine(data: RoutineData, userId: string): Routine {
   return {
@@ -483,12 +484,7 @@ export function skipRoutineStep(routineId: string, stepId: string): RoutineStep 
 export function createRoutineTools() {
   return {
     createRoutine: llm.tool({
-      description: `Create a new daily routine from a template or custom steps.
-Use when user wants to:
-- Set up a morning routine
-- Create an evening wind-down
-- Build a workout routine
-- Design a custom routine`,
+      description: getToolDescription('createRoutine'),
       parameters: z.object({
         name: z.string().describe('Routine name'),
         type: z
@@ -529,8 +525,7 @@ Use when user wants to:
     }),
 
     startRoutine: llm.tool({
-      description: `Begin a routine and guide through steps.
-Use when user says "start my morning routine" etc.`,
+      description: getToolDescription('startRoutine'),
       parameters: z.object({
         routineType: z
           .enum(['morning', 'evening', 'workout', 'wind_down', 'focus'])
@@ -570,7 +565,7 @@ Use when user says "start my morning routine" etc.`,
 
         const routine = userRoutines[0];
         const result = startRoutine(routine.id);
-        if (!result) return `Error starting routine.`;
+        if (!result) return `Had trouble starting that routine. Give it another try?`;
 
         const streak = calculateStreak(routine.id);
 
@@ -590,7 +585,7 @@ Use when user says "start my morning routine" etc.`,
     }),
 
     routineStepDone: llm.tool({
-      description: `Mark current routine step as done and get the next step.`,
+      description: getToolDescription('routineStepDone'),
       parameters: z.object({
         routineName: z.string().optional().describe('Which routine'),
         stepTitle: z.string().optional().describe('Which step was completed'),
@@ -627,7 +622,7 @@ Use when user says "start my morning routine" etc.`,
         }
 
         const result = completeRoutineStep(routine.id, step.id, userId);
-        if (!result) return `Error completing step.`;
+        if (!result) return `Couldn't mark that step done. Try again?`;
 
         if (result.routineComplete) {
           const streak = calculateStreak(routine.id);
@@ -657,7 +652,7 @@ Use when user says "start my morning routine" etc.`,
     }),
 
     skipRoutineStep: llm.tool({
-      description: `Skip the current routine step and move to the next.`,
+      description: getToolDescription('skipRoutineStep'),
       parameters: z.object({
         routineName: z.string().optional(),
       }),
@@ -705,7 +700,7 @@ Use when user says "start my morning routine" etc.`,
     }),
 
     getRoutineProgress: llm.tool({
-      description: `Check routine progress and streaks.`,
+      description: getToolDescription('getRoutineProgress'),
       parameters: z.object({
         routineName: z.string().optional(),
       }),
@@ -746,7 +741,7 @@ Use when user says "start my morning routine" etc.`,
     }),
 
     listRoutines: llm.tool({
-      description: `Show all user's routines.`,
+      description: getToolDescription('listRoutines'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userData = ctx?.userData as { userId?: string } | undefined;

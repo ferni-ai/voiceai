@@ -49,6 +49,7 @@ import { HABIT_TEMPLATES } from './templates.js';
 import { HABIT_BUNDLES } from './bundles.js';
 import { LIFE_TRANSITION_SUPPORT } from './transitions.js';
 
+import { getToolDescription } from '../utils/tool-descriptions.js';
 import {
   generateFrictionTips,
   detectSetbackPattern,
@@ -83,11 +84,7 @@ export function createHabitCoachingTools() {
      * Life assessment - understand where user is
      */
     assessLifeDomains: llm.tool({
-      description: `Assess user's satisfaction across life domains to identify priorities.
-Use when:
-- First meeting a user for habit coaching
-- User wants to improve their life but isn't sure where to start
-- Periodic check-in on overall life satisfaction`,
+      description: getToolDescription('assessLifeDomains'),
       parameters: z.object({
         lifeStage: z
           .enum([
@@ -164,11 +161,7 @@ Use when:
      * Recommend habits based on goals and life stage
      */
     recommendHabits: llm.tool({
-      description: `Recommend habits based on user's goals, life stage, and current priorities.
-Use when:
-- User wants suggestions for new habits
-- User has identified an area to improve
-- Starting fresh with habit building`,
+      description: getToolDescription('recommendHabits'),
       parameters: z.object({
         domain: z
           .enum([
@@ -229,10 +222,7 @@ Use when:
      * Create a new enhanced habit with glidepath
      */
     createEnhancedHabit: llm.tool({
-      description: `Create a new habit with a glidepath progression system.
-Use when:
-- User decides to start a new habit
-- Setting up habit with proper behavior science framework`,
+      description: getToolDescription('createEnhancedHabit'),
       parameters: z.object({
         templateId: z.string().optional().describe('ID of habit template to use'),
         name: z.string().describe('Name of the habit'),
@@ -329,10 +319,7 @@ Use when:
      * Log habit completion
      */
     logHabitCompletion: llm.tool({
-      description: `Log completion of a habit and track progress.
-Use when:
-- User reports doing their habit
-- Daily check-in on habits`,
+      description: getToolDescription('logHabitCompletion'),
       parameters: z.object({
         habitId: z.string().describe('ID of the habit'),
         completed: z.boolean().describe('Whether habit was completed'),
@@ -412,11 +399,7 @@ Use when:
      * Create a habit stack
      */
     createHabitStack: llm.tool({
-      description: `Create a habit stack - chaining multiple habits together.
-Use when:
-- User wants to combine habits for efficiency
-- Building a morning or evening routine
-- Leveraging existing habits as anchors`,
+      description: getToolDescription('createHabitStack'),
       parameters: z.object({
         name: z.string().describe('Name for this habit stack'),
         anchorHabit: z.string().describe('Existing habit or action to build on'),
@@ -462,11 +445,7 @@ Use when:
      * Weekly reflection
      */
     weeklyReflection: llm.tool({
-      description: `Conduct a weekly habit reflection session.
-Use when:
-- Weekly check-in with user
-- User wants to review progress
-- End of week reflection`,
+      description: getToolDescription('weeklyReflection'),
       parameters: z.object({
         wins: z.array(z.string()).describe('What went well this week'),
         challenges: z.array(z.string()).describe('What was difficult'),
@@ -513,11 +492,7 @@ Use when:
      * Get personalized encouragement
      */
     getEncouragement: llm.tool({
-      description: `Get personalized encouragement based on habit progress.
-Use when:
-- User needs motivation
-- Celebrating progress
-- User is struggling`,
+      description: getToolDescription('getEncouragement'),
       parameters: z.object({
         situation: z
           .enum(['struggling', 'doing_well', 'broke_streak', 'milestone', 'starting_fresh'])
@@ -580,11 +555,7 @@ Use when:
      * Set life stage and update recommendations
      */
     setLifeStage: llm.tool({
-      description: `Set user's life stage to personalize habit recommendations.
-Use when:
-- User mentions their life situation
-- Onboarding a new user
-- User's life stage changes`,
+      description: getToolDescription('setLifeStage'),
       parameters: z.object({
         stage: z
           .enum([
@@ -630,17 +601,7 @@ Use when:
      * Assess user's tendency type for personalized habit strategies
      */
     assessFourTendencies: llm.tool({
-      description: `Determine user's personality tendency (from Gretchen Rubin's framework) to personalize habit strategies.
-The Four Tendencies determine how people respond to expectations:
-- UPHOLDER: Meets outer AND inner expectations. Loves rules, schedules, to-do lists.
-- QUESTIONER: Meets inner expectations, resists outer. Needs reasons and logic.
-- OBLIGER: Meets outer expectations, struggles with inner. Needs accountability.
-- REBEL: Resists ALL expectations. Needs freedom, identity, choice.
-
-Use when:
-- First habit coaching session
-- User is struggling with consistency despite wanting to change
-- Tailoring motivation strategies`,
+      description: getToolDescription('assessFourTendencies'),
       parameters: z.object({
         tendency: z
           .enum(['upholder', 'questioner', 'obliger', 'rebel'])
@@ -682,16 +643,7 @@ Use when:
      * Transform habits through identity shift
      */
     createIdentityShift: llm.tool({
-      description: `Help user shift their identity to support their habits (from James Clear's Atomic Habits).
-The most powerful habit change comes from changing WHO you believe you are.
-Instead of "I want to quit smoking" → "I am a non-smoker"
-Instead of "I want to exercise" → "I am an athlete/active person"
-
-Use when:
-- User keeps failing at the same habit
-- User says "I'm not the type of person who..."
-- Building long-term sustainable change
-- User needs deeper motivation than willpower`,
+      description: getToolDescription('createIdentityShift'),
       parameters: z.object({
         currentBelief: z
           .string()
@@ -763,14 +715,7 @@ Use when:
      * Break bad habits using substitution
      */
     breakBadHabit: llm.tool({
-      description: `Help user break a bad habit using the Golden Rule of Habit Change.
-You cannot eliminate a bad habit, you can only REPLACE it.
-Keep the same CUE and REWARD, but change the ROUTINE.
-
-Use when:
-- User wants to stop a bad habit (smoking, snacking, scrolling, etc.)
-- User keeps relapsing into old behavior
-- User asks "how do I stop..."`,
+      description: getToolDescription('breakBadHabit'),
       parameters: z.object({
         badHabit: z.string().describe('The bad habit to break'),
         currentCue: z
@@ -846,16 +791,7 @@ Use when:
      * Design environment to support habits
      */
     designEnvironment: llm.tool({
-      description: `Help user design their environment to make good habits easy and bad habits hard.
-Environment is the invisible hand that shapes behavior.
-Make the CUE obvious for good habits, invisible for bad habits.
-Reduce friction for good habits, increase it for bad habits.
-
-Use when:
-- User struggles with willpower
-- Setting up new habit for success
-- User fails despite motivation
-- "I always forget to..."`,
+      description: getToolDescription('designEnvironment'),
       parameters: z.object({
         habit: z.string().describe('The habit to support'),
         habitType: z
@@ -910,14 +846,7 @@ Use when:
      * Create temptation bundles
      */
     createTemptationBundle: llm.tool({
-      description: `Create temptation bundles - pair something you NEED to do with something you WANT to do.
-This makes habits more attractive by linking them to immediate pleasure.
-Example: "I will only watch my favorite show while on the treadmill"
-
-Use when:
-- User lacks motivation for important habit
-- User has guilty pleasures they want to limit
-- Making unpleasant tasks more bearable`,
+      description: getToolDescription('createTemptationBundle'),
       parameters: z.object({
         needToDo: z.string().describe('The habit or task user needs to do but struggles with'),
         wantToDo: z.string().describe('The pleasurable activity user enjoys'),
@@ -967,15 +896,7 @@ Use when:
      * Process setbacks with self-compassion
      */
     processSetback: llm.tool({
-      description: `Help user recover from a habit setback with self-compassion.
-Research shows self-compassion (not self-criticism) leads to faster recovery and better long-term results.
-The "what-the-hell effect" makes people who feel guilt spiral further.
-
-Use when:
-- User broke their streak
-- User is being hard on themselves
-- User says "I failed" or expresses shame
-- User wants to give up after a setback`,
+      description: getToolDescription('processSetback'),
       parameters: z.object({
         habit: z.string().describe('The habit they struggled with'),
         whatHappened: z.string().describe('What triggered the setback'),
@@ -1041,15 +962,7 @@ Use when:
      * Assess circle of influence vs. concern
      */
     assessCircleOfInfluence: llm.tool({
-      description: `Help user focus on their Circle of Influence (what they can control) vs. Circle of Concern (what they worry about but can't control).
-From Stephen Covey's 7 Habits of Highly Effective People.
-Proactive people focus on what they can change. Reactive people drain energy on what they can't.
-
-Use when:
-- User feels overwhelmed or helpless
-- User is focused on things outside their control
-- User needs to prioritize energy
-- Building proactive habits`,
+      description: getToolDescription('assessCircleOfInfluence'),
       parameters: z.object({
         concern: z.string().describe('What the user is worried or stressed about'),
         influenceAspects: z
@@ -1089,15 +1002,7 @@ Use when:
      * Set up accountability system
      */
     setupAccountability: llm.tool({
-      description: `Help user set up an accountability system for their habits.
-External accountability is especially powerful for Obligers (from Four Tendencies).
-Social commitment dramatically increases follow-through.
-
-Use when:
-- User is an Obliger tendency
-- User struggles with self-accountability
-- User has support system they can leverage
-- Setting up habit success system`,
+      description: getToolDescription('setupAccountability'),
       parameters: z.object({
         habit: z.string().describe('The habit to be accountable for'),
         accountabilityType: z
@@ -1162,15 +1067,7 @@ Use when:
      * Conduct a habit audit
      */
     conductHabitAudit: llm.tool({
-      description: `Conduct a comprehensive audit of user's current habits (both good and bad).
-Based on James Clear's Habit Scorecard - awareness must come before change.
-Identifies keystone habits, habit stacks, and areas for improvement.
-
-Use when:
-- Starting fresh with habit work
-- User wants big-picture view
-- Annual or quarterly review
-- User says "I don't know where to start"`,
+      description: getToolDescription('conductHabitAudit'),
       parameters: z.object({
         currentHabits: z
           .array(
@@ -1251,15 +1148,7 @@ Use when:
      * Start a 30-day challenge
      */
     start30DayChallenge: llm.tool({
-      description: `Start a structured 30-day challenge with daily guidance.
-Challenges are pre-built programs that gradually build habits over 30 days.
-Each day has specific actions and the difficulty increases progressively.
-
-Use when:
-- User wants structured guidance
-- User says "I need a challenge"
-- User wants to transform a specific area
-- New Year's resolutions, fresh starts`,
+      description: getToolDescription('start30DayChallenge'),
       parameters: z.object({
         challengeType: z
           .enum([
@@ -1324,11 +1213,7 @@ Use when:
      * Get today's challenge action
      */
     getTodaysChallengeAction: llm.tool({
-      description: `Get today's specific action for an active 30-day challenge.
-Use when:
-- User asks "what do I do today?"
-- Daily check-in on challenge
-- User wants guidance on current challenge`,
+      description: getToolDescription('getTodaysChallengeAction'),
       parameters: z.object({
         challengeId: z
           .string()
@@ -1407,10 +1292,7 @@ Use when:
      * Log challenge day completion
      */
     logChallengeDay: llm.tool({
-      description: `Log completion of today's challenge action.
-Use when:
-- User reports doing their challenge action
-- Daily check-in completion`,
+      description: getToolDescription('logChallengeDay'),
       parameters: z.object({
         completed: z.boolean().describe('Whether the challenge action was completed'),
         notes: z.string().optional().describe('How it went, observations'),
@@ -1480,15 +1362,7 @@ Use when:
      * Get habit bundle recommendations
      */
     getHabitBundle: llm.tool({
-      description: `Get a pre-built habit bundle (recipe) for a common goal.
-Bundles are curated habit stacks that work well together.
-They're based on what actually works for real people.
-
-Use when:
-- User has a goal but doesn't know where to start
-- User wants a complete system, not just one habit
-- "I want to become a morning person"
-- "How do I get more fit?"`,
+      description: getToolDescription('getHabitBundle'),
       parameters: z.object({
         bundleType: z
           .enum([
@@ -1556,15 +1430,7 @@ Use when:
      * Diagnose why a habit isn't sticking
      */
     troubleshootHabit: llm.tool({
-      description: `Diagnose why a habit isn't working and provide personalized fixes.
-Uses behavior science to identify the root cause.
-Common issues: too big, wrong cue, no reward, wrong time, no identity connection.
-
-Use when:
-- User says a habit isn't working
-- User keeps failing at the same habit
-- User asks "why can't I..."
-- User is frustrated with lack of progress`,
+      description: getToolDescription('troubleshootHabit'),
       parameters: z.object({
         habit: z.string().describe("The habit that isn't working"),
         attempts: z.number().optional().describe("How many times they've tried"),
@@ -1615,15 +1481,7 @@ Use when:
      * Log mood and energy with habit context
      */
     logMoodEnergy: llm.tool({
-      description: `Track mood and energy levels to find patterns with habits.
-Over time, reveals which habits improve wellbeing.
-Also helps identify best times of day for different activities.
-
-Use when:
-- User mentions how they're feeling
-- Daily check-in
-- User wants to understand their patterns
-- "I feel tired/energized/stressed"`,
+      description: getToolDescription('logMoodEnergy'),
       parameters: z.object({
         mood: z.enum(['great', 'good', 'okay', 'low', 'struggling']).describe('Current mood'),
         energy: z.enum(['high', 'moderate', 'low', 'depleted']).describe('Current energy level'),
@@ -1682,15 +1540,7 @@ Use when:
      * Get support for a life transition
      */
     supportLifeTransition: llm.tool({
-      description: `Provide coaching support during major life transitions.
-Life changes disrupt habits. This tool helps adapt existing habits
-and build new ones appropriate for the new situation.
-
-Use when:
-- User mentions a big life change
-- User is struggling with transition
-- User asks how to maintain habits during change
-- New job, new baby, moving, divorce, retirement, loss`,
+      description: getToolDescription('supportLifeTransition'),
       parameters: z.object({
         transition: z
           .enum([
@@ -1757,14 +1607,7 @@ Use when:
      * Get instant motivation/inspiration
      */
     getMotivation: llm.tool({
-      description: `Provide instant motivation, inspiration, or a pep talk.
-Draws from science, stories, and personalized encouragement.
-
-Use when:
-- User says "I need motivation"
-- User is feeling unmotivated
-- User needs a boost before starting
-- User is about to give up`,
+      description: getToolDescription('getMotivation'),
       parameters: z.object({
         motivationType: z
           .enum([

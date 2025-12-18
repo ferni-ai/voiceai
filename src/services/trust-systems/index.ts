@@ -795,6 +795,16 @@ export {
 } from './trust-signal-emitter.js';
 
 // ============================================================================
+// VOICE-AWARE DETECTION (Phase 5 - Better Than Human)
+// ============================================================================
+
+export {
+  detectUnsaidSignalsWithVoice,
+  type VoiceAwareContext,
+  type VoiceEmotionSignal as VoiceAwareEmotionSignal,
+} from './voice-aware-detection.js';
+
+// ============================================================================
 // DEFAULT EXPORT
 // ============================================================================
 

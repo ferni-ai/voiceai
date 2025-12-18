@@ -401,7 +401,7 @@ function checkImportPaths() {
   const issues = [];
 
   // Check frontend i18n index.ts for correct import paths
-  const indexPath = path.join(PROJECT_ROOT, 'frontend-typescript/src/i18n/index.ts');
+  const indexPath = path.join(PROJECT_ROOT, 'apps/web/src/i18n/index.ts');
 
   if (fs.existsSync(indexPath)) {
     const content = fs.readFileSync(indexPath, 'utf-8');

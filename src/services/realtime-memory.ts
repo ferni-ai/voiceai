@@ -18,6 +18,7 @@
  */
 
 import { getFirestoreDatabase, getGCPProjectId } from '../config/environment.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'realtime-memory' });
@@ -128,12 +129,14 @@ export async function startConversation(userId: string, personaId: string): Prom
         .doc(userId)
         .collection('conversations')
         .doc(conversationId)
-        .set({
-          startedAt: new Date(),
-          personaId,
-          turnCount: 0,
-          summarized: false,
-        });
+        .set(
+          removeUndefined({
+            startedAt: new Date(),
+            personaId,
+            turnCount: 0,
+            summarized: false,
+          })
+        );
 
       log.info({ userId, conversationId, personaId }, '🎬 Conversation started (realtime)');
     } catch (error) {
@@ -168,12 +171,14 @@ export async function persistTurn(
       .doc(conversationId);
 
     // Add turn document
-    await conversationRef.collection('turns').add({
-      role: turn.role,
-      content: turn.content,
-      timestamp: turn.timestamp || new Date(),
-      ...(turn.metadata && { metadata: turn.metadata }),
-    });
+    await conversationRef.collection('turns').add(
+      removeUndefined({
+        role: turn.role,
+        content: turn.content,
+        timestamp: turn.timestamp || new Date(),
+        ...(turn.metadata && { metadata: turn.metadata }),
+      })
+    );
 
     // Increment turn count (fire and forget - don't await)
     if (FieldValue) {

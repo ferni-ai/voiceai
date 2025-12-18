@@ -74,7 +74,7 @@ voiceai/
 │
 ├── CLAUDE.md Files            # AI Context Hierarchy
 │   ├── ./CLAUDE.md            # Root (main context)
-│   ├── frontend-typescript/CLAUDE.md
+│   ├── apps/web/CLAUDE.md
 │   ├── src/tools/CLAUDE.md
 │   ├── src/personas/CLAUDE.md
 │   ├── src/speech/CLAUDE.md
@@ -95,7 +95,7 @@ voiceai/
 | Task | Status |
 |------|--------|
 | Remove 18 duplicate brand docs from `brand/` | ✅ Done |
-| Remove `frontend-typescript/public/design-system/brand/` copies | ✅ Done |
+| Remove `apps/web/public/design-system/brand/` copies | ✅ Done |
 | Move `PLAN.md`, `IMPLEMENTATION-PLAN.md`, `EXTENSIBILITY-COMPLETION-PLAN.md` to `docs/plans/` | ✅ Done |
 | Update `brand/README.md` to reference `design-system/brand/` | ✅ Done |
 | Update `design-system/brand/README.md` as canonical index | ✅ Done |
@@ -137,7 +137,7 @@ CLAUDE.md (root) - 26KB
 ├── Essential patterns, quality gates, deployment
 ├── Brand language & design system rules
 │
-├── frontend-typescript/CLAUDE.md - Frontend patterns
+├── apps/web/CLAUDE.md - Frontend patterns
 │
 ├── src/tools/CLAUDE.md - Tool development
 │

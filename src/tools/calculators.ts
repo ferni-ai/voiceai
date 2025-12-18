@@ -12,6 +12,7 @@ import { llm, log } from '@livekit/agents';
 import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // PURE CALCULATION FUNCTIONS
 // ============================================================================
@@ -187,8 +188,7 @@ export function calculateYearsToDouble(annualReturn: number): number {
 export function createCalculatorTools() {
   return {
     calculateCompoundGrowth: llm.tool({
-      description:
-        "Calculate how money grows over time with compound interest. Central to Jack Bogle's message about long-term investing.",
+      description: getToolDescription('calculateCompoundGrowth'),
       parameters: z.object({
         principal: z.number().describe('Starting amount in dollars'),
         annualReturn: z.number().describe('Expected annual return as percentage (e.g., 7 for 7%)'),
@@ -209,8 +209,7 @@ export function createCalculatorTools() {
     }),
 
     calculateFeeImpact: llm.tool({
-      description:
-        "Show how fees eat into investment returns over time. Central to Jack Bogle's crusade against high fees!",
+      description: getToolDescription('calculateFeeImpact'),
       parameters: z.object({
         investment: z.number().describe('Investment amount in dollars'),
         years: z.number().describe('Investment timeframe in years'),
@@ -242,8 +241,7 @@ export function createCalculatorTools() {
     }),
 
     calculateRetirementProjection: llm.tool({
-      description:
-        'Project retirement savings and expected monthly income using the 4% safe withdrawal rule.',
+      description: getToolDescription('calculateRetirementProjection'),
       parameters: z.object({
         currentAge: z.number().describe('Current age'),
         retirementAge: z.number().describe('Planned retirement age'),
@@ -274,7 +272,7 @@ export function createCalculatorTools() {
     }),
 
     calculateMortgage: llm.tool({
-      description: 'Calculate monthly mortgage payment and total interest cost.',
+      description: getToolDescription('calculateMortgage'),
       parameters: z.object({
         homePrice: z.number().describe('Home price or loan amount in dollars'),
         downPaymentPercent: z
@@ -300,7 +298,7 @@ export function createCalculatorTools() {
     }),
 
     calculateEmergencyFund: llm.tool({
-      description: 'Calculate how much emergency fund you need based on monthly expenses.',
+      description: getToolDescription('calculateEmergencyFund'),
       parameters: z.object({
         monthlyExpenses: z.number().describe('Total monthly expenses in dollars'),
         monthsCoverage: z.number().optional().describe('Number of months to cover, defaults to 6'),
@@ -317,7 +315,7 @@ export function createCalculatorTools() {
     }),
 
     calculateSavingsRate: llm.tool({
-      description: 'Calculate savings rate and provide assessment.',
+      description: getToolDescription('calculateSavingsRate'),
       parameters: z.object({
         monthlyIncome: z.number().describe('Monthly income in dollars'),
         monthlySavings: z.number().describe('Monthly savings/investments in dollars'),
@@ -332,8 +330,7 @@ export function createCalculatorTools() {
     }),
 
     calculateYearsToDouble: llm.tool({
-      description:
-        'Use the Rule of 72 to calculate years needed to double your money at a given return rate.',
+      description: getToolDescription('calculateYearsToDouble'),
       parameters: z.object({
         annualReturn: z.number().describe('Expected annual return as percentage'),
       }),
@@ -347,7 +344,7 @@ export function createCalculatorTools() {
     }),
 
     explainPrinciple: llm.tool({
-      description: "Explain one of Vanguard's four investing principles in detail.",
+      description: getToolDescription('explainPrinciple'),
       parameters: z.object({
         principle: z
           .enum(['goals', 'balance', 'cost', 'discipline', 'all'])

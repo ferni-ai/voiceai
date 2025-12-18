@@ -65,10 +65,7 @@ async function spotifyRequest<T>(
     });
 
     if (!response.ok) {
-      log.warn(
-        { status: response.status, endpoint },
-        '⚠️ Spotify API request failed'
-      );
+      log.warn({ status: response.status, endpoint }, '⚠️ Spotify API request failed');
       return null;
     }
 
@@ -182,17 +179,16 @@ export async function syncSpotifyLibrary(
 
       if (!response) break;
 
-      const tracks = response.items.map((item: { track: SpotifyTrackObject }) => convertSpotifyTrack(item.track));
+      const tracks = response.items.map((item: { track: SpotifyTrackObject }) =>
+        convertSpotifyTrack(item.track)
+      );
       allTracks.push(...tracks);
 
       nextUrl = response.next;
     }
 
     // Get playlists count
-    const playlists = await spotifyRequest<PlaylistsResponse>(
-      '/me/playlists?limit=1',
-      accessToken
-    );
+    const playlists = await spotifyRequest<PlaylistsResponse>('/me/playlists?limit=1', accessToken);
 
     // Get followed artists
     const followed = await spotifyRequest<FollowedArtistsResponse>(
@@ -234,15 +230,13 @@ export async function syncSpotifyLibrary(
       .map(([decade]) => decade);
 
     // Convert followed artists
-    const topArtists: SpotifyArtist[] = (followed?.artists.items || [])
-      .slice(0, 20)
-      .map((a) => ({
-        id: a.id,
-        name: a.name,
-        genres: a.genres,
-        imageUrl: a.images[0]?.url || '',
-        popularity: a.popularity,
-      }));
+    const topArtists: SpotifyArtist[] = (followed?.artists.items || []).slice(0, 20).map((a) => ({
+      id: a.id,
+      name: a.name,
+      genres: a.genres,
+      imageUrl: a.images[0]?.url || '',
+      popularity: a.popularity,
+    }));
 
     const libraryData: SpotifyLibraryData = {
       userId,
@@ -337,9 +331,7 @@ export function getRandomPlayableTracks(
 
   if (options?.decade) {
     const decadeStart = parseInt(options.decade.replace('s', ''), 10);
-    tracks = tracks.filter(
-      (t) => t.releaseYear >= decadeStart && t.releaseYear < decadeStart + 10
-    );
+    tracks = tracks.filter((t) => t.releaseYear >= decadeStart && t.releaseYear < decadeStart + 10);
   }
 
   // Shuffle and take
@@ -377,10 +369,7 @@ export function hasEnoughPlayableContent(userId: string): {
  * Get tracks the user might not recognize well
  * (older tracks, less popular, less frequently played)
  */
-export function getChallengerTracks(
-  userId: string,
-  count: number = 5
-): SpotifyTrack[] {
+export function getChallengerTracks(userId: string, count: number = 5): SpotifyTrack[] {
   const library = libraryCache.get(userId);
   if (!library) return [];
 
@@ -421,10 +410,7 @@ export function getOurSongsPlaylist(userId: string): OurSongsPlaylist {
 /**
  * Add a song to "Our Songs"
  */
-export function addOurSong(
-  userId: string,
-  song: Omit<OurSong, 'addedAt'>
-): OurSongsPlaylist {
+export function addOurSong(userId: string, song: Omit<OurSong, 'addedAt'>): OurSongsPlaylist {
   const playlist = getOurSongsPlaylist(userId);
 
   // Check if already exists
@@ -492,24 +478,15 @@ export async function syncOurSongsToSpotify(
 
     // Add tracks to playlist
     if (playlist.spotifyPlaylistId) {
-      const uris = playlist.songs
-        .filter((s) => s.spotifyUri)
-        .map((s) => s.spotifyUri);
+      const uris = playlist.songs.filter((s) => s.spotifyUri).map((s) => s.spotifyUri);
 
       if (uris.length > 0) {
-        await spotifyRequest(
-          `/playlists/${playlist.spotifyPlaylistId}/tracks`,
-          accessToken,
-          {
-            method: 'PUT', // Replace all tracks
-            body: { uris },
-          }
-        );
+        await spotifyRequest(`/playlists/${playlist.spotifyPlaylistId}/tracks`, accessToken, {
+          method: 'PUT', // Replace all tracks
+          body: { uris },
+        });
 
-        log.info(
-          { userId, trackCount: uris.length },
-          '🎵 Synced Our Songs to Spotify'
-        );
+        log.info({ userId, trackCount: uris.length }, '🎵 Synced Our Songs to Spotify');
       }
     }
 
@@ -570,8 +547,7 @@ export function analyzeLibraryTaste(userId: string): TasteAnalysis | null {
     .map(([name, trackCount]) => ({ name, trackCount }));
 
   // Energy profile based on average popularity
-  const avgPopularity =
-    tracks.reduce((sum, t) => sum + t.popularity, 0) / totalTracks;
+  const avgPopularity = tracks.reduce((sum, t) => sum + t.popularity, 0) / totalTracks;
 
   let energyProfile: 'chill' | 'balanced' | 'energetic';
   if (avgPopularity < 40) energyProfile = 'chill';
@@ -579,10 +555,7 @@ export function analyzeLibraryTaste(userId: string): TasteAnalysis | null {
   else energyProfile = 'balanced';
 
   // Diversity score (number of unique artists / total tracks)
-  const diversityScore = Math.min(
-    100,
-    Math.round((artistCounts.size / totalTracks) * 200)
-  );
+  const diversityScore = Math.min(100, Math.round((artistCounts.size / totalTracks) * 200));
 
   // Obscurity score (inverse of average popularity)
   const obscurityScore = Math.round(100 - avgPopularity);
@@ -618,4 +591,3 @@ export default {
   syncOurSongsToSpotify,
   analyzeLibraryTaste,
 };
-

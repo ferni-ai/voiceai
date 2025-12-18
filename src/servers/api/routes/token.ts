@@ -25,7 +25,7 @@ const DEMO_CONFIG = {
   cooldownMinutes: 5,
 };
 
-// Demo rate limit storage
+// Demo rate limit storage (in-memory is OK since it's per-IP throttling)
 const demoRateLimits = new Map<
   string,
   { dayStart: number; sessionCount: number; lastSession: number }
@@ -33,6 +33,9 @@ const demoRateLimits = new Map<
 
 // Agent dispatch client
 let agentDispatch: AgentDispatchClient | null = null;
+
+// Cleanup interval reference for graceful shutdown
+let rateLimitCleanupInterval: NodeJS.Timeout | null = null;
 
 /**
  * Initialize the agent dispatch client
@@ -208,8 +211,8 @@ export async function handleTokenRoutes(
       const roomName = `demo-${demoId}`;
       const username = `guest-${Math.random().toString(36).slice(2, 8)}`;
 
-      // Create demo session for "I remember you" experience
-      const demoSession = demoSessions.createDemoSession(roomName, demoId, {
+      // Create demo session for "I remember you" experience (async - persists to Firestore)
+      const demoSession = await demoSessions.createDemoSession(roomName, demoId, {
         ip,
         userAgent: req.headers['user-agent'],
       });
@@ -262,7 +265,17 @@ export async function handleTokenRoutes(
     let body = '';
     req.on('data', (chunk: Buffer) => (body += chunk.toString()));
 
+    // FIX BUG: Add error handler to prevent hanging promises on request errors
     return new Promise((resolve) => {
+      req.on('error', (err) => {
+        log.error({ error: err.message }, 'Request error in demo claim');
+        if (!res.headersSent) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Request error' }));
+        }
+        resolve(true);
+      });
+
       req.on('end', async () => {
         try {
           const { claim_token, firebase_uid } = JSON.parse(body) as {
@@ -277,7 +290,8 @@ export async function handleTokenRoutes(
             return;
           }
 
-          const result = demoSessions.claimDemoSession(claim_token, firebase_uid);
+          // Async - loads from Firestore if needed
+          const result = await demoSessions.claimDemoSession(claim_token, firebase_uid);
 
           if (!result.success) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -296,8 +310,10 @@ export async function handleTokenRoutes(
           );
         } catch (err) {
           log.error({ error: String(err) }, 'Demo claim error');
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Internal server error' }));
+          if (!res.headersSent) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Internal server error' }));
+          }
         }
         resolve(true);
       });
@@ -309,8 +325,18 @@ export async function handleTokenRoutes(
     let body = '';
     req.on('data', (chunk: Buffer) => (body += chunk.toString()));
 
+    // FIX BUG: Add error handler to prevent hanging promises on request errors
     return new Promise((resolve) => {
-      req.on('end', () => {
+      req.on('error', (err) => {
+        log.error({ error: err.message }, 'Request error in demo session update');
+        if (!res.headersSent) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Request error' }));
+        }
+        resolve(true);
+      });
+
+      req.on('end', async () => {
         try {
           const data = JSON.parse(body) as { room_name: string; conversation: unknown };
           const { room_name, conversation } = data;
@@ -322,7 +348,8 @@ export async function handleTokenRoutes(
             return;
           }
 
-          const success = demoSessions.updateDemoSessionConversation(
+          // Async - persists to Firestore
+          const success = await demoSessions.updateDemoSessionConversation(
             room_name,
             conversation as Parameters<typeof demoSessions.updateDemoSessionConversation>[1]
           );
@@ -388,11 +415,37 @@ export async function handleTokenRoutes(
       // Generate token
       const token = await createToken(room, username);
 
-      // Detect geo/accent
+      // 🌍 INTERNATIONAL ACCENT SUPPORT
+      // Priority order:
+      // 1. Explicit accent parameter from frontend (user's saved preference)
+      // 2. User's saved accent preference from Firestore profile (if authenticated)
+      // 3. Geo-detected accent from IP/locale
+      // 4. Default to 'american'
+
+      // Try to load user's saved accent from profile if authenticated
+      let savedAccent: string | undefined;
+      if (firebaseUid && !preferred_accent) {
+        try {
+          const { getDefaultStore } = await import('../../../memory/index.js');
+          const store = getDefaultStore();
+          const profile = await store.getProfile(firebaseUid);
+          if (profile?.preferences?.preferredAccent) {
+            savedAccent = profile.preferences.preferredAccent;
+            log.debug(
+              { firebaseUid: firebaseUid.substring(0, 8), accent: savedAccent },
+              'Loaded saved accent from profile'
+            );
+          }
+        } catch (profileErr) {
+          log.debug({ note: (profileErr as Error).message }, 'Profile accent lookup note');
+        }
+      }
+
+      // Detect geo/accent (fallback if no explicit or saved preference)
       let geoData = {
         locale: 'en-US',
         locales: ['en-US'],
-        detectedAccent: preferred_accent || 'american',
+        detectedAccent: preferred_accent || savedAccent || 'american',
         countryCode: undefined as string | undefined,
       };
 
@@ -405,14 +458,18 @@ export async function handleTokenRoutes(
         geoData = {
           locale: geo.primaryLanguage || 'en-US',
           locales: geo.languages.length > 0 ? geo.languages : ['en-US'],
-          detectedAccent: preferred_accent || geo.accent,
+          // Use explicit > saved > geo-detected accent
+          detectedAccent: preferred_accent || savedAccent || geo.accent,
           countryCode: geo.countryCode,
         };
       } catch (geoErr) {
         log.debug({ note: (geoErr as Error).message }, 'Geo detection note');
       }
 
-      log.info({ username, room, persona: selectedPersona, accent: geoData.detectedAccent }, 'Generated token');
+      log.info(
+        { username, room, persona: selectedPersona, accent: geoData.detectedAccent },
+        'Generated token'
+      );
 
       // Dispatch agent
       try {
@@ -460,15 +517,48 @@ export async function handleTokenRoutes(
   return false;
 }
 
-// Cleanup old rate limit entries hourly
-setInterval(
-  () => {
-    const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    for (const [ip, data] of demoRateLimits.entries()) {
-      if (data.lastSession < dayAgo) {
-        demoRateLimits.delete(ip);
+/**
+ * Start rate limit cleanup interval
+ */
+export function startRateLimitCleanup(): void {
+  if (rateLimitCleanupInterval) return;
+
+  // Cleanup old rate limit entries hourly
+  rateLimitCleanupInterval = setInterval(
+    () => {
+      const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      for (const [ip, data] of demoRateLimits.entries()) {
+        if (data.lastSession < dayAgo) {
+          demoRateLimits.delete(ip);
+        }
       }
-    }
-  },
-  60 * 60 * 1000
-);
+      log.debug({ remaining: demoRateLimits.size }, 'Cleaned up old rate limits');
+    },
+    60 * 60 * 1000
+  );
+
+  log.info('Rate limit cleanup interval started');
+}
+
+/**
+ * Stop rate limit cleanup interval (for graceful shutdown)
+ */
+export function stopRateLimitCleanup(): void {
+  if (rateLimitCleanupInterval) {
+    clearInterval(rateLimitCleanupInterval);
+    rateLimitCleanupInterval = null;
+    log.info('Rate limit cleanup interval stopped');
+  }
+}
+
+/**
+ * Shutdown token routes (cleanup intervals)
+ */
+export async function shutdown(): Promise<void> {
+  stopRateLimitCleanup();
+  await demoSessions.shutdown();
+  log.info('Token routes shutdown complete');
+}
+
+// Start cleanup on module load
+startRateLimitCleanup();

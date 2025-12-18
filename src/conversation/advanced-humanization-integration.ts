@@ -366,11 +366,11 @@ export function getResponseModifications(sessionId: string): ResponseModificatio
   // Add tone guidance
   modifications.systemPromptAdditions.push(`[TONE] ${result.toneGuidance}`);
 
-  // Add length guidance
+  // Add length guidance (but never strip warmth - that's core to Ferni)
   const lengthMap = {
-    shorter: 'Keep your response brief and focused. 1-3 sentences.',
-    normal: 'Use a natural response length. 2-4 sentences.',
-    longer: 'You can elaborate more. User is engaged.',
+    shorter: 'Be thoughtful with length, but stay warm and present. 2-4 sentences is fine.',
+    normal: 'Use a natural conversational length. Stay warm and engaged.',
+    longer: 'You can elaborate more. User is engaged. Share and connect.',
   };
   modifications.systemPromptAdditions.push(`[LENGTH] ${lengthMap[result.lengthGuidance]}`);
 
@@ -480,8 +480,9 @@ export function recordAgentResponse(sessionId: string, response: string): void {
     .then(({ recordResponse }) => {
       recordResponse(sessionId, response);
     })
-    .catch(() => {
-      // Non-critical - don't block on this
+    .catch((err) => {
+      // Non-critical - don't block on this, but log for debugging
+      logger.debug({ error: String(err), sessionId }, 'Failed to record response to deep understanding');
     });
 }
 

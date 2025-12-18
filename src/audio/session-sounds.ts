@@ -52,7 +52,7 @@ export type SessionSoundType =
 
 /**
  * Sound file paths - relative to public root
- * These are located in frontend-typescript/public/sounds/
+ * These are located in apps/web/public/sounds/
  */
 const SOUND_PATHS: Record<SessionSoundType, string> = {
   'session-start': '/sounds/connect.mp3',

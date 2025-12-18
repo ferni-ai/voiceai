@@ -23,6 +23,10 @@
  * - Must handle cleanup carefully
  *
  * For Ferni's use case (single concurrent call per instance), this is perfect.
+ *
+ * @note STATUS: IMPLEMENTED BUT NOT USED
+ * This executor was designed for Cloud Run but we now run on GCE which doesn't
+ * have the same cold start issues. Kept for potential future use.
  */
 
 import {

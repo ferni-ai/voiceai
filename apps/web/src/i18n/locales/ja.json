@@ -67,7 +67,7 @@
       "voiceAccent": "音声とアクセント",
       "guidedPractices": "ガイド付きプラクティス",
       "createPractice": "プラクティスを作成",
-      "healthFitness": "健康とフィットネス",
+      "wearables": "ウェアラブル",
       "calendar": "カレンダー",
       "notifications": "通知",
       "toggleTheme": "ライト / ダーク",
@@ -83,8 +83,7 @@
       "supportFerni": "Ferniをサポート",
       "takeTour": "ツアーを開始",
       "language": "言語",
-      "whatsGrowing": "成長中",
-      "supportFerniExpanded": "Ferniをサポート"
+      "whatsGrowing": "成長中"
     },
     "pinItem": "上部に固定",
     "unpinItem": "固定解除",
@@ -133,6 +132,88 @@
     "endConversation": "会話を終了",
     "endConversationGoodbye": "会話を終了 - さようなら",
     "agentEndingConversation": "エージェントが会話を終了しています"
+  },
+  "trustJourney": {
+    "eyebrow": "私たちの物語",
+    "title": "あなたの信頼の旅",
+    "subtitle": "一緒に成長してきた軌跡",
+    "loading": "あなたの旅を読み込み中",
+    "loadingText": "あなたの旅を集めています...",
+    "trustScore": "信頼スコア",
+    "exportSuccess": "旅をエクスポートしました！",
+    "offlineBanner": "オフラインです - キャッシュデータを表示中",
+    "loadMore": "さらに{count}件読み込む",
+    "strengthLabel": "信頼スコア: {value}%",
+    "timelineLabel": "旅のタイムライン",
+    "filterLabel": "タイムラインを絞り込む",
+    "filters": {
+      "all": "すべて",
+      "growth": "成長",
+      "win": "勝利",
+      "callback": "コールバック",
+      "boundary": "境界",
+      "outreach": "アウトリーチ"
+    },
+    "sections": {
+      "strength": "関係の強さ",
+      "stats": "旅の統計",
+      "boundaries": "尊重された境界",
+      "growth": "あなたの成長",
+      "timeline": "一緒に歩んだ旅"
+    },
+    "stats": {
+      "growthMoments": "成長の瞬間",
+      "winsCelebrated": "祝った勝利",
+      "sharedMoments": "共有した瞬間"
+    },
+    "strengthDescriptions": {
+      "deep": "私たちは一緒に本物を築きました。私はあなたを知っていて、あなたは私を信頼しています。",
+      "growing": "私たちのつながりは深まっています。あなたにとって大切なことを学んでいます。",
+      "building": "信頼を築いています。会話のたびにあなたをより深く理解できます。",
+      "starting": "まだ始まったばかりです。話し続けてください - 聴いています。",
+      "beginning": "すべての旅は最初の一歩から始まります。準備ができたらいつでもここにいます。"
+    },
+    "growthTypes": {
+      "emotional_regulation": "感情バランス",
+      "perspective_shift": "新しい視点",
+      "boundary_setting": "健全な境界",
+      "behavior_change": "新しい習慣",
+      "self_awareness": "自己認識",
+      "coping_upgrade": "より良い対処法",
+      "goal_progress": "目標達成"
+    },
+    "empty": {
+      "title": "私たちの物語は始まったばかり",
+      "message": "会話を重ねるごとに、あなたの成長に気づき、勝利を祝い、大切なことを覚えていきます。また来てください。"
+    },
+    "errors": {
+      "offline": {
+        "title": "オフラインです",
+        "message": "インターネットに接続して旅を見てください。"
+      },
+      "notLoggedIn": {
+        "title": "ログインしていません",
+        "message": "Ferniとの旅を見るにはログインしてください。"
+      },
+      "rateLimited": {
+        "title": "少し待って",
+        "message": "確認の頻度が高すぎます。少し待ってからもう一度お試しください。"
+      },
+      "unauthorized": {
+        "title": "アクセス拒否",
+        "message": "これを表示する権限がありません。"
+      },
+      "generic": {
+        "title": "問題が発生しました",
+        "message": "旅を読み込めませんでした。もう一度お試しください。"
+      },
+      "exportFailed": {
+        "message": "データをエクスポートできませんでした。もう一度お試しください。"
+      },
+      "fetchFailedUsingCache": {
+        "message": "保存データを表示中 - サーバーに接続できませんでした。"
+      }
+    }
   },
   "subscription": {
     "free": "無料",
@@ -570,18 +651,5 @@
     "dailyPractice": "デイリープラクティス",
     "predictions": "予測",
     "runScenario": "シナリオを実行"
-  },
-  "support": {
-    "eyebrow": "一緒に成長",
-    "title": "Ferniをサポート",
-    "subtitle": "私たちの友情がどう育つかを選んでください。あなたの存在が大切です。",
-    "growTogether": "つながりを深める方法",
-    "plantASeed": "種を植える",
-    "plantDesc": "Ferniの成長を助ける小さな贈り物。プレッシャーはありません—私たちの友情はそれに依存しません。",
-    "plantButton": "この種を植える",
-    "thankYouSupporter": "あなたは素晴らしい",
-    "yourSupport": "あなたのサポートがFerniを皆のためにここに保ちます",
-    "manageBilling": "お支払い方法を更新",
-    "footer": "どんな形でサポートしてくれても、ここにいてくれてありがとう。"
   }
 }

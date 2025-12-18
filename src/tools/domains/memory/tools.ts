@@ -10,6 +10,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // SERVICE TYPES
 // ============================================================================
@@ -68,8 +69,7 @@ export const rememberAboutUserDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Store an important fact about the user for future recall. DO NOT read tool output verbatim - respond naturally.',
+      description: getToolDescription('rememberAboutUser'),
       parameters: z.object({
         fact: z
           .string()
@@ -138,8 +138,7 @@ export const recallFromMemoryDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Try to recall something from previous conversations with this user. Use when you want to show you remember them or connect to past discussions.',
+      description: getToolDescription('recallFromMemory'),
       parameters: z.object({
         topic: z
           .string()
@@ -197,8 +196,7 @@ export const recallPreviousConversationDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Search your memory for relevant past conversations with this user based on a topic or theme.',
+      description: getToolDescription('recallPreviousConversation'),
       parameters: z.object({
         query: z
           .string()
@@ -243,8 +241,7 @@ export const rememberImportantFactDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Save a critically important fact that should be remembered forever. Use for life-changing information like major life events, key decisions, or breakthrough moments.',
+      description: getToolDescription('rememberImportantFact'),
       parameters: z.object({
         fact: z.string().describe('The critically important fact'),
         type: z
@@ -350,8 +347,7 @@ export const getRelationshipSummaryDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        "Get a summary of your relationship with this user - how long you've known them, key moments, what you've discussed.",
+      description: getToolDescription('getRelationshipSummary'),
       parameters: z.object({}),
       execute: async (_, { ctx: toolCtx }) => {
         getLogger().info({ agentId: ctx.agentId }, 'Getting relationship summary');
@@ -420,8 +416,7 @@ export const updateMemoryDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Update an existing memory when the user provides corrections or new information. Use when they say things like "Actually, my goal is now $15,000" or "Update that - we moved to California".',
+      description: getToolDescription('updateMemory'),
       parameters: z.object({
         originalFact: z.string().describe('What you currently remember that needs updating'),
         updatedFact: z.string().describe('The corrected or updated information'),
@@ -485,8 +480,7 @@ export const forgetMemoryDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Remove something from memory when the user explicitly asks you to forget it. Use when they say things like "Forget that", "Don\'t remember that", or "Delete that information".',
+      description: getToolDescription('forgetMemory'),
       parameters: z.object({
         whatToForget: z.string().describe('What the user wants you to forget'),
         confirmDeletion: z

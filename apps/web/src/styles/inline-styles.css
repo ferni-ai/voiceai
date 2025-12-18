@@ -2827,18 +2827,18 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* Tighter gap - avatar is the hero, name/subtitle sit close underneath */
-  gap: var(--space-xs);
+  /* Golden ratio spacing: φ-derived gap for visual harmony */
+  gap: var(--space-md);
   /* Ensure halo glow isn't clipped */
   overflow: visible;
 }
 
 .avatar-container {
   position: relative;
-  /* Larger hero size: 140px for more visual presence
-     The avatar is THE character - make it prominent */
-  width: 140px;
-  height: 140px;
+  /* φ-based sizing: 120px hero size
+     Ratio to button (48px) ≈ 2.5 (close to φ²) */
+  width: 120px;
+  height: 120px;
   /* NOTE: Do NOT add will-change, transform, translateZ, contain, outline, or backface-visibility here - causes visible box in Safari */
   transform-origin: center center;
   /* border-radius: 50% ensures any Safari layer boundary matches the circular avatar shape */
@@ -9492,78 +9492,6 @@ body {
     rgba(74, 103, 65, 0.05) 50%,
     transparent 70%
   );
-}
-
-/* ========================================================================
-       MUSIC PLAYBACK ANIMATIONS - Expressive, alive, dancing
-       The avatar comes alive when music plays - like a speaker cone
-       that feels the beat.
-       ======================================================================== */
-
-/* Music presence state - avatar is vibing */
-#coach.is-listening-music .avatar-container {
-  /* Subtle glow that pulses with the music */
-}
-
-#coach.is-listening-music #avatarRing {
-  /* Ring gets more visible and dances slightly */
-  opacity: 0.5;
-  animation: musicRingPulse 1.6s ease-in-out infinite;
-}
-
-@keyframes musicRingPulse {
-  0%, 100% {
-    opacity: 0.4;
-    transform: scale(1);
-    border-width: 1.5px;
-  }
-  25% {
-    opacity: 0.6;
-    transform: scale(1.03);
-    border-width: 2px;
-  }
-  50% {
-    opacity: 0.45;
-    transform: scale(1.01);
-    border-width: 1.5px;
-  }
-  75% {
-    opacity: 0.55;
-    transform: scale(1.02);
-    border-width: 2px;
-  }
-}
-
-/* Ducking state - music in background while speaking */
-#coach.is-ducking-music #avatarRing {
-  animation: musicRingDucked 2.4s ease-in-out infinite;
-}
-
-@keyframes musicRingDucked {
-  0%, 100% {
-    opacity: 0.25;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.35;
-    transform: scale(1.01);
-  }
-}
-
-/* Fading state - music winding down */
-#coach.is-fading-music #avatarRing {
-  animation: musicRingFade 3s ease-out forwards;
-}
-
-@keyframes musicRingFade {
-  0% {
-    opacity: 0.5;
-    transform: scale(1.02);
-  }
-  100% {
-    opacity: 0.25;
-    transform: scale(1);
-  }
 }
 
 /* Relationship transition bloom animation */

@@ -21,7 +21,7 @@ import {
   getOrCreatePortfolio,
   updatePortfolioSatisfaction,
   type GoalCategory,
-} from '../tools/goal-management.js';
+} from '../tools/domains/life-planning/goal-management.js';
 
 import {
   createSharedGoal,

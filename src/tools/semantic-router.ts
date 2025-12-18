@@ -13,6 +13,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { toolRegistry } from './registry/index.js';
 import type { ToolDefinition, ToolDomain, Tool, ToolContext } from './registry/types.js';
 
@@ -254,14 +255,25 @@ class GoogleAIEmbedder implements Embedder {
 
 /**
  * Create the best available embedder based on environment
- * Priority: Google AI/Vertex AI > TF-IDF (local)
+ * Priority (production): Google AI/Vertex AI > TF-IDF (local)
+ * Priority (development): TF-IDF (instant) > Google AI (87 seconds)
  *
- * Note: We prefer Google AI since the project is on GCP.
- * Falls back to TF-IDF for development without API keys.
+ * TF-IDF is used in development because:
+ * - Google AI embeddings take ~190ms per tool × 452 tools = 87 seconds startup
+ * - Firestore cache fails (2.9MB > 1MB limit)
+ * - TF-IDF is instant and good enough for dev testing
  */
 function createEmbedder(): Embedder {
-  const googleEmbedder = new GoogleAIEmbedder();
+  const isDev = process.env.NODE_ENV === 'development';
+  const forceTfIdf = process.env.FORCE_TFIDF_EMBEDDINGS === 'true';
 
+  // In development, use fast TF-IDF to avoid 87-second startup
+  if (isDev || forceTfIdf) {
+    getLogger().info('Using TF-IDF embeddings for fast startup (dev mode)');
+    return new TfIdfEmbedder();
+  }
+
+  const googleEmbedder = new GoogleAIEmbedder();
   if (googleEmbedder.isAvailable()) {
     getLogger().info('Using Google AI/Vertex AI embeddings for semantic routing');
     return googleEmbedder;
@@ -371,6 +383,9 @@ const STOP_WORDS = new Set([
 // SEMANTIC ROUTER
 // ============================================================================
 
+// Cache version - increment when tool schema or embedding format changes
+const EMBEDDING_CACHE_VERSION = '1.0.0';
+
 export class SemanticToolRouter {
   private config: RouterConfig;
   private embedder: Embedder;
@@ -395,15 +410,45 @@ export class SemanticToolRouter {
   // ==========================================================================
 
   /**
-   * Initialize the router by building embeddings for all tools
+   * Initialize the router by building embeddings for all tools.
+   * Tries to load from Firestore first for faster startup (production only).
    */
   async initialize(): Promise<void> {
     if (this.initialized) return;
 
+    const startTime = Date.now();
     const allTools = toolRegistry.getAll();
-    const descriptions = allTools.map((t) => this.buildToolText(t));
+    const isDev = process.env.NODE_ENV === 'development';
 
-    // Initialize embedder
+    // In development, skip Firestore caching entirely:
+    // - Firebase isn't initialized locally (no credentials)
+    // - TF-IDF embeddings are fast enough (no API calls)
+    // - Cache would be too large anyway (2.9MB > 1MB Firestore limit)
+    if (!isDev) {
+      // Try to load cached embeddings from Firestore (production only)
+      const cached = await this.loadFromFirestore(allTools.length);
+      if (cached) {
+        this.toolEmbeddings = cached;
+        // Still need to initialize embedder vocabulary for queries
+        const descriptions = allTools.map((t) => this.buildToolText(t));
+        await this.embedder.initialize(descriptions);
+
+        this.initialized = true;
+        getLogger().info(
+          {
+            toolCount: this.toolEmbeddings.length,
+            embedder: this.embedder.name,
+            source: 'firestore',
+            loadTimeMs: Date.now() - startTime,
+          },
+          '🎯 Semantic router initialized from cache'
+        );
+        return;
+      }
+    }
+
+    // Cache miss or dev mode - compute fresh embeddings
+    const descriptions = allTools.map((t) => this.buildToolText(t));
     await this.embedder.initialize(descriptions);
 
     // Generate embeddings for all tools
@@ -420,11 +465,128 @@ export class SemanticToolRouter {
     }
     this.toolEmbeddings = embeddings;
 
+    // Save to Firestore for next time (production only)
+    if (!isDev) {
+      await this.saveToFirestore();
+    }
+
     this.initialized = true;
     getLogger().info(
-      { toolCount: this.toolEmbeddings.length, embedder: this.embedder.name },
-      '🎯 Semantic router initialized'
+      {
+        toolCount: this.toolEmbeddings.length,
+        embedder: this.embedder.name,
+        source: isDev ? 'computed (dev)' : 'computed',
+        computeTimeMs: Date.now() - startTime,
+      },
+      '🎯 Semantic router initialized (fresh computation)'
     );
+  }
+
+  // ==========================================================================
+  // FIRESTORE PERSISTENCE
+  // ==========================================================================
+
+  /**
+   * Load tool embeddings from Firestore cache
+   */
+  private async loadFromFirestore(expectedToolCount: number): Promise<ToolEmbedding[] | null> {
+    try {
+      const { getFirestore } = await import('firebase-admin/firestore');
+      const db = getFirestore();
+
+      const cacheDoc = await db.collection('system_cache').doc('tool_embeddings').get();
+
+      if (!cacheDoc.exists) {
+        getLogger().debug('No cached tool embeddings found in Firestore');
+        return null;
+      }
+
+      const data = cacheDoc.data();
+      if (!data) return null;
+
+      // Version check
+      if (data.version !== EMBEDDING_CACHE_VERSION) {
+        getLogger().info(
+          { cachedVersion: data.version, currentVersion: EMBEDDING_CACHE_VERSION },
+          'Embedding cache version mismatch, will recompute'
+        );
+        return null;
+      }
+
+      // Tool count check (rough validation that tools haven't changed)
+      if (data.toolCount !== expectedToolCount) {
+        getLogger().info(
+          { cachedCount: data.toolCount, currentCount: expectedToolCount },
+          'Tool count changed, will recompute embeddings'
+        );
+        return null;
+      }
+
+      // Embedder type check
+      if (data.embedderName !== this.embedder.name) {
+        getLogger().info(
+          { cachedEmbedder: data.embedderName, currentEmbedder: this.embedder.name },
+          'Embedder type changed, will recompute embeddings'
+        );
+        return null;
+      }
+
+      const embeddings = data.embeddings as ToolEmbedding[];
+      getLogger().debug({ count: embeddings.length }, 'Loaded tool embeddings from Firestore');
+      return embeddings;
+    } catch (error) {
+      getLogger().warn({ error }, 'Failed to load embeddings from Firestore, will compute fresh');
+      return null;
+    }
+  }
+
+  /**
+   * Save tool embeddings to Firestore for future fast startup
+   */
+  private async saveToFirestore(): Promise<void> {
+    try {
+      const { getFirestore } = await import('firebase-admin/firestore');
+      const db = getFirestore();
+
+      await db
+        .collection('system_cache')
+        .doc('tool_embeddings')
+        .set(
+          removeUndefined({
+            version: EMBEDDING_CACHE_VERSION,
+            embedderName: this.embedder.name,
+            toolCount: this.toolEmbeddings.length,
+            embeddings: this.toolEmbeddings,
+            updatedAt: new Date(),
+          })
+        );
+
+      getLogger().info(
+        { toolCount: this.toolEmbeddings.length },
+        '💾 Tool embeddings saved to Firestore'
+      );
+    } catch (error) {
+      getLogger().warn({ error }, 'Failed to save embeddings to Firestore (non-fatal)');
+    }
+  }
+
+  /**
+   * Force recomputation of embeddings (e.g., after tool changes)
+   */
+  async invalidateCache(): Promise<void> {
+    try {
+      const { getFirestore } = await import('firebase-admin/firestore');
+      const db = getFirestore();
+      await db.collection('system_cache').doc('tool_embeddings').delete();
+      getLogger().info('Tool embedding cache invalidated');
+    } catch (error) {
+      getLogger().warn({ error }, 'Failed to invalidate embedding cache');
+    }
+
+    // Reset local state
+    this.toolEmbeddings = [];
+    this.queryCache.clear();
+    this.initialized = false;
   }
 
   /**

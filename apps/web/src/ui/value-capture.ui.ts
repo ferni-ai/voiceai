@@ -15,7 +15,6 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { contributeValue, formatAmount, loadStripe } from '../services/monetization.service.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './toast.ui.js';
@@ -518,10 +517,12 @@ function createModal(event: ValueEvent): HTMLElement {
     </div>
   `;
 
-  // Event listeners (iOS-compatible)
-  addTapListener(overlay.querySelector('.value-capture-backdrop'), close);
-  addTapListener(overlay.querySelector('.value-capture-close'), close);
-  addTapListener(overlay.querySelector('.value-capture-card'), (e) => e.stopPropagation());
+  // Event listeners
+  overlay.querySelector('.value-capture-backdrop')?.addEventListener('click', close);
+  overlay.querySelector('.value-capture-close')?.addEventListener('click', close);
+  overlay
+    .querySelector('.value-capture-card')
+    ?.addEventListener('click', (e) => e.stopPropagation());
 
   document.body.appendChild(overlay);
 
@@ -643,7 +644,7 @@ function setupFormListeners(): void {
   let selectedAmount = 0;
 
   buttons.forEach((btn) => {
-    addTapListener(btn, () => {
+    btn.addEventListener('click', () => {
       buttons.forEach((b) => b.classList.remove('selected'));
       btn.classList.add('selected');
       selectedAmount = parseInt(btn.getAttribute('data-amount') || '0', 10);
@@ -660,12 +661,12 @@ function setupFormListeners(): void {
     submitBtn.disabled = cents < 100;
   });
 
-  addTapListener(submitBtn, async () => {
+  submitBtn.addEventListener('click', async () => {
     if (selectedAmount < 100 || !currentUserId || !currentEvent) return;
     await processContribution(selectedAmount);
   });
 
-  addTapListener(skipBtn, () => {
+  skipBtn?.addEventListener('click', () => {
     // Just close - they're celebrating without contributing
     showCelebrationOnly();
   });
@@ -738,7 +739,7 @@ async function processContribution(amountCents: number): Promise<void> {
       setupFormListeners();
     }
 
-    toast.error('Payment failed. Please try again.');
+    toast.error("Payment didn't go through. Try again?");
   }
 }
 
@@ -771,9 +772,6 @@ export function open(userId: string, event: ValueEvent): void {
  */
 export function close(): void {
   if (!isOpen || !container) return;
-
-  // Clean up iOS tap listeners
-  cleanupTapListeners(container);
 
   container.classList.remove('open');
   isOpen = false;
@@ -846,8 +844,8 @@ export function celebrateOnly(userId: string, event: ValueEvent): void {
     </div>
   `;
 
-  addTapListener(overlay.querySelector('.value-capture-backdrop'), close);
-  addTapListener(overlay.querySelector('.value-capture-close'), close);
+  overlay.querySelector('.value-capture-backdrop')?.addEventListener('click', close);
+  overlay.querySelector('.value-capture-close')?.addEventListener('click', close);
 
   document.body.appendChild(overlay);
   container = overlay;

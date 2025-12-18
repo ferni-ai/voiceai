@@ -13,7 +13,7 @@ export {
   getStockQuote,
   getMarketOverview,
   getMarketStatus,
-} from '../market-data.js';
+} from './finance/market-data.js';
 export { createEconomicTools } from '../economic.js';
 export { createCalculatorTools } from '../calculators.js';
 export { createPersonalFinanceTools } from '../personal-finance.js';

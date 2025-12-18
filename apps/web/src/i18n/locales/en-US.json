@@ -9,6 +9,7 @@
     "loading": "Loading...",
     "error": "Something went wrong",
     "retry": "Try again",
+    "tryAgain": "Try Again",
     "cancel": "Cancel",
     "save": "Save",
     "saving": "Saving...",
@@ -29,7 +30,12 @@
     "download": "Download",
     "copy": "Copy",
     "copied": "Copied!",
-    "new": "NEW"
+    "new": "NEW",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "daysAgo": "{count} days ago",
+    "weeksAgo": "{count} weeks ago",
+    "monthsAgo": "{count} months ago"
   },
 
   "buttons": {
@@ -106,7 +112,7 @@
     },
     "items": {
       "yourJourney": "Your Journey",
-      "trustDetails": "Our Relationship",
+      "trustDetails": "Your Trust Journey",
       "progressAnalytics": "How You're Growing",
       "predictionAccuracy": "My Predictions",
       "whatILearned": "What I've Learned",
@@ -118,11 +124,14 @@
       "teamHuddles": "Team Huddles",
       "playGames": "Play Games",
       "musicalYou": "Musical You",
+      "creativeYou": "Creative You",
+      "discoverAgents": "Discover Agents",
+      "connections": "Connections",
       "personalize": "Personalize",
       "voiceAccent": "Voice & Accent",
       "guidedPractices": "Guided Practices",
       "createPractice": "Create Practice",
-      "healthFitness": "Health & Fitness",
+      "wearables": "Wearables",
       "calendar": "Calendar",
       "notifications": "Notifications",
       "toggleTheme": "Light / Dark",
@@ -162,8 +171,90 @@
     "endConversation": "End conversation",
     "endConversationGoodbye": "End conversation - Goodbye",
     "takeCare": "Take care.",
-    "ending": "Ending...",
-    "agentEndingConversation": "Agent ending conversation"
+    "ending": "Ending..."
+  },
+
+  "trustJourney": {
+    "eyebrow": "Our Story",
+    "title": "Your Trust Journey",
+    "subtitle": "How we've grown together",
+    "loading": "Loading your journey",
+    "loadingText": "Gathering your journey...",
+    "trustScore": "Trust Score",
+    "exportSuccess": "Journey exported!",
+    "offlineBanner": "You're offline - showing cached data",
+    "loadMore": "Load {count} more",
+    "strengthLabel": "Trust score: {value}%",
+    "timelineLabel": "Journey timeline",
+    "filterLabel": "Filter timeline",
+    "filters": {
+      "all": "All",
+      "growth": "Growth",
+      "win": "Wins",
+      "callback": "Callbacks",
+      "boundary": "Boundaries",
+      "outreach": "Outreach"
+    },
+    "sections": {
+      "strength": "Relationship Strength",
+      "stats": "Journey Stats",
+      "boundaries": "Boundaries Respected",
+      "growth": "How you've grown",
+      "timeline": "Our journey together"
+    },
+    "stats": {
+      "growthMoments": "Growth Moments",
+      "winsCelebrated": "Wins Celebrated",
+      "sharedMoments": "Shared Moments"
+    },
+    "strengthDescriptions": {
+      "deep": "We have built something real together. I know you, and you trust me.",
+      "growing": "Our connection is growing deeper. I'm learning what matters to you.",
+      "building": "We're building trust. Every conversation helps me understand you better.",
+      "starting": "We're just getting started. Keep talking to me - I'm listening.",
+      "beginning": "Every journey begins with a first step. I'm here whenever you're ready."
+    },
+    "growthTypes": {
+      "emotional_regulation": "Emotional balance",
+      "perspective_shift": "Fresh perspectives",
+      "boundary_setting": "Healthy boundaries",
+      "behavior_change": "New habits",
+      "self_awareness": "Self-awareness",
+      "coping_upgrade": "Better coping",
+      "goal_progress": "Goal progress"
+    },
+    "empty": {
+      "title": "Our story is just beginning",
+      "message": "As we talk more, I'll notice your growth, celebrate your wins, and remember what matters to you. Check back soon."
+    },
+    "errors": {
+      "offline": {
+        "title": "You're offline",
+        "message": "Connect to the internet to see your journey."
+      },
+      "notLoggedIn": {
+        "title": "Not signed in",
+        "message": "Sign in to see your journey with Ferni."
+      },
+      "rateLimited": {
+        "title": "Slow down",
+        "message": "You're checking too often. Wait a moment and try again."
+      },
+      "unauthorized": {
+        "title": "Access denied",
+        "message": "You don't have permission to view this."
+      },
+      "generic": {
+        "title": "Something went wrong",
+        "message": "We couldn't load your journey. Please try again."
+      },
+      "exportFailed": {
+        "message": "Couldn't export your data. Please try again."
+      },
+      "fetchFailedUsingCache": {
+        "message": "Showing saved data - couldn't reach server."
+      }
+    }
   },
 
   "subscription": {
@@ -340,6 +431,55 @@
     "freeNote": "Unlock unlimited sessions, the full team, and personalization"
   },
 
+  "creativeYou": {
+    "eyebrow": "YOUR CREATIVE JOURNEY",
+    "title": "Creative You",
+    "todaysPicks": "Today's Picks",
+    "yourDNA": "Your Creative DNA",
+    "learningTracks": "Learning Tracks",
+    "loadingProfile": "Loading your profile...",
+    "loadingTracks": "Loading tracks...",
+    "video": "Video",
+    "podcast": "Podcast",
+    "videos": "Videos",
+    "podcasts": "Podcasts",
+    "insights": "Insights",
+    "style": "Style",
+    "topInterests": "Top Interests",
+    "noTracks": "No learning tracks available",
+    "episodes": "episodes",
+    "total": "total",
+    "start": "Start",
+    "shareTitle": "My Creative Profile",
+    "shareText": "I'm a \"{label}\" on Ferni!"
+  },
+
+  "connections": {
+    "eyebrow": "SUPERPOWERS",
+    "title": "Connections",
+    "subtitle": "Give Ferni superhuman awareness",
+    "sections": {
+      "health": "Health & Body",
+      "calendar": "Calendar & Time",
+      "finance": "Financial Awareness"
+    },
+    "status": {
+      "connected": "Connected",
+      "notConnected": "Not connected"
+    },
+    "buttons": {
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "manage": "Manage"
+    },
+    "capabilities": {
+      "stressAwareness": "Stress awareness",
+      "sleepAwareness": "Sleep quality",
+      "eventAnticipation": "Event anticipation",
+      "financialPrediction": "Financial insights"
+    }
+  },
+
   "musicDashboard": {
     "title": "Musical You",
     "loading": "Analyzing your musical DNA...",
@@ -456,7 +596,7 @@
   },
 
   "wearableSettings": {
-    "title": "Health & Fitness",
+    "title": "Wearables",
     "loading": "Loading...",
     "intro": "Connect your wearables to give Ferni context about your health and energy levels.",
     "sections": {
@@ -585,6 +725,7 @@
   },
 
   "roadmap": {
+    "loading": "Loading roadmap...",
     "eyebrow": "WHAT'S GROWING",
     "title": "The Journey Ahead",
     "intro": "Every great relationship has seasons. These are seeds we're planting together.",
@@ -605,6 +746,61 @@
       "sprout": "Growing",
       "bud": "Budding",
       "bloom": "Blooming Soon"
+    },
+    "seedBalanceTooltip": "Seeds to plant on features you want",
+    "seedsToPlant": "seeds to plant",
+    "seedToPlant": "seed to plant",
+    "plantSeeds": "Plant seeds on this feature",
+    "plantNow": "Plant Now",
+    "removeSeeds": "Remove your seeds (50% refund)",
+    "seedsPlanted": "{count} seeds planted",
+    "gardeners": "{count} gardeners",
+    "yourSeeds": "Your seeds",
+    "yours": "yours",
+    "plantNewSeed": "Plant a New Seed",
+    "costSeeds": "{count} seeds",
+    "recommendedForYou": "Recommended for you",
+    "recommendedSubtitle": "Based on your conversations",
+    "youMentioned": "You've mentioned",
+    "learnMore": "Learn more",
+    "suggestion": {
+      "title": "Suggest a Feature",
+      "intro": "Have an idea for Ferni? Plant a new seed and watch it grow with community support.",
+      "titleLabel": "What's your idea?",
+      "titlePlaceholder": "A short, catchy name for your feature",
+      "descriptionLabel": "Tell us more",
+      "descriptionPlaceholder": "Describe what this feature would do and why it would help...",
+      "categoryLabel": "Category",
+      "categoryConnect": "New Ways to Connect",
+      "categoryPersonalize": "Make It Yours",
+      "categoryPlatform": "The Platform",
+      "costNotice": "Submitting costs 5 seeds (shows you're committed!)",
+      "submit": "Plant This Seed",
+      "submitting": "Planting...",
+      "successTitle": "Seed Planted!",
+      "successText": "Your idea is now growing. Others can plant seeds on it too!",
+      "done": "Done"
+    },
+    "streaks": {
+      "title": "Streak Rewards",
+      "subtitle": "Keep the conversation going",
+      "daysUntil": "{days} days until {seeds} seeds",
+      "milestone7": "7-day streak",
+      "milestone30": "30-day streak",
+      "claimed": "Claimed!",
+      "reward": "+{seeds} seeds"
+    },
+    "streak": {
+      "startStreak": "Start a streak!",
+      "tooltip": "{days} day streak!",
+      "nextReward": "{days} days to next reward"
+    },
+    "howSeedsWork": {
+      "title": "How Seeds Work",
+      "earn": "Earn seeds by chatting daily and hitting streak milestones",
+      "plant": "Plant seeds on features you want to see built",
+      "grow": "Features with more seeds get prioritized",
+      "suggest": "Suggest new ideas for 5 seeds"
     }
   }
 }

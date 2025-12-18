@@ -6,7 +6,7 @@
 
 ## Overview
 
-The dev panel (`frontend-typescript/src/ui/dev-panel.ui.ts`) is a developer tool with 39 sections and 5500+ lines of code. This audit evaluates which features work vs. are broken.
+The dev panel (`apps/web/src/ui/dev-panel.ui.ts`) is a developer tool with 39 sections and 5500+ lines of code. This audit evaluates which features work vs. are broken.
 
 ---
 
@@ -171,8 +171,8 @@ const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
 
 ## Files Modified in This Audit
 
-- `frontend-typescript/src/ui/dev-panel.ui.ts` - Emoji replacements (391)
-- `frontend-typescript/src/ui/dev-panel/icons.ts` - Added 140+ icons
+- `apps/web/src/ui/dev-panel.ui.ts` - Emoji replacements (391)
+- `apps/web/src/ui/dev-panel/icons.ts` - Added 140+ icons
 
 ---
 

@@ -309,7 +309,7 @@ async function buildLocalToolsForAgent(
           });
 
           if (!result.success) {
-            return `Error: ${result.error || 'Unknown error'}`;
+            return `That didn't work. ${result.error || 'Want to try something else?'}`;
           }
 
           // For prompt-type tools, the result is the prompt to inject

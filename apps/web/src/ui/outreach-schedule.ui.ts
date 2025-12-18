@@ -12,7 +12,6 @@ import { t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION } from '../config/animation-constants.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 
 const log = createLogger('OutreachScheduleUI');
 
@@ -77,14 +76,9 @@ const CHANNEL_ICONS: Record<string, string> = {
   push: ICONS.bell,
 };
 
-const PERSONA_COLORS: Record<string, string> = {
-  ferni: '#4a6741',
-  maya: '#a67a6a',
-  peter: '#3a6b73',
-  alex: '#5a6b8a',
-  jordan: '#c4856a',
-  nayan: '#8a7a6a',
-};
+// Persona colors are now defined via CSS custom properties
+// Use data-persona attribute on elements to apply correct colors
+// See: design-system/tokens/colors.json for source of truth
 
 // ============================================================================
 // STATE
@@ -285,7 +279,8 @@ const STYLES = `
   justify-content: center;
   font-size: 14px;
   font-weight: 600;
-  color: white;
+  color: var(--persona-text, white);
+  background: var(--persona-primary, var(--color-accent-primary));
 }
 
 .outreach-item-info {
@@ -339,18 +334,18 @@ const STYLES = `
 }
 
 .outreach-item-priority.high {
-  background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
+  background: var(--color-semantic-error-glow, rgba(239, 68, 68, 0.1));
+  color: var(--color-semantic-error, #dc2626);
 }
 
 .outreach-item-priority.medium {
-  background: rgba(245, 158, 11, 0.1);
-  color: #d97706;
+  background: var(--color-semantic-warning-glow, rgba(245, 158, 11, 0.1));
+  color: var(--color-semantic-warning, #d97706);
 }
 
 .outreach-item-priority.low {
-  background: rgba(34, 197, 94, 0.1);
-  color: #16a34a;
+  background: var(--color-semantic-success-glow, rgba(34, 197, 94, 0.1));
+  color: var(--color-semantic-success, #16a34a);
 }
 
 .outreach-item-preview {
@@ -415,12 +410,12 @@ const STYLES = `
 }
 
 .outreach-item-btn--cancel {
-  background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
+  background: var(--color-semantic-error-glow, rgba(239, 68, 68, 0.1));
+  color: var(--color-semantic-error, #dc2626);
 }
 
 .outreach-item-btn--cancel:hover {
-  background: rgba(239, 68, 68, 0.2);
+  background: var(--color-semantic-error-glow, rgba(239, 68, 68, 0.2));
 }
 
 .outreach-item-status {
@@ -434,23 +429,23 @@ const STYLES = `
 }
 
 .outreach-item-status.delivered {
-  background: rgba(34, 197, 94, 0.1);
-  color: #16a34a;
+  background: var(--color-semantic-success-glow, rgba(34, 197, 94, 0.1));
+  color: var(--color-semantic-success, #16a34a);
 }
 
 .outreach-item-status.opened {
-  background: rgba(59, 130, 246, 0.1);
-  color: #2563eb;
+  background: var(--color-semantic-info-glow, rgba(59, 130, 246, 0.1));
+  color: var(--color-semantic-info, #2563eb);
 }
 
 .outreach-item-status.responded {
-  background: rgba(139, 92, 246, 0.1);
-  color: #7c3aed;
+  background: var(--persona-glow, rgba(139, 92, 246, 0.1));
+  color: var(--persona-primary, #7c3aed);
 }
 
 .outreach-item-status.failed {
-  background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
+  background: var(--color-semantic-error-glow, rgba(239, 68, 68, 0.1));
+  color: var(--color-semantic-error, #dc2626);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -526,9 +521,6 @@ export async function openOutreachSchedule(): Promise<void> {
 export function closeOutreachSchedule(): void {
   if (!isOpen || !modalContainer) return;
 
-  // Clean up iOS tap listeners
-  cleanupTapListeners(modalContainer);
-
   modalContainer.classList.remove('open');
 
   trackedTimeout(() => {
@@ -576,13 +568,16 @@ function createModal(): void {
     </div>
   `;
 
-  // Event listeners (iOS-compatible)
-  addTapListener(modalContainer.querySelector('.outreach-schedule-backdrop'), closeOutreachSchedule);
-  addTapListener(modalContainer.querySelector('.outreach-schedule-close'), closeOutreachSchedule);
+  // Event listeners
+  const backdrop = modalContainer.querySelector('.outreach-schedule-backdrop');
+  backdrop?.addEventListener('click', closeOutreachSchedule);
+
+  const closeBtn = modalContainer.querySelector('.outreach-schedule-close');
+  closeBtn?.addEventListener('click', closeOutreachSchedule);
 
   // Tab switching
   modalContainer.querySelectorAll('.outreach-schedule-tab').forEach((tab) => {
-    addTapListener(tab, () => {
+    tab.addEventListener('click', () => {
       const tabId = (tab as HTMLElement).dataset.tab as 'upcoming' | 'history';
       switchTab(tabId);
     });
@@ -684,9 +679,9 @@ function renderUpcoming(container: Element, items: ScheduledOutreach[]): void {
 
   container.innerHTML = items.map((item) => renderUpcomingItem(item)).join('');
 
-  // Add event listeners (iOS-compatible)
+  // Add event listeners
   container.querySelectorAll('[data-action]').forEach((btn) => {
-    addTapListener(btn, () => {
+    btn.addEventListener('click', () => {
       const action = (btn as HTMLElement).dataset.action;
       const id = (btn as HTMLElement).dataset.id;
       handleAction(action!, id!);
@@ -695,15 +690,14 @@ function renderUpcoming(container: Element, items: ScheduledOutreach[]): void {
 }
 
 function renderUpcomingItem(item: ScheduledOutreach): string {
-  const color = PERSONA_COLORS[item.personaId] || PERSONA_COLORS.ferni;
   const initial = item.personaName.charAt(0);
   const channelIcon = CHANNEL_ICONS[item.channel] || CHANNEL_ICONS.sms;
   const timeStr = formatTime(item.scheduledFor);
 
   return `
-    <div class="outreach-item" data-outreach-id="${item.id}">
+    <div class="outreach-item" data-outreach-id="${item.id}" data-persona="${item.personaId || 'ferni'}">
       <div class="outreach-item-header">
-        <div class="outreach-item-persona" style="background: ${color}">
+        <div class="outreach-item-persona">
           ${initial}
         </div>
         <div class="outreach-item-info">
@@ -752,7 +746,6 @@ function renderHistory(container: Element, items: OutreachHistory[]): void {
 }
 
 function renderHistoryItem(item: OutreachHistory): string {
-  const color = PERSONA_COLORS[item.personaId] || PERSONA_COLORS.ferni;
   const initial = item.personaName.charAt(0);
   const channelIcon = CHANNEL_ICONS[item.channel] || CHANNEL_ICONS.sms;
   const timeStr = formatRelativeTime(item.sentAt);
@@ -765,9 +758,9 @@ function renderHistoryItem(item: OutreachHistory): string {
   };
 
   return `
-    <div class="outreach-item">
+    <div class="outreach-item" data-persona="${item.personaId || 'ferni'}">
       <div class="outreach-item-header">
-        <div class="outreach-item-persona" style="background: ${color}">
+        <div class="outreach-item-persona">
           ${initial}
         </div>
         <div class="outreach-item-info">
@@ -821,13 +814,13 @@ async function showPreview(outreachId: string): Promise<void> {
     // Create preview modal
     const preview = document.createElement('div');
     preview.className = 'outreach-preview-overlay';
-    const color = PERSONA_COLORS[item.personaId || 'ferni'] || PERSONA_COLORS.ferni;
+    const personaId = item.personaId || 'ferni';
 
     preview.innerHTML = `
       <div class="outreach-preview-backdrop"></div>
-      <div class="outreach-preview-modal">
+      <div class="outreach-preview-modal" data-persona="${personaId}">
         <header class="outreach-preview-header">
-          <div class="outreach-preview-persona" style="background: ${color}">
+          <div class="outreach-preview-persona">
             ${(item.persona || item.personaId || 'F').charAt(0).toUpperCase()}
           </div>
           <div>
@@ -856,14 +849,15 @@ async function showPreview(outreachId: string): Promise<void> {
       preview.classList.add('open');
     });
 
-    // Close handlers (iOS-compatible)
-    const closePreview = () => {
-      cleanupTapListeners(preview);
+    // Close handlers
+    preview.querySelector('.outreach-preview-backdrop')?.addEventListener('click', () => {
       preview.classList.remove('open');
       trackedTimeout(() => preview.remove(), 200);
-    };
-    addTapListener(preview.querySelector('.outreach-preview-backdrop'), closePreview);
-    addTapListener(preview.querySelector('.outreach-preview-close'), closePreview);
+    });
+    preview.querySelector('.outreach-preview-close')?.addEventListener('click', () => {
+      preview.classList.remove('open');
+      trackedTimeout(() => preview.remove(), 200);
+    });
 
   } catch (error) {
     log.error({ error, outreachId }, 'Failed to show preview');
@@ -929,8 +923,9 @@ function addPreviewStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--persona-text, white);
       font-weight: 600;
+      background: var(--persona-primary, var(--color-accent-primary));
     }
     .outreach-preview-title {
       margin: 0;
@@ -1074,11 +1069,11 @@ async function showReschedule(outreachId: string): Promise<void> {
     trackedTimeout(() => reschedule.remove(), 200);
   };
 
-  addTapListener(reschedule.querySelector('.outreach-preview-backdrop'), close);
-  addTapListener(reschedule.querySelector('.outreach-reschedule-cancel'), close);
+  reschedule.querySelector('.outreach-preview-backdrop')?.addEventListener('click', close);
+  reschedule.querySelector('.outreach-reschedule-cancel')?.addEventListener('click', close);
 
   reschedule.querySelectorAll('.outreach-reschedule-option').forEach((btn) => {
-    addTapListener(btn, async () => {
+    btn.addEventListener('click', async () => {
       const newTime = (btn as HTMLElement).dataset.time;
       try {
         // Call API to reschedule

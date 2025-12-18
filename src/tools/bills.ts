@@ -22,6 +22,7 @@ import {
 } from '../services/productivity-store.js';
 import { getLogger, generateId } from './utils/tool-helpers.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // Bridge functions for persistence
 function billDataToBill(data: BillData, userId: string): Bill {
   return {
@@ -479,11 +480,7 @@ export { getUpcomingBills, calculateMonthlyTotal, getOverdueBills, getUserBills 
 export function createBillTools() {
   return {
     addBill: llm.tool({
-      description: `Add a new recurring bill to track.
-Use when user wants to:
-- Track a new bill
-- Set up payment reminders
-- Add monthly expenses`,
+      description: getToolDescription('addBill'),
       parameters: z.object({
         name: z.string().describe('Bill name (e.g., "Electric Bill", "Netflix")'),
         payee: z.string().describe('Who gets paid (e.g., "Con Edison", "Netflix")'),
@@ -556,8 +553,7 @@ Use when user wants to:
     }),
 
     payBill: llm.tool({
-      description: `Record that a bill has been paid.
-Use when user says they paid a bill.`,
+      description: getToolDescription('payBill'),
       parameters: z.object({
         billName: z.string().describe('Which bill was paid'),
         amount: z.number().optional().describe('Amount paid (if different from usual)'),
@@ -582,7 +578,7 @@ Use when user says they paid a bill.`,
           confirmationNumber,
         });
 
-        if (!result) return `Error recording payment.`;
+        if (!result) return `Couldn't record that payment. Want to try again?`;
 
         const nextDueStr = result.bill.nextDueDate.toLocaleDateString('en-US', {
           month: 'short',
@@ -600,8 +596,7 @@ Use when user says they paid a bill.`,
     }),
 
     getUpcomingBills: llm.tool({
-      description: `Show bills coming up soon.
-Use when user asks about upcoming payments or wants to know what's due.`,
+      description: getToolDescription('getUpcomingBills'),
       parameters: z.object({
         days: z.number().optional().default(14).describe('How many days ahead to look'),
       }),
@@ -648,7 +643,7 @@ Use when user asks about upcoming payments or wants to know what's due.`,
     }),
 
     getAllBills: llm.tool({
-      description: `Show all tracked bills and monthly overview.`,
+      description: getToolDescription('getAllBills'),
       parameters: z.object({
         category: z
           .enum([
@@ -717,7 +712,7 @@ Use when user asks about upcoming payments or wants to know what's due.`,
     }),
 
     updateBill: llm.tool({
-      description: `Update a bill's amount, due date, or autopay status.`,
+      description: getToolDescription('updateBill'),
       parameters: z.object({
         billName: z.string().describe('Which bill to update'),
         newAmount: z.number().optional().describe('New amount'),
@@ -763,7 +758,7 @@ Use when user asks about upcoming payments or wants to know what's due.`,
     }),
 
     removeBill: llm.tool({
-      description: `Stop tracking a bill (paid off, cancelled, etc.)`,
+      description: getToolDescription('removeBill'),
       parameters: z.object({
         billName: z.string().describe('Which bill to remove'),
         confirm: z.boolean().describe('User confirmed'),
@@ -793,7 +788,7 @@ Use when user asks about upcoming payments or wants to know what's due.`,
     }),
 
     getBillSummary: llm.tool({
-      description: `Get a quick financial summary of bills.`,
+      description: getToolDescription('getBillSummary'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userData = ctx?.userData as { userId?: string } | undefined;

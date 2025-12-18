@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { getDailyRitualsService } from '../../../services/daily-rituals.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // INBOX ZERO CHALLENGE
 // ============================================================================
@@ -27,7 +28,7 @@ export const inboxZeroChallengeDef: ToolDefinition = {
   create: (ctx: ToolContext): Tool => {
     const userId = ctx.userId ?? 'anonymous';
     return llm.tool({
-      description: `Track daily inbox zero progress. Build streaks. Alex celebrates wins and helps with setbacks.`,
+      description: getToolDescription('inboxZeroChallenge'),
       parameters: z.object({
         action: z.enum(['check-in', 'report-status', 'view-streak', 'tips']).describe('Action'),
         inboxCount: z.number().optional().describe('Current inbox count'),
@@ -110,7 +111,7 @@ export const sundayPrepGameDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `5-minute Sunday planning session where Alex helps design the upcoming week.`,
+      description: getToolDescription('sundayPrepGame'),
       parameters: z.object({
         action: z
           .enum(['start', 'set-priorities', 'identify-blockers', 'complete'])

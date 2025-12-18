@@ -14,6 +14,7 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { playMicroExpression } from './better-than-human.ui.js';
 
 // ============================================================================
 // TYPES
@@ -153,9 +154,47 @@ class AnalyticsDashboardUI {
     this.panel.classList.add('analytics--visible');
     this.isVisible = true;
 
+    // Trigger Ferni EQ based on achievements in the data
+    this.triggerProgressEQ(data);
+
     // Animate charts
     if (!prefersReducedMotion()) {
       this.animateCharts();
+    }
+  }
+
+  /**
+   * Trigger Ferni's emotional response based on progress data.
+   * Makes the dashboard feel like Ferni is proud of your achievements.
+   */
+  private triggerProgressEQ(data: AnalyticsDashboardData): void {
+    // Priority 1: Long streak achievement (7+ days) → pride
+    if (data.currentLongestStreak >= 7) {
+      trackedTimeout(() => playMicroExpression('pride_flash'), 300);
+      return;
+    }
+
+    // Priority 2: High prediction accuracy (75%+) → delight
+    if (data.predictionAccuracy && data.predictionAccuracy >= 75) {
+      trackedTimeout(() => playMicroExpression('delight_flash'), 300);
+      return;
+    }
+
+    // Priority 3: Growth insights detected → aha moment
+    if (data.growthSummary && data.growthSummary.totalInsights > 0) {
+      trackedTimeout(() => playMicroExpression('aha_flash'), 300);
+      return;
+    }
+
+    // Priority 4: Good engagement (10+ days active) → warmth
+    if (data.totalDays >= 10) {
+      trackedTimeout(() => playMicroExpression('warmth_pulse'), 300);
+      return;
+    }
+
+    // Default: general positive acknowledgment for viewing progress
+    if (data.totalRituals > 0 || data.totalDays > 0) {
+      trackedTimeout(() => playMicroExpression('understanding'), 400);
     }
   }
 
@@ -260,7 +299,6 @@ class AnalyticsDashboardUI {
 
     this.wrapper = document.createElement('div');
     this.wrapper.className = 'analytics__wrapper';
-    this.wrapper.setAttribute('aria-live', 'polite');
     this.panel.appendChild(this.wrapper);
 
     // Close on backdrop
@@ -1656,14 +1694,6 @@ class AnalyticsDashboardUI {
 
       [data-theme="midnight"] .analytics__growth-arrow {
         color: var(--color-accent-secondary, #7cb36b);
-      }
-
-      /* ========================================================================
-         ACCESSIBILITY - Focus Styles
-         ======================================================================== */
-      .analytics button:focus-visible {
-        outline: 2px solid var(--persona-primary, #4a6741);
-        outline-offset: 2px;
       }
 
       /* ========================================================================

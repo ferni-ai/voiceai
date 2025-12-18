@@ -176,7 +176,7 @@ There are TWO ducking trigger paths (by design for redundancy):
 
 ## 🔵 E2E Tests to Create
 
-### File: `frontend-typescript/src/__tests__/music-ducking.e2e.test.ts`
+### File: `apps/web/src/__tests__/music-ducking.e2e.test.ts`
 
 ```typescript
 describe('Music Ducking E2E', () => {

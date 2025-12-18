@@ -17,6 +17,7 @@ import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // TIME AWARENESS
 // ============================================================================
@@ -30,8 +31,7 @@ const getCurrentContextDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Get current contextual awareness: time of day, day of week, season, any notable dates, and environmental factors. Use this to make conversation feel grounded and natural.',
+      description: getToolDescription('getCurrentContext'),
       parameters: z.object({
         includeWeather: z.boolean().optional().describe('Include weather context if available'),
         timezone: z
@@ -188,8 +188,7 @@ const getUserContextDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        "Get context about the current user: how long you've known them, recent topics, emotional patterns, and relationship stage. Essential for personalized, human conversation.",
+      description: getToolDescription('getUserContext'),
       parameters: z.object({}),
       execute: async (_, { ctx: toolCtx }) => {
         getLogger().info({ agentId: ctx.agentId }, 'Getting user context');
@@ -265,8 +264,7 @@ const getConversationAwarenessDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Get awareness of the current conversation: topics discussed, emotional trajectory, depth of engagement, and natural next directions. Helps maintain conversational coherence.',
+      description: getToolDescription('getConversationAwareness'),
       parameters: z.object({}),
       execute: async (_, { ctx: toolCtx }) => {
         getLogger().info({ agentId: ctx.agentId }, 'Getting conversation awareness');
@@ -370,8 +368,7 @@ const getTodaySignificanceDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Get what makes today notable: holidays, observances, historical events, or seasonal significance. Great for natural conversation openers or context.',
+      description: getToolDescription('getTodaySignificance'),
       parameters: z.object({
         includeHistorical: z.boolean().optional().describe('Include historical events on this day'),
         includeQuirky: z.boolean().optional().describe('Include fun/quirky observances'),
@@ -457,8 +454,7 @@ const getProactiveInsightsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Get proactive suggestions for what might be valuable to discuss based on user context, time, and patterns. Helps agents be thoughtfully proactive without being pushy.',
+      description: getToolDescription('getProactiveInsights'),
       parameters: z.object({
         focus: z
           .enum(['general', 'goals', 'wellbeing', 'upcoming', 'reflection'])

@@ -2,10 +2,15 @@
  * Plaid Token Management
  *
  * Stores and retrieves Plaid access tokens for users.
+ *
+ * STORAGE: Uses Firestore for persistence (Cloud Run compatible).
+ * Falls back to in-memory storage if Firestore is unavailable.
  */
 
-import fs from 'fs';
-import path from 'path';
+import { createPersistenceStore } from '../../../services/persistence/index.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'Plaid' });
 
 /**
  * Plaid token data
@@ -31,9 +36,17 @@ const PLAID_BASE_URL =
     production: 'https://production.plaid.com',
   }[PLAID_ENV] || 'https://sandbox.plaid.com';
 
-// Token storage
+// Firestore-backed persistence store for Plaid tokens
+// Stores under bogle_users/{userId}/plaid_tokens/data
+const tokenStore = createPersistenceStore<PlaidTokenData>({
+  collection: 'plaid_tokens',
+  documentId: 'data',
+  useRootCollection: false, // Per-user storage
+  syncIntervalMs: 2000,
+});
+
+// In-memory cache for fast access
 const plaidAccessTokens = new Map<string, PlaidTokenData>();
-const PLAID_TOKENS_FILE = path.join(process.cwd(), '.plaid-tokens.json');
 
 /**
  * Check if Plaid is configured
@@ -55,69 +68,96 @@ export function getConfig(): { clientId: string; secret: string; baseUrl: string
 }
 
 /**
- * Load tokens from file on startup
+ * Load tokens for a user from Firestore
  */
-export function loadTokens(): void {
+export async function loadTokensForUser(userId: string): Promise<PlaidTokenData | null> {
+  // Check in-memory cache first
+  const cached = plaidAccessTokens.get(userId);
+  if (cached) {
+    return cached;
+  }
+
   try {
-    if (fs.existsSync(PLAID_TOKENS_FILE)) {
-      const data = JSON.parse(fs.readFileSync(PLAID_TOKENS_FILE, 'utf8')) as Record<
-        string,
-        PlaidTokenData
-      >;
-      for (const [key, value] of Object.entries(data)) {
-        plaidAccessTokens.set(key, value);
-      }
-      console.log(`✅ Loaded ${plaidAccessTokens.size} Plaid tokens from storage`);
+    const data = await tokenStore.get(userId);
+    if (data) {
+      plaidAccessTokens.set(userId, data);
+      log.info({ userId: userId.substring(0, 8) }, 'Loaded Plaid token from Firestore');
+      return data;
     }
   } catch (err) {
-    console.warn('⚠️ Could not load Plaid tokens:', (err as Error).message);
+    log.warn(
+      { error: (err as Error).message, userId: userId.substring(0, 8) },
+      'Could not load Plaid token'
+    );
   }
-}
-
-/**
- * Save tokens to file
- */
-function saveTokens(): void {
-  try {
-    const data = Object.fromEntries(plaidAccessTokens);
-    fs.writeFileSync(PLAID_TOKENS_FILE, JSON.stringify(data, null, 2));
-  } catch (err) {
-    console.warn('⚠️ Could not save Plaid tokens:', (err as Error).message);
-  }
+  return null;
 }
 
 /**
  * Store a Plaid access token for a user
  */
-export function storeToken(
+export async function storeToken(
   userId: string,
   accessToken: string,
   itemId: string,
   institution?: { name?: string; institution_id?: string }
-): void {
-  plaidAccessTokens.set(userId, {
+): Promise<void> {
+  const data: PlaidTokenData = {
     access_token: accessToken,
     item_id: itemId,
     institution: institution || {},
     linked_at: new Date().toISOString(),
-  });
-  saveTokens();
-  console.log(`🔐 Stored Plaid token for user: ${userId} (${institution?.name || 'Unknown'})`);
+  };
+
+  // Update in-memory cache
+  plaidAccessTokens.set(userId, data);
+
+  // Persist to Firestore
+  try {
+    await tokenStore.setImmediate(userId, data);
+    log.info(
+      { userId: userId.substring(0, 8), institution: institution?.name || 'Unknown' },
+      'Stored Plaid token'
+    );
+  } catch (err) {
+    log.error(
+      { error: (err as Error).message, userId: userId.substring(0, 8) },
+      'Failed to store Plaid token'
+    );
+  }
 }
 
 /**
  * Get Plaid access token for a user
  */
-export function getToken(userId: string): PlaidTokenData | null {
-  return plaidAccessTokens.get(userId) || null;
+export async function getToken(userId: string): Promise<PlaidTokenData | null> {
+  // Check in-memory cache first
+  const cached = plaidAccessTokens.get(userId);
+  if (cached) {
+    return cached;
+  }
+
+  // Load from Firestore
+  return loadTokensForUser(userId);
 }
 
 /**
  * Remove Plaid token for a user
  */
-export function removeToken(userId: string): void {
+export async function removeToken(userId: string): Promise<void> {
+  // Remove from in-memory cache
   plaidAccessTokens.delete(userId);
-  saveTokens();
+
+  // Remove from Firestore
+  try {
+    await tokenStore.delete(userId);
+    log.info({ userId: userId.substring(0, 8) }, 'Removed Plaid token');
+  } catch (err) {
+    log.error(
+      { error: (err as Error).message, userId: userId.substring(0, 8) },
+      'Failed to remove Plaid token'
+    );
+  }
 }
 
 /**
@@ -143,7 +183,7 @@ export async function exchangePublicToken(
 
     if (!response.ok) {
       const error = (await response.json()) as { error_message?: string };
-      console.error('❌ Plaid exchange error:', error);
+      log.error({ error: error.error_message }, 'Plaid exchange error');
       return null;
     }
 
@@ -153,10 +193,16 @@ export async function exchangePublicToken(
       itemId: data.item_id,
     };
   } catch (err) {
-    console.error('❌ Plaid exchange error:', err);
+    log.error({ error: (err as Error).message }, 'Plaid exchange error');
     return null;
   }
 }
 
-// Load tokens on module init
-loadTokens();
+/**
+ * Shutdown Plaid service (flush tokens and cleanup)
+ */
+export async function shutdown(): Promise<void> {
+  await tokenStore.shutdown();
+  plaidAccessTokens.clear();
+  log.info('Plaid service shutdown complete');
+}

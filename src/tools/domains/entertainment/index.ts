@@ -17,7 +17,7 @@ import type { ToolDefinition, ToolContext, ExternalService } from '../../registr
 import { getLogger } from '../../../utils/safe-logger.js';
 
 // Import legacy tool creators
-import { createMusicTools } from '../../music.js';
+import { createMusicTools } from './music.js';
 import { createSpotifyTools } from '../../spotify.js';
 
 const log = getLogger();
@@ -43,7 +43,7 @@ function wrapLegacyTool(
     domain: 'entertainment',
     tags: ['entertainment', 'music', ...(options?.tags || [])],
     requiredServices: options?.requiredServices,
-    create: (_ctx: ToolContext) => legacyTool,
+    create: (_ctx: ToolContext) => legacyTool as any,
   };
 }
 

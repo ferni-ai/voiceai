@@ -271,7 +271,7 @@ Once IA changes are made, measure:
 ## Appendix: Full UI File Inventory
 
 <details>
-<summary>All 96 UI files in frontend-typescript/src/ui/</summary>
+<summary>All 96 UI files in apps/web/src/ui/</summary>
 
 ### Core UI (Always Visible)
 

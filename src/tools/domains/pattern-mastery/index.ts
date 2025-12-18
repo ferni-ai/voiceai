@@ -16,6 +16,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // PATTERN DISCOVERY TOOLS
 // ============================================================================
@@ -29,8 +30,7 @@ const discoverPatternDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Identify and explain a hidden pattern in user behavior, spending, habits, or life.',
+      description: getToolDescription('discoverPattern'),
       parameters: z.object({
         dataType: z
           .enum(['spending', 'behavior', 'mood', 'habits', 'life-events', 'relationships', 'other'])
@@ -73,7 +73,7 @@ const crossDomainConnectionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Reveal surprising connections between seemingly unrelated areas of life.',
+      description: getToolDescription('crossDomainConnection'),
       parameters: z.object({
         domainA: z.string().describe('First area of life'),
         domainB: z.string().describe('Second, seemingly unrelated area'),
@@ -110,7 +110,7 @@ const historicalParallelDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Provide perspective by showing historical parallels to current situations.',
+      description: getToolDescription('historicalParallel'),
       parameters: z.object({
         currentSituation: z.string().describe('What the user is facing'),
         parallel: z.string().describe('Historical parallel or precedent'),
@@ -149,7 +149,7 @@ const dataStorytellingDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Transform data and numbers into a compelling human story.',
+      description: getToolDescription('dataStorytelling'),
       parameters: z.object({
         dataPoint: z.string().describe('The data or number'),
         humanMeaning: z.string().describe('What this means in human terms'),
@@ -189,7 +189,7 @@ const counterIntuitiveInsightDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Share a counter-intuitive insight that challenges conventional thinking.',
+      description: getToolDescription('counterIntuitiveInsight'),
       parameters: z.object({
         conventionalWisdom: z.string().describe('What people typically believe'),
         actualTruth: z.string().describe('What the data actually shows'),
@@ -224,7 +224,7 @@ const patternPredictionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Make informed predictions based on observed patterns.',
+      description: getToolDescription('patternPrediction'),
       parameters: z.object({
         pattern: z.string().describe('The pattern observed'),
         prediction: z.string().describe('What this pattern suggests will happen'),

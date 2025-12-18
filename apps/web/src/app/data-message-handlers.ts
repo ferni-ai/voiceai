@@ -31,8 +31,10 @@ import {
 import { cameoService } from '../services/cameo.service.js';
 import { conversationTracker } from '../services/conversation-tracker.service.js';
 import { delightService } from '../services/delight.service.js';
-import { engagementService, handoffService, moodService } from '../services/index.js';
 import { t } from '../i18n/index.js';
+// 🌱 Smart Vote Prompts - Track user mentions for feature recommendations
+import { smartPromptTracker } from '../services/roadmap.service.js';
+import { engagementService, handoffService, moodService } from '../services/index.js';
 import { setWrappingUp } from '../state/app.state.js';
 import { avatarFeedback } from '../ui/avatar-feedback.ui.js';
 import { celebrationsUI } from '../ui/celebrations.ui.js';
@@ -54,6 +56,8 @@ import { connectionService } from '../services/index.js';
 import { ferni } from '../ui/better-than-human.ui.js';
 // 🎧 Now Playing UI - music state visualization
 import { nowPlayingUI } from '../ui/now-playing.ui.js';
+// 💭 Proactive Outreach UI - "Better than Human" thinking of you
+import { proactiveOutreachUI, type ProactiveOutreachData } from '../ui/proactive-outreach.ui.js';
 // Tone detection for micro-expressions
 import {
   analyzeForMicroExpression,
@@ -151,6 +155,12 @@ export function handleDataMessage(message: DataMessage): void {
     return;
   }
 
+  // 💭 Try to process as proactive outreach ("Better than Human" thinking of you)
+  if (isProactiveOutreachMessage(message)) {
+    handleProactiveOutreach(message);
+    return;
+  }
+
   // Try to process as wrap-up signal (conversation ending)
   if (isWrapUpMessage(message)) {
     handleWrapUp(message);
@@ -208,37 +218,9 @@ export function handleDataMessage(message: DataMessage): void {
           intensity: microParams.intensity,
         });
 
-        // 🎬 Luxo: Check for surprising/unexpected content
-        if (microParams.isSurprise) {
-          document.dispatchEvent(new CustomEvent('ferni:surprise-content'));
-        }
-
-        // 🎬 Luxo: Check for insight/realization
-        if (microParams.hasInsight) {
-          document.dispatchEvent(new CustomEvent('ferni:user-insight'));
-        }
-        
-        // 🎬 Luxo: Check for setback/failure (Growth Through Gentleness)
-        if (microParams.hasSetback) {
-          document.dispatchEvent(new CustomEvent('ferni:setback-shared'));
-          log.debug('🎬 Setback detected - triggering grounding support');
-        }
-        
-        // 🎬 Luxo: Check for humor (Authentic Personality)
-        if (microParams.hasHumor) {
-          document.dispatchEvent(new CustomEvent('ferni:humor-detected'));
-          log.debug('🎬 Humor detected - triggering playful response');
-        }
-        
-        // 🎬 Luxo: Check for achievement (celebrate small wins)
-        if (microParams.hasAchievement) {
-          document.dispatchEvent(new CustomEvent('ferni:growth-recognized'));
-        }
-        
-        // 🎬 Luxo: Check for emotional/vulnerable content
-        if (microParams.isVulnerable || microParams.isProcessingDeep) {
-          document.dispatchEvent(new CustomEvent('ferni:emotional-content'));
-        }
+        // 🌱 Smart Vote Prompts: Analyze user text for feature recommendations
+        // This tracks mentions of keywords related to upcoming features
+        smartPromptTracker.analyzeText(message['text']);
       }
       break;
 
@@ -521,7 +503,6 @@ function handleBreathSync(event: BreathSyncEvent): void {
  * Handle celebration events from the agent.
  * Zen aesthetic: warmth and breathing, not explosions.
  * 🎬 Enhanced with Pixar emotions for character expressiveness.
- * 🎬 Luxo Jr. integration: Triggers emotional arcs and investigations.
  */
 export function handleCelebration(event: CelebrationEvent): void {
   // Milestone/achievement - warm acknowledgement with held pose
@@ -536,9 +517,6 @@ export function handleCelebration(event: CelebrationEvent): void {
     if (event.message) {
       celebrationsUI.celebrateMilestone(event.message);
     }
-
-    // 🎬 Luxo: Dispatch celebration for celebration arc
-    document.dispatchEvent(new CustomEvent('ferni:celebration'));
   }
 
   // Aha moment / good news - double-take for surprise, then delight
@@ -554,13 +532,9 @@ export function handleCelebration(event: CelebrationEvent): void {
     // 🎬 Pixar: Double-take for "aha!" moments (like WALL-E noticing something)
     if (event.celebrationType === 'aha_moment') {
       ferniExpressions.realization();
-      // 🎬 Luxo: User had an insight - trigger realization arc
-      document.dispatchEvent(new CustomEvent('ferni:user-insight'));
     } else {
       // Good news: delighted expression with sparkle
       ferniExpressions.delight();
-      // 🎬 Luxo: Surprise content - trigger investigation
-      document.dispatchEvent(new CustomEvent('ferni:surprise-content'));
     }
   }
 }
@@ -651,16 +625,12 @@ function triggerPixarEmotionResponse(emotion: EmotionEvent['emotion'], intensity
     case 'sad':
       // Show empathetic understanding (soft, supportive expression)
       ferniExpressions.empathy();
-      // 🎬 Luxo: User sharing emotional content - trigger empathy investigation
-      document.dispatchEvent(new CustomEvent('ferni:emotional-content'));
       break;
 
     case 'anxious':
       // Show calm, grounding presence
       // Don't mirror anxiety - show steady supportiveness
       ferniExpressions.setExpression('empathetic', 300, 2000);
-      // 🎬 Luxo: User sharing emotional content - trigger empathy investigation
-      document.dispatchEvent(new CustomEvent('ferni:emotional-content'));
       break;
 
     case 'frustrated':
@@ -835,6 +805,49 @@ export function handleMood(event: MoodEvent): void {
   if (event.hasTransition) {
     delightService.haptic('medium');
   }
+}
+
+// ============================================================================
+// PROACTIVE OUTREACH ("Better than Human" - Thinking of You)
+// ============================================================================
+
+/**
+ * Type guard for proactive outreach messages.
+ * These are "thinking of you" moments from the backend trust systems.
+ */
+function isProactiveOutreachMessage(message: DataMessage): message is DataMessage & { data: ProactiveOutreachData } {
+  return (
+    message.type === 'proactive_outreach' &&
+    typeof message.data === 'object' &&
+    message.data !== null
+  );
+}
+
+/**
+ * Handle proactive outreach events from the backend.
+ * Shows a notification that Ferni was thinking about them.
+ * 
+ * "Better than Human" - The most meaningful check-ins aren't triggered by actions,
+ * they're the random "I was thinking about you" moments that show someone genuinely cares.
+ */
+function handleProactiveOutreach(message: DataMessage & { data: ProactiveOutreachData }): void {
+  const outreach = message.data;
+  
+  log.info({ type: outreach.type, personaId: outreach.personaId }, '💭 Proactive outreach received');
+
+  // Show the outreach notification
+  proactiveOutreachUI.show(outreach);
+
+  // Play a subtle warm sound
+  soundUI.play('message');
+
+  // Trigger a warm expression
+  ferniExpressions.setExpression('warm', 300, 1500);
+
+  // Dispatch event for other systems
+  document.dispatchEvent(new CustomEvent('ferni:data-message', {
+    detail: message
+  }));
 }
 
 /**
@@ -1077,24 +1090,23 @@ export function handleWrapUp(event: WrapUpEvent): void {
  * This is the "cameo unlock" moment - a celebration!
  */
 interface CameoUnlockMessage {
-  type: 'cameo_unlock';
-  memberId: string;
-  displayName: string;
-  role: string;
-  spokenIntro: string;
-  timestamp: number;
-  // Index signature to satisfy DataMessage compatibility
+  readonly type: 'cameo_unlock';
+  readonly memberId: string;
+  readonly displayName: string;
+  readonly role: string;
+  readonly spokenIntro: string;
+  readonly timestamp: number;
   readonly [key: string]: unknown;
 }
 
 /**
  * Type guard for cameo unlock messages.
  */
-function isCameoUnlockMessage(message: DataMessage): boolean {
+function isCameoUnlockMessage(message: DataMessage): message is CameoUnlockMessage {
   return (
     message.type === 'cameo_unlock' &&
-    typeof message['memberId'] === 'string' &&
-    typeof message['displayName'] === 'string'
+    typeof (message as CameoUnlockMessage).memberId === 'string' &&
+    typeof (message as CameoUnlockMessage).displayName === 'string'
   );
 }
 
@@ -1120,12 +1132,12 @@ export function handleCameoUnlock(event: CameoUnlockMessage): void {
   });
 
   // Validate the message
-  if (!event.memberId || !event.displayName) {
+  if (!isCameoUnlockMessage(event)) {
     log.warn('Invalid cameo unlock message:', event);
     return;
   }
 
-  // 1. Celebrate! Play unlock sound
+  // 1. Celebrate! Play team unlock sound
   soundUI.play('teamUnlock');
 
   // 2. Show warm expression - Ferni is introducing a friend!

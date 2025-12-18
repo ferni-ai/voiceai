@@ -17,7 +17,6 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { addTapListener } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('OutreachPrefs');
@@ -599,11 +598,11 @@ class OutreachPreferencesUI {
       </div>
     `;
 
-    // Bind events (iOS-compatible)
-    addTapListener(this.overlay.querySelector('.outreach-prefs-backdrop'), () => this.hide());
-    addTapListener(this.overlay.querySelector('.outreach-prefs-close'), () => this.hide());
-    addTapListener(this.overlay.querySelector('[data-action="cancel"]'), () => this.hide());
-    addTapListener(this.overlay.querySelector('[data-action="save"]'), () => this.handleSave());
+    // Bind events
+    this.overlay.querySelector('.outreach-prefs-backdrop')?.addEventListener('click', () => this.hide());
+    this.overlay.querySelector('.outreach-prefs-close')?.addEventListener('click', () => this.hide());
+    this.overlay.querySelector('[data-action="cancel"]')?.addEventListener('click', () => this.hide());
+    this.overlay.querySelector('[data-action="save"]')?.addEventListener('click', () => this.handleSave());
 
     // Close on escape
     document.addEventListener('keydown', (e) => {
@@ -734,15 +733,15 @@ class OutreachPreferencesUI {
    * Bind content events
    */
   private bindContentEvents(content: Element): void {
-    // Toggle switch (iOS-compatible)
-    addTapListener(content.querySelector('[data-pref="enabled"]'), () => {
+    // Toggle switch
+    content.querySelector('[data-pref="enabled"]')?.addEventListener('click', () => {
       this.currentPrefs.enabled = !this.currentPrefs.enabled;
       this.renderContent();
     });
 
-    // Channel selection (iOS-compatible)
+    // Channel selection
     content.querySelectorAll('[data-channel]').forEach((el) => {
-      addTapListener(el, () => {
+      el.addEventListener('click', () => {
         const channel = (el as HTMLElement).dataset.channel as OutreachPreferences['preferredChannel'];
         if (channel) {
           this.currentPrefs.preferredChannel = channel;
@@ -776,9 +775,9 @@ class OutreachPreferencesUI {
       });
     });
 
-    // Day selection (iOS-compatible)
+    // Day selection
     content.querySelectorAll('[data-day]').forEach((el) => {
-      addTapListener(el, () => {
+      el.addEventListener('click', () => {
         const day = (el as HTMLElement).dataset.day;
         if (day) {
           const idx = this.currentPrefs.quietDays.indexOf(day);

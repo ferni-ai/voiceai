@@ -151,8 +151,10 @@ describe('Response Anticipation', () => {
 
       expect(result).not.toBeNull();
       expect(result!.intent).toBe('greeting');
-      expect(result!.template.length).toBeGreaterThan(0);
-      expect(result!.isComplete).toBe(true);
+      // Templates are intentionally empty - let LLM handle with persona voice
+      expect(result!.template).toBe('');
+      expect(result!.contextHint.length).toBeGreaterThan(0); // Context hint should exist
+      expect(result!.isComplete).toBe(true); // Complete = no variables to fill
     });
 
     it('should return null for low confidence predictions', () => {
@@ -167,9 +169,9 @@ describe('Response Anticipation', () => {
       service.anticipate('hello');
       const response = service.getCompleteResponse();
 
-      expect(response).not.toBeNull();
-      expect(response!.response.length).toBeGreaterThan(0);
-      expect(response!.ssml.length).toBeGreaterThan(0);
+      // Templates are intentionally empty - getCompleteResponse returns null
+      // This is by design: LLM should respond with persona voice, not cached text
+      expect(response).toBeNull();
     });
 
     it('should track cache statistics', () => {

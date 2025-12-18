@@ -5,7 +5,7 @@ A production-grade TypeScript frontend for the Voice AI application, built with 
 ## Architecture
 
 ```
-frontend-typescript/
+apps/web/
 ├── src/
 │   ├── types/          # TypeScript interfaces and type guards
 │   ├── config/         # Configuration (personas, API endpoints, constants)
@@ -48,7 +48,7 @@ frontend-typescript/
 ### Installation
 
 ```bash
-cd frontend-typescript
+cd apps/web
 npm install
 ```
 

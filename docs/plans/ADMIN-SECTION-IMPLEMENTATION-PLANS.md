@@ -613,7 +613,7 @@ Define in `design-system/tokens/admin.json`:
 
 ### Shared Test Utilities
 
-Create `frontend-typescript/src/admin/__tests__/test-utils.ts`:
+Create `apps/web/src/admin/__tests__/test-utils.ts`:
 
 ```typescript
 export const renderAdminSection = async (section: string) => {
@@ -629,7 +629,7 @@ export const mockAdminApi = (endpoint: string, response: unknown) => {
 
 ### E2E Test Suite
 
-Create `frontend-typescript/tests/admin-e2e.test.ts`:
+Create `apps/web/tests/admin-e2e.test.ts`:
 
 ```typescript
 describe('Admin Portal E2E', () => {

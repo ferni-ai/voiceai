@@ -544,7 +544,7 @@ src/services/
 └── humanization/
     └── humanization-signal-emitter.ts  # Frontend signal bridge
 
-frontend-typescript/src/
+apps/web/src/
 ├── services/
 │   └── humanization-bridge.service.ts  # Signal handlers
 └── ui/

@@ -360,7 +360,7 @@ export async function resetGlobalServices(): Promise<void> {
   }
 
   try {
-    const { flushEventPlanningPersistence } = await import('../tools/event-planning.js');
+    const { flushEventPlanningPersistence } = await import('../tools/domains/life-planning/event-planning.js');
     await flushEventPlanningPersistence();
   } catch {
     // Non-critical

@@ -13,7 +13,6 @@
 
 import { t } from '../i18n/index.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { addTapListener } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { getUserTimezone } from '../services/timezone.service.js';
@@ -763,18 +762,18 @@ function render(): void {
 function bindEvents(): void {
   if (!modalContainer) return;
 
-  // Close button (iOS-compatible)
-  addTapListener(modalContainer.querySelector('.contact-settings-close'), close);
-  addTapListener(modalContainer.querySelector('#cancel-btn'), close);
+  // Close button
+  modalContainer.querySelector('.contact-settings-close')?.addEventListener('click', close);
+  modalContainer.querySelector('#cancel-btn')?.addEventListener('click', close);
 
-  // Backdrop close (iOS-compatible)
-  addTapListener(modalContainer.querySelector('.contact-settings-backdrop'), close);
+  // Backdrop close
+  modalContainer.querySelector('.contact-settings-backdrop')?.addEventListener('click', close);
 
-  // Save button (iOS-compatible)
-  addTapListener(modalContainer.querySelector('#save-btn'), handleSave);
+  // Save button
+  modalContainer.querySelector('#save-btn')?.addEventListener('click', handleSave);
 
-  // Verify phone button (iOS-compatible)
-  addTapListener(modalContainer.querySelector('#verify-phone-btn'), handleSendVerification);
+  // Verify phone button
+  modalContainer.querySelector('#verify-phone-btn')?.addEventListener('click', handleSendVerification);
 
   // Verification code input
   const codeInput = modalContainer.querySelector('#verification-code') as HTMLInputElement;
@@ -786,10 +785,9 @@ function bindEvents(): void {
     }
   });
 
-  // Quiet hours toggle (iOS-compatible)
+  // Quiet hours toggle
   const quietToggle = modalContainer.querySelector('#quiet-hours-toggle');
-  addTapListener(quietToggle, () => {
-    if (!quietToggle) return;
+  quietToggle?.addEventListener('click', () => {
     const isEnabled = state.contactInfo.quietHoursEnabled !== false;
     state.contactInfo.quietHoursEnabled = !isEnabled;
     
@@ -952,7 +950,7 @@ async function handleSave(): Promise<void> {
       : 'Contact info saved! I\'ll use this to stay in touch.';
     log.info({ quietHoursEnabled, quietHoursStart, quietHoursEnd }, 'Contact info and preferences saved');
   } catch (error) {
-    state.error = 'Something went wrong. Please try again.';
+    state.error = "Something went wrong. Try again?";
     log.error({ error }, 'Failed to save contact info');
   } finally {
     state.isSaving = false;
@@ -988,7 +986,7 @@ async function handleSendVerification(): Promise<void> {
 
     log.info({ phone }, 'Verification code sent');
   } catch (error) {
-    state.error = 'Failed to send verification code. Please try again.';
+    state.error = "Couldn't send verification code. Try again?";
     state.isVerifying = false;
     log.error({ error }, 'Failed to send verification');
   }
@@ -1015,10 +1013,10 @@ async function handleVerifyCode(code: string): Promise<void> {
       state.success = 'Phone verified! You\'re all set.';
       log.info('Phone verified');
     } else {
-      state.error = 'Invalid code. Please try again.';
+      state.error = "Invalid code. Try again?";
     }
   } catch (error) {
-    state.error = 'Verification failed. Please try again.';
+    state.error = "Verification failed. Try again?";
     log.error({ error }, 'Phone verification failed');
   }
 

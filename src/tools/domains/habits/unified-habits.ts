@@ -22,6 +22,7 @@ import { llm, log as _log } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js';
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 import {
   getUserId,
   generateId,
@@ -250,11 +251,7 @@ export const addHabitDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Create a new habit to track.
-Use when user wants to:
-- Start tracking a habit
-- Build a new routine
-- Work on consistency`,
+      description: getToolDescription('addHabit'),
       parameters: z.object({
         name: z.string().describe('Habit name (e.g., "Drink 8 glasses of water")'),
         category: z
@@ -331,8 +328,7 @@ export const logHabitDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Mark a habit as done for today.
-Use when user says they did something or completed a habit.`,
+      description: getToolDescription('logHabit'),
       parameters: z.object({
         habitName: z.string().describe('Which habit to log'),
         count: z.number().optional().describe('How many times (for multi-count habits)'),
@@ -396,8 +392,7 @@ export const getHabitStatsDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Show habit statistics and streaks.
-Use when user asks about progress or streaks.`,
+      description: getToolDescription('getHabitStats'),
       parameters: z.object({
         habitName: z.string().optional().describe('Specific habit to check'),
       }),
@@ -465,8 +460,7 @@ export const getDueHabitsDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Show which habits still need to be done today.
-Use when user asks "what habits do I need to do?" or checks in.`,
+      description: getToolDescription('getDueHabits'),
       parameters: z.object({}),
       execute: async (_, { ctx: toolCtx }) => {
         const userId = getUserId({ ctx: toolCtx });
@@ -527,8 +521,7 @@ export const getTendencyAdviceDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Get habit advice based on the Four Tendencies framework.
-Use when user is struggling with habits or needs personalized strategies.`,
+      description: getToolDescription('getTendencyAdvice'),
       parameters: z.object({
         tendency: z
           .enum(['upholder', 'questioner', 'obliger', 'rebel'])
@@ -578,8 +571,7 @@ export const getLifeDomainsDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Show life domains for organizing habits.
-Use when user wants to explore different areas for improvement.`,
+      description: getToolDescription('getLifeDomains'),
       parameters: z.object({
         domain: z.enum(['health', 'mind', 'relationships', 'work', 'money', 'spirit']).optional(),
       }),

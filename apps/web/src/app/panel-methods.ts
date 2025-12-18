@@ -415,25 +415,33 @@ export async function showDataExport(): Promise<void> {
 
 /**
  * Show team huddle panel.
- * Fetches real data from API, falls back to demo data in development.
+ * Starts a new huddle via API, or shows demo data in development.
  */
-export async function showTeamHuddle(): Promise<void> {
-  // Try to fetch real data from API
+export async function showTeamHuddle(topic?: string): Promise<void> {
+  const userId = localStorage.getItem('ferni_user_id');
+  
+  // Try to start a new huddle via API
   try {
-    const userId = localStorage.getItem('ferni_user_id');
-    const url = userId
-      ? `/api/huddles?userId=${encodeURIComponent(userId)}`
-      : '/api/huddles';
-    
-    const response = await fetch(url);
+    const response = await fetch('/api/huddles/start', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(userId ? { 'X-User-ID': userId } : {}),
+      },
+      body: JSON.stringify({
+        topic: topic || 'Weekly check-in on your progress',
+        type: 'weekly',
+      }),
+    });
+
     if (response.ok) {
       const data = await response.json();
-      // Check if we have recent huddles to show
-      if (data.recentHuddles && data.recentHuddles.length > 0) {
-        showTeamHuddleUI(data.recentHuddles[0]);
+      if (data.success && data.huddle) {
+        // API now returns TeamHuddleData-compatible format
+        showTeamHuddleUI(data.huddle);
+        log.debug('Team huddle started via API');
         return;
       }
-      // No recent huddles - fall through to demo data
     }
   } catch (err) {
     log.debug('API fetch failed, checking for demo mode');

@@ -37,6 +37,7 @@ import {
 } from '../shared/persistence.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // QUIET GROWTH WISDOM DATABASE
 // ============================================================================
@@ -191,8 +192,7 @@ const honorTheRestDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'When user is tired, burned out, or feels guilty for resting. Give genuine permission. Rest is not laziness.',
+      description: getToolDescription('honorTheRest'),
       parameters: z.object({
         whyResting: z.string().describe('Why they need or want to rest'),
         howLong: z.string().optional().describe("How long they've been pushing"),
@@ -237,8 +237,7 @@ const celebrateMaintenanceDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'For celebrating maintenance - holding steady without progress. Not falling back IS progress.',
+      description: getToolDescription('celebrateMaintenance'),
       parameters: z.object({
         whatMaintaining: z.string().describe("What they're maintaining/holding steady"),
         howLong: z.string().optional().describe("How long they've maintained"),
@@ -283,8 +282,7 @@ const enoughForTodayDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user define what "enough" means for today and give permission to stop there.',
+      description: getToolDescription('enoughForToday'),
       parameters: z.object({
         whatDone: z.string().optional().describe("What they've already done today"),
         whatRemains: z.string().optional().describe('What feels undone'),
@@ -337,8 +335,7 @@ const seasonalWisdomDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        "Help user identify what season of growth/rest they're in and what that season requires.",
+      description: getToolDescription('seasonalWisdom'),
       parameters: z.object({
         currentEnergy: z.enum(['dormant', 'emerging', 'full', 'declining']),
         whatFeelsTrue: z.string().optional().describe('What their inner state feels like'),
@@ -397,8 +394,7 @@ const winterSeasonDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'For when user is in a winter season - low energy, fallow, dormant. Normalize and honor it.',
+      description: getToolDescription('winterSeason'),
       parameters: z.object({
         howItFeels: z.string().describe('What the winter season feels like'),
         howLong: z.string().optional().describe("How long they've been in winter"),
@@ -461,8 +457,7 @@ const gentleGoalsDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user set goals that are ambitious enough to matter but gentle enough to be sustainable.',
+      description: getToolDescription('gentleGoals'),
       parameters: z.object({
         goalArea: z.string().describe('What area they want to grow in'),
         currentPush: z.string().optional().describe("How hard they've been pushing"),
@@ -513,8 +508,7 @@ const releaseUrgencyDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help user release artificial urgency. Question the "I should be further along" narrative.',
+      description: getToolDescription('releaseUrgency'),
       parameters: z.object({
         urgencySource: z.string().describe('What feels urgent'),
         deadline: z.string().optional().describe('Any real vs imagined deadline'),
@@ -573,7 +567,7 @@ const goodEnoughDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user see that "good enough" is a valid, wise choice - not settling.',
+      description: getToolDescription('goodEnough'),
       parameters: z.object({
         whatConsidering: z.string().describe('What they\'re considering calling "good enough"'),
         perfectionistPressure: z
@@ -635,7 +629,7 @@ const compareToYesterdayDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user compare to their past self, not others. The only valid comparison.',
+      description: getToolDescription('compareToYesterday'),
       parameters: z.object({
         whoComparing: z.string().optional().describe("Who they're comparing themselves to"),
         timeframe: z.enum(['week', 'month', 'year', 'five-years']).optional(),
@@ -685,7 +679,7 @@ const embracePlateauDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Help user reframe a plateau as a necessary integration period, not failure.',
+      description: getToolDescription('embracePlateau'),
       parameters: z.object({
         plateauArea: z.string().describe("Where they're experiencing a plateau"),
         howLong: z.string().optional().describe('How long the plateau has lasted'),

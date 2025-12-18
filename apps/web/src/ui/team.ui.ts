@@ -295,6 +295,19 @@ export function initTeamUI(): void {
       void import('./sound.ui.js').then(({ soundUI }) => {
         soundUI.play('click');
       });
+
+      // Haptic feedback for mobile users
+      void import('../services/haptics.service.js').then(({ getHapticsService }) => {
+        getHapticsService().play('tap');
+      });
+
+      // Subtle visual shake on avatar to indicate "not yet"
+      const avatarContainer = document.querySelector('.avatar-container');
+      if (avatarContainer) {
+        avatarContainer.classList.add('wiggle');
+        setTimeout(() => avatarContainer.classList.remove('wiggle'), 400);
+      }
+
       // Show subtle toast
       toast.show({
         message: 'Take your time - one switch at a time',
@@ -313,6 +326,33 @@ export function initTeamUI(): void {
       clearSwitchingFeedback(toPersona);
     });
     cleanupFunctions.push(unsubSoftOpen);
+
+    // Listen for progress heartbeat to update UI indicator
+    const unsubProgress = handoffService.onHandoffProgress((_targetPersona, elapsedMs, timeoutMs) => {
+      // Update progress indicator on avatar container
+      const avatarContainer = document.querySelector('.avatar-container');
+      if (avatarContainer instanceof HTMLElement) {
+        // Calculate progress percentage (0-100)
+        const progress = Math.min(100, Math.round((elapsedMs / timeoutMs) * 100));
+        avatarContainer.dataset.handoffProgress = String(progress);
+
+        // Add pulse class if not already present
+        if (!avatarContainer.classList.contains('handoff-progress')) {
+          avatarContainer.classList.add('handoff-progress');
+        }
+      }
+    });
+    cleanupFunctions.push(unsubProgress);
+
+    // Clear progress on handoff complete
+    const unsubProgressClear = handoffService.onHandoffComplete(() => {
+      const avatarContainer = document.querySelector('.avatar-container');
+      if (avatarContainer instanceof HTMLElement) {
+        delete avatarContainer.dataset.handoffProgress;
+        avatarContainer.classList.remove('handoff-progress');
+      }
+    });
+    cleanupFunctions.push(unsubProgressClear);
 
     // 🍴 Setup avatar as drop zone for "eating" marketplace agents
     avatarFeedback.setupDropZone(handleAgentDropped);

@@ -19,6 +19,7 @@
 import * as admin from 'firebase-admin';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { optionalAuthAsync, rateLimit } from './auth-middleware.js';
 import { API_ERRORS } from './error-messages.js';
 import {
@@ -210,10 +211,12 @@ async function getOrCreateUserSeeds(
     },
   };
 
-  await userSeedsRef.set({
-    ...newUserSeeds,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
+  await userSeedsRef.set(
+    removeUndefined({
+      ...newUserSeeds,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    })
+  );
 
   log.info({ userId, balance: DEFAULT_SEED_BALANCE }, 'Created new user seeds account');
 

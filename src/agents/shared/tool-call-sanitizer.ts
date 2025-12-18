@@ -475,17 +475,48 @@ export function sanitizeToolCallLeakage(text: string): string {
 }
 
 /**
+ * Patterns that might be the start of a tool call (for partial matching)
+ */
+const PARTIAL_TOOL_PREFIXES = [
+  'play', 'remember', 'recall', 'hand', 'get', 'set', 'add', 'update', 'create',
+  'search', 'send', 'schedule', 'cancel', 'delete', 'track', 'log', 'stop',
+  'pause', 'resume', 'crisis', 'grounding', 'breathing', 'invoke',
+  '[INTERNAL', '[internal', 'Transferring', "I'll call", "Let me use",
+  'rememberName', 'noteEmotional', 'gracefulExit', 'endConversation',
+];
+
+/**
+ * Check if buffer might be the start of a tool call pattern
+ */
+function mightBePartialToolCall(text: string): boolean {
+  const trimmed = text.trim().toLowerCase();
+  return PARTIAL_TOOL_PREFIXES.some(prefix =>
+    trimmed.startsWith(prefix.toLowerCase()) ||
+    prefix.toLowerCase().startsWith(trimmed)
+  );
+}
+
+/**
  * Create a transform stream that filters function-call-like text.
  *
  * This can be used in the transcriptionNode to sanitize output before TTS.
+ *
+ * EDGE CASE FIX: The buffer now properly handles:
+ * - Tool patterns that span chunks (e.g., "playMu" + "sic query jazz")
+ * - Partial matches that need more context before deciding
  */
 export function createSanitizerTransformStream(): AnyTransformStream {
   let buffer = '';
   let suppressMode = false;
+  let waitForMoreContext = false;
 
   /** Check for sentence boundary to reset suppression */
   const isSentenceBoundary = (text: string): boolean =>
     text.includes('.') || text.includes('!') || text.includes('?');
+
+  /** Check if we have a natural word boundary (space, punctuation) */
+  const hasWordBoundary = (text: string): boolean =>
+    /\s|[.,!?;:]/.test(text);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
   return new (globalThis as any).TransformStream({
@@ -497,11 +528,12 @@ export function createSanitizerTransformStream(): AnyTransformStream {
         if (isSentenceBoundary(chunk)) {
           suppressMode = false;
           buffer = '';
+          waitForMoreContext = false;
         }
         return;
       }
 
-      // Check for leakage
+      // Check for leakage in current buffer
       const detection = detectsFunctionCallLeakage(buffer);
       if (detection.detected) {
         log.warn(
@@ -517,19 +549,55 @@ export function createSanitizerTransformStream(): AnyTransformStream {
 
         suppressMode = true;
         buffer = '';
+        waitForMoreContext = false;
         return;
       }
 
-      // Pass through if buffer is long enough (no pattern detected)
-      if (buffer.length > 100) {
+      // EDGE CASE: Check if buffer might be partial tool call
+      // If buffer is short and looks like it could become a tool call, wait for more
+      if (buffer.length < 50 && mightBePartialToolCall(buffer)) {
+        waitForMoreContext = true;
+        return; // Don't emit yet, need more context
+      }
+
+      // If we were waiting but now have a word boundary, we can safely emit
+      // the safe prefix and continue checking the rest
+      if (waitForMoreContext && hasWordBoundary(chunk) && buffer.length > 30) {
+        // Recheck with more context
+        const recheckDetection = detectsFunctionCallLeakage(buffer);
+        if (recheckDetection.detected) {
+          const replacement = getReplacementText(recheckDetection);
+          if (replacement) {
+            controller.enqueue(`${replacement} `);
+          }
+          suppressMode = true;
+          buffer = '';
+          waitForMoreContext = false;
+          return;
+        }
+        waitForMoreContext = false;
+      }
+
+      // Pass through if buffer is long enough and no pattern detected
+      // Increased threshold to give more context for detection
+      if (buffer.length > 150 && !waitForMoreContext) {
         controller.enqueue(buffer);
         buffer = '';
       }
     },
 
     flush(controller: { enqueue: (s: string) => void }) {
+      // Final check on remaining buffer
       if (buffer && !suppressMode) {
-        controller.enqueue(buffer);
+        const finalCheck = detectsFunctionCallLeakage(buffer);
+        if (finalCheck.detected) {
+          const replacement = getReplacementText(finalCheck);
+          if (replacement) {
+            controller.enqueue(replacement);
+          }
+        } else {
+          controller.enqueue(buffer);
+        }
       }
     },
   });

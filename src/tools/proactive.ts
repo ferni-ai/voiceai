@@ -18,6 +18,7 @@ import type { SessionServices } from '../services/types.js';
 import type { FinancialGoal } from '../types/user-profile.js';
 import { getDefaultStore } from '../memory/index.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
@@ -95,8 +96,7 @@ export function createProactiveTools() {
   return {
     // Schedule a follow-up
     scheduleFollowUp: llm.tool({
-      description:
-        'Schedule a follow-up on a topic for a future conversation. Use when the user mentions wanting to revisit something later.',
+      description: getToolDescription('scheduleFollowUp'),
       parameters: z.object({
         topic: z.string().describe('What to follow up on'),
         reason: z.string().describe('Why this needs follow-up'),
@@ -152,8 +152,7 @@ export function createProactiveTools() {
 
     // Set a financial goal - PERSISTS TO STORAGE
     setGoal: llm.tool({
-      description:
-        'Record a financial goal the user wants to achieve. This persists across sessions so Jack can follow up and provide personalized advice. Use when they mention specific savings targets, retirement plans, or financial objectives.',
+      description: getToolDescription('setGoal'),
       parameters: z.object({
         name: z
           .string()
@@ -228,8 +227,7 @@ export function createProactiveTools() {
 
     // Check goal progress
     checkGoalProgress: llm.tool({
-      description:
-        'Review progress on a previously set goal. Use to celebrate wins or discuss adjustments.',
+      description: getToolDescription('checkGoalProgress'),
       parameters: z.object({
         goalName: z
           .string()
@@ -290,8 +288,7 @@ export function createProactiveTools() {
 
     // Update goal progress - PERSISTS TO STORAGE
     updateGoalProgress: llm.tool({
-      description:
-        'Update the progress on a financial goal. Use when user shares new savings amounts or milestone achievements. This persists across sessions.',
+      description: getToolDescription('updateGoalProgress'),
       parameters: z.object({
         goalName: z.string().describe('Name of the goal to update'),
         newAmount: z.number().optional().describe('New current amount saved'),
@@ -372,7 +369,7 @@ export function createProactiveTools() {
 
     // Suggest a check-in based on time
     suggestCheckIn: llm.tool({
-      description: 'Suggest checking in on something based on conversation length or topic weight.',
+      description: getToolDescription('suggestCheckIn'),
       parameters: z.object({
         reason: z.enum([
           'long_conversation',
@@ -415,8 +412,7 @@ export function createProactiveTools() {
 
     // Trigger automatic circle-back (called by system, not user)
     triggerCircleBack: llm.tool({
-      description:
-        'System tool to trigger circling back to an open topic. Use every 5-7 turns to maintain conversation threads.',
+      description: getToolDescription('triggerCircleBack'),
       parameters: z.object({
         turnCount: z.number().describe('Current turn count'),
       }),

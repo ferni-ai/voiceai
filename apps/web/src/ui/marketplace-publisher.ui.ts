@@ -212,7 +212,7 @@ export async function openPublisherPortal(session?: { id: string; name: string }
   }
 
   if (!publisherSession) {
-    toast.error('Please sign in as a publisher');
+    toast.error('Sign in as a publisher first');
     return;
   }
 
@@ -274,7 +274,7 @@ async function loadPublisherData(): Promise<void> {
     log.debug('Publisher data loaded:', { items: state.items.length });
   } catch (error) {
     log.warn('Failed to load publisher data:', error);
-    toast.error('Could not load publisher data. Please try again.');
+    toast.error("Couldn't load your data. Try again?");
   }
 }
 
@@ -760,14 +760,14 @@ async function handleSubmission(form: HTMLFormElement): Promise<void> {
       state.activeTab = 'items';
       renderPortal();
     } else {
-      toast.error(result.error || 'Submission failed. Please try again.');
+      toast.error(result.error || "Submission didn't go through. Try again?");
       if (result.validationErrors) {
         log.warn('Validation errors:', result.validationErrors);
       }
     }
   } catch (error) {
     log.error('Submission failed:', error);
-    toast.error('Something went wrong. Please try again.');
+    toast.error("Hmm, that didn't work. Try again?");
   } finally {
     submitButton.disabled = false;
     submitButton.innerHTML = `${ICONS.upload} Submit for Review`;

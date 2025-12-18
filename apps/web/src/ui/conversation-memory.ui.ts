@@ -9,7 +9,6 @@
  */
 
 import { t } from '../i18n/index.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
 
@@ -531,50 +530,6 @@ const styles = `
       animation: none;
     }
   }
-  
-  /* Mobile - Safe areas */
-  @media (max-width: 480px) {
-    .memory-modal-overlay {
-      padding: max(var(--space-4, 16px), env(safe-area-inset-top, 0))
-               max(var(--space-4, 16px), env(safe-area-inset-right, 0))
-               max(var(--space-4, 16px), env(safe-area-inset-bottom, 0))
-               max(var(--space-4, 16px), env(safe-area-inset-left, 0));
-    }
-    
-    .memory-modal {
-      max-height: calc(100vh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0) - 32px);
-      max-height: calc(100dvh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0) - 32px);
-      width: 100%;
-      max-width: none;
-      border-radius: var(--radius-xl, 20px);
-    }
-    
-    .memory-content {
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior: contain;
-    }
-    
-    .memory-stats {
-      flex-wrap: wrap;
-    }
-    
-    .memory-stat {
-      min-width: 45%;
-    }
-  }
-  
-  /* iOS Safari-specific */
-  @supports (-webkit-touch-callout: none) {
-    @media (max-width: 480px) {
-      .memory-modal {
-        max-height: -webkit-fill-available;
-      }
-      
-      .memory-content {
-        -webkit-overflow-scrolling: touch;
-      }
-    }
-  }
 `;
 
 // ============================================================================
@@ -684,9 +639,6 @@ export async function showConversationMemory(options?: ConversationMemoryCallbac
  * Hide the conversation memory browser.
  */
 export function hideConversationMemory(): void {
-  if (modal) {
-    cleanupTapListeners(modal);
-  }
   modal?.classList.remove('visible');
   document.body.style.overflow = '';
 }
@@ -738,13 +690,13 @@ function createModal(): void {
     </div>
   `;
 
-  // Event listeners (iOS-compatible)
-  addTapListener(modal.querySelector('.memory-modal-backdrop'), hideConversationMemory);
-  addTapListener(modal.querySelector('.memory-modal__close'), hideConversationMemory);
-  addTapListener(modal.querySelector('[data-action="close"]'), hideConversationMemory);
+  // Event listeners
+  modal.querySelector('.memory-modal-backdrop')?.addEventListener('click', hideConversationMemory);
+  modal.querySelector('.memory-modal__close')?.addEventListener('click', hideConversationMemory);
+  modal.querySelector('[data-action="close"]')?.addEventListener('click', hideConversationMemory);
 
   modal.querySelectorAll('.memory-tab').forEach((tab) => {
-    addTapListener(tab, (e) => {
+    tab.addEventListener('click', (e) => {
       const tabName = (e.currentTarget as HTMLElement).dataset.tab;
       if (tabName) switchTab(tabName);
     });
@@ -880,7 +832,7 @@ function renderConversations(container: HTMLElement): void {
   `;
 
   container.querySelectorAll('.memory-conversation').forEach((el, i) => {
-    addTapListener(el, () => {
+    el.addEventListener('click', () => {
       const conv = filtered[i];
       if (conv) {
         selectedConversation = conv;
@@ -1012,7 +964,7 @@ function renderTopics(container: HTMLElement): void {
   `;
 
   container.querySelectorAll('.memory-topic-pill').forEach((pill) => {
-    addTapListener(pill, () => {
+    pill.addEventListener('click', () => {
       const topic = (pill as HTMLElement).dataset.topic;
       if (topic) {
         callbacks.onTopicSelect?.(topic);

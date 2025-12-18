@@ -15,6 +15,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { removeUndefined } from '../../utils/firestore-utils.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 
 const log = createLogger({ module: 'PersistenceLayer' });
@@ -168,11 +169,11 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
 
         batch.set(
           docRef,
-          {
+          removeUndefined({
             ...data,
             _updatedAt: new Date().toISOString(),
             _userId: userId,
-          },
+          }),
           { merge: true }
         );
 

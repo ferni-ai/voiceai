@@ -20,6 +20,7 @@ import { z } from 'zod';
 import { sanitizePlainText } from './validation.js';
 import { getLogger, generateId } from './utils/tool-helpers.js';
 
+import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -520,11 +521,7 @@ async function searchHotels(params: {
 export function createTravelTools() {
   return {
     searchFlights: llm.tool({
-      description: `Search for flights between cities.
-Use when user wants to:
-- Find flights
-- Check flight prices
-- Plan a trip`,
+      description: getToolDescription('searchFlights'),
       parameters: z.object({
         origin: z.string().describe('Departure city or airport code'),
         destination: z.string().describe('Arrival city or airport code'),
@@ -612,11 +609,7 @@ Use when user wants to:
     }),
 
     searchHotels: llm.tool({
-      description: `Search for hotels in a destination.
-Use when user wants to:
-- Find hotels
-- Check hotel prices
-- Book accommodation`,
+      description: getToolDescription('searchHotels'),
       parameters: z.object({
         destination: z.string().describe('City or area to search'),
         checkIn: z.string().describe('Check-in date'),
@@ -701,7 +694,7 @@ Use when user wants to:
     }),
 
     planTrip: llm.tool({
-      description: `Start planning a trip and save it for reference.`,
+      description: getToolDescription('planTrip'),
       parameters: z.object({
         name: z.string().describe('Trip name (e.g., "Hawaii Vacation")'),
         destination: z.string().describe('Destination'),
@@ -767,7 +760,7 @@ Use when user wants to:
     }),
 
     getSavedTrips: llm.tool({
-      description: `Show saved/planned trips.`,
+      description: getToolDescription('getSavedTrips'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
         const userData = ctx?.userData as { userId?: string } | undefined;
@@ -823,7 +816,7 @@ Use when user wants to:
     }),
 
     getTripSuggestions: llm.tool({
-      description: `Get travel suggestions based on interests or budget.`,
+      description: getToolDescription('getTripSuggestions'),
       parameters: z.object({
         type: z
           .enum(['beach', 'city', 'adventure', 'relaxation', 'budget', 'luxury'])
@@ -858,7 +851,7 @@ Use when user wants to:
     }),
 
     getFlightPrice: llm.tool({
-      description: `Quick flight price check without full search.`,
+      description: getToolDescription('getFlightPrice'),
       parameters: z.object({
         origin: z.string().describe('From city/airport'),
         destination: z.string().describe('To city/airport'),

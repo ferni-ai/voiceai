@@ -15,6 +15,7 @@
 
 import { LocalWorker, type WorkerConfig } from './base-worker.js';
 import { AsyncEvents, type EventPayload } from '../services/async-events/index.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'SummarizationWorker' });
@@ -280,16 +281,18 @@ export class SummarizationWorker extends LocalWorker {
             .doc(job.userId)
             .collection('conversation_summaries')
             .doc(job.conversationId || `conv_${Date.now()}`)
-            .set({
-              summary: summaryText,
-              topics: (result as { topics?: string[] }).topics || [],
-              emotionalHighlights:
-                (result as { emotionalHighlights?: string[] }).emotionalHighlights || [],
-              keyMoments: (result as { keyMoments?: string[] }).keyMoments || [],
-              turnCount: turns.length,
-              createdAt: new Date(),
-              embedding: (result as { embedding?: number[] }).embedding || null,
-            });
+            .set(
+              removeUndefined({
+                summary: summaryText,
+                topics: (result as { topics?: string[] }).topics || [],
+                emotionalHighlights:
+                  (result as { emotionalHighlights?: string[] }).emotionalHighlights || [],
+                keyMoments: (result as { keyMoments?: string[] }).keyMoments || [],
+                turnCount: turns.length,
+                createdAt: new Date(),
+                embedding: (result as { embedding?: number[] }).embedding || null,
+              })
+            );
         } catch (saveError) {
           log.warn({ error: String(saveError) }, 'Failed to save summary to Firestore');
         }

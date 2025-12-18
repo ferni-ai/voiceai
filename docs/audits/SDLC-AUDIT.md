@@ -33,7 +33,7 @@ A comprehensive audit of the Ferni AI codebase across the Software Development L
 | Persistence Architecture | `docs/architecture/PERSISTENCE-ARCHITECTURE.md` | ✅ Complete |
 | Design System | `design-system/`, `brand/` | ✅ Complete |
 | CSS Tokens | `brand/ferni-design-tokens.css` | ✅ Complete |
-| Animation Constants | `frontend-typescript/src/config/animation-constants.ts` | ✅ Complete |
+| Animation Constants | `apps/web/src/config/animation-constants.ts` | ✅ Complete |
 
 ### ❌ Gaps to Address
 

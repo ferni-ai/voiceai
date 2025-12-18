@@ -12,6 +12,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 import { IntelligentTask } from './intelligent-task.js';
 
+import { getToolDescription } from '../tools/utils/tool-descriptions.js';
 // ============================================================================
 // WISDOM SHARING TASK
 // ============================================================================
@@ -64,7 +65,7 @@ export class WisdomSharingTask extends IntelligentTask<WisdomResult> {
       },
       tools: {
         shareWisdom: llm.tool({
-          description: 'Share a piece of wisdom on the topic.',
+          description: getToolDescription('shareWisdom'),
           parameters: z.object({
             wisdom: z.string().describe('The wisdom to share'),
             example: z.string().optional().describe('A concrete example'),
@@ -79,7 +80,7 @@ export class WisdomSharingTask extends IntelligentTask<WisdomResult> {
         }),
 
         connectToTheirSituation: llm.tool({
-          description: 'Connect the wisdom to their specific situation.',
+          description: getToolDescription('connectToTheirSituation'),
           parameters: z.object({
             connection: z.string().describe('How this applies to them'),
           }),
@@ -89,7 +90,7 @@ export class WisdomSharingTask extends IntelligentTask<WisdomResult> {
         }),
 
         concludeWisdom: llm.tool({
-          description: 'Conclude the wisdom sharing.',
+          description: getToolDescription('concludeWisdom'),
           parameters: z.object({
             topic: z.string().describe('The topic discussed'),
             wisdomShared: z.string().describe('Summary of what was shared'),
@@ -162,7 +163,7 @@ export class DecisionSupportTask extends IntelligentTask<DecisionResult> {
       },
       tools: {
         clarifyDecision: llm.tool({
-          description: "Clarify what they're really deciding.",
+          description: getToolDescription('clarifyDecision'),
           parameters: z.object({
             clarification: z.string().describe('Clarifying question or reframe'),
           }),
@@ -172,7 +173,7 @@ export class DecisionSupportTask extends IntelligentTask<DecisionResult> {
         }),
 
         exploreOption: llm.tool({
-          description: 'Explore one of the options.',
+          description: getToolDescription('clarifyDecision'),
           parameters: z.object({
             option: z.string().describe('The option being explored'),
             pros: z.array(z.string()).describe('Potential benefits'),
@@ -185,7 +186,7 @@ export class DecisionSupportTask extends IntelligentTask<DecisionResult> {
         }),
 
         checkValues: llm.tool({
-          description: 'Check what values are driving this decision.',
+          description: getToolDescription('exploreOption'),
           parameters: z.object({
             valueQuestion: z.string().describe('Question to surface their values'),
           }),
@@ -195,7 +196,7 @@ export class DecisionSupportTask extends IntelligentTask<DecisionResult> {
         }),
 
         offerPerspective: llm.tool({
-          description: 'Offer a perspective on the decision.',
+          description: getToolDescription('checkValues'),
           parameters: z.object({
             perspective: z.string().describe('Your perspective'),
             caveat: z.string().optional().describe('Important caveat'),
@@ -208,7 +209,7 @@ export class DecisionSupportTask extends IntelligentTask<DecisionResult> {
         }),
 
         concludeDecision: llm.tool({
-          description: 'Conclude the decision support.',
+          description: getToolDescription('offerPerspective'),
           parameters: z.object({
             frameworkUsed: z.string().describe('What framework you used to help'),
             outcomeClarity: z
@@ -289,7 +290,7 @@ export class FearAddressingTask extends IntelligentTask<FearResult> {
       },
       tools: {
         acknowledgeFear: llm.tool({
-          description: 'Acknowledge and validate their fear.',
+          description: getToolDescription('concludeDecision'),
           parameters: z.object({
             acknowledgment: z.string().describe('Your validation of their fear'),
           }),
@@ -299,7 +300,7 @@ export class FearAddressingTask extends IntelligentTask<FearResult> {
         }),
 
         providePerspective: llm.tool({
-          description: 'Provide perspective on the fear.',
+          description: getToolDescription('acknowledgeFear'),
           parameters: z.object({
             perspective: z.string().describe('The perspective to share'),
             source: z
@@ -318,7 +319,7 @@ export class FearAddressingTask extends IntelligentTask<FearResult> {
         }),
 
         focusOnControl: llm.tool({
-          description: 'Focus on what they can control.',
+          description: getToolDescription('providePerspective'),
           parameters: z.object({
             controllables: z.array(z.string()).describe('Things they can control'),
           }),
@@ -328,7 +329,7 @@ export class FearAddressingTask extends IntelligentTask<FearResult> {
         }),
 
         suggestAction: llm.tool({
-          description: 'Suggest a small action to restore agency.',
+          description: getToolDescription('focusOnControl'),
           parameters: z.object({
             action: z.string().describe('A small, concrete action'),
             rationale: z.string().describe('Why this helps'),
@@ -339,7 +340,7 @@ export class FearAddressingTask extends IntelligentTask<FearResult> {
         }),
 
         concludeFear: llm.tool({
-          description: 'Conclude addressing the fear.',
+          description: getToolDescription('suggestAction'),
           parameters: z.object({
             fearAddressed: z.boolean().describe('Whether the fear was addressed'),
             perspectiveGiven: z.boolean().describe('Whether perspective was provided'),
@@ -418,7 +419,7 @@ export class GoalSettingTask extends IntelligentTask<GoalSettingResult> {
       },
       tools: {
         exploreWhy: llm.tool({
-          description: 'Explore the deeper reason behind the goal.',
+          description: getToolDescription('concludeFear'),
           parameters: z.object({
             question: z.string().describe('Question about what they really want'),
           }),
@@ -428,7 +429,7 @@ export class GoalSettingTask extends IntelligentTask<GoalSettingResult> {
         }),
 
         recordGoal: llm.tool({
-          description: "Record a goal they've articulated.",
+          description: getToolDescription('recordGoal'),
           parameters: z.object({
             name: z.string().describe('Name of the goal'),
             type: z.enum(['short_term', 'medium_term', 'long_term']).describe('Time horizon'),
@@ -454,7 +455,7 @@ export class GoalSettingTask extends IntelligentTask<GoalSettingResult> {
         }),
 
         prioritizeGoals: llm.tool({
-          description: 'Help them prioritize multiple goals.',
+          description: getToolDescription('exploreWhy'),
           parameters: z.object({
             prioritization: z.string().describe('Your guidance on prioritization'),
           }),
@@ -464,7 +465,7 @@ export class GoalSettingTask extends IntelligentTask<GoalSettingResult> {
         }),
 
         realityCheck: llm.tool({
-          description: 'Provide a reality check on their goals.',
+          description: getToolDescription('recordGoal'),
           parameters: z.object({
             assessment: z.string().describe('Your honest assessment'),
             adjustment: z.string().optional().describe('Suggested adjustment'),
@@ -477,7 +478,7 @@ export class GoalSettingTask extends IntelligentTask<GoalSettingResult> {
         }),
 
         concludeGoalSetting: llm.tool({
-          description: 'Conclude the goal setting session.',
+          description: getToolDescription('prioritizeGoals'),
           parameters: z.object({
             clarityAchieved: z.boolean().describe('Do they have clear goals now?'),
             nextStepsDefined: z.boolean().describe('Do they know what to do next?'),

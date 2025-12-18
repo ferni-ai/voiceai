@@ -220,13 +220,13 @@ src/api/trust-learning-routes.ts
 ### Files to Create
 
 ```
-frontend-typescript/src/ui/journaling.ui.ts
-frontend-typescript/src/ui/insights-report.ui.ts
-frontend-typescript/src/ui/media-suggestions.ui.ts
-frontend-typescript/src/ui/life-events.ui.ts
-frontend-typescript/src/ui/seasonal-preferences.ui.ts
-frontend-typescript/src/ui/sentiment-dashboard.ui.ts
-frontend-typescript/src/ui/relationship-health.ui.ts
+apps/web/src/ui/journaling.ui.ts
+apps/web/src/ui/insights-report.ui.ts
+apps/web/src/ui/media-suggestions.ui.ts
+apps/web/src/ui/life-events.ui.ts
+apps/web/src/ui/seasonal-preferences.ui.ts
+apps/web/src/ui/sentiment-dashboard.ui.ts
+apps/web/src/ui/relationship-health.ui.ts
 ```
 
 ### Success Criteria

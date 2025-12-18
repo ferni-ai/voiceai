@@ -103,20 +103,18 @@ import { getLogger } from '../utils/safe-logger.js';
 const log = getLogger().child({ module: 'VoiceAuthHandler' });
 
 // Security configuration
+// SECURITY: All security checks are MANDATORY and cannot be disabled
 const SECURITY_CONFIG = {
   enableLivenessCheck: true,
   enableAntiSpoofing: true,
   enableRateLimiting: true,
-  enableAuditLogging: true,
+  enableAuditLogging: true, // MANDATORY: Cannot be disabled for compliance
   livenessMinConfidence: 0.6,
   antiSpoofMinConfidence: 0.6,
-};
+} as const;
 
-// Test mode - bypass security for E2E testing (NEVER enable in production)
-const TEST_MODE = process.env.VOICE_AUTH_TEST_MODE === 'true';
-if (TEST_MODE) {
-  log.warn('⚠️ VOICE_AUTH_TEST_MODE enabled - security checks bypassed for testing');
-}
+// SECURITY: Test mode has been removed - use mock implementations for testing instead
+// See: src/tests/mocks/voice-security-mocks.ts for test utilities
 
 // Default sample rate for audio analysis
 const DEFAULT_SAMPLE_RATE = 16000;
@@ -287,26 +285,23 @@ const continuousAuthenticators = {
 // Helper Functions
 // ============================================================================
 
+// parseBody imported from helpers but we define local sendJson with CORS for this handler
+import { parseBody as parseBodyHelper } from './helpers.js';
+
 /**
  * Parse JSON body from request.
+ * Returns Record<string, any> for backwards compatibility with existing code.
  */
 async function parseBody(req: IncomingMessage): Promise<Record<string, any>> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', (chunk) => (body += chunk));
-    req.on('end', () => {
-      try {
-        resolve(body ? JSON.parse(body) : {});
-      } catch (e) {
-        reject(new Error('Invalid JSON'));
-      }
-    });
-    req.on('error', reject);
-  });
+  try {
+    return await parseBodyHelper<Record<string, any>>(req);
+  } catch {
+    return {};
+  }
 }
 
 /**
- * Send JSON response.
+ * Send JSON response with CORS headers for voice auth endpoints.
  */
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.writeHead(status, {
@@ -319,12 +314,47 @@ function sendJson(res: ServerResponse, status: number, data: unknown): void {
 }
 
 /**
- * Get user ID from request headers only.
- * NOTE: Intentionally only checks headers (not query params) for security.
- * For general use, import getUserId from ./helpers.js instead.
+ * Get user ID from request headers.
+ * SECURITY: This function extracts the claimed user ID from headers.
+ * For sensitive operations, callers should verify this matches the
+ * authenticated Firebase UID when available.
  */
 function getUserId(req: IncomingMessage): string | null {
+  // Check for Firebase UID first (most secure)
+  const firebaseUid = req.headers['x-firebase-uid'] as string;
+  if (firebaseUid) {
+    return firebaseUid;
+  }
+  // Fall back to X-User-Id header
   return (req.headers['x-user-id'] as string) || null;
+}
+
+/**
+ * SECURITY: Get authenticated user ID with validation.
+ * Returns null if userId cannot be verified.
+ */
+function getVerifiedUserId(req: IncomingMessage): { userId: string | null; verified: boolean } {
+  const firebaseUid = req.headers['x-firebase-uid'] as string;
+  const xUserId = req.headers['x-user-id'] as string;
+
+  // Firebase UID is considered verified
+  if (firebaseUid) {
+    // If both are provided, they must match
+    if (xUserId && xUserId !== firebaseUid) {
+      log.warn(
+        { firebaseUid, xUserId },
+        'SECURITY: X-User-Id does not match Firebase UID - using Firebase UID'
+      );
+    }
+    return { userId: firebaseUid, verified: true };
+  }
+
+  // X-User-Id only - not verified (log warning for sensitive operations)
+  if (xUserId) {
+    return { userId: xUserId, verified: false };
+  }
+
+  return { userId: null, verified: false };
 }
 
 /**
@@ -399,16 +429,7 @@ async function runSecurityChecks(
   userId: string,
   deviceInfo: { userAgent?: string; platform?: string; deviceId?: string }
 ): Promise<{ passed: boolean; warnings: string[]; livenessScore?: number; spoofScore?: number }> {
-  // Bypass security checks in test mode (NEVER use in production)
-  if (TEST_MODE) {
-    return {
-      passed: true,
-      warnings: ['TEST_MODE: Security checks bypassed'],
-      livenessScore: 1.0,
-      spoofScore: 1.0,
-    };
-  }
-
+  // SECURITY: All security checks are mandatory - no bypass allowed
   const warnings: string[] = [];
   let livenessScore: number | undefined;
   let spoofScore: number | undefined;
@@ -948,10 +969,21 @@ export async function handleVoiceAuthRoutes(
         return true;
       }
 
-      const body = await parseBody(req);
-      const sessionId = body.sessionId || userId;
+      // SECURITY: Server generates sessionId to prevent session fixation attacks
+      // Client-provided sessionId is NEVER used
+      const crypto = await import('crypto');
+      const sessionId = `auth_${userId}_${crypto.randomBytes(16).toString('hex')}`;
+      const clientIp = getClientIP(req);
+      const userAgent = req.headers['user-agent'] || 'unknown';
 
       const authenticator = new ContinuousAuthenticator(profile);
+      // Store session metadata for security validation
+      (authenticator as ContinuousAuthenticator & { _sessionMeta?: object })._sessionMeta = {
+        userId,
+        clientIp,
+        userAgent,
+        createdAt: Date.now(),
+      };
       continuousAuthenticators.set(sessionId, authenticator);
 
       sendJson(res, 200, {
@@ -966,12 +998,39 @@ export async function handleVoiceAuthRoutes(
     // POST /api/voice/auth/check
     // ========================================================================
     if (route === '/auth/check' && req.method === 'POST') {
+      // SECURITY: Require authentication to check session
+      const requestUserId = getUserId(req);
+      if (!requestUserId) {
+        sendJson(res, 401, { error: 'Authentication required' });
+        return true;
+      }
+
       const body = await parseBody(req);
       const { sessionId } = body;
+
+      if (!sessionId || typeof sessionId !== 'string') {
+        sendJson(res, 400, { error: 'sessionId is required' });
+        return true;
+      }
 
       const authenticator = continuousAuthenticators.get(sessionId);
       if (!authenticator) {
         sendJson(res, 400, { error: 'No auth session' });
+        return true;
+      }
+
+      // SECURITY: Validate session belongs to requesting user (prevent session hijacking)
+      const sessionMeta = (
+        authenticator as ContinuousAuthenticator & {
+          _sessionMeta?: { userId: string; clientIp: string };
+        }
+      )._sessionMeta;
+      if (sessionMeta && sessionMeta.userId !== requestUserId) {
+        log.warn(
+          { requestUserId, sessionUserId: sessionMeta.userId, sessionId },
+          'SECURITY: Session hijacking attempt - userId mismatch'
+        );
+        sendJson(res, 403, { error: 'Session access denied' });
         return true;
       }
 
@@ -982,7 +1041,7 @@ export async function handleVoiceAuthRoutes(
       }
 
       const deviceInfo = getDeviceInfo(req);
-      const userId = getUserId(req) || sessionId;
+      const userId = requestUserId;
 
       // Security checks (liveness + anti-spoofing) for continuous auth
       const securityResult = await runSecurityChecks(audio, userId, deviceInfo);
@@ -1057,10 +1116,20 @@ export async function handleVoiceAuthRoutes(
     // DELETE /api/voice/profile
     // ========================================================================
     if (route === '/profile' && req.method === 'DELETE') {
-      const userId = getUserId(req);
+      // SECURITY: Use verified user ID for destructive operations
+      const { userId, verified } = getVerifiedUserId(req);
       if (!userId) {
         sendJson(res, 401, { error: 'Authentication required' });
         return true;
+      }
+
+      // SECURITY: Log warning for unverified profile deletion attempts
+      if (!verified) {
+        const clientIp = getClientIP(req);
+        log.warn(
+          { userId, clientIp },
+          'SECURITY: Profile deletion with unverified X-User-Id - recommend Firebase auth'
+        );
       }
 
       // Rate limiting
@@ -1073,12 +1142,10 @@ export async function handleVoiceAuthRoutes(
       await deleteVoiceProfile(userId);
       await removeFromVoiceProfileIndex(userId);
 
-      // Audit logging
-      if (SECURITY_CONFIG.enableAuditLogging) {
-        await logProfileDelete(userId, deviceInfo);
-      }
+      // Audit logging (always enabled - see SECURITY_CONFIG)
+      await logProfileDelete(userId, deviceInfo);
 
-      log.info({ userId }, 'Voice profile deleted');
+      log.info({ userId, verified }, 'Voice profile deleted');
 
       sendJson(res, 200, { success: true, message: 'Profile deleted' });
       return true;

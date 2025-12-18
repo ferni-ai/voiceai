@@ -4,7 +4,7 @@ import SwiftUI
 
 /**
  * Implements Luxo Jr.-style character animation for Ferni's avatar.
- * Based on frontend-typescript/src/ui/avatar-lamp.ui.ts
+ * Based on apps/web/src/ui/avatar-lamp.ui.ts
  *
  * AVATAR CAPABILITIES:
  * - Breathing: Gentle idle pulse (alive, not static)

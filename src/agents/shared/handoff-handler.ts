@@ -31,6 +31,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { UserData } from './types.js';
 import { getArrivingBanter, getHandoffBanter } from '../../services/team-engagement.js';
 import { getDJIntegration } from '../dj-integration.js';
+import { criticalMonitor } from '../voice-agent/critical-function-monitor.js';
 
 // ============================================================================
 // RE-EXPORTS FROM HANDOFF SUBMODULES (for backward compatibility)
@@ -177,6 +178,7 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
       let greeting: string | undefined;
       let playSound: string | undefined;
       let previousAgentId: string | undefined;
+      let voiceIdFromEvent: string | undefined;
 
       if ('persona' in data && data.persona) {
         // New clean format - use directly
@@ -185,6 +187,10 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         playSound = data.playSound;
         previousAgentId = (data as NewHandoffData).previousAgentId;
         targetPersonaId = persona.id;
+        // 🐛 FIX: Extract voiceId from event data - this is the CRITICAL fix for voice switching!
+        // The persona object may have voiceId nested under voice.voiceId (PersonaConfig)
+        // or directly on persona.voiceId (HandoffPersona). The event data always has it at top level.
+        voiceIdFromEvent = (data as { voiceId?: string }).voiceId;
       } else {
         // Legacy format - resolve via persona lookup
         const legacy = data as LegacyHandoffData;
@@ -200,6 +206,8 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         greeting = legacy.greeting;
         playSound = legacy.playSound;
         previousAgentId = legacy.previousAgent;
+        // Legacy format has voiceId directly on the data object
+        voiceIdFromEvent = legacy.voiceId;
       }
 
       // Get previous persona for logging
@@ -242,8 +250,27 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         // STEP 1: Send handoff_started - frontend shows "departing" state
         // FIX BUG: Ensure localParticipant exists and add retry logic
         // Include banter text so UI can display what's being spoken
+        // 🐛 DEBUG: Log persona IDs to help diagnose banter lookup issues
+        logger.info(
+          {
+            prevPersonaId: prevPersona.id,
+            newPersonaId: persona.id,
+            prevPersonaIdType: typeof prevPersona.id,
+            newPersonaIdType: typeof persona.id,
+          },
+          '🎭 BANTER: Looking up handoff banter'
+        );
         const softOpenBanter = getHandoffBanter(prevPersona.id, persona.id);
         const arrivingBanter = getArrivingBanter(persona.id, prevPersona.id);
+        logger.info(
+          {
+            hasSoftOpen: !!softOpenBanter,
+            hasArriving: !!arrivingBanter,
+            softOpenPreview: softOpenBanter?.slice(0, 50),
+            arrivingPreview: arrivingBanter?.slice(0, 50),
+          },
+          '🎭 BANTER: Lookup results'
+        );
 
         const startMessage = JSON.stringify({
           type: 'handoff_started',
@@ -263,12 +290,16 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           throw new Error('Connection lost before handoff');
         }
 
+        // CRITICAL FUNCTION TRACKING: Frontend must know handoff started
+        const startTracker = criticalMonitor.trackFrontendPublish(sessionId, 'handoff_started');
         try {
           await ctx.room.localParticipant.publishData(new TextEncoder().encode(startMessage), {
             reliable: true,
           });
+          startTracker.complete();
           diag.entry(`Handoff started: ${prevPersona.name} → ${persona.name}`);
         } catch (startErr) {
+          startTracker.fail(String(startErr));
           logger.error({ error: String(startErr) }, 'Failed to send handoff_started');
           throw new Error(`Failed to send handoff_started: ${startErr}`);
         }
@@ -404,8 +435,15 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
 
         // STEP 3: Switch the voice with retry logic
         // FIX BUG #47: Added retry mechanism for failed voice switches
+        // CRITICAL FUNCTION TRACKING: Voice switch failure = user hears wrong voice
         const MAX_VOICE_SWITCH_RETRIES = 2;
         let voiceSwitchSuccess = false;
+        const effectiveVoiceIdForTracking = voiceIdFromEvent || persona.voiceId || 'unknown';
+        const voiceSwitchTracker = criticalMonitor.trackVoiceSwitch(
+          sessionId,
+          persona.id,
+          effectiveVoiceIdForTracking
+        );
 
         for (
           let attempt = 0;
@@ -418,14 +456,29 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
             voiceManager.switchVoice(persona.id);
 
             // Also switch the session's TTS if it supports voice switching
-            if (tts && 'switchVoice' in tts) {
+            // 🐛 FIX: Use voiceIdFromEvent instead of persona.voiceId - persona.voiceId doesn't exist on PersonaConfig!
+            // The voiceId must come from the event data (extracted above), or fallback to persona.voiceId for HandoffPersona
+            const effectiveVoiceId = voiceIdFromEvent || persona.voiceId;
+            if (tts && 'switchVoice' in tts && effectiveVoiceId) {
               (tts as { switchVoice: (name: string, id: string) => void }).switchVoice(
                 persona.id,
-                persona.voiceId
+                effectiveVoiceId
               );
+              logger.info(
+                { personaId: persona.id, voiceId: effectiveVoiceId },
+                '🎙️ TTS voice switched successfully'
+              );
+            } else if (!effectiveVoiceId) {
+              logger.error(
+                { personaId: persona.id },
+                '🚨 NO VOICE ID AVAILABLE - TTS voice NOT switched! User will hear wrong voice.'
+              );
+              // Track as failure - no voice ID is a critical issue
+              voiceSwitchTracker.fail('NO_VOICE_ID: User will hear wrong voice');
             }
 
             voiceSwitchSuccess = true;
+            voiceSwitchTracker.complete();
 
             // 🐛 FIX BUG-003: Wait 150ms after voice switch to ensure TTS is ready
             // This prevents greeting from playing in wrong voice due to race condition
@@ -436,11 +489,13 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
             );
           } catch (voiceSwitchErr) {
             if (attempt < MAX_VOICE_SWITCH_RETRIES) {
+              voiceSwitchTracker.retry(attempt + 1, String(voiceSwitchErr));
               diag.warn(`Voice switch failed (attempt ${attempt + 1}), retrying in 100ms...`);
               await new Promise<void>((resolve) => {
                 setTimeout(resolve, 100);
               });
             } else {
+              voiceSwitchTracker.fail(String(voiceSwitchErr));
               diag.error(`Voice switch failed after ${MAX_VOICE_SWITCH_RETRIES + 1} attempts`);
               throw voiceSwitchErr;
             }
@@ -514,6 +569,8 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         }
 
         // Send with retry logic
+        // CRITICAL FUNCTION TRACKING: Frontend must know handoff completed
+        const completeTracker = criticalMonitor.trackFrontendPublish(sessionId, 'handoff_complete');
         let sendAttempts = 0;
         const maxSendAttempts = 3;
         while (sendAttempts < maxSendAttempts) {
@@ -521,17 +578,20 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
             await ctx.room.localParticipant.publishData(new TextEncoder().encode(completeMessage), {
               reliable: true,
             });
+            completeTracker.complete();
             diag.entry(`Handoff complete: ${persona.name} ready to speak`);
             break;
           } catch (sendErr) {
             sendAttempts++;
             if (sendAttempts >= maxSendAttempts) {
+              completeTracker.fail(String(sendErr));
               logger.error(
                 { error: String(sendErr), attempts: sendAttempts },
                 'Failed to send handoff_complete after retries'
               );
               throw new Error(`Failed to send handoff_complete: ${sendErr}`);
             }
+            // Note: trackFrontendPublish doesn't track retries, just log the attempt
             logger.warn(
               { error: String(sendErr), attempt: sendAttempts },
               'Retrying handoff_complete send...'
@@ -612,11 +672,24 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
             // Spoken AFTER voice switch in the NEW persona's voice
             // Uses arrivingBanter declared at the start of handoff flow
             // ============================================================================
+            logger.info(
+              {
+                hasPrevPersonaId: !!prevPersona?.id,
+                prevPersonaIdValue: prevPersona?.id,
+                hasArrivingBanter: !!arrivingBanter,
+                currentGreeting: finalGreeting?.slice(0, 50),
+              },
+              '🎭 BANTER: Checking arriving banter conditions'
+            );
             if (prevPersona?.id) {
               // Try arriving banter first (warm welcome from new persona's perspective)
               if (arrivingBanter) {
                 finalGreeting = arrivingBanter;
                 diag.entry(`🎭 Arriving welcome: ${persona.name} acknowledges ${prevPersona.name}`);
+                logger.info(
+                  { newGreeting: finalGreeting?.slice(0, 50) },
+                  '🎭 BANTER: Arriving banter applied!'
+                );
               } else {
                 // Fallback: Try DJ integration for radio show feel
                 const shouldUseDJEntrance = Math.random() < 0.4;

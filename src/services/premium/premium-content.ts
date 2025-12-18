@@ -323,9 +323,7 @@ export function getAvailableContent(userTier: PremiumTier): PremiumContent[] {
     partner: 2,
   };
 
-  return PREMIUM_CONTENT.filter(
-    (c) => tierHierarchy[userTier] >= tierHierarchy[c.requiredTier]
-  );
+  return PREMIUM_CONTENT.filter((c) => tierHierarchy[userTier] >= tierHierarchy[c.requiredTier]);
 }
 
 /**
@@ -528,8 +526,7 @@ function calculateMatchScore(
   // Engagement history boost (similar content was enjoyed)
   const similarEngagement = preferences.engagementHistory.find(
     (e) =>
-      e.contentType === content.type &&
-      (e.watchedPercentage > 0.7 || (e.rating && e.rating >= 4))
+      e.contentType === content.type && (e.watchedPercentage > 0.7 || (e.rating && e.rating >= 4))
   );
   if (similarEngagement) {
     score += 0.1;

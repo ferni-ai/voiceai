@@ -4,7 +4,7 @@
   "description": "Ferni iOS Application",
   "private": true,
   "scripts": {
-    "build:web": "cd ../../frontend-typescript && npm run build",
+    "build:web": "cd ../../apps/web && npm run build",
     "sync": "npx cap sync ios",
     "open": "npx cap open ios",
     "build": "npm run build:web && npm run sync",

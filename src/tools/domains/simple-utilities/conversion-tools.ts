@@ -10,6 +10,7 @@ import type { ToolDefinition, ToolContext, Tool } from '../../registry/types.js'
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 const convertUnitsDef: ToolDefinition = {
   id: 'convertUnits',
   name: 'Convert Units',
@@ -19,11 +20,7 @@ const convertUnitsDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Convert between units. Use when someone asks:
-- "How many cups is 500ml?"
-- "Convert 5 miles to kilometers"
-- "How many grams in 8 ounces?"
-- "What's 2 tablespoons in teaspoons?"`,
+      description: getToolDescription('convertUnits'),
       parameters: z.object({
         value: z.number().describe('The value to convert'),
         fromUnit: z.string().describe('The unit to convert from'),
@@ -118,10 +115,7 @@ const convertTemperatureDef: ToolDefinition = {
 
   create: (_ctx: ToolContext): Tool => {
     return llm.tool({
-      description: `Convert temperatures between Fahrenheit and Celsius. Use when someone asks:
-- "What's 72°F in Celsius?"
-- "Convert 25C to Fahrenheit"
-- "Is 38C a fever?"`,
+      description: getToolDescription('convertTemperature'),
       parameters: z.object({
         temperature: z.number().describe('The temperature value'),
         fromScale: z

@@ -18,6 +18,7 @@ import { llm, log } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
+import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
 // GRIEF PROCESSING TOOLS
 // ============================================================================
@@ -31,8 +32,7 @@ const processGriefDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Provide compassionate support for someone processing grief, meeting them where they are.',
+      description: getToolDescription('processGrief'),
       parameters: z.object({
         lossType: z
           .enum([
@@ -110,8 +110,7 @@ const navigateGriefWaveDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Provide immediate, gentle support when someone is in the midst of a grief wave.',
+      description: getToolDescription('navigateGriefWave'),
       parameters: z.object({
         intensity: z.enum(['overwhelming', 'heavy', 'present']).describe('Intensity of the wave'),
         trigger: z.string().optional().describe('What triggered it if known'),
@@ -155,7 +154,7 @@ const anniversarySupportDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Provide support around anniversaries of losses, deaths, or difficult dates.',
+      description: getToolDescription('anniversarySupport'),
       parameters: z.object({
         occasion: z.string().describe('What the anniversary marks'),
         approaching: z.boolean().describe('Whether it is approaching or has arrived'),
@@ -202,8 +201,7 @@ const acknowledgeLossDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Validate and acknowledge losses that may not receive social recognition - disenfranchised grief.',
+      description: getToolDescription('acknowledgeLoss'),
       parameters: z.object({
         loss: z.string().describe('What was lost'),
         whyItMayNotBeRecognized: z.string().optional().describe('Why others might not understand'),
@@ -244,7 +242,7 @@ const rememberLovedDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Create space to remember, honor, and share memories of someone who has died.',
+      description: getToolDescription('rememberLoved'),
       parameters: z.object({
         personName: z.string().describe('Name of the person'),
         relationship: z.string().describe('Relationship to the person'),
@@ -307,8 +305,7 @@ const navigateTransitionDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user navigate a major life transition with its inherent grief and possibility.',
+      description: getToolDescription('navigateTransition'),
       parameters: z.object({
         transition: z
           .enum([
@@ -377,8 +374,7 @@ const processEndingDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user process and honor an ending - a phase, role, relationship, or chapter of life.',
+      description: getToolDescription('processEnding'),
       parameters: z.object({
         whatIsEnding: z.string().describe('What is coming to an end'),
         howItFeels: z.string().optional().describe('How the ending feels'),
@@ -424,8 +420,7 @@ const embraceNewIdentityDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description:
-        'Help the user embrace and integrate a new identity emerging from loss or transition.',
+      description: getToolDescription('embraceNewIdentity'),
       parameters: z.object({
         oldIdentity: z.string().describe('Who they were or the role they had'),
         trigger: z.string().describe('What caused the identity shift'),
@@ -476,7 +471,7 @@ const validateGriefDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Validate grief against common dismissive messages the user may have received.',
+      description: getToolDescription('validateGrief'),
       parameters: z.object({
         dismissiveMessage: z
           .enum([
@@ -529,7 +524,7 @@ const companionInGriefDef: ToolDefinition = {
 
   create: (ctx: ToolContext): Tool => {
     return llm.tool({
-      description: 'Offer simple, non-fixing presence to someone in grief.',
+      description: getToolDescription('companionInGrief'),
       parameters: z.object({
         whatTheyNeed: z
           .enum(['talk', 'silence', 'distraction', 'unsure'])

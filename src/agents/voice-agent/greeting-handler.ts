@@ -197,41 +197,20 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
   }
 
   // ===============================================
-  // HUMANIZATION FIX: Try "alive" greeting systems first
-  // These make personas feel like real people caught in a moment
+  // HOLISTIC PERSONALITY: Use greetings.json directly
+  // The "alive" greeting systems were adding too much drama.
+  // greetings.json has well-crafted, grounded greetings.
   // ===============================================
   if (!greeting && bundleRuntime) {
-    // PRIORITY 1: Try "caught in a moment" greeting (highest personality)
-    try {
-      const aliveResult = await generateAliveGreeting(bundleRuntime, sessionPersona, {
-        userName: userData.name,
-        isReturningUser,
-        relationshipStage: services.userProfile?.relationshipStage as
-          | 'stranger'
-          | 'acquaintance'
-          | 'friend'
-          | 'trusted_advisor'
-          | undefined,
-        lastConversationSummary: services.userProfile?.lastConversationSummary,
-        usedGreetings: services.userProfile?.humanizingState?.usedGreetings,
-      });
-      if (aliveResult) {
-        greeting = aliveResult.greeting;
-        diag.session('Using alive greeting (caught in a moment)', {
-          style: aliveResult.style,
-          components: Object.keys(aliveResult.components).filter(
-            (k) => aliveResult.components[k as keyof typeof aliveResult.components]
-          ),
-        });
-      }
-    } catch (e) {
-      diag.warn('Alive greeting failed, trying alternatives', { error: String(e) });
-    }
+    // DISABLED: Alive greetings were making Ferni too dramatic
+    // The greetings.json already has good Pixar-style greetings
+    // If you want to re-enable, set ENABLE_ALIVE_GREETINGS=true in env
+    const enableAliveGreetings = process.env.ENABLE_ALIVE_GREETINGS === 'true';
 
-    // PRIORITY 2: Try "alive intro" (warm recognition for returning users)
-    if (!greeting && isReturningUser) {
+    if (enableAliveGreetings) {
+      // PRIORITY 1: Try "caught in a moment" greeting (highest personality)
       try {
-        const introResult = await generateAliveIntro(bundleRuntime, sessionPersona, {
+        const aliveResult = await generateAliveGreeting(bundleRuntime, sessionPersona, {
           userName: userData.name,
           isReturningUser,
           relationshipStage: services.userProfile?.relationshipStage as
@@ -240,23 +219,51 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
             | 'friend'
             | 'trusted_advisor'
             | undefined,
-          meetingCount: services.userProfile?.totalConversations,
-          lastTopic: services.userProfile?.lastConversationSummary?.slice(0, 50),
+          lastConversationSummary: services.userProfile?.lastConversationSummary,
+          usedGreetings: services.userProfile?.humanizingState?.usedGreetings,
         });
-        if (introResult) {
-          greeting = introResult.intro;
-          // Alive intros reference last conversation if they include lastTopic
-          hasReferencedLastConversation = !!services.userProfile?.lastConversationSummary;
-          diag.session('Using alive intro (warm recognition)', {
-            style: introResult.style,
+        if (aliveResult) {
+          greeting = aliveResult.greeting;
+          diag.session('Using alive greeting (caught in a moment)', {
+            style: aliveResult.style,
+            components: Object.keys(aliveResult.components).filter(
+              (k) => aliveResult.components[k as keyof typeof aliveResult.components]
+            ),
           });
         }
       } catch (e) {
-        diag.warn('Alive intro failed, trying bundle greeting', { error: String(e) });
+        diag.warn('Alive greeting failed, trying alternatives', { error: String(e) });
+      }
+
+      // PRIORITY 2: Try "alive intro" (warm recognition for returning users)
+      if (!greeting && isReturningUser) {
+        try {
+          const introResult = await generateAliveIntro(bundleRuntime, sessionPersona, {
+            userName: userData.name,
+            isReturningUser,
+            relationshipStage: services.userProfile?.relationshipStage as
+              | 'stranger'
+              | 'acquaintance'
+              | 'friend'
+              | 'trusted_advisor'
+              | undefined,
+            meetingCount: services.userProfile?.totalConversations,
+            lastTopic: services.userProfile?.lastConversationSummary?.slice(0, 50),
+          });
+          if (introResult) {
+            greeting = introResult.intro;
+            hasReferencedLastConversation = !!services.userProfile?.lastConversationSummary;
+            diag.session('Using alive intro (warm recognition)', {
+              style: introResult.style,
+            });
+          }
+        } catch (e) {
+          diag.warn('Alive intro failed, trying bundle greeting', { error: String(e) });
+        }
       }
     }
 
-    // PRIORITY 3: Bundle runtime standard greeting
+    // Bundle runtime standard greeting (uses greetings.json)
     if (!greeting) {
       const result = await generateBundleGreeting(
         bundleRuntime,
@@ -282,12 +289,42 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
     hasReferencedLastConversation = result.hasReferencedLastConversation;
   }
 
-  // Ensure greeting is defined (use warm greeting as final fallback)
+  // Ensure greeting is defined (use CONTEXT-AWARE greeting as fallback)
   // NOTE: Never use "How can I help you today?" - that's customer service, not Ferni
+  // "Better than Human" - even fallback greetings should be context-aware
   if (!greeting) {
-    greeting = warmGreeting || `Hey! What's going on?`;
-    if (!warmGreeting) {
-      diag.warn('Using fallback greeting - this should not happen');
+    if (warmGreeting) {
+      greeting = warmGreeting;
+    } else {
+      // Generate context-aware greeting (Better than Human)
+      try {
+        const warmGreetingModule = await import('../shared/warm-greeting.js');
+        const { generateWarmGreeting } = warmGreetingModule;
+        type GreetingContext = Parameters<
+          typeof warmGreetingModule.generateContextAwareGreeting
+        >[1];
+
+        // Build context from what we know
+        const greetingCtx: GreetingContext = {
+          hour: new Date().getHours(),
+          isReturningUser,
+          userName,
+          relationshipStage:
+            userData.relationshipStage || (isReturningUser ? 'friend' : 'stranger'),
+          lastEmotion: userData.lastEmotionAnalysis?.primary,
+          lastEmotionIntensity: userData.lastEmotionAnalysis?.intensity,
+        };
+
+        greeting = generateWarmGreeting(sessionPersona.id, greetingCtx);
+        diag.session('Generated context-aware fallback greeting', {
+          hour: greetingCtx.hour,
+          stage: greetingCtx.relationshipStage,
+        });
+      } catch {
+        // Final fallback - static greeting
+        greeting = `Hey! What's going on?`;
+        diag.warn('Using static fallback greeting - context-aware generation failed');
+      }
     }
   }
 
@@ -332,19 +369,26 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
     isReturningUser
   );
 
-  // Apply SSML enhancements
-  const speechContext = services.getSpeechContext(greeting);
-  let enhancedGreeting = tagGreeting(greeting, speechContext);
+  // ===============================================
+  // HOLISTIC PERSONALITY: Don't over-enhance greetings
+  // greetings.json already has SSML - don't layer more on top
+  // ===============================================
+  let enhancedGreeting = greeting;
 
-  // ===============================================
-  // GREETING VOICE: Confident and natural, not soft/timid
-  // Ferni should sound like himself - cool, warm, present
-  // NOTE: Removed soft volume (0.85) - it made Ferni sound weird/timid
-  // ===============================================
-  // Only adjust speed slightly for a natural opening cadence
-  if (!enhancedGreeting.includes('<speed')) {
-    enhancedGreeting = `<speed ratio="0.98"/>${enhancedGreeting}`;
+  // Check if greeting already has SSML (from greetings.json)
+  const hasExistingSsml =
+    greeting.includes('<break') || greeting.includes('<emotion') || greeting.includes('<volume');
+
+  if (!hasExistingSsml) {
+    // Only tag if greeting doesn't have SSML yet
+    const speechContext = services.getSpeechContext(greeting);
+    enhancedGreeting = tagGreeting(greeting, speechContext);
+  } else {
+    diag.tts('Greeting already has SSML - skipping enhancement to prevent over-dramatic output');
   }
+
+  // NOTE: Removed automatic speed modifier - it was making Ferni sound unnatural
+  // Ferni's natural voice is his best voice. Only use speed for specific effect.
 
   diag.tts('Enhanced greeting', {
     enhanced: enhancedGreeting.substring(0, 100) + (enhancedGreeting.length > 100 ? '...' : ''),
@@ -403,17 +447,18 @@ function generateClaimedDemoGreeting(
   const greetings: string[] = [];
 
   // If we have specific highlights, reference them
+  // NOTE: Use "affectionate" for warmth, not "happy" (sounds forced/cheerleader)
   if (demoConversation.highlights.length > 0) {
     const highlight = demoConversation.highlights[0];
     greetings.push(
-      `<emotion value="happy"/>Oh!<break time="100ms"/>Hey${name}!<break time="200ms"/>` +
-        `I remember you.<break time="150ms"/>` +
-        `You mentioned ${highlight}.<break time="200ms"/>` +
+      `<break time="200ms"/><emotion value="surprised"/>Oh.<break time="300ms"/>Hey${name}.<break time="350ms"/>` +
+        `I remember you.<break time="200ms"/>` +
+        `You mentioned ${highlight}.<break time="250ms"/>` +
         `I've been thinking about that.`
     );
     greetings.push(
-      `<emotion value="surprised"/>Wait—<break time="100ms"/>I know you!<break time="200ms"/>` +
-        `We talked about ${highlight} earlier.<break time="150ms"/>` +
+      `<emotion value="surprised"/>Wait—<break time="250ms"/>I know you.<break time="300ms"/>` +
+        `We talked about ${highlight} earlier.<break time="200ms"/>` +
         `<emotion value="affectionate"/>So glad you're back.`
     );
   }
@@ -422,15 +467,15 @@ function generateClaimedDemoGreeting(
   if (greetings.length === 0 && demoConversation.topics.length > 0) {
     const topic = demoConversation.topics[0];
     greetings.push(
-      `<emotion value="happy"/>Hey${name}!<break time="150ms"/>` +
-        `You're back!<break time="200ms"/>` +
-        `I remember we were talking about ${topic}.<break time="150ms"/>` +
+      `<break time="150ms"/><emotion value="affectionate"/>Hey${name}.<break time="350ms"/>` +
+        `You're back.<break time="250ms"/>` +
+        `I remember we were talking about ${topic}.<break time="200ms"/>` +
         `Want to pick up where we left off?`
     );
     greetings.push(
-      `Oh!<break time="100ms"/>Hey${name}.<break time="150ms"/>` +
-        `<emotion value="affectionate"/>I was hoping you'd come back.<break time="200ms"/>` +
-        `We started something about ${topic}—<break time="100ms"/>` +
+      `<break time="200ms"/>Oh.<break time="250ms"/>Hey${name}.<break time="300ms"/>` +
+        `<emotion value="affectionate"/>I was hoping you'd come back.<break time="250ms"/>` +
+        `We started something about ${topic}—<break time="150ms"/>` +
         `want to keep going?`
     );
   }
@@ -438,23 +483,23 @@ function generateClaimedDemoGreeting(
   // If we have Ferni's notes about the conversation
   if (greetings.length === 0 && demoConversation.ferniNotes) {
     greetings.push(
-      `<emotion value="happy"/>Hey${name}!<break time="150ms"/>` +
-        `I remember our conversation.<break time="200ms"/>` +
-        `<emotion value="affectionate"/>Really glad you decided to continue.`
+      `<break time="150ms"/><emotion value="affectionate"/>Hey${name}.<break time="350ms"/>` +
+        `I remember our conversation.<break time="250ms"/>` +
+        `Really glad you decided to continue.`
     );
   }
 
   // Generic "I remember you" fallback
   if (greetings.length === 0) {
     greetings.push(
-      `<emotion value="happy"/>Hey${name}!<break time="150ms"/>` +
-        `Wait—<break time="100ms"/>we've talked before, right?<break time="200ms"/>` +
-        `I remember you.<break time="150ms"/>Welcome back.`
+      `<break time="150ms"/><emotion value="affectionate"/>Hey${name}.<break time="350ms"/>` +
+        `Wait—<break time="200ms"/>we've talked before, right?<break time="250ms"/>` +
+        `I remember you.<break time="200ms"/>Welcome back.`
     );
     greetings.push(
-      `Oh!<break time="100ms"/><emotion value="happy"/>Hey${name}!<break time="200ms"/>` +
-        `You came back.<break time="150ms"/>` +
-        `<emotion value="affectionate"/>That makes me really happy.`
+      `<break time="200ms"/>Oh.<break time="250ms"/><emotion value="affectionate"/>Hey${name}.<break time="350ms"/>` +
+        `You came back.<break time="200ms"/>` +
+        `That makes me really happy.`
     );
   }
 

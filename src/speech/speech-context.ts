@@ -464,26 +464,12 @@ export function removeSessionWPMTracker(sessionId: string): void {
  */
 export const resetSessionWPMTracker = removeSessionWPMTracker;
 
-// ============================================================================
-// LEGACY COMPATIBILITY (Remove after all callers migrated)
-// ============================================================================
-
-/**
- * Get or create a global WPM tracker.
- *
- * @deprecated Use getSessionWPMTracker(sessionId) for proper session isolation.
- * This function creates a tracker with a synthetic session ID.
- */
-export function getWPMTracker(): WPMTracker {
-  return getSessionWPMTracker('__global__');
-}
-
 export default {
   buildSpeechContext,
   detectEnergyLevel,
   determineTopicWeight,
   WPMTracker,
-  getWPMTracker,
   getSessionWPMTracker,
   removeSessionWPMTracker,
+  resetSessionWPMTracker,
 };

@@ -22,16 +22,32 @@ const log = createLogger({ module: 'ResponseStreaming' });
 // ============================================================================
 
 export interface StreamingConfig {
-  /** Minimum characters before flushing to TTS (default: 50) */
+  /**
+   * Minimum characters before flushing to TTS
+   * PERFORMANCE: Reduced from 50 to 20 for faster first audio
+   * @default 20
+   */
   minChunkSize?: number;
-  /** Maximum characters before forced flush (default: 200) */
+  /**
+   * Maximum characters before forced flush
+   * @default 150
+   */
   maxChunkSize?: number;
-  /** Wait time for more tokens before flushing (default: 100ms) */
+  /**
+   * Wait time for more tokens before flushing
+   * PERFORMANCE: Reduced from 100ms to 40ms for snappier responses
+   * @default 40
+   */
   flushDelayMs?: number;
   /** Enable lookahead buffering (default: true) */
   enableLookahead?: boolean;
-  /** Lookahead buffer size in chunks (default: 2) */
+  /** Lookahead buffer size in chunks (default: 3) */
   lookaheadSize?: number;
+  /**
+   * Enable speculative TTS synthesis on partial sentences
+   * @default true
+   */
+  enableSpeculativeSynthesis?: boolean;
 }
 
 export interface StreamChunk {
@@ -133,7 +149,9 @@ function findSplitPoint(text: string, minLength: number, maxLength: number): num
  */
 export class ResponseStreamProcessor {
   private buffer = '';
-  private config: Required<StreamingConfig>;
+  private config: Required<Omit<StreamingConfig, 'enableSpeculativeSynthesis'>> & {
+    enableSpeculativeSynthesis: boolean;
+  };
   private onChunk: ChunkCallback;
   private chunkIndex = 0;
   private startTime = 0;
@@ -143,15 +161,23 @@ export class ResponseStreamProcessor {
   private tokensProcessed = 0;
   private interruptionCount = 0;
   private chunkLatencies: number[] = [];
+  /** Track if we've sent at least one chunk (for aggressive first-chunk behavior) */
+  private hasSentFirstChunk = false;
 
   constructor(onChunk: ChunkCallback, config: StreamingConfig = {}) {
     this.onChunk = onChunk;
+    // PERFORMANCE OPTIMIZED DEFAULTS:
+    // - minChunkSize: 20 (was 50) - Start TTS synthesis earlier
+    // - maxChunkSize: 150 (was 200) - Smaller chunks for faster playback
+    // - flushDelayMs: 40ms (was 100ms) - Less waiting before flush
+    // - lookaheadSize: 3 (was 2) - Pre-synthesize more chunks
     this.config = {
-      minChunkSize: config.minChunkSize ?? 50,
-      maxChunkSize: config.maxChunkSize ?? 200,
-      flushDelayMs: config.flushDelayMs ?? 100,
+      minChunkSize: config.minChunkSize ?? 20,
+      maxChunkSize: config.maxChunkSize ?? 150,
+      flushDelayMs: config.flushDelayMs ?? 40,
       enableLookahead: config.enableLookahead ?? true,
-      lookaheadSize: config.lookaheadSize ?? 2,
+      lookaheadSize: config.lookaheadSize ?? 3,
+      enableSpeculativeSynthesis: config.enableSpeculativeSynthesis ?? true,
     };
   }
 
@@ -179,12 +205,21 @@ export class ResponseStreamProcessor {
     if (this.shouldFlush()) {
       void this.flushChunk(false);
     } else {
+      // PERFORMANCE: More aggressive flushing for first chunk
+      // First chunk is critical for perceived latency
+      const delayMs = this.hasSentFirstChunk
+        ? this.config.flushDelayMs
+        : this.config.flushDelayMs / 2;
+      const minSize = this.hasSentFirstChunk
+        ? this.config.minChunkSize / 2
+        : this.config.minChunkSize / 3;
+
       // Set a delayed flush in case no more tokens arrive
       this.flushTimeout = setTimeout(() => {
-        if (this.buffer.length >= this.config.minChunkSize / 2) {
+        if (this.buffer.length >= minSize) {
           void this.flushChunk(false);
         }
-      }, this.config.flushDelayMs);
+      }, delayMs);
     }
   }
 
@@ -240,6 +275,7 @@ export class ResponseStreamProcessor {
     // Track first chunk latency
     if (this.chunkIndex === 0) {
       this.firstChunkTime = now;
+      this.hasSentFirstChunk = true;
     }
 
     const latencyMs = now - this.startTime;
@@ -321,6 +357,7 @@ export class ResponseStreamProcessor {
     this.isCancelled = false;
     this.tokensProcessed = 0;
     this.chunkLatencies = [];
+    this.hasSentFirstChunk = false;
 
     if (this.flushTimeout) {
       clearTimeout(this.flushTimeout);

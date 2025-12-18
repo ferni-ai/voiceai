@@ -18,6 +18,7 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { getGlobalServices } from './global-services.js';
 
 // Get Firestore client from global services
@@ -522,11 +523,13 @@ async function persistInsight(userId: string, insight: SharedInsight): Promise<v
       .doc(userId)
       .collection('cross_persona_insights')
       .doc(insight.id)
-      .set({
-        ...insight,
-        discoveredAt: insight.discoveredAt.toISOString(),
-        expiresAt: insight.expiresAt?.toISOString(),
-      });
+      .set(
+        removeUndefined({
+          ...insight,
+          discoveredAt: insight.discoveredAt.toISOString(),
+          expiresAt: insight.expiresAt?.toISOString(),
+        })
+      );
   } catch (error) {
     log.warn({ error, userId }, 'Failed to persist insight to Firestore');
   }

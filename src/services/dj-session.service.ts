@@ -90,12 +90,12 @@ export interface SessionOutro {
 // ============================================================================
 
 const SESSION_INTROS = {
-  // First time ever - warm welcome
+  // First time ever - warm welcome (uses {personaName} placeholder)
   firstTime: {
     phrases: [
-      '<break time="200ms"/>Hey there! <break time="150ms"/>I\'m Ferni. <break time="200ms"/>It\'s really nice to meet you.',
-      '<break time="200ms"/>Hi! <break time="150ms"/>Welcome. <break time="200ms"/>I\'m Ferni. <break time="100ms"/>So glad you\'re here.',
-      '<break time="200ms"/>Hello! <break time="150ms"/>So glad you\'re here. <break time="200ms"/>I\'m Ferni.',
+      '<break time="200ms"/>Hey there! <break time="150ms"/>I\'m {personaName}. <break time="200ms"/>It\'s really nice to meet you.',
+      '<break time="200ms"/>Hi! <break time="150ms"/>Welcome. <break time="200ms"/>I\'m {personaName}. <break time="100ms"/>So glad you\'re here.',
+      '<break time="200ms"/>Hello! <break time="150ms"/>So glad you\'re here. <break time="200ms"/>I\'m {personaName}.',
     ],
     followUp: ['What brings you here today?', "What's on your mind?", "What's going on?"],
   },
@@ -184,6 +184,61 @@ const SESSION_INTROS = {
         '<break time="300ms"/>Ah, <break time="150ms"/>you\'re here. <break time="200ms"/>Good.',
       ],
     },
+  },
+};
+
+// ============================================================================
+// PERSONA-SPECIFIC FIRST-TIME INTROS - Unique greetings per persona
+// ============================================================================
+
+const PERSONA_FIRST_TIME_INTROS: Record<string, { phrases: string[]; followUp: string[] }> = {
+  ferni: {
+    phrases: [
+      '<break time="200ms"/>Hey there! <break time="150ms"/>I\'m Ferni. <break time="200ms"/>It\'s really nice to meet you.',
+      '<break time="200ms"/>Hi! <break time="150ms"/>Welcome. <break time="200ms"/>I\'m Ferni. <break time="100ms"/>So glad you\'re here.',
+      '<break time="200ms"/>Hello! <break time="150ms"/>So glad you\'re here. <break time="200ms"/>I\'m Ferni.',
+    ],
+    followUp: ['What brings you here today?', "What's on your mind?", "What's going on?"],
+  },
+  'maya-santos': {
+    phrases: [
+      '<break time="200ms"/>Hey! <break time="150ms"/>I\'m Maya. <break time="200ms"/>Nice to meet you.',
+      '<break time="200ms"/>Hi there! <break time="150ms"/>I\'m Maya. <break time="200ms"/>Welcome!',
+      '<break time="200ms"/>Hello! <break time="150ms"/>Maya here. <break time="200ms"/>Great to connect.',
+    ],
+    followUp: ['How can I help you build better habits?', "What's going on in your world?", 'What would you like to work on?'],
+  },
+  'peter-john': {
+    phrases: [
+      '<break time="200ms"/>Hello there. <break time="150ms"/>I\'m Peter. <break time="200ms"/>Welcome.',
+      '<break time="200ms"/>Hi! <break time="150ms"/>Peter here. <break time="200ms"/>Good to meet you.',
+      '<break time="200ms"/>Greetings! <break time="150ms"/>I\'m Peter. <break time="200ms"/>Let\'s think together.',
+    ],
+    followUp: ['What would you like to explore?', 'What are you curious about?', "What's on your mind?"],
+  },
+  'alex-chen': {
+    phrases: [
+      '<break time="200ms"/>Hey! <break time="150ms"/>I\'m Alex. <break time="200ms"/>Great to meet you.',
+      '<break time="200ms"/>Hi there! <break time="150ms"/>Alex here. <break time="200ms"/>Let\'s connect.',
+      '<break time="200ms"/>Hello! <break time="150ms"/>I\'m Alex. <break time="200ms"/>Ready to help you communicate.',
+    ],
+    followUp: ['What brings you here today?', 'What would you like to work on?', 'How can I help?'],
+  },
+  'jordan-taylor': {
+    phrases: [
+      '<emotion value="happy"/><break time="100ms"/>Hey hey! <break time="100ms"/>I\'m Jordan! <break time="200ms"/>Nice to meet you!',
+      '<emotion value="happy"/><break time="150ms"/>Hi! <break time="100ms"/>Jordan here! <break time="200ms"/>Let\'s plan something fun!',
+      '<break time="200ms"/>Hey there! <break time="150ms"/>I\'m Jordan. <break time="200ms"/>Excited to meet you!',
+    ],
+    followUp: ['What are we planning today?', 'Got any exciting events coming up?', 'What can I help you organize?'],
+  },
+  'nayan-patel': {
+    phrases: [
+      '<break time="300ms"/>Hello, friend. <break time="200ms"/>I\'m Nayan. <break time="200ms"/>Welcome.',
+      '<break time="300ms"/>Ah, <break time="150ms"/>welcome. <break time="200ms"/>I\'m Nayan.',
+      '<break time="300ms"/>Greetings. <break time="200ms"/>Nayan here. <break time="200ms"/>It\'s good to meet you.',
+    ],
+    followUp: ['What wisdom do you seek?', 'What brings you here today?', "What's stirring in your mind?"],
   },
 };
 
@@ -530,9 +585,27 @@ class DJSessionService {
   // INTRO GENERATORS
   // ==========================================================================
 
-  private getFirstTimeIntro(_context: SessionContext): SessionIntro {
-    // Note: context available for future personalization (e.g., userName)
-    const phrase = this.randomFrom(SESSION_INTROS.firstTime.phrases);
+  private getFirstTimeIntro(context: SessionContext): SessionIntro {
+    // Get persona name for personalized greeting (FIX: was hardcoded to "Ferni")
+    const personaName = this.getPersonaDisplayName(context.personaId);
+    
+    // Use persona-specific first-time greetings if available
+    const personaIntros = PERSONA_FIRST_TIME_INTROS[context.personaId];
+    if (personaIntros) {
+      const phrase = this.randomFrom(personaIntros.phrases);
+      const followUp = this.randomFrom(personaIntros.followUp);
+      return {
+        phrase: `${phrase} <break time="300ms"/>${followUp}`,
+        playStinger: true,
+        startAmbient: false,
+        delayMs: 500,
+        introType: 'first-time',
+      };
+    }
+    
+    // Fallback: Use template with persona name substitution
+    const phraseTemplate = this.randomFrom(SESSION_INTROS.firstTime.phrases);
+    const phrase = phraseTemplate.replace(/{personaName}/g, personaName);
     const followUp = this.randomFrom(SESSION_INTROS.firstTime.followUp);
 
     return {
@@ -542,6 +615,21 @@ class DJSessionService {
       delayMs: 500, // Let the stinger breathe
       introType: 'first-time',
     };
+  }
+  
+  /**
+   * Get display name for a persona ID
+   */
+  private getPersonaDisplayName(personaId: string): string {
+    const displayNames: Record<string, string> = {
+      'ferni': 'Ferni',
+      'maya-santos': 'Maya',
+      'alex-chen': 'Alex',
+      'peter-john': 'Peter',
+      'jordan-taylor': 'Jordan',
+      'nayan-patel': 'Nayan',
+    };
+    return displayNames[personaId] || 'Ferni';
   }
 
   private getMusicCallbackIntro(context: SessionContext): SessionIntro {

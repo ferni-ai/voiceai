@@ -446,7 +446,7 @@ e2e/landing-accessibility.spec.ts  # A11y e2e tests
 ```
 promo/ferni-website/src/css/tokens.css         # DELETE (use generated)
 promo/ferni-website/src/js/ai-powered-landing.js  # Fix hardcoded colors
-frontend-typescript/firebase.json              # Add landing AI rewrites
+apps/web/firebase.json              # Add landing AI rewrites
 .github/workflows/landing.yml                  # Add a11y + lint checks
 ```
 

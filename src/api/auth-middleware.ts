@@ -82,12 +82,9 @@ const ADMIN_API_KEYS = new Set((process.env.ADMIN_API_KEYS || '').split(',').fil
 /** Whether we're in development mode */
 const IS_DEV = process.env.NODE_ENV !== 'production';
 
-/**
- * Legacy header auth (X-User-Id without a token).
- *
- * Default: disabled. Can be enabled explicitly for transitional deployments.
- */
-const ALLOW_LEGACY_X_USER_ID_AUTH = process.env.ALLOW_LEGACY_X_USER_ID_AUTH === 'true';
+// SECURITY: Legacy X-User-Id auth has been REMOVED
+// This was a critical security vulnerability allowing auth bypass
+// All clients must use Firebase auth or API keys
 
 // ============================================================================
 // HELPERS
@@ -169,10 +166,13 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
     return null; // Will be handled async in requireAuth
   }
 
-  // 3. Check dev mode bypass (header only, no query params)
+  // 3. Check dev mode bypass (header only, requires configured ADMIN_KEY even in dev)
+  // SECURITY: 'dev-mode' string backdoor has been removed - must use real ADMIN_KEY
   if (IS_DEV) {
     const adminKeyHeader = getHeader(req, 'X-Admin-Key');
-    if (adminKeyHeader === 'dev-mode') {
+    const configuredAdminKey = process.env.ADMIN_KEY;
+    // Only allow dev mode if ADMIN_KEY is configured and matches
+    if (configuredAdminKey && adminKeyHeader === configuredAdminKey) {
       const devUserId = getHeader(req, 'X-User-Id') || 'dev-user';
       return {
         userId: devUserId,
@@ -183,23 +183,13 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
     }
   }
 
-  // 4. Legacy fallback: Accept X-User-Id header for backward compatibility
-  // This allows users who haven't migrated to Firebase auth to still use the API
+  // SECURITY: Legacy X-User-Id auth has been removed - was a critical auth bypass vulnerability
+  // Log attempts to use the removed functionality for security monitoring
   const legacyUserId = getHeader(req, 'X-User-Id');
-  if (legacyUserId && ALLOW_LEGACY_X_USER_ID_AUTH) {
-    log.debug({ userId: legacyUserId }, 'Legacy X-User-Id auth (no Firebase token)');
-    return {
-      userId: legacyUserId,
-      isAdmin: false,
-      isDevMode: false,
-      authMethod: 'api_key', // Treat as api_key for rate limiting purposes
-    };
-  }
-
-  if (legacyUserId && !ALLOW_LEGACY_X_USER_ID_AUTH) {
+  if (legacyUserId && !getHeader(req, 'Authorization') && !getHeader(req, 'X-API-Key')) {
     log.warn(
-      { userId: legacyUserId, ip },
-      'Legacy X-User-Id auth header provided but disabled (set ALLOW_LEGACY_X_USER_ID_AUTH=true to enable)'
+      { attemptedUserId: legacyUserId, ip },
+      'SECURITY: Blocked legacy X-User-Id auth attempt - must use Firebase token or API key'
     );
   }
 

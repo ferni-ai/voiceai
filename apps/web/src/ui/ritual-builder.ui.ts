@@ -22,7 +22,6 @@ import {
   renderBackButton,
   renderCloseButton,
 } from './engagement-components.js';
-import { addTapListener, cleanupTapListeners } from '../utils/ios-touch.js';
 
 // ============================================================================
 // TYPES
@@ -206,9 +205,6 @@ class RitualBuilderUI {
   hide(): void {
     if (!this.panel || !this.wrapper) return;
 
-    // Clean up iOS tap listeners before hiding
-    cleanupTapListeners(this.panel);
-
     if (!prefersReducedMotion()) {
       const anim = this.wrapper.animate(
         [
@@ -244,8 +240,8 @@ class RitualBuilderUI {
     this.wrapper.className = 'ritual-builder__wrapper';
     this.panel.appendChild(this.wrapper);
 
-    // Click outside to close (iOS-compatible)
-    addTapListener(this.panel, (e) => {
+    // Click outside to close
+    this.panel.addEventListener('click', (e) => {
       if (e.target === this.panel) this.hide();
     });
 
@@ -301,14 +297,13 @@ class RitualBuilderUI {
     `;
 
     // Bind close button (using shared class)
-    addTapListener(
-      this.wrapper.querySelector('.engagement-close-btn'),
-      () => this.hide()
-    );
+    this.wrapper
+      .querySelector('.engagement-close-btn')
+      ?.addEventListener('click', () => this.hide());
 
-    // Bind template buttons (iOS-compatible)
+    // Bind template buttons
     this.wrapper.querySelectorAll('.ritual-builder__template').forEach((btn) => {
-      addTapListener(btn, () => {
+      btn.addEventListener('click', () => {
         const index = parseInt((btn as HTMLElement).dataset.index || '0', 10);
         const template = RITUAL_TEMPLATES[index];
         if (template) {
@@ -436,12 +431,11 @@ class RitualBuilderUI {
       </div>
     `;
 
-    // Bind buttons (iOS-compatible)
-    addTapListener(
-      this.wrapper.querySelector('.engagement-close-btn'),
-      () => this.hide()
-    );
-    addTapListener(this.wrapper.querySelector('.engagement-back-btn'), () => {
+    // Bind buttons
+    this.wrapper
+      .querySelector('.engagement-close-btn')
+      ?.addEventListener('click', () => this.hide());
+    this.wrapper.querySelector('.engagement-back-btn')?.addEventListener('click', () => {
       this.currentStep = 0;
       this.renderStep();
     });
@@ -465,9 +459,9 @@ class RitualBuilderUI {
       this.ritual.frequency = frequencySelect.value as CustomRitual['frequency'];
     });
 
-    // Time buttons (iOS-compatible)
+    // Time buttons
     this.wrapper.querySelectorAll('.ritual-builder__time-btn').forEach((btn) => {
-      addTapListener(btn, () => {
+      btn.addEventListener('click', () => {
         this.ritual.preferredTime = (btn as HTMLElement).dataset
           .time as CustomRitual['preferredTime'];
         this.wrapper
@@ -477,8 +471,8 @@ class RitualBuilderUI {
       });
     });
 
-    // Preview button (iOS-compatible)
-    addTapListener(this.wrapper.querySelector('.engagement-btn-primary'), () => {
+    // Preview button
+    this.wrapper.querySelector('.engagement-btn-primary')?.addEventListener('click', () => {
       if (!this.ritual.name.trim()) {
         nameInput.focus();
         nameInput.classList.add('ritual-builder__input--error');
@@ -536,22 +530,21 @@ class RitualBuilderUI {
       </div>
     `;
 
-    // Bind buttons (iOS-compatible)
-    addTapListener(
-      this.wrapper.querySelector('.engagement-close-btn'),
-      () => this.hide()
-    );
-    addTapListener(this.wrapper.querySelector('.engagement-back-btn'), () => {
+    // Bind buttons
+    this.wrapper
+      .querySelector('.engagement-close-btn')
+      ?.addEventListener('click', () => this.hide());
+    this.wrapper.querySelector('.engagement-back-btn')?.addEventListener('click', () => {
       this.currentStep = 1;
       this.renderStep();
     });
 
-    addTapListener(this.wrapper.querySelector('.engagement-btn-secondary'), () => {
+    this.wrapper.querySelector('.engagement-btn-secondary')?.addEventListener('click', () => {
       this.currentStep = 1;
       this.renderStep();
     });
 
-    addTapListener(this.wrapper.querySelector('.engagement-btn-primary'), () => {
+    this.wrapper.querySelector('.engagement-btn-primary')?.addEventListener('click', () => {
       this.callbacks.onSave?.(this.ritual);
       this.hide();
     });

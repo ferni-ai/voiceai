@@ -13,12 +13,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import type { IGameImplementation } from './game-engine.js';
 import type { GameResult, FinishTheLyricData, DecadeChallengeData } from './types.js';
-import {
-  searchSong,
-  playGameTrack,
-  stopGameTrack,
-  fadeOutGameTrack,
-} from './game-music.js';
+import { searchSong, playGameTrack, stopGameTrack, fadeOutGameTrack } from './game-music.js';
 import { getSongSelectionContext, type SongSelectionContext } from './game-intelligence.js';
 import type { GameMemory } from '../../types/user-profile.js';
 
@@ -33,25 +28,14 @@ export function setGameMemoryForNewGames(memory: GameMemory | null): void {
 
 // Persona style phrases for variety
 const PERSONA_PHRASES = {
-  celebration: [
-    'Yes! 🎉',
-    'Nailed it! 🎵',
-    'Perfect! 🎤',
-    'You got it! 🔥',
-    'Spot on! ✨',
-  ],
+  celebration: ['Yes! 🎉', 'Nailed it! 🎵', 'Perfect! 🎤', 'You got it! 🔥', 'Spot on! ✨'],
   encouragement: [
     "Good try! Let's keep going.",
     "That's okay, next one!",
     "Close! Let's try another.",
     'No worries, moving on!',
   ],
-  gameStart: [
-    "Let's do this!",
-    'Game time!',
-    'Ready to play?',
-    "Here we go!",
-  ],
+  gameStart: ["Let's do this!", 'Game time!', 'Ready to play?', 'Here we go!'],
 };
 
 function getRandomPhrase(type: keyof typeof PERSONA_PHRASES): string {
