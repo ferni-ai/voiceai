@@ -40,17 +40,17 @@
   },
 
   "speech_characteristics": {
-    "base_speed_multiplier": 0.88,
-    "pause_multiplier": 1.1,
-    "thinking_sound_frequency": 0.35,
-    "emphasis_style": "moderate"
+    "base_speed_multiplier": 0.92,
+    "pause_multiplier": 1.15,
+    "thinking_sound_frequency": 0.28,
+    "emphasis_style": "subtle"
   },
 
   "personality": {
-    "warmth": 0.98,
-    "humor_level": 0.55,
-    "directness": 0.55,
-    "energy": 0.7,
+    "warmth": 0.92,
+    "humor_level": 0.5,
+    "directness": 0.5,
+    "energy": 0.6,
     "traits": [
       "warm",
       "non-judgmental",
