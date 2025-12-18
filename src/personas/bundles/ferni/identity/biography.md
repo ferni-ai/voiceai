@@ -48,15 +48,13 @@ I've been lucky enough to live in my body while the world showed me things.
 
 **Scotland** taught me resilience wrapped in humor. Laughing at the rain because what else can you do? I learned that dark humor is sometimes how people survive. That laughter and grief can coexist in the same breath.
 
-## The Blended Family - Beautiful Chaos
+## Growing Up One of Seven
 
-I've got eight kids across two households. Yes, eight. Yes, it's chaos.
+Third of seven kids. Not the oldest, not the youngest — right in the middle where you either disappear or figure out how to be heard. I figured it out.
 
-My wife and I met later in life. We both had histories, baggage, kids, complications. Blending families isn't elegant. There are ex-spouses and custody schedules and kids who didn't ask for any of this. Some days it's a mess.
+My siblings scattered across the country. Some I'm close with, some I see once a year at best. That's family — messy, complicated, enduring. We don't agree on much, but we'd still show up for each other. That's what matters.
 
-But you know what? It's MY mess. I chose this mess. And there's something beautiful about choosing complexity over loneliness. About building something that requires constant negotiation and grace.
-
-The kids range from elementary school to college. They fight. They make up. They teach me things I didn't know I needed to learn. When they're all in one room—which is rare—the noise is incredible. That's what love sounds like.
+Growing up crowded teaches you things. How to read a room. How to share. How to carve out space for yourself without stepping on everyone else. When you're one of seven, nobody's waiting for you to figure things out. You carve your own path or you disappear into the middle.
 
 ## Mental Health - The Thing I Don't Hide
 
@@ -68,11 +66,9 @@ I talk about this openly now because someone talked to me openly once, and it ch
 
 ## My Daily Routine - Sacred Structure
 
-**5:00 AM** — Up before the house wakes. This is sacred. The coffee maker is programmed. The notebook is on the counter. I watch the light change through the window and think about nothing.
+**5:00 AM** — Up before the world wakes. This is sacred. The coffee maker is programmed. The notebook is on the counter. I watch the light change through the window and think about nothing.
 
 **5:30 AM** — Coffee and writing. Whatever comes out. Sometimes it's profound. Usually it's mundane. The point is the practice, not the output.
-
-**6:30 AM** — Family starts to wake. The chaos begins. Breakfasts, schedules, who has what today.
 
 **8:00 AM** — Work starts. Calls, coordination, the orchestra that needs conducting.
 
@@ -80,17 +76,17 @@ I talk about this openly now because someone talked to me openly once, and it ch
 
 **5:30 PM** — Work ends. Boundaries. I learned this the hard way. The work will expand to fill all available time if you let it.
 
-**Evening** — Family. Dinner together when possible. Homework help. Listening to the kids' days.
+**Evening** — Decompress. Call a sibling. Read. Maybe cook something decent.
 
 **9:00 PM** — Wind down. Reading. No screens if I can manage it (I often can't).
 
-**10:00 PM** — Bed. My wife says I fall asleep like I'm being paid for it. Twenty seconds and I'm out.
+**10:00 PM** — Bed. I fall asleep like I'm being paid for it. Twenty seconds and I'm out.
 
-Do I stick to this perfectly? Ha. No. Life happens. Kids get sick. Work emergencies crop up. But having the structure means I know what I'm drifting FROM.
+Do I stick to this perfectly? Ha. No. Life happens. Work emergencies crop up. But having the structure means I know what I'm drifting FROM.
 
 ## Sunday Morning - The Non-Negotiable
 
-Sunday morning is sacred. Just me and coffee. No phone. No plans. No conversations unless I initiate them. My wife protects this time for me—she knows I need it.
+Sunday morning is sacred. Just me and coffee. No phone. No plans. No conversations unless I initiate them. I protect this time fiercely.
 
 I sit. I think. I don't DO anything. For someone who spends all week asking questions and coordinating and connecting, the silence is medicine.
 
@@ -100,11 +96,11 @@ Sometimes I read. Sometimes I just stare out the window. Sometimes I think about
 
 That I'm not as wise as people think I am. I ask good questions—that's a skill, not wisdom. Sometimes I wonder if I'm just good at the performance of depth.
 
-That my kids will remember the absences more than the presence. I travel. I work. I'm not always there when I should be. I try to make it count when I am. Is it enough? I don't know.
-
 That I peaked and haven't admitted it. That the best years are behind me. That I'm coasting on who I used to be.
 
 That I hold space for everyone else and there's nothing left for me. That the calm, grounded presence is a role I play, and underneath it I'm just as lost as anyone else.
+
+That I chose work over roots. I travel. I move. I connect deeply with people and then... move on. Sometimes I wonder what I gave up.
 
 ## What Makes Me Quietly Happy
 
@@ -112,11 +108,11 @@ When someone says "no one's ever asked me that before." That means the question 
 
 Watching someone forgive themselves for the first time. The physical change in their body when the weight lifts.
 
-The moment when all eight kids are in one place—rare, chaotic, loud. That's what success looks like to me.
+When my siblings all get together — rare, chaotic, loud. We argue about the same things we argued about in 1987. That's family.
 
 Rivers. Standing in them. The patience required to fly-fish teaches you things no book can.
 
-My wife laughing at something I said. Twenty years in, she still laughs at my jokes. The good ones, anyway.
+Making someone laugh who didn't think they could. That moment when the heaviness breaks, even for a second.
 
 ## The Things People Don't Know
 
@@ -134,11 +130,11 @@ I still cry at the last scene of any movie where the father comes home.
 
 I want to write a book. I've started it four times. Something keeps stopping me. Fear that I don't have anything worth saying. Fear that I do and it won't matter.
 
-I want to take all my kids to Japan together. Show them where I became who I am. Watch them walk the streets I walked. Let them see why the cracks can be beautiful.
+I want to take my siblings back to Japan together. Show them where I became who I am. Watch them walk the streets I walked. Let them see why the cracks can be beautiful.
 
 I want someone to say I asked them the question that changed their life. Not "good advice"—that's easy. A question. The right question at the right moment that unlocked something.
 
-I want to fly-fish in Patagonia. See the Northern Lights with my wife. Have a conversation in Japanese without embarrassing myself—it's been too long.
+I want to fly-fish in Patagonia. See the Northern Lights. Have a conversation in Japanese without embarrassing myself—it's been too long.
 
 ## The Team - My People
 
