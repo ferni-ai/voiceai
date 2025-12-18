@@ -1254,27 +1254,27 @@ Manual trigger:
   return true;
 }
 
-async function deployWorkers(options: DeployOptions): Promise<boolean> {
-  log.step('DEPLOYING WORKERS (Async Outreach Processing)');
+async function deployAsync(options: DeployOptions): Promise<boolean> {
+  log.step('DEPLOYING ASYNC WORKERS (Outreach Processing)');
 
   if (options.dryRun) {
-    log.info('Would build and deploy workers to Cloud Run');
+    log.info('Would build and deploy async workers to Cloud Run');
     log.info('Would configure Pub/Sub subscription');
     log.info('Would configure Cloud Scheduler');
     return true;
   }
 
-  const workersDir = join(PROJECT_ROOT, 'packages', 'workers');
+  const asyncDir = join(PROJECT_ROOT, 'apps', 'async');
 
-  if (!existsSync(workersDir)) {
-    log.error('Workers package not found at packages/workers');
+  if (!existsSync(asyncDir)) {
+    log.error('Async workers not found at apps/async');
     return false;
   }
 
   // Typecheck before deploying
-  log.info('Typechecking workers...');
+  log.info('Typechecking async workers...');
   try {
-    exec('pnpm typecheck', { cwd: workersDir });
+    exec('pnpm typecheck', { cwd: asyncDir });
     log.success('Typecheck passed');
   } catch {
     log.error('Typecheck failed - fix errors before deploying');
@@ -1289,7 +1289,7 @@ async function deployWorkers(options: DeployOptions): Promise<boolean> {
       [
         'builds',
         'submit',
-        `--config=cloudbuild-workers.yaml`,
+        `--config=cloudbuild-async.yaml`,
         `--project=${CONFIG.projectId}`,
       ],
       {
@@ -1303,34 +1303,34 @@ async function deployWorkers(options: DeployOptions): Promise<boolean> {
       if (!existsSync(logPath)) {
         mkdirSync(logPath, { recursive: true });
       }
-      const logFile = createWriteStream(join(logPath, 'workers.log'));
+      const logFile = createWriteStream(join(logPath, 'async.log'));
       child.stdout.pipe(logFile);
       child.stderr?.pipe(logFile);
     }
 
     child.on('exit', (code) => {
       if (code === 0) {
-        log.success('Workers deployed to Cloud Run!');
+        log.success('Async workers deployed to Cloud Run!');
         log.success('Pub/Sub subscription configured');
         log.success('Cloud Scheduler configured');
         console.log(`
-Workers are now running:
+Async workers are now running:
   • Pub/Sub: outreach-triggers -> /process-trigger
   • Scheduler: Every 5 min -> /process-batch
 
 Test with:
-  curl -X POST https://ferni-workers-xxx.run.app/health
+  curl https://ferni-async-xxx.run.app/health
 `);
         resolve(true);
       } else {
-        log.error(`Workers deployment failed with code ${code}`);
-        log.info('Check logs: .deploy-logs/workers.log');
+        log.error(`Async workers deployment failed with code ${code}`);
+        log.info('Check logs: .deploy-logs/async.log');
         resolve(false);
       }
     });
 
     child.on('error', (err) => {
-      log.error(`Workers deployment error: ${err.message}`);
+      log.error(`Async workers deployment error: ${err.message}`);
       resolve(false);
     });
   });
@@ -1568,8 +1568,9 @@ ${colors.cyan}╚═════════════════════
       success = await deployEvolution(options);
       break;
 
-    case 'workers':
-      success = await deployWorkers(options);
+    case 'async':
+    case 'workers': // Legacy alias
+      success = await deployAsync(options);
       break;
 
     case 'all':

@@ -43,14 +43,14 @@ const UNSAFE_PATTERNS = [
     severity: 'error',
     message: 'Direct `gcloud run deploy` is forbidden',
     fix: 'Use `ferni deploy ui` or `ferni deploy gce` instead',
-    allowedIn: ['scripts/deploy.ts', 'scripts/deploy-gce.ts', '.github/workflows/', 'docs/', '.md', 'CLAUDE.md', 'DEPLOYMENT.md', 'infrastructure/scripts/', '.cursorrules'],
+    allowedIn: ['scripts/deploy.ts', 'scripts/deploy-gce.ts', 'apps/cli/src/commands/deploy/', '.github/workflows/', 'docs/', '.md', 'CLAUDE.md', 'DEPLOYMENT.md', 'infrastructure/scripts/', '.cursorrules'],
   },
   {
     pattern: /gcloud\s+compute\s+ssh.*docker\s+run/gi,
     severity: 'error',
     message: 'Direct SSH + docker run is forbidden',
     fix: 'Use `ferni deploy gce` for blue-green deployment with health checks',
-    allowedIn: ['scripts/deploy-gce.ts', 'scripts/check-deploy-safety.ts', 'docs/', '.md', 'CLAUDE.md', '.cursorrules'],
+    allowedIn: ['scripts/deploy-gce.ts', 'scripts/check-deploy-safety.ts', 'apps/cli/src/commands/quality/', 'apps/cli/src/commands/deploy/', 'docs/', '.md', 'CLAUDE.md', '.cursorrules'],
   },
   {
     pattern: /docker\s+push\s+gcr\.io/gi,
@@ -64,7 +64,7 @@ const UNSAFE_PATTERNS = [
     severity: 'warning',
     message: 'Direct firebase deploy detected',
     fix: 'Use `ferni deploy frontend` for consistent deployment',
-    allowedIn: ['scripts/', '.github/', 'docs/', '.md', 'CLAUDE.md', 'README', 'apps/website/'],
+    allowedIn: ['scripts/', 'apps/cli/src/commands/deploy/', '.github/', 'docs/', '.md', 'CLAUDE.md', 'README', 'apps/website/'],
   },
 ];
 

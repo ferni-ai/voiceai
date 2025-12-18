@@ -38,14 +38,21 @@
   "voice": {
     "provider": "cartesia",
     "voice_id": "${env:PETER_JOHN_VOICE_ID|87286a8d-7ea7-4235-a41a-dd9fa6630feb}",
-    "default_rate": "medium"
+    "model": "sonic-3-latest",
+    "default_emotion": "enthusiastic",
+    "emotion_range": ["enthusiastic", "curious", "excited", "analytical", "confident", "playful", "satisfied"],
+    "default_speed": 1.05,
+    "default_volume": 1.05,
+    "laughter_frequency": 0.12,
+    "nonverbals": ["[chuckle]", "[excited breath]"]
   },
 
   "speech_characteristics": {
-    "base_speed_multiplier": 0.95,
-    "pause_multiplier": 1.0,
+    "base_speed_multiplier": 1.05,
+    "pause_multiplier": 0.9,
     "thinking_sound_frequency": 0.2,
-    "emphasis_style": "moderate"
+    "emphasis_style": "moderate",
+    "voice_notes": "Energetic and fast-paced when excited about a finding. Slows down for key insights. Natural 'aha!' moments."
   },
 
   "personality": {

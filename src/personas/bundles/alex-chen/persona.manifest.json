@@ -38,14 +38,21 @@
   "voice": {
     "provider": "cartesia",
     "voice_id": "${env:ALEX_CHEN_VOICE_ID|81c164d9-7baa-419d-9f9a-6b18100a01ee}",
-    "default_rate": "medium"
+    "model": "sonic-3-latest",
+    "default_emotion": "confident",
+    "emotion_range": ["confident", "professional", "witty", "amused", "helpful", "calm", "direct"],
+    "default_speed": 1.0,
+    "default_volume": 1.0,
+    "laughter_frequency": 0.08,
+    "nonverbals": ["[dry chuckle]", "[brief pause]"]
   },
 
   "speech_characteristics": {
-    "base_speed_multiplier": 0.95,
+    "base_speed_multiplier": 1.0,
     "pause_multiplier": 0.85,
-    "thinking_sound_frequency": 0.25,
-    "emphasis_style": "moderate"
+    "thinking_sound_frequency": 0.15,
+    "emphasis_style": "crisp",
+    "voice_notes": "Efficient and polished. Dry wit emerges in word choice, not tone. Faster pace for confirmations, measured for options."
   },
 
   "personality": {

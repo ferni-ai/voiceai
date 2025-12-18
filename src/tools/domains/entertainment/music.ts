@@ -110,7 +110,6 @@ export async function playMusicUnified(query: string): Promise<string> {
   log.debug('playMusicUnified called', {
     query,
     spotifyLinked: musicConfig.spotifyLinked,
-    preferredSource: musicConfig.preferredSource,
   });
   log.info({ query, spotifyLinked: musicConfig.spotifyLinked }, '🎵 Playing music');
 
@@ -772,11 +771,10 @@ export function createMusicTools() {
       parameters: z.object({}),
       execute: async () => {
         if (!musicConfig.spotifyLinked) {
-          return "Spotify isn't linked yet. For now, I'll play 30-second previews that work for everyone!";
+          return "Spotify isn't linked yet. Link your account in settings to enjoy full songs!";
         }
-
-        setMusicSource('spotify');
-        return "Switched to Spotify! I'll play full songs from your library now.";
+        // Auto-detection handles source selection - Spotify is already active
+        return "Spotify is linked and ready! I'll play full songs from your library.";
       },
     }),
 
@@ -784,8 +782,8 @@ export function createMusicTools() {
       description: getToolDescription('useFreePreviews'),
       parameters: z.object({}),
       execute: async () => {
-        setMusicSource('itunes');
-        return 'Using free previews now - works without any subscriptions!';
+        // iTunes previews are always available as fallback
+        return 'Free 30-second previews are always available - no subscription needed!';
       },
     }),
 

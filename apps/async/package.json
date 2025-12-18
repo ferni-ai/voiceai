@@ -1,5 +1,5 @@
 {
-  "name": "@ferni/workers",
+  "name": "@ferni/async",
   "version": "0.1.0",
   "description": "Async worker platform for Ferni - outreach, scheduled jobs, background processing",
   "private": true,
@@ -8,10 +8,12 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "build:fast": "npx esbuild src/*.ts src/**/*.ts --outdir=dist --format=esm --platform=node --target=node20",
+    "build:fast": "node esbuild.config.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
     "test": "vitest run",
+    "test:watch": "vitest",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js"
   },
@@ -19,20 +21,22 @@
     "@google-cloud/firestore": "^8.0.0",
     "@google-cloud/pubsub": "^4.10.0",
     "@google-cloud/tasks": "^6.2.1",
-    "express": "5.2.1",
+    "express": "5.1.0",
     "firebase-admin": "^13.6.0",
     "pino": "10.1.0",
-    "zod": "4.1.13"
+    "pino-pretty": "^14.0.0",
+    "zod": "3.24.4"
   },
   "devDependencies": {
-    "@types/express": "5.0.6",
-    "@types/node": "^20.19.25",
-    "esbuild": "^0.27.1",
-    "tsx": "^4.7.0",
-    "typescript": "^5.3.0",
-    "vitest": "^4.0.14"
+    "@types/express": "5.0.3",
+    "@types/node": "^22.15.29",
+    "esbuild": "^0.25.5",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.3"
   },
   "engines": {
     "node": ">=20.0.0"
   }
 }
+

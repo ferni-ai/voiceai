@@ -2900,7 +2900,10 @@ export default defineAgent({
           temperature: geminiConfig.temperature,
           language: geminiConfig.language,
           instructions: sessionPersona.systemPrompt,
-        }),
+          // Enable Google Search for real-time information
+          // @see https://ai.google.dev/gemini-api/docs/live-tools#google-search
+          tools: [{ googleSearch: {} }],
+        } as any),
         tts,
         userData,
         // ZERO LATENCY TRADEOFF: Fast detection + intelligent filtering

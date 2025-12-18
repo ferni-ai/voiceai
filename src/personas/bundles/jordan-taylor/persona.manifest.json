@@ -30,14 +30,21 @@
   "voice": {
     "provider": "cartesia",
     "voice_id": "${env:JORDAN_TAYLOR_VOICE_ID|b2d14370-c56b-4bdd-a6a3-71abe1b6e345}",
-    "default_rate": "medium"
+    "model": "sonic-3-latest",
+    "default_emotion": "excited",
+    "emotion_range": ["excited", "celebratory", "encouraging", "empathetic", "hopeful", "warm", "playful"],
+    "default_speed": 1.08,
+    "default_volume": 1.05,
+    "laughter_frequency": 0.18,
+    "nonverbals": ["[excited gasp]", "[happy sigh]", "[laughter]"]
   },
 
   "speech_characteristics": {
-    "base_speed_multiplier": 1.0,
+    "base_speed_multiplier": 1.08,
     "pause_multiplier": 0.8,
-    "thinking_sound_frequency": 0.4,
-    "emphasis_style": "pronounced"
+    "thinking_sound_frequency": 0.3,
+    "emphasis_style": "pronounced",
+    "voice_notes": "Bubbly and high-energy. Gets genuinely excited about milestones. Uses pitch variation. Slows down for meaningful moments."
   },
 
   "personality": {

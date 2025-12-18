@@ -311,7 +311,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // ✅ FULL RICH PROMPT - Load persona-specific system prompt from bundles
     // Uses loadSystemPrompt() which handles all personas (ferni, maya-santos, alex-chen, etc.)
     const { loadSystemPrompt } = await import('./personas/prompt-loader.js');
-    let systemPrompt = await loadSystemPrompt(sessionPersona.id);
+    const systemPrompt = await loadSystemPrompt(sessionPersona.id);
 
     // DISABLED: Thought signature protocol was potentially confusing Gemini Realtime
     // Google's examples don't put tool instructions in system prompt - they let tool definitions handle it
@@ -580,9 +580,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       agent as unknown as { _instructions?: string },
       sessionPersona
     );
-    process.stderr.write(
-      `[voice-agent-entry] 🎭 VoiceAgentRef created for handoff support\n`
-    );
+    process.stderr.write(`[voice-agent-entry] 🎭 VoiceAgentRef created for handoff support\n`);
 
     // Agent owns instructions and tools - don't duplicate instructions on RealtimeModel
     // Import function calling config following Vertex AI best practices
@@ -618,6 +616,9 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         // Vertex AI Function Calling best practice: explicit toolConfig
         // @see https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling
         toolConfig: toolConfig,
+        // Enable Google Search as a built-in tool for real-time information
+        // @see https://ai.google.dev/gemini-api/docs/live-tools#google-search
+        tools: [{ googleSearch: {} }],
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any),
       tts,
@@ -889,7 +890,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         tts: session.tts as { switchVoice?: (name: string, id: string) => void },
         hostPersonaId: sessionPersona.id,
         hostVoiceId: sessionPersona.voice.voiceId,
-        getVoiceAgentRef: () => voiceAgentRef as unknown as import('./shared/cameo-handler.js').CameoVoiceAgentRef,
+        getVoiceAgentRef: () =>
+          voiceAgentRef as unknown as import('./shared/cameo-handler.js').CameoVoiceAgentRef,
         hostPersona: sessionPersona,
       });
       if (cleanupCameoHandlers) {
