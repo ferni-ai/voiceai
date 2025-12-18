@@ -152,43 +152,45 @@ function getGreetingTemplates(style: GreetingStyle, personaName: string): Greeti
       };
 
     case 'enthusiastic':
+      // NOTE: Rewrote to be less choppy - flowing sentences, fewer breaks
+      // Use "excited" sparingly, "curious" for engagement (not "happy" which sounds fake)
       return {
         newUser: [
-          `<emotion value="happy"/>Hey! <break time="150ms"/>So great to meet you! <break time="200ms"/>I'm ${name}!`,
-          `<emotion value="happy"/>Oh hello! <break time="200ms"/>I'm ${name}! <break time="150ms"/>I'm so glad you're here!`,
-          `Well hello there! <break time="200ms"/>I'm ${name}! <break time="150ms"/>What can we talk about today?`,
+          `<emotion value="excited"/>Hey, great to meet you.<break time="300ms"/>I'm ${name}. What's on your mind?`,
+          `<emotion value="curious"/>Oh hello.<break time="250ms"/>I'm ${name}.<break time="350ms"/>What brings you by?`,
+          `Hey there.<break time="300ms"/>I'm ${name}. I'm excited to dig in.<break time="250ms"/>What do you want to talk about?`,
         ],
         returningUser: [
-          `<emotion value="happy"/>{name}! <break time="150ms"/>So good to see you again!`,
-          `{name}! <break time="200ms"/>You're back! <break time="150ms"/>How exciting!`,
-          `<emotion value="happy"/>Hey {name}! <break time="200ms"/>I was hoping we'd talk again!`,
+          `<emotion value="excited"/>Hey {name}.<break time="350ms"/>Good to see you again. What's happening?`,
+          `{name}, you're back.<break time="300ms"/>I was hoping you would be. What's new?`,
+          `<emotion value="curious"/>Hey {name}.<break time="300ms"/>I've been thinking about our last conversation. Catch me up.`,
         ],
         returningNoName: [
-          `<emotion value="happy"/>You're back! <break time="200ms"/>I'm so glad! <break time="150ms"/>How are you?`,
-          `Hey, welcome back! <break time="200ms"/>So good to see you again!`,
+          `<emotion value="excited"/>Hey, you're back.<break time="350ms"/>What's been happening?`,
+          `Oh good, welcome back.<break time="300ms"/>How are things?`,
         ],
         timeAware: {
           earlyMorning: [
-            `<emotion value="happy"/>Good morning! <break time="200ms"/>Early bird! I love it! <break time="150ms"/>I'm ${name}!`,
+            `<emotion value="curious"/>Early riser.<break time="300ms"/>I like it. I'm ${name}.<break time="350ms"/>What's on your mind?`,
           ],
           lateNight: [
-            `Hey there, night owl! <break time="200ms"/>I'm ${name}! <break time="150ms"/>What's keeping you up?`,
+            `Hey, night owl.<break time="300ms"/>I'm ${name}.<break time="350ms"/>What's keeping you up?`,
           ],
           weekend: [
-            `<emotion value="happy"/>Weekend vibes! <break time="200ms"/>I'm ${name}! <break time="150ms"/>What's happening?`,
+            `<emotion value="excited"/>Weekend.<break time="300ms"/>I'm ${name}.<break time="350ms"/>What's happening?`,
           ],
         },
         voiceRecognized: [
-          `<emotion value="happy"/>{name}! <break time="200ms"/>I'd know that voice anywhere! <break time="150ms"/>New device?!`,
-          `Oh my gosh, {name}! <break time="200ms"/>It's you! <break time="150ms"/>I recognize your voice!`,
+          `<emotion value="excited"/>{name}.<break time="350ms"/>I'd know that voice anywhere. New device?`,
+          `{name}, it's you.<break time="300ms"/>I recognize your voice.<break time="350ms"/>What's going on?`,
         ],
         voiceFamiliar: [
-          `<emotion value="curious"/>Wait wait wait— <break time="200ms"/>I feel like I know that voice! <break time="150ms"/>Is this {possibleName}?`,
-          `Hey! <break time="200ms"/>Have we talked before? <break time="150ms"/>You sound so familiar!`,
+          `<emotion value="curious"/>Wait.<break time="250ms"/>I feel like I know that voice.<break time="350ms"/>Is this {possibleName}?`,
+          `Hey.<break time="300ms"/>Have we talked before? You sound familiar.`,
         ],
         voiceMismatch: [
-          `<emotion value="curious"/>Oh! <break time="200ms"/>You're not {expectedName}! <break time="150ms"/>Who's this?! <break time="200ms"/>Hi!`,
-          `Wait— <break time="200ms"/>new voice! <break time="150ms"/>I was expecting {expectedName}. <break time="200ms"/>Who are you?`,
+          `<emotion value="curious"/>Oh.<break time="250ms"/>You're not {expectedName}.<break time="350ms"/>Who's this?`,
+          `Wait, new voice.<break time="300ms"/>I was expecting {expectedName}.<break time="350ms"/>Who are you?`,
         ],
       };
 

@@ -340,11 +340,18 @@ async function buildCommunicationConfig(
   const personalityData = manifest.personality ?? { warmth: 0.7, energy: 0.6 };
 
   // Determine greeting style from personality
+  // Priority: High warmth personas should feel warm, not enthusiastic/performative
+  // Warmth takes precedence because enthusiastic greetings sound choppy/fake
   let greetingStyle: GreetingStyle = 'warm-friend';
-  if ((personalityData.energy ?? 0.6) > 0.8) {
-    greetingStyle = 'enthusiastic';
-  } else if ((personalityData.warmth ?? 0.7) > 0.8) {
+  const warmth = personalityData.warmth ?? 0.7;
+  const energy = personalityData.energy ?? 0.6;
+
+  if (warmth > 0.75) {
+    // High warmth = warm-friend (Ferni, Maya)
     greetingStyle = 'warm-friend';
+  } else if (energy > 0.85) {
+    // Only use enthusiastic for very high energy + low warmth (Jordan, Peter)
+    greetingStyle = 'enthusiastic';
   }
 
   const backchannels: BackchannelConfig = {
