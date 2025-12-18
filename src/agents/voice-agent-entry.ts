@@ -313,12 +313,12 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     const { loadSystemPrompt } = await import('./personas/prompt-loader.js');
     let systemPrompt = await loadSystemPrompt(sessionPersona.id);
 
-    // Inject thought signature protocol for better function calling (Vertex AI best practice)
-    // @see https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling
-    const { getThoughtSignatureProtocol } =
-      await import('../tools/utils/function-calling-config.js');
-    const thoughtProtocol = getThoughtSignatureProtocol(sessionPersona.id);
-    systemPrompt = `${systemPrompt}\n\n${thoughtProtocol}`;
+    // DISABLED: Thought signature protocol was potentially confusing Gemini Realtime
+    // Google's examples don't put tool instructions in system prompt - they let tool definitions handle it
+    // If tool calling is unreliable, this might be why
+    // const { getThoughtSignatureProtocol } = await import('../tools/utils/function-calling-config.js');
+    // const thoughtProtocol = getThoughtSignatureProtocol(sessionPersona.id);
+    // systemPrompt = `${systemPrompt}\n\n${thoughtProtocol}`;
 
     process.stderr.write(
       `[voice-agent-entry] Using RICH prompt + thought protocol (${systemPrompt.length} chars, ~${Math.round(systemPrompt.length / 4)} tokens) 🎉\n`
