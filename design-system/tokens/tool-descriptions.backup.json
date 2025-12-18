@@ -1,0 +1,361 @@
+{
+  "$schema": "./tool-descriptions.schema.json",
+  "version": 2,
+  "lastUpdated": "2024-12-17",
+  
+  "_comment": "Following Google Vertex AI Function Calling best practices",
+  "_reference": "https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling",
+  "_notes": [
+    "Descriptions should clearly describe what the function does",
+    "Include when to use the function and what it returns",
+    "Parameter descriptions should be detailed with examples",
+    "Model decides when to call based on these descriptions"
+  ],
+  
+  "defaults": {
+    "prefix": "",
+    "suffix": ""
+  },
+  
+  "tools": {
+    "playMusic": {
+      "description": "Plays music from the user's music library or streaming service. Use when user asks to play, start, or listen to music. Accepts song names, artist names, genres, or moods. Returns confirmation of what started playing.",
+      "parameters": {
+        "query": "The song, artist, album, playlist, or genre to play. Examples: 'Bohemian Rhapsody', 'Taylor Swift', 'chill vibes playlist', 'jazz music'",
+        "shuffle": "Whether to shuffle the playlist or album. Default false."
+      }
+    },
+    "searchMusic": {
+      "description": "Searches for songs, artists, albums, or playlists on Spotify without playing them. Use when user wants to find or look up music. Returns a list of matching results.",
+      "parameters": {
+        "query": "What to search for - song name, artist, album, or genre",
+        "type": "Type of content to search: 'track', 'artist', 'album', 'playlist'. Default 'track'",
+        "limit": "Maximum number of results to return. Default 5."
+      }
+    },
+    "suggestMusic": {
+      "description": "Suggests music based on user's mood, activity, or preferences. Use when user asks for recommendations or says they don't know what to listen to.",
+      "parameters": {
+        "mood": "Current mood or desired vibe: 'happy', 'sad', 'energetic', 'calm', 'focused', etc.",
+        "activity": "What user is doing: 'working', 'exercising', 'relaxing', 'driving', 'cooking', etc."
+      }
+    },
+    "pauseMusic": {
+      "description": "Pauses the currently playing music. Use when user says pause, stop, or hold the music.",
+      "parameters": {}
+    },
+    "resumeMusic": {
+      "description": "Resumes paused music playback. Use when user says resume, continue, or unpause.",
+      "parameters": {}
+    },
+    "skipTrack": {
+      "description": "Skips to the next track in the queue. Use when user says skip, next, or wants a different song.",
+      "parameters": {}
+    },
+    "previousTrack": {
+      "description": "Goes back to the previous track. Use when user says previous, back, or replay the last song.",
+      "parameters": {}
+    },
+    "setVolume": {
+      "description": "Sets the music playback volume. Use when user asks to change volume, make it louder/quieter.",
+      "parameters": {
+        "level": "Volume level from 0 to 100. 0 is mute, 100 is maximum."
+      }
+    },
+    "getCurrentTrack": {
+      "description": "Gets information about the currently playing track. Use when user asks what's playing or what song this is.",
+      "parameters": {}
+    },
+    
+    "rememberAboutUser": {
+      "description": "Stores important information about the user for future reference. Use when user shares personal details, preferences, or facts they want remembered.",
+      "parameters": {
+        "category": "Category of information: 'personal', 'preference', 'relationship', 'work', 'health', 'goal', 'other'",
+        "content": "The information to remember. Be specific and include context.",
+        "importance": "How important this is: 'high' for critical facts, 'medium' for preferences, 'low' for casual mentions"
+      }
+    },
+    "recallFromMemory": {
+      "description": "Retrieves previously stored information about the user. Use when you need context about the user or they ask if you remember something.",
+      "parameters": {
+        "query": "What to search for in memory - can be a topic, keyword, or question",
+        "category": "Optional category filter: 'personal', 'preference', 'relationship', 'work', 'health', 'goal'"
+      }
+    },
+    "updateMemory": {
+      "description": "Updates previously stored information when user provides new or corrected details.",
+      "parameters": {
+        "memoryId": "ID of the memory to update",
+        "newContent": "The updated information"
+      }
+    },
+    "forgetMemory": {
+      "description": "Removes stored information when user explicitly asks to forget something.",
+      "parameters": {
+        "memoryId": "ID of the memory to delete",
+        "reason": "Why this is being forgotten"
+      }
+    },
+    
+    "handoffToFerni": {
+      "description": "Transfers conversation to Ferni, the life coach and main guide. Use when user needs general life guidance, emotional support, or wants to return to Ferni.",
+      "parameters": {
+        "reason": "Brief explanation of why transferring to Ferni",
+        "context": "Key context to pass along about current conversation"
+      }
+    },
+    "handoffToPeter": {
+      "description": "Transfers conversation to Peter, the research specialist. Use when user needs deep research, analysis, or thorough investigation of a topic.",
+      "parameters": {
+        "reason": "Brief explanation of why transferring to Peter",
+        "context": "Key context and research question to pass along"
+      }
+    },
+    "handoffToAlex": {
+      "description": "Transfers conversation to Alex, the communications expert. Use when user needs help with writing, messaging, difficult conversations, or communication strategies.",
+      "parameters": {
+        "reason": "Brief explanation of why transferring to Alex",
+        "context": "Key context about communication challenge"
+      }
+    },
+    "handoffToMaya": {
+      "description": "Transfers conversation to Maya, the habits and routines coach. Use when user wants to build habits, establish routines, or improve daily practices.",
+      "parameters": {
+        "reason": "Brief explanation of why transferring to Maya",
+        "context": "Key context about habit goals"
+      }
+    },
+    "handoffToJordan": {
+      "description": "Transfers conversation to Jordan, the event and experience planner. Use when user needs help planning events, trips, gatherings, or special occasions.",
+      "parameters": {
+        "reason": "Brief explanation of why transferring to Jordan",
+        "context": "Key context about what's being planned"
+      }
+    },
+    "handoffToNayan": {
+      "description": "Transfers conversation to Nayan, the wisdom and philosophy guide. Use when user seeks deeper meaning, philosophical perspectives, or spiritual guidance.",
+      "parameters": {
+        "reason": "Brief explanation of why transferring to Nayan",
+        "context": "Key context about philosophical question"
+      }
+    },
+    
+    "addHabit": {
+      "description": "Creates a new habit for the user to track. Use when user wants to start tracking a new habit or daily practice.",
+      "parameters": {
+        "name": "Name of the habit. Examples: 'Drink 8 glasses of water', 'Meditate for 10 minutes', 'Read before bed'",
+        "category": "Category: 'health', 'fitness', 'mindfulness', 'productivity', 'learning', 'social', 'finance', 'other'",
+        "frequency": "How often: 'daily', 'weekdays', 'weekends', 'weekly'",
+        "targetPerDay": "Times per day to complete. Default 1.",
+        "cue": "What triggers this habit? Example: 'After morning coffee'",
+        "minimumVersion": "Tiny version when motivation is low. Example: '1 minute of stretching'"
+      }
+    },
+    "logHabit": {
+      "description": "Records that user completed a habit. Use when user says they did, finished, or completed a habit.",
+      "parameters": {
+        "habitName": "Name or partial name of the habit to log",
+        "count": "How many times completed (for habits with targetPerDay > 1)",
+        "notes": "Optional notes about this completion"
+      }
+    },
+    "getHabitStats": {
+      "description": "Retrieves habit statistics and progress. Use when user asks about their habit streaks, progress, or performance.",
+      "parameters": {
+        "habitName": "Optional - specific habit to check. If omitted, shows all habits."
+      }
+    },
+    "getDueHabits": {
+      "description": "Lists habits that are due today and not yet completed. Use when user asks what habits they need to do today.",
+      "parameters": {}
+    },
+    "getTendencyAdvice": {
+      "description": "Provides habit advice based on user's personality tendency (Four Tendencies framework). Use when user is struggling with habits and needs personalized strategies.",
+      "parameters": {
+        "tendency": "User's tendency: 'upholder', 'questioner', 'obliger', 'rebel'",
+        "challenge": "What habit challenge they're facing"
+      }
+    },
+    "getLifeDomains": {
+      "description": "Shows life domains for organizing habits and goals. Use when user wants to explore different areas for improvement.",
+      "parameters": {
+        "domain": "Optional specific domain: 'health', 'mind', 'relationships', 'work', 'money', 'spirit'"
+      }
+    },
+    
+    "lookupInfo": {
+      "description": "Searches the web for current information. Use when user asks factual questions that require up-to-date information.",
+      "parameters": {
+        "query": "The search query - be specific and include relevant context"
+      }
+    },
+    "getWeather": {
+      "description": "Gets current weather and forecast for a location. Use when user asks about weather conditions.",
+      "parameters": {
+        "location": "City name or location. If not specified, use user's known location.",
+        "days": "Number of forecast days (1-7). Default 1 for current weather."
+      }
+    },
+    "getNews": {
+      "description": "Retrieves recent news headlines and articles. Use when user asks about news or current events.",
+      "parameters": {
+        "topic": "Topic or keywords to search for. Leave empty for top headlines.",
+        "category": "News category: 'general', 'business', 'technology', 'sports', 'entertainment', 'health', 'science'"
+      }
+    },
+    "getSportsScores": {
+      "description": "Gets sports scores and results. Use when user asks about game scores, match results, or sports standings.",
+      "parameters": {
+        "sport": "Sport type: 'nfl', 'nba', 'mlb', 'nhl', 'soccer', 'college-football', 'college-basketball'",
+        "team": "Optional team name to filter results"
+      }
+    },
+    
+    "setTimer": {
+      "description": "Sets a countdown timer for the specified duration. Use when user asks to set a timer, reminder for something in X minutes.",
+      "parameters": {
+        "duration": "Duration in minutes. Examples: 5 for '5 minutes', 30 for 'half hour', 60 for '1 hour'",
+        "label": "What the timer is for. Example: 'check the oven', 'take a break'"
+      }
+    },
+    "cancelTimer": {
+      "description": "Cancels an active timer. Use when user asks to cancel, stop, or delete a timer.",
+      "parameters": {
+        "timerId": "ID of timer to cancel. If not specified, cancels most recent timer."
+      }
+    },
+    "calculate": {
+      "description": "Performs mathematical calculations. Use when user asks to calculate, compute, or do math.",
+      "parameters": {
+        "expression": "Math expression to evaluate. Examples: '25 * 4', '(100 + 50) / 3', 'sqrt(144)', '15% of 80'"
+      }
+    },
+    "convertUnits": {
+      "description": "Converts between measurement units. Use when user asks to convert units.",
+      "parameters": {
+        "value": "Numeric value to convert",
+        "from": "Source unit. Examples: 'miles', 'kg', 'celsius', 'gallons'",
+        "to": "Target unit. Examples: 'kilometers', 'pounds', 'fahrenheit', 'liters'"
+      }
+    },
+    "convertTemperature": {
+      "description": "Converts between temperature scales. Use when user asks to convert temperatures.",
+      "parameters": {
+        "value": "Temperature value to convert",
+        "from": "Source scale: 'celsius', 'fahrenheit', 'kelvin'",
+        "to": "Target scale: 'celsius', 'fahrenheit', 'kelvin'"
+      }
+    },
+    "createNote": {
+      "description": "Creates a quick note. Use when user wants to jot down or note something.",
+      "parameters": {
+        "content": "The note content",
+        "title": "Optional title for the note"
+      }
+    },
+    "getTimeInTimezone": {
+      "description": "Gets current time in a specific timezone. Use when user asks what time it is somewhere.",
+      "parameters": {
+        "timezone": "Timezone name or city. Examples: 'New York', 'Tokyo', 'Europe/London', 'PST'"
+      }
+    },
+    "translateText": {
+      "description": "Translates text between languages. Use when user asks to translate something.",
+      "parameters": {
+        "text": "Text to translate",
+        "targetLanguage": "Language to translate to. Examples: 'Spanish', 'French', 'Japanese', 'zh' (Chinese)",
+        "sourceLanguage": "Optional source language. Auto-detected if not specified."
+      }
+    },
+    
+    "createAppointment": {
+      "description": "Creates a calendar appointment or event. Use when user wants to schedule something.",
+      "parameters": {
+        "title": "Event title",
+        "date": "Date of the event. Examples: 'tomorrow', '2024-01-15', 'next Tuesday'",
+        "time": "Time of the event. Examples: '3pm', '14:30', 'noon'",
+        "duration": "Duration in minutes. Default 60.",
+        "location": "Optional location",
+        "description": "Optional description or notes"
+      }
+    },
+    "getUpcomingAppointments": {
+      "description": "Lists upcoming calendar appointments. Use when user asks about their schedule.",
+      "parameters": {
+        "days": "Number of days to look ahead. Default 7."
+      }
+    },
+    "findRestaurant": {
+      "description": "Searches for restaurants based on criteria. Use when user wants restaurant recommendations.",
+      "parameters": {
+        "cuisine": "Type of food. Examples: 'Italian', 'sushi', 'Mexican', 'vegan'",
+        "location": "Location to search near",
+        "priceRange": "Budget: 'cheap', 'moderate', 'expensive'",
+        "occasion": "What it's for: 'date night', 'business lunch', 'family dinner'"
+      }
+    },
+    "orderFood": {
+      "description": "Initiates food delivery order. Use when user wants to order food.",
+      "parameters": {
+        "restaurant": "Restaurant name",
+        "items": "What to order"
+      }
+    },
+    "searchPlaces": {
+      "description": "Searches for places and businesses. Use when user looks for specific types of places.",
+      "parameters": {
+        "query": "What to search for. Examples: 'coffee shop', 'gym', 'hardware store'",
+        "location": "Location to search near"
+      }
+    },
+    
+    "startGame": {
+      "description": "Starts an interactive game. Use when user wants to play a game or asks for something fun.",
+      "parameters": {
+        "gameType": "Type of game: 'trivia', 'word-game', '20-questions', 'would-you-rather', 'riddle'"
+      }
+    },
+    "answerGame": {
+      "description": "Submits an answer for an active game. Use when user provides an answer during a game.",
+      "parameters": {
+        "answer": "The user's answer"
+      }
+    },
+    "getGameHint": {
+      "description": "Provides a hint for the current game. Use when user asks for help or is stuck.",
+      "parameters": {}
+    },
+    "endGame": {
+      "description": "Ends the current game. Use when user wants to stop playing.",
+      "parameters": {}
+    },
+    
+    "logMood": {
+      "description": "Records user's current mood or emotional state. Use when user shares how they're feeling.",
+      "parameters": {
+        "mood": "Mood descriptor. Examples: 'happy', 'anxious', 'tired', 'motivated', 'stressed'",
+        "intensity": "Intensity 1-10. 1 is barely noticeable, 10 is overwhelming.",
+        "notes": "Optional context about what's contributing to this mood"
+      }
+    },
+    "getMoodHistory": {
+      "description": "Retrieves mood tracking history and patterns. Use when user asks about their mood trends.",
+      "parameters": {
+        "days": "Number of days to look back. Default 7."
+      }
+    },
+    "logMedication": {
+      "description": "Records that user took their medication. Use when user mentions taking medicine.",
+      "parameters": {
+        "medication": "Name of the medication",
+        "dose": "Dosage taken",
+        "time": "When taken. Default is now."
+      }
+    },
+    "getMedicationSchedule": {
+      "description": "Shows user's medication schedule. Use when user asks about their medications.",
+      "parameters": {}
+    }
+  }
+}
+

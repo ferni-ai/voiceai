@@ -1,0 +1,85 @@
+{
+  "timestamp": "2025-12-16T16:14:05.394Z",
+  "duration": 16651,
+  "summary": {
+    "total": 3,
+    "passed": 3,
+    "failed": 0,
+    "skipped": 0,
+    "passRate": 100
+  },
+  "categories": [
+    {
+      "category": "tool_calling",
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "passRate": 100,
+      "avgLatencyMs": 639.6666666666666,
+      "toolCallSuccessRate": 100,
+      "spokeInsteadOfCallingCount": 0,
+      "commonFailures": []
+    }
+  ],
+  "toolAnalysis": {
+    "totalToolCalls": 3,
+    "successfulToolCalls": 3,
+    "spokeInsteadOfCalling": 0,
+    "toolBreakdown": {
+      "playMusic": {
+        "called": 3,
+        "expected": 3,
+        "successRate": 100
+      }
+    },
+    "handoffAnalysis": {
+      "total": 0,
+      "successful": 0,
+      "mostMissed": []
+    }
+  },
+  "promptAnalysis": {
+    "stageDirectionViolations": 0,
+    "thinkingNarrationViolations": 0,
+    "aiAdmissionViolations": 0,
+    "avgResponseLength": 0,
+    "tooLongResponses": 0,
+    "tooShortResponses": 0
+  },
+  "recommendations": [],
+  "rawResults": [
+    {
+      "scenarioId": "music-play-explicit",
+      "category": "tool_calling",
+      "passed": true,
+      "toolCalled": "playMusic",
+      "expectedTool": "playMusic",
+      "spokeInsteadOfCalling": false,
+      "responseLength": 0,
+      "latencyMs": 637,
+      "antiPatternViolations": []
+    },
+    {
+      "scenarioId": "music-play-mood",
+      "category": "tool_calling",
+      "passed": true,
+      "toolCalled": "playMusic",
+      "expectedTool": "playMusic",
+      "spokeInsteadOfCalling": false,
+      "responseLength": 0,
+      "latencyMs": 669,
+      "antiPatternViolations": []
+    },
+    {
+      "scenarioId": "music-play-artist",
+      "category": "tool_calling",
+      "passed": true,
+      "toolCalled": "playMusic",
+      "expectedTool": "playMusic",
+      "spokeInsteadOfCalling": false,
+      "responseLength": 0,
+      "latencyMs": 613,
+      "antiPatternViolations": []
+    }
+  ]
+}

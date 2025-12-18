@@ -1,0 +1,19 @@
+{
+  "defaults": {
+    "model": "gemini-2.0-flash-exp",
+    "temperature": 0.3,
+    "language": "en-US"
+  },
+  "toolDefaults": {
+    "debugMode": true,
+    "maxTools": 15,
+    "enabledDomains": ["entertainment", "memory", "awareness", "simple-utilities"],
+    "excludedTools": [],
+    "includedTools": [],
+    "logToolSchemas": true,
+    "logToolResults": true,
+    "useOrchestrator": true
+  },
+  "personas": {},
+  "version": 1
+}

@@ -10,6 +10,7 @@
  * Persists to Firestore for durability.
  */
 
+import { removeUndefined } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger().child({ module: 'subscription-metrics' });
@@ -83,7 +84,8 @@ export async function initializeSubscriptionMetrics(): Promise<boolean> {
   try {
     const admin = await import('firebase-admin');
 
-    if (admin.apps.length === 0) {
+    // Defensive check: admin.apps may be undefined if firebase-admin isn't properly loaded
+    if (!admin.apps || admin.apps.length === 0) {
       try {
         admin.initializeApp({
           projectId: process.env.GCP_PROJECT_ID || process.env.FIREBASE_PROJECT_ID,
@@ -159,13 +161,18 @@ async function saveCurrentState(): Promise<void> {
   if (!firestoreAvailable || !firestoreClient) return;
 
   try {
-    await firestoreClient.collection(COLLECTIONS.METRICS).doc('current').set({
-      activeSubscribers,
-      monthlyRevenue,
-      totalSignups,
-      totalCancellations,
-      lastUpdated: new Date(),
-    });
+    await firestoreClient
+      .collection(COLLECTIONS.METRICS)
+      .doc('current')
+      .set(
+        removeUndefined({
+          activeSubscribers,
+          monthlyRevenue,
+          totalSignups,
+          totalCancellations,
+          lastUpdated: new Date(),
+        })
+      );
   } catch (error) {
     log.error({ error }, 'Failed to save subscription metrics');
   }
@@ -230,10 +237,12 @@ export async function recordSubscriptionEvent(
       await firestoreClient
         .collection(COLLECTIONS.EVENTS)
         .doc(event.id)
-        .set({
-          ...event,
-          timestamp: event.timestamp,
-        });
+        .set(
+          removeUndefined({
+            ...event,
+            timestamp: event.timestamp,
+          })
+        );
       await saveCurrentState();
     } catch (error) {
       log.error({ error }, 'Failed to persist subscription event');

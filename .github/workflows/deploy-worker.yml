@@ -1,0 +1,213 @@
+# GitHub Actions workflow for deploying Ferni Pub/Sub Worker
+#
+# Triggers:
+# - Push to main with changes in worker-related files
+# - Manual dispatch
+#
+# This workflow deploys the worker service to Cloud Run and
+# configures Pub/Sub subscriptions.
+
+name: Deploy Pub/Sub Worker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/services/pubsub/**'
+      - 'src/workers/**'
+      - 'src/memory/embeddings.ts'
+      - 'src/memory/summarizer.ts'
+      - 'src/intelligence/context-service.ts'
+      - 'Dockerfile.worker'
+      - '.github/workflows/deploy-worker.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  PROJECT_ID: ferni-prod
+  REGION: us-central1
+  SERVICE_NAME: ferni-worker
+  ARTIFACT_REGISTRY: us-central1-docker.pkg.dev
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy Worker
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker
+        run: |
+          gcloud auth configure-docker ${{ env.ARTIFACT_REGISTRY }} --quiet
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -f Dockerfile.worker \
+            -t ${{ env.ARTIFACT_REGISTRY }}/${{ env.PROJECT_ID }}/ferni/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+            -t ${{ env.ARTIFACT_REGISTRY }}/${{ env.PROJECT_ID }}/ferni/${{ env.SERVICE_NAME }}:latest \
+            .
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.ARTIFACT_REGISTRY }}/${{ env.PROJECT_ID }}/ferni/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          docker push ${{ env.ARTIFACT_REGISTRY }}/${{ env.PROJECT_ID }}/ferni/${{ env.SERVICE_NAME }}:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image ${{ env.ARTIFACT_REGISTRY }}/${{ env.PROJECT_ID }}/ferni/${{ env.SERVICE_NAME }}:${{ github.sha }} \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --memory 1Gi \
+            --cpu 1 \
+            --min-instances 0 \
+            --max-instances 100 \
+            --timeout 300 \
+            --concurrency 80 \
+            --service-account ferni-pubsub-worker@${{ env.PROJECT_ID }}.iam.gserviceaccount.com \
+            --set-env-vars "NODE_ENV=production,PUBSUB_ENABLED=true,GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }}" \
+            --allow-unauthenticated \
+            --quiet
+
+      - name: Get Service URL
+        id: service-url
+        run: |
+          URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format 'value(status.url)')
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Configure Pub/Sub Subscriptions
+        run: |
+          SERVICE_URL="${{ steps.service-url.outputs.url }}"
+          
+          # Topics and their subscriptions
+          declare -A TOPICS=(
+            ["ferni-embeddings"]="ferni-embeddings-worker-sub"
+            ["ferni-summaries"]="ferni-summaries-worker-sub"
+            ["ferni-analytics"]="ferni-analytics-worker-sub"
+            ["ferni-trust-updates"]="ferni-trust-updates-worker-sub"
+            ["ferni-context-warmup"]="ferni-context-warmup-worker-sub"
+            ["ferni-memory-consolidation"]="ferni-memory-consolidation-worker-sub"
+          )
+          
+          for topic in "${!TOPICS[@]}"; do
+            sub="${TOPICS[$topic]}"
+            
+            # Create topic if not exists
+            if ! gcloud pubsub topics describe "$topic" --project=${{ env.PROJECT_ID }} &>/dev/null; then
+              echo "Creating topic: $topic"
+              gcloud pubsub topics create "$topic" --project=${{ env.PROJECT_ID }}
+            fi
+            
+            # Create or update subscription
+            if gcloud pubsub subscriptions describe "$sub" --project=${{ env.PROJECT_ID }} &>/dev/null; then
+              echo "Updating subscription: $sub"
+              gcloud pubsub subscriptions update "$sub" \
+                --project=${{ env.PROJECT_ID }} \
+                --push-endpoint="${SERVICE_URL}/pubsub" \
+                --ack-deadline=60
+            else
+              echo "Creating subscription: $sub"
+              gcloud pubsub subscriptions create "$sub" \
+                --project=${{ env.PROJECT_ID }} \
+                --topic="$topic" \
+                --push-endpoint="${SERVICE_URL}/pubsub" \
+                --ack-deadline=60 \
+                --message-retention-duration=1d \
+                --min-retry-delay=10s \
+                --max-retry-delay=600s
+            fi
+          done
+
+      - name: Health Check
+        run: |
+          SERVICE_URL="${{ steps.service-url.outputs.url }}"
+          echo "Waiting for service to be ready..."
+          sleep 10
+          
+          # Health check with retries
+          for i in {1..5}; do
+            if curl -sf "${SERVICE_URL}/health" | jq .; then
+              echo "✅ Worker service is healthy!"
+              exit 0
+            fi
+            echo "Attempt $i failed, retrying in 5s..."
+            sleep 5
+          done
+          
+          echo "❌ Health check failed"
+          exit 1
+
+      - name: Notify on Success
+        if: success()
+        run: |
+          echo "✅ Worker deployed successfully to ${{ steps.service-url.outputs.url }}"
+
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "❌ Worker deployment failed"
+
+  # Cleanup old revisions
+  cleanup:
+    name: Cleanup Old Revisions
+    runs-on: ubuntu-latest
+    needs: build-and-deploy
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Delete old revisions
+        run: |
+          # Keep only the 3 most recent revisions
+          REVISIONS=$(gcloud run revisions list \
+            --service=${{ env.SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --format="value(name)" \
+            --sort-by="~creationTimestamp" | tail -n +4)
+          
+          for rev in $REVISIONS; do
+            echo "Deleting old revision: $rev"
+            gcloud run revisions delete "$rev" \
+              --region=${{ env.REGION }} \
+              --quiet || true
+          done
+

@@ -1,0 +1,493 @@
+{
+  "": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Crypto.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Crypto.o",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/master.swiftdeps"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/AEADs/AES/GCM/AES-GCM.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/AES-GCM.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/AES-GCM~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/AES-GCM.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/AES-GCM.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/AEADs/AES/GCM/BoringSSL/AES-GCM_boring.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/AES-GCM_boring.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/AES-GCM_boring~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/AES-GCM_boring.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/AES-GCM_boring.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/AEADs/ChachaPoly/BoringSSL/ChaChaPoly_boring.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ChaChaPoly_boring.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ChaChaPoly_boring~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ChaChaPoly_boring.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ChaChaPoly_boring.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/AEADs/ChachaPoly/ChaChaPoly.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ChaChaPoly.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ChaChaPoly~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ChaChaPoly.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ChaChaPoly.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/AEADs/Cipher.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Cipher.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Cipher~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Cipher.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Cipher.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/AEADs/Nonces.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Nonces.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Nonces~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Nonces.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Nonces.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/ASN1/ASN1.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/ASN1/Basic ASN1 Types/ASN1Any.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Any.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Any~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Any.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Any.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/ASN1/Basic ASN1 Types/ASN1BitString.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1BitString.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1BitString~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1BitString.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1BitString.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/ASN1/Basic ASN1 Types/ASN1Boolean.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Boolean.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Boolean~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Boolean.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Boolean.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/ASN1/Basic ASN1 Types/ASN1Identifier.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Identifier.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Identifier~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Identifier.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Identifier.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/ASN1/Basic ASN1 Types/ASN1Integer.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Integer.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Integer~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Integer.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Integer.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/ASN1/Basic ASN1 Types/ASN1Null.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Null.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Null~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Null.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Null.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/ASN1/Basic ASN1 Types/ASN1OctetString.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1OctetString.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1OctetString~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1OctetString.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1OctetString.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/ASN1/Basic ASN1 Types/ASN1Strings.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Strings.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Strings~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Strings.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ASN1Strings.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/ASN1/Basic ASN1 Types/ArraySliceBigint.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ArraySliceBigint.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ArraySliceBigint~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ArraySliceBigint.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ArraySliceBigint.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/ASN1/Basic ASN1 Types/GeneralizedTime.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/GeneralizedTime.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/GeneralizedTime~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/GeneralizedTime.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/GeneralizedTime.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/ASN1/Basic ASN1 Types/ObjectIdentifier.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ObjectIdentifier.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ObjectIdentifier~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ObjectIdentifier.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ObjectIdentifier.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/ASN1/ECDSASignature.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDSASignature.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDSASignature~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDSASignature.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDSASignature.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/ASN1/PEMDocument.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/PEMDocument.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/PEMDocument~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/PEMDocument.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/PEMDocument.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/ASN1/PKCS8PrivateKey.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/PKCS8PrivateKey.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/PKCS8PrivateKey~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/PKCS8PrivateKey.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/PKCS8PrivateKey.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/ASN1/SEC1PrivateKey.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SEC1PrivateKey.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SEC1PrivateKey~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SEC1PrivateKey.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SEC1PrivateKey.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/ASN1/SubjectPublicKeyInfo.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SubjectPublicKeyInfo.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SubjectPublicKeyInfo~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SubjectPublicKeyInfo.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SubjectPublicKeyInfo.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/CryptoError_boring.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/CryptoError_boring.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/CryptoError_boring~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/CryptoError_boring.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/CryptoError_boring.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/CryptoKitErrors.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/CryptoKitErrors.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/CryptoKitErrors~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/CryptoKitErrors.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/CryptoKitErrors.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Digests/BoringSSL/Digest_boring.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Digest_boring.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Digest_boring~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Digest_boring.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Digest_boring.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Digests/Digest.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Digest.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Digest~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Digest.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Digest.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Digests/Digests.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Digests.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Digests~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Digests.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Digests.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Digests/HashFunctions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HashFunctions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HashFunctions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HashFunctions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HashFunctions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Digests/HashFunctions_SHA2.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HashFunctions_SHA2.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HashFunctions_SHA2~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HashFunctions_SHA2.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HashFunctions_SHA2.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/HPKE/Ciphersuite/HPKE-AEAD.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-AEAD.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-AEAD~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-AEAD.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-AEAD.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/HPKE/Ciphersuite/HPKE-Ciphersuite.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-Ciphersuite.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-Ciphersuite~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-Ciphersuite.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-Ciphersuite.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/HPKE/Ciphersuite/HPKE-KDF.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-KDF.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-KDF~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-KDF.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-KDF.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/HPKE/Ciphersuite/HPKE-KexKeyDerivation.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-KexKeyDerivation.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-KexKeyDerivation~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-KexKeyDerivation.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-KexKeyDerivation.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/HPKE/Ciphersuite/HPKE-LabeledExtract.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-LabeledExtract.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-LabeledExtract~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-LabeledExtract.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-LabeledExtract.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/HPKE/Ciphersuite/HPKE-Utils.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-Utils.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-Utils~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-Utils.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-Utils.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/HPKE/Ciphersuite/KEM/Conformances/DHKEM.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/DHKEM.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/DHKEM~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/DHKEM.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/DHKEM.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/HPKE/Ciphersuite/KEM/Conformances/HPKE-KEM-Curve25519.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-KEM-Curve25519.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-KEM-Curve25519~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-KEM-Curve25519.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-KEM-Curve25519.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/HPKE/Ciphersuite/KEM/Conformances/HPKE-NIST-EC-KEMs.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-NIST-EC-KEMs.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-NIST-EC-KEMs~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-NIST-EC-KEMs.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-NIST-EC-KEMs.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/HPKE/Ciphersuite/KEM/HPKE-KEM.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-KEM.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-KEM~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-KEM.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-KEM.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/HPKE/HPKE-Errors.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-Errors.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-Errors~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-Errors.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-Errors.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/HPKE/HPKE.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/HPKE/Key Schedule/HPKE-Context.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-Context.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-Context~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-Context.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-Context.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/HPKE/Key Schedule/HPKE-KeySchedule.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-KeySchedule.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-KeySchedule~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-KeySchedule.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-KeySchedule.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/HPKE/Modes/HPKE-Modes.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-Modes.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-Modes~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-Modes.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HPKE-Modes.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Insecure/Insecure.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Insecure.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Insecure~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Insecure.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Insecure.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Insecure/Insecure_HashFunctions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Insecure_HashFunctions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Insecure_HashFunctions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Insecure_HashFunctions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Insecure_HashFunctions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/KEM/KEM.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/KEM.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/KEM~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/KEM.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/KEM.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Key Agreement/BoringSSL/ECDH_boring.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDH_boring.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDH_boring~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDH_boring.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDH_boring.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Key Agreement/DH.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/DH.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/DH~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/DH.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/DH.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Key Agreement/ECDH.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDH.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDH~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDH.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDH.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Key Derivation/HKDF.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HKDF.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HKDF~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HKDF.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HKDF.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Key Wrapping/AESWrap.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/AESWrap.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/AESWrap~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/AESWrap.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/AESWrap.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Key Wrapping/BoringSSL/AESWrap_boring.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/AESWrap_boring.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/AESWrap_boring~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/AESWrap_boring.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/AESWrap_boring.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Keys/EC/BoringSSL/Ed25519_boring.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Ed25519_boring.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Ed25519_boring~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Ed25519_boring.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Ed25519_boring.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Keys/EC/BoringSSL/NISTCurvesKeys_boring.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/NISTCurvesKeys_boring.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/NISTCurvesKeys_boring~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/NISTCurvesKeys_boring.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/NISTCurvesKeys_boring.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Keys/EC/BoringSSL/X25519Keys_boring.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/X25519Keys_boring.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/X25519Keys_boring~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/X25519Keys_boring.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/X25519Keys_boring.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Keys/EC/Curve25519.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Curve25519.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Curve25519~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Curve25519.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Curve25519.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Keys/EC/Ed25519Keys.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Ed25519Keys.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Ed25519Keys~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Ed25519Keys.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Ed25519Keys.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Keys/EC/NISTCurvesKeys.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/NISTCurvesKeys.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/NISTCurvesKeys~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/NISTCurvesKeys.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/NISTCurvesKeys.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Keys/EC/X25519Keys.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/X25519Keys.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/X25519Keys~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/X25519Keys.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/X25519Keys.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Keys/Symmetric/SymmetricKeys.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SymmetricKeys.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SymmetricKeys~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SymmetricKeys.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SymmetricKeys.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Message Authentication Codes/HMAC/HMAC.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HMAC.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HMAC~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HMAC.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/HMAC.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Message Authentication Codes/MACFunctions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/MACFunctions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/MACFunctions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/MACFunctions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/MACFunctions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Message Authentication Codes/MessageAuthenticationCode.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/MessageAuthenticationCode.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/MessageAuthenticationCode~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/MessageAuthenticationCode.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/MessageAuthenticationCode.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/PRF/AES.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/AES.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/AES~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/AES.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/AES.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Signatures/BoringSSL/ECDSASignature_boring.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDSASignature_boring.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDSASignature_boring~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDSASignature_boring.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDSASignature_boring.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Signatures/BoringSSL/ECDSA_boring.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDSA_boring.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDSA_boring~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDSA_boring.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDSA_boring.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Signatures/BoringSSL/EdDSA_boring.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/EdDSA_boring.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/EdDSA_boring~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/EdDSA_boring.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/EdDSA_boring.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Signatures/ECDSA.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDSA.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDSA~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDSA.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/ECDSA.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Signatures/Ed25519.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Ed25519.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Ed25519~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Ed25519.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Ed25519.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Signatures/Signature.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Signature.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Signature~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Signature.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Signature.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Util/BoringSSL/CryptoKitErrors_boring.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/CryptoKitErrors_boring.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/CryptoKitErrors_boring~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/CryptoKitErrors_boring.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/CryptoKitErrors_boring.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Util/BoringSSL/RNG_boring.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/RNG_boring.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/RNG_boring~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/RNG_boring.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/RNG_boring.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Util/BoringSSL/SafeCompare_boring.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SafeCompare_boring.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SafeCompare_boring~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SafeCompare_boring.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SafeCompare_boring.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Util/BoringSSL/Zeroization_boring.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Zeroization_boring.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Zeroization_boring~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Zeroization_boring.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Zeroization_boring.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Util/PrettyBytes.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/PrettyBytes.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/PrettyBytes~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/PrettyBytes.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/PrettyBytes.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Util/SafeCompare.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SafeCompare.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SafeCompare~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SafeCompare.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SafeCompare.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Util/SecureBytes.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SecureBytes.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SecureBytes~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SecureBytes.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/SecureBytes.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-crypto/Sources/Crypto/Util/Zeroization.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Zeroization.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Zeroization~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Zeroization.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/Zeroization.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/DerivedSources/resource_bundle_accessor.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/resource_bundle_accessor.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/resource_bundle_accessor~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/resource_bundle_accessor.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/Crypto.build/resource_bundle_accessor.dia"
+  }
+}

@@ -1,0 +1,577 @@
+{
+  "": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/SwiftProtobuf.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/SwiftProtobuf.o",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/master.swiftdeps"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/AnyMessageStorage.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/AnyMessageStorage.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/AnyMessageStorage~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/AnyMessageStorage.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/AnyMessageStorage.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/AnyUnpackError.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/AnyUnpackError.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/AnyUnpackError~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/AnyUnpackError.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/AnyUnpackError.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/AsyncMessageSequence.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/AsyncMessageSequence.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/AsyncMessageSequence~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/AsyncMessageSequence.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/AsyncMessageSequence.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/BinaryDecoder.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryDecoder.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryDecoder~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryDecoder.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryDecoder.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/BinaryDecodingError.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryDecodingError.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryDecodingError~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryDecodingError.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryDecodingError.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/BinaryDecodingOptions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryDecodingOptions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryDecodingOptions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryDecodingOptions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryDecodingOptions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/BinaryDelimited.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryDelimited.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryDelimited~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryDelimited.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryDelimited.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/BinaryEncoder.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryEncoder.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryEncoder~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryEncoder.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryEncoder.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/BinaryEncodingError.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryEncodingError.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryEncodingError~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryEncodingError.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryEncodingError.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/BinaryEncodingOptions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryEncodingOptions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryEncodingOptions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryEncodingOptions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryEncodingOptions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/BinaryEncodingSizeVisitor.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryEncodingSizeVisitor.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryEncodingSizeVisitor~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryEncodingSizeVisitor.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryEncodingSizeVisitor.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/BinaryEncodingVisitor.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryEncodingVisitor.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryEncodingVisitor~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryEncodingVisitor.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BinaryEncodingVisitor.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/BytecodeInterpreter.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BytecodeInterpreter.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BytecodeInterpreter~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BytecodeInterpreter.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BytecodeInterpreter.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/BytecodeReader.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BytecodeReader.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BytecodeReader~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BytecodeReader.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/BytecodeReader.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/CustomJSONCodable.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/CustomJSONCodable.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/CustomJSONCodable~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/CustomJSONCodable.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/CustomJSONCodable.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Decoder.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Decoder.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Decoder~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Decoder.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Decoder.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/DoubleParser.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/DoubleParser.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/DoubleParser~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/DoubleParser.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/DoubleParser.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Enum.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Enum.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Enum~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Enum.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Enum.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/ExtensibleMessage.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ExtensibleMessage.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ExtensibleMessage~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ExtensibleMessage.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ExtensibleMessage.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/ExtensionFieldValueSet.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ExtensionFieldValueSet.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ExtensionFieldValueSet~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ExtensionFieldValueSet.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ExtensionFieldValueSet.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/ExtensionFields.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ExtensionFields.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ExtensionFields~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ExtensionFields.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ExtensionFields.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/ExtensionMap.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ExtensionMap.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ExtensionMap~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ExtensionMap.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ExtensionMap.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/FieldTag.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/FieldTag.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/FieldTag~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/FieldTag.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/FieldTag.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/FieldTypes.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/FieldTypes.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/FieldTypes~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/FieldTypes.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/FieldTypes.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Google_Protobuf_Any+Extensions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Any+Extensions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Any+Extensions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Any+Extensions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Any+Extensions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Google_Protobuf_Any+Registry.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Any+Registry.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Any+Registry~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Any+Registry.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Any+Registry.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Google_Protobuf_Duration+Extensions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Duration+Extensions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Duration+Extensions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Duration+Extensions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Duration+Extensions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Google_Protobuf_FieldMask+Extensions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_FieldMask+Extensions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_FieldMask+Extensions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_FieldMask+Extensions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_FieldMask+Extensions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Google_Protobuf_ListValue+Extensions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_ListValue+Extensions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_ListValue+Extensions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_ListValue+Extensions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_ListValue+Extensions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Google_Protobuf_NullValue+Extensions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_NullValue+Extensions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_NullValue+Extensions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_NullValue+Extensions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_NullValue+Extensions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Google_Protobuf_Struct+Extensions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Struct+Extensions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Struct+Extensions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Struct+Extensions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Struct+Extensions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Google_Protobuf_Timestamp+Extensions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Timestamp+Extensions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Timestamp+Extensions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Timestamp+Extensions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Timestamp+Extensions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Google_Protobuf_Value+Extensions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Value+Extensions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Value+Extensions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Value+Extensions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Value+Extensions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Google_Protobuf_Wrappers+Extensions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Wrappers+Extensions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Wrappers+Extensions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Wrappers+Extensions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Google_Protobuf_Wrappers+Extensions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/HashVisitor.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/HashVisitor.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/HashVisitor~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/HashVisitor.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/HashVisitor.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Internal.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Internal.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Internal~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Internal.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Internal.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/JSONDecoder.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONDecoder.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONDecoder~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONDecoder.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONDecoder.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/JSONDecodingError.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONDecodingError.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONDecodingError~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONDecodingError.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONDecodingError.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/JSONDecodingOptions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONDecodingOptions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONDecodingOptions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONDecodingOptions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONDecodingOptions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/JSONEncoder.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONEncoder.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONEncoder~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONEncoder.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONEncoder.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/JSONEncodingError.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONEncodingError.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONEncodingError~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONEncodingError.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONEncodingError.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/JSONEncodingOptions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONEncodingOptions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONEncodingOptions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONEncodingOptions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONEncodingOptions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/JSONEncodingVisitor.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONEncodingVisitor.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONEncodingVisitor~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONEncodingVisitor.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONEncodingVisitor.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/JSONMapEncodingVisitor.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONMapEncodingVisitor.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONMapEncodingVisitor~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONMapEncodingVisitor.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONMapEncodingVisitor.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/JSONScanner.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONScanner.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONScanner~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONScanner.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/JSONScanner.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/MathUtils.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/MathUtils.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/MathUtils~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/MathUtils.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/MathUtils.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Message+AnyAdditions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+AnyAdditions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+AnyAdditions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+AnyAdditions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+AnyAdditions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Message+BinaryAdditions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+BinaryAdditions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+BinaryAdditions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+BinaryAdditions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+BinaryAdditions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Message+BinaryAdditions_Data.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+BinaryAdditions_Data.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+BinaryAdditions_Data~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+BinaryAdditions_Data.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+BinaryAdditions_Data.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Message+FieldMask.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+FieldMask.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+FieldMask~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+FieldMask.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+FieldMask.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Message+JSONAdditions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+JSONAdditions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+JSONAdditions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+JSONAdditions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+JSONAdditions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Message+JSONAdditions_Data.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+JSONAdditions_Data.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+JSONAdditions_Data~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+JSONAdditions_Data.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+JSONAdditions_Data.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Message+JSONArrayAdditions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+JSONArrayAdditions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+JSONArrayAdditions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+JSONArrayAdditions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+JSONArrayAdditions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Message+JSONArrayAdditions_Data.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+JSONArrayAdditions_Data.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+JSONArrayAdditions_Data~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+JSONArrayAdditions_Data.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+JSONArrayAdditions_Data.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Message+TextFormatAdditions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+TextFormatAdditions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+TextFormatAdditions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+TextFormatAdditions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message+TextFormatAdditions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Message.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Message.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/MessageExtension.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/MessageExtension.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/MessageExtension~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/MessageExtension.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/MessageExtension.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/NameMap.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/NameMap.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/NameMap~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/NameMap.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/NameMap.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/PathDecoder.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/PathDecoder.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/PathDecoder~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/PathDecoder.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/PathDecoder.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/PathVisitor.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/PathVisitor.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/PathVisitor~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/PathVisitor.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/PathVisitor.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/ProtoNameProviding.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ProtoNameProviding.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ProtoNameProviding~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ProtoNameProviding.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ProtoNameProviding.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/ProtobufAPIVersionCheck.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ProtobufAPIVersionCheck.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ProtobufAPIVersionCheck~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ProtobufAPIVersionCheck.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ProtobufAPIVersionCheck.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/ProtobufMap.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ProtobufMap.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ProtobufMap~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ProtobufMap.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ProtobufMap.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/SelectiveVisitor.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/SelectiveVisitor.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/SelectiveVisitor~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/SelectiveVisitor.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/SelectiveVisitor.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/SimpleExtensionMap.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/SimpleExtensionMap.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/SimpleExtensionMap~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/SimpleExtensionMap.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/SimpleExtensionMap.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/StringUtils.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/StringUtils.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/StringUtils~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/StringUtils.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/StringUtils.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/SwiftProtobufContiguousBytes.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/SwiftProtobufContiguousBytes.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/SwiftProtobufContiguousBytes~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/SwiftProtobufContiguousBytes.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/SwiftProtobufContiguousBytes.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/SwiftProtobufError.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/SwiftProtobufError.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/SwiftProtobufError~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/SwiftProtobufError.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/SwiftProtobufError.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/TextFormatDecoder.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatDecoder.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatDecoder~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatDecoder.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatDecoder.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/TextFormatDecodingError.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatDecodingError.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatDecodingError~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatDecodingError.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatDecodingError.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/TextFormatDecodingOptions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatDecodingOptions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatDecodingOptions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatDecodingOptions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatDecodingOptions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/TextFormatEncoder.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatEncoder.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatEncoder~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatEncoder.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatEncoder.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/TextFormatEncodingOptions.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatEncodingOptions.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatEncodingOptions~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatEncodingOptions.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatEncodingOptions.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/TextFormatEncodingVisitor.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatEncodingVisitor.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatEncodingVisitor~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatEncodingVisitor.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatEncodingVisitor.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/TextFormatScanner.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatScanner.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatScanner~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatScanner.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TextFormatScanner.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/TimeUtils.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TimeUtils.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TimeUtils~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TimeUtils.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/TimeUtils.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/UnknownStorage.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/UnknownStorage.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/UnknownStorage~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/UnknownStorage.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/UnknownStorage.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/UnsafeRawPointer+Shims.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/UnsafeRawPointer+Shims.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/UnsafeRawPointer+Shims~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/UnsafeRawPointer+Shims.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/UnsafeRawPointer+Shims.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Varint.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Varint.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Varint~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Varint.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Varint.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Version.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Version.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Version~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Version.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Version.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/Visitor.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Visitor.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Visitor~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Visitor.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/Visitor.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/WireFormat.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/WireFormat.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/WireFormat~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/WireFormat.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/WireFormat.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/ZigZag.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ZigZag.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ZigZag~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ZigZag.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/ZigZag.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/any.pb.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/any.pb.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/any.pb~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/any.pb.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/any.pb.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/api.pb.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/api.pb.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/api.pb~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/api.pb.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/api.pb.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/descriptor.pb.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/descriptor.pb.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/descriptor.pb~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/descriptor.pb.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/descriptor.pb.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/duration.pb.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/duration.pb.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/duration.pb~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/duration.pb.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/duration.pb.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/empty.pb.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/empty.pb.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/empty.pb~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/empty.pb.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/empty.pb.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/field_mask.pb.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/field_mask.pb.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/field_mask.pb~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/field_mask.pb.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/field_mask.pb.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/source_context.pb.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/source_context.pb.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/source_context.pb~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/source_context.pb.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/source_context.pb.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/struct.pb.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/struct.pb.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/struct.pb~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/struct.pb.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/struct.pb.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/timestamp.pb.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/timestamp.pb.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/timestamp.pb~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/timestamp.pb.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/timestamp.pb.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/type.pb.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/type.pb.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/type.pb~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/type.pb.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/type.pb.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/swift-protobuf/Sources/SwiftProtobuf/wrappers.pb.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/wrappers.pb.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/wrappers.pb~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/wrappers.pb.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/wrappers.pb.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/DerivedSources/resource_bundle_accessor.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/resource_bundle_accessor.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/resource_bundle_accessor~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/resource_bundle_accessor.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/SwiftProtobuf.build/resource_bundle_accessor.dia"
+  }
+}

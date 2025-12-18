@@ -1,0 +1,319 @@
+{
+  "": {
+    "dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTKit.d",
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTKit.o",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/master.swiftdeps"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Claims/AudienceClaim.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/AudienceClaim.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/AudienceClaim~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/AudienceClaim.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/AudienceClaim.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Claims/BoolClaim.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/BoolClaim.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/BoolClaim~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/BoolClaim.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/BoolClaim.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Claims/ExpirationClaim.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/ExpirationClaim.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/ExpirationClaim~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/ExpirationClaim.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/ExpirationClaim.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Claims/GoogleHostedDomainClaim.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/GoogleHostedDomainClaim.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/GoogleHostedDomainClaim~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/GoogleHostedDomainClaim.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/GoogleHostedDomainClaim.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Claims/IDClaim.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/IDClaim.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/IDClaim~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/IDClaim.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/IDClaim.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Claims/IssuedAtClaim.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/IssuedAtClaim.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/IssuedAtClaim~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/IssuedAtClaim.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/IssuedAtClaim.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Claims/IssuerClaim.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/IssuerClaim.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/IssuerClaim~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/IssuerClaim.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/IssuerClaim.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Claims/JWTClaim.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTClaim.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTClaim~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTClaim.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTClaim.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Claims/JWTMultiValueClaim.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTMultiValueClaim.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTMultiValueClaim~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTMultiValueClaim.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTMultiValueClaim.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Claims/JWTUnixEpochClaim.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTUnixEpochClaim.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTUnixEpochClaim~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTUnixEpochClaim.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTUnixEpochClaim.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Claims/LocaleClaim.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/LocaleClaim.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/LocaleClaim~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/LocaleClaim.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/LocaleClaim.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Claims/NotBeforeClaim.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/NotBeforeClaim.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/NotBeforeClaim~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/NotBeforeClaim.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/NotBeforeClaim.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Claims/SubjectClaim.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/SubjectClaim.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/SubjectClaim~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/SubjectClaim.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/SubjectClaim.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/ECDSA/ECDSAError.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/ECDSAError.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/ECDSAError~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/ECDSAError.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/ECDSAError.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/ECDSA/ECDSAKey.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/ECDSAKey.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/ECDSAKey~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/ECDSAKey.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/ECDSAKey.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/ECDSA/ECDSASigner.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/ECDSASigner.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/ECDSASigner~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/ECDSASigner.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/ECDSASigner.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/ECDSA/JWTSigner+ECDSA.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner+ECDSA.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner+ECDSA~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner+ECDSA.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner+ECDSA.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/EdDSA/EdDSAError.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/EdDSAError.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/EdDSAError~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/EdDSAError.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/EdDSAError.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/EdDSA/EdDSAKey.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/EdDSAKey.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/EdDSAKey~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/EdDSAKey.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/EdDSAKey.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/EdDSA/EdDSASigner.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/EdDSASigner.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/EdDSASigner~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/EdDSASigner.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/EdDSASigner.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/EdDSA/JWTSigner+EdDSA.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner+EdDSA.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner+EdDSA~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner+EdDSA.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner+EdDSA.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/EdDSA/OctetKeyPair.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/OctetKeyPair.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/OctetKeyPair~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/OctetKeyPair.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/OctetKeyPair.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/HMAC/HMACError.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/HMACError.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/HMACError~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/HMACError.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/HMACError.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/HMAC/HMACSigner.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/HMACSigner.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/HMACSigner~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/HMACSigner.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/HMACSigner.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/HMAC/JWTSigner+HMAC.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner+HMAC.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner+HMAC~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner+HMAC.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner+HMAC.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/JWK/JWK.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWK.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWK~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWK.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWK.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/JWK/JWKIdentifier.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWKIdentifier.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWKIdentifier~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWKIdentifier.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWKIdentifier.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/JWK/JWKS.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWKS.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWKS~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWKS.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWKS.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/JWTAlgorithm.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTAlgorithm.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTAlgorithm~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTAlgorithm.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTAlgorithm.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/JWTError.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTError.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTError~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTError.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTError.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/JWTHeader.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTHeader.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTHeader~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTHeader.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTHeader.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/JWTParser.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTParser.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTParser~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTParser.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTParser.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/JWTPayload.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTPayload.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTPayload~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTPayload.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTPayload.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/JWTSerializer.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSerializer.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSerializer~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSerializer.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSerializer.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/JWTSigner.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/JWTSigners.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigners.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigners~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigners.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigners.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/None/JWTSigner+UnsecuredNone.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner+UnsecuredNone.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner+UnsecuredNone~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner+UnsecuredNone.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner+UnsecuredNone.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/None/UnsecuredNoneSigner.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/UnsecuredNoneSigner.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/UnsecuredNoneSigner~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/UnsecuredNoneSigner.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/UnsecuredNoneSigner.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/RSA/JWTSigner+RSA.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner+RSA.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner+RSA~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner+RSA.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/JWTSigner+RSA.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/RSA/RSAError.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/RSAError.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/RSAError~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/RSAError.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/RSAError.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/RSA/RSAKey.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/RSAKey.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/RSAKey~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/RSAKey.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/RSAKey.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/RSA/RSASigner.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/RSASigner.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/RSASigner~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/RSASigner.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/RSASigner.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Utilities/Base64URL.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/Base64URL.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/Base64URL~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/Base64URL.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/Base64URL.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Utilities/BigNumber.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/BigNumber.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/BigNumber~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/BigNumber.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/BigNumber.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Utilities/CustomizedJSONCoders.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/CustomizedJSONCoders.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/CustomizedJSONCoders~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/CustomizedJSONCoders.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/CustomizedJSONCoders.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Utilities/Exports.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/Exports.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/Exports~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/Exports.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/Exports.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Utilities/OpenSSLSigner.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/OpenSSLSigner.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/OpenSSLSigner~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/OpenSSLSigner.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/OpenSSLSigner.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Utilities/Utilities.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/Utilities.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/Utilities~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/Utilities.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/Utilities.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Vendor/AppleIdentityToken.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/AppleIdentityToken.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/AppleIdentityToken~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/AppleIdentityToken.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/AppleIdentityToken.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Vendor/GoogleIdentityToken.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/GoogleIdentityToken.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/GoogleIdentityToken~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/GoogleIdentityToken.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/GoogleIdentityToken.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/Vendor/MicrosoftIdentitiyToken.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/MicrosoftIdentitiyToken.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/MicrosoftIdentitiyToken~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/MicrosoftIdentitiyToken.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/MicrosoftIdentitiyToken.dia"
+  },
+  "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/checkouts/jwt-kit/Sources/JWTKit/X5CVerifier.swift": {
+    "object": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/X5CVerifier.swift.o",
+    "swiftmodule": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/X5CVerifier~partial.swiftmodule",
+    "swift-dependencies": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/X5CVerifier.swiftdeps",
+    "diagnostics": "/Users/sethford/Documents/voiceai/apps/macos-menubar/.build/arm64-apple-macosx/release/JWTKit.build/X5CVerifier.dia"
+  }
+}

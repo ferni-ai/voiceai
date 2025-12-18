@@ -1,0 +1,292 @@
+{
+  "$schema": "./tool-descriptions.schema.json",
+  "version": 1,
+  "lastUpdated": "2025-12-17",
+  "_comment": "Auto-extracted tool descriptions. Edit these to improve function calling.",
+  "_reference": "https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling",
+  "_stats": {
+    "totalTools": 58,
+    "filesScanned": 29
+  },
+  "defaults": {
+    "prefix": "",
+    "suffix": ""
+  },
+  "tools": {
+    "acknowledgeEmotion": {
+      "description": "Acknowledge and validate the user.",
+      "file": "src/tasks/support-tasks.ts",
+      "_original": "Acknowledge and validate the user"
+    },
+    "acknowledgeHoliday": {
+      "description": "To get holiday acknowledgment. DO NOT announce.",
+      "file": "src/tools/small-talk.ts",
+      "_original": "EXECUTE SILENTLY to get holiday acknowledgment. DO NOT announce"
+    },
+    "acknowledgeReturn": {
+      "description": "Check if they.",
+      "file": "src/tasks/relationship-tasks.ts",
+      "_original": "Check if they"
+    },
+    "addHabit": {
+      "description": "Mark a habit as done for today.",
+      "file": "src/tools/domains/habits/unified-habits.ts",
+      "_original": "Mark a habit as done for today"
+    },
+    "addressFinancialAnxiety": {
+      "description": "Do a holistic check-in on financial wellbeing. Use proactively to understand how they.",
+      "file": "src/tools/wellness.ts",
+      "_original": "Do a holistic check-in on financial wellbeing. Use proactively to understand how they"
+    },
+    "assessLifeDomains": {
+      "description": "After ${anchorHabit}, I will ${newHabits.join(.",
+      "file": "src/tools/habit-coaching/tools.ts",
+      "_original": "After ${anchorHabit}, I will ${newHabits.join("
+    },
+    "calculateCompoundGrowth": {
+      "description": "Calculate how money grows over time with compound interest. Central to Jack Bogle.",
+      "file": "src/tools/calculators.ts",
+      "_original": "Calculate how money grows over time with compound interest. Central to Jack Bogle"
+    },
+    "calculateFeeImpact": {
+      "description": "Show how fees eat into investment returns over time. Central to Jack Bogle.",
+      "file": "src/tools/calculators.ts",
+      "_original": "Show how fees eat into investment returns over time. Central to Jack Bogle"
+    },
+    "compoundInterestGame": {
+      "description": "Maya.",
+      "file": "src/tools/domains/engagement/financial-games.ts",
+      "_original": "Maya"
+    },
+    "consentGiven": {
+      "description": "Record the user.",
+      "file": "src/tasks/agent-task.ts",
+      "_original": "Record the user"
+    },
+    "detectConversationDrift": {
+      "description": "Assess and respond to the user.",
+      "file": "src/tools/awareness.ts",
+      "_original": "Assess and respond to the user"
+    },
+    "discoverMusic": {
+      "description": "When user wants new music or says.",
+      "file": "src/tools/music.ts",
+      "_original": "EXECUTE when user wants new music or says"
+    },
+    "exploreOption": {
+      "description": "Record a goal they.",
+      "file": "src/tasks/advice-tasks.ts",
+      "_original": "Record a goal they"
+    },
+    "futureSelfLetter": {
+      "description": "Jordan.",
+      "file": "src/tools/domains/engagement/life-planning-games.ts",
+      "_original": "Jordan"
+    },
+    "getFinancialNews": {
+      "description": "To get financial news. DO NOT say.",
+      "file": "src/tools/news.ts",
+      "_original": "EXECUTE SILENTLY to get financial news. DO NOT say"
+    },
+    "getHabitStats": {
+      "description": "Show which habits still need to be done today.",
+      "file": "src/tools/domains/habits/unified-habits.ts",
+      "_original": "Show which habits still need to be done today"
+    },
+    "getRelationshipSummary": {
+      "description": "Update an existing memory with new information when the user corrects or adds to what you remember.",
+      "file": "src/tools/domains/memory/tools.ts",
+      "_original": "Update an existing memory with new information when the user corrects or adds to what you remember"
+    },
+    "getTendencyAdvice": {
+      "description": "Show life domains for organizing habits.",
+      "file": "src/tools/domains/habits/unified-habits.ts",
+      "_original": "Show life domains for organizing habits"
+    },
+    "getThisDayInHistory": {
+      "description": "Get interesting financial history for today—market crashes, milestones, Jack.",
+      "file": "src/tools/wisdom.ts",
+      "_original": "Get interesting financial history for today—market crashes, milestones, Jack"
+    },
+    "getWisdomQuote": {
+      "description": "Get Jack.",
+      "file": "src/tools/wisdom.ts",
+      "_original": "Get Jack"
+    },
+    "inboxZeroChallenge": {
+      "description": "Alex.",
+      "file": "src/tools/domains/engagement/productivity-games.ts",
+      "_original": "Alex"
+    },
+    "keepVibeGoing": {
+      "description": "To get suggestions for continuing the music. Call and use the returned message naturally.",
+      "file": "src/tools/music.ts",
+      "_original": "EXECUTE SILENTLY to get suggestions for continuing the music. Call and use the returned message naturally."
+    },
+    "morningSkyCheck": {
+      "description": "Reframe failures as gold - Ferni.",
+      "file": "src/tools/domains/engagement/emotional-games.ts",
+      "_original": "Reframe failures as gold - Ferni"
+    },
+    "noteEmotionalState": {
+      "description": "To note emotional state. Execute - DO NOT say.",
+      "file": "src/tools/conversation.ts",
+      "_original": "CALL silently to note emotional state. Execute without announcing - DO NOT say"
+    },
+    "paradoxOfTheDay": {
+      "description": "Nayan.",
+      "file": "src/tools/domains/engagement/wisdom-games.ts",
+      "_original": "Nayan"
+    },
+    "patternDetective": {
+      "description": "Peter.",
+      "file": "src/tools/domains/engagement/analytics-games.ts",
+      "_original": "Peter"
+    },
+    "pauseMusic": {
+      "description": "When user says pause/stop/quiet. DO NOT announce.",
+      "file": "src/tools/music.ts",
+      "_original": "EXECUTE IMMEDIATELY when user says pause/stop/quiet. DO NOT announce"
+    },
+    "playMusic": {
+      "description": "To search for songs without playing. DO NOT announce.",
+      "file": "src/tools/music.ts",
+      "_original": "EXECUTE SILENTLY to search for songs without playing. DO NOT announce"
+    },
+    "provideEmpathy": {
+      "description": "Offer practical guidance when they.",
+      "file": "src/tasks/life-events.ts",
+      "_original": "Offer practical guidance when they"
+    },
+    "recallPreviousConversation": {
+      "description": "Save a critically important fact that should be remembered forever.",
+      "file": "src/tools/domains/memory/tools.ts",
+      "_original": "Save a critically important fact that should be remembered forever"
+    },
+    "recordIntroduction": {
+      "description": "Record the user.",
+      "file": "src/tasks/onboarding.ts",
+      "_original": "Record the user"
+    },
+    "recordName": {
+      "description": "Collect address.",
+      "file": "src/tasks/agent-task.ts",
+      "_original": "Collect address"
+    },
+    "recordProgress": {
+      "description": "Identify what.",
+      "file": "src/tasks/habits-tasks.ts",
+      "_original": "Identify what"
+    },
+    "recordSituation": {
+      "description": "Record the user.",
+      "file": "src/tasks/onboarding.ts",
+      "_original": "Record the user"
+    },
+    "reflectionPrompts": {
+      "description": "Track and celebrate user streaks.",
+      "file": "src/tools/domains/engagement/team-challenges.ts",
+      "_original": "Track and celebrate user streaks"
+    },
+    "rememberAboutUser": {
+      "description": "Try to recall something from previous conversations with this user.",
+      "file": "src/tools/domains/memory/tools.ts",
+      "_original": "Try to recall something from previous conversations with this user"
+    },
+    "rememberName": {
+      "description": "When user shares their name. Execute - DO NOT say.",
+      "file": "src/tools/conversation.ts",
+      "_original": "CALL silently when user shares their name. Execute without announcing - DO NOT say"
+    },
+    "resumeMusic": {
+      "description": "To resume paused music. DO NOT say.",
+      "file": "src/tools/music.ts",
+      "_original": "EXECUTE IMMEDIATELY to resume paused music. DO NOT say"
+    },
+    "searchWeb": {
+      "description": "To search web. DO NOT say.",
+      "file": "src/tools/search.ts",
+      "_original": "EXECUTE SILENTLY to search web. DO NOT say"
+    },
+    "setMusicVolume": {
+      "description": "To adjust volume. DO NOT say.",
+      "file": "src/tools/music.ts",
+      "_original": "EXECUTE IMMEDIATELY to adjust volume. DO NOT say"
+    },
+    "sharePhillyFact": {
+      "description": "To get a Philly fact.",
+      "file": "src/tools/small-talk.ts",
+      "_original": "EXECUTE SILENTLY to get a Philly fact. DO NOT announce - call and speak the returned fact naturally in conversation."
+    },
+    "shareStory": {
+      "description": "To get a relevant story. Do not say.",
+      "file": "src/tools/conversation.ts",
+      "_original": "CALL immediately to get a relevant story. Do not say"
+    },
+    "shareVulnerability": {
+      "description": "Gently check if they.",
+      "file": "src/tasks/support-tasks.ts",
+      "_original": "Gently check if they"
+    },
+    "shareWisdom": {
+      "description": "Record a financial goal they.",
+      "file": "src/tasks/finance-tasks.ts",
+      "_original": "Record a financial goal they"
+    },
+    "skipFinancials": {
+      "description": "Use if the user doesn.",
+      "file": "src/tasks/bogle-onboarding.ts",
+      "_original": "Use if the user doesn"
+    },
+    "skipSituation": {
+      "description": "Use if the user doesn.",
+      "file": "src/tasks/onboarding.ts",
+      "_original": "Use if the user doesn"
+    },
+    "startReflectionGame": {
+      "description": "Start a fun reflection game or activity to help the user explore their thoughts, values, or memories in a playful way. Choose from activities like: -.",
+      "file": "src/tools/domains/reflection-games/index.ts",
+      "_original": "Start a fun reflection game or activity to help the user explore their thoughts,  values, or memories in a playful way. Choose from activities like: -"
+    },
+    "stopMusic": {
+      "description": "To stop music completely. DO NOT announce.",
+      "file": "src/tools/music.ts",
+      "_original": "EXECUTE IMMEDIATELY to stop music completely. DO NOT announce"
+    },
+    "suggestCircleBack": {
+      "description": "Suggest circling back to a topic that was mentioned but not fully explored. Use to show you.",
+      "file": "src/tools/awareness.ts",
+      "_original": "Suggest circling back to a topic that was mentioned but not fully explored. Use to show you"
+    },
+    "suggestMusic": {
+      "description": "To suggest and play mood-based music. DO NOT say.",
+      "file": "src/tools/music.ts",
+      "_original": "EXECUTE IMMEDIATELY to suggest and play mood-based music. DO NOT say"
+    },
+    "suggestRedesign": {
+      "description": "Suggest letting go of the habit - sometimes that.",
+      "file": "src/tasks/habits-tasks.ts",
+      "_original": "Suggest letting go of the habit - sometimes that"
+    },
+    "teamHuddle": {
+      "description": "Micro-challenges for instant engagement.",
+      "file": "src/tools/domains/engagement/team-challenges.ts",
+      "_original": "Micro-challenges for instant engagement"
+    },
+    "useFreePreviews": {
+      "description": "To switch to free previews.",
+      "file": "src/tools/music.ts",
+      "_original": "EXECUTE IMMEDIATELY to switch to free previews. DO NOT announce - call and speak the result."
+    },
+    "useSpotify": {
+      "description": "To switch to Spotify.",
+      "file": "src/tools/music.ts",
+      "_original": "EXECUTE IMMEDIATELY to switch to Spotify. DO NOT announce - call and speak the result."
+    },
+    "whatsPlaying": {
+      "description": "To check what.",
+      "file": "src/tools/music.ts",
+      "_original": "EXECUTE SILENTLY to check what"
+    }
+  }
+}

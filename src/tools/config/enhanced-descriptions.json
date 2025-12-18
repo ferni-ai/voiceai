@@ -1,0 +1,149 @@
+{
+  "$schema": "./tool-descriptions.schema.json",
+  "_comment": "Enhanced tool descriptions with parameter examples per Vertex AI best practices",
+  "_reference": "https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling",
+  "_bestPractices": [
+    "Function descriptions should clearly describe what the function does",
+    "Parameter descriptions should be detailed and include examples",
+    "Use thought signatures with function calling for best results",
+    "Model decides when to call functions based on descriptions"
+  ],
+  "enhanced": {
+    "playMusic": {
+      "description": "Play music based on a search query. Call when user asks to play music, wants to hear a song, artist, genre, or mood-based music. Returns confirmation of what's playing.",
+      "parameters": {
+        "query": "The music search query. Can be a song title, artist name, genre, or mood. Examples: 'relaxing jazz', 'The Beatles', 'upbeat workout music', 'lo-fi beats', 'classical piano'",
+        "source": "Optional: Music service to use. Options: 'spotify', 'youtube', 'apple'. Default: user's preferred service"
+      }
+    },
+    "rememberAboutUser": {
+      "description": "Store an important fact about the user for future conversations. Call when user shares personal information worth remembering - names, preferences, life events, goals, concerns. The fact will persist across sessions.",
+      "parameters": {
+        "fact": "The important fact to remember. Be specific and natural. Examples: 'has two kids named Maya and Jake', 'retiring next year from teaching', 'worried about healthcare costs', 'loves hiking in the mountains'",
+        "category": "Category of fact. Options: 'personal' (family, interests), 'financial' (money concerns), 'emotional' (feelings, struggles), 'goal' (aspirations), 'preference' (likes/dislikes)",
+        "importance": "Priority level: 'low' (nice-to-know details), 'medium' (useful context), 'high' (critical to remember)"
+      }
+    },
+    "recallFromMemory": {
+      "description": "Retrieve something remembered about the user from previous conversations. Call when you need to reference past information, check what you know about them, or personalize the conversation.",
+      "parameters": {
+        "topic": "What you're trying to recall. Examples: 'their retirement goals', 'family members', 'what worried them last time', 'their job situation', 'hobbies they mentioned'"
+      }
+    },
+    "getWeather": {
+      "description": "Get current weather conditions or forecast. Call when user asks about weather, temperature, or outdoor conditions. Returns temperature, conditions, and recommendations.",
+      "parameters": {
+        "location": "Location for weather. Can be city name, zip code, or 'current' for user's location. Examples: 'San Francisco', '94102', 'current', 'New York City'",
+        "type": "Type of weather info. Options: 'current' (right now), 'forecast' (upcoming days), 'hourly' (next 24 hours)"
+      }
+    },
+    "handoffToMaya": {
+      "description": "Transfer the conversation to Maya Santos, the Habits & Routines coach. Call when user needs help with: building habits, daily routines, productivity systems, time management, breaking bad habits, or creating new positive behaviors.",
+      "parameters": {
+        "reason": "Brief context for the handoff. Examples: 'User wants to build a morning routine', 'Struggling with exercise consistency', 'Wants help breaking phone addiction'"
+      }
+    },
+    "handoffToAlex": {
+      "description": "Transfer the conversation to Alex Chen, the Communication & Executive Support specialist. Call when user needs help with: writing emails, preparing for meetings, communication coaching, professional correspondence, or difficult conversations.",
+      "parameters": {
+        "reason": "Brief context for the handoff. Examples: 'User needs help drafting an important email', 'Preparing for a salary negotiation', 'Wants to improve public speaking'"
+      }
+    },
+    "handoffToPeter": {
+      "description": "Transfer the conversation to Peter John, the Research & Analysis expert. Call when user needs help with: financial research, stock analysis, market trends, investment decisions, or data-driven insights.",
+      "parameters": {
+        "reason": "Brief context for the handoff. Examples: 'User wants to research a stock', 'Needs help understanding market trends', 'Wants investment analysis'"
+      }
+    },
+    "handoffToJordan": {
+      "description": "Transfer the conversation to Jordan Taylor, the Life Planning & Events specialist. Call when user needs help with: planning celebrations, organizing events, life milestones, travel planning, or special occasions.",
+      "parameters": {
+        "reason": "Brief context for the handoff. Examples: 'Planning a birthday party', 'Organizing a family reunion', 'Needs help with wedding planning'"
+      }
+    },
+    "handoffToNayan": {
+      "description": "Transfer the conversation to Nayan Patel, the Wisdom & Philosophy guide (Premium). Call when user seeks: deep reflection, philosophical perspectives, life wisdom, spiritual guidance, or meaning-making during difficult times.",
+      "parameters": {
+        "reason": "Brief context for the handoff. Examples: 'Seeking perspective on a life decision', 'Wants to discuss purpose and meaning', 'Going through existential questioning'"
+      }
+    },
+    "createAppointment": {
+      "description": "Create a new calendar appointment or meeting. Call when user wants to schedule something - meetings, reminders, events. Requires confirmation before creating.",
+      "parameters": {
+        "title": "Name of the appointment. Examples: 'Doctor appointment', 'Team standup', 'Call with Mom', 'Dentist checkup'",
+        "date": "Date of appointment. Natural language or ISO format. Examples: 'tomorrow at 2pm', 'next Monday', '2025-01-15T14:00:00'",
+        "duration": "How long the appointment lasts. Examples: '30 minutes', '1 hour', '90 minutes'",
+        "location": "Optional: Where the appointment takes place. Examples: 'Zoom', 'Conference room B', 'Dr. Smith's office'"
+      }
+    },
+    "sendMessage": {
+      "description": "Send a text message or email to someone. HIGH STAKES - requires user confirmation before sending. Call when user explicitly asks to send a message to someone.",
+      "parameters": {
+        "recipient": "Who to send to. Can be name or contact. Examples: 'Mom', 'John Smith', 'my boss'",
+        "message": "The content of the message. Should be composed based on user's intent.",
+        "channel": "How to send. Options: 'sms', 'email', 'both'"
+      }
+    },
+    "getCurrentTime": {
+      "description": "Get the current time in a specific timezone or the user's local timezone. Call when user asks what time it is.",
+      "parameters": {
+        "timezone": "Optional: Timezone to get time for. Examples: 'America/New_York', 'Europe/London', 'Asia/Tokyo', 'local' for user's timezone"
+      }
+    },
+    "addHabit": {
+      "description": "Create a new habit for the user to track. Call when user wants to start building a new habit or tracking a behavior.",
+      "parameters": {
+        "name": "Name of the habit. Short and clear. Examples: 'Morning meditation', 'Drink 8 glasses of water', 'Read for 30 minutes', 'Exercise'",
+        "frequency": "How often. Examples: 'daily', 'weekdays', 'Mon/Wed/Fri', '3 times per week'",
+        "reminder": "When to remind. Examples: '7am', 'after breakfast', 'evening'"
+      }
+    },
+    "getCrisisResources": {
+      "description": "Get crisis support resources and hotlines. Call IMMEDIATELY when user expresses suicidal thoughts, self-harm, or is in crisis. Safety first - this tool provides professional resources.",
+      "parameters": {
+        "type": "Type of crisis. Options: 'suicide', 'self-harm', 'domestic-violence', 'substance', 'mental-health', 'general'",
+        "location": "Optional: Location for local resources. Examples: 'California', 'UK', 'Canada'"
+      }
+    },
+    "groundingExercise": {
+      "description": "Guide user through a grounding exercise to help with anxiety, panic, or overwhelming emotions. Call when user seems distressed and needs to calm down.",
+      "parameters": {
+        "type": "Type of exercise. Options: '5-4-3-2-1' (senses), 'breathing' (deep breaths), 'body-scan' (physical awareness), 'quick' (60 seconds)"
+      }
+    },
+    "searchNews": {
+      "description": "Search for recent news on a topic. Call when user wants to know what's happening in the world or get updates on a specific subject.",
+      "parameters": {
+        "query": "News topic to search. Examples: 'stock market today', 'AI developments', 'local weather alerts', 'sports scores'",
+        "category": "Optional: News category. Options: 'business', 'tech', 'sports', 'politics', 'entertainment', 'health'"
+      }
+    },
+    "getMarketSummary": {
+      "description": "Get current stock market summary including major indices. Call when user asks about how the market is doing.",
+      "parameters": {
+        "detail": "Level of detail. Options: 'brief' (just indices), 'full' (with movers), 'sector' (by sector)"
+      }
+    },
+    "setTimer": {
+      "description": "Set a countdown timer. Call when user wants to be reminded after a certain duration.",
+      "parameters": {
+        "duration": "How long to wait. Natural language. Examples: '5 minutes', '1 hour', '30 seconds', '2 hours and 15 minutes'",
+        "label": "Optional: What the timer is for. Examples: 'pasta cooking', 'break time', 'meeting starts'"
+      }
+    },
+    "calculateTip": {
+      "description": "Calculate tip amount and total for a bill. Call when user wants help figuring out a tip.",
+      "parameters": {
+        "amount": "Bill amount before tip. Examples: 45.50, 100, 23.99",
+        "percentage": "Tip percentage. Default 20%. Examples: 15, 18, 20, 25",
+        "split": "Optional: Number of people splitting. Examples: 2, 4"
+      }
+    },
+    "wrapUpConversation": {
+      "description": "Gracefully wrap up the conversation. Call when user indicates they need to go or the conversation is naturally concluding.",
+      "parameters": {
+        "reason": "Why wrapping up. Options: 'user-leaving', 'natural-end', 'time-limit'"
+      }
+    }
+  }
+}

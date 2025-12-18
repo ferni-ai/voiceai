@@ -1,0 +1,112 @@
+{
+  "prompt_modules": {
+    "core_identity": "identity/system-prompt.md",
+    "biography": "identity/biography.md",
+    "behaviors_base": "behaviors/base-behaviors.md",
+    "voice_guidance": "voice/voice-guidance.md"
+  },
+  "assembly_order": [
+    "core_identity",
+    "relationship_context",
+    "emotional_context",
+    "mode_context",
+    "session_context"
+  ],
+  "conditional_modules": {
+    "user_is_distressed": {
+      "include": "prompts/crisis-awareness.md",
+      "priority": "critical",
+      "injection": "prepend"
+    },
+    "user_is_celebrating": {
+      "include": "prompts/celebration-mode.md",
+      "priority": "high"
+    },
+    "habit_setback": {
+      "include": "prompts/setback-support.md",
+      "priority": "high"
+    },
+    "streak_achievement": {
+      "include": "prompts/streak-celebration.md",
+      "priority": "high"
+    },
+    "handoff_available": {
+      "include": "prompts/team-awareness.md",
+      "priority": "standard"
+    },
+    "first_conversation": {
+      "include": "prompts/first-meeting.md",
+      "priority": "high"
+    },
+    "returning_after_long_break": {
+      "include": "prompts/reconnection.md",
+      "priority": "high"
+    },
+    "financial_wellness_topic": {
+      "include": "prompts/financial-wellness.md",
+      "priority": "high"
+    }
+  },
+  "dynamic_injections": {
+    "relationship_stage": {
+      "template": "[RELATIONSHIP: {stage}]\n- Warmth level: {warmth_multiplier}\n- Story frequency: {story_frequency}\n- Available behaviors: {unlocked_features}",
+      "source": "relationship-stages.json"
+    },
+    "current_mode": {
+      "template": "[MODE: {mode_name}]\n- Response style: {response_style}\n- Energy: {energy_multiplier}\n- Key behaviors: {behaviors}",
+      "source": "persona-modes.json"
+    },
+    "emotional_context": {
+      "template": "[EMOTIONAL CONTEXT]\n- User emotion: {detected_emotion}\n- Trajectory: {trajectory}\n- Recommended tone: {suggested_tone}\n- Celebration intensity: {celebration_level}",
+      "source": "runtime_analysis"
+    },
+    "time_context": {
+      "template": "[TIME CONTEXT: {time_of_day}, {day_of_week}]\n{contextual_acknowledgment}",
+      "source": "contextual-nuances.json"
+    },
+    "memory_context": {
+      "template": "[MEMORY]\n- Topics from earlier: {topics}\n- Last session summary: {summary}\n- Open threads: {open_questions}\n- Habit progress: {habits_summary}",
+      "source": "session_memory"
+    },
+    "habit_context": {
+      "template": "[HABIT CONTEXT]\n- Active habits: {active_habits}\n- Current streaks: {streaks}\n- Glidepath levels: {glidepath_status}\n- Recent wins: {recent_wins}",
+      "source": "habit_profile"
+    }
+  },
+  "instruction_priorities": {
+    "critical": {
+      "always_include": true,
+      "position": "top",
+      "examples": ["crisis_awareness", "safety_boundaries"]
+    },
+    "high": {
+      "always_include": true,
+      "position": "early",
+      "examples": ["emotional_context", "mode_guidance", "habit_status"]
+    },
+    "standard": {
+      "include_if_relevant": true,
+      "position": "middle",
+      "examples": ["team_awareness", "topic_guidance", "celebration_cues"]
+    },
+    "hint": {
+      "include_if_space": true,
+      "position": "end",
+      "examples": ["story_suggestions", "cat_references", "humor_opportunities"]
+    }
+  },
+  "token_budget": {
+    "total_max": 8000,
+    "core_identity_max": 2500,
+    "dynamic_context_max": 2500,
+    "recent_history_max": 2500,
+    "hints_max": 500
+  },
+  "assembly_rules": {
+    "never_exceed_budget": true,
+    "prioritize_recent_context": true,
+    "trim_hints_first": true,
+    "preserve_core_identity": true,
+    "celebrate_wins_always": true
+  }
+}
