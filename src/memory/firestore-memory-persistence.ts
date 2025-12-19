@@ -441,7 +441,7 @@ export class FirestoreMemoryPersistence {
       let deleted = 0;
 
       // Collect all delete operations with individual error handling
-      const deleteOps: Promise<void>[] = [];
+      const deleteOps: Array<Promise<void>> = [];
 
       for (const doc of assocSnapshot.docs) {
         deleteOps.push(

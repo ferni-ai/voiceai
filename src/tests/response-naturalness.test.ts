@@ -4,7 +4,7 @@
  * Tests acknowledgment prefixes, thinking fillers, and catchphrase integration.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import {
   getAcknowledgmentPrefix,
@@ -269,7 +269,10 @@ describe('getResponseEnhancements', () => {
     resetCatchphraseTracking();
   });
 
-  it('should return prefix for non-greeting turns', () => {
+  it('should sometimes return prefix for non-greeting turns', () => {
+    // Mock random to always return low value to trigger prefix
+    vi.spyOn(Math, 'random').mockReturnValue(0.1);
+
     const result = getResponseEnhancements({
       personaId: 'nayan-patel',
       turnCount: 3,
@@ -278,7 +281,10 @@ describe('getResponseEnhancements', () => {
       isGreeting: false,
     });
 
+    // With mocked random, prefix should be added
     expect(result.prefix).toBeTruthy();
+
+    vi.restoreAllMocks();
   });
 
   it('should not return prefix for greetings', () => {

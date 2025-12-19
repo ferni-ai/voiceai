@@ -1421,6 +1421,132 @@ function initBetterThanHumanSignalHandlers(): void {
 }
 
 // ============================================================================
+// BEHAVIOR SYSTEM SIGNAL HANDLERS
+// Bidirectional behavior system - Code triggers speech, speech triggers code
+// ============================================================================
+
+/**
+ * Initialize behavior signal handlers from the bidirectional behavior system
+ */
+function initBehaviorSignalHandlers(): void {
+  // Mode shift - Ferni changed presence mode
+  window.addEventListener('ferni:eq-mode-shift', ((event: CustomEvent) => {
+    const { mode, reason } = event.detail;
+    handleBehaviorModeShift(mode, reason);
+  }) as EventListener);
+
+  // Expression - Non-verbal presence triggered
+  window.addEventListener('ferni:eq-expression', ((event: CustomEvent) => {
+    const { expression } = event.detail;
+    handleBehaviorExpression(expression);
+  }) as EventListener);
+
+  // Hold space - Intentional meaningful silence
+  window.addEventListener('ferni:eq-hold-space', ((event: CustomEvent) => {
+    const { duration, reason } = event.detail;
+    handleBehaviorHoldSpace(duration, reason);
+  }) as EventListener);
+
+  // Processing state change
+  window.addEventListener('ferni:eq-processing', ((event: CustomEvent) => {
+    const { started, expression } = event.detail;
+    handleBehaviorProcessing(started, expression);
+  }) as EventListener);
+
+  log.info('🔄 Behavior signal handlers initialized');
+}
+
+/**
+ * Handle behavior mode shift
+ */
+function handleBehaviorModeShift(mode: string, reason?: string): void {
+  log.debug('Behavior mode shift:', { mode, reason });
+
+  // Map mode to avatar expression
+  const modeExpressionMap: Record<string, EmotionalExpression> = {
+    presence: 'attentive',
+    deep_listening: 'attentive',
+    processing: 'thinking',
+    celebration: 'excited',
+    holding_space: 'empathy',
+    energy_match: 'neutral',
+    grounding: 'calm',
+  };
+
+  const expression = modeExpressionMap[mode];
+  if (expression) {
+    ferniExpressions.setExpression(expression);
+  }
+
+  // Adjust avatar state based on mode
+  if (mode === 'presence' || mode === 'holding_space' || mode === 'deep_listening') {
+    // Enter a more receptive state - slower, more present
+    setBreathSyncStrength(0.8);
+    setBreathSyncEnabled(true);
+  } else if (mode === 'celebration') {
+    // Energetic state
+    setBreathSyncStrength(0.3);
+  }
+}
+
+/**
+ * Handle behavior expression (non-verbal presence)
+ */
+function handleBehaviorExpression(expression: string): void {
+  log.debug('Behavior expression:', { expression });
+
+  // Map expression types to avatar responses
+  const expressionMap: Record<string, EmotionalExpression> = {
+    breath: 'calm',
+    hum: 'content',
+    nod: 'attentive',
+    sigh: 'empathy',
+    soft_sound: 'attentive',
+    yield: 'neutral',
+  };
+
+  const avatarExpression = expressionMap[expression];
+  if (avatarExpression) {
+    // Brief micro-expression for non-verbal presence
+    playMicroExpression(avatarExpression, { intensity: 0.6 });
+  }
+}
+
+/**
+ * Handle hold space (intentional silence)
+ */
+function handleBehaviorHoldSpace(duration: number, reason?: string): void {
+  log.debug('Behavior hold space:', { duration, reason });
+
+  // Set avatar to a gentle, present expression during hold space
+  ferniExpressions.setExpression('empathy');
+
+  // Slow down breath sync to match the contemplative moment
+  setBreathSyncStrength(0.9);
+
+  // After hold space ends, return to neutral
+  setTimeout(() => {
+    ferniExpressions.setExpression('neutral');
+    setBreathSyncStrength(0.5);
+  }, duration);
+}
+
+/**
+ * Handle processing state (visible thinking)
+ */
+function handleBehaviorProcessing(started: boolean, expression?: string): void {
+  log.debug('Behavior processing:', { started, expression });
+
+  if (started) {
+    // Show thinking expression
+    ferniExpressions.setExpression('thinking');
+  } else {
+    // Return to neutral after processing
+    ferniExpressions.setExpression('neutral');
+  }
+}
+
+// ============================================================================
 // INITIALIZATION
 // ============================================================================
 
@@ -1448,6 +1574,10 @@ export function initFerniEQ(): void {
   // 🌟 BETTER THAN HUMAN SIGNAL HANDLERS
   // These respond to signals from the backend superhuman capabilities
   initBetterThanHumanSignalHandlers();
+
+  // 🔄 BEHAVIOR SYSTEM SIGNAL HANDLERS
+  // Bidirectional behavior system - Code triggers speech, speech triggers code
+  initBehaviorSignalHandlers();
 
   // Periodic breath sync
   breathSyncInterval = setInterval(() => {

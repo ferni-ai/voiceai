@@ -832,3 +832,30 @@ export {
   type IntentCategory,
   type IntentPrediction,
 } from './anticipation/index.js';
+
+// ============================================================================
+// GRACEFUL INTERRUPT (Natural interrupt handling - NEW!)
+// ============================================================================
+
+export {
+  // State management
+  getInterruptState,
+  resetInterruptState,
+  // Core functions
+  addCushioning,
+  senseInterrupt,
+  getTrailingSsml,
+  getRecoverySsml,
+  endRecovery,
+  // Main integration
+  wrapWithInterruptAwareness,
+  // Constants
+  CUSHION_TIMING,
+  TRAILING_TRIGGERS,
+  // Types
+  type InterruptPhase,
+  type InterruptState,
+  type CushionedResponse,
+  type RecoveryOptions,
+  type RecoverySsml,
+} from './graceful-interrupt/index.js';

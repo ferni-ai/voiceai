@@ -415,15 +415,19 @@ export function applyPersonaVoiceFingerprint(
 
   // Apply emotion with intensity
   if (emotion) {
-    const intensityPrefix = options?.intensity === 'strong' ? 'very ' :
-                            options?.intensity === 'subtle' ? 'slightly ' : '';
+    const intensityPrefix =
+      options?.intensity === 'strong'
+        ? 'very '
+        : options?.intensity === 'subtle'
+          ? 'slightly '
+          : '';
     ssml += `<emotion value="${intensityPrefix}${emotion}"/>`;
   }
 
   // Maybe add nonverbal sound at the beginning
   if (options?.addNonverbal && Math.random() < profile.laughterFrequency) {
     const nonverbal = randomFrom(profile.nonverbals);
-    return ssml + nonverbal + ' ' + text;
+    return `${ssml + nonverbal} ${text}`;
   }
 
   return ssml + text;
@@ -451,10 +455,7 @@ export function isEmotionInPersonaRange(personaId: string, emotion: string): boo
  * Get appropriate emotion for a moment, constrained to persona's range.
  * Falls back to persona's default if the requested emotion isn't in their range.
  */
-export function getPersonaAppropriateEmotion(
-  personaId: string,
-  requestedEmotion: string
-): string {
+export function getPersonaAppropriateEmotion(personaId: string, requestedEmotion: string): string {
   const profile = getEmotionProfile(personaId);
 
   // If the requested emotion is in their range, use it

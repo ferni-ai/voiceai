@@ -61,10 +61,10 @@ describe('Voice Agent Entry - Module Structure', () => {
     const entryPath = path.resolve(__dirname, '../voice-agent-entry.ts');
     const content = await fs.readFile(entryPath, 'utf-8');
 
-    // Check that FerniAgent is used (agents now build their own tools internally)
+    // Check that FerniAgent is imported and used for persona agents
     expect(content).toContain('FerniAgent');
-    // The agent can use orchestrator tools OR internal tools
-    expect(content).toContain('tools built internally');
+    // Tool orchestration is handled by the orchestrator
+    expect(content).toContain('orchestrat');
   });
 
   it('should have frontend publisher integration', async () => {

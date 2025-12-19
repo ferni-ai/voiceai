@@ -231,6 +231,28 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
             }
           })()
         : Promise.resolve(),
+
+      // Personality resonance - flush to Firestore
+      userId
+        ? (async () => {
+            const { flushResonanceProfile } = await import(
+              '../../personas/bundles/ferni/personality-resonance-store.js'
+            );
+            await flushResonanceProfile(userId);
+            diag.session('🎭 Personality resonance profile persisted');
+          })()
+        : Promise.resolve(),
+
+      // LLM expressions - flush high-engagement to Firestore
+      userId
+        ? (async () => {
+            const { flushExpressions } = await import(
+              '../../personas/bundles/ferni/llm-expression-generator.js'
+            );
+            await flushExpressions(userId);
+            diag.session('🎭 High-engagement expressions persisted');
+          })()
+        : Promise.resolve(),
     ]);
 
     // Log any failures from persistence group
@@ -316,6 +338,16 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
             uniqueFeatures: analyticsStats.uniqueFeaturesUsed,
           });
         }
+      })(),
+
+      // Personality state cleanup (turn history, previous expressions)
+      (async () => {
+        const { cleanupPersonalityState } = await import('./turn-handler.js');
+        cleanupPersonalityState(sessionId);
+      })(),
+
+      // Prosody bridge cleanup
+      (async () => {
         cleanupProsodyBridge(sessionId);
       })(),
 

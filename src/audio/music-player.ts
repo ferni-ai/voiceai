@@ -1903,7 +1903,10 @@ let musicPlayerInstance: CallMusicPlayer | null = null;
 export function getMusicPlayer(): CallMusicPlayer {
   if (!musicPlayerInstance) {
     getLogger().info(
-      { timestamp: new Date().toISOString(), stack: new Error().stack?.split('\n').slice(1, 4).join(' <- ') },
+      {
+        timestamp: new Date().toISOString(),
+        stack: new Error().stack?.split('\n').slice(1, 4).join(' <- '),
+      },
       '🎵 [DIAG] Creating NEW music player singleton'
     );
     musicPlayerInstance = new CallMusicPlayer();

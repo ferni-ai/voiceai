@@ -139,6 +139,46 @@ export async function initConversationSession(
       }
     }
 
+    // Prewarm LLM expression cache (non-blocking)
+    // This loads persisted expressions AND generates new ones for common themes
+    if (config.personaId === 'ferni') {
+      // Ferni has the full "Better Than Human" personality system
+      try {
+        const { prewarmPersonalitySession } = await import(
+          '../../personas/bundles/ferni/personality-integration.js'
+        );
+        void prewarmPersonalitySession(config.userId, {
+          relationshipStage: config.relationshipStage,
+        });
+      } catch {
+        // Prewarm is optional - continue if it fails
+      }
+    } else {
+      // Other personas use the shared LLM expression system
+      try {
+        const { prewarmPersonaExpressions, hasPersonaExpressionSupport } = await import(
+          '../../personas/shared/persona-llm-expressions.js'
+        );
+        if (hasPersonaExpressionSupport(config.personaId)) {
+          const hour = new Date().getHours();
+          const timeOfDay =
+            hour >= 5 && hour < 12
+              ? 'morning'
+              : hour >= 12 && hour < 17
+                ? 'afternoon'
+                : hour >= 17 && hour < 22
+                  ? 'evening'
+                  : 'late_night';
+          void prewarmPersonaExpressions(config.personaId, {
+            timeOfDay,
+            relationshipStage: config.relationshipStage,
+          });
+        }
+      } catch {
+        // Prewarm is optional - continue if it fails
+      }
+    }
+
     log.info(
       {
         sessionId: config.sessionId,

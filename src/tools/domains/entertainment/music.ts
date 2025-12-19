@@ -50,6 +50,93 @@ const DEFAULT_MUSIC_CONFIG: MusicConfig = {
 // Mutable config - reset at start of each session via initializeMusicConfig()
 let musicConfig: MusicConfig = { ...DEFAULT_MUSIC_CONFIG };
 
+// ============================================================================
+// MUSIC INTENT DETECTION
+// ============================================================================
+
+/**
+ * Music intent types:
+ * - AMBIENT: Background music while chatting (30-sec previews are perfect)
+ * - LISTENING: User wants to actually hear a specific song (Spotify preferred)
+ */
+export type MusicIntent = 'ambient' | 'listening';
+
+/**
+ * Detect whether the user wants ambient background music or to actually listen.
+ * 
+ * AMBIENT signals (iTunes DJ mode - chains previews):
+ * - "Play some..." (vague/mood-based)
+ * - "Put on something..." 
+ * - "While we talk/chat..."
+ * - Mood words: relaxing, upbeat, focus, chill, background
+ * 
+ * LISTENING signals (Spotify full track):
+ * - "Play THE song..." (specific)
+ * - "I want to hear [artist/song]"
+ * - "On Spotify..."
+ * - Specific artist + song name together
+ */
+export function detectMusicIntent(query: string): MusicIntent {
+  const q = query.toLowerCase().trim();
+  
+  // LISTENING intent signals - user wants a specific full song
+  const listeningPatterns = [
+    /\bthe song\b/,                    // "play the song..."
+    /\bi want to hear\b/,              // "I want to hear..."
+    /\bi want to listen\b/,            // "I want to listen to..."
+    /\bon spotify\b/,                  // "...on Spotify"
+    /\bfull (song|track|version)\b/,   // "full song"
+    /\bactually (play|listen|hear)\b/, // "actually play..."
+    /\bqueue\b/,                       // "queue up..."
+    /\bby .+ called\b/,                // "by Taylor Swift called..."
+    /^play .+ by .+ $/,                // "play [song] by [artist]" (specific)
+  ];
+  
+  // AMBIENT intent signals - background music for conversation
+  const ambientPatterns = [
+    /\bsome\b/,                        // "play some jazz"
+    /\bsomething\b/,                   // "put on something"
+    /\bwhile we\b/,                    // "while we talk"
+    /\bbackground\b/,                  // "background music"
+    /\bambient\b/,                     // "ambient"
+    /\bmood\b/,                        // "set the mood"
+    /\bvibes?\b/,                      // "good vibes"
+    /\brelaxing\b/,                    // mood-based
+    /\bchill\b/,
+    /\bupbeat\b/,
+    /\bfocus\b/,
+    /\bcalm\b/,
+    /\benergetic\b/,
+    /\bmellow\b/,
+  ];
+  
+  // Check for explicit listening intent first
+  for (const pattern of listeningPatterns) {
+    if (pattern.test(q)) {
+      getLogger().debug({ query, pattern: pattern.source }, '🎵 Detected LISTENING intent');
+      return 'listening';
+    }
+  }
+  
+  // Check for ambient intent
+  for (const pattern of ambientPatterns) {
+    if (pattern.test(q)) {
+      getLogger().debug({ query, pattern: pattern.source }, '🎵 Detected AMBIENT intent');
+      return 'ambient';
+    }
+  }
+  
+  // Default: short/vague queries → ambient, longer specific queries → listening
+  const words = q.split(/\s+/).filter(w => w.length > 2);
+  if (words.length <= 3) {
+    getLogger().debug({ query, wordCount: words.length }, '🎵 Short query → AMBIENT intent');
+    return 'ambient';
+  }
+  
+  getLogger().debug({ query, wordCount: words.length }, '🎵 Specific query → LISTENING intent');
+  return 'listening';
+}
+
 /**
  * Check if Spotify is available for this session.
  */
@@ -93,35 +180,169 @@ export function resetMusicConfig(): void {
 }
 
 // ============================================================================
-// UNIFIED PLAYBACK
+// UNIFIED PLAYBACK (Intent-Based Routing)
 // ============================================================================
 
 /**
- * Play music using the best available source.
+ * Play music using INTENT-BASED routing for the best experience.
  *
- * Priority (AUTO-DETECT):
- * 1. If Spotify is linked → Use Spotify (full songs!)
- * 2. Otherwise → iTunes previews (30-second samples, works for everyone)
+ * 🎵 AMBIENT (background music while chatting):
+ *    - Uses iTunes DJ mode - chains 30-second previews with crossfades
+ *    - ALWAYS works, no device issues
+ *    - Perfect for conversation - natural segments
+ *    - Example: "Play some jazz", "Put on something relaxing"
  *
- * No explicit user request needed - just works with whatever they have.
+ * 🎧 LISTENING (user wants to actually hear a song):
+ *    - Uses Spotify if linked + device available
+ *    - Falls back to iTunes preview with helpful message
+ *    - Example: "Play 'All Too Well' by Taylor Swift", "I want to hear..."
  */
 export async function playMusicUnified(query: string): Promise<string> {
   const log = getLogger();
-  log.debug('playMusicUnified called', {
-    query,
+  const intent = detectMusicIntent(query);
+  
+  log.info({ 
+    query, 
+    intent,
     spotifyLinked: musicConfig.spotifyLinked,
-  });
-  log.info({ query, spotifyLinked: musicConfig.spotifyLinked }, '🎵 Playing music');
+  }, '🎵 Playing music (intent-based routing)');
 
-  // AUTO-DETECT: Use Spotify if linked, otherwise iTunes
-  if (musicConfig.spotifyLinked) {
-    log.info({ query }, '🎵 Using Spotify (user has linked account)');
-    return playViaSpotify(query);
+  // AMBIENT INTENT: Always use iTunes DJ mode (chains previews, always works)
+  if (intent === 'ambient') {
+    log.info({ query }, '🎵 AMBIENT mode: Using iTunes DJ (chains previews)');
+    return playAmbientMusic(query);
   }
 
-  // Fallback: iTunes 30-second previews (works for everyone!)
-  log.info({ query }, '🎵 Using iTunes previews (no Spotify linked)');
-  return playViaItunes(query);
+  // LISTENING INTENT: Try Spotify first, graceful fallback
+  if (musicConfig.spotifyLinked) {
+    log.info({ query }, '🎵 LISTENING mode: Trying Spotify...');
+    const result = await playViaSpotify(query);
+    
+    // Check if Spotify failed due to device issue
+    if (result.includes("can't play it yet") || result.includes('no active device')) {
+      log.info({ query }, '🎵 Spotify device unavailable, falling back to iTunes preview');
+      return playViaItunesWithListeningFallback(query);
+    }
+    
+    return result;
+  }
+
+  // No Spotify: Use iTunes with "listening" framing
+  log.info({ query }, '🎵 LISTENING mode: No Spotify, using iTunes preview');
+  return playViaItunesWithListeningFallback(query);
+}
+
+/**
+ * Play ambient background music - chains iTunes previews like a DJ.
+ * Perfect for conversation - 30-second segments with smooth crossfades.
+ * 
+ * 🎧 DJ AMBIENT MODE:
+ * - Searches for multiple tracks matching the mood/genre
+ * - Queues them up for continuous playback
+ * - Music player handles crossfades between tracks
+ * - Each preview is ~30 seconds - perfect for conversation!
+ */
+async function playAmbientMusic(query: string): Promise<string> {
+  const log = getLogger();
+  log.info({ query }, '🎧 DJ Ambient Mode: Starting...');
+  
+  // Search for multiple tracks to queue
+  const searchResults = await searchItunes(query, 5);
+  
+  if (searchResults.resultCount === 0 || !searchResults.results.length) {
+    log.warn({ query }, '🎧 No tracks found for ambient mode');
+    return `Couldn't find any ${query} tracks. Want to try something else?`;
+  }
+  
+  // Filter to only tracks with preview URLs
+  const tracksWithPreviews = searchResults.results.filter(t => t.previewUrl);
+  
+  if (tracksWithPreviews.length === 0) {
+    log.warn({ query }, '🎧 Found tracks but none have previews');
+    return `Found some ${query} tracks but none have previews available. Try a different search?`;
+  }
+  
+  // Get the music player
+  const musicPlayer = getMusicPlayer();
+  
+  if (!musicPlayer.isInitialized()) {
+    log.warn('🎧 Music player not initialized for ambient mode');
+    // Fall back to single track mode
+    return playViaItunes(query);
+  }
+  
+  // Play the first track immediately
+  const firstTrack = tracksWithPreviews[0];
+  const ITUNES_PREVIEW_DURATION_MS = 30000;
+  
+  const musicTrack: MusicTrack = {
+    name: firstTrack.trackName,
+    artist: firstTrack.artistName,
+    previewUrl: firstTrack.previewUrl!,
+    duration: ITUNES_PREVIEW_DURATION_MS,
+  };
+  
+  const success = await musicPlayer.playFromUrl(firstTrack.previewUrl!, musicTrack);
+  
+  if (!success) {
+    log.error({ track: firstTrack.trackName }, '🎧 Failed to start ambient playback');
+    return `Had trouble starting the music. Want to try again?`;
+  }
+  
+  // Queue remaining tracks for continuous playback
+  const queuedCount = Math.min(tracksWithPreviews.length - 1, 4); // Queue up to 4 more
+  
+  for (let i = 1; i <= queuedCount; i++) {
+    const track = tracksWithPreviews[i];
+    musicPlayer.addToQueue({
+      name: track.trackName,
+      artist: track.artistName,
+      previewUrl: track.previewUrl!,
+      duration: ITUNES_PREVIEW_DURATION_MS,
+    });
+  }
+  
+  log.info({ 
+    firstTrack: firstTrack.trackName,
+    queuedTracks: queuedCount,
+    totalDuration: `~${(queuedCount + 1) * 30}s`,
+  }, '🎧 DJ Ambient Mode: Playlist ready!');
+  
+  // Return ambient-style response (short, doesn't interrupt conversation)
+  const ambientResponses = [
+    "Here's some vibes...",
+    "Setting the mood...",
+    "Got something for you...",
+    `Some ${query} coming up...`,
+    "",  // Sometimes just play silently and let the music speak!
+  ];
+  
+  return ambientResponses[Math.floor(Math.random() * ambientResponses.length)];
+}
+
+/**
+ * iTunes fallback when user wanted Spotify but it's unavailable.
+ * Provides helpful context about the preview.
+ */
+async function playViaItunesWithListeningFallback(query: string): Promise<string> {
+  const log = getLogger();
+  const result = await playViaItunes(query);
+  
+  // If playback succeeded, add context about it being a preview
+  if (!result.includes("couldn't") && !result.includes("trouble")) {
+    // Extract track name from result if possible
+    const trackMatch = result.match(/"([^"]+)"/);
+    const trackName = trackMatch ? trackMatch[1] : 'that';
+    
+    const fallbackResponses = [
+      `Here's a taste of ${trackName}... open Spotify to hear the full thing!`,
+      `Playing a preview... want the full song? Open Spotify and I'll queue it up.`,
+      `Here's 30 seconds of ${trackName}. The full track's on Spotify when you're ready!`,
+    ];
+    return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+  }
+  
+  return result;
 }
 
 /**

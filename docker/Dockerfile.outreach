@@ -1,0 +1,51 @@
+# Outreach Worker Dockerfile
+# Processes outreach triggers from Pub/Sub
+# Runs as a Cloud Run Job, scheduled every 5 minutes
+
+FROM node:20-slim AS builder
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm@9.15.5
+
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
+COPY patches ./patches/
+
+# Install dependencies (production only)
+RUN pnpm install --frozen-lockfile --prod=false
+
+# Copy source
+COPY src ./src
+COPY tsconfig.json tsconfig.build.json ./
+
+# Build
+RUN pnpm build:fast
+
+# Production stage
+FROM node:20-slim AS runner
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm@9.15.5
+
+# Copy package files and install production dependencies
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --prod
+
+# Copy built code
+COPY --from=builder /app/dist ./dist
+
+# Set environment
+ENV NODE_ENV=production
+ENV GOOGLE_CLOUD_PROJECT=ferni-prod
+
+# Health check (for monitoring)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD node -e "console.log('healthy')" || exit 1
+
+# Run the outreach worker
+CMD ["node", "--max-old-space-size=512", "dist/workers/outreach-worker.js"]
+

@@ -66,6 +66,8 @@ import {
 } from '../utils/tone-detection.js';
 // 🌉 Humanization Bridge - Connects backend humanization to frontend EQ
 import { humanizationBridge } from '../services/humanization-bridge.service.js';
+// 🔄 Behavior Signal Service - Bidirectional behavior system
+import { behaviorSignalService } from '../services/behavior-signal.service.js';
 // 🎭 Persona Intro - Team member unlock modal
 import { personaIntro } from '../ui/persona-intro.ui.js';
 // 🔓 Team unlock service - For marking members as unlocked
@@ -101,6 +103,13 @@ export function handleDataMessage(message: DataMessage): void {
   // 🌉 Try to process as humanization signal (breakthrough, vulnerability, etc.)
   // This is the bridge that makes Ferni feel truly human
   if (humanizationBridge.processMessage(message)) {
+    return;
+  }
+
+  // 🔄 Try to process as behavior signal (bidirectional behavior system)
+  // These signals change HOW Ferni appears (avatar mode, pacing, expressions)
+  if (behaviorSignalService.isBehaviorSignalMessage(message)) {
+    behaviorSignalService.processBehaviorSignal(message);
     return;
   }
 

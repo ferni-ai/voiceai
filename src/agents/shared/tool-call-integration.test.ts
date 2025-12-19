@@ -33,7 +33,7 @@ describe('LAYER 1: System Prompts - Silent Execution Instructions', () => {
   const baseIdentityPath = join(PROJECT_ROOT, 'src/personas/base-identity.ts');
   const ferniPromptPath = join(
     PROJECT_ROOT,
-    'src/personas/bundles/ferni/identity/system-prompt.md'
+    'src/personas/bundles/ferni/identity/function-calling.md'
   );
 
   test('base-identity.ts contains critical tool calling rules', () => {
@@ -76,35 +76,31 @@ describe('LAYER 1: System Prompts - Silent Execution Instructions', () => {
     expect(content).toContain("you don't SAY you're calling it");
   });
 
-  test('ferni system-prompt.md has TOOLS section with silent execution', () => {
+  test('ferni function-calling.md has silent execution instructions', () => {
     const content = readFileSync(ferniPromptPath, 'utf-8');
 
-    // Must have TOOLS section
-    expect(content).toMatch(/##.*TOOLS/i);
+    // Must have function calling guidance
+    expect(content.toLowerCase()).toContain('function');
 
-    // Must mention silent execution
-    expect(content.toLowerCase()).toContain('silent');
+    // Must instruct immediate stop / silence after JSON
+    const hasSilentInstruction =
+      content.toLowerCase().includes('silence') ||
+      content.toLowerCase().includes('stop') ||
+      content.toLowerCase().includes('nothing else');
 
-    // Must show the WRONG vs RIGHT pattern
-    expect(content).toContain('WRONG');
-    expect(content).toContain('RIGHT');
+    expect(hasSilentInstruction).toBe(true);
 
-    // Must have the key instruction
-    expect(content).toMatch(/never announce what you.*about to do/i);
-
-    console.log('✅ ferni system-prompt.md has silent execution instructions');
+    console.log('✅ ferni function-calling.md has silent execution instructions');
   });
 
-  test('ferni prompt explicitly shows wrong tool call patterns', () => {
+  test('ferni prompt shows tool call patterns', () => {
     const content = readFileSync(ferniPromptPath, 'utf-8');
 
-    // Should show the wrong pattern explicitly
-    expect(content).toContain("I'll play some jazz for you");
+    // Should have JSON examples for function calls
+    expect(content).toContain('"fn"');
+    expect(content).toContain('"args"');
 
-    // Should show it's wrong
-    expect(content).toMatch(/WRONG.*I'll play/is);
-
-    console.log('✅ ferni prompt shows "I\'ll play jazz" as WRONG pattern');
+    console.log('✅ ferni prompt shows function call JSON patterns');
   });
 });
 

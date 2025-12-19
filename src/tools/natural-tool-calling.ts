@@ -12,11 +12,19 @@
  * > "Better than human" means using superhuman capabilities
  * > while expressing them in deeply human ways.
  *
+ * INTEGRATION: Uses ProcessingIntelligence for context-aware processing phrases
+ * when available. Falls back to legacy PRE_CALL_PHRASES for compatibility.
+ *
  * @module NaturalToolCalling
  */
 
 import { createLogger } from '../utils/safe-logger.js';
 import { loadPersonaBehaviors, getRandomPhraseClean } from '../services/persona-content-loader.js';
+import {
+  getToolCallProcessing,
+  formatProcessingAsSSML,
+  type ProcessingResult,
+} from '../intelligence/processing-intelligence.js';
 
 const log = createLogger({ module: 'NaturalToolCalling' });
 
@@ -188,6 +196,82 @@ export function getNaturalToolCall(toolName: string, context: ToolContext): Natu
     postCallTransition,
     hideToolUsage,
   };
+}
+
+/**
+ * Get context-aware tool call processing phrase
+ *
+ * Uses ProcessingIntelligence for dynamic phrase composition based on context.
+ * This is the preferred method for new code.
+ *
+ * @param toolName - The tool being called
+ * @param context - Tool call context
+ * @returns SSML-formatted processing phrase with pauses
+ */
+export function getContextAwareToolProcessing(
+  toolName: string,
+  context: ToolContext
+): { phrase: string; ssml: string; prePause: number; postPause: number } {
+  // Determine weight based on tool complexity and context
+  const weight = getToolComplexityWeight(toolName, context);
+
+  try {
+    const result = getToolCallProcessing(toolName, weight);
+    const ssml = formatProcessingAsSSML(result);
+
+    return {
+      phrase: result.phrase,
+      ssml,
+      prePause: result.prePause,
+      postPause: result.postPause,
+    };
+  } catch {
+    // Fallback to legacy system
+    const legacy = getNaturalToolCall(toolName, context);
+    return {
+      phrase: legacy.preCallPhrase,
+      ssml: legacy.thinkingSound + legacy.preCallPhrase,
+      prePause: 200,
+      postPause: 200,
+    };
+  }
+}
+
+/**
+ * Determine tool complexity weight
+ */
+function getToolComplexityWeight(
+  toolName: string,
+  context: ToolContext
+): 'light' | 'medium' | 'heavy' {
+  const name = toolName.toLowerCase();
+
+  // Heavy operations
+  if (
+    name.includes('search') ||
+    name.includes('analyze') ||
+    name.includes('research') ||
+    name.includes('complex')
+  ) {
+    return 'heavy';
+  }
+
+  // Light operations
+  if (
+    name.includes('get') ||
+    name.includes('check') ||
+    name.includes('status') ||
+    name.includes('simple')
+  ) {
+    return 'light';
+  }
+
+  // Consider emotional context
+  if (context.isUserDistressed) {
+    return 'heavy'; // Take more visible time when user is distressed
+  }
+
+  return 'medium';
 }
 
 /**

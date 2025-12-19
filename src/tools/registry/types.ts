@@ -73,7 +73,8 @@ export type ToolDomain =
   | 'workflow-mastery' // Workflow optimization, process improvement, efficiency
   | 'habit-persistence' // Habit tracking persistence and behavioral insights
   | 'milestone-mastery' // Milestone tracking and achievement recognition
-  | 'developer'; // Developer tools: CLI commands, file editing, bash
+  | 'developer' // Developer tools: CLI commands, file editing, bash
+  | 'behavior'; // Behavior control: modes, pacing, processing, presence
 
 /**
  * All available tool domains
@@ -132,6 +133,7 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'habit-persistence',
   'milestone-mastery',
   'developer',
+  'behavior',
 ] as const;
 
 // ============================================================================
@@ -208,6 +210,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   'habit-persistence': 'lifestyle', // Habit tracking persistence
   'milestone-mastery': 'lifestyle', // Achievement tracking
   developer: 'productivity', // Developer tools for coding and CLI
+  behavior: 'core', // Behavior control - core to how Ferni speaks
 };
 
 // ============================================================================

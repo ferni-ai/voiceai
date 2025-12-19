@@ -677,7 +677,7 @@ export class EngagementStore {
         const snapshot = await docRef.collection(subcol).get();
 
         // Process in batches to respect Firestore's 500-operation limit
-        const docs = snapshot.docs;
+        const { docs } = snapshot;
         for (let i = 0; i < docs.length; i += this.FIRESTORE_BATCH_LIMIT) {
           const chunk = docs.slice(i, i + this.FIRESTORE_BATCH_LIMIT);
           const batch = this.db.batch();

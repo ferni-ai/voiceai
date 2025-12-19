@@ -12,20 +12,19 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock logger
-vi.mock('../../utils/safe-logger.js', () => ({
-  getLogger: () => ({
+vi.mock('../../utils/safe-logger.js', () => {
+  const mockLogger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-    child: vi.fn(() => ({
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-    })),
-  }),
-}));
+    child: vi.fn().mockReturnThis(),
+  };
+  return {
+    getLogger: () => mockLogger,
+    createLogger: () => mockLogger,
+  };
+});
 
 // Mock marketplace modules
 vi.mock('../../marketplace/index.js', () => ({

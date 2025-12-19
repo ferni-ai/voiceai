@@ -1110,7 +1110,7 @@ class MayaGamificationStore {
       const subcollections = ['badges', 'challenges', 'behavior_tools', 'mood_logs'];
       for (const subcol of subcollections) {
         const snapshot = await userGamificationRef.doc(subcol).collection('items').get();
-        const docs = snapshot.docs;
+        const { docs } = snapshot;
 
         for (let i = 0; i < docs.length; i += this.FIRESTORE_BATCH_LIMIT) {
           const chunk = docs.slice(i, i + this.FIRESTORE_BATCH_LIMIT);

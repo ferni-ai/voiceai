@@ -76,7 +76,7 @@ async function testGeminiToolCalling() {
   console.log('BASELINE TOOL CALLING TEST');
   console.log('='.repeat(60));
   console.log('\nSystem Prompt (simplified):');
-  console.log(SIMPLE_SYSTEM_PROMPT.slice(0, 200) + '...\n');
+  console.log(`${SIMPLE_SYSTEM_PROMPT.slice(0, 200)}...\n`);
 
   console.log('Tools registered:');
   for (const [name, tool] of Object.entries(BASELINE_TOOLS)) {
@@ -103,7 +103,7 @@ async function testGeminiToolCalling() {
   console.log('\n📋 Model options check:');
   console.log('   - toolChoice stored:', modelOptions?.toolChoice);
 
-  console.log('\n' + '='.repeat(60));
+  console.log(`\n${'='.repeat(60)}`);
   console.log('TEST PROMPTS TO TRY:');
   console.log('='.repeat(60));
   console.log('1. "Play some jazz music"');

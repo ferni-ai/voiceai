@@ -37,6 +37,27 @@ import {
   getPostMusicCheckIn,
   type MusicHumanizationController,
 } from '../../audio/music-humanization.js';
+// 🧠 Intelligent Music Transitions - context-aware responses when music ends
+import {
+  getIntelligentMusicTransition,
+  getMusicTransition,
+  logTransitionDecision,
+  recordTransitionFeedback,
+  type EnhancedTransitionResult,
+} from '../../audio/intelligent-music-transitions.js';
+import {
+  clearMusicContext,
+  endMusicContext,
+  getMusicContext,
+  inferMusicStartReason,
+  startMusicContext,
+  detectMidThought,
+} from '../../audio/music-session-context.js';
+import {
+  registerMusicFeedbackRecorder,
+  markMusicEnded,
+  clearMusicFeedbackRecorder,
+} from '../../audio/music-feedback-manager.js';
 import { isMusicEnabled } from '../../config/environment.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
@@ -60,6 +81,12 @@ export interface MusicHandlerContext {
   sessionPersona: PersonaConfig;
   /** Conversation manager for checking agent speaking state */
   conversationManager: ConversationManager;
+  /** Session ID for context tracking */
+  sessionId: string;
+  /** User data for context (emotions, topics, etc.) */
+  userData: UserData;
+  /** User ID for per-user learning (required for enhanced transitions) */
+  userId?: string;
 }
 
 export interface MusicHandlerResult {
@@ -71,6 +98,21 @@ export interface MusicHandlerResult {
   clearTimers: () => void;
   /** Whether music was initialized */
   initialized: boolean;
+  /**
+   * Record feedback for the last music transition
+   * Call this when user speaks after music ends to improve per-user learning.
+   *
+   * @param feedback.userResponse - What the user said after transition
+   * @param feedback.wasPositive - Whether the response seemed positive
+   * @param feedback.voiceTone - Detected voice tone (warmer/calmer/neutral)
+   * @param feedback.continuedSession - Whether user continued the session
+   */
+  recordMusicFeedback?: (feedback: {
+    userResponse?: string;
+    wasPositive?: boolean;
+    voiceTone?: 'warmer' | 'calmer' | 'energized' | 'neutral';
+    continuedSession?: boolean;
+  }) => void;
 }
 
 // ============================================================================
@@ -85,7 +127,11 @@ export interface MusicHandlerResult {
  * before the music player is ready, causing silent "simulation mode" playback.
  */
 export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<MusicHandlerResult> {
-  const { room, session, services, sessionPersona, conversationManager } = ctx;
+  const { room, session, services, sessionPersona, conversationManager, sessionId, userData, userId } = ctx;
+
+  // Track last transition for feedback recording
+  let lastTransitionResult: EnhancedTransitionResult | null = null;
+  let lastTransitionTimestamp: number | null = null;
 
   let djBooth: DJBooth | null = null;
   let musicHumanization: MusicHumanizationController | null = null;
@@ -224,62 +270,146 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
       }
 
       if (wasAmbient) {
-        // 🐛 FIX: Only announce ambient music ending 20% of the time
-        // Ambient music is meant to be subtle - constant announcements are jarring
-        // The user may not have even noticed music was playing
-        if (Math.random() < 0.2) {
-          const comeBackPhrase = getAmbientMusicEndedPhrase(sessionPersona.id);
-          diag.state('Ambient music ended, agent coming back', { track: track.name });
+        // 🧠 INTELLIGENT TRANSITIONS FOR AMBIENT MUSIC
+        // Ambient music is meant to be subtle - we use intelligent transitions
+        // which strongly favor silence (ambient → background reason → ~50% silence)
+        //
+        // Enhanced with per-user learning and analytics!
+
+        // Finalize the music session context (may have been captured when music started)
+        const ambientContext = endMusicContext(sessionId);
+
+        // If no context was captured, create a minimal one for ambient
+        const effectiveContext = ambientContext || {
+          startReason: 'background' as const,
+          musicStartedAt: Date.now() - 30000, // Estimate
+          wasAmbient: true,
+        };
+
+        const currentHour = new Date().getHours();
+        const isLateNight = currentHour >= 22 || currentHour < 6;
+
+        // 🎯 USE ENHANCED TRANSITION (with analytics + learning + memory)
+        const ambientTransition = getMusicTransition({
+          musicContext: effectiveContext,
+          personaId: sessionPersona.id,
+          relationshipStage: userData.relationshipStage as 'stranger' | 'acquaintance' | 'friend' | 'close_friend' | undefined,
+          isLateNight,
+          userId: userId || services.userId, // Pass userId for per-user learning
+          sessionId,
+          enableEnhancements: !!(userId || services.userId), // Only enable if we have userId
+        });
+
+        // Track for feedback recording
+        lastTransitionResult = ambientTransition;
+        lastTransitionTimestamp = Date.now();
+        markMusicEnded(); // Signal that music has ended for feedback window
+
+        logTransitionDecision(sessionId, {
+          musicContext: effectiveContext,
+          personaId: sessionPersona.id,
+          relationshipStage: userData.relationshipStage as 'stranger' | 'acquaintance' | 'friend' | 'close_friend' | undefined,
+          isLateNight,
+        }, ambientTransition);
+
+        if (ambientTransition.shouldSpeak && ambientTransition.phrase) {
+          diag.state('🧠 Ambient music - intelligent transition (speaking)', {
+            track: track.name,
+            transitionType: ambientTransition.transitionType,
+            reasoning: ambientTransition.reasoning,
+            usedUserLearning: ambientTransition.usedUserLearning,
+            eventId: ambientTransition.eventId,
+          });
 
           try {
-            session.say(comeBackPhrase, { allowInterruptions: true });
+            session.say(ambientTransition.phrase, { allowInterruptions: true });
           } catch (e) {
-            diag.warn('Failed to say music-ended phrase', { error: String(e) });
+            diag.warn('Failed to say ambient transition phrase', { error: String(e) });
           }
         } else {
-          diag.state('🎵 Ambient music ended - staying quiet (letting silence breathe)', {
+          diag.state('🧠 Ambient music - intelligent transition (silence)', {
             track: track.name,
+            transitionType: ambientTransition.transitionType,
+            reasoning: ambientTransition.reasoning,
+            usedUserLearning: ambientTransition.usedUserLearning,
           });
         }
-      } else {
-        // 🎵 HUMANIZED MUSIC ENDING - User-requested music just ended
-        // Wait for natural silence, then gently check in (not always)
-        // This is the "let it breathe" moment after music fades
 
-        // 70% chance to speak - sometimes silence is golden
-        if (Math.random() < 0.7) {
+        clearMusicContext(sessionId);
+      } else {
+        // 🧠 INTELLIGENT MUSIC TRANSITIONS
+        // Instead of random phrases, use full conversation context to determine
+        // the most human response. Sometimes that's silence. Sometimes it's
+        // referencing what we were discussing. Sometimes it's matching the energy.
+        //
+        // > "We believe in making AI human, and the decisions we make will reflect that."
+        //
+        // Enhanced with per-user learning, analytics, and music memory!
+
+        // Finalize the music session context
+        const musicContext = endMusicContext(sessionId);
+
+        // Determine the current hour for late-night awareness
+        const currentHour = new Date().getHours();
+        const isLateNight = currentHour >= 22 || currentHour < 6;
+
+        // 🎯 USE ENHANCED TRANSITION (with analytics + learning + memory)
+        const transitionResult = getMusicTransition({
+          musicContext,
+          personaId: sessionPersona.id,
+          relationshipStage: userData.relationshipStage as 'stranger' | 'acquaintance' | 'friend' | 'close_friend' | undefined,
+          isLateNight,
+          userId: userId || services.userId, // Pass userId for per-user learning
+          sessionId,
+          enableEnhancements: !!(userId || services.userId), // Only enable if we have userId
+        });
+
+        // Track for feedback recording
+        lastTransitionResult = transitionResult;
+        lastTransitionTimestamp = Date.now();
+        markMusicEnded(); // Signal that music has ended for feedback window
+
+        // Log the decision for analytics
+        logTransitionDecision(sessionId, {
+          musicContext,
+          personaId: sessionPersona.id,
+          relationshipStage: userData.relationshipStage as 'stranger' | 'acquaintance' | 'friend' | 'close_friend' | undefined,
+          isLateNight,
+        }, transitionResult);
+
+        if (transitionResult.shouldSpeak && transitionResult.phrase) {
           // Natural pause after music ends (600-1000ms feels human)
           const pauseMs = 600 + Math.floor(Math.random() * 400);
 
           setTimeout(() => {
             try {
-              // Gentle, non-DJ phrases - just checking in naturally
-              const gentlePhrases = [
-                '<break time="300ms"/>That was nice.',
-                '<break time="300ms"/>Mm.',
-                '<break time="400ms"/>How are you feeling?',
-                '<break time="300ms"/>Good song.',
-                '<break time="400ms"/>Where were we?',
-                '<break time="300ms"/>Ready to continue?',
-              ];
-              const phrase = gentlePhrases[Math.floor(Math.random() * gentlePhrases.length)];
-
-              diag.state('🎵 Music ended - gentle check-in', {
+              diag.state('🧠 Intelligent music transition', {
                 track: track.name,
-                phrase,
-                pauseMs,
+                phrase: transitionResult.phrase?.slice(0, 50),
+                transitionType: transitionResult.transitionType,
+                reasoning: transitionResult.reasoning,
+                confidence: transitionResult.confidence,
+                usedUserLearning: transitionResult.usedUserLearning,
+                eventId: transitionResult.eventId,
               });
 
-              session.say(phrase, { allowInterruptions: true });
+              session.say(transitionResult.phrase!, { allowInterruptions: true });
             } catch (e) {
-              diag.warn('Failed to say music-ended phrase', { error: String(e) });
+              diag.warn('Failed to say music transition phrase', { error: String(e) });
             }
           }, pauseMs);
         } else {
-          diag.state('🎵 Music ended - staying quiet (letting silence breathe)', {
+          diag.state('🧠 Intelligent music transition - silence chosen', {
             track: track.name,
+            transitionType: transitionResult.transitionType,
+            reasoning: transitionResult.reasoning,
+            confidence: transitionResult.confidence,
+            usedUserLearning: transitionResult.usedUserLearning,
           });
         }
+
+        // Clear the context after handling
+        clearMusicContext(sessionId);
       }
     });
 
@@ -322,15 +452,83 @@ export async function setupMusicHandler(ctx: MusicHandlerContext): Promise<Music
       },
       (timer) => {
         readTheRoomTimer = timer;
-      }
+      },
+      sessionId,
+      userData
     );
+
+    // 📊 Create feedback recording function for per-user learning
+    const recordMusicFeedbackLocal = (feedback: {
+      userResponse?: string;
+      wasPositive?: boolean;
+      voiceTone?: 'warmer' | 'calmer' | 'energized' | 'neutral';
+      continuedSession?: boolean;
+    }) => {
+      // Only record if we have a recent transition and userId
+      const effectiveUserId = userId || services.userId;
+      if (!lastTransitionResult || !effectiveUserId || !lastTransitionTimestamp) {
+        diag.state('📊 No recent transition to record feedback for');
+        return;
+      }
+
+      // Only record feedback for transitions within the last 2 minutes
+      const timeSinceTransition = Date.now() - lastTransitionTimestamp;
+      if (timeSinceTransition > 2 * 60 * 1000) {
+        diag.state('📊 Transition too old for feedback', { ageMs: timeSinceTransition });
+        return;
+      }
+
+      // Determine if positive based on signals
+      const wasPositive = feedback.wasPositive ??
+        (feedback.voiceTone === 'warmer' || feedback.voiceTone === 'calmer') ??
+        false;
+
+      // Calculate confidence based on signal strength
+      const confidence =
+        (feedback.userResponse ? 0.4 : 0) +
+        (feedback.voiceTone && feedback.voiceTone !== 'neutral' ? 0.3 : 0) +
+        (feedback.wasPositive !== undefined ? 0.3 : 0.1);
+
+      try {
+        recordTransitionFeedback(
+          lastTransitionResult.eventId || '',
+          effectiveUserId,
+          lastTransitionResult.transitionType,
+          {
+            wasPositive,
+            confidence: Math.min(1, confidence),
+            userResponse: feedback.userResponse,
+            continuedSession: feedback.continuedSession,
+          },
+          {
+            musicContext: getMusicContext(sessionId) || undefined,
+          }
+        );
+
+        diag.state('📊 Music transition feedback recorded', {
+          transitionType: lastTransitionResult.transitionType,
+          wasPositive,
+          confidence,
+          timeSinceTransition,
+        });
+
+        // Clear after recording to avoid duplicate feedback
+        lastTransitionResult = null;
+        lastTransitionTimestamp = null;
+      } catch (e) {
+        diag.warn('📊 Failed to record music feedback', { error: String(e) });
+      }
+    };
+
+    // 📊 Register the feedback recorder globally so transcript handler can use it
+    registerMusicFeedbackRecorder(sessionId, recordMusicFeedbackLocal);
 
     diag.state('🎵 [DIAG] Music player SUCCESSFULLY initialized (before session.start)', {
       hasDJBooth: !!djBooth,
       hasMusicHumanization: !!musicHumanization,
       personaId: sessionPersona?.id,
     });
-    return { djBooth, musicHumanization, clearTimers, initialized: true };
+    return { djBooth, musicHumanization, clearTimers, initialized: true, recordMusicFeedback: recordMusicFeedbackLocal };
   } catch (musicError) {
     diag.warn('🎵 [DIAG] Music player init FAILED (non-fatal)', {
       error: String(musicError),
@@ -358,7 +556,9 @@ function setupMusicStateCallback(
   room: Room,
   clearTimers: () => void,
   setAppreciationTimer: (timer: NodeJS.Timeout | null) => void,
-  setReadTheRoomTimer: (timer: NodeJS.Timeout | null) => void
+  setReadTheRoomTimer: (timer: NodeJS.Timeout | null) => void,
+  sessionId: string,
+  userData: UserData
 ): void {
   // Track state for detecting unexpected stops
   let lastMusicState: MusicState = 'idle';
@@ -455,6 +655,67 @@ function setupMusicStateCallback(
         lastAppreciationTime = null;
         lastReadTheRoomTime = null;
 
+        // 🧠 INTELLIGENT TRANSITIONS: Capture conversation context when music STARTS
+        // This context will be used when music ENDS to generate appropriate transitions
+        // > "We believe in making AI human, and the decisions we make will reflect that."
+        try {
+          // Determine emotional tone from recent analysis
+          const emotionalTone =
+            userData.lastEmotionAnalysis?.primary === 'sad' ||
+            userData.lastEmotionAnalysis?.primary === 'distressed'
+              ? 'heavy'
+              : userData.lastEmotionAnalysis?.primary === 'happy' ||
+                  userData.lastEmotionAnalysis?.primary === 'excited'
+                ? 'light'
+                : 'neutral';
+
+          // Enhanced inference: pass isAmbient flag and let the function detect
+          // user requests from their actual message content
+          const startReason = inferMusicStartReason(
+            emotionalTone,
+            userData.lastUserMessage,
+            false, // wasUserRequested - we infer from message content instead
+            isAmbient // Pass ambient flag for proper categorization
+          );
+
+          startMusicContext(sessionId, {
+            startReason,
+            trackName: track.name,
+            trackArtist: track.artist,
+            topicBeforeMusic: userData.lastTopic,
+            lastUserMessage: userData.lastUserMessage,
+            emotionalTone:
+              userData.lastEmotionAnalysis?.primary === 'sad' ||
+              userData.lastEmotionAnalysis?.primary === 'distressed'
+                ? 'heavy'
+                : userData.lastEmotionAnalysis?.primary === 'happy' ||
+                    userData.lastEmotionAnalysis?.primary === 'excited'
+                  ? 'light'
+                  : 'neutral',
+            userEmotion: userData.lastEmotionAnalysis?.primary,
+            userEmotionIntensity: userData.lastEmotionAnalysis?.intensity,
+            wasUserMidThought: detectMidThought(userData.lastUserMessage),
+            relationshipStage: userData.relationshipStage as
+              | 'stranger'
+              | 'acquaintance'
+              | 'friend'
+              | 'close_friend'
+              | undefined,
+            userName: userData.name,
+            wasAmbient: isAmbient,
+          });
+
+          diag.state('🧠 Captured music session context', {
+            startReason,
+            emotionalTone:
+              userData.lastEmotionAnalysis?.primary === 'sad' ? 'heavy' : 'neutral',
+            topic: userData.lastTopic,
+            wasUserMidThought: detectMidThought(userData.lastUserMessage),
+          });
+        } catch (e) {
+          diag.warn('🧠 Failed to capture music context (non-critical)', { error: String(e) });
+        }
+
         // Track music for cross-session callbacks
         try {
           const dj = getDJIntegration();
@@ -503,15 +764,26 @@ function setupMusicStateCallback(
       }
 
       // Notify frontend for avatar dancing
+      // Check connection state before sending to avoid "Cannot send after disconnect" errors
       try {
         const { getFrontendPublisher } = await import('../realtime/index.js');
         const publisher = getFrontendPublisher();
-        if (publisher && room) {
+        // Double-check connection: both room exists AND publisher reports connected
+        if (publisher?.isConnected() && room?.localParticipant) {
           const trackInfo = track ? { name: track.name, artist: track.artist } : undefined;
           await publisher.sendMusicState(state, trackInfo, isAmbient);
+        } else if (state !== 'stopped' && state !== 'idle') {
+          // Only log non-stop states since stopped/idle at disconnect is expected
+          diag.debug('Skipping music state publish - room disconnected', { state });
         }
       } catch (pubError) {
-        diag.warn('Failed to publish music state', { error: String(pubError) });
+        // Gracefully handle disconnect race condition
+        const errorStr = String(pubError);
+        if (errorStr.includes('disconnect') || errorStr.includes('closed')) {
+          diag.debug('Music state publish skipped - connection closed', { state });
+        } else {
+          diag.warn('Failed to publish music state', { error: errorStr });
+        }
       }
     })();
   });

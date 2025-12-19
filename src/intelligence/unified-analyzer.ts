@@ -443,7 +443,9 @@ function buildContextForPrompt(
     sections.push(`[REPAIR] Possible misunderstanding - clarify gently`);
   }
   if (deepInsights.energyLevel === 'low') {
-    sections.push(`[ENERGY] User seems low energy - be gentle and warm, don't overwhelm but stay present`);
+    sections.push(
+      `[ENERGY] User seems low energy - be gentle and warm, don't overwhelm but stay present`
+    );
   } else if (deepInsights.energyLevel === 'high') {
     sections.push(`[ENERGY] User has high energy - match it! Be dynamic and engaged`);
   }

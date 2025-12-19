@@ -85,6 +85,7 @@ import { handleStoryJourneyRoutes } from '../../api/story-journey-routes.js';
 import { handleSubscriptionRequest, isSubscriptionRoute } from '../../api/subscription-routes.js';
 import { handleAnalyticsRoutes } from '../../api/user-analytics-routes.js';
 import { handleBuilderMetricsRoutes } from '../../api/routes/builder-metrics.js';
+import { handleMusicAnalyticsRoutes } from '../../api/music-analytics-routes.js';
 import { handleMonetizationRequest, isMonetizationRoute } from '../../api/monetization-routes.js';
 import { handleAppleRoutes, isAppleRoute } from '../../api/apple-iap-routes.js';
 import { handleV1Routes } from '../../api/v1/index.js';
@@ -550,6 +551,12 @@ const server = http.createServer(async (req, res) => {
     // Builder metrics routes
     if (pathname.startsWith('/api/admin/builder-metrics')) {
       const handled = await handleBuilderMetricsRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
+    // Music analytics admin routes
+    if (pathname.startsWith('/api/admin/music-analytics')) {
+      const handled = await handleMusicAnalyticsRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
 

@@ -4,10 +4,18 @@
  * All persona-specific phrases consolidated in one place.
  * This prevents duplication across backchanneling, response-naturalness, etc.
  *
+ * INTEGRATION: Uses ProcessingIntelligence for thinking/processing phrases
+ * when contextual composition is needed. Legacy THINKING_FILLERS are kept
+ * for backward compatibility.
+ *
  * @module persona-phrases
  */
 
 import { breakTag } from '../ssml/cartesia.js';
+import {
+  getProcessingPhraseWithSSML,
+  type ProcessingContext,
+} from '../intelligence/processing-intelligence.js';
 
 // ============================================================================
 // PERSONA IDS
@@ -547,6 +555,8 @@ export function getAcknowledgmentPrefix(
 
 /**
  * Get thinking filler for a persona
+ *
+ * @deprecated Use getContextAwareThinkingFiller for context-aware phrases
  */
 export function getThinkingFiller(personaId: string): string {
   const normalized = normalizePersonaId(personaId);
@@ -558,6 +568,36 @@ export function getThinkingFiller(personaId: string): string {
   }
 
   return fillers[Math.floor(Math.random() * fillers.length)];
+}
+
+/**
+ * Get context-aware thinking/processing phrase
+ *
+ * Uses ProcessingIntelligence to compose the right phrase based on context.
+ * This is the preferred method for new code.
+ *
+ * @param personaId - The persona ID
+ * @param options - Optional context for phrase composition
+ * @returns SSML-formatted thinking phrase
+ */
+export function getContextAwareThinkingFiller(
+  personaId: string,
+  options?: {
+    type?: 'thinking' | 'emotional' | 'tool_call' | 'memory_recall';
+    weight?: 'light' | 'medium' | 'heavy';
+    emotionalState?: { primary: string; intensity: number };
+    hourOfDay?: number;
+    relationshipStage?: string;
+  }
+): string {
+  const { type = 'thinking', weight = 'medium', ...rest } = options || {};
+
+  try {
+    return getProcessingPhraseWithSSML(type, weight, rest);
+  } catch {
+    // Fallback to legacy system if ProcessingIntelligence fails
+    return getThinkingFiller(personaId);
+  }
 }
 
 /**
@@ -876,6 +916,7 @@ export default {
   getSoftBackchannel,
   getAcknowledgmentPrefix,
   getThinkingFiller,
+  getContextAwareThinkingFiller, // NEW: Context-aware ProcessingIntelligence integration
   getCatchphraseWithSsml,
   getPersonaBackchannelStyle,
   getBackchannelPhrase,

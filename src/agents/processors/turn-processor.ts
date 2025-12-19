@@ -58,6 +58,14 @@ import {
 // Smart injection filtering - be selective like a human
 import { detectConversationMode, filterInjections } from './injection-filter.js';
 
+// Performance metrics
+import {
+  recordTurnTiming,
+  recordPhaseTiming,
+  recordContextInjectionTiming,
+  createTimer,
+} from '../../services/performance-metrics.js';
+
 // Conversation engines (singletons)
 import {
   getConversationHumanizer,
@@ -128,6 +136,10 @@ import { extractAndProcess as extractOutreachContext } from '../../services/outr
 // Better Than Human Orchestrator - Coordinates all 12 superhuman capabilities
 // This is the central coordinator for genuine care that makes Ferni better than human
 import { getBetterThanHuman } from '../../conversation/superhuman/index.js';
+
+// 🚨 SAFETY: Crisis detection - HARD safety rails that CANNOT be bypassed
+// This runs on EVERY turn to detect and respond to crisis situations
+import { detectCrisis, guardPreResponse, type CrisisDetectionResult } from '../safety/crisis-guard.js';
 
 // ============================================================================
 // CACHED IMPORTS - Lazy loaded once for performance
@@ -1753,11 +1765,40 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     throw new Error('Empty user text');
   }
 
+  // ============================================================================
+  // 🚨 SAFETY FIRST: Crisis detection runs BEFORE anything else
+  // This is a HARD safety rail that CANNOT be bypassed
+  // ============================================================================
+  const voiceEmotionForCrisis = userData?.voiceEmotion
+    ? {
+        primary: userData.voiceEmotion.primary || 'neutral',
+        intensity: userData.voiceEmotion.confidence || 0.5,
+        confidence: userData.voiceEmotion.confidence,
+      }
+    : undefined;
+
+  const crisisResult = detectCrisis(userText, voiceEmotionForCrisis);
+  const preResponseGuard = guardPreResponse(userText, voiceEmotionForCrisis);
+
+  // Log crisis detection if anything was found
+  if (crisisResult.isCrisis || crisisResult.severity > 0.3) {
+    diag.state('🚨 Crisis detection result', {
+      isCrisis: crisisResult.isCrisis,
+      severity: crisisResult.severity,
+      indicators: crisisResult.indicators,
+      shouldOverride: preResponseGuard.shouldBlock,
+    });
+  }
+
   // 1. Analyze message (synchronous - required for all downstream)
+  const analysisTimer = createTimer();
   const analysisResult = analyzeMessage(ctx);
+  recordPhaseTiming('message_analysis', analysisTimer.stop());
 
   // 2. Update conversation state (synchronous)
+  const stateTimer = createTimer();
   updateConversationState(ctx, analysisResult);
+  recordPhaseTiming('conversation_state', stateTimer.stop());
 
   // ============================================================================
   // PARALLEL PROCESSING: Run independent async operations concurrently
@@ -1787,7 +1828,9 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   })();
 
   // 4. Build emotional state (synchronous - depends on analysis)
+  const emotionTimer = createTimer();
   const emotionalState = buildEmotionalState(ctx, analysisResult);
+  recordPhaseTiming('emotional_state', emotionTimer.stop());
 
   // 4b. Record mismatch as cross-persona insight (fire-and-forget)
   if (emotionalState.mismatch?.hasMismatch && emotionalState.mismatch.confidence > 0.5) {
@@ -1874,23 +1917,35 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // These are the two heaviest async operations - running in parallel saves ~50ms
   // ============================================================================
 
+  const contextTimer = createTimer();
   const [injections, advancedHumanizationResult] = await Promise.all([
     // 9. Build all context injections
-    buildContextInjections(
-      ctx,
-      analysisResult,
-      emotionalState,
-      responseGuidance,
-      identityContext,
-      humanizingResult,
-      bundleRuntimeContext,
-      conversationDynamics
-    ),
+    (async () => {
+      const injectionsTimer = createTimer();
+      const result = await buildContextInjections(
+        ctx,
+        analysisResult,
+        emotionalState,
+        responseGuidance,
+        identityContext,
+        humanizingResult,
+        bundleRuntimeContext,
+        conversationDynamics
+      );
+      recordContextInjectionTiming('all_context_injections', injectionsTimer.stop());
+      return result;
+    })(),
 
     // 9a. ADVANCED HUMANIZATION: Process through all 10 deep capabilities
     // This is the core "Better Than Human" humanization layer
-    processAdvancedHumanization(ctx, analysisResult, emotionalState),
+    (async () => {
+      const humanizationTimer = createTimer();
+      const result = await processAdvancedHumanization(ctx, analysisResult, emotionalState);
+      recordContextInjectionTiming('advanced_humanization', humanizationTimer.stop());
+      return result;
+    })(),
   ]);
+  recordPhaseTiming('context_injections', contextTimer.stop());
 
   // Add advanced humanization injections
   if (advancedHumanizationResult) {
@@ -2040,6 +2095,9 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // Calculate elapsed time
   const elapsedMs = Date.now() - startTime;
 
+  // Record metrics for observability
+  recordTurnTiming(elapsedMs);
+
   // Log completion
   logger.info(
     {
@@ -2118,6 +2176,14 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     easterEgg,
     valueCapture,
     advancedHumanization,
+    // 🚨 SAFETY: Crisis detection result - MUST be checked by caller
+    crisis: {
+      isCrisis: crisisResult.isCrisis,
+      severity: crisisResult.severity,
+      indicators: crisisResult.indicators,
+      suggestedResponse: crisisResult.suggestedResponse,
+      shouldOverrideLLM: preResponseGuard.shouldBlock,
+    },
   };
 }
 

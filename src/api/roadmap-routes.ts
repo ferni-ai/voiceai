@@ -139,7 +139,9 @@ function getFirestore(): admin.firestore.Firestore | null {
   initAttempted = true;
 
   try {
-    if (admin.apps.length === 0) {
+    // Check if admin.apps exists and has length (handles undefined case)
+    const { apps } = admin;
+    if (!apps || apps.length === 0) {
       const projectId =
         process.env.GCP_PROJECT_ID ||
         process.env.FIREBASE_PROJECT_ID ||

@@ -328,7 +328,7 @@ describe('Maya Tool Integration', () => {
   });
 
   it('should import gamification v2 tools', async () => {
-    const module = await import('../tools/gamification-v2.js');
+    const module = await import('../tools/domains/habits/gamification-v2.js');
     expect(module.createGamificationToolsV2).toBeDefined();
     expect(typeof module.createGamificationToolsV2).toBe('function');
   });
@@ -579,7 +579,8 @@ describe('Maya End-to-End Flows', () => {
   });
 
   it('should support a complete gamification flow', async () => {
-    const { createGamificationToolsV2 } = await import('../tools/gamification-v2.js');
+    const { createGamificationToolsV2 } =
+      await import('../tools/domains/habits/gamification-v2.js');
     const tools = createGamificationToolsV2();
 
     // 1. Get profile

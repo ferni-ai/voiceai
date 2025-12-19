@@ -27,6 +27,7 @@ import {
 } from './services/persistence/lifecycle.js';
 import { initializeTeamHandlers, shutdownTools } from './tools/index.js';
 import { getLogger } from './utils/safe-logger.js';
+import { recordStartupMetrics, startMetricsLogging } from './services/performance-metrics.js';
 
 // ============================================================================
 // STATE
@@ -305,7 +306,23 @@ export async function startup(): Promise<AppConfig> {
   }
 
   initialized = true;
-  logger.info(`✅ Voice AI ready! (total startup: ${Date.now() - startupStart}ms)`);
+  const totalStartupTime = Date.now() - startupStart;
+  logger.info(`✅ Voice AI ready! (total startup: ${totalStartupTime}ms)`);
+
+  // Record startup metrics for observability
+  recordStartupMetrics([
+    { name: 'config', durationMs: memStart - startupStart },
+    { name: 'memory', durationMs: svcStart - memStart },
+    { name: 'services', durationMs: bundleStart - svcStart },
+    { name: 'personas', durationMs: workerStart - bundleStart },
+    { name: 'workers', durationMs: parallelStart - workerStart },
+    { name: 'essential', durationMs: Date.now() - parallelStart },
+  ]);
+
+  // Start periodic metrics logging (every 60s in production)
+  if (config.environment === 'production') {
+    startMetricsLogging(60_000);
+  }
 
   return config;
 }

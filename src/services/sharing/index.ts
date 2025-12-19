@@ -22,8 +22,8 @@ export {
   type CardData,
 } from './card-generator.js';
 
-// Share Routes
-export { handleShareRoutes } from '../../api/routes/share-routes.js';
+// NOTE: handleShareRoutes is NOT re-exported here - that would create a
+// layer violation (services -> api). Import directly from api/routes/share-routes.js
 
 // Re-export types
 export type {

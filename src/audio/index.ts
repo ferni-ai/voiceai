@@ -136,3 +136,112 @@ export {
   type SpontaneousTrigger,
   type TimeOfDay,
 } from './music-humanization.js';
+
+// 🧠 Intelligent Music Transitions - Context-aware responses when music ends
+// > "We believe in making AI human, and the decisions we make will reflect that."
+export {
+  // Context tracking (capture when music starts, use when music ends)
+  clearMusicContext,
+  detectMidThought,
+  endMusicContext,
+  getMusicContext,
+  inferMusicStartReason,
+  startMusicContext,
+  type MusicContextInput,
+  type MusicSessionContext,
+  type MusicStartReason,
+} from './music-session-context.js';
+
+export {
+  // Intelligent transition generation
+  getIntelligentMusicTransition,
+  getMusicTransition,
+  logTransitionDecision,
+  recordTransitionFeedback,
+  getTransitionAnalyticsDashboard,
+  type EnhancedTransitionResult,
+  type TransitionInput,
+  type TransitionResult,
+  type TransitionType,
+} from './intelligent-music-transitions.js';
+
+// 📊 Music Transition Analytics - Track what works
+export {
+  getTransitionAnalytics,
+  resetTransitionAnalytics,
+  generateEventId,
+  createTransitionEvent,
+  recordTransitionWithAnalytics,
+  recordEngagementSignals,
+  getBestTransitionType,
+  type TransitionEvent,
+  type EngagementSignals,
+  type TransitionStats,
+  type ABTestConfig,
+  type TransitionOverrides,
+} from './music-transition-analytics.js';
+
+// 🎯 Music User Learning - Per-user preferences with Thompson Sampling
+export {
+  getUserProfile,
+  selectTransitionWithLearning,
+  updateUserLearning,
+  addMusicMemory,
+  findRelevantMusicMemories,
+  getUserPreferredTransition,
+  exportUserProfile,
+  importUserProfile,
+  clearAllProfiles,
+  getUserLearningStats,
+  type UserTransitionProfile,
+  type ThompsonArmState,
+  type MusicMemoryEntry,
+  type EngagementFeedback,
+} from './music-user-learning.js';
+
+// 🎵 Music Memory Integration - Remember what music helped
+export {
+  storeMusicHelpedMemory,
+  findRelevantMemories,
+  getMusicPreferences,
+  generateMusicCallback,
+  shouldMentionMusicMemory,
+  exportUserMusicMemories,
+  importUserMusicMemories,
+  clearAllMusicMemories,
+  getUserMusicMemoryStats,
+  detectEmotionalContext,
+  detectMusicHelped,
+  type MusicHelpedMemory,
+  type MusicPreference,
+  type MusicCallbackPhrase,
+} from './music-memory-integration.js';
+
+// 📊 Music Feedback Manager - Global feedback recording for learning
+export {
+  registerMusicFeedbackRecorder,
+  markMusicEnded,
+  recordMusicFeedback,
+  hasPendingMusicFeedback,
+  clearMusicFeedbackRecorder,
+  detectFeedbackFromResponse,
+  type MusicFeedback,
+  type MusicFeedbackRecorder,
+} from './music-feedback-manager.js';
+
+// 💾 Music Learning Persistence - Firestore backup for user profiles/memories
+export {
+  ensureProfileLoaded,
+  ensureMemoriesLoaded,
+  ensureMusicLearningLoaded,
+  saveProfile,
+  saveMemories,
+  saveMusicLearning,
+  flushMusicLearning,
+  flushAllMusicLearning,
+  clearUserCache,
+  shutdownMusicLearningPersistence,
+  getMusicLearningStats,
+  onTransitionFeedbackRecorded,
+  onMusicMemoryStored,
+} from './music-learning-persistence.js';

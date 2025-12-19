@@ -87,7 +87,7 @@ const WEATHER_CODES: Record<number, string> = {
 async function geocodeLocation(location: string): Promise<GeocodingResult | null> {
   const startTime = Date.now();
   const log = getLogger();
-  
+
   try {
     log.debug({ location }, '🌍 [DIAG] Geocoding location...');
     const response = await fetch(
@@ -96,21 +96,27 @@ async function geocodeLocation(location: string): Promise<GeocodingResult | null
     );
 
     if (!response.ok) {
-      log.warn({ location, status: response.status, elapsed: Date.now() - startTime }, '🌍 [DIAG] Geocoding returned non-OK');
+      log.warn(
+        { location, status: response.status, elapsed: Date.now() - startTime },
+        '🌍 [DIAG] Geocoding returned non-OK'
+      );
       return null;
     }
 
     const data = (await response.json()) as { results?: GeocodingResult[] };
     const result = data.results?.[0] || null;
-    log.debug({ location, found: !!result, elapsed: Date.now() - startTime }, '🌍 [DIAG] Geocoding complete');
+    log.debug(
+      { location, found: !!result, elapsed: Date.now() - startTime },
+      '🌍 [DIAG] Geocoding complete'
+    );
     return result;
   } catch (error) {
     const elapsed = Date.now() - startTime;
     const isTimeout = String(error).includes('timeout') || String(error).includes('AbortError');
     log.warn(
-      { 
-        location, 
-        error: String(error), 
+      {
+        location,
+        error: String(error),
         elapsed,
         isTimeout,
         errorType: error instanceof Error ? error.constructor.name : typeof error,
@@ -138,16 +144,16 @@ function getWeatherDescription(code: number): string {
 export async function getCurrentWeather(location: string): Promise<string> {
   const startTime = Date.now();
   const log = getLogger();
-  
-  log.info(
-    { timestamp: new Date().toISOString(), location },
-    '🌤️ [DIAG] getCurrentWeather START'
-  );
-  
+
+  log.info({ timestamp: new Date().toISOString(), location }, '🌤️ [DIAG] getCurrentWeather START');
+
   const geo = await geocodeLocation(location);
 
   if (!geo) {
-    log.warn({ location, elapsed: Date.now() - startTime }, '🌤️ [DIAG] getCurrentWeather: Geocoding failed');
+    log.warn(
+      { location, elapsed: Date.now() - startTime },
+      '🌤️ [DIAG] getCurrentWeather: Geocoding failed'
+    );
     return `I couldn't find weather data for "${location}". Try a major city name?`;
   }
 
@@ -162,7 +168,10 @@ export async function getCurrentWeather(location: string): Promise<string> {
     const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
 
     if (!response.ok) {
-      log.warn({ location, status: response.status, elapsed: Date.now() - startTime }, '🌤️ [DIAG] Weather API returned non-OK');
+      log.warn(
+        { location, status: response.status, elapsed: Date.now() - startTime },
+        '🌤️ [DIAG] Weather API returned non-OK'
+      );
       return `Couldn't get current weather for ${geo.name}.`;
     }
 
@@ -170,7 +179,10 @@ export async function getCurrentWeather(location: string): Promise<string> {
     const { current } = data;
 
     if (!current) {
-      log.warn({ location, elapsed: Date.now() - startTime }, '🌤️ [DIAG] Weather API returned no current data');
+      log.warn(
+        { location, elapsed: Date.now() - startTime },
+        '🌤️ [DIAG] Weather API returned no current data'
+      );
       return `No weather data available for ${geo.name}.`;
     }
 
@@ -190,9 +202,9 @@ export async function getCurrentWeather(location: string): Promise<string> {
     const elapsed = Date.now() - startTime;
     const isTimeout = String(error).includes('timeout') || String(error).includes('AbortError');
     log.warn(
-      { 
-        location, 
-        error: String(error), 
+      {
+        location,
+        error: String(error),
         elapsed,
         isTimeout,
         errorType: error instanceof Error ? error.constructor.name : typeof error,

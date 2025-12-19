@@ -335,10 +335,10 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
         if (softOpenBanter && session) {
           try {
             diag.entry(`🎭 Soft open: ${prevPersona.name} introduces ${persona.name}`);
-            session.say(softOpenBanter, { allowInterruptions: false });
-            // Wait for soft open to finish before switching voice
-            // Approximate duration based on SSML breaks + speech
-            await new Promise<void>((resolve) => setTimeout(resolve, 1500));
+            // FIX BUG: Await the speech to complete before switching voice
+            // Previously this was fire-and-forget with a hardcoded 1500ms delay,
+            // causing overlapping audio when soft open took longer than expected.
+            await session.say(softOpenBanter, { allowInterruptions: false }).waitForPlayout();
 
             // Send soft_open_complete so UI knows to start visual transition
             const softOpenCompleteMsg = JSON.stringify({

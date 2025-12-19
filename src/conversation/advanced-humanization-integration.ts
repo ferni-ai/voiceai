@@ -482,7 +482,10 @@ export function recordAgentResponse(sessionId: string, response: string): void {
     })
     .catch((err) => {
       // Non-critical - don't block on this, but log for debugging
-      logger.debug({ error: String(err), sessionId }, 'Failed to record response to deep understanding');
+      logger.debug(
+        { error: String(err), sessionId },
+        'Failed to record response to deep understanding'
+      );
     });
 }
 

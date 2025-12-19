@@ -69,7 +69,7 @@ function getUnifiedMusicToolDefinitions(): ToolDefinition[] {
     wrapLegacyTool(
       'playMusic',
       'Play Music',
-      'IMMEDIATELY play music when user asks. MUST call this function - do NOT talk about music, actually PLAY it. Works for everyone. Call for ANY music request: "play music", "put on some tunes", "play X", "can you play Y".',
+      'Play music by song, artist, genre, or mood. Searches music catalog and starts playback. Returns track information and playback status.',
       legacyTools.playMusic,
       { tags: ['playback', 'primary', 'search', 'suggestions'] }
     ),

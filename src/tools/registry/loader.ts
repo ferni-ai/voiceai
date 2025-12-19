@@ -40,6 +40,7 @@ export const ESSENTIAL_DOMAINS: ToolDomain[] = [
   'awareness', // Time/context awareness
   'simple-utilities', // Timers, conversions, etc.
   'entertainment', // Music - MUST be available immediately (users ask for music often!)
+  'behavior', // Behavior control - modes, pacing, presence (core to how Ferni speaks)
 ];
 
 /**
@@ -416,6 +417,12 @@ export async function autoRegisterAllDomains(): Promise<void> {
     {
       name: 'developer' as ToolDomain,
       loader: () => import('../domains/developer/index.js').then((m) => m.getToolDefinitions()),
+    },
+
+    // === BEHAVIOR DOMAIN (Bidirectional behavior system) ===
+    {
+      name: 'behavior' as ToolDomain,
+      loader: () => import('../domains/behavior/index.js').then((m) => m.getToolDefinitions()),
     },
   ];
 

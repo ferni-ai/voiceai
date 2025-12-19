@@ -194,6 +194,22 @@ export interface BundleRuntimeContext {
 // ============================================================================
 
 /**
+ * Crisis detection result from safety guard
+ */
+export interface CrisisDetection {
+  /** Whether a crisis was detected */
+  isCrisis: boolean;
+  /** Crisis severity 0-1 (0.7+ is crisis threshold) */
+  severity: number;
+  /** Detected indicators (explicit_crisis_language, voice_high_distress, etc.) */
+  indicators: string[];
+  /** Pre-generated crisis response if severity is high */
+  suggestedResponse?: string;
+  /** Whether to override LLM response entirely */
+  shouldOverrideLLM: boolean;
+}
+
+/**
  * Complete result of processing a user turn
  */
 export interface TurnProcessorResult {
@@ -236,6 +252,8 @@ export interface TurnProcessorResult {
     /** Length guidance for response */
     lengthGuidance: 'shorter' | 'normal' | 'longer';
   };
+  /** 🚨 SAFETY: Crisis detection result - CANNOT be ignored */
+  crisis?: CrisisDetection;
 }
 
 // ============================================================================

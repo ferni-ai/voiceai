@@ -197,6 +197,16 @@ export function clearSessionState(sessionId: string): void {
   sessionStates.delete(sessionId);
 }
 
+/**
+ * Get the current average speech rate for a session
+ * Used by the personality system for context-aware expression generation
+ */
+export function getAverageSpeechRate(sessionId: string): number | undefined {
+  const state = sessionStates.get(sessionId);
+  if (!state || state.sampleCount === 0) return undefined;
+  return Math.round(state.avgSpeechRate);
+}
+
 // ============================================================================
 // MAIN ANALYSIS FUNCTION
 // ============================================================================

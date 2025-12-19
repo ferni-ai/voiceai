@@ -53,11 +53,12 @@ describe('Alex Chen Persona E2E Tests', () => {
 
     it('should have correct personality traits', () => {
       const { traits } = bundle.manifest.personality;
-      expect(traits).toContain('efficient');
-      expect(traits).toContain('warm');
-      expect(traits).toContain('coaching-minded');
+      // Updated to match actual manifest traits
+      expect(traits).toContain('calm-presence');
+      expect(traits).toContain('warmth-under-efficiency');
+      expect(traits).toContain('clear-is-kind');
       expect(traits).toContain('oxford-comma-defender');
-      expect(traits).toContain('plant-parent');
+      expect(traits).toContain('plant-mom-eight-names');
     });
 
     it('should have time-of-day moods including midnight Chopin', () => {

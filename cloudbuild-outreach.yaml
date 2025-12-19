@@ -1,0 +1,89 @@
+# Cloud Build configuration for Outreach Worker
+# Builds and deploys the outreach worker as a Cloud Run Job
+
+substitutions:
+  _REGION: us-central1
+  _SERVICE_NAME: outreach-worker
+
+steps:
+  # Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - 'docker/Dockerfile.outreach'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/${_SERVICE_NAME}:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/${_SERVICE_NAME}:latest'
+      - '.'
+    id: 'build'
+
+  # Push to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/${_SERVICE_NAME}:$COMMIT_SHA'
+    id: 'push'
+    waitFor: ['build']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/${_SERVICE_NAME}:latest'
+    waitFor: ['push']
+
+  # Deploy as Cloud Run Job
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'jobs'
+      - 'deploy'
+      - '${_SERVICE_NAME}'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/${_SERVICE_NAME}:$COMMIT_SHA'
+      - '--region'
+      - '${_REGION}'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--max-retries'
+      - '3'
+      - '--task-timeout'
+      - '10m'
+      - '--set-env-vars'
+      - 'PUBSUB_ENABLED=true,GOOGLE_CLOUD_PROJECT=$PROJECT_ID'
+      - '--service-account'
+      - 'outreach-worker@$PROJECT_ID.iam.gserviceaccount.com'
+    id: 'deploy-job'
+    waitFor: ['push']
+
+  # Create Cloud Scheduler job (if not exists)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud scheduler jobs describe ${_SERVICE_NAME}-trigger --location=${_REGION} 2>/dev/null || \
+        gcloud scheduler jobs create http ${_SERVICE_NAME}-trigger \
+          --location=${_REGION} \
+          --schedule="*/5 * * * *" \
+          --uri="https://${_REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/$PROJECT_ID/jobs/${_SERVICE_NAME}:run" \
+          --http-method=POST \
+          --oauth-service-account-email=outreach-worker@$PROJECT_ID.iam.gserviceaccount.com \
+          --time-zone="America/New_York" \
+          --description="Trigger outreach worker every 5 minutes"
+    id: 'create-scheduler'
+    waitFor: ['deploy-job']
+
+images:
+  - 'gcr.io/$PROJECT_ID/${_SERVICE_NAME}:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/${_SERVICE_NAME}:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 1200s
+

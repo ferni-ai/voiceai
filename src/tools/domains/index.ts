@@ -104,6 +104,9 @@ export { getToolDefinitions as getTelephonyToolDefinitions } from './telephony/i
 // Cameo domain - team member pop-in interactions
 export { getToolDefinitions as getCameoToolDefinitions } from './cameo/index.js';
 
+// Behavior domain - modes, pacing, processing, presence (bidirectional behavior system)
+export { getToolDefinitions as getBehaviorToolDefinitions } from './behavior/index.js';
+
 // ============================================================================
 // DEEP HUMAN ENGAGEMENT DOMAINS
 // ============================================================================

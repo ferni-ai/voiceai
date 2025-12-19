@@ -303,6 +303,7 @@ import {
   setupSessionStateHandlers,
   setupToolTrackingHandler,
   setupVoiceHumanizationInit,
+  getAverageSpeechRate,
 } from './voice-agent/index.js';
 
 // Bundle Runtime Engine - rich persona content at runtime
@@ -1551,6 +1552,43 @@ class VoiceAgent extends voice.Agent<UserData> {
             }
 
             // ============================================================
+            // 14.5 GRACEFUL INTERRUPT - Softer starts after being interrupted
+            // If user interrupted us, start this response softer/slower
+            // Also adds cushioning micro-pauses throughout for smoother cuts
+            // ============================================================
+            try {
+              const { wrapWithInterruptAwareness, endRecovery } =
+                await import('../speech/graceful-interrupt/index.js');
+
+              const wasInterrupted = userData?.wasInterrupted || false;
+              const interruptType = userData?.interruptType || 'soft';
+              const interruptSessionId =
+                userData?.services?.sessionId || `session-${agent.persona.id}`;
+
+              const wrapped = wrapWithInterruptAwareness(interruptSessionId, taggedText, {
+                wasInterrupted,
+                interruptType,
+                userEmotion: userData?.lastEmotionAnalysis?.primary,
+                personaId: agent.persona.id,
+              });
+
+              taggedText = wrapped.ssml;
+
+              // Clear interrupt flags after applying recovery
+              if (userData && wasInterrupted) {
+                userData.wasInterrupted = false;
+                userData.interruptType = undefined;
+                endRecovery(interruptSessionId);
+                agent.logger.debug(
+                  { interruptType, chunks: wrapped.chunks.length },
+                  '🎭 Applied graceful interrupt recovery'
+                );
+              }
+            } catch (_interruptErr) {
+              // Graceful interrupt is non-critical
+            }
+
+            // ============================================================
             // 15. FINAL SSML CLEANUP - Consolidate stacked tags
             // Multiple speed/volume tags can cause TTS screeching/glitches
             // ============================================================
@@ -2399,14 +2437,45 @@ class VoiceAgent extends voice.Agent<UserData> {
     const { getStateManager } = await import('./session/user-data-proxy.js');
     const sessionStateManager = userData ? getStateManager(userData as UserData) : undefined;
 
-    // Delegate to extracted turn handler
+    // Calculate pause duration before user spoke
+    // (time between agent finished speaking and user started speaking)
+    const typedUserData = userData as UserData;
+    const pauseBeforeMs =
+      typedUserData?.userSpeakingStartTime && typedUserData?.lastAgentResponseTime
+        ? Math.max(0, typedUserData.userSpeakingStartTime - typedUserData.lastAgentResponseTime)
+        : 0;
+
+    // Delegate to extracted turn handler with voice signals wired in
     await handleUserTurn({
       turnCtx,
       userText: userText || '',
       persona: this.persona,
       bundleRuntime: this.bundleRuntime,
       services,
-      userData: userData as UserData,
+      userData: {
+        turnCount: typedUserData?.turnCount,
+        extensibilitySessionPrompt: (
+          sessionStateManager?.getState() as { extensibility?: { sessionPrompt?: string } }
+        )?.extensibility?.sessionPrompt,
+        // Voice signals for personality system
+        pauseBeforeMs,
+        speechRateWPM: getAverageSpeechRate(services.sessionId),
+        totalConversations: (
+          sessionStateManager?.getState()?.user as { totalConversations?: number }
+        )?.totalConversations,
+        sharedVulnerabilities: (
+          sessionStateManager?.getState()?.user as { sharedVulnerabilities?: number }
+        )?.sharedVulnerabilities,
+      },
+      // Voice emotion from prosody analysis
+      voiceEmotion: typedUserData?.voiceEmotion
+        ? {
+            primary: typedUserData.voiceEmotion.primary,
+            confidence: typedUserData.voiceEmotion.confidence,
+            arousal: (typedUserData.voiceEmotion.prosody as { energy?: number })?.energy,
+            valence: (typedUserData.voiceEmotion.prosody as { pitch?: number })?.pitch,
+          }
+        : undefined,
       sessionStateManager,
       currentSession: this._currentSession,
       room: this._room,
@@ -3008,6 +3077,12 @@ export default defineAgent({
       // Tracks: tool usage analytics, deprecation analysis, pattern analysis, auto-optimizer
       // Read tool config for tracking options (model-config.json)
       const trackingToolConfig = modelConfig.getDefaultToolConfig();
+      // Note: Tool tracking is set up before voiceAgent exists, so we use a lazy reference
+      // that will be populated when voiceAgent is created (see below after VoiceAgent.create)
+      let toolTrackingSendDataMessage:
+        | ((type: string, payload: Record<string, unknown>) => Promise<void>)
+        | undefined;
+
       setupToolTrackingHandler({
         session,
         userData,
@@ -3017,6 +3092,12 @@ export default defineAgent({
         debugEnabled: DEBUG_STARTUP,
         // Connected from model-config.json toolDefaults
         logToolResults: trackingToolConfig.logToolResults,
+        // 🔄 BEHAVIOR SIGNAL INTEGRATION: Use lazy reference that's set after voiceAgent created
+        sendDataMessage: async (type, payload) => {
+          if (toolTrackingSendDataMessage) {
+            await toolTrackingSendDataMessage(type, payload);
+          }
+        },
       });
 
       // ===============================================
@@ -3136,6 +3217,9 @@ export default defineAgent({
       voiceAgent.setSession(session);
       voiceAgent.setRoom(ctx.room); // For sending celebration events to frontend
 
+      // 🔄 BEHAVIOR SIGNAL INTEGRATION: Now that voiceAgent exists, wire up sendDataMessage
+      toolTrackingSendDataMessage = voiceAgent.sendDataMessage.bind(voiceAgent);
+
       // Assign to reference for use in async event handlers (handoffs)
       voiceAgentRef = voiceAgent;
 
@@ -3242,6 +3326,8 @@ export default defineAgent({
         services,
         sessionPersona,
         conversationManager,
+        sessionId,
+        userData,
       });
 
       diag.state('Starting session', {

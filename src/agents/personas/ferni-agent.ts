@@ -15,7 +15,7 @@ import { llm, voice } from '@livekit/agents';
 import { z } from 'zod';
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { createSanitizerTransformStream } from '../shared/tool-call-sanitizer.js';
+import { createSanitizerWithMusicFallback } from '../shared/tool-call-sanitizer.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import type { ToolContext } from '../../tools/registry/types.js';
 
@@ -508,28 +508,37 @@ export class FerniAgent extends voice.Agent<FerniSessionData> {
   }
 
   /**
-   * Override transcriptionNode to filter out malformed function-call-like text.
+   * Override ttsNode to filter out JSON function calls BEFORE they reach TTS.
    *
-   * Sometimes Gemini outputs text like "Play music query christmas music" instead
-   * of actually calling the playMusic function. This filter catches and sanitizes
-   * such output before it reaches TTS.
+   * WORKAROUND (Dec 2024): Gemini Live API has a known bug where it "narrates"
+   * tool calls instead of executing them. We instruct Gemini to output JSON like
+   * {"fn":"playMusic","args":{"query":"jazz"}} and intercept it here before TTS.
+   *
+   * The key insight: transcriptionNode filters a DIFFERENT stream than TTS reads from!
+   * The LiveKit SDK does baseStream.tee() and sends one to transcription, one to TTS.
+   * So we MUST filter in ttsNode to prevent TTS from speaking the JSON.
    *
    * @see ../shared/tool-call-sanitizer.ts
    */
-  async transcriptionNode(
+  async ttsNode(
     text: ReadableStream<string>,
     modelSettings: voice.ModelSettings
-  ): Promise<ReadableStream<string> | null> {
-    // First, get the default processed stream
-    const defaultStream = await voice.Agent.default.transcriptionNode(this, text, modelSettings);
+    // Return type is inferred - the base class returns AudioFrame from @livekit/rtc-node
+    // but we don't need to import it explicitly since we're calling the parent implementation
+  ) {
+    log.info('🎯 ttsNode override called - filtering JSON function calls');
 
-    if (!defaultStream) {
-      return null;
-    }
+    // Filter the text through our sanitizer BEFORE it reaches TTS
+    const sanitizerWithFallback = createSanitizerWithMusicFallback(
+      this._tools as Record<string, unknown> | undefined
+    );
+    const filteredText = text.pipeThrough(sanitizerWithFallback);
 
-    // Pipe through our sanitizer to filter tool-call-like text
-    const sanitizer = createSanitizerTransformStream();
-    return defaultStream.pipeThrough(sanitizer);
+    log.debug('🔧 Sanitizer attached to text stream');
+
+    // Now pass the filtered text to the default TTS implementation
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (voice.Agent.default as any).ttsNode(this, filteredText, modelSettings);
   }
 }
 

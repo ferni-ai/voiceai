@@ -324,16 +324,17 @@ export class DeepHumanizationEngine {
     let probability = 0;
 
     // Time-based presence
-    const timeEmbodiment = content.time_embodiment as Record<
-      string,
-      { hours: number[]; phrases: string[] }
-    >;
-    for (const [, config] of Object.entries(timeEmbodiment)) {
-      if (config.hours.includes(context.currentHour)) {
-        phrases = config.phrases;
-        // PIXAR BOOST: Increased from 0.15 to 0.28
-        probability = 0.28;
-        break;
+    const timeEmbodiment = content.time_embodiment as
+      | Record<string, { hours?: number[]; phrases?: string[] }>
+      | undefined;
+    if (timeEmbodiment) {
+      for (const [, config] of Object.entries(timeEmbodiment)) {
+        if (config?.hours?.includes(context.currentHour)) {
+          phrases = config.phrases ?? [];
+          // PIXAR BOOST: Increased from 0.15 to 0.28
+          probability = 0.28;
+          break;
+        }
       }
     }
 

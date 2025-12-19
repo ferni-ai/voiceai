@@ -3,7 +3,7 @@
  *
  * Multi-persona voice agent system with clean architecture.
  *
- * Architecture (GCE Optimized):
+ * CANONICAL ARCHITECTURE (GCE Production):
  * ┌─────────────────────────────────────────────────────────────────┐
  * │ src/agents/                                                     │
  * │   ├── core/               - Foundation types & utilities       │
@@ -12,15 +12,32 @@
  * │   │   ├── errors.ts       - Structured error hierarchy         │
  * │   │   └── pipeline.ts     - Composable pipeline pattern        │
  * │   │                                                             │
- * │   ├── worker.ts           - ⭐ UNIFIED: GCE entry point        │
- * │   ├── voice-agent-entry.ts - Session lifecycle management      │
+ * │   ├── worker.ts           - ⭐ PRIMARY: GCE entry point        │
+ * │   ├── voice-agent-entry.ts - ⭐ Session lifecycle management   │
  * │   │                                                             │
+ * │   ├── safety/             - 🚨 HARD safety rails (crisis)      │
+ * │   ├── trust/              - Trust enforcement layer            │
  * │   ├── shared/             - Shared utilities                   │
  * │   ├── handlers/           - Event handlers                     │
- * │   ├── processors/         - Turn processing                    │
+ * │   ├── processors/         - Turn processing (crisis detection) │
  * │   ├── realtime/           - Frontend communication             │
- * │   └── session/            - Session state management           │
+ * │   ├── session/            - Session state management           │
+ * │   └── voice-agent/        - Voice agent handlers & phases      │
+ * │                                                                 │
+ * │   LEGACY (kept for reference, not used in production):         │
+ * │   ├── voice-agent.ts      - Monolith (use voice-agent-entry)   │
+ * │   ├── voice-worker.ts     - Child process mode (not used)      │
+ * │   ├── voice-worker-single-process.ts - Alternative (not used)  │
+ * │   ├── voice-agent-child.ts - Child process (not used)          │
+ * │   └── in-process-executor.ts - Cloud Run (not used on GCE)     │
  * └─────────────────────────────────────────────────────────────────┘
+ *
+ * SAFETY FLOW:
+ *   1. User speaks → transcript received
+ *   2. processTurn() runs crisis detection FIRST (safety/crisis-guard.ts)
+ *   3. If severe crisis: override LLM with pre-written safe response
+ *   4. If moderate crisis: add safety injection to guide LLM
+ *   5. Trust context added via injection-builders.ts
  *
  * Usage:
  *   node dist/agents/worker.js start  (GCE - recommended)
@@ -31,6 +48,7 @@
  *   - alex-chen: Communications specialist
  *   - maya-santos: Habits & routines specialist
  *   - jordan-taylor: Event planning specialist
+ *   - nayan-patel: Wisdom specialist (premium)
  */
 
 // ============================================================================
@@ -98,6 +116,32 @@ export * from './session/index.js';
 // ============================================================================
 
 export * from './handlers/index.js';
+
+// ============================================================================
+// SAFETY (crisis detection - HARD safety rails)
+// ============================================================================
+
+export {
+  detectCrisis,
+  guardPreResponse,
+  guardPostResponse,
+  buildCrisisGuardContext,
+  applyGuardResult,
+  type CrisisGuardResult,
+  type CrisisGuardContext,
+  type CrisisDetectionResult,
+} from './safety/crisis-guard.js';
+
+// ============================================================================
+// TRUST (trust enforcement layer)
+// ============================================================================
+
+export {
+  enforceTrustContext,
+  buildRegenerationPrompt,
+  type TrustEnforcementResult,
+  type EnforcementContext,
+} from './trust/trust-enforcer.js';
 
 // ============================================================================
 // PERFORMANCE OPTIMIZATIONS

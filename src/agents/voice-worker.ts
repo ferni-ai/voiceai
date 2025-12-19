@@ -229,7 +229,10 @@ const createRequestHandler = (acceptCircuit: any) => {
             shouldNotify: humanized.shouldNotifyUser,
           });
         })
-        .catch(() => {});
+        .catch((diagnosticErr) => {
+          // Error diagnostics failed - log but don't mask the original error
+          log('Error during diagnostics', { err: String(diagnosticErr) });
+        });
 
       throw error;
     }

@@ -77,6 +77,7 @@ export interface AssembledPrompt {
 interface CachedAssembly {
   assembly: BundlePromptAssembly;
   corePrompt: string;
+  functionCalling: string;
   directorsNotes: string;
   biography: string;
   loadedAt: number;
@@ -140,6 +141,8 @@ async function loadAssemblyConfig(personaId: string): Promise<CachedAssembly | n
     // Load core modules (these are always included)
     const corePrompt =
       (await loadBundleFile(personaId, assembly.prompt_modules.core_identity)) || '';
+    const functionCalling =
+      (await loadBundleFile(personaId, assembly.prompt_modules.function_calling)) || '';
     const directorsNotes =
       (await loadBundleFile(personaId, assembly.prompt_modules.directors_notes)) || '';
     const biography = (await loadBundleFile(personaId, assembly.prompt_modules.biography)) || '';
@@ -147,6 +150,7 @@ async function loadAssemblyConfig(personaId: string): Promise<CachedAssembly | n
     const cachedAssembly: CachedAssembly = {
       assembly,
       corePrompt,
+      functionCalling,
       directorsNotes,
       biography,
       loadedAt: Date.now(),
@@ -326,7 +330,7 @@ export async function assemblePrompt(
     throw new Error(`No prompt available for persona: ${personaId}`);
   }
 
-  const { assembly, corePrompt, directorsNotes, biography } = cached;
+  const { assembly, corePrompt, functionCalling, directorsNotes, biography } = cached;
 
   // Default token budget if not specified
   const tokenBudget = assembly.token_budget || {
@@ -358,7 +362,16 @@ export async function assemblePrompt(
     }
   }
 
-  // 2. Director's Notes (high value, include if budget allows)
+  // 2. Function Calling (CRITICAL - must be included for tool usage)
+  if (functionCalling) {
+    const fcTokens = estimateTokens(functionCalling);
+    // Always include function calling even if it pushes over budget - tools are critical
+    sections.push('\n---\n\n## Function Calling (CRITICAL - Read and Follow)\n\n' + functionCalling);
+    currentTokens += fcTokens;
+    includedModules.push('function_calling');
+  }
+
+  // 3. Director's Notes (high value, include if budget allows)
   if (directorsNotes && currentTokens < tokenBudget.total_max - 1000) {
     const notesTokens = estimateTokens(directorsNotes);
     if (currentTokens + notesTokens <= tokenBudget.total_max) {
@@ -370,7 +383,7 @@ export async function assemblePrompt(
     }
   }
 
-  // 3. Dynamic Context (runtime injection)
+  // 4. Dynamic Context (runtime injection)
   const dynamicContext = generateDynamicContext(assembly, context);
   if (dynamicContext) {
     const dynamicTokens = estimateTokens(dynamicContext);
@@ -386,7 +399,7 @@ export async function assemblePrompt(
     }
   }
 
-  // 4. Conditional Modules
+  // 5. Conditional Modules
   const conditionalContent = await getConditionalModules(personaId, assembly, context);
   for (let i = 0; i < conditionalContent.length; i++) {
     const content = conditionalContent[i];
@@ -400,7 +413,7 @@ export async function assemblePrompt(
     }
   }
 
-  // 5. Biography Summary (as hints if budget allows)
+  // 6. Biography Summary (as hints if budget allows)
   if (biography && currentTokens < tokenBudget.total_max - tokenBudget.hints_max) {
     // Include a summary of biography for backstory reference
     const bioSummary = biography.slice(0, tokenBudget.hints_max * 4);
@@ -449,8 +462,13 @@ export async function getStaticPrompt(personaId: string): Promise<string> {
     return corePrompt || `You are ${personaId}, a warm and supportive life coach.`;
   }
 
-  const { corePrompt, directorsNotes, biography } = cached;
+  const { corePrompt, functionCalling, directorsNotes, biography } = cached;
   const parts = [corePrompt];
+
+  // CRITICAL: Include function calling instructions for tool usage
+  if (functionCalling) {
+    parts.push('\n---\n\n## Function Calling (CRITICAL - Read and Follow)\n\n' + functionCalling);
+  }
 
   if (directorsNotes) {
     parts.push("\n---\n\n## Director's Notes\n\n" + directorsNotes);

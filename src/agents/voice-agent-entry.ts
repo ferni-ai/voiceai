@@ -566,7 +566,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // NOTE: FerniAgent is the main agent class used for ALL personas. The persona identity
     // comes from the system prompt (loaded above via loadSystemPrompt), not the class name.
     const { FerniAgent } = await import('./personas/ferni-agent.js');
-    
+
     // DEBUG: Log tools being passed to agent
     const toolNames = Object.keys(orchestratorTools || {});
     process.stderr.write(
@@ -575,7 +575,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     process.stderr.write(
       `[voice-agent-entry] 🔧 Tool names: ${toolNames.slice(0, 10).join(', ')}${toolNames.length > 10 ? ` ... and ${toolNames.length - 10} more` : ''}\n`
     );
-    
+
     const agent = new FerniAgent(systemPrompt, {
       skipGreeting: true, // Greeting handled by generateAndSpeakGreeting below
       tools: orchestratorTools, // Use orchestrator-selected tools
@@ -625,9 +625,12 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         modalities: [genai.Modality.TEXT],
         temperature: geminiConfig.temperature,
         language: geminiConfig.language,
-        // Vertex AI Function Calling best practice: explicit toolConfig
-        // @see https://docs.cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling
-        toolConfig: toolConfig,
+        // PATCHED: toolChoice triggers function calling mode via our SDK patch
+        // 'auto' = Gemini decides, 'required' = force function call
+        // @see docs/LIVEKIT-SDK-PATCH.md
+        // NOTE: 'required' didn't help - Gemini still narrates tool calls
+        // This is a known Gemini Live API bug. Workaround is in tool-call-sanitizer.ts
+        toolChoice: 'auto',
         // Enable Google Search as a built-in tool for real-time information
         // @see https://ai.google.dev/gemini-api/docs/live-tools#google-search
         tools: [{ googleSearch: {} }],
@@ -743,6 +746,28 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       // Non-critical - extensibility is optional
     }
 
+    // =========================================================================
+    // PRE-SESSION BRIEFING - Make Ferni aware of time, date, context
+    // =========================================================================
+    try {
+      const { generatePreSessionBriefing } = await import('../services/pre-session-briefing.js');
+      const briefing = await generatePreSessionBriefing(userId, {
+        name: userData.userName || userData.name,
+        lastConversation: userData.lastConversationDate
+          ? new Date(userData.lastConversationDate)
+          : undefined,
+      });
+      // Store formatted briefing for context injection
+      userData.preSessionBriefing = briefing.formatted;
+      process.stderr.write(
+        `[voice-agent-entry] 📋 Pre-session briefing generated (${briefing.temporal.timeOfDay}, ${briefing.cultural.season})\n`
+      );
+    } catch (briefingErr) {
+      process.stderr.write(
+        `[voice-agent-entry] Pre-session briefing failed (non-fatal): ${String(briefingErr)}\n`
+      );
+    }
+
     // Wait for participant before starting session
     process.stderr.write(`[voice-agent-entry] 👤 Waiting for participant...\n`);
     const participant = await Promise.race([
@@ -765,6 +790,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       services,
       sessionPersona: sessionPersona,
       conversationManager,
+      sessionId,
+      userData,
     });
     cleanupHandlers.push(musicResult.clearTimers);
     process.stderr.write(
@@ -801,7 +828,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     process.stderr.write(
       `[voice-agent-entry] Session started! (isPhone: ${isPhoneCall}, isWeb: ${isWebConnection})\n`
     );
-    
+
     // DEBUG: Verify tools are registered with the agent
     const agentTools = (agent as unknown as { _tools?: Record<string, unknown> })?._tools;
     const registeredToolCount = agentTools ? Object.keys(agentTools).length : 0;
@@ -831,6 +858,20 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     }
 
     // TOOL TRACKING HANDLER
+    // Create sendDataMessage helper for behavior signal emission
+    const sendDataMessage = async (
+      type: string,
+      payload: Record<string, unknown>
+    ): Promise<void> => {
+      try {
+        const message = JSON.stringify({ type, ...payload });
+        const data = new TextEncoder().encode(message);
+        await ctx.room.localParticipant?.publishData(data, { reliable: true });
+      } catch {
+        // Non-critical - silently ignore errors
+      }
+    };
+
     setupToolTrackingHandler({
       session,
       userData,
@@ -838,6 +879,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       sessionPersona: sessionPersona,
       sessionId,
       debugEnabled: true,
+      // 🔄 BEHAVIOR SIGNAL INTEGRATION: Pass sendDataMessage for frontend signaling
+      sendDataMessage,
     });
 
     // SESSION STATE HANDLERS (silence detection, engagement)

@@ -223,7 +223,7 @@ function getMemoryStatus(): MemoryStatus {
 
   try {
     // Platform-aware memory detection
-    const platform = process.platform;
+    const { platform } = process;
 
     if (platform === 'linux') {
       // Linux: Use /proc/meminfo

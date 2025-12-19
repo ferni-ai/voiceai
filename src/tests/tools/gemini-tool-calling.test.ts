@@ -233,7 +233,7 @@ describe('Regression Prevention', () => {
   it('should not reintroduce "set them up with personality" pattern', () => {
     const ferniPath = path.join(
       process.cwd(),
-      'src/personas/bundles/ferni/identity/system-prompt.md'
+      'src/personas/bundles/ferni/identity/core-identity.md'
     );
     const content = fs.readFileSync(ferniPath, 'utf-8');
 
@@ -244,7 +244,7 @@ describe('Regression Prevention', () => {
   it('should not encourage announcing handoffs (only "don\'t announce" is allowed)', () => {
     const ferniPath = path.join(
       process.cwd(),
-      'src/personas/bundles/ferni/identity/system-prompt.md'
+      'src/personas/bundles/ferni/identity/core-identity.md'
     );
     const content = fs.readFileSync(ferniPath, 'utf-8');
 

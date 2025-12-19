@@ -163,6 +163,13 @@ export function isFirestoreAvailable(): boolean {
   return firestoreAvailable && firestoreClient !== null;
 }
 
+/**
+ * Get the Firestore client instance
+ */
+export function getFirestoreClient(): FirebaseFirestore.Firestore | null {
+  return firestoreClient;
+}
+
 // ============================================================================
 // PROFILE PERSISTENCE
 // ============================================================================
@@ -330,6 +337,7 @@ export async function loadPendingTriggers(userId: string): Promise<OutreachTrigg
 
 /**
  * Load all pending triggers (for startup recovery)
+ * @deprecated Use loadPendingTriggersWithLimit for better performance
  */
 export async function loadAllPendingTriggers(): Promise<OutreachTriggerDocument[]> {
   if (!isFirestoreAvailable()) {
@@ -347,6 +355,61 @@ export async function loadAllPendingTriggers(): Promise<OutreachTriggerDocument[
   } catch (error) {
     log.error({ error }, 'Failed to load all pending triggers');
     return [];
+  }
+}
+
+/**
+ * Load pending triggers with limit (for worker processing)
+ * PERF: Avoids loading 300k+ triggers into memory
+ */
+export async function loadPendingTriggersWithLimit(
+  limit: number
+): Promise<OutreachTriggerDocument[]> {
+  if (!isFirestoreAvailable()) {
+    return [];
+  }
+
+  try {
+    const snapshot = await firestoreClient!
+      .collection(TRIGGERS_COLLECTION)
+      .where('status', '==', 'pending')
+      .orderBy('createdAt', 'asc')
+      .limit(limit)
+      .get();
+
+    return snapshot.docs.map((doc) => doc.data() as OutreachTriggerDocument);
+  } catch (error) {
+    log.error({ error }, 'Failed to load pending triggers');
+    return [];
+  }
+}
+
+/**
+ * Store a scheduled delivery for future processing
+ */
+export async function storeScheduledDelivery(delivery: {
+  triggerId: string;
+  userId: string;
+  deliverAt: Date;
+  channel: string;
+  message: string;
+}): Promise<void> {
+  if (!isFirestoreAvailable()) {
+    return;
+  }
+
+  try {
+    await firestoreClient!
+      .collection('scheduled_deliveries')
+      .doc(delivery.triggerId)
+      .set({
+        ...delivery,
+        status: 'pending',
+        createdAt: new Date(),
+      });
+  } catch (error) {
+    log.error({ error, triggerId: delivery.triggerId }, 'Failed to store scheduled delivery');
+    throw error;
   }
 }
 

@@ -10,10 +10,15 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { onSessionEnd as recordPredictiveSignals } from '../predictive-insights/data-collector.js';
 import {
   recordTimingInteraction,
-  triggerOutreach,
   updateEmotionalState as updateContextEmotionalState,
   updateUserContext,
 } from './index.js';
+import {
+  publishCommitmentTrigger,
+  publishEmotionalSupportTrigger,
+  publishMilestoneTrigger,
+  publishOutreachTrigger,
+} from './trigger-publisher.js';
 
 const log = getLogger().child({ module: 'outreach-session-integration' });
 
@@ -324,21 +329,20 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
     log.warn({ error, userId }, 'Failed to update user context');
   }
 
-  // Create commitment check-in triggers
+  // Create commitment check-in triggers via Pub/Sub
+  // PERF: Triggers are published async and processed by Outreach Worker
   let triggersCreated = 0;
   for (const commitment of commitments) {
     try {
-      triggerOutreach({
+      const result = await publishCommitmentTrigger(
         userId,
-        type: 'commitment_check',
-        priority: 'medium',
-        reason: `Check in on commitment: ${commitment.what}`,
-        commitment: commitment.what,
-        suggestedTime: commitment.checkInDate,
-      });
-      triggersCreated++;
+        commitment.what,
+        commitment.checkInDate,
+        { sessionId: data.sessionId, personaId }
+      );
+      if (result.success) triggersCreated++;
     } catch (error) {
-      log.warn({ error, commitment }, 'Failed to create commitment trigger');
+      log.warn({ error, commitment }, 'Failed to publish commitment trigger');
     }
   }
 
@@ -348,40 +352,33 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
     ['stressed', 'anxious', 'sad', 'frustrated', 'overwhelmed'].includes(emotionalState)
   ) {
     try {
-      // Schedule a supportive check-in for tomorrow
-      const checkInTime = new Date();
-      checkInTime.setDate(checkInTime.getDate() + 1);
-      checkInTime.setHours(10, 0, 0, 0); // 10 AM
-
-      triggerOutreach({
+      // Publish emotional support trigger via Pub/Sub
+      const result = await publishEmotionalSupportTrigger(
         userId,
-        type: 'emotional_support',
-        priority: 'high',
-        reason: `User expressed ${emotionalState} feelings during conversation`,
-        suggestedTime: checkInTime,
-      });
-      triggersCreated++;
+        emotionalState,
+        0.7, // Intensity above threshold since we matched the emotion
+        { sessionId: data.sessionId, personaId, topics: summary?.mainTopics }
+      );
+      if (result.success) triggersCreated++;
 
-      log.info({ userId, emotionalState }, 'Created emotional support trigger');
+      log.info({ userId, emotionalState }, 'Published emotional support trigger');
     } catch (error) {
-      log.warn({ error, emotionalState }, 'Failed to create emotional support trigger');
+      log.warn({ error, emotionalState }, 'Failed to publish emotional support trigger');
     }
   }
 
   // Check for celebration triggers
   if (wins.length > 0 && (satisfaction === 'positive' || !satisfaction)) {
     try {
-      // Immediate celebration acknowledgment
-      triggerOutreach({
+      // Publish milestone celebration trigger via Pub/Sub
+      const result = await publishMilestoneTrigger(
         userId,
-        type: 'celebration',
-        priority: 'low',
-        reason: `Celebrate recent win: ${wins[0]}`,
-        milestone: wins[0],
-      });
-      triggersCreated++;
+        wins[0],
+        { sessionId: data.sessionId, personaId }
+      );
+      if (result.success) triggersCreated++;
     } catch (error) {
-      log.warn({ error }, 'Failed to create celebration trigger');
+      log.warn({ error }, 'Failed to publish celebration trigger');
     }
   }
 
@@ -391,7 +388,8 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
       const checkInTime = new Date();
       checkInTime.setDate(checkInTime.getDate() + 3); // 3 days later
 
-      triggerOutreach({
+      // Publish reengagement trigger via Pub/Sub
+      const result = await publishOutreachTrigger({
         userId,
         type: 'reengagement',
         priority: 'medium',
@@ -399,11 +397,13 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
           durationMinutes < 2
             ? 'Short session - check in to see if everything is okay'
             : 'Previous session may not have met expectations',
-        suggestedTime: checkInTime,
+        scheduledFor: checkInTime.toISOString(),
+        sessionId: data.sessionId,
+        personaId,
       });
-      triggersCreated++;
+      if (result.success) triggersCreated++;
     } catch (error) {
-      log.warn({ error }, 'Failed to create reengagement trigger');
+      log.warn({ error }, 'Failed to publish reengagement trigger');
     }
   }
 

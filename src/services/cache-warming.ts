@@ -34,7 +34,7 @@ async function runWithConcurrency<T>(
   const results: Array<
     { status: 'fulfilled'; value: T } | { status: 'rejected'; reason: unknown }
   > = [];
-  const executing: Promise<void>[] = [];
+  const executing: Array<Promise<void>> = [];
 
   for (const task of tasks) {
     const p = (async () => {
@@ -52,7 +52,7 @@ async function runWithConcurrency<T>(
     if (executing.length >= limit) {
       await Promise.race(executing);
       // Remove completed promises - filter out settled ones
-      const stillExecuting: Promise<void>[] = [];
+      const stillExecuting: Array<Promise<void>> = [];
       for (const p of executing) {
         // Check if promise is settled by racing with an immediate resolve
         const settled = await Promise.race([p.then(() => true), Promise.resolve(false)]);

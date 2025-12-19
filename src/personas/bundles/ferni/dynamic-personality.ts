@@ -1,12 +1,21 @@
 /**
  * Ferni Dynamic Personality System
  *
- * Transforms static personality JSON files into variety-tracked expression pools.
- * Ferni's core identity (WHO he is) stays constant. His expressions (HOW he shows it)
- * vary naturally within each session.
+ * ⚠️ LEGACY MODULE - Consider using the "Better Than Human" system instead:
+ *    import { ferniPersonality } from './personality-integration.js';
  *
- * This prevents repetitive mentions of coffee, Japanese playlists, etc. while
- * maintaining his authentic character.
+ * This module provides pool-based variety tracking for backward compatibility.
+ * The new system in personality-integration.ts offers:
+ *
+ * 1. COMPOSITION not SELECTION - Expressions are built from building blocks
+ * 2. 8-DIMENSIONAL CONTEXT - Time, emotion, momentum, relationship, voice...
+ * 3. CROSS-SESSION LEARNING - Remembers what resonates with THIS user
+ * 4. REAL-TIME NOTICING - Detects pauses, energy shifts, voice-text mismatch
+ * 5. ADAPTIVE INTIMACY - Vulnerability calibrates to relationship depth
+ *
+ * For new code, use:
+ *   const result = await ferniPersonality.processTurn(input);
+ *   const response = ferniPersonality.applyToResponse(raw, result);
  *
  * @module personas/bundles/ferni/dynamic-personality
  */
@@ -537,3 +546,16 @@ export default {
   getVarietyStats,
   clearSessionVariety,
 };
+
+// ============================================================================
+// RE-EXPORT NEW SYSTEM FOR CONVENIENCE
+// ============================================================================
+
+// The "Better Than Human" personality system
+export {
+  ferniPersonality,
+  processTurnPersonality,
+  applyPersonalityToResponse,
+  type PersonalityTurnInput,
+  type PersonalityTurnResult,
+} from './personality-integration.js';

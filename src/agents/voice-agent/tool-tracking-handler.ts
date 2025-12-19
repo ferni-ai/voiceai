@@ -41,6 +41,8 @@ export interface ToolTrackingContext {
   debugEnabled?: boolean;
   /** Enable verbose tool result logging (from admin config) */
   logToolResults?: boolean;
+  /** Callback to send data messages to frontend (for behavior signals) */
+  sendDataMessage?: (type: string, payload: Record<string, unknown>) => Promise<void>;
 }
 
 export interface ToolTrackingResult {
@@ -79,8 +81,11 @@ interface ToolInfo {
  * 4. Records pattern analysis data
  * 5. Feeds auto-optimizer
  */
+// Behavior tool names that should emit signals to frontend
+const BEHAVIOR_TOOLS = ['shiftMode', 'adjustPacing', 'processing', 'holdSpace', 'expressPresence'];
+
 export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTrackingResult {
-  const { session, userData, services, sessionPersona, sessionId, debugEnabled, logToolResults } =
+  const { session, userData, services, sessionPersona, sessionId, debugEnabled, logToolResults, sendDataMessage } =
     ctx;
   const logger = log();
 
@@ -158,6 +163,67 @@ export function setupToolTrackingHandler(ctx: ToolTrackingContext): ToolTracking
 
           // Record in conversation state
           convState.recordToolCall(toolName, resultSummary);
+
+          // 🔄 BEHAVIOR TOOL SIGNAL EMISSION
+          // When behavior tools execute, emit signals to frontend for avatar updates
+          if (sendDataMessage && BEHAVIOR_TOOLS.includes(toolName) && !hasError && tool.result) {
+            try {
+              const result = tool.result as Record<string, unknown>;
+              
+              // Emit the signal that the behavior tool returned
+              if (result.signal) {
+                await sendDataMessage('behavior_signal', result.signal as Record<string, unknown>);
+                logger.debug({ toolName, signal: result.signal }, '🔄 Behavior signal emitted to frontend');
+              }
+              
+              // For mode shifts, emit mode change
+              if (toolName === 'shiftMode' && result.mode) {
+                await sendDataMessage('behavior_signal', {
+                  type: 'mode_shift',
+                  mode: result.mode,
+                  timestamp: Date.now(),
+                });
+              }
+              
+              // For pacing changes, emit pacing change
+              if (toolName === 'adjustPacing' && result.speed) {
+                await sendDataMessage('behavior_signal', {
+                  type: 'pacing_change',
+                  pacing: result.speed,
+                  timestamp: Date.now(),
+                });
+              }
+              
+              // For processing, emit processing state
+              if (toolName === 'processing') {
+                await sendDataMessage('behavior_signal', {
+                  type: 'processing_start',
+                  expression: result.phrase,
+                  timestamp: Date.now(),
+                });
+              }
+              
+              // For hold space, emit hold space
+              if (toolName === 'holdSpace' && result.duration) {
+                await sendDataMessage('behavior_signal', {
+                  type: 'hold_space',
+                  duration: result.duration,
+                  timestamp: Date.now(),
+                });
+              }
+              
+              // For presence expressions
+              if (toolName === 'expressPresence' && result.expression) {
+                await sendDataMessage('behavior_signal', {
+                  type: 'expression',
+                  expression: result.expression,
+                  timestamp: Date.now(),
+                });
+              }
+            } catch (emitError) {
+              logger.debug({ error: String(emitError), toolName }, 'Failed to emit behavior signal (non-critical)');
+            }
+          }
 
           // Record analytics for tool usage optimization
           await recordToolAnalytics({

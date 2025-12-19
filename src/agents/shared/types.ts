@@ -87,6 +87,10 @@ export interface UserData {
   userWentSilent?: boolean;
   /** Whether the user was interrupted (for response recovery) */
   wasInterrupted?: boolean;
+  /** Type of interrupt: 'hard' (wait/stop) or 'soft' (just started talking) */
+  interruptType?: 'hard' | 'soft';
+  /** Pending trailing SSML to inject before cut (graceful interrupt) */
+  pendingTrailingSsml?: string;
 
   // Voice emotion tracking
   voiceEmotion?: VoiceEmotionResult;
@@ -255,6 +259,17 @@ export interface UserData {
 
   /** Session prompt from extensibility hooks (injected into context) */
   extensibilitySessionPrompt?: string | null;
+
+  // ============================================================
+  // PRE-SESSION BRIEFING: World/Time Awareness
+  // Gives Ferni context about date, time, events BEFORE first turn
+  // ============================================================
+
+  /** Pre-session briefing with temporal/cultural context */
+  preSessionBriefing?: string;
+
+  /** When user's last conversation was (for briefing calculation) */
+  lastConversationDate?: string;
 }
 
 // ============================================================================

@@ -23,7 +23,12 @@ import type { voice } from '@livekit/agents';
 import { log } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import { TextEncoder } from 'node:util';
-import { getDJBooth } from '../../audio/index.js';
+import {
+  getDJBooth,
+  hasPendingMusicFeedback,
+  recordMusicFeedback,
+  detectFeedbackFromResponse,
+} from '../../audio/index.js';
 import { getSessionFlags } from '../../config/voice-humanization-flags.js';
 import { setHumanListeningResult } from '../../intelligence/context-builders/human-listening.js';
 import {
@@ -58,6 +63,7 @@ import {
   handleInterruption,
   type TurnContext,
 } from './human-turn-intelligence.js';
+import { senseInterrupt, getTrailingSsml } from '../../speech/graceful-interrupt/index.js';
 import {
   processDailyCheckIn,
   cleanupStaleCheckIns,
@@ -185,7 +191,28 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
           trigger: microInterrupt.trigger,
           transcript: event.transcript.slice(0, 30),
         });
+        // Set hard interrupt type for more deliberate recovery
+        userData.interruptType = 'hard';
         // The onInterrupt callback handles the actual interruption
+      }
+
+      // ===============================================
+      // GRACEFUL INTERRUPT: Pre-emptive trailing
+      // Sense when user is about to interrupt and inject
+      // trailing-off SSML before the hard cut happens
+      // ===============================================
+      const interruptSense = senseInterrupt(sessionId, event.transcript, isAgentSpeaking);
+      if (interruptSense.shouldTrail) {
+        const trailingSsml = getTrailingSsml(sessionId);
+        if (trailingSsml) {
+          diag.state('🎭 Injecting pre-emptive trailing', {
+            trigger: interruptSense.trigger,
+            trailing: trailingSsml.slice(0, 30),
+          });
+          // The trailing SSML will be picked up by the TTS stream
+          // via the transcription node's response wrapper
+          userData.pendingTrailingSsml = trailingSsml;
+        }
       }
     }
 
@@ -356,6 +383,47 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         recommendedDelay: finalTurnSignals.recommendedDelay,
         isUrgent: finalTurnSignals.isUrgent,
       });
+
+      // 📊 MUSIC TRANSITION FEEDBACK
+      // If music recently ended, record user's response for per-user learning
+      // This helps the system learn what transition types work for each user
+      if (hasPendingMusicFeedback()) {
+        try {
+          // Auto-detect feedback signals from what the user said
+          const detectedFeedback = detectFeedbackFromResponse(cleanedTranscript);
+
+          // Also use voice emotion if available
+          // Note: 'calm' is not a valid VoiceEmotionType, using 'neutral' as base
+          const voiceTone =
+            userData.voiceEmotion?.primary === 'happy' || userData.voiceEmotion?.valence! > 0.3
+              ? 'warmer'
+              : userData.voiceEmotion?.primary === 'neutral'
+                ? 'calmer'
+                : 'neutral';
+
+          const feedbackRecorded = recordMusicFeedback(
+            {
+              ...detectedFeedback,
+              voiceTone: voiceTone as 'warmer' | 'calmer' | 'neutral',
+              continuedSession: true,
+            },
+            sessionId
+          );
+
+          if (feedbackRecorded) {
+            diag.state('📊 Music feedback recorded from user response', {
+              transcript: cleanedTranscript.slice(0, 50),
+              wasPositive: detectedFeedback.wasPositive,
+              voiceTone,
+            });
+          }
+        } catch (feedbackErr) {
+          // Non-critical, don't block transcript processing
+          diag.debug('📊 Music feedback recording failed (non-critical)', {
+            error: String(feedbackErr),
+          });
+        }
+      }
 
       // 🚀 RESPONSE ANTICIPATION CACHE BYPASS
       // If we have a high-confidence cached response, say it immediately

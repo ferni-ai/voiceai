@@ -282,9 +282,11 @@ export async function buildTrustSystemsInjections(
 ): Promise<ContextInjection[]> {
   const { userText, services, currentTopic, emotionalState, persona } = ctx;
   const injections: ContextInjection[] = [];
+  const startTime = Date.now();
 
   try {
     const { buildTrustContext } = await import('../../services/trust-systems/index.js');
+    const { recordTrustSystemTiming } = await import('../../services/performance-metrics.js');
 
     const trustContext = buildTrustContext(services.userId || 'unknown', userText, {
       currentTopic,
@@ -475,6 +477,8 @@ Weave this naturally early in the conversation. Don't make it feel scripted - ma
         triggerType: dueoutreach.trigger.type,
       });
     }
+    // Record trust system timing
+    recordTrustSystemTiming(Date.now() - startTime);
   } catch (error) {
     diag.warn('Trust context failed (non-fatal)', { error: String(error) });
   }

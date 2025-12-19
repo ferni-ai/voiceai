@@ -442,10 +442,12 @@ describe('Tool Descriptions', () => {
       expect(playMusicDesc).toContain('Play music');
 
       const queryParam = getParameterDescription('playMusic', 'query');
-      expect(queryParam).toContain('Examples');
+      // Enhanced descriptions include examples inline (e.g., "('Bohemian Rhapsody')")
+      expect(queryParam).toContain('song title');
 
       const factParam = getParameterDescription('rememberAboutUser', 'fact');
-      expect(factParam).toContain('Examples');
+      // Enhanced descriptions include examples inline
+      expect(factParam).toContain('has two kids');
     });
 
     it('should fall back to standard descriptions', async () => {

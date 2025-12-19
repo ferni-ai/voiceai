@@ -99,11 +99,22 @@ function serializeForFirestore(memory: RelationshipMemory): Record<string, unkno
       timestamp: s.timestamp.toISOString(),
     })),
 
-    milestones: memory.milestones.map((m) => ({
-      ...m,
-      reachedAt: m.reachedAt?.toISOString(),
-      acknowledgedAt: m.acknowledgedAt?.toISOString(),
-    })),
+    // Filter out undefined values that Firestore rejects
+    milestones: memory.milestones.map((m) => {
+      const milestone: Record<string, unknown> = { ...m };
+      // Convert dates to ISO strings, but only if they exist
+      if (m.reachedAt) {
+        milestone.reachedAt = m.reachedAt.toISOString();
+      } else {
+        delete milestone.reachedAt;
+      }
+      if (m.acknowledgedAt) {
+        milestone.acknowledgedAt = m.acknowledgedAt.toISOString();
+      } else {
+        delete milestone.acknowledgedAt;
+      }
+      return milestone;
+    }),
 
     callbackAttempts: memory.callbackAttempts.map((c) => ({
       ...c,

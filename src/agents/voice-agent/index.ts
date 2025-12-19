@@ -84,6 +84,13 @@ export {
 // Turn handler
 export { handleUserTurn, type TurnHandlerContext } from './turn-handler.js';
 
+// Human turn intelligence
+export {
+  getAverageSpeechRate,
+  updateSessionState as updateTurnSessionState,
+  clearSessionState as clearTurnSessionState,
+} from './human-turn-intelligence.js';
+
 // Audio processor (extracted from sttNode)
 export {
   processAudioStream,

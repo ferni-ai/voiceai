@@ -331,6 +331,16 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
     // USER STARTED SPEAKING
     // ----------------------------------------------------------------
     if (event.newState === 'speaking') {
+      // GRACEFUL INTERRUPT: Track if user interrupted while agent was speaking
+      // This enables softer recovery when agent responds next
+      if (conversationManager.isAgentSpeaking()) {
+        userData.wasInterrupted = true;
+        // Determine interrupt type: 'hard' if user said explicit stop words, else 'soft'
+        // The transcript handler sets more precise type if available
+        userData.interruptType = 'soft';
+        diag.state('🎭 User interrupted agent - will use graceful recovery');
+      }
+
       // Record silence if we had an analysis (user broke the silence by self-initiating)
       const userId = userData.userId;
       if (userId && userData.lastSilenceAnalysis) {

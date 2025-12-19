@@ -485,8 +485,8 @@ function injectStyles(): void {
     }
 
     .accent-message.error {
-      background: rgba(220, 53, 69, 0.1);
-      color: #dc3545;
+      background: var(--color-error-tint, rgba(220, 53, 69, 0.1));
+      color: var(--color-error, #dc3545);
     }
 
     .accent-message.success {

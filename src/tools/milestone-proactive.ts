@@ -14,7 +14,10 @@
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../utils/safe-logger.js';
-import { getUserMilestones, type LifeMilestone } from './domains/life-planning/life-firsts-tracker.js';
+import {
+  getUserMilestones,
+  type LifeMilestone,
+} from './domains/life-planning/life-firsts-tracker.js';
 
 import { getToolDescription } from './utils/tool-descriptions.js';
 // ============================================================================

@@ -354,7 +354,8 @@ export class DJBooth {
     void (async () => {
       try {
         const publisher = getFrontendPublisher();
-        if (publisher) {
+        // Check connection before sending to avoid disconnect race condition
+        if (publisher?.isConnected()) {
           await publisher.sendMusicState(
             'playing',
             { name: track.name, artist: track.artist },
@@ -367,7 +368,13 @@ export class DJBooth {
           });
         }
       } catch (err) {
-        log.warn('Failed to notify frontend of our song', { error: String(err) });
+        // Gracefully handle disconnect race condition
+        const errorStr = String(err);
+        if (errorStr.includes('disconnect') || errorStr.includes('closed')) {
+          log.debug('Our song notify skipped - connection closed');
+        } else {
+          log.warn('Failed to notify frontend of our song', { error: errorStr });
+        }
       }
     })();
   }

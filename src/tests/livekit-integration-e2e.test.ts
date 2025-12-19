@@ -233,7 +233,7 @@ describe('Tool Integration', () => {
     });
 
     it('should have music tools', async () => {
-      const module = await import('../tools/music.js');
+      const module = await import('../tools/domains/entertainment/music.js');
 
       expect(module).toBeDefined();
       expect(Object.keys(module).length).toBeGreaterThan(0);

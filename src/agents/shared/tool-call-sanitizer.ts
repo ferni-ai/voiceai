@@ -4,12 +4,15 @@
  * Detects and filters out malformed function-call-like text that Gemini
  * sometimes outputs instead of making actual function calls.
  *
+ * WORKAROUND (Dec 2024): Gemini Live API doesn't reliably make function calls.
+ * We've instructed it to OUTPUT JSON like: {"fn":"playMusic","args":{"query":"jazz"}}
+ * This sanitizer catches that JSON, executes the tool, and suppresses it from TTS.
+ *
  * Examples of what we're catching:
+ * - {"fn":"playMusic","args":{"query":"jazz"}} (our instructed format)
  * - "Play music query christmas music" (should be a playMusic() call)
  * - "I'll call the playMusic function" (should just call it)
  * - "Let me transfer you to Maya" (should call handoffToMaya)
- * - "I'm going to use the getWeather tool" (should call the tool)
- * - "Calling handoffToMaya with target Maya" (function call as text)
  *
  * This is a defensive filter - the proper fix is in Gemini's function calling
  * configuration, but this catches any leakage.
@@ -193,6 +196,13 @@ const TOOL_CALL_ANNOUNCEMENT_PATTERNS = [
   /\{\s*"(?:function|name|tool)":\s*"(\w+)"/i,
   // "The X function" or "the X tool" when describing what to do
   /(?:use|call|invoke|execute) the (\w+) (?:function|tool)/i,
+  // NEW (Dec 2024): Gemini Live API specific patterns
+  // "[call X with Y]" or "[call X with query Y]"
+  /\[(?:silently )?calls? (\w+)(?: with (?:query )?["']?[^"\]]+["']?)?\]/i,
+  // "silently calls X with query Y" (without brackets)
+  /silently calls? (\w+)(?: with (?:query )?["']?[^"]+["']?)?/i,
+  // "[silently calls X]" or "silently calls X"
+  /(?:\[)?silently (?:call|calls|calling) (\w+)(?:\])?/i,
 ];
 
 /**
@@ -211,6 +221,96 @@ interface LeakageDetection {
   parameter?: string;
   value?: string;
   pattern?: string;
+}
+
+// ============================================================================
+// JSON FUNCTION CALL DETECTION (Our instructed format)
+// ============================================================================
+
+/** Result type for JSON function call detection */
+interface JsonFunctionCall {
+  fn: string;
+  args: Record<string, unknown>;
+}
+
+/**
+ * Detect our instructed JSON format: {"fn":"playMusic","args":{"query":"jazz"}}
+ * Also handles markdown-wrapped JSON: ```json\n{...}\n```
+ * Returns the parsed call if found, null otherwise.
+ */
+function detectJsonFunctionCall(text: string): JsonFunctionCall | null {
+  // First, strip markdown code fences if present
+  // Handles: ```json\n{...}\n``` or ```\n{...}\n```
+  let cleanText = text;
+  
+  // Remove markdown code fences
+  const markdownMatch = text.match(/```(?:json)?\s*\n?\s*(\{[\s\S]*?\})\s*\n?\s*```/i);
+  if (markdownMatch) {
+    cleanText = markdownMatch[1];
+    log.debug({ original: text.slice(0, 50), cleaned: cleanText.slice(0, 50) }, '📝 Stripped markdown code fence');
+  }
+  
+  // Look for JSON pattern - handles both inline and multiline
+  const jsonMatch = cleanText.match(/\{\s*"?fn"?\s*:\s*"(\w+)"\s*,\s*"?args"?\s*:\s*(\{[^}]*\})\s*\}/i);
+  if (!jsonMatch) {
+    // Try a more permissive match for split chunks
+    const looseMatch = cleanText.match(/"fn"\s*:\s*"(\w+)".*"args"\s*:\s*(\{[^}]*\})/is);
+    if (!looseMatch) return null;
+    
+    try {
+      const fn = looseMatch[1];
+      const argsStr = looseMatch[2];
+      const args = JSON.parse(argsStr) as Record<string, unknown>;
+      log.info({ fn, args }, '🎯 JSON function call detected (loose match)');
+      return { fn, args };
+    } catch {
+      return null;
+    }
+  }
+
+  try {
+    const fn = jsonMatch[1];
+    const argsStr = jsonMatch[2];
+    const args = JSON.parse(argsStr) as Record<string, unknown>;
+    
+    log.info({ fn, args }, '🎯 JSON function call detected in text stream');
+    return { fn, args };
+  } catch {
+    return null;
+  }
+}
+
+/** Result from tool execution */
+interface ToolExecutionResult {
+  success: boolean;
+  fn: string;
+  result?: unknown;
+  error?: string;
+}
+
+/**
+ * Execute a tool based on the JSON function call we detected.
+ * This is the workaround for Gemini not making proper function calls.
+ *
+ * Routes to the general-purpose json-function-executor for comprehensive tool support.
+ * Returns the result so it can be spoken via TTS.
+ */
+async function executeJsonFunctionCall(call: JsonFunctionCall): Promise<ToolExecutionResult | null> {
+  try {
+    // Use the general-purpose executor
+    const { executeJsonFunction } = await import('./json-function-executor.js');
+    // Add 'raw' field expected by the executor
+    const result = await executeJsonFunction({ ...call, raw: JSON.stringify(call) });
+    return {
+      success: result.success,
+      fn: call.fn,
+      result: result.result,
+      error: result.error,
+    };
+  } catch (err) {
+    log.error({ fn: call.fn, args: call.args, error: String(err) }, '❌ Failed to execute JSON function call');
+    return { success: false, fn: call.fn, error: String(err) };
+  }
 }
 
 /** Check if a name matches known tools or team members */
@@ -609,4 +709,347 @@ export function createSanitizerTransformStream(): AnyTransformStream {
  */
 export function containsToolCallLeakage(text: string): boolean {
   return detectsFunctionCallLeakage(text).detected;
+}
+
+/**
+ * Extract music query from narrated tool call text.
+ *
+ * Examples:
+ * - "silently calls playMusic with query jazz" -> "jazz"
+ * - "Play music query christmas music" -> "christmas music"
+ * - "playMusic query relaxing piano" -> "relaxing piano"
+ */
+function extractMusicQuery(text: string): string | null {
+  const lowerText = text.toLowerCase();
+
+  // Pattern: "query <value>" or "query: <value>" or "with query <value>"
+  const queryPatterns = [
+    /(?:with\s+)?query[:\s]+["']?([^"'\]]+?)["']?(?:\s*\]|\s*$)/i,
+    /play(?:ing)?\s+music\s+query\s+(.+)/i,
+    /playmusic\s+query\s+(.+)/i,
+    /silently\s+calls?\s+playmusic\s+with\s+query\s+["']?(.+?)["']?/i,
+    /calls?\s+playmusic\s+with\s+["']?(.+?)["']?/i,
+  ];
+
+  for (const pattern of queryPatterns) {
+    const match = lowerText.match(pattern);
+    if (match?.[1]) {
+      return match[1].trim();
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Create a transform stream that:
+ * 1. Sanitizes tool call leakage (replaces with natural text)
+ * 2. Executes music tool as fallback when Gemini narrates instead of calls
+ *
+ * WORKAROUND: Gemini Live API has a known bug (Dec 2024) where it sometimes
+ * outputs text like "silently calls playMusic with query jazz" instead of
+ * making an actual function call. This detects those patterns and invokes
+ * the tool directly.
+ */
+export function createSanitizerWithMusicFallback(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  toolContext?: Record<string, any>
+): AnyTransformStream {
+  let buffer = '';
+  let suppressMode = false;
+  let waitForMoreContext = false;
+  let musicFallbackInFlight = false;
+
+  const isSentenceBoundary = (text: string): boolean =>
+    text.includes('.') || text.includes('!') || text.includes('?');
+
+  const hasWordBoundary = (text: string): boolean => /\s|[.,!?;:]/.test(text);
+
+  /**
+   * Try to execute playMusic as a fallback when we detect narrated music request.
+   * This is fire-and-forget - the tool result will be handled separately.
+   */
+  const tryMusicFallback = async (query: string): Promise<void> => {
+    if (musicFallbackInFlight) {
+      log.debug({ query }, 'Music fallback already in flight, skipping');
+      return;
+    }
+
+    try {
+      musicFallbackInFlight = true;
+      log.info({ query }, '🎵 MUSIC FALLBACK: Executing playMusic because Gemini narrated instead of called');
+
+      // Try to get playMusic from tool context
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const playMusic = toolContext?.playMusic as
+        | { execute?: (args: { query: string }) => Promise<unknown> }
+        | undefined;
+
+      if (playMusic?.execute) {
+        // Execute the tool directly
+        await playMusic.execute({ query });
+        log.info({ query }, '🎵 MUSIC FALLBACK: playMusic executed successfully');
+      } else {
+        // Fallback: try to import and call the music tool directly
+        try {
+          const { playMusicUnified } = await import('../../tools/domains/entertainment/music.js');
+          await playMusicUnified(query);
+          log.info({ query }, '🎵 MUSIC FALLBACK: playMusicUnified executed via direct import');
+        } catch (importErr) {
+          log.warn({ query, error: String(importErr) }, '🎵 MUSIC FALLBACK: Could not import music tool');
+        }
+      }
+    } catch (err) {
+      log.error({ query, error: String(err) }, '🎵 MUSIC FALLBACK: Error executing playMusic');
+    } finally {
+      musicFallbackInFlight = false;
+    }
+  };
+
+  // Track how many chunks to suppress after catching JSON
+  let suppressChunksRemaining = 0;
+  const SUPPRESS_CHUNKS_AFTER_JSON = 5; // Suppress 5 chunks after JSON to catch "Ok so..."
+  
+  // JSON fragment accumulator - for handling split JSON like {"  then fn":"playMusic"...
+  let jsonAccumulator = '';
+  let jsonAccumulatorActive = false;
+  const MAX_JSON_ACCUMULATOR_SIZE = 500;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+  return new (globalThis as any).TransformStream({
+    transform(chunk: string, controller: { enqueue: (s: string) => void }) {
+      buffer += chunk;
+
+      // After catching JSON, suppress several chunks to catch trailing "Ok so..." type text
+      if (suppressChunksRemaining > 0) {
+        suppressChunksRemaining--;
+        log.debug({ chunk: chunk.slice(0, 30), remaining: suppressChunksRemaining }, '🗑️ Suppressing post-JSON chunk');
+        buffer = '';
+        return;
+      }
+
+      if (suppressMode) {
+        if (isSentenceBoundary(chunk)) {
+          suppressMode = false;
+          buffer = '';
+          waitForMoreContext = false;
+          jsonAccumulator = '';
+          jsonAccumulatorActive = false;
+        }
+        return;
+      }
+      
+      // FRAGMENTED JSON DETECTION
+      // Gemini sometimes splits JSON across chunks like:
+      // Chunk 1: {"
+      // Chunk 2: fn":"playMusic","args":{"query":"jazz"}}
+      // We need to accumulate these
+      
+      const trimmed = buffer.trim();
+      
+      // Detect if this chunk looks like the START of JSON
+      const looksLikeJsonStart = /^\s*\{?\s*["']?\s*$/.test(trimmed) || 
+                                  trimmed === '{' || 
+                                  trimmed === '{"' ||
+                                  trimmed === '{ "' ||
+                                  /^\s*```json?\s*$/i.test(trimmed) ||
+                                  /^\s*```json?\s*\{?\s*$/i.test(trimmed);
+      
+      // If we see JSON start marker, start accumulating
+      if (looksLikeJsonStart && !jsonAccumulatorActive) {
+        jsonAccumulatorActive = true;
+        jsonAccumulator = trimmed;
+        log.debug({ chunk: trimmed }, '🔧 JSON fragment detected - starting accumulation');
+        buffer = '';
+        return;
+      }
+      
+      // If we're accumulating JSON, add to accumulator
+      if (jsonAccumulatorActive) {
+        jsonAccumulator += chunk;
+        
+        // Check if we have a complete JSON now
+        const jsonCall = detectJsonFunctionCall(jsonAccumulator);
+        if (jsonCall) {
+          log.info({ fn: jsonCall.fn, args: jsonCall.args, accumulated: jsonAccumulator.length }, '🎯 Accumulated JSON function call - executing');
+          
+          // Execute the tool and get the result to speak
+          executeJsonFunctionCall(jsonCall).then((execResult) => {
+            if (execResult?.success && execResult.result) {
+              // Emit the tool result to be spoken
+              const resultText = typeof execResult.result === 'string' 
+                ? execResult.result 
+                : JSON.stringify(execResult.result);
+              log.info({ fn: jsonCall.fn, resultPreview: resultText.slice(0, 80) }, '🎤 Emitting tool result to TTS');
+              controller.enqueue(resultText + ' ');
+            }
+          }).catch((err) => {
+            log.error({ fn: jsonCall.fn, error: String(err) }, '❌ Tool execution failed');
+          });
+          
+          suppressMode = true;
+          suppressChunksRemaining = SUPPRESS_CHUNKS_AFTER_JSON;
+          buffer = '';
+          jsonAccumulator = '';
+          jsonAccumulatorActive = false;
+          return;
+        }
+        
+        // Safety: if accumulator gets too big without completing, it's probably not JSON
+        if (jsonAccumulator.length > MAX_JSON_ACCUMULATOR_SIZE) {
+          log.debug({ accumulated: jsonAccumulator.slice(0, 100) }, '🔧 JSON accumulator timeout - not valid JSON');
+          // Emit what we accumulated (it wasn't JSON after all)
+          controller.enqueue(jsonAccumulator);
+          jsonAccumulator = '';
+          jsonAccumulatorActive = false;
+          buffer = '';
+          return;
+        }
+        
+        // Keep accumulating - don't emit anything yet
+        buffer = '';
+        return;
+      }
+
+      // FIRST: Check for JSON function call patterns
+      // Gemini outputs JSON in markdown code blocks like:
+      // ```json
+      // {"fn":"playMusic","args":{"query":"jazz"}}
+      // ```
+      // OR sometimes inline: {"fn":"playMusic","args":{"query":"jazz"}}
+      
+      // Check for markdown code fence start - buffer until we see the closing fence
+      const hasCodeFenceStart = buffer.includes('```json') || buffer.includes('```\n{');
+      const hasCodeFenceEnd = hasCodeFenceStart && buffer.match(/```json[\s\S]*```/);
+      
+      // Check for inline JSON start
+      const hasInlineJsonStart = trimmed.includes('{"fn"') || trimmed.includes('{ "fn"');
+      const hasInlineJsonEnd = hasInlineJsonStart && trimmed.includes('}}');
+      
+      // If we see a code fence or JSON start, buffer until complete
+      if (hasCodeFenceStart && !hasCodeFenceEnd && buffer.length < 300) {
+        log.debug({ bufferLen: buffer.length, preview: buffer.slice(0, 50) }, '⏳ Buffering markdown JSON block');
+        return;
+      }
+      
+      if (hasInlineJsonStart && !hasInlineJsonEnd && buffer.length < 200) {
+        log.debug({ bufferLen: buffer.length, preview: buffer.slice(0, 50) }, '⏳ Buffering inline JSON');
+        return;
+      }
+      
+      // Check if buffer contains a complete JSON function call (in markdown or inline)
+      const jsonCall = detectJsonFunctionCall(buffer);
+      if (jsonCall) {
+        log.info({ fn: jsonCall.fn, args: jsonCall.args, bufferLen: buffer.length }, '🎯 JSON function call intercepted - executing');
+        
+        // Execute the tool and emit the result to be spoken
+        executeJsonFunctionCall(jsonCall).then((execResult) => {
+          if (execResult?.success && execResult.result) {
+            const resultText = typeof execResult.result === 'string' 
+              ? execResult.result 
+              : JSON.stringify(execResult.result);
+            log.info({ fn: jsonCall.fn, resultPreview: resultText.slice(0, 80) }, '🎤 Emitting tool result to TTS');
+            controller.enqueue(resultText + ' ');
+          }
+        }).catch((err) => {
+          log.error({ fn: jsonCall.fn, error: String(err) }, '❌ Tool execution failed');
+        });
+        
+        // Suppress the JSON text and trailing conversational text
+        suppressMode = true;
+        suppressChunksRemaining = SUPPRESS_CHUNKS_AFTER_JSON;
+        buffer = '';
+        waitForMoreContext = false;
+        return;
+      }
+      
+      // Check if this looks like a continuation of JSON/markdown (contains fn, args, query patterns)
+      const looksLikeJsonContinuation = /^[a-zA-Z]*["']?[:,}\]{"'`]/.test(trimmed) || 
+                                         trimmed.includes('"args"') || 
+                                         trimmed.includes('"query"') ||
+                                         trimmed.includes('"fn"') ||
+                                         trimmed.includes('```') ||
+                                         trimmed.includes('}}');
+      
+      // Catch JSON/markdown continuation chunks
+      if (looksLikeJsonContinuation && buffer.length < 80) {
+        log.debug({ preview: buffer.slice(0, 40) }, '🗑️ Suppressing JSON/markdown continuation chunk');
+        buffer = '';
+        return;
+      }
+
+      const detection = detectsFunctionCallLeakage(buffer);
+      if (detection.detected) {
+        log.warn({ buffer, ...detection }, '🚨 STREAMING TOOL CALL LEAKAGE - Filtering malformed output');
+
+        // Check if this is a music request that needs fallback execution
+        const musicQuery = extractMusicQuery(buffer);
+        if (musicQuery && detection.toolName?.toLowerCase().includes('music')) {
+          // Fire off the music fallback (don't await - it runs in background)
+          void tryMusicFallback(musicQuery);
+        }
+
+        const replacement = getReplacementText(detection);
+        if (replacement) {
+          controller.enqueue(`${replacement} `);
+        }
+
+        suppressMode = true;
+        buffer = '';
+        waitForMoreContext = false;
+        return;
+      }
+
+      if (buffer.length < 50 && mightBePartialToolCall(buffer)) {
+        waitForMoreContext = true;
+        return;
+      }
+
+      if (waitForMoreContext && hasWordBoundary(chunk) && buffer.length > 30) {
+        const recheckDetection = detectsFunctionCallLeakage(buffer);
+        if (recheckDetection.detected) {
+          // Check for music fallback
+          const musicQuery = extractMusicQuery(buffer);
+          if (musicQuery && recheckDetection.toolName?.toLowerCase().includes('music')) {
+            void tryMusicFallback(musicQuery);
+          }
+
+          const replacement = getReplacementText(recheckDetection);
+          if (replacement) {
+            controller.enqueue(`${replacement} `);
+          }
+          suppressMode = true;
+          buffer = '';
+          waitForMoreContext = false;
+          return;
+        }
+        waitForMoreContext = false;
+      }
+
+      if (buffer.length > 150 && !waitForMoreContext) {
+        controller.enqueue(buffer);
+        buffer = '';
+      }
+    },
+
+    flush(controller: { enqueue: (s: string) => void }) {
+      if (buffer && !suppressMode) {
+        const finalCheck = detectsFunctionCallLeakage(buffer);
+        if (finalCheck.detected) {
+          // Check for music fallback
+          const musicQuery = extractMusicQuery(buffer);
+          if (musicQuery && finalCheck.toolName?.toLowerCase().includes('music')) {
+            void tryMusicFallback(musicQuery);
+          }
+
+          const replacement = getReplacementText(finalCheck);
+          if (replacement) {
+            controller.enqueue(replacement);
+          }
+        } else {
+          controller.enqueue(buffer);
+        }
+      }
+    },
+  });
 }

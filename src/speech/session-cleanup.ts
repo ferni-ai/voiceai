@@ -117,6 +117,9 @@ import { resetOrchestrator } from './orchestrator/index.js';
 // Unified anticipation pipeline
 import { resetAnticipationPipeline } from './anticipation/index.js';
 
+// Graceful interrupt handling
+import { resetInterruptState } from './graceful-interrupt/index.js';
+
 const log = getLogger().child({ module: 'SpeechSessionCleanup' });
 
 // ============================================================================
@@ -299,6 +302,12 @@ export function cleanupSpeechSession(
   // ============================================================================
 
   safeCleanup('anticipationPipeline', () => resetAnticipationPipeline(sessionId));
+
+  // ============================================================================
+  // GRACEFUL INTERRUPT (Natural interrupt handling)
+  // ============================================================================
+
+  safeCleanup('gracefulInterrupt', () => resetInterruptState(sessionId));
 
   // Remove from active sessions
   activeSessions.delete(sessionId);

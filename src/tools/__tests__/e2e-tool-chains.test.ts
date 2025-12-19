@@ -883,12 +883,12 @@ describe('E2E Better Than Human Mastery Tools', () => {
       const toolIds = timelessPerspectiveTools.map((t) => t.id);
       expect(toolIds).toContain('decadeView');
       expect(toolIds).toContain('thisTooPasses');
-      expect(toolIds).toContain('seasonalWisdom');
+      expect(toolIds).toContain('applySeasonalWisdom');
     });
 
     it('should execute seasonal wisdom with appropriate content', async () => {
       const nayanCtx = createMockContext('nayan-patel');
-      const toolDef = timelessPerspectiveTools.find((t) => t.id === 'seasonalWisdom');
+      const toolDef = timelessPerspectiveTools.find((t) => t.id === 'applySeasonalWisdom');
 
       if (toolDef) {
         const tool = toolDef.create(nayanCtx);
