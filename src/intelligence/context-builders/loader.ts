@@ -173,20 +173,20 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
   ],
 
   // HUMANIZING - Make responses natural + Better Than Human features
-  // unified-humanizing consolidates: humanizing, deep-humanization, conversation-humanizing,
-  // natural-uncertainty, response-length, energy-mirroring, energy-awareness
-  // Legacy builders kept for backwards compatibility but unified-humanizing is preferred
+  // NOTE: unified-humanizing consolidates the legacy humanizing builders into one orchestrator.
+  // Legacy builders are DISABLED as context builders to avoid duplicate injections.
+  // The files are kept because turn-processor.ts imports specific functions from them directly.
   [BuilderCategory.HUMANIZING]: [
     'unified-humanizing', // Single consolidated humanization orchestrator
-    'humanizing',
-    'deep-humanization',
-    'conversation-humanizing',
-    'natural-uncertainty',
-    'response-length',
-    'energy-mirroring',
-    'energy-awareness',
-    'tool-humanization', // Natural tool usage framing
-    // BETTER THAN HUMAN (Dec 2024)
+    // 'humanizing',           // DISABLED: Consolidated into unified-humanizing
+    // 'deep-humanization',    // DISABLED: Consolidated into unified-humanizing
+    // 'conversation-humanizing', // DISABLED: Consolidated into unified-humanizing
+    // 'natural-uncertainty',  // DISABLED: Consolidated into unified-humanizing
+    // 'response-length',      // DISABLED: Consolidated into unified-humanizing
+    // 'energy-mirroring',     // DISABLED: Consolidated into unified-humanizing
+    // 'energy-awareness',     // DISABLED: Consolidated into unified-humanizing
+    'tool-humanization', // Natural tool usage framing (NOT consolidated)
+    // BETTER THAN HUMAN (Dec 2024) - These are NEW features, not part of unified-humanizing
     'proactive-noticing', // "I notice..." pattern surfacing
     'commitment-follow-up', // Accountability tracking
     'temporal-intelligence', // Time patterns, important dates

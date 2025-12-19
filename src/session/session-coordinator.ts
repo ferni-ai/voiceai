@@ -40,7 +40,7 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from '../intelligence/context-builders/index.js';
-import { analyze, type UnifiedAnalysisResult } from '../intelligence/unified-analyzer.js';
+import { analyze, type UnifiedAnalysisResult } from '../intelligence/unified/unified-analyzer.js';
 
 // Personality module
 import {
@@ -205,8 +205,15 @@ export class SessionCoordinator {
           confidence: analysis.emotion.confidence,
         },
         intent: analysis.intent,
-        topics: analysis.topics,
-        state: analysis.state,
+        // Map from new UnifiedAnalysisResult shape to expected ContextBuilderInput shape
+        topics: {
+          detected: analysis.context.topics,
+          primary: analysis.context.currentTopic,
+          isTopicShift: analysis.context.isTopicShift,
+        },
+        state: {
+          phase: analysis.context.phase,
+        },
       },
       services: {
         sessionId: this.sessionId,
@@ -250,7 +257,7 @@ export class SessionCoordinator {
     if (analysis.emotion.primary !== 'neutral') {
       this.emotionalMemory.recordUserEmotion(
         analysis.emotion.primary,
-        analysis.topics.detected[0] || 'general',
+        analysis.context.topics[0] || 'general',
         userMessage.slice(0, 100),
         userMessage,
         analysis.emotion.intensity > 0.7
@@ -263,7 +270,7 @@ export class SessionCoordinator {
 
     // Format for LLM
     const formattedContext = formatContextForPrompt(contextInjections, {
-      highEmotionMode: analysis.useHighEmotionMode,
+      highEmotionMode: analysis.guidance.useHighEmotionMode,
     });
 
     const processingTimeMs = Date.now() - startTime;
@@ -326,7 +333,7 @@ export class SessionCoordinator {
         userMessage: '', // User message from pre-turn (passed separately)
         rawResponse: llmResponse,
         userEmotion: preTurnContext.analysis.emotion.primary,
-        topic: preTurnContext.analysis.topics.detected[0],
+        topic: preTurnContext.analysis.context.topics[0],
         wasPersonalSharing: preTurnContext.analysis.signals.isPersonalSharing,
       };
 
@@ -339,7 +346,7 @@ export class SessionCoordinator {
     // Record bonding events based on conversation content
     if (preTurnContext.analysis.signals.isPersonalSharing) {
       this.emotionalMemory.recordBondEvent('vulnerability_shared', {
-        topic: preTurnContext.analysis.topics.detected[0],
+        topic: preTurnContext.analysis.context.topics[0],
       });
     }
 

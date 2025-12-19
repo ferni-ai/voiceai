@@ -191,43 +191,44 @@ export async function handleGetSessionBuilderMetrics(
 // ALERTS HANDLER
 // ============================================================================
 
-// Lazy import to avoid circular dependencies
-let alertsModule: typeof import('../../intelligence/context-builders/alerts.js') | null = null;
-
-async function getAlertsModule() {
-  if (!alertsModule) {
-    alertsModule = await import('../../intelligence/context-builders/alerts.js');
-  }
-  return alertsModule;
-}
+// Use speech-metrics-integration for quality alerts (builder-specific alerts use performance warnings)
+import {
+  checkQualityAlerts,
+  getAlertHistory as getSpeechAlertHistory,
+  getQualityThresholds,
+} from '../../agents/integrations/speech-metrics-integration.js';
 
 /**
  * GET /api/admin/builder-metrics/alerts
  *
  * Returns active alerts and alert history.
+ * Uses the speech metrics alerting system for quality alerts.
  */
 export async function handleGetBuilderAlerts(
   _req: IncomingMessage,
   res: ServerResponse
 ): Promise<void> {
   try {
-    const alerts = await getAlertsModule();
-
     // Run checks to ensure alerts are fresh
-    alerts.runAlertChecks();
+    const activeAlerts = checkQualityAlerts();
+    const history = getSpeechAlertHistory(50);
+    const thresholds = getQualityThresholds();
 
-    const summary = alerts.getAlertSummary();
-    const history = alerts.getAlertHistory(50);
-    const thresholds = alerts.getThresholds();
+    // Also include builder-specific performance warnings
+    const builderWarnings = checkPerformanceIssues();
+
+    const criticalCount = activeAlerts.filter((a) => a.severity === 'critical').length;
+    const warningCount = activeAlerts.filter((a) => a.severity === 'warning').length;
 
     sendJSON(res, {
       timestamp: new Date().toISOString(),
       summary: {
-        activeCount: summary.active,
-        criticalCount: summary.critical,
-        warningCount: summary.warnings,
+        activeCount: activeAlerts.length,
+        criticalCount,
+        warningCount,
       },
-      activeAlerts: summary.alerts,
+      activeAlerts,
+      builderWarnings,
       recentHistory: history,
       thresholds,
     });

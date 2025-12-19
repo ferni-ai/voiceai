@@ -52,66 +52,75 @@ export interface ClarifyingQuestion {
 // ============================================================================
 // BACKCHANNEL LIBRARY
 // ============================================================================
+//
+// "Better Than Human" Listening Philosophy:
+//
+// The best human listeners don't constantly interject—they're PRESENT.
+// They use breath sounds and soft resonance, not questions or commands.
+// A good listener never asks a question they don't know they asked.
+//
+// Our backchannels should:
+// 1. BLEND into silence, not interrupt it
+// 2. Be breath-like sounds that signal presence, not words that demand response
+// 3. Never sound like questions without context
+// 4. Never sound like commands ("Go on", "Tell me more")
+//
+// Think of how the best therapist listens: soft "mmm", a gentle exhale,
+// maybe a barely audible "yeah"—sounds that feel like shared breathing.
+// ============================================================================
 
 const BACKCHANNELS: Record<Backchannel['type'], Array<Omit<Backchannel, 'type'>>> = {
+  // Soft presence sounds - blend into the silence
   acknowledgment: [
-    { verbal: 'Mm-hmm.', ssml: '<break time="50ms"/>Mm-hmm.', energy: 'low' },
-    { verbal: 'Right.', ssml: '<break time="50ms"/>Right.', energy: 'medium' },
-    { verbal: 'Yeah.', ssml: 'Yeah.', energy: 'medium' },
-    { verbal: 'Uh-huh.', ssml: 'Uh-huh.', energy: 'low' },
-    { verbal: 'I see.', ssml: '<break time="100ms"/>I see.', energy: 'medium' },
-    { verbal: 'Okay.', ssml: 'Okay.', energy: 'medium' },
-    { verbal: 'Got it.', ssml: 'Got it.', energy: 'medium' },
+    { verbal: 'Mm-hmm.', ssml: '<volume ratio="0.8"/><break time="50ms"/>Mm-hmm.', energy: 'low' },
+    { verbal: 'Mm.', ssml: '<volume ratio="0.75"/><break time="50ms"/>Mm.', energy: 'low' },
+    { verbal: 'Yeah.', ssml: '<volume ratio="0.85"/>Yeah.', energy: 'low' },
+    { verbal: 'Mhm.', ssml: '<volume ratio="0.8"/>Mhm.', energy: 'low' },
   ],
+  // Gentle invitations - NOT commands. These should feel like an open door, not a push.
   encouragement: [
-    { verbal: 'Go on.', ssml: '<break time="100ms"/>Go on.', energy: 'low' },
-    { verbal: 'Tell me more.', ssml: 'Tell me more.', energy: 'medium' },
-    { verbal: "I'm listening.", ssml: '<break time="100ms"/>I\'m listening.', energy: 'low' },
-    { verbal: 'Keep going.', ssml: 'Keep going.', energy: 'medium' },
-    { verbal: 'And then?', ssml: 'And then?', energy: 'medium' },
-    {
-      verbal: "I'd like to hear more.",
-      ssml: '<break time="100ms"/>I\'d like to hear more.',
-      energy: 'medium',
-    },
+    { verbal: "I'm with you.", ssml: '<volume ratio="0.85"/><break time="100ms"/>I\'m with you.', energy: 'low' },
+    { verbal: "I'm here.", ssml: '<volume ratio="0.8"/><break time="100ms"/>I\'m here.', energy: 'low' },
+    { verbal: 'Take your time.', ssml: '<volume ratio="0.85"/><break time="150ms"/>Take your time.', energy: 'low' },
   ],
+  // Holding space for heavy moments - soft, present, not reactive
   empathy: [
-    { verbal: 'I hear you.', ssml: '<break time="150ms"/>I hear you.', energy: 'low' },
-    { verbal: "That's a lot.", ssml: '<break time="200ms"/>That\'s a lot.', energy: 'low' },
-    { verbal: 'I understand.', ssml: '<break time="150ms"/>I understand.', energy: 'low' },
-    { verbal: 'Of course.', ssml: '<break time="100ms"/>Of course.', energy: 'low' },
+    { verbal: 'Mm.', ssml: '<volume ratio="0.7"/><break time="200ms"/>Mm.', energy: 'low' },
+    { verbal: 'I hear you.', ssml: '<volume ratio="0.75"/><break time="200ms"/>I hear you.', energy: 'low' },
+    { verbal: 'Yeah.', ssml: '<volume ratio="0.7"/><break time="150ms"/>Yeah.', energy: 'low' },
     {
-      verbal: 'That makes sense.',
-      ssml: '<break time="150ms"/>That makes sense.',
-      energy: 'medium',
+      verbal: "That's a lot.",
+      ssml: '<volume ratio="0.7"/><break time="250ms"/>That\'s a lot.',
+      energy: 'low',
     },
-    { verbal: 'I can imagine.', ssml: '<break time="150ms"/>I can imagine.', energy: 'low' },
     {
-      verbal: 'That sounds hard.',
-      ssml: '<volume ratio="0.75"/><break time="200ms"/>That sounds hard.',
+      verbal: 'I can imagine.',
+      ssml: '<volume ratio="0.75"/><break time="200ms"/>I can imagine.',
       energy: 'low',
     },
   ],
+  // Genuine interest - NOT questions. Just soft sounds of engagement.
+  // "Really?" and "Is that so?" are REMOVED - they sound like Ferni is
+  // asking questions he doesn't know he asked.
   curiosity: [
-    { verbal: 'Oh?', ssml: 'Oh?', energy: 'medium' },
-    { verbal: 'Really?', ssml: 'Really?', energy: 'high' },
-    { verbal: 'Interesting.', ssml: '<break time="100ms"/>Interesting.', energy: 'medium' },
-    { verbal: 'Hmm.', ssml: '<break time="100ms"/>Hmm.', energy: 'low' },
-    { verbal: 'Is that so?', ssml: 'Is that so?', energy: 'medium' },
-    { verbal: 'Huh.', ssml: '<break time="50ms"/>Huh.', energy: 'low' },
+    { verbal: 'Hmm.', ssml: '<volume ratio="0.85"/><break time="100ms"/>Hmm.', energy: 'low' },
+    { verbal: 'Mm.', ssml: '<volume ratio="0.8"/><break time="80ms"/>Mm.', energy: 'low' },
+    { verbal: 'Hm.', ssml: '<volume ratio="0.8"/><break time="80ms"/>Hm.', energy: 'low' },
   ],
+  // Alignment - still warm, but these are for when user shares something positive
   agreement: [
-    { verbal: 'Exactly.', ssml: 'Exactly.', energy: 'high' },
-    { verbal: 'Absolutely.', ssml: 'Absolutely.', energy: 'high' },
-    { verbal: "That's right.", ssml: "That's right.", energy: 'medium' },
-    { verbal: 'Yes!', ssml: 'Yes!', energy: 'high' },
-    { verbal: 'Definitely.', ssml: 'Definitely.', energy: 'high' },
-    { verbal: 'For sure.', ssml: 'For sure.', energy: 'medium' },
-    { verbal: 'One hundred percent.', ssml: 'One hundred percent.', energy: 'high' },
+    { verbal: 'Yeah.', ssml: 'Yeah.', energy: 'medium' },
+    { verbal: 'Mm-hmm.', ssml: 'Mm-hmm.', energy: 'medium' },
+    { verbal: 'Right.', ssml: '<break time="50ms"/>Right.', energy: 'medium' },
+    { verbal: 'Absolutely.', ssml: 'Absolutely.', energy: 'medium' },
   ],
 };
 
 // Persona-specific backchannel preferences
+//
+// Philosophy: Each persona's backchannels should reflect their character
+// while NEVER sounding like questions without context or commands.
+// All personas should feel like warm, attentive listeners.
 const PERSONA_BACKCHANNEL_STYLES: Record<
   string,
   {
@@ -121,77 +130,82 @@ const PERSONA_BACKCHANNEL_STYLES: Record<
   }
 > = {
   'nayan-patel': {
-    preferred: ['acknowledgment', 'agreement'],
-    energyBias: 'medium',
+    // Nayan: Wise, grounded, unhurried presence
+    preferred: ['acknowledgment', 'empathy'],
+    energyBias: 'low',
     uniquePhrases: [
       {
-        phrase: 'Stay the course.',
-        type: 'agreement',
-        ssml: '<break time="100ms"/>Stay the course.',
+        phrase: 'Mm.',
+        type: 'acknowledgment',
+        ssml: '<volume ratio="0.8"/><break time="150ms"/>Mm.',
       },
-      { phrase: "That's the right mindset.", type: 'agreement', ssml: "That's the right mindset." },
-      { phrase: "Now you're thinking.", type: 'encouragement', ssml: "Now you're thinking." },
+      {
+        phrase: 'I see.',
+        type: 'empathy',
+        ssml: '<volume ratio="0.85"/><break time="150ms"/>I see.',
+      },
     ],
   },
   ferni: {
-    preferred: ['empathy', 'encouragement'],
+    // Ferni: Warm, present, holding space
+    preferred: ['empathy', 'acknowledgment'],
     energyBias: 'low',
     uniquePhrases: [
-      { phrase: 'I feel that.', type: 'empathy', ssml: '<break time="150ms"/>I feel that.' },
+      { phrase: 'I feel that.', type: 'empathy', ssml: '<volume ratio="0.8"/><break time="150ms"/>I feel that.' },
       {
-        phrase: "That's powerful.",
-        type: 'curiosity',
-        ssml: '<break time="100ms"/>That\'s powerful.',
+        phrase: 'Mm.',
+        type: 'acknowledgment',
+        ssml: '<volume ratio="0.75"/><break time="100ms"/>Mm.',
       },
       {
-        phrase: 'Sit with that.',
+        phrase: "I'm here.",
         type: 'encouragement',
-        ssml: '<break time="200ms"/>Sit with that.',
+        ssml: '<volume ratio="0.8"/><break time="200ms"/>I\'m here.',
       },
     ],
   },
   'peter-john': {
-    preferred: ['curiosity', 'agreement'],
-    energyBias: 'high',
+    // Peter: Engaged but not interruptive - his enthusiasm shows in voice, not words
+    preferred: ['acknowledgment', 'agreement'],
+    energyBias: 'medium',
     uniquePhrases: [
-      { phrase: "Now that's interesting!", type: 'curiosity', ssml: "Now that's interesting!" },
-      {
-        phrase: 'Tell me more about that!',
-        type: 'encouragement',
-        ssml: 'Tell me more about that!',
-      },
+      { phrase: 'Mm-hmm!', type: 'acknowledgment', ssml: 'Mm-hmm!' },
+      { phrase: 'Yeah!', type: 'agreement', ssml: 'Yeah!' },
       { phrase: "You're onto something.", type: 'agreement', ssml: "You're onto something." },
     ],
   },
   'maya-santos': {
-    preferred: ['empathy', 'encouragement'],
-    energyBias: 'medium',
+    // Maya: Warm, supportive presence
+    preferred: ['empathy', 'acknowledgment'],
+    energyBias: 'low',
     uniquePhrases: [
-      { phrase: 'I love that.', type: 'agreement', ssml: 'I love that.' },
-      { phrase: "That's progress!", type: 'agreement', ssml: "That's progress!" },
+      { phrase: 'Mm.', type: 'acknowledgment', ssml: '<volume ratio="0.8"/>Mm.' },
+      { phrase: 'Yeah.', type: 'empathy', ssml: '<volume ratio="0.85"/>Yeah.' },
       {
-        phrase: "Keep going, you're doing great.",
-        type: 'encouragement',
-        ssml: '<break time="100ms"/>Keep going, you\'re doing great.',
+        phrase: "That's real progress.",
+        type: 'agreement',
+        ssml: '<break time="100ms"/>That\'s real progress.',
       },
     ],
   },
   'alex-chen': {
-    preferred: ['acknowledgment', 'curiosity'],
-    energyBias: 'medium',
+    // Alex: Efficient but present
+    preferred: ['acknowledgment', 'agreement'],
+    energyBias: 'low',
     uniquePhrases: [
-      { phrase: 'Noted.', type: 'acknowledgment', ssml: 'Noted.' },
+      { phrase: 'Mm-hmm.', type: 'acknowledgment', ssml: 'Mm-hmm.' },
+      { phrase: 'Got it.', type: 'acknowledgment', ssml: 'Got it.' },
       { phrase: 'Makes sense.', type: 'agreement', ssml: 'Makes sense.' },
-      { phrase: "Let's work with that.", type: 'encouragement', ssml: "Let's work with that." },
     ],
   },
   'jordan-taylor': {
-    preferred: ['curiosity', 'agreement'],
-    energyBias: 'high',
+    // Jordan: Enthusiastic but still listens - energy in voice quality, not interruptions
+    preferred: ['agreement', 'acknowledgment'],
+    energyBias: 'medium',
     uniquePhrases: [
-      { phrase: 'Ooh, I love that!', type: 'agreement', ssml: 'Ooh, I love that!' },
-      { phrase: 'Yes! Tell me more!', type: 'encouragement', ssml: 'Yes! Tell me more!' },
-      { phrase: "That's amazing!", type: 'agreement', ssml: "That's amazing!" },
+      { phrase: 'Mm-hmm!', type: 'acknowledgment', ssml: 'Mm-hmm!' },
+      { phrase: 'Yeah!', type: 'agreement', ssml: 'Yeah!' },
+      { phrase: 'I love that.', type: 'agreement', ssml: 'I love that.' },
     ],
   },
 };

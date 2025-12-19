@@ -18,6 +18,7 @@
 export {
   UnifiedAnalyzer,
   analyzeUnified,
+  analyze, // Backward-compat alias
   type UnifiedAnalysisInput,
   type UnifiedAnalysisResult,
   type EmotionSignal,

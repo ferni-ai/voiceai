@@ -98,12 +98,12 @@ const RESPONSE_STARTERS: Record<string, string[]> = {
   ],
 
   // Curious/exploring responses
+  // Note: These are genuine follow-up questions, not backchannels.
+  // They're only used when we're actually following up, not during listening.
   curious: [
-    'Tell me more about that.',
     'What made you think of that?',
-    'How did that make you feel?',
-    'What happened next?',
-    "I'm curious...",
+    'How did that feel?',
+    "I'm curious about that.",
   ],
 
   // Acknowledging responses

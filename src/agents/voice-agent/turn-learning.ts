@@ -211,22 +211,28 @@ export async function recordAllLearningData(ctx: LearningContext): Promise<Learn
   ]);
 
   // Better Than Human learning (new) - fire and forget to not block turn processing
+  // PERFORMANCE: Rate-limited writes to avoid Firestore costs and latency
   if (ctx.userId) {
-    // Learn temporal patterns (when user engages, emotional patterns by time)
-    void learnTemporalPattern(ctx.userId, {
-      emotion: ctx.emotionalResult.primary || 'neutral',
-      topic: ctx.injections.find(i => i.category === 'topics')?.content?.split(' ')[0],
-    }).catch((err) => {
-      logger.debug({ error: String(err) }, 'Temporal pattern learning (non-critical)');
-    });
+    // Learn temporal patterns every 5 turns (saves 80% of writes)
+    // Patterns are aggregated, so we don't need every single turn
+    if (ctx.turnCount % 5 === 0) {
+      void learnTemporalPattern(ctx.userId, {
+        emotion: ctx.emotionalResult.primary || 'neutral',
+        topic: ctx.injections.find(i => i.category === 'topics')?.content?.split(' ')[0],
+      }).catch((err) => {
+        logger.debug({ error: String(err) }, 'Temporal pattern learning (non-critical)');
+      });
+    }
     
     // Check for shared moments (phrases, jokes, meaningful exchanges)
-    // Only on turns where user shares something meaningful
-    if (ctx.emotionalResult.intensity > 0.6 || ctx.injections.some(i => 
+    // Only on high-emotional turns AND rate-limited to every 3rd qualifying turn
+    const isHighEmotionTurn = ctx.emotionalResult.intensity > 0.6 || ctx.injections.some(i => 
       i.content.includes('joke') || 
       i.content.includes('laugh') || 
       i.content.includes('meaningful')
-    )) {
+    );
+    
+    if (isHighEmotionTurn && ctx.turnCount % 3 === 0) {
       void recordSharedMoment(ctx.userId, {
         type: 'callback_moment',
         content: ctx.emotionalResult.primary || 'connection',

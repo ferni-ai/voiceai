@@ -21,7 +21,7 @@ export type {
   BehaviorSignal,
   BehaviorSignalType,
   BehaviorState,
-} from '../../../agents/realtime/behavior-types.js';
+} from '../../../types/behavior-types.js';
 
-export { SILENCE_DURATIONS, PACING_MULTIPLIERS, PAUSE_MULTIPLIERS } from '../../../agents/realtime/behavior-types.js';
+export { SILENCE_DURATIONS, PACING_MULTIPLIERS, PAUSE_MULTIPLIERS } from '../../../types/behavior-types.js';
 

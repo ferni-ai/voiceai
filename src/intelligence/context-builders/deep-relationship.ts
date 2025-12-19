@@ -13,6 +13,12 @@
  * Philosophy: These are the things that make someone feel truly known.
  * Not surveillance - celebration of shared history.
  *
+ * PERFORMANCE:
+ * - Session-scoped cache (1 min TTL) avoids repeated Firestore reads
+ * - Parallel Firestore reads via Promise.all
+ * - Early-turn skip (turns 0-2 don't need deep relationship data)
+ * - Target: <10ms cache hit, <150ms cache miss
+ *
  * @module DeepRelationshipContext
  */
 
@@ -26,6 +32,7 @@ import {
 } from './index.js';
 import { BuilderCategory } from './categories.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { EdgeCache } from '../../services/cache/edge-cache.js';
 
 // Use dynamic import for Firestore to avoid hard dependency
 async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
@@ -38,6 +45,21 @@ async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
 }
 
 const log = createLogger({ module: 'DeepRelationship' });
+
+// ============================================================================
+// PERFORMANCE: Session-scoped cache
+// ============================================================================
+
+// Cache relationship history per user (1 min TTL - refreshed each turn cycle)
+const relationshipCache = new EdgeCache<Partial<RelationshipHistory>>({
+  maxSize: 100,
+  defaultTtlMs: 60000, // 1 minute - covers typical turn cycle
+  staleWhileRevalidate: true,
+  staleTtlMs: 120000, // 2 minute stale grace period
+});
+
+// Minimum turns before fetching deep relationship data
+const MIN_TURNS_FOR_RELATIONSHIP = 3;
 
 // ============================================================================
 // TYPES
@@ -88,24 +110,34 @@ interface RelationshipHistory {
 // ============================================================================
 
 async function getRelationshipHistory(userId: string): Promise<Partial<RelationshipHistory>> {
+  const cacheKey = `relationship:${userId}`;
+  const startTime = Date.now();
+
+  // Check cache first (PERFORMANCE: saves 100-200ms on hit)
+  const cached = relationshipCache.get(cacheKey);
+  if (cached) {
+    log.debug({ userId, durationMs: Date.now() - startTime, cacheHit: true }, '⚡ Relationship cache hit');
+    return cached;
+  }
+
   try {
     const db = await getFirestoreDb();
     if (!db) return {};
 
-    // Get main relationship data
-    const userDoc = await db.collection('bogle_users').doc(userId).get();
+    // PERFORMANCE: Parallel Firestore reads (saves ~100ms vs sequential)
+    const [userDoc, jokesSnapshot] = await Promise.all([
+      db.collection('bogle_users').doc(userId).get(),
+      db.collection('bogle_users')
+        .doc(userId)
+        .collection('shared_moments')
+        .where('type', 'in', ['running_gag', 'phrase', 'callback_moment'])
+        .limit(20)
+        .get(),
+    ]);
+
     if (!userDoc.exists) return {};
 
     const userData = userDoc.data() as Record<string, unknown> | undefined;
-
-    // Get running jokes from subcollection
-    const jokesSnapshot = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('shared_moments')
-      .where('type', 'in', ['running_gag', 'phrase', 'callback_moment'])
-      .limit(20)
-      .get();
 
     const sharedMoments = jokesSnapshot.docs.map((doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data());
     const runningJokes: RunningJoke[] = sharedMoments
@@ -130,7 +162,7 @@ async function getRelationshipHistory(userId: string): Promise<Partial<Relations
         meaning: m.meaning as string | undefined,
       }));
 
-    return {
+    const result: Partial<RelationshipHistory> = {
       userId,
       firstConversation: (userData?.createdAt as { toDate?: () => Date })?.toDate?.() || undefined,
       totalConversations: (userData?.totalConversations as number) || (userData?.turnCount as number) || 0,
@@ -140,6 +172,12 @@ async function getRelationshipHistory(userId: string): Promise<Partial<Relations
       runningJokes,
       milestonesCelebrated: (userData?.milestonesCelebrated as string[]) || [],
     };
+
+    // Store in cache for subsequent turns (PERFORMANCE: avoids repeated Firestore reads)
+    relationshipCache.set(cacheKey, result);
+    log.debug({ userId, durationMs: Date.now() - startTime, cacheHit: false }, '📊 Relationship data loaded & cached');
+
+    return result;
   } catch (err) {
     log.debug({ error: String(err), userId }, 'Could not load relationship history');
     return {};
@@ -267,7 +305,14 @@ async function buildDeepRelationshipContext(
 
   if (!userId) return [];
 
-  // Get relationship history
+  // PERFORMANCE: Skip early turns - no deep relationship data needed yet
+  // This saves 100-200ms on turns 0-2 when we don't have context anyway
+  if (turnCount < MIN_TURNS_FOR_RELATIONSHIP) {
+    log.debug({ turnCount, minRequired: MIN_TURNS_FOR_RELATIONSHIP }, '⚡ Skipping deep relationship (early turn)');
+    return [];
+  }
+
+  // Get relationship history (cached after first fetch)
   const history = await getRelationshipHistory(userId);
 
   const injections: ContextInjection[] = [];

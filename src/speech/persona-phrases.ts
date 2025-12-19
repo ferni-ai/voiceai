@@ -57,8 +57,8 @@ export type BackchannelEmotionType =
 export type BackchannelCategory =
   | 'acknowledgment' // "Mm-hmm", "Yeah"
   | 'understanding' // "I see", "Got it"
-  | 'encouragement' // "Go on", "Tell me more"
-  | 'empathy' // "Mmm", "Oh", "I hear you"
+  | 'encouragement' // "I'm here", "I'm with you" (NOT commands like "Tell me more")
+  | 'empathy' // "Mmm", "I hear you"
   | 'agreement' // "Right", "Exactly"
   | 'surprise' // "Oh!", "Wow"
   | 'thinking'; // "Hmm", "Let me think"
@@ -116,21 +116,18 @@ export const SOFT_BACKCHANNELS: Record<string, Record<BackchannelEmotionType, st
 // STANDARD BACKCHANNELS (Full phrases with SSML)
 // ============================================================================
 
+// "Better Than Human" Backchannel Philosophy:
+// - No questions without context ("Really?" "Is that so?" "And then?")
+// - No commands ("Tell me more" "Go on" - these feel bossy)
+// - Breath sounds that BLEND into silence, not interrupt it
 export const BACKCHANNEL_LIBRARY: Record<BackchannelCategory, string[]> = {
-  acknowledgment: ['Mm-hmm', 'Mhm', 'Yeah', 'Yes', 'Uh-huh', 'Okay'],
-  understanding: ['I see', 'Got it', 'I understand', 'Okay', 'Ah', 'Right'],
-  encouragement: ['Go on', 'Tell me more', 'And then?', "I'm listening", 'Continue', "I'm here"],
-  empathy: ['Mmm', 'Oh', 'I hear you', "That's...", 'I feel that', 'Yeah...'],
-  agreement: ['Right', 'Exactly', 'Absolutely', 'Yes', 'Definitely', "That's right"],
-  surprise: ['Oh!', 'Wow', 'Really?', 'Oh wow', 'No kidding', 'Huh'],
-  thinking: [
-    'Hmm',
-    'Let me think',
-    'Hm',
-    'Let me see',
-    'I see what you mean',
-    'Let me think about that',
-  ],
+  acknowledgment: ['Mm-hmm', 'Mm', 'Yeah', 'Mhm'],
+  understanding: ['I see', 'Got it', 'Okay', 'Right'],
+  encouragement: ["I'm here", "I'm with you", 'Take your time'],
+  empathy: ['Mm', 'Yeah...', 'I hear you', 'I feel that'],
+  agreement: ['Yeah', 'Right', 'Absolutely', "That's right"],
+  surprise: ['Oh', 'Wow', 'Hm'],
+  thinking: ['Hmm', 'Let me think', 'Hm', 'Let me see'],
 };
 
 // ============================================================================
@@ -193,9 +190,9 @@ export const ACKNOWLEDGMENT_PREFIXES: Record<string, Record<AcknowledgmentMood, 
       `Okay.${breakTag('200ms')}So,${breakTag('150ms')}`,
     ],
     engaged: [
-      `Oh!${breakTag('200ms')}I like where this is going!${breakTag('250ms')}`,
-      `Tell me more!${breakTag('200ms')}Actually—${breakTag('150ms')}`,
-      `Yes!${breakTag('200ms')}`,
+      `Oh!${breakTag('200ms')}I like where this is going.${breakTag('250ms')}`,
+      `Yeah!${breakTag('200ms')}`,
+      `Mm!${breakTag('200ms')}`,
     ],
     empathetic: [
       `I hear you.${breakTag('300ms')}`,
@@ -280,7 +277,7 @@ export const ACKNOWLEDGMENT_PREFIXES: Record<string, Record<AcknowledgmentMood, 
     engaged: [
       `Oh, that's helpful to know!${breakTag('250ms')}`,
       `I like that.${breakTag('200ms')}`,
-      `Tell me more—${breakTag('200ms')}`,
+      `Yeah.${breakTag('200ms')}`,
     ],
     empathetic: [
       `I hear you.${breakTag('300ms')}`,
@@ -360,67 +357,70 @@ export const ACKNOWLEDGMENT_PREFIXES: Record<string, Record<AcknowledgmentMood, 
  * @deprecated Use getContextAwareThinkingFiller() for context-aware phrases
  * @internal Used only as fallback when ProcessingIntelligence fails
  */
+// ============================================================================
+// THINKING FILLERS
+// ============================================================================
+//
+// "Better Than Human" Philosophy for Processing Sounds:
+//
+// When Ferni needs a moment to think, it should feel like a PAUSE, not a crash.
+// The sounds should signal "I'm still here, thinking" without sounding like:
+// 1. A system error ("You know, I..." then silence = sounds broken)
+// 2. An incomplete sentence (the user thinks they need to respond)
+// 3. A question (user waits for context that never comes)
+//
+// Good thinking sounds:
+// - Complete breath sounds: "Hmm.", "Mm."
+// - Clear processing signals: "Let me think.", "Give me a moment."
+// - Comfortable silence embracers: "..." with presence, not absence
+//
+// BAD thinking sounds (removed):
+// - "You know, I..." (incomplete - sounds like crashing)
+// - "Right...that's..." (fragmented - sounds broken)
+// - "So we could...wait..." (confusing - two incomplete thoughts)
+// - "The question itself..." (sounds like starting a sentence)
+// ============================================================================
+
 const THINKING_FILLERS: Record<string, string[]> = {
   ferni: [
-    // Short natural sounds
-    `${breakTag('300ms')}Hmm.${breakTag('350ms')}`,
-    `${breakTag('250ms')}Yeah...${breakTag('300ms')}`,
-    // Incomplete thoughts (feels like real thinking)
-    `${breakTag('200ms')}You know, I...${breakTag('400ms')}`,
-    `${breakTag('250ms')}Okay, so...${breakTag('350ms')}`,
-    `${breakTag('200ms')}Right...${breakTag('400ms')}that's...${breakTag('300ms')}`,
-    // Genuine processing
-    `${breakTag('300ms')}I'm thinking...${breakTag('400ms')}`,
-    `${breakTag('200ms')}Give me a second...${breakTag('350ms')}`,
-    // Connected to conversation
-    `${breakTag('250ms')}Let me think about that...${breakTag('400ms')}`,
+    // Breath sounds that feel complete
+    `${breakTag('300ms')}Hmm.${breakTag('400ms')}`,
+    `${breakTag('250ms')}Mm.${breakTag('350ms')}`,
+    // Clear, complete processing signals
+    `${breakTag('200ms')}Let me think.${breakTag('400ms')}`,
+    `${breakTag('200ms')}Give me a moment.${breakTag('350ms')}`,
+    `${breakTag('250ms')}Let me sit with that.${breakTag('400ms')}`,
   ],
   'nayan-patel': [
-    // Wise pauses
+    // Wise, unhurried pauses - complete thoughts
     `${breakTag('400ms')}Hmm.${breakTag('500ms')}`,
-    `${breakTag('300ms')}You know...${breakTag('450ms')}`,
-    // Philosophical incomplete thoughts
-    `${breakTag('350ms')}There's something here...${breakTag('450ms')}`,
-    `${breakTag('300ms')}Let me sit with that...${breakTag('500ms')}`,
-    `${breakTag('400ms')}The question itself...${breakTag('450ms')}`,
-    `${breakTag('300ms')}Worth considering...${breakTag('400ms')}`,
+    `${breakTag('350ms')}Mm.${breakTag('450ms')}`,
+    `${breakTag('300ms')}Let me sit with that.${breakTag('500ms')}`,
+    `${breakTag('350ms')}Worth considering.${breakTag('450ms')}`,
   ],
   'peter-john': [
-    // Energetic but thoughtful
-    `${breakTag('200ms')}Ooh!${breakTag('300ms')}Okay...${breakTag('350ms')}`,
+    // Energetic but COMPLETE sounds
     `${breakTag('200ms')}Hmm!${breakTag('350ms')}`,
-    `${breakTag('200ms')}Oh, you know what...${breakTag('400ms')}`,
-    `${breakTag('200ms')}Let me think here...${breakTag('350ms')}`,
-    // Research mode
-    `${breakTag('250ms')}That reminds me of...${breakTag('400ms')}wait...${breakTag('300ms')}`,
-    `${breakTag('200ms')}Let me look at that...${breakTag('350ms')}`,
+    `${breakTag('200ms')}Let me think here.${breakTag('350ms')}`,
+    `${breakTag('250ms')}Okay, let me consider this.${breakTag('400ms')}`,
   ],
   'maya-santos': [
-    // Warm, supportive thinking
+    // Warm, present thinking
     `${breakTag('300ms')}Hmm.${breakTag('400ms')}`,
-    `${breakTag('250ms')}Let me think about this...${breakTag('400ms')}`,
-    `${breakTag('300ms')}Okay...${breakTag('350ms')}`,
-    // Connecting to feelings
-    `${breakTag('250ms')}That's...${breakTag('400ms')}yeah.${breakTag('300ms')}`,
-    `${breakTag('300ms')}I want to think about this carefully...${breakTag('400ms')}`,
+    `${breakTag('250ms')}Let me think about this.${breakTag('400ms')}`,
+    `${breakTag('300ms')}Give me a moment.${breakTag('350ms')}`,
   ],
   'jordan-taylor': [
-    // Enthusiastic processing
-    `${breakTag('200ms')}Ooh!${breakTag('300ms')}`,
-    `${breakTag('200ms')}Hmm!${breakTag('300ms')}Let me see...${breakTag('350ms')}`,
-    `${breakTag('250ms')}Oh, okay...${breakTag('350ms')}`,
-    // Planning mode
-    `${breakTag('200ms')}So we could...${breakTag('400ms')}wait...${breakTag('300ms')}`,
-    `${breakTag('250ms')}I'm picturing this...${breakTag('400ms')}`,
+    // Enthusiastic but complete
+    `${breakTag('200ms')}Hmm!${breakTag('300ms')}`,
+    `${breakTag('200ms')}Let me see.${breakTag('350ms')}`,
+    `${breakTag('250ms')}Okay, thinking.${breakTag('350ms')}`,
   ],
   'alex-chen': [
-    // Efficient but human
-    `${breakTag('200ms')}One moment...${breakTag('350ms')}`,
-    `${breakTag('250ms')}Let me think...${breakTag('350ms')}`,
-    `${breakTag('200ms')}Okay...${breakTag('300ms')}`,
-    // Processing mode
-    `${breakTag('200ms')}So if we...${breakTag('400ms')}`,
-    `${breakTag('250ms')}Right, so...${breakTag('350ms')}`,
+    // Efficient, clear signals
+    `${breakTag('200ms')}One moment.${breakTag('350ms')}`,
+    `${breakTag('250ms')}Let me think.${breakTag('350ms')}`,
+    `${breakTag('200ms')}Mm.${breakTag('300ms')}`,
   ],
 };
 

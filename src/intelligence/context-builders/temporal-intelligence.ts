@@ -13,6 +13,11 @@
  * Philosophy: Use temporal awareness to show up at the right moments
  * with the right energy. "I know Tuesday mornings are hard for you."
  *
+ * PERFORMANCE:
+ * - Session-scoped cache (2 min TTL) avoids repeated Firestore reads
+ * - Pattern writing is rate-limited (every 5 turns)
+ * - Target: <5ms cache hit, <100ms cache miss
+ *
  * @module TemporalIntelligenceContext
  */
 
@@ -25,6 +30,7 @@ import {
 } from './index.js';
 import { BuilderCategory } from './categories.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { EdgeCache } from '../../services/cache/edge-cache.js';
 
 // Use dynamic import for Firestore to avoid hard dependency
 async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
@@ -37,6 +43,18 @@ async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
 }
 
 const log = createLogger({ module: 'TemporalIntelligence' });
+
+// ============================================================================
+// PERFORMANCE: Session-scoped cache
+// ============================================================================
+
+// Cache temporal patterns per user (2 min TTL - patterns don't change often)
+const temporalCache = new EdgeCache<Partial<UserTemporalPatterns>>({
+  maxSize: 100,
+  defaultTtlMs: 120000, // 2 minutes
+  staleWhileRevalidate: true,
+  staleTtlMs: 300000, // 5 minute stale grace period
+});
 
 // ============================================================================
 // TIME CONTEXT
@@ -131,6 +149,16 @@ interface UserTemporalPatterns {
 }
 
 async function getUserTemporalPatterns(userId: string): Promise<Partial<UserTemporalPatterns>> {
+  const cacheKey = `temporal:${userId}`;
+  const startTime = Date.now();
+
+  // Check cache first (PERFORMANCE: saves 50-100ms on hit)
+  const cached = temporalCache.get(cacheKey);
+  if (cached) {
+    log.debug({ userId, durationMs: Date.now() - startTime, cacheHit: true }, '⚡ Temporal cache hit');
+    return cached;
+  }
+
   try {
     const db = await getFirestoreDb();
     if (!db) return {};
@@ -140,12 +168,18 @@ async function getUserTemporalPatterns(userId: string): Promise<Partial<UserTemp
 
     const data = doc.data() as Record<string, unknown> | undefined;
     const temporalPatterns = data?.temporalPatterns as Record<string, unknown> | undefined;
-    return {
+    const result: Partial<UserTemporalPatterns> = {
       preferredTimes: temporalPatterns?.preferredTimes as UserTemporalPatterns['preferredTimes'],
       dayPatterns: temporalPatterns?.dayPatterns as UserTemporalPatterns['dayPatterns'],
       seasonalMood: temporalPatterns?.seasonalMood as UserTemporalPatterns['seasonalMood'],
       specialDays: (data?.importantDates as UserTemporalPatterns['specialDays']) || [],
     };
+
+    // Store in cache for subsequent turns (PERFORMANCE: avoids repeated Firestore reads)
+    temporalCache.set(cacheKey, result);
+    log.debug({ userId, durationMs: Date.now() - startTime, cacheHit: false }, '📊 Temporal data loaded & cached');
+
+    return result;
   } catch (err) {
     log.debug({ error: String(err) }, 'Could not load temporal patterns');
     return {};

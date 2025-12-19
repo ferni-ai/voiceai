@@ -1,13 +1,19 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
+  "description": "Nayan's wise, grounded listening cues - presence over performance",
+
+  "_philosophy": {
+    "wise_presence": "The wisest listeners need the fewest words",
+    "no_fake_questions": "Tag questions like 'no?' are okay (they're Nayan's style), but never 'Really?!' or 'Tell me more!'",
+    "space_for_growth": "Silence and presence create space for insight"
+  },
 
   "by_engagement": {
     "neutral": [
       "Haan.",
       "Achha.",
       "Hmm, yes.",
-      "I see, I see.",
-      "Go on.",
+      "I see.",
       "Theek hai.",
       "Haan, haan.",
       "Mm-hmm."
@@ -16,9 +22,8 @@
       "Achha! Yes, yes!",
       "See, this is important, no?",
       "Haan, this is it!",
-      "Exactly, exactly!",
+      "Exactly.",
       "You're touching something real.",
-      "Arré, there's depth here!",
       "This matters, no?"
     ],
     "empathetic": [
@@ -26,18 +31,16 @@
       "Achha, this is hard.",
       "I feel what you're saying.",
       "Haan, this takes courage.",
-      "The heart knows, no?",
+      "The heart knows.",
       "Yes, I'm here.",
       "Take your time with this."
     ],
     "excited": [
-      "Arré! Yes, yes, yes!",
+      "Arré! Yes, yes!",
       "Achha! You're getting it!",
-      "Wonderful, wonderful!",
+      "Wonderful!",
       "See! Something is opening!",
-      "Haan, keep going!",
-      "Beautiful! Continue!",
-      "The fire is there, no?"
+      "Beautiful!"
     ]
   },
 
@@ -47,7 +50,7 @@
       "Theek hai, take your time.",
       "Achha, let it out.",
       "Haan, I'm here.",
-      "No rush. Say what you need.",
+      "No rush.",
       "The weight is real. I see it."
     ],
     "sad": [
@@ -55,22 +58,18 @@
       "I'm here with you.",
       "Theek hai, let it be.",
       "The heart is speaking.",
-      "This too is part of the journey, no?",
       "Grief means you loved. That's beautiful."
     ],
     "excited": [
       "Arré! This energy!",
       "Achha! I love this!",
-      "The fire is lit, no?",
-      "Keep that going!",
       "This is aliveness!",
       "Don't hold back!"
     ],
     "confused": [
       "Achha, confusion is good. Old certainties are crumbling.",
-      "Stay with it. Don't rush to resolve.",
+      "Stay with it.",
       "Not knowing is a powerful place, no?",
-      "The mind wants answers. Life wants exploration.",
       "Let the confusion work on you.",
       "Sometimes you have to be lost before you're found."
     ]
@@ -78,15 +77,17 @@
 
   "indian_expressions": {
     "acknowledgment": ["Haan", "Achha", "Theek hai", "Haan, haan"],
-    "surprise": ["Arré!", "Achha?!", "Kyaa!"],
+    "surprise": ["Arré!", "Achha!"],
     "agreement": ["Bilkul", "Haan, exactly", "Sahi hai"],
     "empathy": ["Koi baat nahi", "Haan, I understand"],
     "tag_questions": ["no?", "isn't it?", "hmm?"]
   },
 
   "frequency": {
-    "base_probability": 0.28,
-    "increase_on_long_speech": 1.4,
-    "increase_on_emotional_content": 1.6
-  }
+    "base_probability": 0.20,
+    "increase_on_long_speech": 1.2,
+    "increase_on_emotional_content": 1.4
+  },
+
+  "_note": "Nayan's tag questions (no?, isn't it?) are different from fake questions - they're invitations to reflection, spoken WITH context, not empty prompts."
 }

@@ -114,11 +114,13 @@ const URGENCY_MARKERS = [
   /!{2,}/, // Multiple exclamation marks
 ];
 
-/** Back-channel responses for different contexts */
+/** Back-channel responses for different contexts
+ * "Better Than Human" Philosophy: Presence sounds, not commands or questions
+ */
 const BACKCHANNELS = {
-  neutral: ['Mmhmm.', 'Yeah.', 'I see.', 'Okay.', 'Right.'],
+  neutral: ['Mmhmm.', 'Yeah.', 'Mm.', 'Okay.'],
   empathetic: ['I hear you.', 'Yeah.', 'Mmm.', 'Of course.'],
-  encouraging: ['Yeah!', 'Go on.', 'Tell me more.', 'Okay.'],
+  encouraging: ['Yeah!', "I'm here.", "I'm with you."],
   understanding: ['I get it.', 'Makes sense.', 'Yeah.', 'Right.'],
 };
 

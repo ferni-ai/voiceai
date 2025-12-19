@@ -285,11 +285,12 @@ const RECIPROCAL_QUESTIONS = {
     'What brought you here today?',
   ],
 
+  // Note: These are used for genuine follow-up QUESTIONS after user shares something,
+  // NOT during active listening. Real questions with context.
   follow_up: [
-    'Tell me more about that.',
     'What made you think of that?',
-    'How did that make you feel?',
-    "That's interesting - what happened next?",
+    'How did that feel?',
+    "I'm curious about that.",
   ],
 };
 

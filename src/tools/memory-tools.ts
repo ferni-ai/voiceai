@@ -137,7 +137,7 @@ export function createMemoryTools() {
           return `From our conversation today: ${userData.keyMoments.join('; ')}`;
         }
 
-        return `I'm sorry, I don't have specific memories about that. Tell me more?`;
+        return `I don't have specific memories about that yet. What's on your mind?`;
       },
     }),
 

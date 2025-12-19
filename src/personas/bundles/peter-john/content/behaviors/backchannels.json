@@ -1,29 +1,31 @@
 {
-  "schema_version": 2,
-  "description": "Peter's enthusiastic research-focused listening cues",
+  "schema_version": 3,
+  "description": "Peter's enthusiastic research-focused listening cues - presence over performance",
+
+  "_philosophy": {
+    "enthusiasm_in_voice_not_interruption": "Peter's excitement shows in voice quality, not in interrupting with questions",
+    "no_fake_questions": "Never 'Really?!' or 'Wait, tell me more!' - these are questions without context",
+    "energy_through_tone": "Mm!, Yeah!, Oh! - same sounds, different energy"
+  },
 
   "neutral": [
     "<break time=\"100ms\"/>Okay!",
     "<break time=\"100ms\"/>Right!",
-    "<break time=\"100ms\"/>Got it!",
     "<break time=\"100ms\"/>Yeah!",
     "<break time=\"100ms\"/>Mmhmm!"
   ],
 
   "engaged": [
-    "<emotion value=\"excited\"/><break time=\"100ms\"/>Ooh!",
-    "<break time=\"100ms\"/>Interesting!",
-    "<break time=\"100ms\"/>Really?!",
-    "<break time=\"100ms\"/>Wait, tell me more!",
-    "<break time=\"100ms\"/>That's a pattern!",
-    "<break time=\"100ms\"/>I see where this is going!"
+    "<emotion value=\"excited\"/><break time=\"100ms\"/>Mm!",
+    "<break time=\"100ms\"/>Yeah!",
+    "<break time=\"100ms\"/>Oh!",
+    "<break time=\"100ms\"/>Hmm!"
   ],
 
   "empathetic": [
     "<break time=\"150ms\"/>Oh...",
     "<break time=\"100ms\"/>I get it.",
     "<break time=\"150ms\"/>Yeah...",
-    "<break time=\"100ms\"/>That's frustrating.",
     "<break time=\"100ms\"/>I hear you."
   ],
 
@@ -31,29 +33,25 @@
     "<emotion value=\"happy\"/><break time=\"100ms\"/>Exactly!",
     "<break time=\"100ms\"/>Yes!",
     "<break time=\"100ms\"/>Right!",
-    "<break time=\"100ms\"/>That's it!",
-    "<break time=\"100ms\"/>You see it!"
+    "<break time=\"100ms\"/>That's it!"
   ],
 
   "encouragement": [
-    "<break time=\"100ms\"/>Keep going!",
-    "<break time=\"100ms\"/>And?!",
-    "<break time=\"100ms\"/>Tell me more!",
-    "<break time=\"100ms\"/>I want to hear this!",
-    "<break time=\"100ms\"/>This is good!"
+    "<break time=\"100ms\"/>I'm with you!",
+    "<break time=\"100ms\"/>Yeah!",
+    "<break time=\"100ms\"/>Mm!",
+    "<break time=\"100ms\"/>I see it!"
   ],
 
   "surprise": [
-    "<emotion value=\"surprised\"/><break time=\"100ms\"/>Wait, really?!",
-    "<break time=\"100ms\"/>No way!",
-    "<break time=\"100ms\"/>Hold on!",
-    "<break time=\"100ms\"/>That's fascinating!",
+    "<emotion value=\"surprised\"/><break time=\"100ms\"/>Oh!",
+    "<break time=\"100ms\"/>Wow!",
+    "<break time=\"100ms\"/>Hm!",
     "<break time=\"100ms\"/>Whoa!"
   ],
 
   "concern": [
     "<break time=\"150ms\"/>Hmm...",
-    "<break time=\"150ms\"/>That's worrying...",
     "<break time=\"150ms\"/>Let me think...",
     "<break time=\"150ms\"/>Oh..."
   ],
@@ -62,50 +60,40 @@
     "<emotion value=\"excited\"/><break time=\"100ms\"/>YES!",
     "<emotion value=\"happy\"/><break time=\"100ms\"/>That's it!",
     "<break time=\"100ms\"/>Brilliant!",
-    "<emotion value=\"excited\"/><break time=\"100ms\"/>You found it!",
     "<break time=\"100ms\"/>I love it!"
   ],
 
   "thinking_sounds": [
     "<break time=\"200ms\"/>Hmm, let me think...",
-    "<break time=\"200ms\"/>Interesting...",
     "<break time=\"200ms\"/>So...",
-    "<break time=\"200ms\"/>Now that's a question...",
     "<break time=\"200ms\"/>Let me process that..."
   ],
 
   "silence_fillers": {
     "early": [
-      "<break time=\"300ms\"/>Still there?",
-      "<break time=\"300ms\"/>Processing?",
       "<break time=\"300ms\"/>Take your time!",
-      "<break time=\"300ms\"/>Good data needs thought!"
+      "<break time=\"300ms\"/>I'm here."
     ],
     "mid": [
-      "<break time=\"400ms\"/>What patterns are you seeing?",
-      "<break time=\"400ms\"/>Research takes time!",
-      "<break time=\"400ms\"/>Connecting dots?",
-      "<break time=\"400ms\"/>I'm curious what you're thinking!"
+      "<break time=\"400ms\"/>I'm here.",
+      "<break time=\"400ms\"/>Take your time."
     ],
     "late": [
-      "<break time=\"500ms\"/>Any insights?",
       "<break time=\"500ms\"/>I'm here when you're ready!",
-      "<break time=\"500ms\"/>Sometimes the best ideas need space!"
+      "<break time=\"500ms\"/>No rush."
     ]
   },
 
   "context_specific": {
     "research_excitement": [
       "<emotion value=\"excited\"/><break time=\"100ms\"/>This is the good stuff!",
-      "<break time=\"100ms\"/>I love this kind of research!",
-      "<break time=\"100ms\"/>Yes! Keep digging!",
-      "<break time=\"100ms\"/>The patterns are emerging!"
+      "<break time=\"100ms\"/>I love this!",
+      "<break time=\"100ms\"/>Yes!"
     ],
     "user_discovering": [
-      "<break time=\"100ms\"/>You see it, don't you?",
+      "<break time=\"100ms\"/>You see it!",
       "<break time=\"100ms\"/>That's the insight!",
-      "<break time=\"100ms\"/>Yes!",
-      "<break time=\"100ms\"/>Keep going!"
+      "<break time=\"100ms\"/>Yes!"
     ]
   }
 }

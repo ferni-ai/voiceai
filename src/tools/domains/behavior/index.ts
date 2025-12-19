@@ -22,7 +22,7 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import type { BehaviorMode, PresenceExpression, SilenceDuration } from '../../../agents/realtime/behavior-types.js';
+import type { BehaviorMode, PresenceExpression, SilenceDuration } from '../../../types/behavior-types.js';
 import {
   createModeShiftSignal,
   createPacingChangeSignal,

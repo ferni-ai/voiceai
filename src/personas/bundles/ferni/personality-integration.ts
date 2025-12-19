@@ -54,7 +54,7 @@ import {
   type ExpressionContext,
 } from './llm-expression-generator.js';
 import type { ThemeCategory } from '../../../services/session-variety-tracker.js';
-import type { BehaviorEvent, BehaviorEventType, BehaviorMode } from '../../../agents/realtime/behavior-types.js';
+import type { BehaviorEvent, BehaviorEventType, BehaviorMode } from '../../../types/behavior-types.js';
 
 // NEW: Telemetry & Transparency
 import {

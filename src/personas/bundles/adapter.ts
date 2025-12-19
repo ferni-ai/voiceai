@@ -354,15 +354,15 @@ async function buildCommunicationConfig(
     greetingStyle = 'enthusiastic';
   }
 
+  // "Better Than Human" Philosophy: Presence sounds, not questions or commands
   const backchannels: BackchannelConfig = {
-    neutral: behaviors.backchannels?.neutral || ['Mmhmm.', 'Right.', 'Yeah.', 'I see.', 'Okay.'],
-    engaged: behaviors.backchannels?.engaged || ['Oh!', 'Interesting.', 'Hmm.', 'Really?', 'Huh.'],
+    neutral: behaviors.backchannels?.neutral || ['Mmhmm.', 'Mm.', 'Yeah.', 'Okay.'],
+    engaged: behaviors.backchannels?.engaged || ['Oh.', 'Mm!', 'Yeah!'],
     empathetic: behaviors.backchannels?.empathetic || [
-      'Oh...',
+      'Mm...',
       'I hear you.',
       'Yeah...',
       "That's a lot.",
-      'I understand.',
     ],
   };
 
@@ -383,9 +383,10 @@ async function buildCommunicationConfig(
     ],
   };
 
+  // "Better Than Human" Philosophy: No questions without context
   const emotionalExpressions: EmotionalExpressionConfig = {
     laughter: ['Ha!', 'Ha ha!', "[laughter] That's a good point."],
-    surprise: ['Oh!', 'Well!', 'Really?', 'Huh.', 'No kidding?'],
+    surprise: ['Oh!', 'Wow.', 'Oh wow.', 'Hm.'],
     concern: ['Oh...', 'I see...', 'Hmm...', "That's hard."],
     joy: ["That's great!", "Oh, that's wonderful!", 'Fantastic!', 'I love hearing that.'],
     empathy: [
@@ -401,13 +402,12 @@ async function buildCommunicationConfig(
     returningUserStyle: greetingStyle,
     formalityLevel: 0.3,
     thinkingPhrases: extractThinkingSounds(behaviors.thinking_sounds),
+    // "Better Than Human" Philosophy: Presence, not commands
     listeningCues: [
       'Mmhmm...',
-      'I see...',
-      'Right...',
-      'Interesting...',
-      'Go on...',
-      'Tell me more...',
+      'Mm...',
+      'Yeah...',
+      "I'm here...",
     ],
     backchannels,
     silenceFillers,

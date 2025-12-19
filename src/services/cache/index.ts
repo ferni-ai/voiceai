@@ -1,13 +1,11 @@
 /**
- * Edge Cache Service
+ * Cache Services
  *
- * @deprecated Import from 'src/services/cache/edge-cache.js' instead.
- * This file re-exports for backward compatibility.
+ * Centralized caching utilities for the application.
  *
- * @module EdgeCache
+ * @module services/cache
  */
 
-// Re-export everything from the canonical location
 export {
   EdgeCache,
   type CacheConfig,
@@ -21,4 +19,5 @@ export {
   cacheConfig,
   getCachedConfig,
   warmCommonCaches,
-} from '../../../services/cache/edge-cache.js';
+} from './edge-cache.js';
+

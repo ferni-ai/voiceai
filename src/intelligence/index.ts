@@ -27,6 +27,7 @@ export {
   // Main analyzer
   UnifiedAnalyzer,
   analyzeUnified,
+  analyze, // Backward-compat alias for analyzeUnified
   type UnifiedAnalysisInput,
   type UnifiedAnalysisResult,
   type EmotionSignal,
@@ -423,35 +424,20 @@ export {
 } from './emotional-memory.js';
 
 // ============================================================================
-// UNIFIED ANALYSIS PIPELINE - Single entry point for complete analysis
-// ============================================================================
-
-export {
-  analyzeUserMessage,
-  buildResponseContext,
-  combineEmotionAnalysis,
-  detectBehavioralSignals,
-  type AnalysisInput,
-  type AnalysisResult,
-  type BehavioralSignals,
-  type CombinedEmotionAnalysis,
-  type ResponseContext as PipelineResponseContext,
-} from './analysis-pipeline.js';
-
-// ============================================================================
 // UNIFIED ANALYZER - Recommended single entry point for complete analysis
 // ============================================================================
 
-export {
-  analyze,
-  analyzeSync,
-  type CombinedEmotion,
-  type DeepUnderstandingInsights,
-  type UnifiedAnalysisInput as LegacyUnifiedAnalysisInput,
-  type UnifiedAnalysisResult as LegacyUnifiedAnalysisResult,
-  type BehavioralSignals as UnifiedBehavioralSignals,
-  type ResponseGuidance as UnifiedResponseGuidance,
-} from './unified-analyzer.js';
+// ============================================================================
+// LEGACY UNIFIED ANALYZER (DEPRECATED)
+// ============================================================================
+// The root unified-analyzer.ts has been consolidated into ./unified/unified-analyzer.ts
+// Use analyzeUnified() from './unified/unified-analyzer.js' instead.
+// The following exports were removed:
+// - analyze (now exported from ./unified/ as backward-compat alias)
+// - analyzeSync (was unused - use synchronous emotion detection if needed)
+// - CombinedEmotion, DeepUnderstandingInsights, LegacyUnifiedAnalysisInput,
+//   LegacyUnifiedAnalysisResult, UnifiedBehavioralSignals, UnifiedResponseGuidance
+//   (internal types that were never imported externally)
 
 // ============================================================================
 // COMBINED ANALYSIS

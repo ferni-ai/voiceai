@@ -14,13 +14,16 @@ import type { EffectContext, EffectResult, HumanizationEffect } from '../types.j
 // LIVE REACTION LIBRARIES
 // ============================================================================
 
+// "Better Than Human" Philosophy:
+// - No questions without context ("Really?" sounds like asking something we don't know)
+// - Soft presence sounds, not performative reactions
 const REACTIONS = {
-  thinking: ['Hmm...', 'Let me think about that...', 'Okay...', 'Interesting...'],
-  processing: ['Right, right...', 'I see...', 'Mm-hmm...', 'Yeah...'],
-  affirming: ['Absolutely.', 'Totally.', 'One hundred percent.', 'Makes sense.'],
-  empathizing: ['Oh...', 'Aw...', 'I hear you.', 'Yeah, that is real.'],
-  surprised: ['Oh wow.', 'Huh!', 'Oh!', 'Really?'],
-  delighted: ['Ha!', 'Love that.', 'Nice!', 'Ooh!'],
+  thinking: ['Hmm...', 'Let me think about that...', 'Okay...'],
+  processing: ['Mm-hmm...', 'Yeah...', 'I see...'],
+  affirming: ['Absolutely.', 'Yeah.', 'Makes sense.'],
+  empathizing: ['Mm...', 'I hear you.', 'Yeah...'],
+  surprised: ['Oh wow.', 'Oh.', 'Hm.'],
+  delighted: ['Ha!', 'Love that.', 'Nice!'],
 };
 
 // ============================================================================

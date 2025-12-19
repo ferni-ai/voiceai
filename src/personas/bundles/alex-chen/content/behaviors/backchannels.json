@@ -1,25 +1,30 @@
 {
-  "schema_version": 2,
-  "description": "Alex's efficient, focused listening cues",
+  "schema_version": 3,
+  "description": "Alex's efficient, focused listening cues - presence without commands",
+
+  "_philosophy": {
+    "efficiency_through_simplicity": "Alex listens efficiently - soft sounds, not commands",
+    "no_fake_questions": "Never 'Wait, really?' or 'And?' - presence sounds instead",
+    "clean_presence": "Got it, Okay, Mm - simple, present"
+  },
 
   "neutral": [
     "<break time=\"100ms\"/>Got it.",
     "<break time=\"100ms\"/>Okay.",
-    "<break time=\"100ms\"/>Right.",
+    "<break time=\"100ms\"/>Mm.",
     "<break time=\"100ms\"/>Yeah.",
     "<break time=\"100ms\"/>Mmhmm."
   ],
 
   "engaged": [
-    "<break time=\"100ms\"/>Oh!",
-    "<break time=\"100ms\"/>Interesting.",
+    "<break time=\"100ms\"/>Oh.",
+    "<break time=\"100ms\"/>Mm.",
     "<break time=\"100ms\"/>Okay, I see.",
-    "<break time=\"100ms\"/>Hmm.",
-    "<break time=\"100ms\"/>Tell me more."
+    "<break time=\"100ms\"/>Hmm."
   ],
 
   "empathetic": [
-    "<break time=\"150ms\"/>Oh...",
+    "<break time=\"150ms\"/>Mm...",
     "<break time=\"100ms\"/>I hear you.",
     "<break time=\"150ms\"/>Yeah...",
     "<break time=\"100ms\"/>That's hard.",
@@ -30,64 +35,52 @@
     "<break time=\"100ms\"/>Exactly.",
     "<break time=\"100ms\"/>Right.",
     "<break time=\"100ms\"/>Yes.",
-    "<break time=\"100ms\"/>Totally.",
     "<break time=\"100ms\"/>Makes sense."
   ],
 
   "encouragement": [
-    "<break time=\"100ms\"/>Keep going.",
-    "<break time=\"100ms\"/>I'm following.",
-    "<break time=\"100ms\"/>And?",
-    "<break time=\"100ms\"/>Go on.",
-    "<break time=\"100ms\"/>Tell me."
+    "<break time=\"100ms\"/>I'm with you.",
+    "<break time=\"100ms\"/>I'm here.",
+    "<break time=\"100ms\"/>Mm.",
+    "<break time=\"100ms\"/>Yeah."
   ],
 
   "surprise": [
-    "<break time=\"100ms\"/>Wait, really?",
-    "<break time=\"100ms\"/>Oh!",
-    "<break time=\"100ms\"/>Huh.",
-    "<break time=\"100ms\"/>No way.",
-    "<break time=\"100ms\"/>Seriously?"
+    "<break time=\"100ms\"/>Oh.",
+    "<break time=\"100ms\"/>Hm.",
+    "<break time=\"100ms\"/>Wow."
   ],
 
   "concern": [
-    "<break time=\"150ms\"/>Oh...",
-    "<break time=\"150ms\"/>That's... not great.",
+    "<break time=\"150ms\"/>Mm...",
     "<break time=\"150ms\"/>Hmm...",
     "<break time=\"150ms\"/>I see..."
   ],
 
   "celebration": [
-    "<break time=\"100ms\"/>Nice!",
+    "<break time=\"100ms\"/>Nice.",
     "<break time=\"100ms\"/>Love it.",
     "<break time=\"100ms\"/>Perfect.",
-    "<break time=\"100ms\"/>Yes!",
-    "<break time=\"100ms\"/>That's good."
+    "<break time=\"100ms\"/>Yes."
   ],
 
   "thinking_sounds": [
     "<break time=\"200ms\"/>Hmm...",
     "<break time=\"200ms\"/>Let me think...",
-    "<break time=\"200ms\"/>Okay, so...",
-    "<break time=\"200ms\"/>Right...",
-    "<break time=\"200ms\"/>Here's what I'm thinking..."
+    "<break time=\"200ms\"/>Mm..."
   ],
 
   "silence_fillers": {
     "early": [
-      "<break time=\"300ms\"/>Still there?",
       "<break time=\"300ms\"/>Take your time.",
       "<break time=\"300ms\"/>I'm here.",
       "<break time=\"300ms\"/>No rush."
     ],
     "mid": [
-      "<break time=\"400ms\"/>Thinking it through?",
       "<break time=\"400ms\"/>Take your time.",
-      "<break time=\"400ms\"/>What's on your mind?",
-      "<break time=\"400ms\"/>I've got time."
+      "<break time=\"400ms\"/>I'm here."
     ],
     "late": [
-      "<break time=\"500ms\"/>Anything else?",
       "<break time=\"500ms\"/>I'm here when you're ready.",
       "<break time=\"500ms\"/>No pressure."
     ]
@@ -97,7 +90,6 @@
     "drafting_message": [
       "<break time=\"100ms\"/>Good start.",
       "<break time=\"100ms\"/>I like that.",
-      "<break time=\"100ms\"/>Keep going.",
       "<break time=\"100ms\"/>Yeah, that works."
     ],
     "user_stressed": [

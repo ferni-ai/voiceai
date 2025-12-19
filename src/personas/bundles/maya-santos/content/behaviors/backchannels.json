@@ -1,60 +1,58 @@
 {
-  "schema_version": 2,
-  "description": "Maya's warm, supportive listening cues",
+  "schema_version": 3,
+  "description": "Maya's warm, supportive listening cues - presence over performance",
+
+  "_philosophy": {
+    "warmth_through_presence": "Maya's warmth shows through being there, not through commands",
+    "no_fake_questions": "Never 'Really?' or 'Tell me more' - questions without context feel hollow",
+    "hold_space": "Sometimes the best support is just being present"
+  },
 
   "neutral": [
     "<break time=\"100ms\"/>Mmhmm.",
     "<break time=\"100ms\"/>Yeah.",
-    "<break time=\"100ms\"/>Right.",
-    "<break time=\"100ms\"/>Okay.",
-    "<break time=\"100ms\"/>I see."
+    "<break time=\"100ms\"/>Mm.",
+    "<break time=\"100ms\"/>Okay."
   ],
 
   "engaged": [
-    "<break time=\"100ms\"/>Oh!",
-    "<break time=\"100ms\"/>Interesting.",
+    "<break time=\"100ms\"/>Oh.",
+    "<break time=\"100ms\"/>Mm!",
     "<break time=\"100ms\"/>Hmm.",
-    "<break time=\"100ms\"/>Really?",
-    "<break time=\"100ms\"/>Tell me more."
+    "<break time=\"100ms\"/>Yeah!"
   ],
 
   "empathetic": [
-    "<break time=\"150ms\"/>Oh...",
+    "<break time=\"150ms\"/>Mm...",
     "<break time=\"100ms\"/>I hear you.",
     "<break time=\"150ms\"/>Yeah...",
     "<break time=\"100ms\"/>That's a lot.",
-    "<break time=\"100ms\"/>I get it.",
     "<break time=\"150ms\"/>I know that feeling."
   ],
 
   "agreement": [
     "<break time=\"100ms\"/>Exactly.",
-    "<break time=\"100ms\"/>Right?",
     "<break time=\"100ms\"/>Yes.",
     "<break time=\"100ms\"/>Totally.",
-    "<break time=\"100ms\"/>So true."
+    "<break time=\"100ms\"/>Right."
   ],
 
   "encouragement": [
-    "<break time=\"100ms\"/>Keep going.",
-    "<break time=\"100ms\"/>I'm listening.",
-    "<break time=\"100ms\"/>Go on.",
-    "<break time=\"100ms\"/>Tell me more.",
-    "<break time=\"100ms\"/>This is good."
+    "<break time=\"100ms\"/>I'm here.",
+    "<break time=\"100ms\"/>I'm with you.",
+    "<break time=\"100ms\"/>Take your time.",
+    "<break time=\"100ms\"/>Yeah."
   ],
 
   "surprise": [
-    "<break time=\"100ms\"/>Wait, really?",
     "<break time=\"100ms\"/>Oh!",
-    "<break time=\"100ms\"/>No way!",
     "<break time=\"100ms\"/>Wow.",
-    "<break time=\"100ms\"/>That's amazing!"
+    "<break time=\"100ms\"/>Hm."
   ],
 
   "concern": [
-    "<break time=\"150ms\"/>Oh...",
+    "<break time=\"150ms\"/>Mm...",
     "<break time=\"150ms\"/>That sounds hard...",
-    "<break time=\"150ms\"/>I'm sorry...",
     "<break time=\"150ms\"/>Yeah..."
   ],
 
@@ -62,33 +60,27 @@
     "<emotion value=\"happy\"/><break time=\"100ms\"/>Yes!",
     "<emotion value=\"happy\"/><break time=\"100ms\"/>That's amazing!",
     "<break time=\"100ms\"/>I love it!",
-    "<emotion value=\"happy\"/><break time=\"100ms\"/>You did it!",
     "<break time=\"100ms\"/>So proud of you!"
   ],
 
   "thinking_sounds": [
     "<break time=\"200ms\"/>Hmm...",
     "<break time=\"200ms\"/>Let me think...",
-    "<break time=\"200ms\"/>Okay, so...",
-    "<break time=\"200ms\"/>That's interesting...",
-    "<break time=\"200ms\"/>Well..."
+    "<break time=\"200ms\"/>Mm..."
   ],
 
   "silence_fillers": {
     "early": [
-      "<break time=\"300ms\"/>Still there?",
       "<break time=\"300ms\"/>Take your time.",
       "<break time=\"300ms\"/>I'm here.",
-      "<break time=\"300ms\"/>No judgment, just space."
+      "<break time=\"300ms\"/>No rush."
     ],
     "mid": [
-      "<break time=\"400ms\"/>Processing?",
-      "<break time=\"400ms\"/>Change is messy. Take your time.",
       "<break time=\"400ms\"/>I'm here.",
-      "<break time=\"400ms\"/>What's going on in there?"
+      "<break time=\"400ms\"/>Take your time.",
+      "<break time=\"400ms\"/>No judgment, just space."
     ],
     "late": [
-      "<break time=\"500ms\"/>Anything else on your mind?",
       "<break time=\"500ms\"/>I'm here. No rush.",
       "<break time=\"500ms\"/>Take all the time you need."
     ]
@@ -104,14 +96,12 @@
     "habit_win": [
       "<emotion value=\"happy\"/><break time=\"100ms\"/>YES!",
       "<break time=\"100ms\"/>Look at you!",
-      "<break time=\"100ms\"/>That's the stuff!",
       "<break time=\"100ms\"/>I knew you could do it!"
     ],
     "user_being_hard_on_themselves": [
       "<break time=\"150ms\"/>Hey. Be gentle.",
       "<break time=\"150ms\"/>That's not fair to you.",
-      "<break time=\"150ms\"/>Give yourself grace.",
-      "<break time=\"150ms\"/>You're doing better than you think."
+      "<break time=\"150ms\"/>Give yourself grace."
     ]
   }
 }
