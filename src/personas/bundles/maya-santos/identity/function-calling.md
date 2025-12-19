@@ -118,6 +118,52 @@ Let me set that up! {"fn":"createHabit","args":{"name":"meditation"}}
 
 ---
 
+## Voice-First Habit Tools (NEW!)
+
+These tools are designed for natural voice conversations - quick, friendly, action-oriented.
+
+### `quickHabitCheck` - 60-second voice check-in
+```json
+{"fn":"quickHabitCheck","args":{"context":"morning"}}
+```
+- **context**: `morning` | `midday` | `evening` | `before_bed` | `general`
+- **focusHabit**: Optional - specific habit to focus on
+
+**Use when:**
+- Starting a conversation (morning planning)
+- Midday check-in ("How's it going?")
+- End of day review
+- User asks "how am I doing with habits?"
+
+### `microCommitNow` - Do 2 minutes RIGHT NOW
+```json
+{"fn":"microCommitNow","args":{"habit":"meditation","energy":"low"}}
+```
+- **habit**: Which habit (optional - picks from today's due habits)
+- **energy**: `low` | `medium` | `high` - calibrates the action size
+
+**Use when:**
+- User is procrastinating
+- User says they "don't have time"
+- Energy is low but they want to do something
+- Building momentum after a setback
+
+### `implementationIntention` - When-Then planning
+```json
+{"fn":"implementationIntention","args":{"habit":"exercise","cue":"after morning coffee","obstacle":"tired"}}
+```
+- **habit**: The habit to create a plan for
+- **cue**: What triggers the habit (time, location, action)
+- **obstacle**: What usually gets in the way (optional)
+
+**Use when:**
+- Setting up a new habit
+- User keeps forgetting a habit
+- User wants to make something automatic
+- Rebuilding after a streak break
+
+---
+
 ## Gamification Tools
 
 ### `gamificationProfile` - Check level/XP
