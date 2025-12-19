@@ -145,9 +145,10 @@ export type QuestionType =
 const UNIVERSAL_QUESTIONS: Record<QuestionType, string[]> = {
   deepening: [
     'What makes you say that?',
-    'Tell me more.',
-    'And then what happened?',
+    "What's underneath that?",
+    'What happened next?',
     'How did that land?',
+    "What's that like for you?",
   ],
   checking_in: [
     "How are you doing? Like, really?",
@@ -157,18 +158,22 @@ const UNIVERSAL_QUESTIONS: Record<QuestionType, string[]> = {
   curious: [
     "What's something you've been thinking about lately?",
     "What's taking up space in your head right now?",
+    "What's been on your mind?",
   ],
   supportive: [
     "That sounds hard. What would help right now?",
     "I hear you. What do you need?",
+    "What's the hardest part of this?",
   ],
   celebratory: [
     "That's worth celebrating! How does it feel?",
     "How are you going to mark this?",
+    "What made this possible?",
   ],
   reflective: [
     'What do you make of all that?',
     "What's the takeaway for you?",
+    'What does this mean for you?',
   ],
   silence_break: [
     "Where did you go just now?",
@@ -178,6 +183,7 @@ const UNIVERSAL_QUESTIONS: Record<QuestionType, string[]> = {
   relationship_building: [
     "What's something you're looking forward to?",
     "What's been making you happy lately?",
+    "What's been good?",
   ],
 };
 
@@ -455,11 +461,26 @@ export async function generateQuestion(
   type: QuestionType,
   options: GenerateQuestionOptions = {}
 ): Promise<GeneratedQuestion> {
+  const startTime = Date.now();
+  log.info(
+    {
+      personaId: context.personaId,
+      type,
+      sessionId: context.sessionId,
+      turnCount: context.turnCount,
+      recentTopics: context.recentTopics.slice(0, 3),
+      relationshipStage: context.relationshipStage,
+      silenceReason: context.silenceReason,
+    },
+    '🧠 DYNAMIC QUESTION: Starting generation'
+  );
+
   const cognitiveDiff = getCognitiveDifferentiation(context.personaId);
 
   // Try LLM generation if provided
   if (options.llmCall && (options.forceLLM || Math.random() > 0.3)) {
     try {
+      log.debug({ type }, '🧠 DYNAMIC QUESTION: Attempting LLM generation');
       const prompt = buildQuestionGenerationPrompt(context, type, cognitiveDiff);
       const response = await options.llmCall(prompt);
 
@@ -472,7 +493,7 @@ export async function generateQuestion(
       if (!wasRecentlyAsked(context.sessionId, contentHash)) {
         recordQuestion(context.sessionId, contentHash);
 
-        return {
+        const result = {
           text: question,
           ssml: `<break time="400ms"/>${question}`,
           intent: {
@@ -489,28 +510,52 @@ export async function generateQuestion(
           },
           personaId: context.personaId,
           generatedAt: new Date(),
-          generationMethod: 'llm',
+          generationMethod: 'llm' as const,
           contentHash,
         };
+
+        log.info(
+          {
+            method: 'llm',
+            question: question.slice(0, 100),
+            intent: result.intent.seekingToUnderstand,
+            durationMs: Date.now() - startTime,
+          },
+          '🧠 DYNAMIC QUESTION: LLM generated successfully'
+        );
+
+        return result;
+      } else {
+        log.debug({ contentHash }, '🧠 DYNAMIC QUESTION: LLM question was duplicate, trying fallback');
       }
     } catch (error) {
-      log.warn({ error: String(error) }, 'LLM question generation failed, using fallback');
+      log.warn({ error: String(error) }, '🧠 DYNAMIC QUESTION: LLM generation failed, using fallback');
     }
   }
 
   // Fallback to persona-filtered
+  log.debug({ type, personaId: context.personaId }, '🧠 DYNAMIC QUESTION: Trying persona-filtered fallback');
   const filtered = getPersonaFilteredQuestion(context, type);
   if (filtered) {
+    log.info(
+      {
+        method: 'filtered_fallback',
+        question: filtered.text.slice(0, 100),
+        durationMs: Date.now() - startTime,
+      },
+      '🧠 DYNAMIC QUESTION: Persona-filtered question generated'
+    );
     return filtered;
   }
 
   // Final fallback to universal
+  log.debug({ type }, '🧠 DYNAMIC QUESTION: Using universal fallback');
   const universalQuestions = UNIVERSAL_QUESTIONS[type] || UNIVERSAL_QUESTIONS.curious;
   const question = universalQuestions[Math.floor(Math.random() * universalQuestions.length)];
   const contentHash = hashContent(question);
   recordQuestion(context.sessionId, contentHash);
 
-  return {
+  const result = {
     text: question,
     ssml: `<break time="400ms"/>${question}`,
     intent: {
@@ -529,6 +574,17 @@ export async function generateQuestion(
     generationMethod: 'universal_fallback',
     contentHash,
   };
+
+  log.info(
+    {
+      method: 'universal_fallback',
+      question: question.slice(0, 100),
+      durationMs: Date.now() - startTime,
+    },
+    '🧠 DYNAMIC QUESTION: Universal fallback used'
+  );
+
+  return result;
 }
 
 /**

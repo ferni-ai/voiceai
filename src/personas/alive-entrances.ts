@@ -435,9 +435,12 @@ const HARDCODED_ENTRANCE_CONFIGS: Record<string, PersonaEntranceConfig> = {
       'Just checking in on... <break time="150ms"/>never mind. <break time="200ms"/>What do you need?',
     ],
 
+    // Better Than Human: Memory callbacks - we remember what human friends forget
     memoryCallbacks: [
-      'Hey! <break time="200ms"/>How did things go with {topic}?',
-      'You\'re back! <break time="200ms"/>Tell me about {topic}!',
+      '<break time="200ms"/><emotion value="affectionate"/>Hey. <break time="350ms"/>Been thinking about {topic}. <break time="200ms"/>How did that go?',
+      '<break time="200ms"/>Oh good, you\'re back. <break time="350ms"/>I was wondering about {topic}.',
+      '<break time="150ms"/>Hey. <break time="400ms"/>That {topic} thing... <break time="200ms"/>what happened?',
+      '<break time="200ms"/><emotion value="affectionate"/>You\'re here. <break time="350ms"/>I remembered {topic}. <break time="200ms"/>Still on your mind?',
     ],
   },
 };
@@ -769,13 +772,14 @@ export async function generateAliveEntrance(
     return generateTimeAppropriateEntrance(config, ctx);
   }
 
-  // Priority 4: Memory callback for returning visitors (30% chance)
-  if (ctx.lastTopicWithAgent && Math.random() < 0.3) {
+  // Priority 4: Memory callback for returning visitors (50% chance - Better Than Human!)
+  // Memory is our superpower - we remember what human friends forget
+  if (ctx.lastTopicWithAgent && Math.random() < 0.5) {
     const memoryEntrance = generateMemoryCallbackEntrance(config, ctx);
     if (memoryEntrance) {
-      getLogger().debug(
-        { personaId, topic: ctx.lastTopicWithAgent },
-        'Using memory callback entrance'
+      getLogger().info(
+        { personaId, topic: ctx.lastTopicWithAgent, style: 'memory_callback' },
+        '🧠 BETTER THAN HUMAN: Memory callback entrance - referencing past conversation'
       );
       return memoryEntrance;
     }
@@ -791,9 +795,9 @@ export async function generateAliveEntrance(
   if (ctx.relationshipStage && ctx.relationshipStage !== 'stranger' && Math.random() < 0.4) {
     const relationshipEntrance = generateRelationshipEntrance(config, ctx);
     if (relationshipEntrance) {
-      getLogger().debug(
-        { personaId, relationshipStage: ctx.relationshipStage },
-        'Using relationship-based entrance'
+      getLogger().info(
+        { personaId, relationshipStage: ctx.relationshipStage, style: 'relationship_based' },
+        '💝 ENTRANCE: Relationship-aware greeting based on connection depth'
       );
       return relationshipEntrance;
     }
@@ -831,6 +835,17 @@ export async function generateAliveEntrance(
     const voiceAdjustment = getVoiceEmotionEntranceAdjustment(options.voiceEmotion);
     result = applyVoiceAdjustmentToEntrance(result, voiceAdjustment);
   }
+
+  getLogger().info(
+    {
+      personaId,
+      style: result.style,
+      userMood: ctx.userMood,
+      meetingCount: ctx.meetingCount,
+      hasMemory: !!ctx.lastTopicWithAgent,
+    },
+    '🎭 ENTRANCE: Generated alive entrance'
+  );
 
   return result;
 }
