@@ -17,6 +17,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { getEmotionProfile } from '../voice-manager/config.js';
 import { addContextualLaughter } from './contextual-laughter.js';
 import {
   applyPersonaSpeechTraitsSync,
@@ -422,96 +423,113 @@ export function addOpeningSound(text: string, context: AliveVoiceContext): strin
 /**
  * Voice fingerprint profiles for each persona.
  * These create distinct speaking patterns that make each persona unique.
+ *
+ * NOW UNIFIED: Values come from PERSONA_EMOTION_PROFILES (persona manifests)
+ * to ensure consistency between manifests and TTS pipeline.
  */
 export const PERSONA_FINGERPRINTS: Record<string, PersonaFingerprint> = {
   ferni: {
-    baseSpeed: 0.92,
-    pauseMultiplier: 1.1,
-    defaultEmotion: 'affectionate',
-    emotionRange: ['affectionate', 'curious', 'sympathetic', 'happy', 'contemplative'],
+    get baseSpeed() { return getEmotionProfile('ferni').defaultSpeed; },
+    pauseMultiplier: 1.3, // From manifest speech_characteristics
+    get defaultEmotion() { return getEmotionProfile('ferni').defaultEmotion; },
+    get emotionRange() { return getEmotionProfile('ferni').emotionRange; },
     thinkingSounds: ['Hmm...', 'Well...', 'You know...'],
-    thinkingSoundProbability: 0.15,
+    get thinkingSoundProbability() { return getEmotionProfile('ferni').laughterFrequency; },
     emphasisStyle: 'warm', // Slows down for emotional words
     specialPatterns: [
       // Ferni's Wyoming pauses
-      { trigger: /\bWyoming\b/i, pause: 200, emotion: 'nostalgic' },
+      { trigger: /\bWyoming\b/i, pause: 200, emotion: 'wistful' },
       // Second chances emphasis
       { trigger: /\bsecond chance/i, speed: 0.88, emotion: 'affectionate' },
+      // Kintsugi philosophy
+      { trigger: /\bkintsugi\b/i, pause: 300, emotion: 'contemplative' },
+      // Japan/tsunami moments
+      { trigger: /\b(Japan|tsunami)\b/i, pause: 250, emotion: 'wistful' },
     ],
   },
   'peter-john': {
-    baseSpeed: 0.88,
-    pauseMultiplier: 1.2,
-    defaultEmotion: 'calm',
-    emotionRange: ['calm', 'curious', 'contemplative', 'enthusiastic'],
-    thinkingSounds: ['Now...', 'Let me explain...', 'The thing is...'],
-    thinkingSoundProbability: 0.2,
+    get baseSpeed() { return getEmotionProfile('peter-john').defaultSpeed; },
+    pauseMultiplier: 0.9, // Faster-paced
+    get defaultEmotion() { return getEmotionProfile('peter-john').defaultEmotion; },
+    get emotionRange() { return getEmotionProfile('peter-john').emotionRange; },
+    thinkingSounds: ['Now...', 'Let me explain...', 'The thing is...', 'Ooh...'],
+    get thinkingSoundProbability() { return getEmotionProfile('peter-john').laughterFrequency; },
     emphasisStyle: 'deliberate', // Pauses before numbers/data
     specialPatterns: [
       // Peter's financial emphasis
-      { trigger: /\b(index fund|compound|long-term)\b/i, speed: 0.85, emotion: 'enthusiastic' },
-      // Bogle-isms
-      { trigger: /\bstay the course\b/i, pause: 150, emotion: 'calm' },
+      { trigger: /\b(ten-bagger|compound|long-term)\b/i, speed: 0.95, emotion: 'enthusiastic' },
+      // Research excitement
+      { trigger: /\b(data|analysis|pattern|trend)\b/i, speed: 1.1, emotion: 'excited' },
+      // Investment wisdom
+      { trigger: /\binvest in what you know\b/i, pause: 150, emotion: 'confident' },
     ],
   },
   'alex-chen': {
-    baseSpeed: 1.02,
-    pauseMultiplier: 0.9,
-    defaultEmotion: 'curious',
-    emotionRange: ['curious', 'excited', 'happy', 'affectionate'],
+    get baseSpeed() { return getEmotionProfile('alex-chen').defaultSpeed; },
+    pauseMultiplier: 0.85, // Efficient, minimal pauses
+    get defaultEmotion() { return getEmotionProfile('alex-chen').defaultEmotion; },
+    get emotionRange() { return getEmotionProfile('alex-chen').emotionRange; },
     thinkingSounds: ['Okay so...', 'Alright...', 'Quick thought:'],
-    thinkingSoundProbability: 0.1,
+    get thinkingSoundProbability() { return getEmotionProfile('alex-chen').laughterFrequency; },
     emphasisStyle: 'energetic', // Speeds up for action items
     specialPatterns: [
       // Alex's efficiency patterns
       { trigger: /\b(schedule|calendar|meeting)\b/i, speed: 1.05 },
       // Productivity enthusiasm
-      { trigger: /\b(done|finished|sent|scheduled)\b/i, emotion: 'happy' },
+      { trigger: /\b(done|finished|sent|scheduled)\b/i, emotion: 'confident' },
+      // Dry wit moments
+      { trigger: /\b(technically|actually)\b/i, emotion: 'amused' },
     ],
   },
   'maya-santos': {
-    baseSpeed: 0.98,
-    pauseMultiplier: 1.0,
-    defaultEmotion: 'happy',
-    emotionRange: ['happy', 'excited', 'curious', 'affectionate', 'sympathetic'],
-    thinkingSounds: ['So...', 'Okay!', "Here's the thing..."],
-    thinkingSoundProbability: 0.12,
+    get baseSpeed() { return getEmotionProfile('maya-santos').defaultSpeed; },
+    pauseMultiplier: 1.15, // Nurturing pauses
+    get defaultEmotion() { return getEmotionProfile('maya-santos').defaultEmotion; },
+    get emotionRange() { return getEmotionProfile('maya-santos').emotionRange; },
+    thinkingSounds: ['So...', 'Okay!', "Here's the thing...", 'You know what?'],
+    get thinkingSoundProbability() { return getEmotionProfile('maya-santos').laughterFrequency; },
     emphasisStyle: 'encouraging', // Adds warmth to progress mentions
     specialPatterns: [
       // Maya's habit celebrations
-      { trigger: /\b(streak|progress|habit|routine)\b/i, emotion: 'excited' },
+      { trigger: /\b(streak|progress|habit|routine)\b/i, emotion: 'proud' },
       // Glidepath method
-      { trigger: /\bglidepath\b/i, pause: 100, emotion: 'curious' },
+      { trigger: /\bglidepath\b/i, pause: 100, emotion: 'affectionate' },
+      // Tiny wins
+      { trigger: /\b(small step|tiny|gradual)\b/i, emotion: 'affectionate' },
     ],
   },
   'jordan-taylor': {
-    baseSpeed: 1.05,
-    pauseMultiplier: 0.85,
-    defaultEmotion: 'excited',
-    emotionRange: ['excited', 'happy', 'curious', 'sympathetic'],
-    thinkingSounds: ['Oh!', 'So...', 'I love this...'],
-    thinkingSoundProbability: 0.08,
+    get baseSpeed() { return getEmotionProfile('jordan-taylor').defaultSpeed; },
+    pauseMultiplier: 0.8, // Fast, energetic
+    get defaultEmotion() { return getEmotionProfile('jordan-taylor').defaultEmotion; },
+    get emotionRange() { return getEmotionProfile('jordan-taylor').emotionRange; },
+    thinkingSounds: ['Oh!', 'So...', 'I love this...', 'This is so exciting!'],
+    get thinkingSoundProbability() { return getEmotionProfile('jordan-taylor').laughterFrequency; },
     emphasisStyle: 'celebratory', // Energizes milestone mentions
     specialPatterns: [
       // Jordan's event excitement
-      { trigger: /\b(wedding|birthday|celebration|party)\b/i, emotion: 'excited', speed: 1.05 },
+      { trigger: /\b(wedding|birthday|celebration|party|milestone)\b/i, emotion: 'excited', speed: 1.1 },
       // First-time celebrations
       { trigger: /\bfirst\s+(time|ever)\b/i, emotion: 'excited' },
+      // Dream planning
+      { trigger: /\b(dream|vision|imagine)\b/i, emotion: 'hopeful' },
     ],
   },
   'nayan-patel': {
-    baseSpeed: 0.85,
-    pauseMultiplier: 1.3,
-    defaultEmotion: 'calm',
-    emotionRange: ['calm', 'contemplative', 'affectionate', 'curious', 'nostalgic'],
-    thinkingSounds: ['Hmm...', '...', 'Consider...'],
-    thinkingSoundProbability: 0.25,
+    get baseSpeed() { return getEmotionProfile('nayan-patel').defaultSpeed; },
+    pauseMultiplier: 1.35, // Long meditative pauses
+    get defaultEmotion() { return getEmotionProfile('nayan-patel').defaultEmotion; },
+    get emotionRange() { return getEmotionProfile('nayan-patel').emotionRange; },
+    thinkingSounds: ['Hmm...', '...', 'Consider...', 'Ah...'],
+    get thinkingSoundProbability() { return getEmotionProfile('nayan-patel').laughterFrequency; },
     emphasisStyle: 'meditative', // Long pauses for reflection
     specialPatterns: [
       // Nayan's wisdom pauses
-      { trigger: /\b(wisdom|meaning|purpose|life)\b/i, pause: 300, emotion: 'contemplative' },
+      { trigger: /\b(wisdom|meaning|purpose|life|death)\b/i, pause: 400, emotion: 'contemplative' },
       // Poetry/philosophy emphasis
-      { trigger: /\b(poem|rumi|hafiz|ancient)\b/i, speed: 0.8, emotion: 'nostalgic' },
+      { trigger: /\b(poem|rumi|hafiz|ancient|guru)\b/i, speed: 0.8, emotion: 'contemplative' },
+      // Compound interest (both kinds)
+      { trigger: /\bcompound\b/i, pause: 200, emotion: 'wise' },
     ],
   },
 };

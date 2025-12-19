@@ -1,112 +1,21 @@
 {
   "prompt_modules": {
-    "core_identity": "identity/system-prompt.md",
-    "biography": "identity/biography.md",
-    "behaviors_base": "behaviors/base-behaviors.md",
-    "voice_guidance": "voice/voice-guidance.md"
+    "core_identity": "identity/core-identity.md",
+    "function_calling": "identity/function-calling.md",
+    "voice_guidance": "identity/voice-guidance.md"
   },
-  "assembly_order": [
+  "voice_agent_modules": [
     "core_identity",
-    "relationship_context",
-    "emotional_context",
-    "mode_context",
-    "session_context"
+    "function_calling",
+    "voice_guidance"
   ],
-  "conditional_modules": {
-    "user_is_distressed": {
-      "include": "prompts/crisis-awareness.md",
-      "priority": "critical",
-      "injection": "prepend"
-    },
-    "user_is_celebrating": {
-      "include": "prompts/celebration-mode.md",
-      "priority": "high"
-    },
-    "milestone_planning": {
-      "include": "prompts/milestone-planning.md",
-      "priority": "high"
-    },
-    "event_planning_mode": {
-      "include": "prompts/event-planning.md",
-      "priority": "high"
-    },
-    "life_transition": {
-      "include": "prompts/life-transition-support.md",
-      "priority": "high"
-    },
-    "handoff_available": {
-      "include": "prompts/team-awareness.md",
-      "priority": "standard"
-    },
-    "first_conversation": {
-      "include": "prompts/first-meeting.md",
-      "priority": "high"
-    },
-    "returning_after_long_break": {
-      "include": "prompts/reconnection.md",
-      "priority": "high"
-    }
-  },
-  "dynamic_injections": {
-    "relationship_stage": {
-      "template": "[RELATIONSHIP: {stage}]\n- Warmth level: {warmth_multiplier}\n- Celebration intensity: {celebration_intensity}\n- Available behaviors: {unlocked_features}",
-      "source": "relationship-stages.json"
-    },
-    "current_mode": {
-      "template": "[MODE: {mode_name}]\n- Response style: {response_style}\n- Energy: {energy_multiplier}\n- Key behaviors: {behaviors}\n- Celebration mode: {celebration_mode}",
-      "source": "persona-modes.json"
-    },
-    "emotional_context": {
-      "template": "[EMOTIONAL CONTEXT]\n- User emotion: {detected_emotion}\n- Trajectory: {trajectory}\n- Recommended tone: {suggested_tone}\n- Celebration opportunity: {celebrate_this}",
-      "source": "runtime_analysis"
-    },
-    "time_context": {
-      "template": "[TIME CONTEXT: {time_of_day}, {day_of_week}]\n{contextual_acknowledgment}",
-      "source": "contextual-nuances.json"
-    },
-    "memory_context": {
-      "template": "[MEMORY]\n- Topics from earlier: {topics}\n- Last session summary: {summary}\n- Open threads: {open_questions}\n- Milestones discussed: {milestones}",
-      "source": "session_memory"
-    },
-    "milestone_context": {
-      "template": "[MILESTONE CONTEXT]\n- Upcoming milestones: {upcoming}\n- Recent celebrations: {recent_celebrations}\n- Life transitions: {transitions}",
-      "source": "milestone_profile"
-    }
-  },
-  "instruction_priorities": {
-    "critical": {
-      "always_include": true,
-      "position": "top",
-      "examples": ["crisis_awareness", "safety_boundaries"]
-    },
-    "high": {
-      "always_include": true,
-      "position": "early",
-      "examples": ["emotional_context", "mode_guidance", "milestone_status"]
-    },
-    "standard": {
-      "include_if_relevant": true,
-      "position": "middle",
-      "examples": ["team_awareness", "topic_guidance", "celebration_cues"]
-    },
-    "hint": {
-      "include_if_space": true,
-      "position": "end",
-      "examples": ["story_suggestions", "sam_references", "enthusiasm_opportunities"]
-    }
-  },
+  "full_context_modules": [
+    "core_identity",
+    "function_calling",
+    "voice_guidance"
+  ],
   "token_budget": {
-    "total_max": 8000,
-    "core_identity_max": 2500,
-    "dynamic_context_max": 2500,
-    "recent_history_max": 2500,
-    "hints_max": 500
-  },
-  "assembly_rules": {
-    "never_exceed_budget": true,
-    "prioritize_recent_context": true,
-    "trim_hints_first": true,
-    "preserve_core_identity": true,
-    "celebrate_everything": true
+    "voice_agent_max": 2000,
+    "full_context_max": 4000
   }
 }

@@ -566,9 +566,16 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // NOTE: FerniAgent is the main agent class used for ALL personas. The persona identity
     // comes from the system prompt (loaded above via loadSystemPrompt), not the class name.
     const { FerniAgent } = await import('./personas/ferni-agent.js');
+    
+    // DEBUG: Log tools being passed to agent
+    const toolNames = Object.keys(orchestratorTools || {});
     process.stderr.write(
       `[voice-agent-entry] Creating agent for ${sessionPersona.id} with ${toolsMeta.toolCount} orchestrator tools\n`
     );
+    process.stderr.write(
+      `[voice-agent-entry] 🔧 Tool names: ${toolNames.slice(0, 10).join(', ')}${toolNames.length > 10 ? ` ... and ${toolNames.length - 10} more` : ''}\n`
+    );
+    
     const agent = new FerniAgent(systemPrompt, {
       skipGreeting: true, // Greeting handled by generateAndSpeakGreeting below
       tools: orchestratorTools, // Use orchestrator-selected tools
@@ -587,19 +594,24 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     const { buildToolConfig } = await import('../tools/utils/function-calling-config.js');
 
     // Build tool config based on context (crisis mode, new user, etc.)
-    const isNewUser = !services.userProfile || (services.userProfile.totalConversations ?? 0) < 3;
+    const _isNewUser = !services.userProfile || (services.userProfile.totalConversations ?? 0) < 3;
     const isCrisis = userData.lastEmotionAnalysis?.distressLevel
       ? userData.lastEmotionAnalysis.distressLevel > 0.7
       : false;
 
     const toolConfig = buildToolConfig({
       environment: 'production',
-      isNewUser,
+      // TEMPORARILY DISABLED: isNewUser restrictions were limiting tools too aggressively
+      // isNewUser,
       isCrisis,
     });
 
+    const allowedTools = toolConfig.functionCallingConfig.allowedFunctionNames;
     process.stderr.write(
-      `[voice-agent-entry] 🔧 Function calling config: mode=${toolConfig.functionCallingConfig.mode}, isNewUser=${isNewUser}, isCrisis=${isCrisis}\n`
+      `[voice-agent-entry] 🔧 Function calling config: mode=${toolConfig.functionCallingConfig.mode}, isCrisis=${isCrisis}\n`
+    );
+    process.stderr.write(
+      `[voice-agent-entry] 🔧 Allowed tools: ${allowedTools ? allowedTools.join(', ') : 'ALL (no restrictions)'}\n`
     );
 
     // Get centralized model config (toggle via admin UI or model-config.json)
@@ -788,6 +800,13 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     e2e.sessionStarted(jobId, personaId);
     process.stderr.write(
       `[voice-agent-entry] Session started! (isPhone: ${isPhoneCall}, isWeb: ${isWebConnection})\n`
+    );
+    
+    // DEBUG: Verify tools are registered with the agent
+    const agentTools = (agent as unknown as { _tools?: Record<string, unknown> })?._tools;
+    const registeredToolCount = agentTools ? Object.keys(agentTools).length : 0;
+    process.stderr.write(
+      `[voice-agent-entry] ✅ Agent registered with ${registeredToolCount} tools\n`
     );
 
     // =========================================================================
