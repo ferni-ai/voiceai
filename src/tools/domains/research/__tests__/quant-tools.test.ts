@@ -49,12 +49,21 @@ vi.mock('@livekit/agents', () => ({
 
 import { createQuantTools } from '../quant-tools.js';
 
+// Type for our mock tool structure
+interface MockTool {
+  description: string;
+  parameters: unknown;
+  execute: (params: Record<string, unknown>) => Promise<string>;
+}
+
+type MockQuantTools = Record<string, MockTool>;
+
 describe('Quant Tools', () => {
-  let quantTools: ReturnType<typeof createQuantTools>;
+  let quantTools: MockQuantTools;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    quantTools = createQuantTools();
+    quantTools = createQuantTools() as unknown as MockQuantTools;
   });
 
   afterEach(() => {

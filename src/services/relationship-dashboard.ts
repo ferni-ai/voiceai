@@ -406,7 +406,9 @@ function extractMemorableQuotes(
 function buildTeamConnections(profile: UserProfile | null): TeamConnection[] {
   const connections: TeamConnection[] = [];
 
-  if (!profile?.personaInteractions) return connections;
+  // UserProfile doesn't have personaInteractions - use customData if available
+  // or return placeholder based on preferred topics
+  if (!profile) return connections;
 
   const personaNames: Record<string, string> = {
     ferni: 'Ferni',
@@ -418,17 +420,36 @@ function buildTeamConnections(profile: UserProfile | null): TeamConnection[] {
     nayan: 'Nayan',
   };
 
-  for (const [personaId, interaction] of Object.entries(profile.personaInteractions)) {
-    const conversationCount = interaction.conversationCount || 0;
-    if (conversationCount === 0) continue;
+  // Check if personaInteractions exists in customData
+  const personaInteractions = profile.customData?.personaInteractions as Record<string, {
+    conversationCount?: number;
+    frequentTopics?: string[];
+    lastInteraction?: Date;
+  }> | undefined;
 
+  if (personaInteractions) {
+    for (const [personaId, interaction] of Object.entries(personaInteractions)) {
+      const conversationCount = interaction.conversationCount || 0;
+      if (conversationCount === 0) continue;
+
+      connections.push({
+        personaId,
+        personaName: personaNames[personaId] || personaId,
+        conversationCount,
+        topics: interaction.frequentTopics || [],
+        connectionStrength: Math.min(1, conversationCount / 20), // Max at 20 conversations
+        lastInteraction: interaction.lastInteraction,
+      });
+    }
+  } else {
+    // Default: just Ferni with the total conversations
     connections.push({
-      personaId,
-      personaName: personaNames[personaId] || personaId,
-      conversationCount,
-      topics: interaction.frequentTopics || [],
-      connectionStrength: Math.min(1, conversationCount / 20), // Max at 20 conversations
-      lastInteraction: interaction.lastInteraction,
+      personaId: 'ferni',
+      personaName: 'Ferni',
+      conversationCount: profile.totalConversations,
+      topics: profile.preferredTopics.slice(0, 3),
+      connectionStrength: Math.min(1, profile.totalConversations / 20),
+      lastInteraction: profile.lastContact,
     });
   }
 
