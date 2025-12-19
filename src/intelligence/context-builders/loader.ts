@@ -89,6 +89,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'persona-mood',
     'human-personality', // Semantic matching, timing intelligence, callbacks
     'ferni-personality', // Ferni-specific: dynamic expressions, pushbacks, passions
+    'peter-research-insights', // Peter-specific: deep research briefings on entry/handoff
     'better-than-human-direct', // Direct surfacing of Better Than Human curated phrases
     'conversational-superpowers', // Quote memory, milestones, micro-wins, jokes, names
     'conversation-forward', // Better Than Human: keep conversations moving, follow-ups

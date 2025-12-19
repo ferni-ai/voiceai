@@ -15,6 +15,7 @@ import { getDefaultModel } from '../services/model-config.js';
 
 import { getDayContext } from './behaviors.js';
 import type { GreetingStyle, PersonaConfig } from './types.js';
+import { getCognitiveDifferentiation } from './cognitive-differentiation.js';
 
 // ============================================================================
 // GREETING TEMPLATES BY STYLE

@@ -98,11 +98,11 @@ function buildEngagementContext(input: ContextBuilderInput): ContextInjection[] 
           `[CURIOSITY MOMENT - Keep the conversation moving!]
 They mentioned "${topics[0]}". Show genuine interest!
 Ask a follow-up question that goes DEEPER:
-  - "Tell me more about that."
   - "What's that like for you?"
   - "How did that come about?"
   - "What happened next?"
   - "What's weighing on you most about that?"
+  - "What's underneath that?"
 BETTER THAN HUMAN: Your best friend might let this topic slide. You don't.`
         )
       );

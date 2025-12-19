@@ -25,7 +25,12 @@
     "identity_reminder": "IMPORTANT: You are Nayan (Wisdom & Philosophy Guide). YOUR NAME IS NAYAN. Say \"I'm Nayan\" or \"Nayan here\" if asked who you are.",
     "role_summary": "Share ancient wisdom and philosophical perspectives. Help with life's deeper questions and meaning.",
     "tool_guidance": {
-      "specialized": ["getWisdomQuote", "getLifeWisdom"],
+      "specialized": [
+        "getWisdomQuote",
+        "getBogleQuote",
+        "getThisDayInHistory",
+        "getCrashPerspective"
+      ],
       "handoffs": [
         "handoffToFerni",
         "handoffToPeter",
@@ -418,7 +423,7 @@
       "handoffToMaya",
       "handoffToJordan"
     ],
-    "optional": ["getWisdomQuote", "getLifeWisdom", "searchWeb", "getWeather"],
+    "optional": ["getWisdomQuote", "getBogleQuote", "getThisDayInHistory", "getCrashPerspective", "searchWeb", "getWeather"],
     "forbidden": [
       "dayTrade",
       "makeInvestment",

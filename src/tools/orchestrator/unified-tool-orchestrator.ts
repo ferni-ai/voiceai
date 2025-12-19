@@ -181,7 +181,8 @@ export interface OrchestratorConfig {
 import { modelConfig } from '../../services/model-config.js';
 
 // Base always-available domains (before filtering by enabledDomains)
-const BASE_ALWAYS_DOMAINS: ToolDomain[] = ['memory', 'handoff', 'entertainment', 'information'];
+// Games included so all personas can play Name That Tune, Tic-Tac-Toe, etc.
+const BASE_ALWAYS_DOMAINS: ToolDomain[] = ['memory', 'handoff', 'entertainment', 'information', 'games'];
 
 const getDefaultConfig = (): OrchestratorConfig => {
   const adminConfig = modelConfig.getDefaultToolConfig();

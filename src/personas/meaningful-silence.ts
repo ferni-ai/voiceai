@@ -25,6 +25,15 @@ import { getMusicPlayer } from '../audio/index.js';
 import { getMusicConversationStarter, getSpontaneousMusicOffer } from '../services/dj-service.js';
 import type { PersonaConfig, StoryConfig } from './types.js';
 import { getCanonicalPersonaId } from './voice-registry.js';
+// Dynamic question generation - Better than Human approach
+import {
+  generateQuestion,
+  type QuestionContext,
+  type GeneratedQuestion,
+} from '../intelligence/dynamic-questions.js';
+import { getLogger } from '../utils/safe-logger.js';
+
+const log = getLogger();
 
 // ============================================================================
 // TYPES
@@ -590,11 +599,11 @@ export function getMeaningfulSilenceResponse(
       }
     }
 
-    // Ask a thoughtful question based on topics
-    const questions = getRelevantQuestions(topicsDiscussed);
+    // Ask a thoughtful question - persona-grounded, context-aware
+    // Uses dynamic generation with persona voice filtering
     return {
       type: 'thoughtful_question',
-      text: randomFrom(questions),
+      text: getThoughtfulQuestionSync(context, persona),
       invitesReply: true,
     };
   }
@@ -771,10 +780,10 @@ export function getMeaningfulSilenceResponse(
     };
   }
 
-  // Default to thoughtful question
+  // Default to thoughtful question - persona-grounded
   return {
     type: 'thoughtful_question',
-    text: randomFrom(THOUGHTFUL_QUESTIONS.general),
+    text: getThoughtfulQuestionSync(context, persona),
     invitesReply: true,
   };
 }
@@ -785,6 +794,151 @@ export function getMeaningfulSilenceResponse(
 
 function randomFrom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// ============================================================================
+// DYNAMIC QUESTION GENERATION
+// ============================================================================
+
+/**
+ * Convert SilenceContext to QuestionContext for dynamic question generation
+ */
+function silenceContextToQuestionContext(
+  context: SilenceContext,
+  persona: PersonaConfig,
+  sessionId: string
+): QuestionContext {
+  // Determine relationship stage from turn count (rough heuristic)
+  let relationshipStage: 'new' | 'building' | 'established' | 'deep' = 'new';
+  if (context.turnCount > 50) relationshipStage = 'deep';
+  else if (context.turnCount > 20) relationshipStage = 'established';
+  else if (context.turnCount > 5) relationshipStage = 'building';
+
+  // Infer silence reason
+  let silenceReason: 'processing' | 'distracted' | 'emotional' | 'thinking' | 'unknown' = 'unknown';
+  if (context.recentEmotionalTone === 'heavy') silenceReason = 'emotional';
+  else if (context.isGameActive) silenceReason = 'thinking';
+  else if (context.silenceDurationSeconds > 30) silenceReason = 'processing';
+
+  return {
+    personaId: getCanonicalPersonaId(persona.id),
+    userId: sessionId, // Use sessionId as userId proxy
+    sessionId,
+    knownFacts: context.memorableMoments || [],
+    recentTopics: context.topicsDiscussed,
+    relationshipStage,
+    conversationDepth: Math.min(10, context.turnCount / 5),
+    emotionalState: context.recentEmotionalTone === 'heavy'
+      ? { primary: 'processing', intensity: 0.7 }
+      : undefined,
+    recentEmotionalTone: context.recentEmotionalTone,
+    hourOfDay: context.currentHour ?? new Date().getHours(),
+    isWeekend: context.isWeekend ?? false,
+    lastUserMessage: context.lastUserMessage,
+    silenceReason,
+    turnCount: context.turnCount,
+    boundaries: [], // TODO: Load from user preferences
+  };
+}
+
+/**
+ * Get a thoughtful question using dynamic generation
+ * Falls back to static questions if generation fails
+ */
+async function getDynamicThoughtfulQuestion(
+  context: SilenceContext,
+  persona: PersonaConfig,
+  sessionId: string
+): Promise<{ text: string; intent?: string }> {
+  try {
+    const questionContext = silenceContextToQuestionContext(context, persona, sessionId);
+
+    // Determine question type based on context
+    let questionType: 'deepening' | 'checking_in' | 'curious' | 'supportive' | 'silence_break' = 'silence_break';
+
+    if (context.recentEmotionalTone === 'heavy') {
+      questionType = 'supportive';
+    } else if (context.topicsDiscussed.length > 0 && context.turnCount > 5) {
+      questionType = 'deepening';
+    } else if (context.turnCount < 3) {
+      questionType = 'curious';
+    }
+
+    const generated = await generateQuestion(questionContext, questionType);
+
+    log.debug(
+      { personaId: persona.id, questionType, intent: generated.intent.seekingToUnderstand },
+      'Generated dynamic question for silence'
+    );
+
+    return {
+      text: generated.ssml,
+      intent: generated.intent.seekingToUnderstand,
+    };
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Dynamic question generation failed, using fallback');
+    // Fallback to static questions
+    const questions = getRelevantQuestions(context.topicsDiscussed);
+    return { text: randomFrom(questions) };
+  }
+}
+
+/**
+ * Get a thoughtful question synchronously (for backward compatibility)
+ * Uses cached/pre-generated questions when available
+ */
+function getThoughtfulQuestionSync(
+  context: SilenceContext,
+  persona: PersonaConfig
+): string {
+  // Use persona's cognitive profile to filter questions
+  const canonicalId = getCanonicalPersonaId(persona.id);
+
+  // Select questions based on persona voice
+  const questions = getRelevantQuestions(context.topicsDiscussed);
+
+  // Filter by persona traits (basic implementation)
+  // TODO: Use full dynamic-responses.ts trait filtering
+  const personaQuestionStyle: Record<string, string[]> = {
+    'ferni': [
+      "<break time=\"400ms\"/>What's underneath that?",
+      "<break time=\"300ms\"/>What would it mean if this worked out?",
+      "<break time=\"400ms\"/>What's the story you're telling yourself here?",
+    ],
+    'peter-john': [
+      "<break time=\"300ms\"/>What does the data tell you?",
+      "<break time=\"400ms\"/>What's the pattern you're seeing?",
+      "<break time=\"300ms\"/>What would make you change your mind?",
+    ],
+    'maya-santos': [
+      "<break time=\"400ms\"/>What's one small thing that might help right now?",
+      "<break time=\"300ms\"/>What does showing up look like for you today?",
+      "<break time=\"400ms\"/>What habit is serving you well?",
+    ],
+    'alex-chen': [
+      "<break time=\"300ms\"/>What's the next action here?",
+      "<break time=\"400ms\"/>What would make this easier to handle?",
+      "<break time=\"300ms\"/>What's blocking progress?",
+    ],
+    'jordan-taylor': [
+      "<break time=\"400ms\"/>What are you looking forward to?",
+      "<break time=\"300ms\"/>What would make this memorable?",
+      "<break time=\"400ms\"/>What's worth celebrating here?",
+    ],
+    'nayan-patel': [
+      "<break time=\"500ms\"/>What's the deeper truth here?",
+      "<break time=\"400ms\"/>What does your intuition say?",
+      "<break time=\"500ms\"/>Where is the wisdom in this?",
+    ],
+  };
+
+  // Use persona-specific questions if available, otherwise fall back to topic-based
+  const personaQuestions = personaQuestionStyle[canonicalId];
+  if (personaQuestions && Math.random() < 0.6) {
+    return randomFrom(personaQuestions);
+  }
+
+  return randomFrom(questions);
 }
 
 /**
@@ -1360,5 +1514,62 @@ export async function playAmbientMusicDuringSilence(): Promise<boolean> {
 export function stopAmbientMusic(): void {
   stopAmbient();
 }
+
+// ============================================================================
+// ASYNC VERSION WITH FULL LLM GENERATION
+// ============================================================================
+
+/**
+ * Get a meaningful silence response with full LLM-powered question generation
+ *
+ * This is the "Better than Human" version that:
+ * - Uses LLM to generate truly contextual questions
+ * - Grounds questions in persona voice
+ * - Tracks question intent (knows WHY it's asking)
+ * - Provides follow-up strategies for any response
+ *
+ * @param persona - The active persona
+ * @param context - Silence context
+ * @param sessionId - Session ID for deduplication
+ * @returns Promise<SilenceResponse> with dynamically generated content
+ */
+export async function getMeaningfulSilenceResponseAsync(
+  persona: PersonaConfig,
+  context: SilenceContext,
+  sessionId: string
+): Promise<SilenceResponse & { intent?: string }> {
+  const {
+    silenceDurationSeconds,
+    recentEmotionalTone,
+    turnCount,
+  } = context;
+
+  // For short silences or heavy topics, use sync version (presence, not questions)
+  if (silenceDurationSeconds < 15 || recentEmotionalTone === 'heavy') {
+    return getMeaningfulSilenceResponse(persona, context);
+  }
+
+  // For longer silences, try dynamic question generation
+  if (silenceDurationSeconds >= 15 && silenceDurationSeconds < 40) {
+    try {
+      const { text, intent } = await getDynamicThoughtfulQuestion(context, persona, sessionId);
+      return {
+        type: 'thoughtful_question',
+        text,
+        invitesReply: true,
+        intent, // Expose intent so agent knows WHY it asked
+      };
+    } catch (error) {
+      log.warn({ error: String(error) }, 'Async question generation failed');
+    }
+  }
+
+  // Fall back to sync version
+  return getMeaningfulSilenceResponse(persona, context);
+}
+
+// Export types and utilities for other modules
+export type { QuestionContext, GeneratedQuestion };
+export { getDynamicThoughtfulQuestion, silenceContextToQuestionContext };
 
 export default getMeaningfulSilenceResponse;

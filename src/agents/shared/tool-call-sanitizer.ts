@@ -72,8 +72,7 @@ const TOOL_NAME_PATTERNS = [
   'getNews',
   'getCurrentTime',
   'get current time',
-  'searchWeb',
-  'search web',
+  // searchWeb removed - using Gemini's built-in Google Search instead
 
   // Handoff tools
   'handoffTo',

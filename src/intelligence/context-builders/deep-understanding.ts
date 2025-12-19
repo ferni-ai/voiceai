@@ -261,7 +261,7 @@ async function buildDeepUnderstanding(input: ContextBuilderInput): Promise<Conte
       injections.push(
         createHintInjection(
           'deep_flow_curiosity',
-          `[STAY CURIOUS] Conversation is flowing well. Keep asking questions to show genuine interest. Consider: "Tell me more about that." or "What's that like for you?" or "How does that feel?" - end your response with a follow-up question when natural.`,
+          `[STAY CURIOUS] Conversation is flowing well. Keep asking questions to show genuine interest. Consider: "What's that like for you?" or "How does that feel?" or "What's underneath that?" - end your response with a follow-up question when natural.`,
           { category: 'guidance' }
         )
       );

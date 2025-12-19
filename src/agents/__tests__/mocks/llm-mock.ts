@@ -318,7 +318,7 @@ export function getMockResponseForEmotion(emotion: string, intensity: number = 0
     neutral: [
       mockResponses.curious,
       mockResponses.greeting,
-      "Tell me more about what's on your mind.",
+      "What's on your mind?",
     ],
     excited: [
       'I can feel your excitement! This is so great!',

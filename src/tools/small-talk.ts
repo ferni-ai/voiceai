@@ -20,6 +20,7 @@ import { getLogger } from '../utils/safe-logger.js';
 import { z } from 'zod';
 
 import { getToolDescription } from './utils/tool-descriptions.js';
+import { getCognitiveDifferentiation } from '../personas/cognitive-differentiation.js';
 // ============================================================================
 // HOLIDAYS & SEASONS
 // ============================================================================
@@ -266,10 +267,14 @@ function getJackMood(): { mood: string; expression: string } {
 }
 
 // ============================================================================
-// RECIPROCAL QUESTIONS
+// RECIPROCAL QUESTIONS (Universal + Persona-Grounded)
 // ============================================================================
 
-const RECIPROCAL_QUESTIONS = {
+/**
+ * Universal reciprocal questions - any persona can ask these
+ * They're common human connection patterns
+ */
+const UNIVERSAL_RECIPROCAL_QUESTIONS = {
   how_are_you: [
     // Focus on them, be genuinely curious - not generic AI reciprocation
     'But more importantly - how are YOU doing? Actually, not the polite version.',
@@ -293,6 +298,143 @@ const RECIPROCAL_QUESTIONS = {
     "I'm curious about that.",
   ],
 };
+
+/**
+ * Get a persona-grounded reciprocal question
+ * Uses cognitive profiles to match the persona's voice
+ */
+function getPersonaGroundedQuestion(
+  personaId: string,
+  type: 'how_are_you' | 'general_interest' | 'follow_up'
+): string {
+  const cognitiveDiff = getCognitiveDifferentiation(personaId);
+
+  // Persona-specific question styles based on their cognitive profile
+  const personaQuestions: Record<string, Record<string, string[]>> = {
+    'ferni': {
+      how_are_you: [
+        "But enough about that. How are YOU? Really.",
+        "What's going on in your world?",
+        "What's been on your mind?",
+      ],
+      general_interest: [
+        "What's been taking up space in your head?",
+        "What are you working through right now?",
+        "What's alive for you today?",
+      ],
+      follow_up: [
+        "What's underneath that?",
+        "What's that like for you?",
+        "What does that bring up for you?",
+      ],
+    },
+    'peter-john': {
+      how_are_you: [
+        "But what about you? What's keeping you busy?",
+        "What's going on in your world?",
+        "How's life treating you?",
+      ],
+      general_interest: [
+        "What's caught your attention lately?",
+        "Anything interesting you've been looking at?",
+        "What's the story?",
+      ],
+      follow_up: [
+        "What made you notice that?",
+        "What's the pattern there?",
+        "How does that compare to what you expected?",
+      ],
+    },
+    'maya-santos': {
+      how_are_you: [
+        "But how are YOU doing? What's going on?",
+        "What about you though? How's life?",
+        "Enough about that - what's happening with you?",
+      ],
+      general_interest: [
+        "What's been going well lately?",
+        "What are you working on?",
+        "What's taking up your energy?",
+      ],
+      follow_up: [
+        "How did that feel?",
+        "What did showing up look like?",
+        "What's one small thing that might help?",
+      ],
+    },
+    'alex-chen': {
+      how_are_you: [
+        "But what about you? What's on your plate?",
+        "How's everything going on your end?",
+        "What's happening in your world?",
+      ],
+      general_interest: [
+        "What are you trying to get done?",
+        "What's on your agenda?",
+        "What's taking up bandwidth?",
+      ],
+      follow_up: [
+        "What's the next step there?",
+        "What would make that easier?",
+        "What's blocking progress?",
+      ],
+    },
+    'jordan-taylor': {
+      how_are_you: [
+        "But what about YOU? What's exciting?",
+        "What's going on in your world?",
+        "What's happening with you?",
+      ],
+      general_interest: [
+        "Anything fun coming up?",
+        "What are you looking forward to?",
+        "What's worth celebrating lately?",
+      ],
+      follow_up: [
+        "That sounds amazing! What's the plan?",
+        "How are you going to celebrate that?",
+        "What would make it even better?",
+      ],
+    },
+    'nayan-patel': {
+      how_are_you: [
+        "But how are you doing? Really.",
+        "What's on your mind?",
+        "What's weighing on you?",
+      ],
+      general_interest: [
+        "What's been occupying your thoughts?",
+        "What are you sitting with right now?",
+        "What's asking for your attention?",
+      ],
+      follow_up: [
+        "What wisdom is in that?",
+        "What does your intuition say?",
+        "What's the deeper truth there?",
+      ],
+    },
+  };
+
+  // Use persona-specific questions if available
+  const personaQs = personaQuestions[personaId];
+  if (personaQs && personaQs[type]) {
+    return personaQs[type][Math.floor(Math.random() * personaQs[type].length)];
+  }
+
+  // Try cognitive profile question starters for follow_up type
+  if (type === 'follow_up' && cognitiveDiff?.questioning?.questionStarters && cognitiveDiff.questioning.questionStarters.length > 0) {
+    const starters = cognitiveDiff.questioning.questionStarters;
+    return starters[Math.floor(Math.random() * starters.length)];
+  }
+
+  // Fall back to universal
+  return UNIVERSAL_RECIPROCAL_QUESTIONS[type][
+    Math.floor(Math.random() * UNIVERSAL_RECIPROCAL_QUESTIONS[type].length)
+  ];
+}
+
+// Keep the original for backward compatibility
+const RECIPROCAL_QUESTIONS = UNIVERSAL_RECIPROCAL_QUESTIONS;
 
 // ============================================================================
 // TOOL DEFINITIONS

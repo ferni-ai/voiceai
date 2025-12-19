@@ -19,6 +19,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { generateToolQuestions, type QuestionFocus } from '../../utils/dynamic-tool-questions.js';
 // ============================================================================
 // GRIEF PROCESSING TOOLS
 // ============================================================================
@@ -55,6 +56,26 @@ const processGriefDef: ToolDefinition = {
       execute: async ({ lossType, whatWasLost, whereTheyAre }) => {
         getLogger().info({ agentId: ctx.agentId, lossType, whereTheyAre }, 'Processing grief');
 
+        // Map grief stage to question focus
+        const focusMap: Record<string, QuestionFocus> = {
+          fresh: 'fresh-loss',
+          waves: 'grief-waves',
+          chronic: 'chronic-grief',
+          complicated: 'chronic-grief',
+          anticipatory: 'anticipatory',
+        };
+
+        const questionFocus = focusMap[whereTheyAre || 'waves'] || 'grief-waves';
+
+        // Generate persona-grounded closing questions
+        const generated = generateToolQuestions({
+          personaId: ctx.agentId,
+          domain: 'grief',
+          focus: questionFocus,
+          specificContext: whatWasLost,
+          emotionalTone: 'supportive',
+        });
+
         let response = '';
 
         if (whereTheyAre === 'fresh') {
@@ -65,7 +86,7 @@ const processGriefDef: ToolDefinition = {
           response += `- "Keep it together"\n`;
           response += `- Make sense of it yet\n`;
           response += `- Do anything but breathe\n\n`;
-          response += `What do you need right now? To talk about them? To sit in silence? Something else?`;
+          response += generated.closingPrompt;
         } else if (whereTheyAre === 'waves') {
           response = `Grief comes in waves. Sometimes you're swimming, sometimes you're drowning.\n\n`;
           response += `You might have been fine this morning and not fine now. That's not regression - that's grief.\n\n`;
@@ -74,12 +95,12 @@ const processGriefDef: ToolDefinition = {
           response += `- They will pass (and come again)\n`;
           response += `- You're allowed to feel everything\n`;
           response += `- Grief is love with nowhere to go\n\n`;
-          response += `What triggered this wave? Or would you rather just be here with it?`;
+          response += generated.closingPrompt;
         } else if (whereTheyAre === 'chronic') {
           response = `Some grief doesn't end. It becomes part of us.\n\n`;
           response += `If you're grieving ${whatWasLost} and it's been a while, you might feel like you "should" be over it. You're not broken. Some losses we carry forever.\n\n`;
           response += `The goal isn't to stop grieving. It's to build a life that holds the grief alongside the living.\n\n`;
-          response += `How has your grief changed over time? And what do you need from it now?`;
+          response += generated.closingPrompt;
         } else if (whereTheyAre === 'anticipatory') {
           response = `You're grieving something that hasn't fully happened yet. Anticipatory grief is real and profound.\n\n`;
           response += `Knowing loss is coming doesn't make it easier - sometimes it makes it harder. You're living in two worlds: the present and the dreaded future.\n\n`;
@@ -88,11 +109,11 @@ const processGriefDef: ToolDefinition = {
           response += `- Make the most of the time you have\n`;
           response += `- Say what needs to be said\n`;
           response += `- Ask for help\n\n`;
-          response += `What are you facing? And what do you need?`;
+          response += generated.closingPrompt;
         } else {
           response = `Grieving ${whatWasLost}. I'm here.\n\n`;
           response += `Grief is as unique as the love that caused it. There's no map, no stages you must follow, no timeline.\n\n`;
-          response += `Would you like to talk about what you've lost? Or about where you are in this process?`;
+          response += generated.closingPrompt;
         }
 
         return response;

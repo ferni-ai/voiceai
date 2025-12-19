@@ -1,14 +1,17 @@
 /**
  * Research Domain Tools
  *
- * Tools for stock research, market analysis, and insights.
+ * Tools for stock research, market analysis, insights, and quant analysis.
  * This domain wraps existing tools in registry-compatible definitions.
  *
  * DOMAIN: research
  * TOOLS:
- *   Stock Analysis: analyzeStock, findStockCategory, calculatePEGRatio, findTenBaggers
- *   Market Data: getStockQuote, getMarketSummary
- *   Insights: synthesizeInsights, spotAnomalies, findCorrelation, projectTrends
+ *   Stock Analysis: analyzeStock, findStocks
+ *   Market Data: marketData, marketAwareness
+ *   Insights: analyzePatterns, behavioralInsights, insightBriefing, proactiveInsights
+ *   Market Quant: technicalIndicators, riskAnalysis
+ *   Personal Finance Quant: analyzeSavingsRate, calculateFIRE, retirementReadiness
+ *   Coaching Quant: behavioralScore, peerComparison
  */
 
 import { createDomainExport } from '../../registry/loader.js';
@@ -18,6 +21,7 @@ import type { ToolDefinition, ToolContext, ExternalService } from '../../registr
 import { createResearchTools } from './research-tools.js';
 import { createInsightsAnalysisTools } from './insights-analysis.js';
 import { createMarketDataTools } from '../finance/market-data.js';
+import { createQuantTools } from './quant-tools.js';
 
 // ============================================================================
 // LEGACY TOOL WRAPPER
@@ -140,6 +144,69 @@ function getInsightsToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
+// QUANT TOOLS (Peter's Superpowers!)
+// ============================================================================
+
+function getQuantToolDefinitions(): ToolDefinition[] {
+  const quantTools = createQuantTools();
+
+  return [
+    // Market Quant
+    wrapLegacyTool(
+      'technicalIndicators',
+      'Technical Indicators',
+      'Calculate technical indicators: RSI (overbought/oversold), MACD (momentum), moving averages (trend), Bollinger Bands (volatility). Essential for timing analysis.',
+      quantTools.technicalIndicators,
+      { tags: ['quant', 'technical', 'rsi', 'macd', 'bollinger', 'moving-average'] }
+    ),
+    wrapLegacyTool(
+      'riskAnalysis',
+      'Risk Analysis',
+      'Calculate risk metrics: Beta, Sharpe Ratio, Volatility, Max Drawdown, Value at Risk (VaR). Essential for understanding investment risk.',
+      quantTools.riskAnalysis,
+      { tags: ['quant', 'risk', 'beta', 'sharpe', 'volatility', 'var'] }
+    ),
+    // Personal Finance Quant
+    wrapLegacyTool(
+      'analyzeSavingsRate',
+      'Analyze Savings Rate',
+      'Calculate your savings rate with personalized advice. Shows where you stand and how to improve.',
+      quantTools.analyzeSavingsRate,
+      { tags: ['quant', 'personal-finance', 'savings', 'budget'] }
+    ),
+    wrapLegacyTool(
+      'calculateFIRE',
+      'Calculate FIRE Number',
+      'Calculate your Financial Independence number. Shows regular FIRE, Lean FIRE, Fat FIRE, and Coast FIRE targets.',
+      quantTools.calculateFIRE,
+      { tags: ['quant', 'personal-finance', 'fire', 'retirement', 'independence'] }
+    ),
+    wrapLegacyTool(
+      'retirementReadiness',
+      'Retirement Readiness',
+      'Calculate your retirement readiness score. Projects savings, estimates retirement income, and gives recommendations.',
+      quantTools.retirementReadiness,
+      { tags: ['quant', 'personal-finance', 'retirement', 'projection'] }
+    ),
+    // Coaching Quant
+    wrapLegacyTool(
+      'behavioralScore',
+      'Behavioral Finance Score',
+      'Analyze financial behavior patterns. Scores emotional control, discipline, and patience. Identifies strengths and improvements.',
+      quantTools.behavioralScore,
+      { tags: ['quant', 'coaching', 'behavior', 'psychology', 'score'] }
+    ),
+    wrapLegacyTool(
+      'peerComparison',
+      'Peer Comparison',
+      'Compare your finances to others in your age group. Shows percentiles for savings, net worth, debt, and emergency fund.',
+      quantTools.peerComparison,
+      { tags: ['quant', 'coaching', 'peer', 'benchmark', 'comparison'] }
+    ),
+  ];
+}
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
@@ -147,6 +214,7 @@ const researchTools: ToolDefinition[] = [
   ...getStockAnalysisToolDefinitions(),
   ...getMarketDataToolDefinitions(),
   ...getInsightsToolDefinitions(),
+  ...getQuantToolDefinitions(),
 ];
 
 // ============================================================================
@@ -162,6 +230,7 @@ export {
   getStockAnalysisToolDefinitions,
   getMarketDataToolDefinitions,
   getInsightsToolDefinitions,
+  getQuantToolDefinitions,
 };
 
 export default getToolDefinitions;

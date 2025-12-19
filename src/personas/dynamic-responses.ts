@@ -459,7 +459,7 @@ export function getPersonaExclusivePhrase(
  * Persona trait profiles - defines personality characteristics for each persona
  * These are used to generate appropriate backchannels without async registry calls
  */
-const PERSONA_TRAIT_PROFILES: Record<string, PersonaVoiceTraits> = {
+export const PERSONA_TRAIT_PROFILES: Record<string, PersonaVoiceTraits> = {
   ferni: { warmth: 0.85, energy: 0.5, formality: 0.4, humor: 0.5, directness: 0.4 },
   'maya-santos': { warmth: 0.9, energy: 0.75, formality: 0.3, humor: 0.6, directness: 0.5 },
   'alex-chen': { warmth: 0.7, energy: 0.65, formality: 0.6, humor: 0.4, directness: 0.7 },

@@ -120,7 +120,7 @@ Example: "How are you feeling about that?" or "What's the hardest part of this?"
 BETTER THAN HUMAN: Show you're invested in understanding, not just hearing.`
       : `[FOLLOW UP - EXPLORE FURTHER]
 They shared something. Keep the conversation moving.
-Ask a follow-up: "What happened next?" or "Tell me more about that."
+Ask a follow-up: "What happened next?" or "What's that like for you?"
 Don't let this topic drop without understanding it better.`;
 
     injections.push(createStandardInjection('conversation_forward_explore', guidance));
@@ -225,7 +225,7 @@ function getResponseEndingGuidance(
   }
 
   if (emotion === 'neutral') {
-    return `[RESPONSE ENDING: Keep it moving: "What else is going on?" or "Tell me more."]`;
+    return `[RESPONSE ENDING: Keep it moving: "What else is going on?" or "What's on your mind?"]`;
   }
 
   return null;

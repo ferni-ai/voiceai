@@ -199,7 +199,7 @@ const REPAIR_PHRASES = {
 const CLARIFICATION_QUESTIONS = [
   'Can you help me understand what you meant by that?',
   'I want to make sure I get this—what are you really saying?',
-  "Tell me more so I don't miss what's important.",
+  "I don't want to miss what's important here.",
   'What would help you feel heard right now?',
 ];
 

@@ -50,6 +50,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'persona-mood': () => import('./persona-mood.js'),
   'human-personality': () => import('./human-personality.js'),
   'ferni-personality': () => import('./ferni-personality.js'), // Ferni-specific: dynamic expressions, pushbacks, passions
+  'peter-research-insights': () => import('./peter-research-insights.js'), // Peter-specific: deep research briefings
   'better-than-human-direct': () => import('./better-than-human-direct.js'), // Direct surfacing of BTH phrases
   'conversational-superpowers': () => import('./conversational-superpowers.js'),
   'conversation-forward': () => import('./conversation-forward.js'), // Better Than Human: keep conversations moving

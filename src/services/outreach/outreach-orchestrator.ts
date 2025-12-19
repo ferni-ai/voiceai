@@ -387,11 +387,11 @@ export class OutreachOrchestrator extends EventEmitter {
     }
 
     // Get recent wins from goals
-    const recentWins: string[] = [];
+    const recentWins: Array<{ description: string; date?: Date; category?: string }> = [];
     if (profile.goals) {
       for (const goal of profile.goals) {
         if (goal.status === 'achieved') {
-          recentWins.push(goal.name);
+          recentWins.push({ description: goal.name, category: goal.type });
         }
       }
     }

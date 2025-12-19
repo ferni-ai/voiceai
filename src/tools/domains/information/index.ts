@@ -1,15 +1,18 @@
 /**
  * Information Domain Tools
  *
- * Tools for accessing information: news, weather, sports scores, web search.
+ * Tools for accessing information: news, weather, sports scores.
  * This domain provides properly-routed consolidated tools for the LLM.
+ *
+ * NOTE: Web search is handled by Gemini's built-in Google Search tool
+ * (configured via `tools: [{ googleSearch: {} }]` in RealtimeModel).
+ * We removed our custom searchWeb/lookupInfo tools to avoid redundancy.
  *
  * DOMAIN: information
  * TOOLS:
  *   News: getNews (routes to general/finance/tech/stock based on category)
  *   Weather: getWeather (current), getWeatherForecast (multi-day)
  *   Sports: getSports (routes to team or league scores)
- *   Search: searchWeb, lookupInfo (Wikipedia/dictionary)
  */
 
 import { llm } from '@livekit/agents';
@@ -23,7 +26,7 @@ import { getFinancialNews, getGeneralNews, getStockNews, getTechNews } from '../
 import { getSportScores, getTeamScore } from '../../sports.js';
 
 // Import legacy tool creators for simple wrapping
-import { createSearchTools } from '../../search.js';
+// NOTE: Search tools removed - using Gemini's built-in Google Search instead
 import { createWeatherTools } from '../../weather.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
@@ -204,29 +207,11 @@ function getSportsToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
-// SEARCH TOOLS (Consolidated: 3 → 2 essential tools)
+// SEARCH TOOLS - REMOVED
 // ============================================================================
-
-function getSearchToolDefinitions(): ToolDefinition[] {
-  const legacyTools = createSearchTools();
-
-  return [
-    wrapLegacyTool(
-      'searchWeb',
-      'Search Web',
-      'Search the internet for current information, facts, how-tos, or any topic. Returns relevant web results with summaries. Great for: "What is...", "How to...", "Latest news about...", or researching any topic.',
-      legacyTools.searchWeb,
-      ['search', 'web', 'google', 'research']
-    ),
-    wrapLegacyTool(
-      'lookupInfo',
-      'Lookup Info',
-      'Quick lookup for definitions, facts, or encyclopedia-style information. Sources: Wikipedia for detailed topics, dictionary for word definitions. Best for: "Define...", "What does X mean?", "Who was...", factual questions.',
-      legacyTools.searchWikipedia,
-      ['search', 'wikipedia', 'definition', 'dictionary', 'facts']
-    ),
-  ];
-}
+// Web search is now handled by Gemini's built-in Google Search tool.
+// See: https://ai.google.dev/gemini-api/docs/live-tools#google-search
+// Configured in voice-agent-entry.ts: tools: [{ googleSearch: {} }]
 
 // ============================================================================
 // DOMAIN TOOLS COLLECTION
@@ -236,7 +221,6 @@ const informationTools: ToolDefinition[] = [
   ...getNewsToolDefinitions(),
   ...getWeatherToolDefinitions(),
   ...getSportsToolDefinitions(),
-  ...getSearchToolDefinitions(),
 ];
 
 // ============================================================================
@@ -250,7 +234,6 @@ export const { getToolDefinitions, domain, definitions } = createDomainExport(
 
 export {
   getNewsToolDefinitions,
-  getSearchToolDefinitions,
   getSportsToolDefinitions,
   getWeatherToolDefinitions,
 };

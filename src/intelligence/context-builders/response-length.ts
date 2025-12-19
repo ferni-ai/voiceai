@@ -184,7 +184,7 @@ const LENGTH_GUIDANCE: Record<
     examples: [
       '"That makes sense. What else is on your mind?"',
       '"I can see why that would be hard."',
-      '"Tell me more about that."',
+      '"What\'s that like for you?"',
     ],
     maxSentences: '2-3 sentences',
   },

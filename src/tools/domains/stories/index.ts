@@ -18,6 +18,7 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { z } from 'zod';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { generateToolQuestions, formatQuestionsForResponse, type QuestionFocus } from '../../utils/dynamic-tool-questions.js';
 // ============================================================================
 // LIFE STORY TOOLS
 // ============================================================================
@@ -52,62 +53,42 @@ const captureLifeStoryDef: ToolDefinition = {
       execute: async ({ focus, forWhom }) => {
         getLogger().info({ agentId: ctx.agentId, focus, forWhom }, 'Capturing life story');
 
-        const prompts: Record<string, string[]> = {
-          childhood: [
-            "What's your earliest memory?",
-            'What was your childhood home like?',
-            'Who were the important people in your early life?',
-            'What did you dream of being when you grew up?',
-            'What shaped who you became?',
-          ],
-          'defining-moments': [
-            "What moments divided your life into 'before' and 'after'?",
-            'When did you become who you are today?',
-            'What decision changed everything?',
-            'What unexpected turn shaped your path?',
-          ],
-          relationships: [
-            'Who has loved you most in your life?',
-            'Which relationship taught you the most?',
-            'Who did you lose too soon?',
-            'What relationship are you most proud of?',
-          ],
-          challenges: [
-            "What's the hardest thing you've overcome?",
-            'What failure taught you the most?',
-            "What did you survive that you didn't think you could?",
-            'How did difficulty shape your strength?',
-          ],
-          joys: [
-            'What are the happiest moments of your life?',
-            'What are you most proud of?',
-            'When have you felt most alive?',
-            'What brings you the deepest joy?',
-          ],
-          lessons: [
-            "What do you know now that you wish you'd known at 20?",
-            "What's the most important thing life taught you?",
-            'What advice would you give your younger self?',
-            'What truth took you a long time to learn?',
-          ],
-          open: [
-            'What story from your life most wants to be told right now?',
-            'What would people be surprised to learn about you?',
-            'What do you want to be remembered for?',
-          ],
+        // Map focus to QuestionFocus type
+        const focusMap: Record<string, QuestionFocus> = {
+          childhood: 'childhood',
+          'defining-moments': 'defining-moments',
+          relationships: 'relationships',
+          challenges: 'challenges',
+          joys: 'joys',
+          lessons: 'lessons',
+          open: 'exploration',
         };
 
-        let response = `Let's capture part of your story.\n\n`;
+        const questionFocus = focusMap[focus] || 'exploration';
+
+        // Generate persona-grounded questions
+        const generated = generateToolQuestions({
+          personaId: ctx.agentId,
+          domain: 'stories',
+          focus: questionFocus,
+          emotionalTone: 'curious',
+        });
+
+        let response = generated.intro || "Let's capture part of your story.";
+        response += '\n\n';
+
         if (forWhom && forWhom !== 'self') {
           response += `You mentioned this is for ${forWhom}. That makes it even more precious.\n\n`;
         }
 
-        const questions = prompts[focus];
-        response += `**Questions to explore:**\n`;
-        questions.forEach((q, i) => {
-          response += `\n${i + 1}. ${q}`;
+        response += formatQuestionsForResponse(generated, {
+          numbered: true,
+          includeIntro: false,
+          includeClosing: true,
+          boldQuestions: true,
         });
-        response += `\n\nWhich question calls to you? Or feel free to start wherever you'd like.`;
+
+        response += '\n\nOr feel free to start wherever you\'d like.';
 
         return response;
       },

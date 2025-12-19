@@ -7,6 +7,14 @@
  * Philosophy: The right question at the right time can unlock
  * profound self-discovery. Generic prompts don't land.
  *
+ * BETTER THAN HUMAN: This module now supports LLM-powered dynamic
+ * prompt generation. Static templates are used as fallback and for
+ * category guidance, but the best prompts are generated based on:
+ * - What we know about the user (struggles, wins, growth areas)
+ * - Their relationship with Ferni
+ * - Current emotional state
+ * - Time of day and context
+ *
  * Prompt Types:
  * - Reflection (processing experiences)
  * - Exploration (discovering patterns)
@@ -18,6 +26,11 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  generateQuestion,
+  type QuestionContext,
+  type QuestionType,
+} from '../../intelligence/dynamic-questions.js';
 
 const log = createLogger({ module: 'JournalingPrompts' });
 
@@ -673,11 +686,154 @@ export function formatPromptForVoice(prompt: JournalingPrompt): {
 }
 
 // ============================================================================
+// DYNAMIC PROMPT GENERATION (Better than Human)
+// ============================================================================
+
+/**
+ * Map journaling category to question type
+ */
+function categoryToQuestionType(category: PromptCategory): QuestionType {
+  const mapping: Record<PromptCategory, QuestionType> = {
+    reflection: 'reflective',
+    exploration: 'curious',
+    gratitude: 'celebratory',
+    challenge: 'deepening',
+    integration: 'reflective',
+    growth: 'deepening',
+    relationship: 'curious',
+    future: 'curious',
+    healing: 'supportive',
+  };
+  return mapping[category] || 'reflective';
+}
+
+/**
+ * Convert PromptContext to QuestionContext for dynamic generation
+ */
+function promptContextToQuestionContext(
+  context: PromptContext,
+  personaId: string = 'ferni'
+): QuestionContext {
+  return {
+    personaId,
+    userId: context.userId,
+    sessionId: `journal-${context.userId}-${Date.now()}`,
+    knownFacts: [
+      ...(context.wins || []).map(w => `Recent win: ${w}`),
+      ...(context.struggles || []).map(s => `Working on: ${s}`),
+      ...(context.growthAreas || []).map(g => `Growth area: ${g}`),
+    ],
+    recentTopics: context.recentTopics || [],
+    currentStruggle: context.struggles?.[0],
+    currentWin: context.wins?.[0],
+    relationshipStage: context.relationshipStage || 'building',
+    conversationDepth: context.relationshipStage === 'deep' ? 8 : 5,
+    emotionalState: context.currentEmotion
+      ? { primary: context.currentEmotion, intensity: 0.6 }
+      : undefined,
+    hourOfDay: context.timeOfDay === 'morning' ? 8
+      : context.timeOfDay === 'afternoon' ? 14
+      : context.timeOfDay === 'evening' ? 19
+      : 22,
+    isWeekend: false,
+    turnCount: 5,
+    boundaries: [],
+  };
+}
+
+/**
+ * Generate a dynamic journaling prompt using LLM
+ *
+ * This is the "Better than Human" version that creates truly personalized
+ * prompts based on what we know about the user.
+ *
+ * @param context - User context including struggles, wins, growth areas
+ * @param category - Optional category preference
+ * @param personaId - Persona voice to use (default: ferni)
+ * @returns Promise<JournalingPrompt>
+ */
+export async function generateDynamicPrompt(
+  context: PromptContext,
+  category?: PromptCategory,
+  personaId: string = 'ferni'
+): Promise<JournalingPrompt> {
+  // Determine category if not specified
+  const selectedCategory = category || selectCategories(context)[0] || 'reflection';
+  const questionType = categoryToQuestionType(selectedCategory);
+
+  try {
+    const questionContext = promptContextToQuestionContext(context, personaId);
+    const generated = await generateQuestion(questionContext, questionType);
+
+    log.debug(
+      {
+        userId: context.userId,
+        category: selectedCategory,
+        intent: generated.intent.seekingToUnderstand,
+      },
+      '📝 Generated dynamic journaling prompt'
+    );
+
+    return {
+      id: `dynamic-${selectedCategory}-${Date.now()}`,
+      category: selectedCategory,
+      prompt: generated.text,
+      followUp: generated.followUpStrategy.ifPositive !== 'Acknowledge and explore'
+        ? generated.followUpStrategy.ifPositive
+        : undefined,
+      context: `Dynamic: ${generated.intent.seekingToUnderstand}`,
+      difficulty: context.relationshipStage === 'deep' ? 'deep' : 'moderate',
+      estimatedMinutes: questionType === 'deepening' ? 15 : 10,
+      tags: [selectedCategory, 'dynamic'],
+      personalizedFor: generated.intent.timingReason,
+    };
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Dynamic prompt generation failed, using static');
+    // Fall back to static prompt
+    return getBestPrompt(context);
+  }
+}
+
+/**
+ * Generate multiple dynamic prompts
+ */
+export async function generateDynamicPrompts(
+  context: PromptContext,
+  count: number = 3,
+  personaId: string = 'ferni'
+): Promise<JournalingPrompt[]> {
+  const categories = selectCategories(context).slice(0, count);
+  const prompts: JournalingPrompt[] = [];
+
+  for (const category of categories) {
+    try {
+      const prompt = await generateDynamicPrompt(context, category, personaId);
+      prompts.push(prompt);
+    } catch {
+      // If one fails, continue with static
+      const staticPrompt = generateFromCategory(category, context);
+      if (staticPrompt) prompts.push(staticPrompt);
+    }
+  }
+
+  // Fill with static if needed
+  while (prompts.length < count) {
+    const category = categories[prompts.length] || 'reflection';
+    const staticPrompt = generateFromCategory(category, context);
+    if (staticPrompt) prompts.push(staticPrompt);
+  }
+
+  return prompts;
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
 export default {
   generatePrompts,
+  generateDynamicPrompt,
+  generateDynamicPrompts,
   getBestPrompt,
   getPromptsForCategory,
   recordResponse,

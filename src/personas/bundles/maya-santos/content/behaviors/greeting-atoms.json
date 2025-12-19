@@ -34,7 +34,7 @@
         "minRelationship": "acquaintance"
       },
       {
-        "text": "<emotion value=\"affectionate\"/>Look who's back!",
+        "text": "<emotion value=\"happy\"/>Look who's back!",
         "weight": 0.7,
         "returningOnly": true,
         "minRelationship": "friend"

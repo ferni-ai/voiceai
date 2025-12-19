@@ -63,6 +63,30 @@
       "domains": ["research", "due-diligence"],
       "priority": "medium",
       "description": "The step-by-step process for researching any opportunity"
+    },
+    {
+      "id": "personal-life-research",
+      "topic": "Personal Life Research",
+      "file": "personal-life-research.md",
+      "domains": ["personal", "life-patterns", "energy", "relationships", "decisions", "identity"],
+      "priority": "high",
+      "description": "Deep research into personal life patterns: energy cycles, relationships, decision quality, values alignment, life stage, cognitive patterns, and resilience"
+    },
+    {
+      "id": "coaching-analytics",
+      "topic": "Coaching Analytics",
+      "file": "coaching-analytics.md",
+      "domains": ["coaching", "change", "habits", "motivation", "goals", "growth"],
+      "priority": "high",
+      "description": "The science of personal growth: change readiness, habit formation velocity, motivation sustainability, goal trajectory, self-efficacy, barriers, learning patterns"
+    },
+    {
+      "id": "deep-financial-analysis",
+      "topic": "Deep Financial Analysis",
+      "file": "deep-financial-analysis.md",
+      "domains": ["finance", "behavioral-finance", "net-worth", "spending", "investing", "retirement"],
+      "priority": "high",
+      "description": "Quant-level financial analysis: behavioral finance profiles, cash flow intelligence, spending DNA, investment behavior, financial stress, FI trajectory, tax efficiency"
     }
   ],
   "domain_mappings": {
@@ -70,17 +94,46 @@
     "pattern-recognition": [
       "research-frameworks",
       "cross-domain-analysis",
-      "pattern-recognition-techniques"
+      "pattern-recognition-techniques",
+      "personal-life-research"
     ],
-    "behavioral-analysis": ["behavioral-economics", "cross-domain-analysis", "research-frameworks"],
+    "behavioral-analysis": [
+      "behavioral-economics",
+      "cross-domain-analysis",
+      "research-frameworks",
+      "deep-financial-analysis",
+      "coaching-analytics"
+    ],
     "stock-research": ["six-stock-categories", "invest-in-what-you-know", "research-methodology"],
     "cross-domain-synthesis": [
       "cross-domain-analysis",
       "research-frameworks",
-      "invest-in-what-you-know"
+      "invest-in-what-you-know",
+      "personal-life-research"
     ],
-    "proactive-intelligence": ["proactive-discovery", "pattern-recognition-techniques"],
-    "goal-insight-connection": ["cross-domain-analysis", "proactive-discovery"],
-    "behavioral-economics": ["behavioral-economics"]
+    "proactive-intelligence": ["proactive-discovery", "pattern-recognition-techniques", "coaching-analytics"],
+    "goal-insight-connection": ["cross-domain-analysis", "proactive-discovery", "coaching-analytics"],
+    "behavioral-economics": ["behavioral-economics", "deep-financial-analysis"],
+    "personal-research": [
+      "personal-life-research",
+      "coaching-analytics",
+      "cross-domain-analysis"
+    ],
+    "financial-deep-dive": [
+      "deep-financial-analysis",
+      "behavioral-economics",
+      "research-frameworks"
+    ],
+    "coaching-research": [
+      "coaching-analytics",
+      "behavioral-economics",
+      "personal-life-research"
+    ],
+    "life-trajectory": [
+      "personal-life-research",
+      "coaching-analytics",
+      "deep-financial-analysis",
+      "cross-domain-analysis"
+    ]
   }
 }

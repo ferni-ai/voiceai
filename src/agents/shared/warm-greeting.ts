@@ -340,8 +340,8 @@ function buildDynamicAlexGreeting(ctx?: GreetingContext): string {
 
 /**
  * Maya Santos - Habits & Routines Coach
- * Energy: Encouraging, supportive, warm
- * Style: Celebrates small wins, motivational
+ * Energy: Encouraging, supportive, friendly (NOT breathy/intimate!)
+ * Style: Celebrates small wins, upbeat friend energy
  */
 function buildDynamicMayaGreeting(ctx?: GreetingContext): string {
   const context = ctx || {};
@@ -349,26 +349,28 @@ function buildDynamicMayaGreeting(ctx?: GreetingContext): string {
   const timePeriod = getTimePeriod(hour);
   const relationshipStage = context.relationshipStage || 'friend';
 
+  // NOTE: Maya should sound like an encouraging friend, NOT intimate
+  // Use 'friendly', 'happy', 'enthusiastic' - NEVER 'affectionate' or 'warm'
   const openers = {
     earlyMorning: [
-      { text: 'Hey, early bird.', emotion: 'affectionate', energy: 'calm' },
+      { text: 'Hey, early bird.', emotion: 'friendly', energy: 'calm' },
       { text: 'Good morning!', emotion: 'happy', energy: 'warm' },
     ],
     morning: [
       { text: 'Hey!', emotion: 'happy', energy: 'warm' },
-      { text: 'Maya here!', emotion: 'happy', energy: 'warm' },
+      { text: 'Maya here!', emotion: 'friendly', energy: 'warm' },
     ],
     afternoon: [
       { text: 'Hey!', emotion: 'happy', energy: 'warm' },
-      { text: 'Hi!', emotion: 'affectionate', energy: 'warm' },
+      { text: 'Hi!', emotion: 'friendly', energy: 'warm' },
     ],
     evening: [
-      { text: 'Hey.', emotion: 'affectionate', energy: 'calm' },
-      { text: 'Winding down?', emotion: 'affectionate', energy: 'calm' },
+      { text: 'Hey!', emotion: 'friendly', energy: 'calm' },
+      { text: 'Winding down?', emotion: 'friendly', energy: 'calm' },
     ],
     lateNight: [
-      { text: 'Hey.', emotion: 'affectionate', energy: 'calm' },
-      { text: 'Night owl, huh?', emotion: null, energy: 'calm' },
+      { text: 'Hey.', emotion: 'friendly', energy: 'calm' },
+      { text: 'Night owl, huh?', emotion: 'friendly', energy: 'calm' },
     ],
   };
 
@@ -389,16 +391,16 @@ function buildDynamicMayaGreeting(ctx?: GreetingContext): string {
         : 'neutral';
   const middle = middles[middleKey][Math.floor(Math.random() * middles[middleKey].length)];
 
-  const settleMs = opener.energy === 'calm' ? 250 : 150;
-  const emotion = opener.emotion || 'affectionate';
-  const pauseMs = opener.energy === 'calm' ? 350 : 200;
+  const settleMs = opener.energy === 'calm' ? 200 : 100;
+  const emotion = opener.emotion || 'friendly';
+  const pauseMs = opener.energy === 'calm' ? 250 : 150;
 
   let greeting = `<break time="${settleMs}ms"/>`;
   greeting += `<emotion value="${emotion}"/>`;
   greeting += opener.text;
   greeting += `<break time="${pauseMs}ms"/>`;
   if (context.userName && relationshipStage !== 'stranger' && Math.random() < 0.3) {
-    greeting += `${context.userName}!<break time="150ms"/>`;
+    greeting += `${context.userName}!<break time="100ms"/>`;
   }
   greeting += middle;
 
@@ -658,8 +660,8 @@ const INSTANT_GREETINGS: Record<string, string[]> = {
   ],
   'maya-santos': [
     '<emotion value="happy"/>Hey!<break time="100ms"/>Maya here.<break time="150ms"/>What\'s going on?',
-    '<emotion value="happy"/>Hi!<break time="100ms"/>It\'s Maya.<break time="150ms"/>How are you?',
-    '<emotion value="affectionate"/>Maya here.<break time="150ms"/>What\'s on your mind?',
+    '<emotion value="friendly"/>Hi!<break time="100ms"/>It\'s Maya.<break time="150ms"/>How are you?',
+    '<emotion value="friendly"/>Maya here.<break time="150ms"/>What\'s on your mind?',
   ],
   'jordan-taylor': [
     '<emotion value="surprised"/>Oh!<break time="100ms"/>Hey!<break time="100ms"/>What are we planning?',

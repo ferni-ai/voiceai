@@ -49,7 +49,7 @@ export function getToolCategories() {
     news: ['getFinancialNews', 'getStockNews', 'getGeneralNews', 'getTechNews'],
     sports: ['getTeamScore', 'getSportScores', 'getPhilliesScore', 'getEaglesScore'],
     weather: ['getWeather', 'getWeatherForecast'],
-    search: ['searchWeb', 'searchWikipedia', 'defineTerm'],
+    // search: removed - using Gemini's built-in Google Search instead
     wisdom: ['getWisdomQuote', 'getBogleQuote', 'getThisDayInHistory', 'getCrashPerspective'],
 
     // Human Connection

@@ -249,6 +249,10 @@ const MOOD_EMOJI: Record<number, string> = {
   5: '😊',
 };
 
+/**
+ * Legacy static journal prompts - used as fallback
+ * New code should use generateDynamicPrompt() from journaling-prompts.ts
+ */
 const JOURNAL_PROMPTS: Record<string, string[]> = {
   gratitude: [
     'What made you smile today?',
@@ -271,6 +275,9 @@ const JOURNAL_PROMPTS: Record<string, string[]> = {
     'How do you want to feel by the end of today?',
   ],
 };
+
+// Note: For dynamic journal prompts, use:
+// import { generateDynamicPrompt } from '../services/trust-systems/journaling-prompts.js';
 
 // ============================================================================
 // CORE FUNCTIONS

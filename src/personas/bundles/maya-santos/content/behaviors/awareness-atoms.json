@@ -70,7 +70,7 @@
       "contexts": ["wins", "progress updates", "commitments"]
     },
     "surprise": {
-      "sounds": ["Oh!", "Wait.", "Really?", "That's interesting.", "Ooh!"],
+      "sounds": ["Oh!", "Wait.", "Oh wow!", "That's interesting.", "Ooh!"],
       "contexts": ["unexpected wins", "breakthrough moments", "realizations"]
     }
   },

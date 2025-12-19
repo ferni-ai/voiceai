@@ -98,6 +98,8 @@ const ANXIETY_RESPONSES: Record<string, AnxietyResponse> = {
 
 // ============================================================================
 // ENCOURAGEMENT & MOTIVATION
+// Note: These are foundational affirmations that are TRUE and evidence-based.
+// For personalized questions, use the dynamic question system.
 // ============================================================================
 
 const ENCOURAGEMENT_MESSAGES = {

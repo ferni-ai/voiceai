@@ -138,7 +138,7 @@ describe('UnifiedToolOrchestrator', () => {
       maxTools: 35,
       semanticThreshold: 0.15,
       precomputeEmbeddings: true,
-      alwaysDomains: ['memory', 'handoff', 'entertainment', 'information'],
+      alwaysDomains: ['memory', 'handoff', 'entertainment', 'information', 'games'],
       enableContextualTools: true,
       // New model-config.json connected settings
       enabledDomains: [],

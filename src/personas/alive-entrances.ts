@@ -25,6 +25,9 @@ import {
   shouldVoiceOverrideMood,
   type VoiceEmotionEntranceContext,
 } from './voice-emotion-entrances.js';
+import { getCognitiveDifferentiation } from './cognitive-differentiation.js';
+
+const log = getLogger();
 
 // ============================================================================
 // BUNDLE-LOADED CONFIG CACHE
@@ -604,6 +607,73 @@ function generateMemoryCallbackEntrance(
 }
 
 // ============================================================================
+// PERSONA-GROUNDED FOLLOW-UPS
+// ============================================================================
+
+/**
+ * Get a follow-up question that matches the persona's voice
+ * Uses cognitive profiles so each persona asks in their natural style
+ */
+function getPersonaGroundedFollowUp(personaId: string): string {
+  const cognitiveDiff = getCognitiveDifferentiation(personaId);
+
+  // Persona-specific follow-up questions based on their cognitive style
+  const personaFollowUps: Record<string, string[]> = {
+    'ferni': [
+      '<break time="200ms"/>What\'s going on?',
+      '<break time="200ms"/>What\'s on your mind?',
+      '<break time="200ms"/>What\'s happening?',
+      '<break time="200ms"/>Talk to me.',
+    ],
+    'maya-santos': [
+      '<break time="200ms"/>What\'s going on?',
+      '<break time="200ms"/>How can I help?',
+      '<break time="200ms"/>What do you need?',
+      '<break time="200ms"/>What are we working on?',
+    ],
+    'peter-john': [
+      '<break time="200ms"/>What\'s the situation?',
+      '<break time="200ms"/>What are we looking at?',
+      '<break time="200ms"/>What caught your attention?',
+      '<break time="200ms"/>What\'s the story?',
+    ],
+    'alex-chen': [
+      '<break time="200ms"/>What do you need?',
+      '<break time="200ms"/>What\'s on the agenda?',
+      '<break time="200ms"/>What are we tackling?',
+      '<break time="200ms"/>What needs to happen?',
+    ],
+    'jordan-taylor': [
+      '<break time="200ms"/>What\'s happening?',
+      '<break time="200ms"/>What are we planning?',
+      '<break time="200ms"/>What\'s the occasion?',
+      '<break time="200ms"/>What are we celebrating?',
+    ],
+    'nayan-patel': [
+      '<break time="300ms"/>What\'s on your mind?',
+      '<break time="300ms"/>What brings you here?',
+      '<break time="300ms"/>What\'s weighing on you?',
+      '<break time="300ms"/>Tell me what\'s happening.',
+    ],
+  };
+
+  // Use cognitive profile question starters if available
+  if (cognitiveDiff?.questioning?.questionStarters && cognitiveDiff.questioning.questionStarters.length > 0) {
+    // Pick a short one (first word + context) for entrance
+    const starters = cognitiveDiff.questioning.questionStarters;
+    const shortOnes = starters.filter(q => q.length < 40);
+    if (shortOnes.length > 0) {
+      const starter = shortOnes[Math.floor(Math.random() * shortOnes.length)];
+      return `<break time="200ms"/>${starter}`;
+    }
+  }
+
+  // Use persona-specific follow-ups
+  const followUps = personaFollowUps[personaId] || personaFollowUps['ferni'];
+  return followUps[Math.floor(Math.random() * followUps.length)];
+}
+
+// ============================================================================
 // MAIN GENERATOR
 // ============================================================================
 
@@ -748,14 +818,8 @@ export async function generateAliveEntrance(
   const acknowledgment =
     config.acknowledgments[Math.floor(Math.random() * config.acknowledgments.length)];
 
-  // Add a simple context-aware follow-up
-  const followUps = [
-    '<break time="200ms"/>What\'s going on?',
-    '<break time="200ms"/>What\'s on your mind?',
-    '<break time="200ms"/>What do you need?',
-    '<break time="200ms"/>Tell me what\'s happening.',
-  ];
-  const followUp = followUps[Math.floor(Math.random() * followUps.length)];
+  // Add a persona-grounded follow-up question using cognitive profiles
+  const followUp = getPersonaGroundedFollowUp(personaId);
 
   let result: AliveEntranceResult = {
     entrance: `${acknowledgment}${followUp}`,
