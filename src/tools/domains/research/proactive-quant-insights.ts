@@ -548,17 +548,4 @@ export async function generateAllInsights(userId: string): Promise<InsightGenera
   };
 }
 
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export {
-  generateDailyBriefing,
-  formatBriefingForSpeech,
-  generateAllInsights,
-  generatePortfolioInsights,
-  generateBehavioralInsights,
-  generateFIREInsights,
-  generateEconomicInsights,
-};
-
+// Note: All functions are exported inline with `export async function`

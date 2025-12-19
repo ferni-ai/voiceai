@@ -179,6 +179,7 @@ function createDefaultProfile(userId: string): UserTransitionProfile {
       check_in: { ...DEFAULT_PRIOR, pulls: 0 },
       invitation: { ...DEFAULT_PRIOR, pulls: 0 },
       persona_specific: { ...DEFAULT_PRIOR, pulls: 0 },
+      dj_vibes: { ...DEFAULT_PRIOR, pulls: 0 }, // 🎧 DJ offers more music
     },
     contextPreferences: {
       byStartReason: {},

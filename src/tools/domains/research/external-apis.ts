@@ -166,13 +166,14 @@ export async function getEarningsHistory(symbol: string, limit: number = 4): Pro
           throw new Error(`HTTP ${response.status}`);
         }
 
-        const data = await response.json();
+        const data = (await response.json()) as Record<string, unknown>;
         
         if (data.Note || data['Error Message'] || !data.quarterlyEarnings) {
           return getMockEarnings(symbol, limit);
         }
 
-        return data.quarterlyEarnings.slice(0, limit).map((e: Record<string, string>) => ({
+        const earnings = data.quarterlyEarnings as Record<string, string>[];
+        return earnings.slice(0, limit).map((e) => ({
           symbol,
           fiscalDateEnding: e.fiscalDateEnding,
           reportedEPS: parseFloat(e.reportedEPS) || 0,
@@ -243,14 +244,14 @@ export async function getEconomicIndicator(indicatorKey: string): Promise<Econom
           throw new Error(`HTTP ${response.status}`);
         }
 
-        const data = await response.json();
+        const data = (await response.json()) as { observations?: { date: string; value: string }[] };
         
         if (!data.observations || data.observations.length === 0) {
           return getMockEconomicIndicator(indicatorKey);
         }
 
         const latest = data.observations[0];
-        const previous = data.observations[1];
+        const previous = data.observations[1] as { date: string; value: string } | undefined;
         const currentValue = parseFloat(latest.value);
         const previousValue = previous ? parseFloat(previous.value) : currentValue;
 
