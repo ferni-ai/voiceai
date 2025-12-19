@@ -134,4 +134,10 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   // LEARNING
   'community-learning': () => import('./community-learning.js'),
   'wisdom-synthesis': () => import('./wisdom-synthesis.js'),
+
+  // BETTER THAN HUMAN (New Dec 2024)
+  'proactive-noticing': () => import('./proactive-noticing.js'), // "I notice..." pattern surfacing
+  'commitment-follow-up': () => import('./commitment-follow-up.js'), // Accountability tracking
+  'temporal-intelligence': () => import('./temporal-intelligence.js'), // Time patterns, dates
+  'deep-relationship': () => import('./deep-relationship.js'), // Shared vocabulary, milestones
 };

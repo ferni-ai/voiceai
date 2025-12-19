@@ -11,11 +11,8 @@
  * @module persona-phrases
  */
 
+import { getProcessingPhraseWithSSML } from '../intelligence/processing-intelligence.js';
 import { breakTag } from '../ssml/cartesia.js';
-import {
-  getProcessingPhraseWithSSML,
-  type ProcessingContext,
-} from '../intelligence/processing-intelligence.js';
 
 // ============================================================================
 // PERSONA IDS
@@ -355,15 +352,15 @@ export const ACKNOWLEDGMENT_PREFIXES: Record<string, Record<AcknowledgmentMood, 
 // These are spoken while the agent is thinking, NOT in response to questions
 // Keep these SHORT and active - Ferni doesn't hedge or stall
 /**
- * HUMANIZATION FIX: Thinking fillers that feel natural, not robotic
+ * DEPRECATED: Use getContextAwareThinkingFiller() instead
  *
- * Key changes:
- * - More variety to prevent repetition
- * - Includes incomplete thoughts (how real people think)
- * - Some are very short (just a breath), others longer
- * - Persona-appropriate word choices
+ * Thinking fillers that feel natural, not robotic.
+ * Kept as internal fallback for ProcessingIntelligence errors.
+ *
+ * @deprecated Use getContextAwareThinkingFiller() for context-aware phrases
+ * @internal Used only as fallback when ProcessingIntelligence fails
  */
-export const THINKING_FILLERS: Record<string, string[]> = {
+const THINKING_FILLERS: Record<string, string[]> = {
   ferni: [
     // Short natural sounds
     `${breakTag('300ms')}Hmm.${breakTag('350ms')}`,
@@ -426,6 +423,13 @@ export const THINKING_FILLERS: Record<string, string[]> = {
     `${breakTag('250ms')}Right, so...${breakTag('350ms')}`,
   ],
 };
+
+// ============================================================================
+// TOOL FILLERS (Re-exported from tool-fillers.ts)
+// ============================================================================
+
+// Re-export tool fillers from dedicated module
+export { getToolFiller, isLongRunningTool, TOOL_FILLERS } from './tool-fillers.js';
 
 // ============================================================================
 // CATCHPHRASES (Signature phrases for each persona)
@@ -905,7 +909,7 @@ export default {
   BACKCHANNEL_LIBRARY,
   PERSONA_BACKCHANNEL_STYLE,
   ACKNOWLEDGMENT_PREFIXES,
-  THINKING_FILLERS,
+  // THINKING_FILLERS - DEPRECATED: Use getContextAwareThinkingFiller instead
   PERSONA_CATCHPHRASES,
   // Superhuman voice data
   SILENCE_PRESENCE_PHRASES,
@@ -915,8 +919,8 @@ export default {
   normalizePersonaId,
   getSoftBackchannel,
   getAcknowledgmentPrefix,
-  getThinkingFiller,
-  getContextAwareThinkingFiller, // NEW: Context-aware ProcessingIntelligence integration
+  // getThinkingFiller - DEPRECATED: Use getContextAwareThinkingFiller instead
+  getContextAwareThinkingFiller, // Context-aware ProcessingIntelligence integration
   getCatchphraseWithSsml,
   getPersonaBackchannelStyle,
   getBackchannelPhrase,

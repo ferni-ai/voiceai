@@ -81,8 +81,48 @@ export {
   type CelebrationConfig,
 } from './celebration-events-handler.js';
 
-// Turn handler
-export { handleUserTurn, type TurnHandlerContext } from './turn-handler.js';
+// Turn handler (main orchestrator)
+export {
+  handleUserTurn,
+  cleanupPersonalityState,
+  type TurnHandlerContext,
+} from './turn-handler.js';
+
+// Turn personality (extracted from turn-handler)
+export {
+  processPersonality,
+  processFerniPersonality,
+  processSharedPersonality,
+  getPreviousExpression,
+  storePreviousExpression,
+  recordTurnHistory,
+  getTurnHistory,
+  mapMoodToMomentum,
+  mapIntentToSharing,
+  buildPersonalityInjection,
+  type PersonalityContext,
+  type PersonalityProcessingResult,
+} from './turn-personality.js';
+
+// Turn events (extracted from turn-handler)
+export {
+  dispatchAllTurnEvents,
+  dispatchTurnEmotionEvents,
+  dispatchTurnBehaviorEvents,
+  sendMoodUpdate,
+  buildBehaviorContext,
+  type EventDispatchContext,
+  type EventDispatchResult,
+} from './turn-events.js';
+
+// Turn learning (extracted from turn-handler)
+export {
+  recordAllLearningData,
+  recordTurnTrustData,
+  recordCollectiveLearning,
+  type LearningContext,
+  type LearningResult,
+} from './turn-learning.js';
 
 // Human turn intelligence
 export {

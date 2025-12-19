@@ -13,21 +13,20 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock logger before imports
-vi.mock('../../utils/safe-logger.js', () => ({
-  getLogger: () => ({
+// Mock logger before imports - inline to avoid hoisting issues
+vi.mock('../../utils/safe-logger.js', () => {
+  const mockLogger = {
     debug: vi.fn(),
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
-    child: () => ({
-      debug: vi.fn(),
-      info: vi.fn(),
-      warn: vi.fn(),
-      error: vi.fn(),
-    }),
-  }),
-}));
+    child: () => mockLogger,
+  };
+  return {
+    createLogger: () => mockLogger,
+    getLogger: () => mockLogger,
+  };
+});
 
 import type { EmotionResult } from '../../intelligence/emotion-detector.js';
 import { getBackchannelManager, resetBackchanneling } from '../backchanneling/index.js';

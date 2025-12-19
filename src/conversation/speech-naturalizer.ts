@@ -538,6 +538,11 @@ export const DOUBT_TO_CONVICTION: Array<{ doubt: string; conviction: string }> =
 /**
  * Thinking out loud patterns
  * These show the visible process of arriving at a thought
+ *
+ * NOTE: These are for SPEECH NATURALIZATION (making AI text sound human).
+ * For processing delays (LLM thinking), use ProcessingIntelligence instead.
+ *
+ * @see src/intelligence/processing-intelligence.ts for processing delays
  */
 export const THINKING_OUT_LOUD: string[] = [
   'Let me think about this out loud for a second...',

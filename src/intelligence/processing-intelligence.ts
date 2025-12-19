@@ -126,6 +126,16 @@ const PROCESSING_PHRASES: Record<ProcessingType, Record<ProcessingWeight, string
       "There's something I'm trying to remember...",
     ],
   },
+  after_tool_result: {
+    light: ['Got it.', 'Here we go.', 'Okay.'],
+    medium: ['Interesting.', 'Let me make sense of this.', 'So...'],
+    heavy: ["That's a lot to unpack.", 'Okay, let me walk through this.', 'There\'s a lot here.'],
+  },
+  context_loading: {
+    light: ['Just a moment.', 'Bear with me.'],
+    medium: ['Getting ready.', 'Setting things up.'],
+    heavy: ['This takes a second.', 'Almost there.'],
+  },
 };
 
 /**
@@ -146,6 +156,8 @@ const AVATAR_EXPRESSIONS: Record<ProcessingType, string> = {
   emotional: 'empathy',
   tool_call: 'processing',
   memory_recall: 'remembering',
+  after_tool_result: 'interested',
+  context_loading: 'processing',
 };
 
 // ============================================================================
@@ -345,6 +357,38 @@ export function getMemoryRecallProcessing(weight: ProcessingWeight = 'medium'): 
   });
 }
 
+/**
+ * Quick helper for after tool result
+ * Use when processing/displaying results from a tool call
+ */
+export function getAfterToolResultProcessing(
+  weight: ProcessingWeight = 'light',
+  personaId?: string
+): ProcessingResult {
+  if (personaId) {
+    return composePersonaProcessingExpression({
+      personaId,
+      trigger: 'after_tool_result',
+      weight,
+    });
+  }
+  return composeProcessingExpression({
+    trigger: 'after_tool_result',
+    weight,
+  });
+}
+
+/**
+ * Quick helper for context loading
+ * Use when loading persona bundles, settings, or other context
+ */
+export function getContextLoadingProcessing(weight: ProcessingWeight = 'light'): ProcessingResult {
+  return composeProcessingExpression({
+    trigger: 'context_loading',
+    weight,
+  });
+}
+
 // ============================================================================
 // PERSONA-SPECIFIC OVERRIDES
 // ============================================================================
@@ -365,11 +409,23 @@ const PERSONA_OVERRIDES: Record<
     emotional: {
       heavy: ["I'm here.", "I'm not going anywhere.", 'Take all the time you need.'],
     },
+    memory_recall: {
+      medium: ['I remember something about this...', 'Let me think back...'],
+      heavy: ['There\'s a lot here. Give me a moment.', 'I want to do this justice.'],
+    },
   },
   maya: {
     thinking: {
       light: ["Let's break this down.", 'Okay, thinking...'],
       medium: ["Let's figure this out together.", "I'm working through this."],
+    },
+    tool_call: {
+      light: ['Checking that for you.', 'One sec.'],
+      medium: ["Let me look into this.", "I'll find that."],
+    },
+    emotional: {
+      medium: ['I hear you.', "That's real."],
+      heavy: ["I've got you.", "We'll get through this."],
     },
   },
   peter: {
@@ -377,11 +433,59 @@ const PERSONA_OVERRIDES: Record<
       light: ['Interesting.', 'Let me analyze that.'],
       medium: ["I'm considering the data.", 'Let me think through this systematically.'],
     },
+    tool_call: {
+      light: ['Let me pull that up.', 'Researching...'],
+      medium: ['Digging into the numbers.', 'Analyzing this.'],
+      heavy: ['This needs a deep dive.', "Let me really examine this."],
+    },
+    memory_recall: {
+      medium: ['If I recall correctly...', 'The research showed...'],
+    },
   },
   nayan: {
     thinking: {
       medium: ['Hmm. Let me reflect.', 'There is wisdom in this question.'],
       heavy: ['This touches something deep.', 'Let me sit with the fullness of this.'],
+    },
+    emotional: {
+      medium: ['I understand.', 'This matters.'],
+      heavy: ['The heart knows.', 'Be gentle with yourself.'],
+    },
+    memory_recall: {
+      heavy: ['Let me return to what you shared before.', 'Your story comes back to me.'],
+    },
+  },
+  jordan: {
+    thinking: {
+      light: ['Ooh! Let me think.', 'Okay, ideas forming...'],
+      medium: ["I'm brainstorming!", "Let's figure this out."],
+      heavy: ['Big question! Give me a second.', "I want to do this right."],
+    },
+    tool_call: {
+      light: ['Checking!', 'Let me look.'],
+      medium: ['On it!', 'Finding that for you.'],
+    },
+    emotional: {
+      medium: ["I'm here for this.", "That's exciting!"],
+      heavy: ['Wow. That hit me.', "I'm feeling this with you."],
+    },
+  },
+  alex: {
+    thinking: {
+      light: ['One moment.', 'Let me see.'],
+      medium: ['Processing.', 'Let me think this through.'],
+    },
+    tool_call: {
+      light: ['Checking.', 'On it.'],
+      medium: ['Looking into that.', 'Give me a second.'],
+    },
+    emotional: {
+      medium: ['I hear you.', 'Got it.'],
+      heavy: ['That\'s heavy. I\'m here.', 'Take your time.'],
+    },
+    memory_recall: {
+      light: ['If I recall...', 'From what you said...'],
+      medium: ['Let me pull that up.', 'Based on our conversations...'],
     },
   },
 };

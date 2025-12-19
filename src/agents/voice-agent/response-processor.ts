@@ -10,6 +10,30 @@
  * - Human listening SSML adjustments
  * - Dynamic speed control (persona-aware)
  * - Voice humanization (laughter, contagion, rhythm, breathing)
+ * - Trust enforcement (emotional mismatch detection, boundary checking)
+ * - Crisis guard (crisis resource injection, dismissive language blocking)
+ *
+ * ## Architecture Note
+ *
+ * **Current Status:** This module is EXPORTED but NOT CALLED in the main production flow.
+ *
+ * The LiveKit SDK uses streaming responses that go directly from LLM → TTS via the
+ * `ttsNode` in `ferni-agent.ts`. This makes post-response validation architecturally
+ * difficult because we can't easily intercept the response after LLM generation but
+ * before speech synthesis.
+ *
+ * **Where safety/trust enforcement actually happens:**
+ * 1. **Pre-response (injections):** Crisis detection and trust context are built in
+ *    `turn-processor.ts` and injected as high-priority context BEFORE the LLM generates.
+ * 2. **Pre-response (override):** Severe crisis → LLM is given a pre-written response
+ *    to prevent any deviation. See `turn-handler.ts` crisis handling.
+ * 3. **Monitoring:** Trust context summary is emitted as events to the frontend for
+ *    avatar adaptation. See `turn-handler.ts` trust context section.
+ *
+ * **When to use this module:**
+ * - Non-streaming response scenarios (e.g., text-only chat mode)
+ * - Testing and validation of response quality
+ * - Future: Buffered response mode for enhanced validation
  *
  * Extracted from voice-agent.ts transcriptionNode method.
  *
@@ -42,6 +66,16 @@ export interface ResponseProcessorContext {
   services?: SessionServices;
   /** Session ID for feature flags */
   sessionId?: string;
+  /**
+   * Trust context from turn processing (for "Better Than Human" enforcement)
+   * When provided, responses are checked for proper emotional acknowledgment
+   */
+  trustContext?: import('../../services/trust-systems/index.js').TrustContext;
+  /**
+   * Crisis detection result from turn processing (for safety enforcement)
+   * When provided, responses are checked for crisis resources and dismissive language
+   */
+  crisisResult?: import('../safety/crisis-guard.js').CrisisDetectionResult;
 }
 
 export interface ResponseProcessorResult {
@@ -51,6 +85,24 @@ export interface ResponseProcessorResult {
   appliedFeatures: string[];
   /** Processing timing */
   timingMs: number;
+  /**
+   * Trust enforcement result (if trust context was provided)
+   * Contains info about blocked responses, required modifications, etc.
+   */
+  trustEnforcement?: {
+    shouldBlock: boolean;
+    mustAddress: string[];
+    regenerationGuidance?: string;
+  };
+  /**
+   * Crisis guard result (if crisis was detected)
+   * Contains info about added resources, blocked dismissive language, etc.
+   */
+  crisisGuard?: {
+    resourcesAdded: boolean;
+    dismissiveBlocked: boolean;
+    reason?: string;
+  };
 }
 
 export interface EmotionModulation {
@@ -141,6 +193,124 @@ export async function processResponse(
   if (humanizationResult.wasApplied) {
     processedText = humanizationResult.text;
     appliedFeatures.push(...humanizationResult.features);
+  }
+
+  // ============================================================
+  // 2b. 🚨 TRUST ENFORCEMENT ("Better Than Human")
+  // Ensure response properly addresses:
+  // - Emotional mismatches (must acknowledge false "I'm fine")
+  // - Boundary violations (must not mention avoided topics)
+  // - Growth reflections (should celebrate progress)
+  // - Small wins (should acknowledge achievements)
+  // ============================================================
+  let trustEnforcementResult: ResponseProcessorResult['trustEnforcement'];
+
+  if (ctx.trustContext) {
+    try {
+      const { enforceTrustContext } = await import('../trust/trust-enforcer.js');
+
+      const enforcementContext = {
+        trustContext: ctx.trustContext,
+        voiceEmotion: userData?.voiceEmotion
+          ? {
+              primary: userData.voiceEmotion.primary || 'neutral',
+              intensity: userData.voiceEmotion.confidence || 0.5,
+              confidence: userData.voiceEmotion.confidence,
+            }
+          : undefined,
+        isReturningUser: userData?.isReturningUser,
+        turnCount: userData?.turnCount,
+      };
+
+      const trustResult = enforceTrustContext(processedText, enforcementContext);
+
+      trustEnforcementResult = {
+        shouldBlock: trustResult.shouldBlock,
+        mustAddress: trustResult.mustAddress,
+        regenerationGuidance: trustResult.regenerationGuidance,
+      };
+
+      if (trustResult.shouldBlock) {
+        // Log for monitoring but don't block - we want to improve, not break
+        diag.warn('🛡️ Trust enforcement would block response', {
+          mustAddress: trustResult.mustAddress,
+          regenerationGuidance: trustResult.regenerationGuidance,
+        });
+        appliedFeatures.push('trust_enforcement_warning');
+      }
+
+      // Apply phrase injection if required (e.g., "I notice something...")
+      if (trustResult.phraseToUse) {
+        processedText = `${trustResult.phraseToUse} ${processedText}`;
+        appliedFeatures.push('trust_phrase_injected');
+        diag.state('🤝 Trust phrase injected', { phrase: trustResult.phraseToUse });
+      }
+
+      // Apply required tone adjustments
+      if (trustResult.requiredTone) {
+        appliedFeatures.push(`trust_tone_${trustResult.requiredTone}`);
+      }
+    } catch (trustErr) {
+      diag.warn('Trust enforcement failed (non-fatal)', { error: String(trustErr) });
+    }
+  }
+
+  // ============================================================
+  // 2c. 🚨 CRISIS GUARD POST-RESPONSE CHECK
+  // Ensure crisis responses include resources (988 hotline)
+  // Block dismissive language during distress
+  // ============================================================
+  let crisisGuardResult: ResponseProcessorResult['crisisGuard'];
+
+  if (ctx.crisisResult) {
+    try {
+      const { guardPostResponse, buildCrisisGuardContext, applyGuardResult } =
+        await import('../safety/crisis-guard.js');
+
+      // Build context for guard
+      const hasEmotionalMismatch = ctx.trustContext?.unsaidSignals?.some(
+        (s) => s.type === 'emotional_mismatch' && s.confidence > 0.7
+      );
+
+      const guardContext = buildCrisisGuardContext(
+        ctx.crisisResult,
+        userData?.voiceEmotion
+          ? {
+              primary: userData.voiceEmotion.primary || 'neutral',
+              intensity: userData.voiceEmotion.confidence || 0.5,
+              confidence: userData.voiceEmotion.confidence,
+            }
+          : undefined,
+        hasEmotionalMismatch
+      );
+
+      const guardResult = guardPostResponse(processedText, guardContext);
+
+      crisisGuardResult = {
+        resourcesAdded: !!(guardResult.requiredAdditions?.length),
+        dismissiveBlocked: guardResult.shouldBlock,
+        reason: guardResult.reason,
+      };
+
+      if (guardResult.shouldBlock) {
+        // This is serious - log but still allow through with warning
+        // The pre-response guard should have caught severe cases
+        diag.warn('🚫 Crisis guard would block response (dismissive language)', {
+          reason: guardResult.reason,
+        });
+        appliedFeatures.push('crisis_guard_warning');
+      }
+
+      // Apply required additions (crisis resources)
+      processedText = applyGuardResult(processedText, guardResult);
+
+      if (guardResult.requiredAdditions?.length) {
+        appliedFeatures.push('crisis_resources_added');
+        diag.state('🆘 Crisis resources added to response');
+      }
+    } catch (crisisErr) {
+      diag.warn('Crisis guard failed (non-fatal)', { error: String(crisisErr) });
+    }
   }
 
   // ============================================================
@@ -275,6 +445,8 @@ export async function processResponse(
     processedText,
     appliedFeatures,
     timingMs: Date.now() - startTime,
+    trustEnforcement: trustEnforcementResult,
+    crisisGuard: crisisGuardResult,
   };
 }
 

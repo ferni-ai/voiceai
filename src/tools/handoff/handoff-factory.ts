@@ -449,6 +449,7 @@ export async function buildHandoffTools(
           recentMessages?: Array<{ role: 'user' | 'assistant'; content: string }>;
           conversationTopics?: string[];
           lastEmotionAnalysis?: { primary: string; intensity: number };
+          voiceEmotion?: { primary?: string; confidence?: number; arousal?: number; valence?: number };
         };
         const ctx = (runContext as { ctx?: { userData?: RuntimeUserData } })?.ctx;
         const userData = ctx?.userData;
@@ -478,6 +479,16 @@ export async function buildHandoffTools(
         const recentMessages = userData?.recentMessages || [];
         const sessionId = userData?.services?.sessionId;
 
+        // Extract voice emotion for better-than-human entrance adaptation
+        const voiceEmotion = userData?.voiceEmotion
+          ? {
+              voiceEmotion: userData.voiceEmotion.primary,
+              voiceConfidence: userData.voiceEmotion.confidence,
+              arousal: userData.voiceEmotion.arousal,
+              valence: userData.voiceEmotion.valence,
+            }
+          : undefined;
+
         // Use the generic executor with runtime user context for unlock validation
         // NOW INCLUDES cognitive handoff context!
         const result = await executeHandoff(def.agentId, reason, {
@@ -489,6 +500,8 @@ export async function buildHandoffTools(
           topics,
           recentMessages,
           sessionId,
+          // Pass voice emotion for better-than-human entrance adaptation
+          voiceEmotion,
         });
 
         if (!result.success) {

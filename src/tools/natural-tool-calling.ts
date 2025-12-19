@@ -59,7 +59,8 @@ export interface NaturalToolCall {
 }
 
 // ============================================================================
-// NATURAL FRAMING PHRASES
+// LEGACY NATURAL FRAMING PHRASES
+// @deprecated Use getContextAwareToolProcessing() with ProcessingIntelligence
 // ============================================================================
 
 const PRE_CALL_PHRASES = {
@@ -113,6 +114,9 @@ const PRE_CALL_PHRASES = {
   ],
 };
 
+/**
+ * @deprecated Use getContextAwareToolProcessing() instead
+ */
 const THINKING_SOUNDS = {
   contemplative: [
     '<break time="300ms"/>Hmm.<break time="200ms"/>',
@@ -166,6 +170,8 @@ const POST_CALL_TRANSITIONS = {
 
 /**
  * Get natural framing for a tool call
+ *
+ * @deprecated Use getContextAwareToolProcessing() for dynamic context-aware phrases
  */
 export function getNaturalToolCall(toolName: string, context: ToolContext): NaturalToolCall {
   // Determine tool category

@@ -25,7 +25,11 @@ const log = createLogger({ module: 'FerniAgent' });
 // TYPES
 // ============================================================================
 
-interface FerniSessionData {
+/**
+ * Session data for PersonaVoiceAgent instances.
+ * @alias FerniSessionData - Backwards compatibility alias
+ */
+interface PersonaSessionData {
   userId?: string;
   userName?: string;
   userProfile?: UserProfile | null;
@@ -36,9 +40,15 @@ interface FerniSessionData {
 }
 
 // Tool context type from LiveKit - properly typed for function tools
-type ToolSet = llm.ToolContext<FerniSessionData>;
+type ToolSet = llm.ToolContext<PersonaSessionData>;
 
-export interface FerniAgentOptions {
+// Backwards compatibility type aliases
+type FerniSessionData = PersonaSessionData;
+
+/**
+ * Options for creating a PersonaVoiceAgent (or FerniAgent for backwards compat).
+ */
+export interface PersonaVoiceAgentOptions {
   /** Chat context from previous agent (for handoffs) */
   chatCtx?: llm.ChatContext;
   /** Whether to skip default greeting (handled externally) */
@@ -374,7 +384,10 @@ function buildHandoffTools(): ToolSet {
 // ============================================================================
 
 /**
- * Ferni - The main life coach and orchestrator.
+ * PersonaVoiceAgent - The main voice agent for all personas.
+ *
+ * This agent class is used for ALL personas (Ferni, Maya, Alex, etc.).
+ * The persona identity comes from the system prompt, not the class name.
  *
  * Pure LiveKit 1.0 implementation with:
  * - Direct domain imports (no registry/manifest indirection)
@@ -382,11 +395,13 @@ function buildHandoffTools(): ToolSet {
  * - Entertainment tools for music playback
  * - Inline handoff tools for team switching
  * - Clean lifecycle hooks (onEnter/onExit)
+ *
+ * @alias FerniAgent - Backwards compatibility alias
  */
-export class FerniAgent extends voice.Agent<FerniSessionData> {
+export class PersonaVoiceAgent extends voice.Agent<PersonaSessionData> {
   private skipGreeting: boolean;
 
-  constructor(systemPrompt: string, options: FerniAgentOptions = {}) {
+  constructor(systemPrompt: string, options: PersonaVoiceAgentOptions = {}) {
     // Use orchestrator-selected tools if provided, otherwise build all tools
     let allTools: ToolSet;
     let toolSource: 'orchestrator' | 'internal';
@@ -547,11 +562,30 @@ export class FerniAgent extends voice.Agent<FerniSessionData> {
 // ============================================================================
 
 /**
- * Create a Ferni agent with the given system prompt.
+ * Create a PersonaVoiceAgent with the given system prompt.
+ * @alias createFerniAgent - Backwards compatibility
  */
-export function createFerniAgent(systemPrompt: string, options?: FerniAgentOptions): FerniAgent {
-  return new FerniAgent(systemPrompt, options);
+export function createPersonaVoiceAgent(
+  systemPrompt: string,
+  options?: PersonaVoiceAgentOptions
+): PersonaVoiceAgent {
+  return new PersonaVoiceAgent(systemPrompt, options);
 }
+
+// ============================================================================
+// BACKWARDS COMPATIBILITY ALIASES
+// ============================================================================
+// These aliases maintain compatibility with existing code that uses the old names.
+// New code should use PersonaVoiceAgent, PersonaVoiceAgentOptions, createPersonaVoiceAgent.
+
+/** @deprecated Use PersonaVoiceAgent instead */
+export const FerniAgent = PersonaVoiceAgent;
+
+/** @deprecated Use PersonaVoiceAgentOptions instead */
+export type FerniAgentOptions = PersonaVoiceAgentOptions;
+
+/** @deprecated Use createPersonaVoiceAgent instead */
+export const createFerniAgent = createPersonaVoiceAgent;
 
 /**
  * Build all Ferni tools externally (for filtering before passing to constructor).

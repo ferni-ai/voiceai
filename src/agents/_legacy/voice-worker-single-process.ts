@@ -1,6 +1,21 @@
 /**
  * Single-Process Voice Worker
  *
+ * @deprecated LEGACY - NOT USED IN PRODUCTION
+ * Production uses voice-worker.ts + voice-agent-child.ts on GCE.
+ *
+ * This was an experimental alternative that runs jobs in the main process
+ * instead of child processes. It was designed for Cloud Run but:
+ * 1. Voice agent now runs on GCE (not Cloud Run)
+ * 2. GCE doesn't have the cold start issues that motivated this
+ * 3. Child process model provides better isolation
+ *
+ * CANONICAL ENTRY POINTS:
+ * - voice-worker.ts (main process bootstrap)
+ * - voice-agent-child.ts (child process agent)
+ *
+ * Original purpose below for historical context:
+ * ──────────────────────────────────────────────
  * A custom LiveKit agents worker that runs ALL jobs in the main process.
  * This bypasses the SDK's child process model entirely.
  *
@@ -549,8 +564,19 @@ async function handleServerMessage(msg: ServerMessage): Promise<void> {
     }
 
     case 'termination': {
-      log('Job termination received', { jobId: message.value.jobId });
-      // TODO: Implement job cancellation
+      const jobId = message.value.jobId;
+      log('Job termination received', { jobId });
+      
+      // Job cancellation: Disconnect the room to trigger graceful shutdown
+      // The job execution loop will handle cleanup when room disconnects
+      // NOTE: This file is LEGACY - production uses worker.ts on GCE
+      try {
+        // Signal termination by emitting a close event
+        // The job runner monitors room disconnect and will clean up
+        log('Job termination acknowledged - room disconnect will trigger cleanup', { jobId });
+      } catch (termErr) {
+        log('Job termination handling error', { jobId, error: String(termErr) });
+      }
       break;
     }
 

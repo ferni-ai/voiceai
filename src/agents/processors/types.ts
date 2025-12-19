@@ -210,6 +210,21 @@ export interface CrisisDetection {
 }
 
 /**
+ * Trust context for post-response validation
+ * Used by "Better Than Human" trust enforcement system
+ */
+export interface TrustContextSummary {
+  /** Unsaid signals detected (false "I'm fine", deflection, etc.) */
+  hasEmotionalMismatch: boolean;
+  /** Topics to avoid (boundary tracking) */
+  topicsToAvoid: string[];
+  /** Growth reflection available (for acknowledgment check) */
+  hasGrowthReflection: boolean;
+  /** Celebration opportunity (small win to acknowledge) */
+  hasCelebration: boolean;
+}
+
+/**
  * Complete result of processing a user turn
  */
 export interface TurnProcessorResult {
@@ -254,6 +269,13 @@ export interface TurnProcessorResult {
   };
   /** 🚨 SAFETY: Crisis detection result - CANNOT be ignored */
   crisis?: CrisisDetection;
+  /**
+   * 🤝 TRUST: Trust context summary for post-response validation
+   * Used by downstream systems to verify LLM properly addressed trust signals.
+   * NOTE: Actual enforcement happens via context injections (pre-response).
+   * This is for monitoring/learning from post-response quality.
+   */
+  trustContext?: TrustContextSummary;
 }
 
 // ============================================================================

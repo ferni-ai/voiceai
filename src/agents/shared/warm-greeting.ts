@@ -266,22 +266,372 @@ function buildDynamicFerniGreeting(ctx?: GreetingContext): string {
   return greeting;
 }
 
+// ============================================================================
+// PERSONA-SPECIFIC DYNAMIC GREETING BUILDERS
+// Each persona has their own energy and greeting style
+// ============================================================================
+
+/**
+ * Alex Chen - Communications Director
+ * Energy: Direct, efficient, supportive
+ * Style: Gets to the point quickly but warmly
+ */
+function buildDynamicAlexGreeting(ctx?: GreetingContext): string {
+  const context = ctx || {};
+  const hour = context.hour ?? new Date().getHours();
+  const timePeriod = getTimePeriod(hour);
+  const relationshipStage = context.relationshipStage || 'friend';
+
+  const openers = {
+    earlyMorning: [
+      { text: 'Hey.', emotion: 'affectionate', energy: 'calm' },
+      { text: 'Morning.', emotion: null, energy: 'calm' },
+    ],
+    morning: [
+      { text: 'Hey!', emotion: 'happy', energy: 'warm' },
+      { text: 'Alex here.', emotion: 'happy', energy: 'warm' },
+    ],
+    afternoon: [
+      { text: 'Hey!', emotion: 'happy', energy: 'warm' },
+      { text: 'Oh, hey!', emotion: null, energy: 'warm' },
+    ],
+    evening: [
+      { text: 'Hey.', emotion: 'affectionate', energy: 'calm' },
+      { text: "What's up?", emotion: null, energy: 'calm' },
+    ],
+    lateNight: [
+      { text: 'Hey.', emotion: 'affectionate', energy: 'calm' },
+      { text: 'Still up?', emotion: null, energy: 'calm' },
+    ],
+  };
+
+  const middles = {
+    neutral: ['Need help with something?', 'What are we working on?', "What's the situation?"],
+    hadHardTime: ['How can I help?', "What's going on?"],
+    lateNight: ['Working late?', "What's on your mind?"],
+    returningAfterLongTime: ['Good to hear from you.', "It's been a while."],
+  };
+
+  const opener = openers[timePeriod][Math.floor(Math.random() * openers[timePeriod].length)];
+  const middleKey = ctx?.lastEmotionIntensity && ctx.lastEmotionIntensity > 0.7 
+    ? 'hadHardTime' 
+    : timePeriod === 'lateNight' 
+      ? 'lateNight' 
+      : ctx?.daysSinceLastChat && ctx.daysSinceLastChat > 7 
+        ? 'returningAfterLongTime' 
+        : 'neutral';
+  const middle = middles[middleKey][Math.floor(Math.random() * middles[middleKey].length)];
+
+  const settleMs = opener.energy === 'calm' ? 200 : 100;
+  const emotion = opener.emotion || 'affectionate';
+  const pauseMs = opener.energy === 'calm' ? 300 : 150;
+
+  let greeting = `<break time="${settleMs}ms"/>`;
+  greeting += `<emotion value="${emotion}"/>`;
+  greeting += opener.text;
+  greeting += `<break time="${pauseMs}ms"/>`;
+  if (context.userName && relationshipStage !== 'stranger' && Math.random() < 0.25) {
+    greeting += `${context.userName}.<break time="150ms"/>`;
+  }
+  greeting += middle;
+
+  return greeting;
+}
+
+/**
+ * Maya Santos - Habits & Routines Coach
+ * Energy: Encouraging, supportive, warm
+ * Style: Celebrates small wins, motivational
+ */
+function buildDynamicMayaGreeting(ctx?: GreetingContext): string {
+  const context = ctx || {};
+  const hour = context.hour ?? new Date().getHours();
+  const timePeriod = getTimePeriod(hour);
+  const relationshipStage = context.relationshipStage || 'friend';
+
+  const openers = {
+    earlyMorning: [
+      { text: 'Hey, early bird.', emotion: 'affectionate', energy: 'calm' },
+      { text: 'Good morning!', emotion: 'happy', energy: 'warm' },
+    ],
+    morning: [
+      { text: 'Hey!', emotion: 'happy', energy: 'warm' },
+      { text: 'Maya here!', emotion: 'happy', energy: 'warm' },
+    ],
+    afternoon: [
+      { text: 'Hey!', emotion: 'happy', energy: 'warm' },
+      { text: 'Hi!', emotion: 'affectionate', energy: 'warm' },
+    ],
+    evening: [
+      { text: 'Hey.', emotion: 'affectionate', energy: 'calm' },
+      { text: 'Winding down?', emotion: 'affectionate', energy: 'calm' },
+    ],
+    lateNight: [
+      { text: 'Hey.', emotion: 'affectionate', energy: 'calm' },
+      { text: 'Night owl, huh?', emotion: null, energy: 'calm' },
+    ],
+  };
+
+  const middles = {
+    neutral: ["What's on your mind?", 'How can I help?', "What are we working on today?"],
+    hadHardTime: ['How are you doing?', "Checking in—how's it going?"],
+    lateNight: ["Can't sleep?", "What's keeping you up?"],
+    returningAfterLongTime: ['Glad you came back!', "I've missed our chats."],
+  };
+
+  const opener = openers[timePeriod][Math.floor(Math.random() * openers[timePeriod].length)];
+  const middleKey = ctx?.lastEmotionIntensity && ctx.lastEmotionIntensity > 0.7 
+    ? 'hadHardTime' 
+    : timePeriod === 'lateNight' 
+      ? 'lateNight' 
+      : ctx?.daysSinceLastChat && ctx.daysSinceLastChat > 7 
+        ? 'returningAfterLongTime' 
+        : 'neutral';
+  const middle = middles[middleKey][Math.floor(Math.random() * middles[middleKey].length)];
+
+  const settleMs = opener.energy === 'calm' ? 250 : 150;
+  const emotion = opener.emotion || 'affectionate';
+  const pauseMs = opener.energy === 'calm' ? 350 : 200;
+
+  let greeting = `<break time="${settleMs}ms"/>`;
+  greeting += `<emotion value="${emotion}"/>`;
+  greeting += opener.text;
+  greeting += `<break time="${pauseMs}ms"/>`;
+  if (context.userName && relationshipStage !== 'stranger' && Math.random() < 0.3) {
+    greeting += `${context.userName}!<break time="150ms"/>`;
+  }
+  greeting += middle;
+
+  return greeting;
+}
+
+/**
+ * Jordan Taylor - Event Planner
+ * Energy: Enthusiastic, energetic, excited
+ * Style: Ready to make things happen
+ */
+function buildDynamicJordanGreeting(ctx?: GreetingContext): string {
+  const context = ctx || {};
+  const hour = context.hour ?? new Date().getHours();
+  const timePeriod = getTimePeriod(hour);
+  const relationshipStage = context.relationshipStage || 'friend';
+
+  const openers = {
+    earlyMorning: [
+      { text: 'Hey!', emotion: 'happy', energy: 'warm' },
+      { text: 'Oh!', emotion: 'surprised', energy: 'warm' },
+    ],
+    morning: [
+      { text: 'Hey!', emotion: 'happy', energy: 'energetic' },
+      { text: 'Jordan here!', emotion: 'happy', energy: 'energetic' },
+    ],
+    afternoon: [
+      { text: 'Hey!', emotion: 'happy', energy: 'energetic' },
+      { text: 'Oh, hey!', emotion: 'surprised', energy: 'energetic' },
+    ],
+    evening: [
+      { text: 'Hey!', emotion: 'happy', energy: 'warm' },
+      { text: 'Perfect timing!', emotion: 'happy', energy: 'warm' },
+    ],
+    lateNight: [
+      { text: 'Hey!', emotion: 'affectionate', energy: 'calm' },
+      { text: 'Late night planning?', emotion: 'curious', energy: 'calm' },
+    ],
+  };
+
+  const middles = {
+    neutral: ["What are we planning?", "What's happening?", 'Tell me everything!'],
+    hadHardTime: ["What's going on?", 'How can I help?'],
+    lateNight: ['Big event coming up?', "What's on your mind?"],
+    returningAfterLongTime: ['We have so much to catch up on!', "What have I missed?"],
+  };
+
+  const opener = openers[timePeriod][Math.floor(Math.random() * openers[timePeriod].length)];
+  const middleKey = ctx?.lastEmotionIntensity && ctx.lastEmotionIntensity > 0.7 
+    ? 'hadHardTime' 
+    : timePeriod === 'lateNight' 
+      ? 'lateNight' 
+      : ctx?.daysSinceLastChat && ctx.daysSinceLastChat > 7 
+        ? 'returningAfterLongTime' 
+        : 'neutral';
+  const middle = middles[middleKey][Math.floor(Math.random() * middles[middleKey].length)];
+
+  const settleMs = opener.energy === 'calm' ? 200 : 100;
+  const emotion = opener.emotion || 'happy';
+  const pauseMs = opener.energy === 'calm' ? 250 : 100;
+
+  let greeting = `<break time="${settleMs}ms"/>`;
+  greeting += `<emotion value="${emotion}"/>`;
+  greeting += opener.text;
+  greeting += `<break time="${pauseMs}ms"/>`;
+  if (context.userName && relationshipStage !== 'stranger' && Math.random() < 0.35) {
+    greeting += `${context.userName}!<break time="100ms"/>`;
+  }
+  greeting += middle;
+
+  return greeting;
+}
+
+/**
+ * Peter John - Research Analyst  
+ * Energy: Thoughtful, curious, intellectual
+ * Style: Interested in ideas and exploration
+ */
+function buildDynamicPeterGreeting(ctx?: GreetingContext): string {
+  const context = ctx || {};
+  const hour = context.hour ?? new Date().getHours();
+  const timePeriod = getTimePeriod(hour);
+  const relationshipStage = context.relationshipStage || 'friend';
+
+  const openers = {
+    earlyMorning: [
+      { text: 'Hey.', emotion: 'curious', energy: 'calm' },
+      { text: 'Morning.', emotion: null, energy: 'calm' },
+    ],
+    morning: [
+      { text: 'Hey!', emotion: 'curious', energy: 'warm' },
+      { text: 'Peter here.', emotion: 'happy', energy: 'warm' },
+    ],
+    afternoon: [
+      { text: 'Hey!', emotion: 'curious', energy: 'warm' },
+      { text: 'Oh, interesting.', emotion: 'curious', energy: 'warm' },
+    ],
+    evening: [
+      { text: 'Hey.', emotion: 'affectionate', energy: 'calm' },
+      { text: 'Evening.', emotion: null, energy: 'calm' },
+    ],
+    lateNight: [
+      { text: 'Hey.', emotion: 'curious', energy: 'calm' },
+      { text: 'Burning the midnight oil?', emotion: 'curious', energy: 'calm' },
+    ],
+  };
+
+  const middles = {
+    neutral: ["What are you thinking about?", "What's interesting?", "What's on your mind?"],
+    hadHardTime: ['How are you doing?', "What's going on?"],
+    lateNight: ['Late night research?', 'Something on your mind?'],
+    returningAfterLongTime: ['What have you been exploring?', "What's new in your world?"],
+  };
+
+  const opener = openers[timePeriod][Math.floor(Math.random() * openers[timePeriod].length)];
+  const middleKey = ctx?.lastEmotionIntensity && ctx.lastEmotionIntensity > 0.7 
+    ? 'hadHardTime' 
+    : timePeriod === 'lateNight' 
+      ? 'lateNight' 
+      : ctx?.daysSinceLastChat && ctx.daysSinceLastChat > 7 
+        ? 'returningAfterLongTime' 
+        : 'neutral';
+  const middle = middles[middleKey][Math.floor(Math.random() * middles[middleKey].length)];
+
+  const settleMs = opener.energy === 'calm' ? 250 : 150;
+  const emotion = opener.emotion || 'curious';
+  const pauseMs = opener.energy === 'calm' ? 350 : 200;
+
+  let greeting = `<break time="${settleMs}ms"/>`;
+  greeting += `<emotion value="${emotion}"/>`;
+  greeting += opener.text;
+  greeting += `<break time="${pauseMs}ms"/>`;
+  if (context.userName && relationshipStage !== 'stranger' && Math.random() < 0.2) {
+    greeting += `${context.userName}.<break time="200ms"/>`;
+  }
+  greeting += middle;
+
+  return greeting;
+}
+
+/**
+ * Nayan Patel - Wisdom Guide (Premium)
+ * Energy: Calm, present, grounded
+ * Style: Deep, reflective, philosophical
+ */
+function buildDynamicNayanGreeting(ctx?: GreetingContext): string {
+  const context = ctx || {};
+  const hour = context.hour ?? new Date().getHours();
+  const timePeriod = getTimePeriod(hour);
+  const relationshipStage = context.relationshipStage || 'friend';
+
+  const openers = {
+    earlyMorning: [
+      { text: '...hey.', emotion: 'affectionate', energy: 'calm' },
+      { text: 'Ah. Hello.', emotion: null, energy: 'calm' },
+    ],
+    morning: [
+      { text: 'Hey.', emotion: 'affectionate', energy: 'calm' },
+      { text: 'Good morning.', emotion: 'affectionate', energy: 'calm' },
+    ],
+    afternoon: [
+      { text: 'Hey.', emotion: 'affectionate', energy: 'calm' },
+      { text: 'Hello, friend.', emotion: 'affectionate', energy: 'calm' },
+    ],
+    evening: [
+      { text: 'Hey.', emotion: 'affectionate', energy: 'calm' },
+      { text: '...good evening.', emotion: 'affectionate', energy: 'calm' },
+    ],
+    lateNight: [
+      { text: '...hey.', emotion: 'affectionate', energy: 'calm' },
+      { text: 'The quiet hours.', emotion: null, energy: 'calm' },
+    ],
+  };
+
+  const middles = {
+    neutral: ["I'm listening.", "What brings you?", "What's on your mind?"],
+    hadHardTime: ['Sit with me.', "I'm here."],
+    lateNight: ["Can't rest?", 'Something weighing on you?'],
+    returningAfterLongTime: ['Time passes.', 'Welcome back.'],
+  };
+
+  const opener = openers[timePeriod][Math.floor(Math.random() * openers[timePeriod].length)];
+  const middleKey = ctx?.lastEmotionIntensity && ctx.lastEmotionIntensity > 0.7 
+    ? 'hadHardTime' 
+    : timePeriod === 'lateNight' 
+      ? 'lateNight' 
+      : ctx?.daysSinceLastChat && ctx.daysSinceLastChat > 7 
+        ? 'returningAfterLongTime' 
+        : 'neutral';
+  const middle = middles[middleKey][Math.floor(Math.random() * middles[middleKey].length)];
+
+  const settleMs = 350; // Nayan always has a contemplative pause
+  const emotion = opener.emotion || 'affectionate';
+  const pauseMs = 450; // Longer pauses for Nayan's calm presence
+
+  let greeting = `<break time="${settleMs}ms"/>`;
+  greeting += `<emotion value="${emotion}"/>`;
+  greeting += opener.text;
+  greeting += `<break time="${pauseMs}ms"/>`;
+  if (context.userName && relationshipStage === 'trusted_advisor' && Math.random() < 0.2) {
+    greeting += `${context.userName}.<break time="300ms"/>`;
+  }
+  greeting += middle;
+
+  return greeting;
+}
+
 /**
  * Generate a context-aware greeting.
- * This is the NEW "Better than Human" approach.
+ * This is the "Better than Human" approach - greetings that feel emotionally attuned.
  *
  * @param personaId - The persona generating the greeting
  * @param ctx - Context about the user and timing
  */
 export function generateContextAwareGreeting(personaId: string, ctx: GreetingContext): string {
-  if (personaId === 'ferni') {
-    return buildDynamicFerniGreeting(ctx);
+  switch (personaId) {
+    case 'ferni':
+      return buildDynamicFerniGreeting(ctx);
+    case 'alex-chen':
+      return buildDynamicAlexGreeting(ctx);
+    case 'maya-santos':
+      return buildDynamicMayaGreeting(ctx);
+    case 'jordan-taylor':
+      return buildDynamicJordanGreeting(ctx);
+    case 'peter-john':
+      return buildDynamicPeterGreeting(ctx);
+    case 'nayan-patel':
+      return buildDynamicNayanGreeting(ctx);
+    default:
+      // For unknown personas, fall back to static list
+      const greetings = INSTANT_GREETINGS[personaId] || DEFAULT_GREETINGS;
+      return greetings[Math.floor(Math.random() * greetings.length)];
   }
-
-  // For other personas, fall back to static list for now
-  // TODO: Add context-aware greetings for all personas
-  const greetings = INSTANT_GREETINGS[personaId] || DEFAULT_GREETINGS;
-  return greetings[Math.floor(Math.random() * greetings.length)];
 }
 
 // ============================================================================

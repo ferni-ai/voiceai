@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import {
   getAcknowledgmentPrefix,
-  getThinkingFiller,
+  getContextAwareThinkingFiller, // Replaces deprecated getThinkingFiller
   getCatchphraseWithSsml,
   getResponseEnhancements,
   resetCatchphraseTracking,
@@ -16,7 +16,6 @@ import {
   shouldAddPrefix,
   shouldInjectCatchphrase,
   ACKNOWLEDGMENT_PREFIXES,
-  THINKING_FILLERS,
   PERSONA_CATCHPHRASES,
 } from '../speech/response-naturalness.js';
 
@@ -125,37 +124,50 @@ describe('Acknowledgment Prefixes', () => {
 });
 
 // ============================================================================
-// THINKING FILLERS
+// THINKING FILLERS (ProcessingIntelligence)
 // ============================================================================
 
 describe('Thinking Fillers', () => {
-  describe('THINKING_FILLERS', () => {
-    it('should have fillers for all main personas', () => {
-      const personas = ['nayan-patel', 'peter-john', 'maya', 'jordan', 'alex', 'ferni', 'jack-b'];
-
-      for (const persona of personas) {
-        expect(THINKING_FILLERS[persona]).toBeDefined();
-        expect(THINKING_FILLERS[persona].length).toBeGreaterThan(0);
-      }
-    });
-
-    it('should contain SSML break tags', () => {
-      const filler = THINKING_FILLERS['nayan-patel'][0];
-      expect(filler).toContain('<break');
-    });
-  });
-
-  describe('getThinkingFiller', () => {
+  describe('getContextAwareThinkingFiller', () => {
     it('should return a filler for valid persona', () => {
-      const filler = getThinkingFiller('nayan-patel');
+      const filler = getContextAwareThinkingFiller('nayan-patel');
       expect(filler).toBeTruthy();
       expect(filler).toContain('<break');
     });
 
-    it('should return default filler for unknown persona', () => {
-      const filler = getThinkingFiller('unknown-persona');
+    it('should return a filler for unknown persona', () => {
+      const filler = getContextAwareThinkingFiller('unknown-persona');
       expect(filler).toContain('<break');
-      expect(filler).toContain('Hmm');
+    });
+
+    it('should accept context options', () => {
+      const filler = getContextAwareThinkingFiller('ferni', {
+        type: 'thinking',
+        weight: 'heavy',
+        hourOfDay: 23, // Late night
+      });
+      expect(filler).toBeTruthy();
+      expect(filler).toContain('<break');
+    });
+
+    it('should handle different processing types', () => {
+      const thinkingFiller = getContextAwareThinkingFiller('ferni', { type: 'thinking' });
+      const emotionalFiller = getContextAwareThinkingFiller('ferni', { type: 'emotional' });
+      const toolFiller = getContextAwareThinkingFiller('ferni', { type: 'tool_call' });
+
+      expect(thinkingFiller).toBeTruthy();
+      expect(emotionalFiller).toBeTruthy();
+      expect(toolFiller).toBeTruthy();
+    });
+
+    it('should handle different weights', () => {
+      const lightFiller = getContextAwareThinkingFiller('ferni', { weight: 'light' });
+      const mediumFiller = getContextAwareThinkingFiller('ferni', { weight: 'medium' });
+      const heavyFiller = getContextAwareThinkingFiller('ferni', { weight: 'heavy' });
+
+      expect(lightFiller).toBeTruthy();
+      expect(mediumFiller).toBeTruthy();
+      expect(heavyFiller).toBeTruthy();
     });
   });
 });

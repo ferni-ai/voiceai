@@ -67,6 +67,10 @@ export interface VoiceAgentSessionConfig {
   personaId: string;
   sessionCount?: number;
   relationshipStage?: 'stranger' | 'acquaintance' | 'friend' | 'trusted_advisor';
+  /** User profile for superhuman memory callbacks */
+  userProfile?: {
+    humanMemory?: unknown; // Partial<HumanMemory> but keeping loose for flexibility
+  };
 }
 
 export interface HumanizeContext {
@@ -152,6 +156,27 @@ export async function initConversationSession(
         });
       } catch {
         // Prewarm is optional - continue if it fails
+      }
+
+      // Initialize superhuman memory callbacks (non-blocking)
+      // This queues proactive insights like birthdays, growth celebrations, etc.
+      if (config.userId && config.userProfile?.humanMemory) {
+        try {
+          const { initializeMemoryCallbacks } = await import(
+            '../../personas/bundles/ferni/superhuman-memory-integration.js'
+          );
+          // Pass actual humanMemory for callback generation
+          void initializeMemoryCallbacks(
+            config.userId,
+            config.userProfile.humanMemory as Parameters<typeof initializeMemoryCallbacks>[1]
+          ).then(({ callbacksQueued }) => {
+            if (callbacksQueued > 0) {
+              log.info({ userId: config.userId, callbacksQueued }, '🧠 Memory callbacks queued');
+            }
+          });
+        } catch {
+          // Memory callbacks are optional - continue if they fail
+        }
       }
     } else {
       // Other personas use the shared LLM expression system

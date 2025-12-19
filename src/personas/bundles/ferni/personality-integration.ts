@@ -81,6 +81,15 @@ import {
 // NEW: Cross-Persona Learning
 import { crossPersonaLearning } from '../../shared/cross-persona-learning.js';
 
+// NEW: Voice Pace Integration
+import {
+  voicePacePersonality,
+  getPacePersonalityAdjustment,
+  applyPaceToExpression,
+  fromVoicePaceData,
+  type PacePersonalityAdjustment,
+} from './voice-pace-personality.js';
+
 const log = createLogger({ module: 'ferni-personality-integration' });
 
 // ============================================================================
@@ -473,6 +482,31 @@ export async function processTurnPersonality(
     }
   } else if (noticing && noticing.type !== 'breakthrough_moment') {
     decisionReason = `Focus on noticing: ${noticing.type}`;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STEP 5b: Apply voice pace adjustment to expression
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (expression) {
+    const paceContext = fromVoicePaceData(input.speechRateWPM);
+    const paceAdjustment = getPacePersonalityAdjustment(paceContext);
+
+    // Apply pace adjustment - truncate long expressions for fast talkers
+    expression.content = applyPaceToExpression(expression.content, paceAdjustment);
+
+    // Adjust timing based on pace
+    if (paceAdjustment.preferredTiming && expression.timing !== 'immediate') {
+      expression.timing = paceAdjustment.preferredTiming as typeof expression.timing;
+    }
+
+    log.debug(
+      {
+        pace: paceContext.paceCategory,
+        adjustment: paceAdjustment.expressionLength,
+        maxWords: paceAdjustment.maxExpressionWords,
+      },
+      '⏱️ Applied pace adjustment'
+    );
   }
 
   const expressionMs = expressionTimer.elapsed();

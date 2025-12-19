@@ -83,6 +83,15 @@ interface HandoffContext {
   recentMessages: Array<{ role: 'user' | 'assistant'; content: string }>;
   /** Cognitive insights for the target persona */
   cognitiveContext?: CognitiveHandoffContext;
+  /** Voice emotion for better-than-human entrance adaptation */
+  voiceEmotion?: {
+    voiceEmotion?: string;
+    voiceConfidence?: number;
+    arousal?: number;
+    valence?: number;
+    hasVoiceStrain?: boolean;
+    hasVoiceTremor?: boolean;
+  };
 }
 
 let conversationContext: HandoffContext | null = null;
@@ -97,6 +106,7 @@ export function captureHandoffContext(context: Partial<HandoffContext>): void {
     summary: context.summary || '',
     pendingItems: context.pendingItems || [],
     recentMessages: context.recentMessages || [],
+    voiceEmotion: context.voiceEmotion,
     cognitiveContext: context.cognitiveContext,
   };
 }
@@ -213,6 +223,15 @@ export interface ExecuteHandoffOptions {
   emotionalState?: string;
   /** Topics discussed in the conversation */
   topics?: string[];
+  /** Voice emotion for better-than-human entrance adaptation */
+  voiceEmotion?: {
+    voiceEmotion?: string;
+    voiceConfidence?: number;
+    arousal?: number;
+    valence?: number;
+    hasVoiceStrain?: boolean;
+    hasVoiceTremor?: boolean;
+  };
 }
 
 export interface HandoffResult {
@@ -357,13 +376,14 @@ export async function executeHandoff(
 
   // FIX BUG #6: Capture conversation context if provided
   // This ensures the new persona has awareness of what was just discussed
-  if (options.recentMessages || options.topics || options.emotionalState) {
+  if (options.recentMessages || options.topics || options.emotionalState || options.voiceEmotion) {
     captureHandoffContext({
       topics: options.topics || [],
       emotionalState: options.emotionalState || 'neutral',
       summary: reason,
       pendingItems: [],
       recentMessages: options.recentMessages || [],
+      voiceEmotion: options.voiceEmotion,
     });
     getLogger().debug(
       {
@@ -547,6 +567,8 @@ async function generateHandoffGreeting(
       referringAgent: previousAgent,
       precedingTopic: reason,
       userMood: detectUserMoodFromContext(reason),
+      // Pass voice emotion for better-than-human entrance adaptation
+      voiceEmotion: conversationContext?.voiceEmotion,
     });
 
     if (aliveEntrance) {

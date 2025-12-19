@@ -49,8 +49,6 @@ import {
   type HumanizationContext as DeepContext,
   type SessionMemory,
 } from './deep-humanization/index.js';
-// LEGACY: Import engine from old module for backward compatibility
-import { getDeepHumanizationEngine } from './deep-humanization.js';
 // Detection utilities
 import {
   classifyTopicWeight,
@@ -146,7 +144,6 @@ export class ConversationHumanizer {
   private questions = getQuestionPatternEngine();
   private emotional = getEmotionalArcTracker();
   private dynamics = getResponseDynamicsEngine();
-  private deepHumanization: ReturnType<typeof getDeepHumanizationEngine> | undefined;
   private silencePresence = getSilencePresenceEngine();
 
   // Track if last response included a memory callback
@@ -169,8 +166,6 @@ export class ConversationHumanizer {
     this.sessionId = sessionId || `humanizer-${personaId}-${Date.now()}`;
     this.userId = userId;
     this.sessionCount = sessionCount || 0;
-    // Initialize deep humanization engine for backward compatibility
-    this.deepHumanization = getDeepHumanizationEngine(personaId);
     this.sessionStartTime = Date.now();
     getLogger().debug(
       { personaId, sessionId: this.sessionId, sessionCount: this.sessionCount },

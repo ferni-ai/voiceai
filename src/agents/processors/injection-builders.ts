@@ -274,12 +274,29 @@ export async function buildLifeCoachingInjections(
 // ============================================================================
 
 /**
+ * Trust systems result including injections AND summary for post-response validation
+ */
+export interface TrustSystemsResult {
+  /** Injections to add to LLM context */
+  injections: ContextInjection[];
+  /** Summary for post-response monitoring (used by trust enforcement) */
+  summary: {
+    hasEmotionalMismatch: boolean;
+    topicsToAvoid: string[];
+    hasGrowthReflection: boolean;
+    hasCelebration: boolean;
+  };
+}
+
+/**
  * Build trust systems context injections
  * Includes: small wins, intentions, growth reflections, callbacks, unsaid signals
+ *
+ * Returns both injections (for pre-response guidance) and summary (for post-response monitoring)
  */
 export async function buildTrustSystemsInjections(
   ctx: InjectionBuilderContext
-): Promise<ContextInjection[]> {
+): Promise<TrustSystemsResult> {
   const { userText, services, currentTopic, emotionalState, persona } = ctx;
   const injections: ContextInjection[] = [];
   const startTime = Date.now();
@@ -479,11 +496,33 @@ Weave this naturally early in the conversation. Don't make it feel scripted - ma
     }
     // Record trust system timing
     recordTrustSystemTiming(Date.now() - startTime);
+
+    // Return both injections and summary
+    return {
+      injections,
+      summary: {
+        hasEmotionalMismatch: trustContext.unsaidSignals?.some(
+          (s) => s.type === 'emotional_mismatch' && s.confidence > 0.7
+        ) ?? false,
+        topicsToAvoid: trustContext.topicsToAvoid ?? [],
+        hasGrowthReflection: !!trustContext.growthReflection,
+        hasCelebration: !!trustContext.celebrationOpportunity,
+      },
+    };
   } catch (error) {
     diag.warn('Trust context failed (non-fatal)', { error: String(error) });
   }
 
-  return injections;
+  // Return empty result on failure
+  return {
+    injections,
+    summary: {
+      hasEmotionalMismatch: false,
+      topicsToAvoid: [],
+      hasGrowthReflection: false,
+      hasCelebration: false,
+    },
+  };
 }
 
 // ============================================================================

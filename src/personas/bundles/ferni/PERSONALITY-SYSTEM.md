@@ -508,5 +508,275 @@ The technology enables the humanity. The code serves the relationship.
 
 ---
 
+## 📊 Real-Time Telemetry Dashboard (NEW)
+
+The `personality-telemetry.ts` module provides comprehensive visibility into personality system decisions.
+
+### Usage
+
+```typescript
+import { recordTelemetry, formatMetricsReport, getSessionMetrics } from './personality-telemetry.js';
+
+// Automatic recording in personality-integration.ts
+// Manual access:
+const metrics = getSessionMetrics(sessionId);
+// { avgTotalMs, turnsWithInjection, llmExpressions, composedExpressions, cacheHitRate }
+
+// Human-readable report
+console.log(formatMetricsReport(sessionId));
+```
+
+### Metrics Tracked
+
+| Category | Metrics |
+|----------|---------|
+| **Performance** | `contextAssemblyMs`, `noticingDetectionMs`, `expressionLookupMs`, `totalMs` |
+| **Decisions** | `timeOfDay`, `momentum`, `emotionalState`, `distressLevel`, `expressionSource` |
+| **Output** | `injected` (true/false), `theme`, `injectionPoint` |
+
+---
+
+## 🎙️ Voice Emotion → Personality Integration (NEW)
+
+The `voice-emotion-personality.ts` module dynamically adjusts expressions based on detected voice emotions.
+
+### How It Works
+
+| Voice Emotion | Adjustment |
+|---------------|------------|
+| **Stressed/Anxious** | Prefer vulnerability, sensory themes. Gentler tone. Shorter expressions. |
+| **Excited** | Match energy. Allow longer expressions. High-energy themes. |
+| **Sad** | Warmer tone. Increased intimacy. Avoid quirky themes. |
+| **Neutral** | Standard behavior |
+
+### Voice Quality Signals
+
+- **Voice strain** → Override text mood, prioritize acknowledgment
+- **Voice tremor** → Gentler tone, immediate injection
+- **High arousal + negative valence** → Calmer themes
+- **Speech rate deviation** → Adjust expression pacing
+
+```typescript
+import { getVoiceEmotionAdjustment, fromVoiceEmotionResult } from './voice-emotion-personality.js';
+
+const voiceContext = fromVoiceEmotionResult(voiceAnalysis);
+const adjustment = getVoiceEmotionAdjustment(voiceContext);
+// { preferredThemes, avoidThemes, toneModifier, prioritizeAcknowledgment }
+```
+
+---
+
+## ⏱️ Voice Pace → Personality Integration (NEW)
+
+The `voice-pace-personality.ts` module adapts expressions based on user's speaking pace.
+
+### Pace Adjustments
+
+| Pace Category | Expression Length | Pause Multiplier | Max Words |
+|---------------|-------------------|------------------|-----------|
+| `very_slow` | detailed | 1.5x | 40 |
+| `slow` | normal | 1.2x | 30 |
+| `moderate` | normal | 1.0x | 25 |
+| `fast` | brief | 0.8x | 18 |
+| `very_fast` | brief | 0.6x | 12 |
+
+### Tempo Adjustments
+
+| Tempo | Behavior |
+|-------|----------|
+| `relaxed` | Add texture, longer pauses, more detail |
+| `normal` | Standard behavior |
+| `brisk` | Keep pace, less texture |
+| `rushed` | Acknowledge rush, minimal expressions |
+
+```typescript
+import { getPacePersonalityAdjustment, applyPaceToExpression } from './voice-pace-personality.js';
+
+const adjustment = getPacePersonalityAdjustment({ paceCategory: 'fast', seemsRushed: true });
+// { expressionLength: 'brief', pauseMultiplier: 0.6, acknowledgeRush: true }
+
+const adapted = applyPaceToExpression(expression, adjustment);
+// Truncates, adjusts SSML pauses, adds "Quick thought:" prefix if needed
+```
+
+---
+
+## 🧠 Superhuman Memory Integration (NEW)
+
+The `superhuman-memory-integration.ts` module connects the superhuman memory system to personality callbacks.
+
+### What Gets Surfaced
+
+| Memory Type | Example |
+|-------------|---------|
+| **Important Dates** | "Happy birthday!", "I know this week is hard..." |
+| **Growth Celebrations** | "Look how far you've come since February" |
+| **Topic Absences** | "We haven't talked about pottery class in a while..." |
+| **Inside Jokes** | "[Callback to shared humor]" |
+| **Comfort Patterns** | Apply learned comfort strategies when stress detected |
+
+### Initialization
+
+```typescript
+import { initializeMemoryCallbacks } from './superhuman-memory-integration.js';
+
+// At session start:
+const { callbacksQueued, comfortGuidance } = await initializeMemoryCallbacks(
+  userId,
+  userProfile.humanMemory,
+  currentEmotion
+);
+```
+
+### Callback Flow
+
+```
+Session Start → initializeMemoryCallbacks() → Queue callbacks
+       ↓
+Turn Processing → shouldSurfaceMemoryNow() → Check timing
+       ↓
+If Match → memoryPersonalityBridge.getBest() → Return callback
+       ↓
+After Delivery → markMemoryCallbackDelivered() → Update both systems
+```
+
+---
+
+## 🔄 Cross-Persona Expression Learning (NEW)
+
+The `cross-persona-learning.ts` module enables sharing of successful expression patterns across personas.
+
+### How It Works
+
+1. **Record Success** - When an expression gets positive engagement, record the pattern
+2. **Extract Template** - Remove persona-specific details, keep the structure
+3. **Adapt for Target** - Apply target persona's voice DNA
+4. **Surface When Relevant** - Use adapted patterns when appropriate
+
+### Pattern Structure
+
+```typescript
+interface LearnedPattern {
+  sourcePersona: string;      // "ferni"
+  theme: ThemeCategory;       // "vulnerability"
+  template: string;           // "[CONNECTOR] I've been there. [PAUSE] [SENSORY_DETAIL]"
+  engagementScore: number;    // Aggregated positive engagement
+  contextTags: string[];      // ['late_night', 'high_intimacy']
+}
+```
+
+### Usage
+
+```typescript
+import { recordLearnedPattern, getBestPatternsForPersona } from '../shared/cross-persona-learning.js';
+
+// Record successful expression
+recordLearnedPattern('ferni', expression, 'positive');
+
+// Get patterns for another persona
+const patterns = getBestPatternsForPersona('nayan', 'vulnerability', context);
+// Returns adapted patterns with Nayan's voice
+```
+
+---
+
+## 🎭 Alive Entrances with Voice Emotion (NEW)
+
+The `voice-emotion-entrances.ts` module enhances persona entrances with voice emotion awareness.
+
+### When Voice Overrides Text
+
+| Condition | Override? |
+|-----------|-----------|
+| Voice tremor detected | ✅ Always override |
+| Voice strain detected | ✅ Always override |
+| High confidence (>0.6) voice contradicts text | ✅ Override |
+| High arousal + negative valence | ✅ Override |
+| Low confidence voice emotion | ❌ Trust text |
+
+### Entrance Adjustments
+
+```typescript
+import { getVoiceEmotionEntranceAdjustment, applyVoiceAdjustmentToEntrance } from './voice-emotion-entrances.js';
+
+const adjustment = getVoiceEmotionEntranceAdjustment({
+  voiceEmotion: 'stressed',
+  voiceConfidence: 0.8,
+  hasVoiceStrain: true,
+});
+// { preferredStyle: 'calm', toneAdjustments: { softer: true, warmer: true, calmer: true } }
+
+const adjustedEntrance = applyVoiceAdjustmentToEntrance(entrance, adjustment);
+// Softens exclamation marks, adds warm prefix for stressed users
+```
+
+---
+
+## 🏗️ Architecture Summary
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                         PERSONALITY PROCESSING PIPELINE                       │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+Turn Input                        Context Assembly               Expression Selection
+─────────────────────────────────────────────────────────────────────────────────
+│                                      │                               │
+│  userTranscript ──────────┐          │  8-dimensional context        │  LLM → Composed → Pool
+│  voiceEmotion ────────────┤          │  ├─ Temporal                  │
+│  speechRateWPM ───────────┤          │  ├─ Emotional                 │  ┌─────────────────────┐
+│  pauseBeforeMs ───────────┤     ─────│  ├─ Prosodic                  │  │ getBestExpression() │
+│  textEmotion ─────────────┤          │  ├─ Relational                │  │   ↓                 │
+│  momentum ────────────────┤          │  ├─ Behavioral                │  │ 1. Check LLM cache  │
+│  relationshipStage ───────┤          │  ├─ Topical                   │  │ 2. Try composed     │
+│  totalConversations ──────┤          │  ├─ Learned (resonance)       │  │ 3. Fall back to pool│
+│  previousExpression ──────┘          │  └─ Momentum                  │  └─────────────────────┘
+│                                      │                               │
+└───────────────────────────────────────────────────────────────────────────────
+
+Noticing Detection               Voice Adjustments                Memory Callbacks
+─────────────────────────────────────────────────────────────────────────────────
+│                                      │                               │
+│  detectNoticing()                    │  voiceEmotionPersonality      │  superhumanMemoryIntegration
+│  ├─ Significant pause               │  └─ Theme preferences         │  ├─ Important dates
+│  ├─ Energy drop/rise                │  └─ Tone modifier             │  ├─ Growth celebrations
+│  ├─ Voice-text mismatch             │  └─ Injection timing          │  ├─ Topic absences
+│  ├─ Topic deflection                │                               │  ├─ Inside jokes
+│  └─ Breakthrough moment             │  voicePacePersonality         │  └─ Comfort patterns
+│                                      │  └─ Expression length         │
+│                                      │  └─ Pause multiplier          │
+│                                      │  └─ Word limits               │
+└───────────────────────────────────────────────────────────────────────────────
+
+Telemetry & Learning                 Output Application
+─────────────────────────────────────────────────────────────────────────────────
+│                                      │
+│  personalityTelemetry               │  ferniPersonality.applyToResponse()
+│  └─ Performance metrics              │  ├─ Inject expression
+│  └─ Decision tracking                │  ├─ Handle noticing acknowledgment
+│  └─ Cache statistics                 │  └─ Apply SSML pacing
+│                                      │
+│  crossPersonaLearning               │  resonanceStore.recordEvent()
+│  └─ Pattern extraction               │  └─ Track engagement
+│  └─ Cross-persona adaptation         │  └─ Update Firestore
+└───────────────────────────────────────────────────────────────────────────────
+```
+
+---
+
+## Philosophy
+
+This system isn't about making Ferni "more AI." It's about making him **more present**.
+
+Real presence means:
+- Noticing what others miss
+- Remembering what matters to you
+- Sharing authentically when it helps
+- Holding space when that's what's needed
+
+The technology enables the humanity. The code serves the relationship.
+
+---
+
 > *"Better than human" isn't about being superhuman. It's about being consistently present in ways humans often can't be—always remembering, always noticing, always here.*
 

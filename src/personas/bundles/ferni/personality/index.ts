@@ -157,6 +157,30 @@ export {
   type MemoryPersonalityContext,
 } from '../memory-personality-bridge.js';
 
+// ═══════════════════════════════════════════════════════════════════════════
+// NEW: Superhuman Memory Integration
+// ═══════════════════════════════════════════════════════════════════════════
+export {
+  superhumanMemoryIntegration,
+  initializeMemoryCallbacks,
+  markMemoryCallbackDelivered,
+  getSuperhmanContextForPrompt,
+  shouldSurfaceMemoryNow,
+  type MemoryIntegrationConfig,
+} from '../superhuman-memory-integration.js';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NEW: Voice Pace Integration
+// ═══════════════════════════════════════════════════════════════════════════
+export {
+  voicePacePersonality,
+  getPacePersonalityAdjustment,
+  applyPaceToExpression,
+  fromVoicePaceData,
+  type PacePersonalityAdjustment,
+  type CurrentPaceContext,
+} from '../voice-pace-personality.js';
+
 // Default export
 export { ferniPersonality as default } from '../personality-integration.js';
 

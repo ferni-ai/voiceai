@@ -26,10 +26,11 @@ export {
   ACKNOWLEDGMENT_PREFIXES,
   getAcknowledgmentPrefix,
   getCatchphraseWithSsml,
-  getThinkingFiller,
+  // getThinkingFiller - DEPRECATED: Use getContextAwareThinkingFiller instead
+  getContextAwareThinkingFiller, // Dynamic context-aware version (PREFERRED)
   normalizePersonaId,
   PERSONA_CATCHPHRASES,
-  THINKING_FILLERS,
+  // THINKING_FILLERS - DEPRECATED: Use ProcessingIntelligence instead
 } from './persona-phrases.js';
 
 // Import for internal use

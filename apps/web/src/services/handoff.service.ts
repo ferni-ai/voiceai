@@ -287,10 +287,11 @@ class HandoffService {
   async processDataMessage(message: DataMessage): Promise<boolean> {
     // FIX BUG #33: Handle state reset messages from backend
     if (isStateReset(message)) {
-      log.info('State reset received from backend:', message.activePersona);
-      this.resetSession();
-      // Update app state to match backend
       const personaId = normalizeAgentId(message.activePersona);
+      log.info('State reset received from backend:', personaId);
+      // BUG FIX: Pass the starting persona so metPersonas is correctly initialized
+      this.resetSession(personaId);
+      // Update app state to match backend
       setActivePersona(personaId);
       return true;
     }
@@ -941,14 +942,17 @@ class HandoffService {
 
   /**
    * Reset session state (call on disconnect).
+   * BUG FIX: Now accepts the starting persona to properly initialize metPersonas.
+   * If no persona provided, defaults to 'ferni' for backward compatibility.
    */
-  resetSession(): void {
+  resetSession(startingPersonaId?: PersonaId): void {
     // FIX BUG: Clear timeouts to prevent stuck states
     this.clearHandoffTimeout();
     this.clearPendingSoftOpenTimeout();
 
     this.metPersonas.clear();
-    this.metPersonas.add('ferni');
+    // BUG FIX: Use the actual starting persona, not always 'ferni'
+    this.metPersonas.add(startingPersonaId || 'ferni');
     this._isTransitioning = false;
     this._targetPersona = null;
     // FIX BUG #31: Reset sequence tracking on session reset

@@ -379,3 +379,334 @@ describe('Safety + Trust Integration', () => {
   });
 });
 
+// ============================================================================
+// TRUST CONTEXT SUMMARY TESTS (for post-response monitoring)
+// ============================================================================
+
+describe('Trust Context Summary', () => {
+  it('should correctly identify emotional mismatch presence', () => {
+    const trustContext = createTestTrustContext({
+      unsaidSignals: [
+        createTestUnsaidSignal({
+          type: 'emotional_mismatch',
+          confidence: 0.85,
+        }),
+      ],
+    });
+
+    const hasEmotionalMismatch = trustContext.unsaidSignals?.some(
+      (s) => s.type === 'emotional_mismatch' && s.confidence > 0.7
+    ) ?? false;
+
+    expect(hasEmotionalMismatch).toBe(true);
+  });
+
+  it('should NOT flag low-confidence emotional mismatch', () => {
+    const trustContext = createTestTrustContext({
+      unsaidSignals: [
+        createTestUnsaidSignal({
+          type: 'emotional_mismatch',
+          confidence: 0.4, // Below threshold
+        }),
+      ],
+    });
+
+    const hasEmotionalMismatch = trustContext.unsaidSignals?.some(
+      (s) => s.type === 'emotional_mismatch' && s.confidence > 0.7
+    ) ?? false;
+
+    expect(hasEmotionalMismatch).toBe(false);
+  });
+
+  it('should track topics to avoid', () => {
+    const trustContext = createTestTrustContext({
+      topicsToAvoid: ['father', 'divorce', 'work'],
+    });
+
+    expect(trustContext.topicsToAvoid).toContain('father');
+    expect(trustContext.topicsToAvoid).toContain('divorce');
+    expect(trustContext.topicsToAvoid).toHaveLength(3);
+  });
+
+  it('should identify growth reflection opportunity', () => {
+    const trustContext = createTestTrustContext({
+      growthReflection: {
+        pattern: {
+          id: 'anxiety_reduction',
+          type: 'emotional_regulation' as const,
+          before: { pattern: 'anxious', examples: [], firstSeen: new Date() },
+          after: { pattern: 'calm', examples: [], firstSeen: new Date() },
+          significance: 'notable' as const,
+          confidence: 0.8,
+          timesObserved: 3,
+          reflectedBack: false,
+        },
+        reflection: "You used to get anxious talking about this, but today you seem calmer.",
+        timing: 'now' as const,
+        ssml: '<speak>You used to get anxious talking about this...</speak>',
+      },
+    });
+
+    expect(!!trustContext.growthReflection).toBe(true);
+  });
+
+  it('should identify celebration opportunity', () => {
+    const trustContext = createTestTrustContext({
+      celebrationOpportunity: {
+        win: {
+          id: 'win-123',
+          type: 'showed_up',
+          description: 'meditation 5 days in a row',
+          timestamp: new Date(),
+          celebrated: false,
+        },
+        celebration: "Five days! Your consistency is inspiring.",
+        ssml: '<speak>Five days!</speak>',
+        intensity: 'medium',
+      },
+    });
+
+    expect(!!trustContext.celebrationOpportunity).toBe(true);
+  });
+});
+
+// ============================================================================
+// RESPONSE PROCESSOR INTEGRATION (End-to-End)
+// ============================================================================
+
+describe('Response Processor Integration', () => {
+  it('should type-check response processor context shape', () => {
+    // This test validates the TypeScript interface is correct
+    // The actual processing happens in production
+    const context = {
+      rawText: "Let me help you with that.",
+      persona: { id: 'ferni', name: 'Ferni' },
+      trustContext: {
+        hasEmotionalMismatch: false,
+        topicsToAvoid: [],
+        hasGrowthReflection: true,
+        hasCelebration: false,
+      },
+      crisisResult: {
+        isCrisis: false,
+        severity: 0,
+        indicators: [],
+      },
+    };
+
+    // Validate shape
+    expect(context.trustContext.hasEmotionalMismatch).toBe(false);
+    expect(context.crisisResult.isCrisis).toBe(false);
+  });
+
+  it('should identify when trust phrase injection is needed', () => {
+    const enforcement = enforceTrustContext(
+      "That sounds good.",
+      {
+        trustContext: createTestTrustContext({
+          unsaidSignals: [
+            createTestUnsaidSignal({
+              type: 'emotional_mismatch',
+              confidence: 0.9,
+              phrase: "Something in your voice tells me there might be more going on.",
+            }),
+          ],
+        }),
+      }
+    );
+
+    expect(enforcement.phraseToUse).toBeDefined();
+  });
+});
+
+// ============================================================================
+// E2E CRISIS FLOW TESTS
+// These tests verify the crisis detection → turn processor → handler flow
+// ============================================================================
+
+describe('Crisis Flow E2E', () => {
+  it('should produce crisis override structure for severe crisis', () => {
+    // Use a phrase that matches EXPLICIT_CRISIS_PATTERNS
+    // Pattern: /don't want to (live|be alive|exist|be here anymore)/i
+    const crisisText = "I don't want to live anymore";
+
+    // Step 1: Detect crisis
+    const crisisResult = detectCrisis(crisisText);
+
+    expect(crisisResult.isCrisis).toBe(true);
+    expect(crisisResult.severity).toBeGreaterThanOrEqual(0.7);
+    expect(crisisResult.indicators).toContain('explicit_crisis_language');
+
+    // Step 2: Pre-response guard should block for severe
+    const preGuard = guardPreResponse(crisisText);
+
+    // Note: preGuard only blocks at very high severity (0.85+)
+    // For explicit crisis language, it should be high enough
+    if (crisisResult.severity >= 0.85) {
+      expect(preGuard.shouldBlock).toBe(true);
+      expect(preGuard.replacementResponse).toBeDefined();
+    }
+
+    // Step 3: Build the crisis object that would go into TurnProcessorResult
+    const crisisForResult = {
+      isCrisis: crisisResult.isCrisis,
+      severity: crisisResult.severity,
+      indicators: crisisResult.indicators,
+      suggestedResponse: crisisResult.suggestedResponse,
+      shouldOverrideLLM: preGuard.shouldBlock,
+    };
+
+    // Step 4: Verify the structure is correct for turn-handler
+    expect(crisisForResult.isCrisis).toBe(true);
+    expect(crisisForResult.indicators.length).toBeGreaterThan(0);
+  });
+
+  it('should produce crisis injection (not override) for moderate distress', () => {
+    // Use a phrase that matches IMPLICIT_DISTRESS_PATTERNS
+    // Pattern: /everything is (falling apart|too much|overwhelming)/i
+    const distressText = "Everything is falling apart and I can't cope";
+
+    // Step 1: Detect moderate distress
+    const crisisResult = detectCrisis(distressText);
+
+    // Should detect implicit distress
+    expect(crisisResult.severity).toBeGreaterThan(0);
+    expect(crisisResult.indicators).toContain('implicit_distress');
+
+    // Step 2: Pre-response guard should NOT block for moderate
+    const preGuard = guardPreResponse(distressText);
+
+    // Moderate distress should not trigger hard block
+    expect(preGuard.shouldBlock).toBe(false);
+
+    // Step 3: Build the crisis object
+    const crisisForResult = {
+      isCrisis: crisisResult.isCrisis,
+      severity: crisisResult.severity,
+      indicators: crisisResult.indicators,
+      suggestedResponse: crisisResult.suggestedResponse,
+      shouldOverrideLLM: preGuard.shouldBlock,
+    };
+
+    // Step 4: For moderate, shouldOverrideLLM is false
+    // The turn-handler will add a high-priority injection instead
+    expect(crisisForResult.shouldOverrideLLM).toBe(false);
+  });
+
+  it('should NOT trigger crisis for normal conversation', () => {
+    const normalTexts = [
+      "I had a great day at work",
+      "Can you help me plan my weekend?",
+      "I'm feeling pretty good today",
+      "What's the weather like?",
+    ];
+
+    for (const text of normalTexts) {
+      const crisisResult = detectCrisis(text);
+      const preGuard = guardPreResponse(text);
+
+      expect(crisisResult.isCrisis).toBe(false);
+      expect(crisisResult.severity).toBe(0);
+      expect(preGuard.shouldBlock).toBe(false);
+    }
+  });
+
+  it('should amplify crisis detection with voice emotion', () => {
+    const text = "I'm fine, don't worry about me";
+
+    // Without voice emotion - might not detect
+    const withoutVoice = detectCrisis(text);
+
+    // With distressed voice - should detect emotional mismatch/concern
+    const withDistressedVoice = detectCrisis(text, {
+      primary: 'distressed',
+      intensity: 0.9,
+      confidence: 0.85,
+    });
+
+    // Voice distress should increase severity
+    expect(withDistressedVoice.severity).toBeGreaterThan(withoutVoice.severity);
+    expect(withDistressedVoice.indicators).toContain('voice_high_distress');
+  });
+});
+
+// ============================================================================
+// TRUST CONTEXT FLOW TESTS
+// These verify that trust context summary is correctly structured
+// ============================================================================
+
+describe('Trust Context Flow E2E', () => {
+  it('should produce correct trust context summary shape', () => {
+    const trustContext = createTestTrustContext({
+      unsaidSignals: [
+        createTestUnsaidSignal({
+          type: 'emotional_mismatch',
+          confidence: 0.85,
+        }),
+      ],
+      topicsToAvoid: ['father', 'divorce'],
+      growthReflection: {
+        pattern: {
+          id: 'anxiety_reduction',
+          type: 'emotional_regulation' as const,
+          before: { pattern: 'anxious', examples: ['I always freak out'], firstSeen: new Date() },
+          after: { pattern: 'calm', examples: ['I took a breath'], firstSeen: new Date() },
+          significance: 'notable' as const,
+          confidence: 0.8,
+          timesObserved: 3,
+          reflectedBack: false,
+        } as import('../../services/trust-systems/growth-reflection.js').GrowthPattern,
+        reflection: 'You seem calmer now.',
+        timing: 'now' as const,
+        ssml: '<speak>You seem calmer now.</speak>',
+      },
+      celebrationOpportunity: {
+        win: {
+          id: 'win-1',
+          type: 'showed_up',
+          description: '5 days of meditation',
+          timestamp: new Date(),
+          celebrated: false,
+        },
+        celebration: 'Five days!',
+        ssml: '<speak>Five days!</speak>',
+        intensity: 'medium',
+      },
+    });
+
+    // Build summary (mimics what injection-builders.ts does)
+    const summary = {
+      hasEmotionalMismatch: trustContext.unsaidSignals?.some(
+        (s) => s.type === 'emotional_mismatch' && s.confidence > 0.7
+      ) ?? false,
+      topicsToAvoid: trustContext.topicsToAvoid ?? [],
+      hasGrowthReflection: !!trustContext.growthReflection,
+      hasCelebration: !!trustContext.celebrationOpportunity,
+    };
+
+    // Verify summary shape
+    expect(summary.hasEmotionalMismatch).toBe(true);
+    expect(summary.topicsToAvoid).toEqual(['father', 'divorce']);
+    expect(summary.hasGrowthReflection).toBe(true);
+    expect(summary.hasCelebration).toBe(true);
+  });
+
+  it('should produce empty summary for clean context', () => {
+    const trustContext = createTestTrustContext();
+
+    const summary = {
+      hasEmotionalMismatch: trustContext.unsaidSignals?.some(
+        (s) => s.type === 'emotional_mismatch' && s.confidence > 0.7
+      ) ?? false,
+      topicsToAvoid: trustContext.topicsToAvoid ?? [],
+      hasGrowthReflection: !!trustContext.growthReflection,
+      hasCelebration: !!trustContext.celebrationOpportunity,
+    };
+
+    expect(summary.hasEmotionalMismatch).toBe(false);
+    expect(summary.topicsToAvoid).toEqual([]);
+    expect(summary.hasGrowthReflection).toBe(false);
+    expect(summary.hasCelebration).toBe(false);
+  });
+});
+

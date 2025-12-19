@@ -1,6 +1,21 @@
 /**
  * In-Process Job Executor
  *
+ * @deprecated LEGACY - NOT USED IN PRODUCTION
+ * Production uses the standard LiveKit child process model via voice-worker.ts.
+ *
+ * This was designed for Cloud Run's cold start issues, but since moving to GCE:
+ * - GCE has persistent instances (no cold starts)
+ * - Child process model provides better isolation
+ * - This adds complexity without benefit
+ *
+ * CANONICAL ENTRY POINTS:
+ * - voice-worker.ts (main process bootstrap)
+ * - voice-agent-child.ts (child process agent)
+ *
+ * ──────────────────────────────────────────────
+ * Original purpose (historical):
+ *
  * Runs voice agent jobs directly in the main process WITHOUT forking child processes.
  *
  * WHY THIS EXISTS:
@@ -24,9 +39,9 @@
  *
  * For Ferni's use case (single concurrent call per instance), this is perfect.
  *
- * @note STATUS: IMPLEMENTED BUT NOT USED
+ * STATUS: IMPLEMENTED BUT NOT USED
  * This executor was designed for Cloud Run but we now run on GCE which doesn't
- * have the same cold start issues. Kept for potential future use.
+ * have the same cold start issues. Kept for potential future use or rollback.
  */
 
 import {

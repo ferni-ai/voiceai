@@ -33,6 +33,7 @@ import type {
   EmotionalState,
   IdentityContext,
   ResponseGuidance,
+  TrustContextSummary,
   TurnAnalysisResult,
   TurnContext,
   TurnProcessorResult,
@@ -1070,6 +1071,16 @@ function processBundleRuntime(
 // ============================================================================
 
 /**
+ * Result from building context injections
+ */
+interface ContextInjectionsResult {
+  /** All context injections for LLM */
+  injections: ContextInjection[];
+  /** Trust context summary for post-response monitoring */
+  trustContextSummary: TrustContextSummary;
+}
+
+/**
  * Build all context injections for the LLM
  */
 async function buildContextInjections(
@@ -1081,7 +1092,7 @@ async function buildContextInjections(
   humanizingResult: HumanizingResult | null,
   bundleRuntimeContext: BundleRuntimeContext | undefined,
   conversationDynamics: ConversationDynamicsResult
-): Promise<ContextInjection[]> {
+): Promise<ContextInjectionsResult> {
   const { services, userData, persona, bundleRuntime, userText } = ctx;
   const { analysis, currentTopic } = analysisResult;
 
@@ -1149,7 +1160,7 @@ async function buildContextInjections(
     contextInjections,
     scientificResult,
     coachingInjections,
-    trustInjections,
+    trustSystemsResult,
     boundaryInjections,
     healthInjections,
   ] = await Promise.all([
@@ -1159,7 +1170,7 @@ async function buildContextInjections(
     buildScientificCoachingInjections(builderInput),
     // Life coaching
     buildLifeCoachingInjections(builderInput),
-    // Trust systems
+    // Trust systems (returns injections + summary for post-response monitoring)
     buildTrustSystemsInjections(builderInput),
     // Boundary check
     buildBoundaryCheckInjections({
@@ -1169,6 +1180,10 @@ async function buildContextInjections(
     // Health awareness
     buildHealthAwarenessInjections(),
   ]);
+
+  // Extract trust injections and summary
+  const trustInjections = trustSystemsResult.injections;
+  const trustContextSummary = trustSystemsResult.summary;
 
   // Process context injections
   if (contextInjections.length > 0) {
@@ -1652,7 +1667,10 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
   // Sort by priority (highest first)
   injections.sort((a, b) => b.priority - a.priority);
 
-  return injections;
+  return {
+    injections,
+    trustContextSummary,
+  };
 }
 
 // ============================================================================
@@ -1918,7 +1936,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   // ============================================================================
 
   const contextTimer = createTimer();
-  const [injections, advancedHumanizationResult] = await Promise.all([
+  const [contextInjectionsResult, advancedHumanizationResult] = await Promise.all([
     // 9. Build all context injections
     (async () => {
       const injectionsTimer = createTimer();
@@ -1946,6 +1964,10 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     })(),
   ]);
   recordPhaseTiming('context_injections', contextTimer.stop());
+
+  // Extract injections and trust context from the result
+  const injections = contextInjectionsResult.injections;
+  const trustContextSummary = contextInjectionsResult.trustContextSummary;
 
   // Add advanced humanization injections
   if (advancedHumanizationResult) {
@@ -2184,6 +2206,8 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       suggestedResponse: crisisResult.suggestedResponse,
       shouldOverrideLLM: preResponseGuard.shouldBlock,
     },
+    // 🤝 TRUST: Trust context summary for post-response monitoring
+    trustContext: trustContextSummary,
   };
 }
 

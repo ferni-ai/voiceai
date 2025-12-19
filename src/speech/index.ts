@@ -88,13 +88,14 @@ export {
   PERSONA_BACKCHANNEL_STYLE,
   PERSONA_CATCHPHRASES,
   SOFT_BACKCHANNELS,
-  THINKING_FILLERS,
+  // THINKING_FILLERS - DEPRECATED: Use ProcessingIntelligence instead
   getAcknowledgmentPrefix,
   getBackchannelPhrase,
   getCatchphraseWithSsml,
   getPersonaBackchannelStyle,
   getSoftBackchannel,
-  getThinkingFiller,
+  // getThinkingFiller - DEPRECATED: Use getContextAwareThinkingFiller
+  getContextAwareThinkingFiller, // Context-aware ProcessingIntelligence integration
   normalizePersonaId,
   type AcknowledgmentMood,
   type BackchannelCategory,
@@ -192,8 +193,9 @@ export { sanitizeSsml, tagTextWithSsml, tagTextWithSsmlPersonaAware } from '../s
 
 // ============================================================================
 // RESPONSE NATURALNESS
-// Note: ACKNOWLEDGMENT_PREFIXES, PERSONA_CATCHPHRASES, THINKING_FILLERS, etc.
+// Note: ACKNOWLEDGMENT_PREFIXES, PERSONA_CATCHPHRASES, etc.
 // are exported from persona-phrases.js (canonical source)
+// THINKING_FILLERS is deprecated - use ProcessingIntelligence
 // ============================================================================
 
 export {

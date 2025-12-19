@@ -30,7 +30,7 @@ import type { PersonaConfig } from '../../personas/types.js';
 import type { ConversationManager } from '../../services/conversation-manager.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import { getLiveBackchannelingService } from '../../speech/live-backchanneling/index.js';
-import { getThinkingFiller } from '../../speech/response-naturalness.js';
+import { getContextAwareThinkingFiller } from '../../speech/response-naturalness.js';
 import {
   trackBackchannelEvent,
   trackResponseLatency,
@@ -491,12 +491,24 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
         if (!conversationManager.isAgentSpeaking()) {
           const timeSinceStop = Date.now() - userStoppedAt;
           if (timeSinceStop >= SILENCE_THRESHOLDS.EARLY_ACKNOWLEDGMENT_SECONDS * 1000 - 100) {
-            const filler = getThinkingFiller(sessionPersona.id);
+            // Use dynamic context-aware filler based on emotional state & time
+            const filler = getContextAwareThinkingFiller(sessionPersona.id, {
+              type: 'thinking',
+              weight: userData.lastEmotionAnalysis?.intensity && userData.lastEmotionAnalysis.intensity > 0.7
+                ? 'heavy'
+                : userData.lastEmotionAnalysis?.intensity && userData.lastEmotionAnalysis.intensity > 0.4
+                  ? 'medium'
+                  : 'light',
+              emotionalState: userData.lastEmotionAnalysis,
+              hourOfDay: new Date().getHours(),
+              relationshipStage: userData.relationshipStage,
+            });
             try {
               session.say(filler, { allowInterruptions: true });
-              diag.state('Early acknowledgment (agent processing)', {
+              diag.filler('Early context-aware acknowledgment', {
                 waitedMs: timeSinceStop,
                 personaId: sessionPersona.id,
+                emotionalContext: userData.lastEmotionAnalysis?.primary,
               });
             } catch (e) {
               getLogger().debug({ error: e }, 'Failed to say early acknowledgment');

@@ -172,7 +172,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'personal-journey',
   ],
 
-  // HUMANIZING - Make responses natural
+  // HUMANIZING - Make responses natural + Better Than Human features
   // unified-humanizing consolidates: humanizing, deep-humanization, conversation-humanizing,
   // natural-uncertainty, response-length, energy-mirroring, energy-awareness
   // Legacy builders kept for backwards compatibility but unified-humanizing is preferred
@@ -186,6 +186,11 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'energy-mirroring',
     'energy-awareness',
     'tool-humanization', // Natural tool usage framing
+    // BETTER THAN HUMAN (Dec 2024)
+    'proactive-noticing', // "I notice..." pattern surfacing
+    'commitment-follow-up', // Accountability tracking
+    'temporal-intelligence', // Time patterns, important dates
+    'deep-relationship', // Shared vocabulary, milestones, inside jokes
   ],
 
   // LEARNING - Collective intelligence

@@ -8,7 +8,7 @@
  * @module @ferni/conversation/effects/types
  */
 
-import type { ConversationMood } from '../deep-humanization.js';
+import type { ConversationMood } from '../deep-humanization/types.js';
 
 // ============================================================================
 // CORE EFFECT TYPES

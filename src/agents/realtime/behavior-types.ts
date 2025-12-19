@@ -39,7 +39,9 @@ export type ProcessingType =
   | 'thinking' // General thinking
   | 'emotional' // Processing emotional content
   | 'tool_call' // Waiting for tool execution
-  | 'memory_recall'; // Searching memory
+  | 'memory_recall' // Searching memory
+  | 'after_tool_result' // Processing tool results (show interest in what was found)
+  | 'context_loading'; // Loading contextual information (persona bundle, settings, etc.)
 
 /**
  * Weight of what's being processed (affects phrase selection)

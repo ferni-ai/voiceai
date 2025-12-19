@@ -487,7 +487,7 @@ const EMBED_SCRIPT = `
   const WIDGET_ID = window.FerniWidget?.widgetId;
 
   if (!WIDGET_ID) {
-    console.error('[Ferni] Widget ID not configured. Set window.FerniWidget.widgetId');
+    if (window.FerniWidget?.debug) console.error('[Ferni] Widget ID not configured. Set window.FerniWidget.widgetId');
     return;
   }
 
@@ -598,9 +598,9 @@ const EMBED_SCRIPT = `
         setTimeout(open, 2000);
       }
 
-      console.log('[Ferni] Widget initialized:', config.displayName);
+      if (window.FerniWidget?.debug) console.log('[Ferni] Widget initialized:', config.displayName);
     } catch (err) {
-      console.error('[Ferni] Failed to initialize:', err);
+      if (window.FerniWidget?.debug) console.error('[Ferni] Failed to initialize:', err);
     }
   }
 
@@ -664,7 +664,7 @@ const EMBED_SCRIPT = `
         isOpen = true;
       });
     } catch (err) {
-      console.error('[Ferni] Failed to open:', err);
+      if (window.FerniWidget?.debug) console.error('[Ferni] Failed to open:', err);
       alert('Unable to start voice assistant. Please try again later.');
     }
   }

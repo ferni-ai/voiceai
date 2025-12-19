@@ -705,7 +705,10 @@ async function routeToTool(
   }
 
   // ========================================
-  // PRODUCTIVITY TOOLS (Stub - return helpful messages)
+  // PRODUCTIVITY TOOLS (Conversational Fallbacks)
+  // These tools don't have full backend implementation yet, but provide
+  // helpful conversational responses to keep the dialogue flowing naturally.
+  // TODO: Connect to real task/goal tracking when available
   // ========================================
   if (fnLower === 'addtask') {
     const title = args.title as string;
@@ -734,27 +737,210 @@ async function routeToTool(
   }
 
   // ========================================
-  // HABITS TOOLS (Stub - return helpful messages)
+  // HABITS TOOLS (Connected to Maya's Habit Coaching Domain)
+  // Full habit tracking with behavior science backing.
   // ========================================
   if (fnLower === 'createhabit') {
     const name = args.name as string;
-    log.info({ name }, '✅ Habit noted');
-    return name ? `Great habit to build: "${name}". I'll remember that's important to you.` : "What habit would you like to develop?";
+    const domain = (args.domain as string) || 'selfCare';
+    const cue = args.cue as string;
+    
+    if (!name) {
+      return "What habit would you like to develop?";
+    }
+    
+    log.info({ name, domain, userId: ctx.userId }, '✅ Creating habit');
+    
+    // Store habit in Firestore with behavior science structure
+    if (ctx.userId) {
+      try {
+        const { getFirestore } = await import('firebase-admin/firestore');
+        const db = getFirestore();
+        
+        const habitId = `habit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        await db
+          .collection('bogle_users')
+          .doc(ctx.userId)
+          .collection('habits')
+          .doc(habitId)
+          .set({
+            id: habitId,
+            name,
+            domain,
+            cue: cue || null,
+            currentLevel: 1, // Start at tiny habit level (Glidepath)
+            targetLevel: 3,
+            frequency: 'daily',
+            currentStreak: 0,
+            totalCompletions: 0,
+            isActive: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+        
+        // Return behavior-science guided response
+        const tinyHabitResponses = [
+          `Starting "${name}" - smart choice. Let's make this so small you can't fail. What's the tiniest version of this habit? Something that takes less than 2 minutes.`,
+          `I'm tracking "${name}" for you. Here's the key: start ridiculously small. When and where will you do this? Let's create a clear trigger.`,
+          `"${name}" is now in your habit stack. The secret? Attach it to something you already do. After what existing habit could you do this?`,
+        ];
+        return tinyHabitResponses[Math.floor(Math.random() * tinyHabitResponses.length)];
+      } catch (err) {
+        log.warn({ error: String(err) }, 'Habit storage failed');
+      }
+    }
+    
+    return `Great habit to build: "${name}". Let's make it stick - what's the tiniest version you could start with?`;
   }
 
-  if (fnLower === 'loghabitcompletion') {
-    const habitName = args.habitName as string;
-    log.info({ habitName }, '✅ Habit completion noted');
-    return habitName ? `Nice work completing "${habitName}"! Every step counts.` : "Which habit did you complete?";
+  if (fnLower === 'loghabitcompletion' || fnLower === 'loghabit') {
+    const habitName = args.habitName as string || args.name as string;
+    
+    if (!habitName) {
+      return "Which habit did you complete?";
+    }
+    
+    log.info({ habitName, userId: ctx.userId }, '✅ Habit completion logged');
+    
+    // Update habit tracking in Firestore
+    if (ctx.userId) {
+      try {
+        const { getFirestore } = await import('firebase-admin/firestore');
+        const db = getFirestore();
+        
+        // Find the habit by name
+        const habitsSnapshot = await db
+          .collection('bogle_users')
+          .doc(ctx.userId)
+          .collection('habits')
+          .where('isActive', '==', true)
+          .get();
+        
+        const matchingHabit = habitsSnapshot.docs.find(doc => {
+          const data = doc.data();
+          return data.name.toLowerCase().includes(habitName.toLowerCase());
+        });
+        
+        if (matchingHabit) {
+          const habitData = matchingHabit.data();
+          const newStreak = (habitData.currentStreak || 0) + 1;
+          const newTotal = (habitData.totalCompletions || 0) + 1;
+          
+          await matchingHabit.ref.update({
+            currentStreak: newStreak,
+            totalCompletions: newTotal,
+            lastCompleted: new Date(),
+            updatedAt: new Date(),
+          });
+          
+          // Log completion event
+          await db
+            .collection('bogle_users')
+            .doc(ctx.userId)
+            .collection('habit_completions')
+            .add({
+              habitId: matchingHabit.id,
+              habitName: habitData.name,
+              completedAt: new Date(),
+              streak: newStreak,
+            });
+          
+          // Generate streak-aware celebration
+          if (newStreak === 7) {
+            return `🔥 One week streak on "${habitData.name}"! That's real momentum. Your brain is starting to expect this now.`;
+          } else if (newStreak === 21) {
+            return `🎯 21 days of "${habitData.name}"! This is becoming automatic. You're rewiring your brain.`;
+          } else if (newStreak === 30) {
+            return `🏆 30 days! "${habitData.name}" is officially part of who you are now. That's identity change.`;
+          } else if (newStreak >= 3 && newStreak % 7 === 0) {
+            return `${newStreak} day streak on "${habitData.name}". You're building something real here.`;
+          }
+          
+          const celebrations = [
+            `Nice work on "${habitData.name}"! That's ${newStreak} ${newStreak === 1 ? 'day' : 'days'} in a row.`,
+            `"${habitData.name}" - done! Every rep matters. Streak: ${newStreak}.`,
+            `Logged! "${habitData.name}" - ${newTotal} total completions. You're showing up.`,
+          ];
+          return celebrations[Math.floor(Math.random() * celebrations.length)];
+        }
+      } catch (err) {
+        log.warn({ error: String(err) }, 'Habit completion logging failed');
+      }
+    }
+    
+    return `Nice work completing "${habitName}"! Every step counts.`;
   }
 
   if (fnLower === 'gethabits') {
-    log.info({ type: args.type }, '📋 Habits requested');
-    return "I don't have a formal habit tracking system yet, but I'd love to hear about the habits you're working on.";
+    log.info({ type: args.type, userId: ctx.userId }, '📋 Habits requested');
+    
+    if (ctx.userId) {
+      try {
+        const { getFirestore } = await import('firebase-admin/firestore');
+        const db = getFirestore();
+        
+        const habitsSnapshot = await db
+          .collection('bogle_users')
+          .doc(ctx.userId)
+          .collection('habits')
+          .where('isActive', '==', true)
+          .orderBy('createdAt', 'desc')
+          .limit(10)
+          .get();
+        
+        if (!habitsSnapshot.empty) {
+          const habits = habitsSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return `${data.name} (${data.currentStreak || 0} day streak)`;
+          });
+          return `Your active habits: ${habits.join(', ')}. Want to log a completion or add a new one?`;
+        }
+      } catch (err) {
+        log.warn({ error: String(err) }, 'Habit retrieval failed');
+      }
+    }
+    
+    return "You don't have any tracked habits yet. Would you like to start one? I can help you design it using behavior science.";
+  }
+  
+  if (fnLower === 'gethabitstats') {
+    const habitName = args.habitName as string;
+    log.info({ habitName, userId: ctx.userId }, '📊 Habit stats requested');
+    
+    if (ctx.userId) {
+      try {
+        const { getFirestore } = await import('firebase-admin/firestore');
+        const db = getFirestore();
+        
+        const habitsSnapshot = await db
+          .collection('bogle_users')
+          .doc(ctx.userId)
+          .collection('habits')
+          .where('isActive', '==', true)
+          .get();
+        
+        if (!habitsSnapshot.empty) {
+          const stats = habitsSnapshot.docs.map(doc => {
+            const data = doc.data();
+            const successRate = data.totalCompletions > 0 
+              ? Math.round((data.currentStreak / data.totalCompletions) * 100) 
+              : 0;
+            return `${data.name}: ${data.currentStreak} day streak, ${data.totalCompletions} total`;
+          });
+          return `Your habit progress:\n${stats.join('\n')}`;
+        }
+      } catch (err) {
+        log.warn({ error: String(err) }, 'Habit stats failed');
+      }
+    }
+    
+    return "I don't have habit stats for you yet. Let's create a habit to track!";
   }
 
   // ========================================
-  // WELLNESS TOOLS (Stub - return helpful messages)
+  // WELLNESS TOOLS (Conversational Fallbacks)
+  // These provide immediate helpful responses for wellness requests.
+  // Crisis resources are real - always provide 988 hotline info.
   // ========================================
   if (fnLower === 'getcrisisresources') {
     log.info({ type: args.type }, '🆘 Crisis resources requested');
@@ -773,7 +959,9 @@ async function routeToTool(
   }
 
   // ========================================
-  // WISDOM TOOLS (Stub - return thoughtful messages)
+  // WISDOM TOOLS (Conversational Fallbacks)
+  // These provide actual wisdom content - not stubs!
+  // Nayan's full wisdom tools are in tools/domains/wisdom.
   // ========================================
   if (fnLower === 'paradoxoftheday') {
     log.info({ action: args.action }, '🤔 Paradox requested');
@@ -802,7 +990,9 @@ async function routeToTool(
   }
 
   // ========================================
-  // GAMES (Stub - return engaging messages)
+  // GAMES (Conversational Fallbacks)
+  // These initiate game conversations naturally.
+  // Full game implementations are in tools/domains/games.
   // ========================================
   if (fnLower === 'startgame' || fnLower === 'starttextgame') {
     const game = args.game as string;
@@ -828,7 +1018,10 @@ async function routeToTool(
   }
 
   // ========================================
-  // COMMUNICATION TOOLS (Stub - return helpful messages)
+  // COMMUNICATION TOOLS (Conversational Fallbacks)
+  // Alex's full communication tools are in tools/domains/communication.
+  // These fallbacks help draft/analyze messages conversationally.
+  // TODO: Connect sendMessage to actual messaging when available
   // ========================================
   if (fnLower === 'sendmessage') {
     const recipient = args.recipient as string;
@@ -853,7 +1046,10 @@ async function routeToTool(
   }
 
   // ========================================
-  // CALENDAR TOOLS (Stub - return helpful messages)
+  // CALENDAR TOOLS (Conversational Fallbacks)
+  // Jordan's full calendar tools require Google Calendar integration.
+  // See: tools/domains/calendar for OAuth-connected implementation.
+  // These fallbacks acknowledge requests when calendar isn't connected.
   // ========================================
   if (fnLower === 'createappointment') {
     const title = args.title as string;

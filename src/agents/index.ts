@@ -10,26 +10,39 @@
  * │   │   ├── types.ts        - SessionContext, adapters           │
  * │   │   ├── result.ts       - Result<T,E> error handling         │
  * │   │   ├── errors.ts       - Structured error hierarchy         │
- * │   │   └── pipeline.ts     - Composable pipeline pattern        │
+ * │   │   ├── pipeline.ts     - Composable pipeline pattern        │
+ * │   │   └── inference-executor.ts - InProcessInferenceExecutor   │
  * │   │                                                             │
- * │   ├── worker.ts           - ⭐ PRIMARY: GCE entry point        │
+ * │   ├── gce-voice-worker.ts - ⭐ PRIMARY: GCE entry point        │
+ * │   ├── worker.ts           - Re-export (backwards compat)       │
  * │   ├── voice-agent-entry.ts - ⭐ Session lifecycle management   │
+ * │   │                                                             │
+ * │   ├── personas/           - PersonaVoiceAgent & persona agents │
+ * │   │   ├── ferni-agent.ts  - PersonaVoiceAgent (FerniAgent)     │
+ * │   │   ├── maya-agent.ts   - MayaAgent (habits specialist)      │
+ * │   │   └── ...             - Other persona agents               │
  * │   │                                                             │
  * │   ├── safety/             - 🚨 HARD safety rails (crisis)      │
  * │   ├── trust/              - Trust enforcement layer            │
- * │   ├── shared/             - Shared utilities                   │
+ * │   ├── shared/             - Shared utilities & performance     │
  * │   ├── handlers/           - Event handlers                     │
  * │   ├── processors/         - Turn processing (crisis detection) │
  * │   ├── realtime/           - Frontend communication             │
  * │   ├── session/            - Session state management           │
+ * │   ├── integrations/       - External service integrations      │
  * │   └── voice-agent/        - Voice agent handlers & phases      │
+ * │       ├── turn-handler.ts - Turn orchestrator                  │
+ * │       ├── turn-personality.ts - Personality system             │
+ * │       ├── turn-events.ts  - Event dispatch                     │
+ * │       ├── turn-learning.ts - Trust & learning recording        │
+ * │       └── phases/         - Session phases                     │
  * │                                                                 │
- * │   LEGACY (kept for reference, not used in production):         │
- * │   ├── voice-agent.ts      - Monolith (use voice-agent-entry)   │
- * │   ├── voice-worker.ts     - Child process mode (not used)      │
- * │   ├── voice-worker-single-process.ts - Alternative (not used)  │
- * │   ├── voice-agent-child.ts - Child process (not used)          │
- * │   └── in-process-executor.ts - Cloud Run (not used on GCE)     │
+ * │   _legacy/ (archived, not used in production):                 │
+ * │   ├── voice-agent.ts      - Monolith (replaced by handlers)    │
+ * │   ├── voice-worker.ts     - Child process mode                 │
+ * │   ├── voice-worker-single-process.ts - Cloud Run alternative   │
+ * │   ├── voice-agent-child.ts - Child process agent               │
+ * │   └── in-process-executor.ts - Cloud Run executor              │
  * └─────────────────────────────────────────────────────────────────┘
  *
  * SAFETY FLOW:
@@ -40,7 +53,8 @@
  *   5. Trust context added via injection-builders.ts
  *
  * Usage:
- *   node dist/agents/worker.js start  (GCE - recommended)
+ *   node dist/agents/gce-voice-worker.js start  (GCE - recommended)
+ *   node dist/agents/worker.js start            (backwards compat)
  *
  * Available personas:
  *   - ferni: The life coach (main persona)
@@ -194,11 +208,48 @@ export {
 } from './shared/performance/batch-analytics.js';
 
 // ============================================================================
+// PERSONAS (voice agents for each character)
+// ============================================================================
+
+export {
+  // Main voice agent (renamed from FerniAgent for clarity)
+  PersonaVoiceAgent,
+  createPersonaVoiceAgent,
+  // Backwards compatibility aliases
+  FerniAgent,
+  createFerniAgent,
+  type FerniAgentOptions,
+  type PersonaVoiceAgentOptions,
+} from './personas/index.js';
+
+// ============================================================================
+// VOICE AGENT HANDLERS (extracted from turn-handler)
+// ============================================================================
+
+export {
+  // Turn handler (main orchestrator)
+  handleUserTurn,
+  cleanupPersonalityState,
+  // Turn personality
+  processPersonality,
+  mapMoodToMomentum,
+  mapIntentToSharing,
+  // Turn events
+  dispatchAllTurnEvents,
+  // Turn learning
+  recordAllLearningData,
+  type TurnHandlerContext,
+  type PersonalityContext,
+  type EventDispatchContext,
+  type LearningContext,
+} from './voice-agent/index.js';
+
+// ============================================================================
 // PRIMARY ENTRY POINT
 // ============================================================================
 
-// The voice agent is launched via worker.ts which manages job dispatch.
-// See: worker.ts for GCE deployment entry point
+// The voice agent is launched via gce-voice-worker.ts which manages job dispatch.
+// See: gce-voice-worker.ts for GCE deployment entry point
 // See: voice-agent-entry.ts for session lifecycle
 
 // Export the main entry function
@@ -222,5 +273,5 @@ export {
 } from '../personas/voice-registry.js';
 
 // All personas use:
-// - src/agents/voice-agent.ts with PERSONA_ID env var
-// - src/personas/bundles/ for persona configuration
+// - PersonaVoiceAgent (src/agents/personas/ferni-agent.ts)
+// - Persona bundles (src/personas/bundles/) for configuration

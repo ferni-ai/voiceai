@@ -85,7 +85,12 @@ const THINKING_MUSIC_CONFIG = {
 // Also add verbal filler before music
 // In voice-agent.ts when user stops speaking:
 if (!agentRespondedQuickly) {
-  session.say(getThinkingFiller(personaId), { allowInterruptions: true });
+  const filler = getContextAwareThinkingFiller(personaId, {
+    type: 'thinking',
+    weight: 'medium',
+    hourOfDay: new Date().getHours(),
+  });
+  session.say(filler, { allowInterruptions: true });
 }
 ```
 
@@ -356,8 +361,9 @@ const THINKING_MUSIC_CONFIG = {
 ### 2. ✅ Add Quick Acknowledgments
 
 ```typescript
-// src/agents/voice-agent.ts - DONE
-// Uses getThinkingFiller() when processing takes >2.5s
+// src/agents/voice-agent/turn-handler.ts - DONE
+// Uses getContextAwareThinkingFiller() with ProcessingIntelligence
+// when processing takes >2.5s (context-aware, dynamic phrases)
 ```
 
 ### 3. ✅ Add Early Silence Detection

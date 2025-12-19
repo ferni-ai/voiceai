@@ -395,6 +395,58 @@
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "ASCENDING" }
       ]
+    },
+
+    {
+      "collectionGroup": "commitments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "commitments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "shouldFollowUp", "order": "ASCENDING" },
+        { "fieldPath": "followUpDate", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "commitments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "shouldFollowUp", "order": "ASCENDING" },
+        { "fieldPath": "followUpDate", "order": "ASCENDING" }
+      ]
+    },
+
+    {
+      "collectionGroup": "shared_moments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "type", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+
+    {
+      "collectionGroup": "temporal_patterns",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "dayOfWeek", "order": "ASCENDING" },
+        { "fieldPath": "count", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "temporal_patterns",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "hourOfDay", "order": "ASCENDING" },
+        { "fieldPath": "count", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

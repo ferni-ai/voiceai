@@ -12,7 +12,7 @@
  * See src/personas/ for available personas and how to add new ones.
  *
  * ARCHITECTURE (GCE Optimized):
- * - Uses unified worker.ts with clean orchestrator pattern
+ * - Uses gce-voice-worker.ts with clean orchestrator pattern
  * - Single-process mode optimized for GCE (pre-warmed resources)
  * - SessionOrchestrator coordinates session lifecycle
  * - Pipeline pattern for modular, testable setup steps
@@ -24,4 +24,5 @@
 export {};
 
 // GCE-optimized worker with clean architecture
+// worker.ts re-exports from gce-voice-worker.ts for backwards compatibility
 await import('./agents/worker.js');

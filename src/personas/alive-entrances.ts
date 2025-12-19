@@ -19,6 +19,12 @@ import { getLogger } from '../utils/safe-logger.js';
 import { loadBundleById } from './bundles/loader.js';
 import type { BundleRuntimeEngine } from './bundles/runtime.js';
 import { isEntrancesV2 } from './bundles/types.js';
+import {
+  applyVoiceAdjustmentToEntrance,
+  getVoiceEmotionEntranceAdjustment,
+  shouldVoiceOverrideMood,
+  type VoiceEmotionEntranceContext,
+} from './voice-emotion-entrances.js';
 
 // ============================================================================
 // BUNDLE-LOADED CONFIG CACHE
@@ -618,6 +624,8 @@ export async function generateAliveEntrance(
     userName?: string;
     /** Session ID for variety tracking - prevents repetitive quirks */
     sessionId?: string;
+    /** Voice emotion context for better-than-human entrance adaptation */
+    voiceEmotion?: VoiceEmotionEntranceContext;
   } = {}
 ): Promise<AliveEntranceResult | null> {
   // Load config from bundle (v2) or fall back to hardcoded
@@ -627,11 +635,37 @@ export async function generateAliveEntrance(
     return null;
   }
 
+  // =========================================================================
+  // VOICE EMOTION OVERRIDE
+  // When voice tells a different story than text, trust the voice
+  // =========================================================================
+  let effectiveMood = options.userMood || 'unknown';
+
+  if (options.voiceEmotion) {
+    const voiceAdjustment = getVoiceEmotionEntranceAdjustment(options.voiceEmotion);
+
+    // Check if voice should override text-based mood
+    if (shouldVoiceOverrideMood(effectiveMood, options.voiceEmotion)) {
+      if (voiceAdjustment.overrideMood) {
+        getLogger().debug(
+          {
+            personaId,
+            textMood: effectiveMood,
+            voiceMood: voiceAdjustment.overrideMood,
+            reason: voiceAdjustment.reason,
+          },
+          '🎙️ Voice emotion overriding text mood for entrance'
+        );
+        effectiveMood = voiceAdjustment.overrideMood;
+      }
+    }
+  }
+
   // Build context
   const ctx: EntranceContext = {
     personaId,
     personaName: personaId, // Will be overridden if available
-    userMood: options.userMood || 'unknown',
+    userMood: effectiveMood,
     precedingTopic: options.precedingTopic,
     meetingCount: options.meetingCount || 1,
     lastTopicWithAgent: options.lastTopicWithAgent,
@@ -723,10 +757,18 @@ export async function generateAliveEntrance(
   ];
   const followUp = followUps[Math.floor(Math.random() * followUps.length)];
 
-  return {
+  let result: AliveEntranceResult = {
     entrance: `${acknowledgment}${followUp}`,
     style: 'static_fallback',
   };
+
+  // Apply voice emotion adjustment to final entrance
+  if (options.voiceEmotion) {
+    const voiceAdjustment = getVoiceEmotionEntranceAdjustment(options.voiceEmotion);
+    result = applyVoiceAdjustmentToEntrance(result, voiceAdjustment);
+  }
+
+  return result;
 }
 
 /**
@@ -782,6 +824,9 @@ export async function getAliveEntranceForHandoff(
 
     // Runtime for quirks data
     runtime?: BundleRuntimeEngine | null;
+
+    // Voice emotion for better-than-human entrance adaptation
+    voiceEmotion?: VoiceEmotionEntranceContext;
   } = {}
 ): Promise<string | null> {
   try {
@@ -793,6 +838,7 @@ export async function getAliveEntranceForHandoff(
       relationshipStage: options.relationshipStage,
       referringAgent: options.referringAgent,
       userName: options.userName,
+      voiceEmotion: options.voiceEmotion,
     });
 
     if (result) {

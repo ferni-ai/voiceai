@@ -1,46 +1,46 @@
 /**
  * Voice Agent Turn Handler
  *
- * Handles the completion of each user turn with:
+ * Orchestrates the processing of each user turn with:
  * - Slash command detection
  * - Turn processing via TurnProcessor
  * - "Better Than Human" personality injection
  * - Context injection for LLM
- * - Celebration events
+ * - Event dispatch (emotion, behavior, celebration)
  * - Trust systems recording
  * - Dead air prevention (thinking fillers, error recovery)
  *
- * Extracted from voice-agent.ts to reduce file size and improve maintainability.
+ * This module has been refactored from a 1065-line monolith into focused modules:
+ * - turn-personality.ts - Personality system integration
+ * - turn-events.ts - Event dispatch to frontend
+ * - turn-learning.ts - Trust systems and collective learning
  *
  * @module voice-agent/turn-handler
  */
 
 import { log, type llm } from '@livekit/agents';
 import { getGracefulErrorResponse } from '../../intelligence/conversation-quality.js';
-import {
-  analyzeUserEngagement,
-  recordResponseForLearning,
-  type ConversationSignalContext,
-} from '../../intelligence/index.js';
 import type { BundleRuntimeEngine } from '../../personas/bundles/index.js';
-import {
-  ferniPersonality,
-  type PersonalityTurnResult,
-} from '../../personas/bundles/ferni/personality-integration.js';
-import {
-  sharedPersonality,
-  type PersonaTurnResult,
-} from '../../personas/shared/persona-turn-personality.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
-import { getThinkingFiller } from '../../speech/persona-phrases.js';
-import { dispatchEmotionEvents } from '../realtime/emotion-event-dispatcher.js';
-import { dispatchBehaviorEvents, type BehaviorDetectionContext } from '../realtime/behavior-event-dispatcher.js';
+import { getContextAwareThinkingFiller } from '../../speech/persona-phrases.js';
 import type { SessionStateManager } from '../session/session-state.js';
 import { PROCESSING_TIMEOUTS } from '../shared/constants.js';
-import { handleSlashCommand, recordTrustSystemsData, sendCelebrationEvents } from './index.js';
-import type { ThemeCategory } from '../../services/session-variety-tracker.js';
+import type { UserData } from '../shared/types.js';
+import { handleSlashCommand, sendCelebrationEvents } from './index.js';
+
+// Import extracted modules
+import {
+  processPersonality,
+  cleanupPersonalityState as cleanupPersonalityStateInternal,
+  type PersonalityContext,
+} from './turn-personality.js';
+import { dispatchAllTurnEvents, type EventDispatchContext } from './turn-events.js';
+import { recordAllLearningData, type LearningContext } from './turn-learning.js';
+
+// Re-export cleanupPersonalityState for backwards compatibility
+export { cleanupPersonalityState } from './turn-personality.js';
 
 // ============================================================================
 // TYPES
@@ -67,6 +67,8 @@ export interface TurnHandlerContext {
     pauseBeforeMs?: number;
     totalConversations?: number;
     sharedVulnerabilities?: number;
+    relationshipStage?: string;
+    lastEmotionAnalysis?: { primary: string; intensity: number; distressLevel?: number };
   };
   /** Voice emotion result (optional, from voice agent) */
   voiceEmotion?: {
@@ -100,82 +102,23 @@ export interface TurnHandlerContext {
 }
 
 // ============================================================================
-// PERSONALITY STATE TRACKING (Cross-turn)
-// ============================================================================
-
-/** Track previous personality expressions for resonance learning */
-const previousExpressions = new Map<string, { theme: ThemeCategory; content: string }>();
-
-/** Track previous turns for pattern detection (per session) */
-interface TurnHistory {
-  userTranscript: string;
-  speechRate?: number;
-  pauseBefore?: number;
-  voiceEmotion?: string;
-  topics?: string[];
-  timestamp: number;
-}
-const turnHistories = new Map<string, TurnHistory[]>();
-const MAX_TURN_HISTORY = 10;
-
-/** Get previous expression for a session */
-function getPreviousExpression(sessionId: string): { theme: ThemeCategory; content: string } | undefined {
-  return previousExpressions.get(sessionId);
-}
-
-/** Store expression for next turn's resonance learning */
-function storePreviousExpression(
-  sessionId: string,
-  expression: { theme: ThemeCategory; content: string } | null
-): void {
-  if (expression) {
-    previousExpressions.set(sessionId, expression);
-  }
-}
-
-/** Record a turn for pattern detection */
-function recordTurnHistory(
-  sessionId: string,
-  turn: Omit<TurnHistory, 'timestamp'>
-): void {
-  let history = turnHistories.get(sessionId) || [];
-  history.push({ ...turn, timestamp: Date.now() });
-  
-  // Keep only last N turns
-  if (history.length > MAX_TURN_HISTORY) {
-    history = history.slice(-MAX_TURN_HISTORY);
-  }
-  
-  turnHistories.set(sessionId, history);
-}
-
-/** Get turn history for a session */
-function getTurnHistory(sessionId: string): TurnHistory[] {
-  return turnHistories.get(sessionId) || [];
-}
-
-/** Clean up session personality state */
-export function cleanupPersonalityState(sessionId: string): void {
-  previousExpressions.delete(sessionId);
-  turnHistories.delete(sessionId);
-  ferniPersonality.cleanup(sessionId);
-}
-
-// ============================================================================
 // MAIN HANDLER
 // ============================================================================
 
 /**
  * Process a completed user turn.
  *
- * This is the main turn processing pipeline that:
- * 1. Detects and handles slash commands
- * 2. Processes the turn through TurnProcessor
- * 3. Injects context into LLM
- * 4. Handles extensibility hooks
- * 5. Sends celebration events
- * 6. Records trust systems data
- * 7. Prevents dead air with fillers and error recovery
+ * This is the main turn processing pipeline that orchestrates:
+ * 1. Slash command detection and handling
+ * 2. Turn processing through TurnProcessor
+ * 3. Crisis detection and safety rails
+ * 4. Personality system integration
+ * 5. Context injection into LLM
+ * 6. Session state updates
+ * 7. Extensibility hooks
+ * 8. Event dispatch (emotion, behavior, celebration)
+ * 9. Trust systems recording
+ * 10. Error recovery with graceful fallbacks
  */
 export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
   const {
@@ -200,7 +143,6 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
   // EXTENSIBILITY: Slash command detection
   // ================================================================
   const trimmedText = userText.trim();
-  let _isSlashCommand = false;
   if (trimmedText.startsWith('/')) {
     const slashResult = await handleSlashCommand({
       text: trimmedText,
@@ -208,7 +150,9 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       personaId: persona.id,
       services: { userId: services.userId, sessionId: services.sessionId },
     });
-    _isSlashCommand = slashResult.handled;
+    if (slashResult.handled) {
+      return; // Slash command fully handled
+    }
   }
 
   try {
@@ -216,14 +160,14 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     const { processTurn, injectTurnContext, getCelebrationEvents } =
       await import('../processors/index.js');
 
-    // Build turn context
+    // Build turn context - cast userData to UserData for processor compatibility
     const turnContext = {
       turnCtx,
       userText,
       persona,
       bundleRuntime,
       services,
-      userData,
+      userData: userData as UserData,
       logger,
     };
 
@@ -238,10 +182,23 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
       fillerTimeout = setTimeout(() => {
         if (!spokeFiller && currentSession) {
           spokeFiller = true;
-          const filler = getThinkingFiller(persona.id);
+          const filler = getContextAwareThinkingFiller(persona.id, {
+            type: 'thinking',
+            weight:
+              userData.lastEmotionAnalysis?.intensity && userData.lastEmotionAnalysis.intensity > 0.7
+                ? 'heavy'
+                : userData.lastEmotionAnalysis?.intensity &&
+                    userData.lastEmotionAnalysis.intensity > 0.4
+                  ? 'medium'
+                  : 'light',
+            emotionalState: userData.lastEmotionAnalysis,
+            hourOfDay: new Date().getHours(),
+            relationshipStage: userData.relationshipStage,
+          });
           currentSession.say(filler, { allowInterruptions: true });
-          diag.state('Spoke thinking filler (processing slow)', {
+          diag.filler('Spoke context-aware thinking filler', {
             personaId: persona.id,
+            emotionalContext: userData.lastEmotionAnalysis?.primary,
             timeoutMs: PROCESSING_TIMEOUTS.TURN_PROCESSING_SOFT_TIMEOUT,
           });
         }
@@ -268,17 +225,13 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
 
     // ================================================================
     // 🚨 SAFETY FIRST: Crisis Detection & Override
-    // This is a HARD safety rail that CANNOT be bypassed
-    // If severe crisis detected, we override LLM with a safe response
     // ================================================================
     if (result.crisis?.shouldOverrideLLM && result.crisis.suggestedResponse) {
-      // SEVERE CRISIS: Override LLM entirely with pre-written safe response
       diag.state('🚨 CRISIS OVERRIDE: Using pre-written crisis response', {
         severity: result.crisis.severity,
         indicators: result.crisis.indicators,
       });
 
-      // Inject a system message explaining why we're overriding
       turnCtx.addMessage({
         role: 'system',
         content: `[CRITICAL SAFETY OVERRIDE]
@@ -289,17 +242,15 @@ REQUIRED RESPONSE:
 ${result.crisis.suggestedResponse}`,
       });
 
-      // Also dispatch behavior event for frontend awareness
       try {
         await sendDataMessage('crisis_detected', {
           severity: result.crisis.severity,
           indicators: result.crisis.indicators,
         });
       } catch {
-        // Non-critical if data message fails
+        // Non-critical
       }
     } else if (result.crisis?.isCrisis) {
-      // MODERATE CRISIS: Add strong guidance but let LLM respond
       diag.state('🚨 Crisis detected - adding safety injection', {
         severity: result.crisis.severity,
         indicators: result.crisis.indicators,
@@ -319,255 +270,120 @@ Your response MUST:
 5. NEVER minimize their feelings
 
 You are their lifeline right now. Be fully present.`,
-        priority: 100, // Highest priority
+        priority: 100,
       });
     }
 
     // ================================================================
-    // 🎭 BETTER THAN HUMAN: Personality System Integration
+    // 🤝 TRUST CONTEXT MONITORING
+    // Track trust signals for monitoring, learning, and frontend events
+    // NOTE: Post-response validation is architecturally difficult with streaming.
+    // Instead, we emit events and log for monitoring/improvement.
     // ================================================================
-    // Process personality for Ferni (can be extended to other personas)
-    let personalityResult: PersonalityTurnResult | null = null;
-    if (persona.id === 'ferni') {
-      try {
-        // Get relationship stage from humanizing result
-        const hrRelationship = result.context.humanizingResult?.relationship as
-          | { stage?: string }
-          | undefined;
-        const relationshipStage = (hrRelationship?.stage || 'acquaintance') as
-          | 'stranger'
-          | 'acquaintance'
-          | 'friend'
-          | 'trusted_advisor';
+    if (result.trustContext) {
+      const { hasEmotionalMismatch, topicsToAvoid, hasGrowthReflection, hasCelebration } =
+        result.trustContext;
 
-        // Get momentum from humanizing result
-        const hrMood = result.context.humanizingResult?.mood as
-          | { state?: string; energyLevel?: number }
-          | undefined;
-        const momentum = mapMoodToMomentum(hrMood?.state, result.emotional.intensity);
-
-        // Detect if heavy topic
-        const isHeavyTopic =
-          result.emotional.distressLevel > 0.5 ||
-          result.context.injections.some((i) =>
-            i.content.toLowerCase().includes('grief') ||
-            i.content.toLowerCase().includes('crisis') ||
-            i.content.toLowerCase().includes('loss')
-          );
-
-        // Detect user intent from analysis
-        const userIntent = mapIntentToSharing(result.analysis?.analysis?.intent?.primary);
-
-        // Get topics from analysis
-        const topics = result.analysis?.analysis?.topics?.detected || [];
-
-        personalityResult = await ferniPersonality.processTurn({
-          sessionId: services.sessionId,
-          userId: services.userId,
-          turnCount: userData.turnCount || 1,
-          userTranscript: userText,
-
-          // Voice signals
-          pauseBeforeMs: userData.pauseBeforeMs || 0,
-          speechRateWPM: userData.speechRateWPM,
-          voiceEmotion: ctx.voiceEmotion,
-
-          // Analysis results
-          textEmotion: {
-            primary: result.emotional.primary,
-            intensity: result.emotional.intensity,
-            distressLevel: result.emotional.distressLevel,
-            valence: result.emotional.intensity > 0.5 ? 'negative' : 'neutral',
-            trajectory: result.emotional.trajectory as 'rising' | 'falling' | 'stable' | undefined,
-          },
-
-          // Conversation state
-          momentum,
-          topics,
-          lastTopic: sessionStateManager?.getState().conversation.recentTopics[0],
-
-          // Relationship
-          relationshipStage,
-          totalConversations: userData.totalConversations || 1,
-          sharedVulnerabilities: userData.sharedVulnerabilities || 0,
-
-          // Previous turns (from this session)
-          previousTurns: getTurnHistory(services.sessionId),
-
-          // Flags
-          isHeavyTopic,
-          wasPersonalSharing: result.context.injections.some((i) =>
-            i.category === 'memory' || i.content.includes('shared')
-          ),
-          userIntent,
-
-          // Previous expression for resonance learning
-          previousExpression: getPreviousExpression(services.sessionId),
+      // Log for monitoring and ML training data
+      if (hasEmotionalMismatch || hasGrowthReflection || hasCelebration) {
+        diag.info('🤝 Trust signals detected', {
+          hasEmotionalMismatch,
+          hasGrowthReflection,
+          hasCelebration,
+          topicsToAvoidCount: topicsToAvoid.length,
         });
-
-        // Inject personality if applicable
-        if (personalityResult.shouldInject) {
-          const injectionContent = buildPersonalityInjection(personalityResult);
-          if (injectionContent) {
-            result.context.injections.push({
-              category: 'personality',
-              content: injectionContent,
-              priority: 75, // After identity but before general context
-            });
-
-            diag.info('🎭 Better Than Human personality injection', {
-              hasNoticing: !!personalityResult.noticing,
-              hasExpression: !!personalityResult.expression,
-              noticingType: personalityResult.noticing?.type,
-              expressionTheme: personalityResult.expression?.theme,
-            });
-          }
-        }
-
-        // Store expression for next turn's resonance learning
-        if (personalityResult.expression) {
-          storePreviousExpression(services.sessionId, {
-            theme: personalityResult.expression.theme,
-            content: personalityResult.expression.content,
-          });
-        }
-
-        // Record this turn for pattern detection
-        recordTurnHistory(services.sessionId, {
-          userTranscript: userText,
-          speechRate: userData.speechRateWPM,
-          pauseBefore: userData.pauseBeforeMs,
-          voiceEmotion: ctx.voiceEmotion?.primary,
-          topics,
-        });
-
-        // ================================================================
-        // INTEGRATION: Personality → Behavior Event
-        // When personality system notices something, dispatch to behavior system
-        // This connects the two "Better Than Human" systems
-        // ================================================================
-        if (personalityResult.behaviorEvent) {
-          const behaviorEventContent = `[SYSTEM_EVENT]\n${JSON.stringify({
-            event: personalityResult.behaviorEvent.event,
-            data: personalityResult.behaviorEvent.data,
-            suggestedResponse: personalityResult.behaviorEvent.suggestedResponse,
-            source: 'personality_noticing',
-          })}`;
-
-          turnCtx.addMessage({
-            role: 'system',
-            content: `[BEHAVIOR SYSTEM - Personality Noticing]\n\n${behaviorEventContent}\n\n` +
-              `The personality system noticed something. You may call behavior functions in response.`,
-          });
-
-          diag.info('🔄 Personality noticing → Behavior event', {
-            noticingType: personalityResult.noticing?.type,
-            behaviorEvent: personalityResult.behaviorEvent.event,
-          });
-        }
-      } catch (personalityError) {
-        logger.debug({ error: String(personalityError) }, 'Personality system (non-critical)');
       }
-    } else if (sharedPersonality.hasSupport(persona.id)) {
-      // ================================================================
-      // 🎭 SHARED PERSONALITY: For Maya, Jordan, Peter, Alex, Nayan
-      // Uses the persona-agnostic personality system
-      // ================================================================
-      try {
-        const hrRelationship = result.context.humanizingResult?.relationship as
-          | { stage?: string }
-          | undefined;
-        const relationshipStage = hrRelationship?.stage || 'acquaintance';
 
-        const hrMood = result.context.humanizingResult?.mood as
-          | { state?: string; energyLevel?: number }
-          | undefined;
-        const momentum = mapMoodToMomentum(hrMood?.state, result.emotional.intensity);
-
-        const isHeavyTopic =
-          result.emotional.distressLevel > 0.5 ||
-          result.context.injections.some((i) =>
-            i.content.toLowerCase().includes('grief') ||
-            i.content.toLowerCase().includes('crisis') ||
-            i.content.toLowerCase().includes('loss')
-          );
-
-        const topics = result.analysis?.analysis?.topics?.detected || [];
-
-        const sharedResult = await sharedPersonality.processTurn({
-          personaId: persona.id,
-          sessionId: services.sessionId,
-          userId: services.userId,
-          turnCount: userData.turnCount || 1,
-          userTranscript: userText,
-
-          // Voice signals
-          pauseBeforeMs: userData.pauseBeforeMs || 0,
-          speechRateWPM: userData.speechRateWPM,
-          voiceEmotion: ctx.voiceEmotion,
-
-          // Analysis results
-          textEmotion: {
-            primary: result.emotional.primary,
-            intensity: result.emotional.intensity,
-            distressLevel: result.emotional.distressLevel,
-            valence: result.emotional.intensity > 0.5 ? 'negative' : 'neutral',
-          },
-
-          // Conversation state
-          momentum,
-          topics,
-
-          // Relationship
-          relationshipStage,
-          totalConversations: userData.totalConversations || 1,
-
-          // Flags
-          isHeavyTopic,
-          wasPersonalSharing: result.context.injections.some(
-            (i) => i.category === 'memory' || i.content.includes('shared')
-          ),
+      // Emit trust signals to frontend for avatar/UI adaptation
+      // Frontend can use these to adjust avatar expressions, show subtle cues, etc.
+      if (hasEmotionalMismatch) {
+        void sendDataMessage('trust_signal', {
+          type: 'emotional_mismatch_detected',
+          // Frontend should show extra attentive/concerned expression
+          avatarHint: 'attentive',
+        }).catch(() => {
+          // Non-critical
         });
-
-        // Inject personality if applicable
-        if (sharedResult.shouldInject) {
-          const content =
-            sharedResult.humanization?.ssml || sharedResult.expression?.ssml || '';
-          if (content) {
-            result.context.injections.push({
-              category: 'personality',
-              content: `[PERSONALITY] ${content}`,
-              priority: 75,
-            });
-
-            diag.info('🎭 Shared persona personality injection', {
-              personaId: persona.id,
-              hasHumanization: !!sharedResult.humanization,
-              humanizationType: sharedResult.humanization?.type,
-              hasExpression: !!sharedResult.expression,
-            });
-          }
-        }
-      } catch (personalityError) {
-        logger.debug({ error: String(personalityError) }, 'Shared personality system (non-critical)');
       }
+
+      if (hasGrowthReflection) {
+        void sendDataMessage('trust_signal', {
+          type: 'growth_reflection_available',
+          // Frontend might show a subtle "remembering" indicator
+          avatarHint: 'thoughtful',
+        }).catch(() => {
+          // Non-critical
+        });
+      }
+
+      if (hasCelebration) {
+        void sendDataMessage('trust_signal', {
+          type: 'celebration_opportunity',
+          // Frontend can prepare celebration animation
+          avatarHint: 'joyful',
+        }).catch(() => {
+          // Non-critical
+        });
+      }
+
+      // Store in userData for potential use in response quality tracking
+      (userData as Record<string, unknown>).lastTrustContext = result.trustContext;
+    }
+
+    // ================================================================
+    // 🎭 PERSONALITY SYSTEM INTEGRATION
+    // ================================================================
+    const personalityCtx: PersonalityContext = {
+      sessionId: services.sessionId,
+      userId: services.userId ?? null,
+      personaId: persona.id,
+      turnCount: userData.turnCount || 1,
+      userText,
+      userData,
+      voiceEmotion: ctx.voiceEmotion,
+      emotionalResult: result.emotional,
+      humanizingResult: result.context.humanizingResult as PersonalityContext['humanizingResult'],
+      analysisResult: result.analysis?.analysis,
+      injections: result.context.injections,
+      sessionStateManager,
+    };
+
+    const personalityResult = await processPersonality(personalityCtx);
+
+    if (personalityResult.shouldInject && personalityResult.injectionContent) {
+      result.context.injections.push({
+        category: 'personality',
+        content: personalityResult.injectionContent,
+        priority: 75,
+      });
+    }
+
+    // Handle behavior event from personality system
+    if (personalityResult.behaviorEvent) {
+      const behaviorEventContent = `[SYSTEM_EVENT]\n${JSON.stringify({
+        event: personalityResult.behaviorEvent.event,
+        data: personalityResult.behaviorEvent.data,
+        suggestedResponse: personalityResult.behaviorEvent.suggestedResponse,
+        source: 'personality_noticing',
+      })}`;
+
+      turnCtx.addMessage({
+        role: 'system',
+        content: `[BEHAVIOR SYSTEM - Personality Noticing]\n\n${behaviorEventContent}\n\n` +
+          `The personality system noticed something. You may call behavior functions in response.`,
+      });
     }
 
     // Inject context into LLM
     injectTurnContext(turnCtx, result);
 
     // ================================================================
-    // UPDATE SESSION STATE MANAGER (Single Source of Truth)
-    // All state updates go through SessionStateManager
+    // UPDATE SESSION STATE MANAGER
     // ================================================================
     if (sessionStateManager) {
-      // Increment turn count
       sessionStateManager.incrementTurn();
-
-      // Update last user message
       sessionStateManager.setLastUserMessage(userText);
 
-      // Update emotional state from analysis
       if (result.emotional) {
         sessionStateManager.setEmotionAnalysis({
           primary: result.emotional.primary,
@@ -576,13 +392,10 @@ You are their lifeline right now. Be fully present.`,
         });
       }
 
-      // Update topic from analysis
       if (result.analysis?.currentTopic) {
         sessionStateManager.setTopic(result.analysis.currentTopic);
       }
 
-      // Update relationship stage from humanizing result
-      // Cast to access typed properties (mood/relationship are unknown to break circular deps)
       const hrRelationship = result.context.humanizingResult?.relationship as
         | { stage?: string }
         | undefined;
@@ -592,10 +405,8 @@ You are their lifeline right now. Be fully present.`,
         );
       }
 
-      // Update mood from humanizing result
       const hrMood = result.context.humanizingResult?.mood as { state?: string } | undefined;
       if (hrMood?.state) {
-        // Import MoodState type inline to avoid circular dependency
         type MoodState =
           | 'energized'
           | 'reflective'
@@ -607,7 +418,6 @@ You are their lifeline right now. Be fully present.`,
         sessionStateManager.setMood(hrMood.state as MoodState);
       }
 
-      // Record personal themes mentioned in response
       const themeMentions = result.context.injections
         ?.filter((i) => i.category === 'memory' || i.category === 'continuity')
         .map((i) => i.content)
@@ -615,16 +425,10 @@ You are their lifeline right now. Be fully present.`,
       if (themeMentions) {
         sessionStateManager.recordThemesMentioned(themeMentions);
       }
-
-      diag.state('SessionStateManager updated after turn', {
-        turnCount: sessionStateManager.getTurnCount(),
-        topic: result.analysis?.currentTopic,
-        emotionalPrimary: result.emotional?.primary,
-      });
     }
 
     // ================================================================
-    // EXTENSIBILITY: before_response hook
+    // EXTENSIBILITY HOOKS
     // ================================================================
     try {
       const { onBeforeResponse } =
@@ -640,34 +444,27 @@ You are their lifeline right now. Be fully present.`,
           role: 'system',
           content: `[AGENT EXTENSIBILITY - RESPONSE GUIDANCE]\n${beforeResponsePrompt}`,
         });
-        logger.info({ personaId: persona.id }, 'Extensibility before_response hook injected');
       }
 
-      // Session start context for first turns
-      const extSessionPrompt = userData.extensibilitySessionPrompt;
-      if (extSessionPrompt && (userData.turnCount ?? 0) <= 1) {
+      if (userData.extensibilitySessionPrompt && (userData.turnCount ?? 0) <= 1) {
         turnCtx.addMessage({
           role: 'system',
-          content: `[AGENT EXTENSIBILITY - SESSION CONTEXT]\n${extSessionPrompt}`,
+          content: `[AGENT EXTENSIBILITY - SESSION CONTEXT]\n${userData.extensibilitySessionPrompt}`,
         });
-        logger.info({ personaId: persona.id }, 'Extensibility session_start context injected');
       }
 
-      // Pre-session briefing (world/time awareness) for first turns
-      const preSessionBriefing = userData.preSessionBriefing;
-      if (preSessionBriefing && (userData.turnCount ?? 0) === 0) {
+      if (userData.preSessionBriefing && (userData.turnCount ?? 0) === 0) {
         turnCtx.addMessage({
           role: 'system',
-          content: preSessionBriefing,
+          content: userData.preSessionBriefing,
         });
-        logger.info('Pre-session briefing injected (turn 0)');
       }
     } catch (extHookErr) {
       logger.warn({ error: String(extHookErr) }, 'Extensibility hook failed (non-fatal)');
     }
 
     // ================================================================
-    // HUMAN-FIRST 2FA: Phone ask opportunity
+    // PHONE COLLECTION (Human-First 2FA)
     // ================================================================
     try {
       const { getResponseModification } =
@@ -690,233 +487,55 @@ IMPORTANT:
 - If they decline, accept gracefully and move on
 - Don't repeat if already asked this session`,
         });
-
-        diag.session('Phone ask injected', {
-          momentType: phoneAskMod.momentType,
-          tone: phoneAskMod.tone,
-        });
       }
-    } catch (phoneAskErr) {
-      logger.debug({ error: String(phoneAskErr) }, 'Phone ask injection skipped');
+    } catch {
+      // Non-critical
     }
 
-    // Send celebration events to frontend
+    // ================================================================
+    // EVENT DISPATCH (Celebration, Mood, Emotion, Behavior)
+    // ================================================================
     const celebrations = getCelebrationEvents(result);
     if (celebrations.length > 0) {
       await sendCelebrationEvents({ injections: celebrations, room });
     }
 
-    // Send mood update to frontend
-    if (result.context.humanizingResult) {
-      const hr = result.context.humanizingResult;
-      // Cast to access typed properties (mood/relationship are unknown to break circular deps)
-      const mood = hr.mood as { state?: string; energyLevel?: number } | undefined;
-      const relationship = hr.relationship as { stage?: string } | undefined;
-      await sendDataMessage('mood', {
-        state: mood?.state,
-        energyLevel: mood?.energyLevel,
-        relationshipStage: relationship?.stage,
-        hasTransition: !!hr.relationshipTransition,
-      });
-    }
+    const eventCtx: EventDispatchContext = {
+      userId: services.userId ?? null,
+      personaId: persona.id,
+      sessionId: services.sessionId,
+      turnCount: userData.turnCount ?? 0,
+      emotionalResult: result.emotional,
+      humanizingResult: result.context.humanizingResult as EventDispatchContext['humanizingResult'],
+      injections: result.context.injections,
+      sessionStateManager,
+      sendDataMessage,
+      turnCtx,
+    };
+
+    await dispatchAllTurnEvents(eventCtx);
 
     // ================================================================
-    // 🚀 FERNI EQ: Dispatch emotion events for "Better Than Human" UI
+    // LEARNING & TRUST RECORDING
     // ================================================================
-    // This sends humanization signals to the frontend EQ system:
-    // - Concern detection (distress awareness)
-    // - Voice-text mismatch (protective instinct)
-    // - Emotional trajectory (improving/declining arc)
-    // The frontend better-than-human.ui.ts responds with avatar expressions
-    if (services.userId) {
-      try {
-        await dispatchEmotionEvents(
-          {
-            emotionalState: result.emotional,
-            userId: services.userId,
-            personaId: persona.id,
-            sessionId: services.sessionId,
-          },
-          sendDataMessage
-        );
-      } catch (eqError) {
-        logger.debug({ error: String(eqError) }, 'Emotion event dispatch (non-critical)');
-      }
-    }
-
-    // ================================================================
-    // 🔄 BIDIRECTIONAL BEHAVIOR SYSTEM: Dispatch behavior events
-    // ================================================================
-    // This detects behavioral signals and injects [SYSTEM_EVENT] messages
-    // into the LLM context, enabling the dynamic loop:
-    // - System detects → dispatches event → LLM responds → calls behavior → loop
-    try {
-      const behaviorContext: BehaviorDetectionContext = {
-        emotionalState: {
-          primary: result.emotional.primary,
-          intensity: result.emotional.intensity,
-          distressLevel: result.emotional.distressLevel,
-          trajectory: result.emotional.trajectory,
+    const learningCtx: LearningContext = {
+      userId: services.userId ?? null,
+      sessionId: services.sessionId,
+      personaId: persona.id,
+      turnCount: userData.turnCount ?? 0,
+      userText,
+      emotionalResult: result.emotional,
+      humanizingResult: result.context.humanizingResult as LearningContext['humanizingResult'],
+      injections: result.context.injections,
+      turnResult: {
+        emotional: result.emotional,
+        context: {
+          humanizingResult: result.context.humanizingResult,
         },
-        // Previous emotional state from session state manager
-        previousEmotionalState: sessionStateManager?.getState().emotional.lastEmotionAnalysis
-          ? {
-              primary: sessionStateManager.getState().emotional.lastEmotionAnalysis?.primary || 'neutral',
-              intensity: sessionStateManager.getState().emotional.lastEmotionAnalysis?.intensity || 0,
-            }
-          : undefined,
-        // Time of day
-        hourOfDay: new Date().getHours(),
-        // Topic weight detection
-        topicWeight:
-          result.emotional.distressLevel > 0.6 ||
-          result.context.injections.some(
-            (i) =>
-              i.content.toLowerCase().includes('grief') ||
-              i.content.toLowerCase().includes('loss') ||
-              i.content.toLowerCase().includes('death')
-          )
-            ? 'heavy'
-            : result.emotional.intensity > 0.5
-              ? 'medium'
-              : 'light',
-        // Relationship stage
-        relationshipStage:
-          (result.context.humanizingResult?.relationship as { stage?: string } | undefined)
-            ?.stage || 'developing',
-        // Turn count
-        turnCount: userData.turnCount ?? 0,
-      };
+      },
+    };
 
-      // Inject behavior events into LLM context
-      const behaviorEvents = dispatchBehaviorEvents(behaviorContext, (role, content) => {
-        turnCtx.addMessage({ role, content });
-      });
-
-      if (behaviorEvents.length > 0) {
-        diag.info('🔄 Behavior events dispatched', {
-          events: behaviorEvents.map((e) => e.event).join(', '),
-          count: behaviorEvents.length,
-        });
-
-        // 🔄 ALSO emit to frontend for immediate visual feedback
-        // This closes the loop: System detects → Frontend avatar reacts
-        for (const event of behaviorEvents) {
-          if (event.suggestedResponse) {
-            try {
-              // Emit mode shift signal if suggested
-              if (event.suggestedResponse.mode) {
-                await sendDataMessage('behavior_signal', {
-                  type: 'mode_shift',
-                  mode: event.suggestedResponse.mode,
-                  reason: event.event,
-                  timestamp: Date.now(),
-                });
-              }
-              // Emit pacing change signal if suggested
-              if (event.suggestedResponse.pacing) {
-                await sendDataMessage('behavior_signal', {
-                  type: 'pacing_change',
-                  pacing: event.suggestedResponse.pacing,
-                  reason: event.event,
-                  timestamp: Date.now(),
-                });
-              }
-            } catch (emitError) {
-              logger.debug({ error: String(emitError) }, 'Failed to emit behavior signal (non-critical)');
-            }
-          }
-        }
-      }
-    } catch (behaviorError) {
-      logger.debug({ error: String(behaviorError) }, 'Behavior event dispatch (non-critical)');
-    }
-
-    // ================================================================
-    // TRUST SYSTEMS DATA RECORDING
-    // ================================================================
-    const { userId } = services;
-    if (userId) {
-      await recordTrustSystemsData({ userId, userText, result });
-    }
-
-    // ================================================================
-    // COLLECTIVE LEARNING: Record signal for community insights
-    // ================================================================
-    if (userId && services.sessionId) {
-      try {
-        // Extract topic from injections if available
-        const topicInjection = result.context.injections.find(
-          (i) => i.category === 'topics' || i.content.includes('topic')
-        );
-        const topic = topicInjection?.content.split(' ')[0] || 'general';
-
-        // Build context for collective learning
-        // Cast relationship to access stage (typed as unknown to break circular deps)
-        const learningRelationship = result.context.humanizingResult?.relationship as
-          | { stage?: string }
-          | undefined;
-        const learningContext: ConversationSignalContext = {
-          sessionId: services.sessionId,
-          userId,
-          personaId: persona.id,
-          turnNumber: userData.turnCount ?? 0,
-          emotion: result.emotional.primary || 'neutral',
-          topic,
-          relationshipStage: learningRelationship?.stage || 'unknown',
-        };
-
-        // Create a simplified emotion result for engagement analysis
-        const valence = result.emotional.intensity > 0.5 ? 'positive' : 'neutral';
-        const emotionForEngagement = {
-          primary: result.emotional.primary as 'neutral',
-          intensity: result.emotional.intensity,
-          valence: valence as 'positive' | 'neutral' | 'negative',
-          distressLevel: result.emotional.distressLevel || 0,
-          confidence: 0.8,
-          markers: [] as string[],
-          suggestedTone: 'warm' as 'warm',
-        };
-
-        // Analyze user engagement based on their message
-        const engagement = analyzeUserEngagement(
-          userText,
-          null, // Previous emotion (not tracked here)
-          emotionForEngagement
-        );
-
-        // Record the response signal (async, non-blocking)
-        void recordResponseForLearning(
-          learningContext,
-          result.context.injections
-            .map((i) => i.content)
-            .join(' ')
-            .slice(0, 500), // Summarize context injections
-          engagement,
-          {
-            hadPersonalShare: result.context.injections.some(
-              (i) => i.content.includes('personal') || i.content.includes('story')
-            ),
-            hadQuirk: result.context.injections.some(
-              (i) => i.content.includes('quirk') || i.content.includes('playful')
-            ),
-            hadTeamReference: result.context.injections.some(
-              (i) => i.content.includes('team') || i.content.includes('handoff')
-            ),
-          }
-        );
-
-        logger.debug(
-          { emotion: result.emotional.primary, topic: learningContext.topic },
-          'Collective learning signal recorded'
-        );
-      } catch (learningError) {
-        logger.debug(
-          { error: String(learningError) },
-          'Collective learning recording (non-critical)'
-        );
-      }
-    }
+    await recordAllLearningData(learningCtx);
 
     logger.info(
       {
@@ -924,10 +543,10 @@ IMPORTANT:
         contextCount: result.context.injections.length,
         emotion: result.emotional.primary,
       },
-      'Turn processed with TurnProcessor V2'
+      'Turn processed successfully'
     );
   } catch (error) {
-    logger.error({ error: String(error) }, 'TurnProcessor V2 failed');
+    logger.error({ error: String(error) }, 'Turn processing failed');
 
     // ================================================================
     // DEAD AIR FIX: Graceful error recovery
@@ -948,105 +567,6 @@ IMPORTANT:
       }
     }
   }
-}
-
-// ============================================================================
-// PERSONALITY HELPER FUNCTIONS
-// ============================================================================
-
-/**
- * Map mood state to conversation momentum
- */
-function mapMoodToMomentum(
-  moodState: string | undefined,
-  emotionalIntensity: number
-): 'opening' | 'cruising' | 'peaking' | 'intimate' | 'closing' | 'stalled' {
-  if (!moodState) return 'cruising';
-
-  if (emotionalIntensity > 0.8) return 'peaking';
-  if (emotionalIntensity > 0.6) return 'intimate';
-
-  switch (moodState) {
-    case 'energized':
-    case 'playful':
-      return 'cruising';
-    case 'reflective':
-    case 'philosophical':
-    case 'nostalgic':
-      return 'intimate';
-    case 'grounded':
-      return 'cruising';
-    case 'tired_but_present':
-      return 'closing';
-    default:
-      return 'cruising';
-  }
-}
-
-/**
- * Map intent to user sharing type
- */
-function mapIntentToSharing(
-  intent: string | undefined
-): 'sharing' | 'asking' | 'venting' | 'exploring' | 'celebrating' | 'requesting' | undefined {
-  if (!intent) return undefined;
-
-  const intentMap: Record<string, 'sharing' | 'asking' | 'venting' | 'exploring' | 'celebrating' | 'requesting'> = {
-    confiding: 'sharing',
-    venting: 'venting',
-    seeking_advice: 'asking',
-    exploring: 'exploring',
-    celebrating: 'celebrating',
-    requesting: 'requesting',
-    sharing: 'sharing',
-    greeting: 'sharing',
-    questioning: 'asking',
-  };
-
-  return intentMap[intent.toLowerCase()];
-}
-
-/**
- * Build personality injection content from result
- */
-function buildPersonalityInjection(result: PersonalityTurnResult): string | null {
-  const parts: string[] = [];
-
-  // Add noticing guidance
-  if (result.noticing && result.noticing.shouldAcknowledge) {
-    parts.push(`[🔔 BETTER THAN HUMAN - NOTICED]
-Type: ${result.noticing.type}
-Observation: ${result.noticing.observation}
-
-START YOUR RESPONSE WITH (naturally incorporate):
-"${result.noticing.acknowledgment}"
-
-Timing: ${result.noticing.timing} | Subtlety: ${result.noticing.subtlety}`);
-  }
-
-  // Add expression guidance
-  if (result.expression) {
-    const expr = result.expression;
-    parts.push(`[🎭 PERSONALITY EXPRESSION]
-Theme: ${expr.theme}
-Intimacy: ${Math.round(expr.intimacyLevel * 100)}%
-
-${expr.shouldBeSubtle ? 'Weave in subtly' : 'Share naturally'} ${
-      result.injectionPoint === 'mid_response'
-        ? 'in the middle of your response'
-        : result.injectionPoint === 'after_response'
-          ? 'at the end of your response'
-          : 'at the beginning'
-    }:
-
-"${expr.content}"
-
-(This is from ${expr.compositionReason})`);
-  }
-
-  if (parts.length === 0) return null;
-
-  return parts.join('\n\n');
 }
 
 export default handleUserTurn;

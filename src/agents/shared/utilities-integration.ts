@@ -179,11 +179,10 @@ function createVoiceCallbackHandler(session: AgentSession) {
         session.say(callback.followUpQuestion, { allowInterruptions: true });
       }
 
-      // TODO: Play sound effect if specified
-      // This would require audio file handling
-      // if (callback.sound) {
-      //   await playUtilitySound(callback.sound);
-      // }
+      // Sound effects not implemented - voice-only design decision
+      // Keeping UX simple: Ferni's voice IS the interface.
+      // Sounds would add complexity without improving experience.
+      // If we reconsider, integrate with design-system/assets/sounds/
     } catch (err) {
       log.error({ err, callback }, 'Failed to execute voice callback');
     }

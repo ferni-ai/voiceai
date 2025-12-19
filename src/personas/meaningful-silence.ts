@@ -202,11 +202,17 @@ const GENTLE_OBSERVATIONS = {
 // HUMANIZATION FIX: "THINKING OUT LOUD" MOMENTS
 // Real humans don't tell jokes during silence - they process out loud
 // These create genuine connection through visible thought process
+//
+// NOTE: For SHORT processing delays (2-5s), use ProcessingIntelligence.
+// These responses are for EXTENDED SILENCES (10s+) when building relationship.
 // ============================================================================
 
 /**
  * Thinking out loud moments - what a real person would say
  * when they're genuinely processing alongside you
+ *
+ * @see ProcessingIntelligence for short processing delays (2-5s)
+ * These are for extended silence responses (10s+)
  */
 const THINKING_OUT_LOUD = {
   // When user shared something personal

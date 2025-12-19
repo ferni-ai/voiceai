@@ -58,5 +58,10 @@
     "forceConsistentCasingInFileNames": true // Catch case-sensitivity issues
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "src/tests/**/*"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/tests/**/*",
+    "src/agents/_legacy/**/*"
+  ]
 }

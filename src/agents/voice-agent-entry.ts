@@ -285,28 +285,57 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       desiredUserExperience: 'feeling heard and supported',
     };
 
-    const sessionPersona = (persona || {
+    // Build fallback persona with all required fields
+    // NOTE: This is only used when the persona bundle fails to load
+    // In normal operation, personas come from the registry with full configs
+    const fallbackPersona: PersonaConfig = {
       id: personaId,
       name: personaName,
-      voice: { voiceId: defaultVoice.voiceId, provider: defaultVoice.provider },
+      description: `${personaName} is a warm and supportive life coach.`,
+      voice: { voiceId: defaultVoice.voiceId, provider: 'cartesia' as const },
       systemPrompt: cachedPrompt || `You are ${personaId}, a warm and supportive life coach.`,
-      personality: { warmth: 0.7, humor: 0.4, directness: 0.6, energy: 0.6 },
-      speechCharacteristics: { baseSpeedMultiplier: 1.0, pauseMultiplier: 1.0 },
+      personality: {
+        warmth: 0.7,
+        humorLevel: 0.4,
+        humorStyle: ['observational', 'self-deprecating'],
+        directness: 0.6,
+        energy: 0.6,
+        tangentFrequency: 0.3,
+        traits: ['empathetic', 'supportive', 'curious'],
+        boundaries: ['Never give medical/legal/financial advice'],
+      },
+      speechCharacteristics: {
+        baseSpeedMultiplier: 1.0,
+        pauseMultiplier: 1.0,
+        speedVariation: 0.15,
+        thinkingSoundFrequency: 0.4,
+        emphasisStyle: 'moderate',
+        sentenceEndingStyle: 'natural',
+        minimumEnergy: 0.8,
+        maximumEnergy: 1.1,
+      },
       communication: defaultCommunication,
       identity: defaultIdentity,
-    }) as unknown as PersonaConfig;
+      knowledge: {
+        domains: ['life-coaching', 'personal-growth'],
+        qualifiedTopics: ['goal-setting', 'habits', 'motivation', 'relationships', 'work-life-balance'],
+        outOfScopeTopics: ['medical-diagnosis', 'legal-advice', 'financial-advice'],
+        outOfScopeResponse:
+          "That's outside my expertise. I'd recommend speaking with a qualified professional for that.",
+      },
+    };
 
-    // Ensure communication and identity are present even if persona exists but is missing them
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!(sessionPersona as any).communication) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (sessionPersona as any).communication = defaultCommunication;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (!(sessionPersona as any).identity) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (sessionPersona as any).identity = defaultIdentity;
-    }
+    // Use provided persona or fallback, ensuring required fields are present
+    const sessionPersona: PersonaConfig = persona
+      ? {
+          ...fallbackPersona, // Defaults
+          ...persona, // Override with actual persona
+          // Ensure critical nested objects exist
+          communication: persona.communication ?? defaultCommunication,
+          identity: persona.identity ?? defaultIdentity,
+          knowledge: persona.knowledge ?? fallbackPersona.knowledge,
+        }
+      : fallbackPersona;
 
     // ✅ FULL RICH PROMPT - Load persona-specific system prompt from bundles
     // Uses loadSystemPrompt() which handles all personas (ferni, maya-santos, alex-chen, etc.)
@@ -583,6 +612,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     // FIX: Create lightweight VoiceAgentRef for handoff support
     // This enables LLM instruction updates during persona handoffs
+    // NOTE: Cast needed to access internal _instructions property (not in public API)
+    // The LiveKit SDK doesn't expose a setInstructions() method, so we access it directly
     const voiceAgentRef = createLightweightVoiceAgentRef(
       agent as unknown as { _instructions?: string },
       sessionPersona
@@ -830,6 +861,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     );
 
     // DEBUG: Verify tools are registered with the agent
+    // NOTE: Cast needed to access internal _tools property (not in public API)
+    // This is only for debug logging - production code doesn't depend on it
     const agentTools = (agent as unknown as { _tools?: Record<string, unknown> })?._tools;
     const registeredToolCount = agentTools ? Object.keys(agentTools).length : 0;
     process.stderr.write(
@@ -1112,6 +1145,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
           | 'friend'
           | 'trusted_advisor'
           | undefined,
+        // Pass userProfile for superhuman memory callbacks (birthdays, growth celebrations, etc.)
+        userProfile: services.userProfile ? { humanMemory: services.userProfile.humanMemory } : undefined,
       });
 
       if (conversationSession) {

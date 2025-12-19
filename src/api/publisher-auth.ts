@@ -54,6 +54,13 @@ export interface PublisherSession {
   keyType: 'live' | 'test';
 }
 
+/**
+ * Extended IncomingMessage with publisher session attached by middleware
+ */
+export interface AuthenticatedPublisherRequest extends IncomingMessage {
+  publisherSession?: PublisherSession;
+}
+
 interface FirestoreConfig {
   projectId?: string;
   databaseId?: string;
@@ -464,8 +471,7 @@ export async function requirePublisherAuth(
   }
 
   // Attach session to request for downstream handlers
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (req as any).publisherSession = session;
+  (req as AuthenticatedPublisherRequest).publisherSession = session;
 
   return session;
 }
@@ -474,6 +480,5 @@ export async function requirePublisherAuth(
  * Get publisher session from request (after middleware)
  */
 export function getPublisherSession(req: IncomingMessage): PublisherSession | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (req as any).publisherSession || null;
+  return (req as AuthenticatedPublisherRequest).publisherSession || null;
 }

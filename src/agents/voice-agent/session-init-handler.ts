@@ -36,7 +36,8 @@ import {
 } from '../../services/superhuman-persistence.js';
 import { startPeriodicSync } from './periodic-sync-handler.js';
 import { getConversationState } from '../../services/conversation-state.js';
-import { resetHandoffState, resetMetPersonas } from '../../tools/handoff/index.js';
+import { resetHandoffState, resetMetPersonas, setCurrentAgent } from '../../tools/handoff/index.js';
+import type { AgentId } from '../../services/agent-bus.js';
 import { resetCatchphraseTracking } from '../../speech/response-naturalness.js';
 import { resetAllConversationState } from '../../conversation/index.js';
 import { abTestingService } from '../../tools/ab-testing.js';
@@ -137,6 +138,10 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
   resetHandoffState();
   resetMetPersonas(); // Reset "first meeting" tracking for natural greetings
 
+  // BUG FIX: Set the current agent to the requested persona, not default 'ferni'
+  // This ensures handoff state starts with the correct persona (e.g., Peter if user selected Peter)
+  setCurrentAgent(sessionPersona.id as AgentId);
+
   // Notify frontend of state reset
   // Note: room may be a RoomAdapter (publishData at top level) or raw Room (publishData on localParticipant)
   if (room) {
@@ -144,7 +149,9 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
       const data = new TextEncoder().encode(
         JSON.stringify({
           type: 'state_reset',
-          activePersona: 'ferni',
+          // BUG FIX: Use actual session persona instead of hardcoded 'ferni'
+          // This fixes the bug where selecting Peter would show Peter's voice but Ferni's UI
+          activePersona: sessionPersona.id,
           timestamp: Date.now(),
         })
       );
