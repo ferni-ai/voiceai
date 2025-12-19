@@ -70,7 +70,7 @@ import {
 import { getHandoffContext } from '../../tools/handoff/executor.js';
 import { getFinancialStore } from '../../services/financial-store.js';
 import { getProductivityStore } from '../../services/productivity-store.js';
-import { getMayaGamificationStore } from '../../services/gamification-store.js';
+import { getGamificationStore } from '../../services/gamification-store.js';
 import { getMemoryOrchestrator } from '../../memory/orchestrator.js';
 import { detectProactiveTriggers, type ProactiveTrigger } from '../../tools/proactive-coaching.js';
 
@@ -314,7 +314,7 @@ async function getMoodPatterns(userId: string): Promise<MoodInsights> {
   };
 
   try {
-    const gamificationStore = getMayaGamificationStore();
+    const gamificationStore = getGamificationStore();
     const now = new Date();
     const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 

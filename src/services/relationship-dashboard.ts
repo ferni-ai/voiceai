@@ -373,17 +373,16 @@ function extractMemorableQuotes(
 
   if (keyMoments) {
     for (const moment of keyMoments) {
-      if (moment.userQuote && moment.significance !== 'minor') {
+      // KeyMoment has summary, not userQuote - use summary for breakthrough moments
+      if (moment.type === 'breakthrough' || moment.type === 'shared_vulnerability') {
         quotes.push({
-          text: moment.userQuote,
-          context: moment.context || 'In conversation',
+          text: moment.summary,
+          context: moment.topics.join(', ') || 'In conversation',
           date: moment.timestamp,
           significance:
             moment.type === 'breakthrough'
               ? 'breakthrough'
-              : moment.type === 'turning_point'
-                ? 'turning_point'
-                : 'meaningful',
+              : 'meaningful',
         });
       }
     }

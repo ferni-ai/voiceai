@@ -23,7 +23,10 @@
         "habitCheckIn",
         "habitCoach",
         "habitSetback",
-        "habitStrategy"
+        "habitStrategy",
+        "quickHabitCheck",
+        "microCommitNow",
+        "implementationIntention"
       ],
       "gamification": [
         "gamificationProfile",
