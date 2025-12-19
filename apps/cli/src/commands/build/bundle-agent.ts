@@ -29,7 +29,9 @@ const PROJECT_ROOT = join(__dirname, "..", "..", "..", "..", "..");
 // ============================================================================
 
 const CONFIG = {
-  entry: join(PROJECT_ROOT, 'src/agents/voice-agent-child.ts'),
+  // Updated: Use voice-agent-entry.ts as the canonical entry point
+  // voice-agent-child.ts was moved to _legacy/ during December 2024 cleanup
+  entry: join(PROJECT_ROOT, 'src/agents/voice-agent-entry.ts'),
   outfile: join(PROJECT_ROOT, 'dist/agents/voice-agent-bundle.js'),
   target: 'es2022' as const,
   format: 'esm' as const,
