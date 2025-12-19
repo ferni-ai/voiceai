@@ -293,9 +293,9 @@ function extractLearnedPreferences(profile: UserProfile | null): LearnedPreferen
 
   if (!profile) return preferences;
 
-  // Communication style
-  if (profile.preferences?.communicationStyle) {
-    const style = profile.preferences.communicationStyle;
+  // Communication style (from communicationStyle at profile level)
+  if (profile.communicationStyle) {
+    const style = profile.communicationStyle;
     preferences.push({
       category: 'communication',
       insight:
@@ -323,9 +323,9 @@ function extractLearnedPreferences(profile: UserProfile | null): LearnedPreferen
     });
   }
 
-  // Humor preference
-  if (profile.preferences?.humorReceptivity) {
-    const humor = profile.preferences.humorReceptivity;
+  // Humor preference (from humorAppreciation at profile level)
+  if (profile.humorAppreciation) {
+    const humor = profile.humorAppreciation;
     if (humor === 'high') {
       preferences.push({
         category: 'communication',
