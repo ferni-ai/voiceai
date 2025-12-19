@@ -24,6 +24,14 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getOutreachDecisionEngine } from './decision-engine.js';
 import { evaluateLifeRhythmOutreach, triggerLifeRhythmOutreach } from './life-rhythm-outreach.js';
 import { getOutreachOrchestrator } from './outreach-orchestrator.js';
+import {
+  checkStreaksAtRisk,
+  checkMilestonesToCelebrate,
+  checkSetbackRecoveryNeeded,
+  publishStreakProtectionAlert,
+  publishMilestoneCelebration,
+  publishSetbackRecoveryTrigger,
+} from './maya-habit-outreach.js';
 
 const log = createLogger({ module: 'DailyOutreachJob' });
 
@@ -128,6 +136,19 @@ export async function runDailyOutreachJob(
               byType['life_rhythm'] = (byType['life_rhythm'] || 0) + 1;
             }
           }
+
+          // 🌱 MAYA HABIT OUTREACH: Streak protection, milestones, setback recovery
+          try {
+            const mayaResults = await evaluateMayaHabitOutreach(profile.id);
+            outreachSent += mayaResults.sent;
+            if (mayaResults.sent > 0) {
+              for (const [type, count] of Object.entries(mayaResults.byType)) {
+                byType[type] = (byType[type] || 0) + count;
+              }
+            }
+          } catch (mayaError) {
+            log.debug({ userId: profile.id, error: String(mayaError) }, 'Maya habit outreach error (non-fatal)');
+          }
         }
 
         // Rate limiting delay
@@ -211,6 +232,89 @@ export async function processScheduledTriggers(): Promise<{
   log.debug('Scheduled triggers check', { processed, sent });
 
   return { processed, sent };
+}
+
+// ============================================================================
+// MAYA HABIT OUTREACH EVALUATION
+// ============================================================================
+
+interface MayaHabitOutreachResult {
+  sent: number;
+  byType: Record<string, number>;
+}
+
+/**
+ * Evaluate and trigger Maya's habit-specific outreach for a user
+ * 
+ * Checks for:
+ * 1. Streaks at risk (evening alert before midnight)
+ * 2. Milestones to celebrate (7, 21, 30, 66, 100 days)
+ * 3. Setback recovery needed (3+ days missed after 5+ day streak)
+ */
+async function evaluateMayaHabitOutreach(userId: string): Promise<MayaHabitOutreachResult> {
+  const result: MayaHabitOutreachResult = { sent: 0, byType: {} };
+  const hour = new Date().getHours();
+
+  try {
+    // 1. STREAK PROTECTION (Evening check - 6pm to 10pm optimal)
+    if (hour >= 18 && hour <= 22) {
+      const atRisk = await checkStreaksAtRisk(userId);
+      if (atRisk.atRisk) {
+        for (const habit of atRisk.habits.slice(0, 2)) { // Max 2 alerts per day
+          const sent = await publishStreakProtectionAlert({
+            userId,
+            habitId: habit.id,
+            habitName: habit.name,
+            streakDays: habit.streakDays,
+            reason: `Protect ${habit.streakDays}-day streak on "${habit.name}"`,
+          });
+          if (sent) {
+            result.sent++;
+            result.byType['streak_protection'] = (result.byType['streak_protection'] || 0) + 1;
+          }
+        }
+      }
+    }
+
+    // 2. MILESTONE CELEBRATION (Morning check - 8am to 11am optimal)
+    if (hour >= 8 && hour <= 11) {
+      const milestones = await checkMilestonesToCelebrate(userId);
+      for (const milestone of milestones.slice(0, 2)) { // Max 2 celebrations per day
+        const sent = await publishMilestoneCelebration(
+          userId,
+          milestone.habitId,
+          milestone.habitName,
+          milestone.days
+        );
+        if (sent) {
+          result.sent++;
+          result.byType['milestone_celebration'] = (result.byType['milestone_celebration'] || 0) + 1;
+        }
+      }
+    }
+
+    // 3. SETBACK RECOVERY (Afternoon check - 2pm to 5pm optimal)
+    if (hour >= 14 && hour <= 17) {
+      const setbacks = await checkSetbackRecoveryNeeded(userId);
+      for (const setback of setbacks.slice(0, 1)) { // Max 1 setback outreach per day
+        const sent = await publishSetbackRecoveryTrigger(
+          userId,
+          setback.habitId,
+          setback.habitName,
+          setback.daysMissed,
+          setback.previousStreak
+        );
+        if (sent) {
+          result.sent++;
+          result.byType['setback_recovery'] = (result.byType['setback_recovery'] || 0) + 1;
+        }
+      }
+    }
+  } catch (error) {
+    log.debug({ userId, error: String(error) }, 'Maya habit outreach evaluation failed');
+  }
+
+  return result;
 }
 
 // ============================================================================

@@ -279,13 +279,13 @@ async function getMayaHabitInsights(userId: string): Promise<HabitInsights> {
 
     // Habit stacks
     const stacks = userData.habitStacks || [];
-    insights.habitStacks = stacks.map((s) => `${s.name} (${s.habits.length} habits)`);
+    insights.habitStacks = stacks.map((s) => `${s.name} (${s.newHabits.length} habits)`);
 
     // Weekly reflections
     const reflections = userData.weeklyReflections || [];
     if (reflections.length > 0) {
       const latest = reflections[reflections.length - 1];
-      insights.weeklyReflectionSummary = `Win: ${latest.wins[0] || 'none'}, Struggle: ${latest.struggles[0] || 'none'}`;
+      insights.weeklyReflectionSummary = `Win: ${latest.wins[0] || 'none'}, Challenge: ${latest.challenges[0] || 'none'}`;
     }
   } catch (error) {
     log.debug({ error: String(error) }, 'Could not fetch Maya habit insights');
@@ -322,23 +322,17 @@ async function getMoodPatterns(userId: string): Promise<MoodInsights> {
 
     if (moodLogs.length === 0) return insights;
 
-    // Last mood
+    // Last mood (MoodLog has mood and energy as numbers 1-10)
     const lastLog = moodLogs[moodLogs.length - 1];
-    insights.lastMood = { mood: String(lastLog.mood), energy: String(lastLog.energy) };
+    const moodLabel = lastLog.mood <= 3 ? 'low' : lastLog.mood <= 6 ? 'moderate' : 'high';
+    const energyLabel = lastLog.energy <= 3 ? 'low' : lastLog.energy <= 6 ? 'moderate' : 'high';
+    insights.lastMood = { mood: moodLabel, energy: energyLabel };
 
-    // Calculate energy average (mood 1-5 scale assumed)
-    const energyMap: Record<string, number> = {
-      depleted: 1,
-      low: 2,
-      normal: 3,
-      high: 4,
-      energized: 5,
-    };
-    const energyValues = moodLogs
-      .map((m) => energyMap[String(m.energy).toLowerCase()] || 3)
-      .filter((e) => e > 0);
+    // Calculate energy average (already 1-10 scale, normalize to 1-5)
+    const energyValues = moodLogs.map((m) => m.energy / 2); // Normalize to 1-5 scale
     if (energyValues.length > 0) {
-      insights.averageEnergy = energyValues.reduce((a, b) => a + b, 0) / energyValues.length;
+      insights.averageEnergy =
+        energyValues.reduce((a: number, b: number) => a + b, 0) / energyValues.length;
     }
 
     // Mood trend (compare first half vs second half)
@@ -347,24 +341,12 @@ async function getMoodPatterns(userId: string): Promise<MoodInsights> {
       const firstHalf = moodLogs.slice(0, midpoint);
       const secondHalf = moodLogs.slice(midpoint);
 
-      const moodMap: Record<string, number> = {
-        terrible: 1,
-        bad: 2,
-        okay: 3,
-        good: 4,
-        great: 5,
-      };
+      const avgFirst = firstHalf.reduce((sum: number, m) => sum + m.mood, 0) / firstHalf.length;
+      const avgSecond = secondHalf.reduce((sum: number, m) => sum + m.mood, 0) / secondHalf.length;
 
-      const avgFirst =
-        firstHalf.reduce((sum, m) => sum + (moodMap[String(m.mood).toLowerCase()] || 3), 0) /
-        firstHalf.length;
-      const avgSecond =
-        secondHalf.reduce((sum, m) => sum + (moodMap[String(m.mood).toLowerCase()] || 3), 0) /
-        secondHalf.length;
-
-      if (avgSecond > avgFirst + 0.3) {
+      if (avgSecond > avgFirst + 0.5) {
         insights.recentMoodTrend = 'improving';
-      } else if (avgSecond < avgFirst - 0.3) {
+      } else if (avgSecond < avgFirst - 0.5) {
         insights.recentMoodTrend = 'declining';
       } else {
         insights.recentMoodTrend = 'stable';

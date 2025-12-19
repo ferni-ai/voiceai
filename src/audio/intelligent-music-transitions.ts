@@ -89,7 +89,8 @@ export type TransitionType =
   | 'acknowledgment' // Simple acknowledgment ("Mm.")
   | 'check_in' // Genuine check-in ("How are you feeling?")
   | 'invitation' // Open invitation to continue
-  | 'persona_specific'; // Something uniquely persona-flavored
+  | 'persona_specific' // Something uniquely persona-flavored
+  | 'dj_vibes'; // 🎧 DJ offers more music with personality!
 
 export interface TransitionInput {
   /** The music session context */
@@ -177,6 +178,14 @@ const PERSONA_PHRASES: Record<string, Partial<Record<TransitionType, string[]>>>
       '<break time="450ms"/>What else?',
       '<break time="400ms"/>Go on.',
     ],
+    // 🎧 DJ Vibes - Ferni's chill style
+    dj_vibes: [
+      '<break time="300ms"/>Mm. <break time="200ms"/>Want me to keep the vibes going?',
+      '<break time="350ms"/>Good one. <break time="200ms"/>More?',
+      '<break time="300ms"/>Got more where that came from... <break time="200ms"/>just say the word.',
+      '<break time="400ms"/>How was that? <break time="250ms"/>I can keep it going.',
+      '<break time="300ms"/>Nice, right? <break time="200ms"/>Want another?',
+    ],
   },
   'nayan-patel': {
     presence: [
@@ -208,6 +217,13 @@ const PERSONA_PHRASES: Record<string, Partial<Record<TransitionType, string[]>>>
       '<break time="500ms"/>Continue.',
       '<break time="550ms"/>I am listening.',
       '<break time="500ms"/>Please.',
+    ],
+    // 🎧 DJ Vibes - Nayan's contemplative style
+    dj_vibes: [
+      '<break time="500ms"/>Ah. <break time="300ms"/>The music speaks. <break time="250ms"/>Shall I continue?',
+      '<break time="500ms"/>Sound has its own wisdom. <break time="300ms"/>More?',
+      '<break time="450ms"/>Mm. <break time="300ms"/>Would you like to stay in this space?',
+      '<break time="500ms"/>What did that stir in you? <break time="300ms"/>I can offer more.',
     ],
   },
   'peter-john': {
@@ -241,6 +257,13 @@ const PERSONA_PHRASES: Record<string, Partial<Record<TransitionType, string[]>>>
       '<break time="400ms"/>I\'m listening.',
       '<break time="350ms"/>What else?',
     ],
+    // 🎧 DJ Vibes - Peter's analytical but warm style
+    dj_vibes: [
+      '<break time="300ms"/>Solid track. <break time="200ms"/>Another one?',
+      '<break time="350ms"/>Good stuff. <break time="200ms"/>Want me to keep it going?',
+      '<break time="300ms"/>Not bad, right? <break time="250ms"/>I\'ve got more.',
+      '<break time="350ms"/>How was that? <break time="200ms"/>I can queue up something similar.',
+    ],
   },
   'alex-chen': {
     presence: [
@@ -272,6 +295,13 @@ const PERSONA_PHRASES: Record<string, Partial<Record<TransitionType, string[]>>>
       '<break time="350ms"/>I\'m listening.',
       '<break time="400ms"/>Tell me more.',
       '<break time="350ms"/>Go on.',
+    ],
+    // 🎧 DJ Vibes - Alex's efficient but friendly style
+    dj_vibes: [
+      '<break time="300ms"/>Nice! <break time="200ms"/>More music?',
+      '<break time="350ms"/>That was good. <break time="200ms"/>Keep it going?',
+      '<break time="300ms"/>Got more. <break time="200ms"/>Want another?',
+      '<break time="350ms"/>Good pick, right? <break time="200ms"/>I can keep the playlist going.',
     ],
   },
   'maya-santos': {
@@ -305,6 +335,13 @@ const PERSONA_PHRASES: Record<string, Partial<Record<TransitionType, string[]>>>
       '<break time="400ms"/>What else?',
       '<break time="350ms"/>Go ahead.',
     ],
+    // 🎧 DJ Vibes - Maya's warm and supportive style
+    dj_vibes: [
+      '<break time="350ms"/>Mm, that was nice. <break time="200ms"/>Want more?',
+      '<break time="300ms"/>Good vibes. <break time="200ms"/>Keep it going?',
+      '<break time="350ms"/>I\'ve got more tunes... <break time="200ms"/>just say the word.',
+      '<break time="400ms"/>How did that feel? <break time="200ms"/>More music?',
+    ],
   },
   'jordan-taylor': {
     presence: [
@@ -337,6 +374,14 @@ const PERSONA_PHRASES: Record<string, Partial<Record<TransitionType, string[]>>>
       '<break time="350ms"/>Tell me!',
       '<break time="300ms"/>Go on!',
     ],
+    // 🎧 DJ Vibes - Jordan's energetic party style!
+    dj_vibes: [
+      '<break time="250ms"/>Ooh! <break time="150ms"/>More?!',
+      '<break time="300ms"/>That was fun! <break time="200ms"/>Want another banger?',
+      '<break time="250ms"/>Good one, right?! <break time="150ms"/>I\'ve got MORE!',
+      '<break time="300ms"/>Ha! <break time="200ms"/>The DJ has more where that came from!',
+      '<break time="250ms"/>Let\'s goooo! <break time="150ms"/>Keep the party going?',
+    ],
   },
 };
 
@@ -348,6 +393,12 @@ const DEFAULT_PHRASES: Partial<Record<TransitionType, string[]>> = {
   celebration_close: ['<break time="350ms"/>That was nice.', '<break time="400ms"/>What\'s next?'],
   check_in: ['<break time="400ms"/>How are you feeling?'],
   invitation: ['<break time="350ms"/>I\'m listening.'],
+  // 🎧 DJ Vibes - default friendly style
+  dj_vibes: [
+    '<break time="300ms"/>Good one. <break time="200ms"/>Want more?',
+    '<break time="350ms"/>That was nice. <break time="200ms"/>Keep it going?',
+    '<break time="300ms"/>Got more music... <break time="200ms"/>just say the word.',
+  ],
 };
 
 // ============================================================================
@@ -854,6 +905,18 @@ export function getMusicTransition(input: TransitionInput): EnhancedTransitionRe
     if (relationshipStage === 'friend' || relationshipStage === 'close_friend') {
       availableTypes.push('check_in');
     }
+    
+    // 🎧 DJ VIBES: For background/ambient music, let the DJ offer more!
+    // This makes the DJ feel alive - not just an auto-queue robot.
+    // 40% chance for ambient/background, 25% chance for other music
+    if (musicContext?.startReason === 'background' || musicContext?.wasAmbient) {
+      if (Math.random() < 0.4) {
+        availableTypes.push('dj_vibes');
+      }
+    } else if (Math.random() < 0.25) {
+      // Sometimes offer more music even for non-ambient
+      availableTypes.push('dj_vibes');
+    }
 
     const selection = selectTransitionWithLearning(userId, availableTypes, {
       startReason: musicContext?.startReason,
@@ -1000,6 +1063,16 @@ function generateTransitionOfType(
         reasoning: 'User-learned preference: invitation',
         confidence: 0.75,
         transitionType: 'invitation',
+      };
+
+    // 🎧 DJ VIBES: The DJ offers more music with personality!
+    case 'dj_vibes':
+      return {
+        shouldSpeak: true,
+        phrase: getPersonaPhrase(personaId, 'dj_vibes'),
+        reasoning: 'DJ vibes: offering more music with personality',
+        confidence: 0.8,
+        transitionType: 'dj_vibes',
       };
 
     case 'persona_specific':

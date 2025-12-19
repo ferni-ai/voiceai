@@ -87,10 +87,11 @@ const DOMAIN_OWNERSHIP: Record<string, string[]> = {
     'habitStrategy',
     'gamificationProfile',
     'leaderboard',
-    // Voice-first tools (Phase 1 Maya Excellence)
+    // Voice-first tools (Phase 1-2 Maya Excellence)
     'quickHabitCheck',
     'microCommitNow',
     'implementationIntention',
+    'weeklyHabitReview',
   ],
   // Alex owns calendar/communication tools (from communication + calendar domains)
   // See: src/tools/domains/communication/index.ts, src/tools/domains/calendar/index.ts

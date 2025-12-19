@@ -29,6 +29,7 @@ import {
   type HabitLogData,
 } from '../../../services/productivity-store.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { generateWeeklyReviewData } from '../../../services/outreach/maya-habit-outreach.js';
 
 const log = getLogger();
 
@@ -535,6 +536,129 @@ export const implementationIntentionDefinition: ToolDefinition = {
 };
 
 // ============================================================================
+// 4. WEEKLY HABIT REVIEW (weeklyHabitReview)
+// ============================================================================
+
+/**
+ * Weekly Habit Review Tool
+ *
+ * Provides a reflective summary of the week's habit performance.
+ * Designed for Sunday check-ins or weekly planning sessions.
+ *
+ * Uses data from maya-habit-outreach.ts for consistency.
+ */
+const weeklyHabitReviewDefinition: ToolDefinition = {
+  id: 'weeklyHabitReview',
+  name: 'Weekly Habit Review',
+  description: 'Reflective weekly summary of habit performance with insights',
+  domain: 'habits',
+  tags: ['habits', 'voice', 'review', 'weekly', 'maya'],
+
+  create: (ctx: ToolContext): Tool => {
+    return llm.tool({
+      description:
+        'Generate a reflective weekly habit review. Perfect for Sunday check-ins ' +
+        'or weekly planning. Includes completion rate, streaks, improving/struggling habits.',
+      parameters: z.object({
+        tone: z
+          .enum(['celebratory', 'honest', 'curious', 'gentle'])
+          .optional()
+          .default('honest')
+          .describe('Tone of the review'),
+        focusArea: z
+          .enum(['wins', 'struggles', 'patterns', 'all'])
+          .optional()
+          .default('all')
+          .describe('What to focus the review on'),
+      }),
+      execute: async ({ tone, focusArea }) => {
+        try {
+          const userId = ctx.userId || 'default';
+
+          // Use the same data generation as outreach system
+          const reviewData = await generateWeeklyReviewData(userId);
+
+          if (!reviewData) {
+            return "You don't have any active habits to review yet. Want to set one up?";
+          }
+
+          const {
+            totalHabits,
+            completedThisWeek,
+            missedThisWeek,
+            completionRate,
+            bestStreak,
+            improvingHabits,
+            strugglingHabits,
+          } = reviewData;
+
+          const ratePercent = Math.round(completionRate * 100);
+          let response = '';
+
+          // Opening based on tone
+          if (tone === 'celebratory' && ratePercent >= 70) {
+            response += `<emotion value="happy">What a week! 🎉 </emotion>`;
+          } else if (tone === 'gentle' && ratePercent < 50) {
+            response += `<emotion value="sympathetic">Okay, let's look at your week together. No judgment, just curiosity. </emotion>`;
+          } else if (tone === 'curious') {
+            response += `<emotion value="friendly">Let me share what I'm seeing from your week... </emotion>`;
+          } else {
+            response += `<emotion value="friendly">Here's your weekly habit review: </emotion>`;
+          }
+
+          // Main stats
+          response += `\n\n**This Week:** ${ratePercent}% completion (${completedThisWeek} of ${totalHabits * 7} possible).`;
+
+          // Focus area content
+          if (focusArea === 'wins' || focusArea === 'all') {
+            if (bestStreak) {
+              response += `\n\n**Best Streak:** "${bestStreak.name}" at ${bestStreak.days} days! `;
+              if (bestStreak.days >= 21) {
+                response += `That's habit territory!`;
+              } else if (bestStreak.days >= 7) {
+                response += `One week strong!`;
+              }
+            }
+            if (improvingHabits.length > 0) {
+              response += `\n\n**Improving:** ${improvingHabits.join(', ')} - better than last week! 📈`;
+            }
+          }
+
+          if (focusArea === 'struggles' || focusArea === 'all') {
+            if (strugglingHabits.length > 0) {
+              response += `\n\n**Needs Attention:** ${strugglingHabits.join(', ')} dropped from last week. Want to troubleshoot?`;
+            }
+          }
+
+          if (focusArea === 'patterns' || focusArea === 'all') {
+            // Add pattern insights
+            if (ratePercent < 50 && tone !== 'celebratory') {
+              response += `\n\nI notice consistency has been tricky. What's been getting in the way?`;
+            } else if (ratePercent >= 80) {
+              response += `\n\n${ratePercent}% is excellent. You're building real momentum.`;
+            }
+          }
+
+          // Closing based on rate
+          if (ratePercent >= 70) {
+            response += `\n\n**Keep it going!** What would make next week even better?`;
+          } else if (ratePercent >= 50) {
+            response += `\n\nNot bad! Every week is a chance to refine. What's one thing you'd change?`;
+          } else {
+            response += `\n\nTough week, but you showed up to review it - that counts. What's the smallest thing that would help?`;
+          }
+
+          return response;
+        } catch (error) {
+          log.error({ error }, 'Weekly review failed');
+          return "I had trouble loading your habit data. Let's talk through it manually - how did your week go?";
+        }
+      },
+    });
+  },
+};
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
@@ -542,6 +666,7 @@ export const mayaVoiceTools: ToolDefinition[] = [
   quickHabitCheckDefinition,
   microCommitNowDefinition,
   implementationIntentionDefinition,
+  weeklyHabitReviewDefinition,
 ];
 
 export default mayaVoiceTools;

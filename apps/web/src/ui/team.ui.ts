@@ -87,9 +87,6 @@ function clearAllTrackedTimeouts(): void {
 /** FIX BUG #57: ARIA live region for announcing handoff status to screen readers */
 let ariaLiveRegion: HTMLElement | null = null;
 
-/** WARM HANDOFF: Visual banter text element for displaying handoff banter */
-let banterTextElement: HTMLElement | null = null;
-
 // 🎬 Pixar Animation state
 let activeHoverAnimation: Animation | null = null;
 let magneticAnimationFrame: number | null = null;
@@ -247,16 +244,9 @@ export function initTeamUI(): void {
     cleanupFunctions.push(unsub2);
 
     // FIX BUG #57: Announce handoff start events to screen readers
-    // WARM HANDOFF: Also display banter text visually if available
-    const unsubStart = handoffService.onHandoffStart((toPersona, _fromPersona, banter) => {
+    const unsubStart = handoffService.onHandoffStart((toPersona, _fromPersona, _banter) => {
       const persona = getPersona(toPersona);
       announceToScreenReader(`Switching to ${persona.name}`);
-
-      // WARM HANDOFF: Display banter text if available
-      if (banter?.softOpen) {
-        log.debug('Showing soft open banter:', banter.softOpen);
-        showBanterText(banter.softOpen);
-      }
     });
     cleanupFunctions.push(unsubStart);
 
@@ -265,8 +255,6 @@ export function initTeamUI(): void {
     const unsubComplete = handoffService.onHandoffComplete((toPersona) => {
       const persona = getPersona(toPersona);
       announceToScreenReader(`Now speaking with ${persona.name}`);
-      // WARM HANDOFF: Hide any visible banter text
-      hideBanterText();
       // Fallback: ensure roster is updated (in case soft_open_complete wasn't sent)
       // This handles backward compatibility when there's no soft open banter
       setActiveTeamMember(toPersona);
@@ -277,14 +265,12 @@ export function initTeamUI(): void {
     // FIX BUG: Also clear visual switching states when handoff fails
     const unsubFailed = handoffService.onHandoffFailed((error, targetPersona) => {
       announceToScreenReader(`Switch failed. ${error}`);
-      hideBanterText();
       clearSwitchingFeedback(targetPersona);
     });
     cleanupFunctions.push(unsubFailed);
 
     // FIX BUG: Handle handoff cancellation - clear visual states
     const unsubCancelled = handoffService.onHandoffCancelled((targetPersona, _reason) => {
-      hideBanterText();
       clearSwitchingFeedback(targetPersona);
     });
     cleanupFunctions.push(unsubCancelled);
@@ -535,67 +521,6 @@ function announceToScreenReader(message: string): void {
       ariaLiveRegion.textContent = message;
     }
   }, 50);
-}
-
-/**
- * WARM HANDOFF: Create the banter text display element.
- * Displays as a subtle caption during handoff transitions.
- */
-function createBanterTextElement(): void {
-  if (banterTextElement) return;
-
-  banterTextElement = document.createElement('div');
-  banterTextElement.id = 'handoff-banter-text';
-  banterTextElement.className = 'handoff-banter-text';
-  banterTextElement.style.cssText = `
-    position: fixed;
-    bottom: calc(var(--space-xl, 42px) * 2);
-    left: 50%;
-    transform: translateX(-50%);
-    max-width: 80%;
-    padding: var(--space-sm, 8px) var(--space-md, 16px);
-    background: var(--color-bg-glass, rgba(0, 0, 0, 0.6));
-    backdrop-filter: blur(var(--glass-blur-subtle, 8px));
-    border-radius: var(--radius-lg, 12px);
-    color: var(--color-text-secondary, #a0a0a0);
-    font-size: var(--font-size-sm, 0.875rem);
-    font-style: italic;
-    text-align: center;
-    opacity: 0;
-    transition: opacity var(--duration-normal, 200ms) var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
-    pointer-events: none;
-    z-index: var(--z-notification, 3000);
-  `;
-  document.body.appendChild(banterTextElement);
-}
-
-/**
- * WARM HANDOFF: Display banter text during handoff.
- * Shows the departing persona's warm sendoff message.
- */
-function showBanterText(text: string): void {
-  if (!banterTextElement) {
-    createBanterTextElement();
-  }
-  if (banterTextElement) {
-    banterTextElement.textContent = `"${text}"`;
-    banterTextElement.style.opacity = '1';
-
-    // Auto-hide after a delay (sync with handoff timing)
-    // Use FIRST_MEETING timing (400ms) + generous buffer for reading banter
-    trackedTimeout(() => {
-      hideBanterText();
-    }, HANDOFF_TIMING.FIRST_MEETING + 2500);
-  }
-}
-
-/**
- * WARM HANDOFF: Hide the banter text display.
- */
-function hideBanterText(): void {
-  if (banterTextElement) {
-    banterTextElement.style.opacity = '0';
-  }
 }
 
 /**

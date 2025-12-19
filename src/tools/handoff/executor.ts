@@ -35,6 +35,10 @@ import {
   formatCognitiveHandoffForPrompt,
   type CognitiveHandoffContext,
 } from './cognitive-handoff.js';
+import {
+  buildInsightBriefingForHandoff,
+  formatInsightBriefingForPrompt,
+} from '../../services/cross-persona-insights.js';
 import { createHandoffEvent } from './types.js';
 import { HANDOFF_TIMING } from '../../config/handoff-timing.js';
 // FIX BUG: Import state management from state.ts to keep state in sync
@@ -402,7 +406,31 @@ export async function executeHandoff(
   const greeting = await generateHandoffGreeting(canonicalTargetId, reason, previousAgent);
 
   // Build context continuation - now includes recent messages if available
-  const contextContinuation = buildContextContinuation(reason, options.recentMessages);
+  let contextContinuation = buildContextContinuation(reason, options.recentMessages);
+
+  // FIX: Add cross-persona insights to handoff context
+  try {
+    const userId = options.userId || options.sessionId;
+    if (userId) {
+      const insightBriefing = await buildInsightBriefingForHandoff(
+        userId,
+        canonicalTargetId
+      );
+      const insightContext = formatInsightBriefingForPrompt(insightBriefing);
+      if (insightContext) {
+        contextContinuation += `\n\n${insightContext}`;
+        getLogger().debug(
+          {
+            targetId: canonicalTargetId,
+            insightCount: insightBriefing.incomingInsights.length,
+          },
+          '📨 Cross-persona insights added to handoff'
+        );
+      }
+    }
+  } catch (error) {
+    getLogger().warn({ error: String(error) }, 'Could not add cross-persona insights to handoff');
+  }
 
   // Get voice ID for the target agent
   let voiceId: string | undefined;

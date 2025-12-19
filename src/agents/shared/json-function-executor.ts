@@ -299,6 +299,31 @@ async function routeToTool(
     return 'What mood are you in? I can suggest something fitting.';
   }
 
+  // Legacy music tool name aliases (route to musicControl)
+  if (fnLower === 'pausemusic' || fnLower === 'pausecallmusic') {
+    const { getMusicPlayer } = await import('../../audio/music-player.js');
+    const musicPlayer = getMusicPlayer();
+    log.info({ fn }, '🎵 Legacy pause tool - routing to musicControl');
+    musicPlayer.pause();
+    return 'Music paused.';
+  }
+
+  if (fnLower === 'stopmusic' || fnLower === 'stopcallmusic') {
+    const { getMusicPlayer } = await import('../../audio/music-player.js');
+    const musicPlayer = getMusicPlayer();
+    log.info({ fn }, '🎵 Legacy stop tool - routing to musicControl');
+    musicPlayer.stop();
+    return 'Music stopped.';
+  }
+
+  if (fnLower === 'resumemusic' || fnLower === 'resumecallmusic') {
+    const { getMusicPlayer } = await import('../../audio/music-player.js');
+    const musicPlayer = getMusicPlayer();
+    log.info({ fn }, '🎵 Legacy resume tool - routing to musicControl');
+    await musicPlayer.resume();
+    return 'Resuming the music.';
+  }
+
   // ========================================
   // MEMORY TOOLS (With real Firestore integration)
   // ========================================

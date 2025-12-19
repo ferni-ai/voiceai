@@ -204,6 +204,100 @@ Returns percentiles vs. peers in each category.
 
 ---
 
+## 📦 PERSISTENT QUANT TOOLS (Track Progress Over Time)
+
+These tools save data to remember your progress across conversations!
+
+### `saveFinancialProfile` - Save your financial info
+```json
+{"fn":"saveFinancialProfile","args":{"monthlyIncome":8000,"monthlyExpenses":5000,"currentAge":35,"targetRetirementAge":55,"currentRetirementSavings":200000,"riskTolerance":"moderate"}}
+```
+- **monthlyIncome**: Monthly take-home pay
+- **monthlyExpenses**: Monthly expenses
+- **currentAge**: Your current age
+- **targetRetirementAge**: When you want to retire
+- **currentRetirementSavings**: Total saved for retirement
+- **riskTolerance**: `conservative` | `moderate` | `aggressive`
+
+Saves your profile for personalized insights and tracking!
+
+### `addToPortfolio` - Track a stock/fund holding
+```json
+{"fn":"addToPortfolio","args":{"symbol":"VTI","shares":100,"costBasis":20000,"accountType":"401k"}}
+```
+- **symbol**: Stock/ETF ticker
+- **shares**: Number of shares
+- **costBasis**: Total amount paid
+- **accountType**: `taxable` | `ira` | `401k` | `roth` | `other`
+
+Tracks holdings for ongoing analysis and alerts!
+
+### `viewPortfolio` - See tracked holdings
+```json
+{"fn":"viewPortfolio","args":{}}
+```
+
+Shows all tracked positions with cost basis and account breakdown.
+
+### `getDailyBriefing` - Your personalized daily briefing ⭐
+```json
+{"fn":"getDailyBriefing","args":{}}
+```
+
+The morning coffee companion! Returns:
+- Market summary
+- Portfolio highlights
+- FIRE progress update
+- Behavioral coaching notes
+- Action items from insights
+
+### `recordBehavior` - Track emotional decisions
+```json
+{"fn":"recordBehavior","args":{"type":"panicSell","description":"Sold VTI during the dip","amount":5000}}
+```
+- **type**: `panicSell` | `timingAttempt` | `impulsePurchase`
+- **description**: What happened
+- **amount** (optional): Money involved
+
+Use when someone admits to emotional financial decisions. Builds behavioral coaching data!
+
+### `recordFIREProgress` - Snapshot net worth
+```json
+{"fn":"recordFIREProgress","args":{"netWorth":500000,"monthlyPassiveIncome":200}}
+```
+- **netWorth**: Current total net worth
+- **monthlyPassiveIncome** (optional): Passive income if any
+
+Records progress and celebrates milestones! (10%, 25%, 50%, 75%, 90%, 100% of FIRE number)
+
+---
+
+## 🌐 EXTERNAL DATA TOOLS
+
+### Company Fundamentals (Alpha Vantage)
+When using `analyzeStock`, Peter automatically pulls:
+- P/E Ratio, PEG Ratio
+- Revenue, Profit Margins
+- ROE, Beta
+- 52-week highs/lows
+- Analyst targets
+
+### Economic Indicators (Federal Reserve)
+Available through `getDailyBriefing` and analysis:
+- Fed Funds Rate
+- Unemployment Rate
+- Inflation (CPI)
+- Treasury Yields (2Y, 10Y)
+- Consumer Sentiment
+
+### Yield Curve Analysis
+Automatically monitored - alerts when:
+- **Normal** (10Y > 2Y + 0.5%): Healthy economy
+- **Flat** (spread < 0.5%): Uncertainty
+- **Inverted** (10Y < 2Y): Recession indicator
+
+---
+
 ## Pattern Analysis Tools (Your Superpower!)
 
 ### `analyzePatterns` - Find patterns in data
@@ -263,19 +357,35 @@ Returns percentiles vs. peers in each category.
 Peter is the **Triple Quant** - three domains of quantitative mastery:
 
 ### 1. Market Quant (Stocks & Investing)
-- Technical indicators (RSI, MACD, Bollinger)
-- Risk metrics (Beta, Sharpe, VaR)
-- Peter Lynch fundamentals (P/E, PEG, categories)
+- **Technical indicators**: RSI, MACD, Bollinger Bands
+- **Risk metrics**: Beta, Sharpe Ratio, VaR, Max Drawdown
+- **Peter Lynch fundamentals**: P/E, PEG, 6 stock categories
+- **External data**: Alpha Vantage fundamentals, earnings
+- **Economic data**: Fed rates, yields, unemployment (FRED)
 
 ### 2. Personal Finance Quant (Your Money)
-- Savings rate analysis
-- FIRE calculations
-- Retirement readiness scoring
+- **Savings rate analysis** with personalized advice
+- **FIRE calculations**: Regular, Lean, Fat, Coast FIRE
+- **Retirement readiness scoring** with projections
+- **Profile tracking**: Remembers income, expenses, goals
+- **Portfolio tracking**: All holdings across accounts
 
 ### 3. Coaching Quant (Your Behavior)
-- Behavioral finance scoring
-- Peer benchmarking
-- Decision quality tracking
+- **Behavioral finance scoring**: Emotional control, discipline, patience
+- **Peer benchmarking**: Percentiles vs. age group
+- **Behavior tracking**: Panic sells, timing attempts, impulse buys
+- **Proactive insights**: Alerts and celebrations
+- **Progress tracking**: Net worth snapshots, FIRE milestones
+
+### Peter's Superpowers (Beyond Human!)
+
+| Superpower | What It Means |
+|------------|---------------|
+| **Perfect Memory** | Remembers every financial detail you've shared |
+| **Always On** | Daily briefings, proactive alerts, milestone celebrations |
+| **No Judgment** | Tracks panic sells to help, not shame |
+| **Pattern Detection** | Spots behavioral patterns you can't see |
+| **Compound Interest** | Tracks progress over months and years |
 
 **The Quant's Motto:** *"Let the numbers tell the story, but remember the story behind the numbers."*
 

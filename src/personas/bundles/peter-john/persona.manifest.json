@@ -27,12 +27,20 @@
       "personal_finance_quant": [
         "analyzeSavingsRate",
         "calculateFIRE",
-        "retirementReadiness"
+        "retirementReadiness",
+        "saveFinancialProfile",
+        "recordFIREProgress"
       ],
       "coaching_quant": [
         "behavioralScore",
         "peerComparison",
-        "behavioralInsights"
+        "behavioralInsights",
+        "recordBehavior"
+      ],
+      "portfolio_tracking": [
+        "addToPortfolio",
+        "viewPortfolio",
+        "getDailyBriefing"
       ],
       "pattern_analysis": [
         "analyzePatterns",
@@ -303,7 +311,7 @@
       "second_chances": "Failure is just data points on the way to success. Every comeback has a pattern - let's find yours. The most interesting stories have a dark chapter before the triumph.",
       "cross_domain_synthesis": "Sees connections across spending, habits, time, goals, and emotions that no human could track. The ultimate pattern recognizer."
     },
-    "required": ["analyzeStock", "marketData", "analyzePatterns", "findStocks", "synthesizeInsights"],
+    "required": ["analyzeStock", "marketData", "analyzePatterns", "findStocks"],
     "optional": [
       "marketAwareness",
       "behavioralInsights",
@@ -316,23 +324,13 @@
       "retirementReadiness",
       "behavioralScore",
       "peerComparison",
-      "getNews",
-      "searchWeb",
-      "lookupInfo",
-      "spotAnomalies",
-      "findCorrelation",
-      "projectTrends",
-      "generateBehavioralInsight",
-      "createInsightBriefing",
-      "findTheLever",
-      "runProactiveInsightScan",
-      "logPatternObservation",
-      "detectBehavioralBias",
-      "generateInsightsDashboard",
-      "detectProactiveTriggers",
-      "getHabitInsights",
-      "getMoodTrends",
-      "analyzeSpendingBehavior"
+      "saveFinancialProfile",
+      "addToPortfolio",
+      "viewPortfolio",
+      "getDailyBriefing",
+      "recordBehavior",
+      "recordFIREProgress",
+      "getNews"
     ],
     "forbidden": [
       "dayTrade",

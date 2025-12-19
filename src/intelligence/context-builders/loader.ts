@@ -90,6 +90,10 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'human-personality', // Semantic matching, timing intelligence, callbacks
     'ferni-personality', // Ferni-specific: dynamic expressions, pushbacks, passions
     'peter-research-insights', // Peter-specific: deep research briefings on entry/handoff
+    'maya-coaching-insights', // Maya-specific: cross-team coaching insights on entry/handoff
+    'jordan-milestone-insights', // Jordan-specific: milestone and goal insights on entry/handoff
+    'nayan-wisdom-insights', // Nayan-specific: big-picture wisdom synthesis on entry/handoff
+    'alex-communication-insights', // Alex-specific: communication coaching on entry/handoff
     'better-than-human-direct', // Direct surfacing of Better Than Human curated phrases
     'conversational-superpowers', // Quote memory, milestones, micro-wins, jokes, names
     'conversation-forward', // Better Than Human: keep conversations moving, follow-ups
@@ -108,6 +112,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'therapeutic-frameworks',
     'behavioral-economics',
     'methodology', // Evidence-based frameworks from methodology.json
+    'maya-habit-insights', // Maya-specific: habit patterns, predictive care, streak protection
   ],
 
   // COGNITIVE - Cognitive intelligence

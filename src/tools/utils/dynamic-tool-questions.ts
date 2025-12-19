@@ -357,12 +357,9 @@ function generateIntro(
     }
   }
 
-  // Adapt to persona voice
-  if (cognitiveDiff) {
-    // Analytical personas might be more direct
-    if (cognitiveDiff.approach.depth > 0.7) {
-      intro += ' There are no right answers - just what\'s true for you.';
-    }
+  // Adapt to persona voice - feeling-focused personas add warmth
+  if (cognitiveDiff && cognitiveDiff.questioning.feelingVsData > 0.7) {
+    intro += " There are no right answers - just what's true for you.";
   }
 
   return intro;
@@ -466,8 +463,16 @@ export function generateToolQuestions(context: ToolQuestionContext): GeneratedTo
   const intro = generateIntro(domain, focus, specificContext, cognitiveDiff);
   const closingPrompt = generateClosingPrompt(domain, cognitiveDiff);
 
-  // Determine persona style description
-  const personaStyle = cognitiveDiff?.identity?.shortDescription || 'thoughtful listener';
+  // Determine persona style description from persona ID
+  const personaStyleMap: Record<string, string> = {
+    ferni: 'warm life coach',
+    maya: 'habit accountability partner',
+    peter: 'analytical researcher',
+    alex: 'communications specialist',
+    jordan: 'event planning expert',
+    nayan: 'wise philosopher',
+  };
+  const personaStyle = personaStyleMap[personaId] || 'thoughtful listener';
 
   log.debug(
     { personaId, domain, focus, questionCount: adaptedQuestions.length },

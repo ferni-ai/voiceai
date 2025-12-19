@@ -1649,6 +1649,7 @@ export class CallMusicPlayer {
     const wasPlaying = this.state.isPlaying;
     const stoppedTrack = this.state.currentTrack;
     const wasAmbient = this.state.isAmbientMode;
+    const queuedTracks = this.state.queue.length;
 
     // 🎤 Clear mid-song moment timer
     if (this.midSongMomentTimer) {
@@ -1670,6 +1671,8 @@ export class CallMusicPlayer {
     this.state.isPlaying = false;
     this.state.currentTrack = null;
     this.state.isAmbientMode = false;
+    // 🐛 FIX: Clear the queue on stop - otherwise DJ mode keeps playing after "stop"
+    this.state.queue = [];
     this.currentPlayHandle = null;
     this.currentAudioPath = null;
 
@@ -1677,8 +1680,9 @@ export class CallMusicPlayer {
       {
         wasPlaying,
         stoppedTrack: stoppedTrack?.name,
+        queueCleared: queuedTracks,
       },
-      '🎧 Music stopped (explicit stop call)'
+      '🎧 Music stopped (explicit stop call, queue cleared)'
     );
 
     // ✨ Notify frontend - stop dancing and hide Now Playing UI

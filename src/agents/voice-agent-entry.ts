@@ -662,9 +662,10 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         // NOTE: 'required' didn't help - Gemini still narrates tool calls
         // This is a known Gemini Live API bug. Workaround is in tool-call-sanitizer.ts
         toolChoice: 'auto',
-        // Enable Google Search as a built-in tool for real-time information
+        // Enable Google Search as a built-in Gemini tool for real-time information
+        // NOTE: geminiTools gets merged into the tools config sent to Gemini Live API
         // @see https://ai.google.dev/gemini-api/docs/live-tools#google-search
-        tools: [{ googleSearch: {} }],
+        geminiTools: { googleSearch: {} },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any),
       tts,

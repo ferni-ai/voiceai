@@ -873,6 +873,8 @@ export function createSanitizerWithMusicFallback(
           log.info({ fn: jsonCall.fn, args: jsonCall.args, accumulated: jsonAccumulator.length }, '🎯 Accumulated JSON function call - executing');
           
           // Execute the tool and get the result to speak
+          // NOTE: We fire-and-forget because TransformStream.transform() can't be async.
+          // The result will be spoken via a separate path if the stream is still open.
           executeJsonFunctionCall(jsonCall).then((execResult) => {
             if (execResult?.success && execResult.result) {
               // Emit the tool result to be spoken
@@ -880,7 +882,13 @@ export function createSanitizerWithMusicFallback(
                 ? execResult.result 
                 : JSON.stringify(execResult.result);
               log.info({ fn: jsonCall.fn, resultPreview: resultText.slice(0, 80) }, '🎤 Emitting tool result to TTS');
-              controller.enqueue(resultText + ' ');
+              try {
+                controller.enqueue(resultText + ' ');
+              } catch (enqueueErr) {
+                // Stream may have closed - this is expected in some race conditions
+                // The tool executed successfully, but we couldn't inject the result into the stream
+                log.warn({ fn: jsonCall.fn, error: String(enqueueErr) }, '⚠️ Could not enqueue tool result (stream may have closed)');
+              }
             }
           }).catch((err) => {
             log.error({ fn: jsonCall.fn, error: String(err) }, '❌ Tool execution failed');
@@ -948,7 +956,12 @@ export function createSanitizerWithMusicFallback(
               ? execResult.result 
               : JSON.stringify(execResult.result);
             log.info({ fn: jsonCall.fn, resultPreview: resultText.slice(0, 80) }, '🎤 Emitting tool result to TTS');
-            controller.enqueue(resultText + ' ');
+            try {
+              controller.enqueue(resultText + ' ');
+            } catch (enqueueErr) {
+              // Stream may have closed - this is expected in some race conditions
+              log.warn({ fn: jsonCall.fn, error: String(enqueueErr) }, '⚠️ Could not enqueue tool result (stream may have closed)');
+            }
           }
         }).catch((err) => {
           log.error({ fn: jsonCall.fn, error: String(err) }, '❌ Tool execution failed');

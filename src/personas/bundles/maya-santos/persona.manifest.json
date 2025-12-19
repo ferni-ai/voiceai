@@ -26,7 +26,8 @@
         "habitStrategy",
         "quickHabitCheck",
         "microCommitNow",
-        "implementationIntention"
+        "implementationIntention",
+        "weeklyHabitReview"
       ],
       "gamification": [
         "gamificationProfile",

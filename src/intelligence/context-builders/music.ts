@@ -30,7 +30,7 @@ const STOP_MUSIC_PATTERNS =
  * Build music-related context injections
  *
  * NOTE: We no longer auto-stop music here. The agent should use the
- * pauseCallMusic or stopCallMusic tools when the user explicitly asks.
+ * musicControl tool with action "stop" when the user explicitly asks.
  * The patterns were too aggressive and would stop music when the user
  * said "stop" in unrelated contexts (like "stop worrying").
  */
@@ -61,7 +61,8 @@ async function buildMusicContext(input: ContextBuilderInput): Promise<ContextInj
           createStandardInjection(
             'music_stop_requested',
             `[USER WANTS MUSIC STOPPED: The user explicitly asked to stop the music.
-Use the pauseCallMusic or stopCallMusic tool NOW, then smoothly transition to a new topic.]`
+Use the musicControl tool with action "stop" NOW: {"fn":"musicControl","args":{"action":"stop"}}
+Then smoothly transition to a new topic.]`
           )
         );
         getLogger().info('User explicitly requested music stop');

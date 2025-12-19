@@ -221,63 +221,53 @@ function extractEmotionalPatterns(
 ): EmotionalPatternInsight[] {
   const insights: EmotionalPatternInsight[] = [];
 
-  // Time-based patterns
-  if (profile?.temporalPatterns) {
-    const prefs = profile.temporalPatterns;
-
-    if (prefs.preferredTimeOfDay === 'evening' || prefs.preferredTimeOfDay === 'night') {
-      insights.push({
-        pattern: 'Night Owl',
-        description: 'You tend to open up more in evening sessions',
-        evidence: 'Based on session timing and depth',
-        icon: '🌙',
-      });
-    } else if (prefs.preferredTimeOfDay === 'morning') {
-      insights.push({
-        pattern: 'Early Bird',
-        description: 'Morning conversations tend to be more reflective',
-        evidence: 'Based on session timing',
-        icon: '🌅',
-      });
-    }
-  }
-
-  // Topic-based patterns
+  // Topic-based patterns from EmotionalPattern
   if (patterns && patterns.length > 0) {
-    // Find recurring emotional themes
-    const topicEmotions = new Map<string, string[]>();
+    // Find recurring emotional themes by trigger
+    const triggerEmotions = new Map<string, string[]>();
 
     for (const pattern of patterns) {
-      if (pattern.triggerTopic && pattern.primaryEmotion) {
-        const emotions = topicEmotions.get(pattern.triggerTopic) || [];
-        emotions.push(pattern.primaryEmotion);
-        topicEmotions.set(pattern.triggerTopic, emotions);
+      // EmotionalPattern has trigger and emotion fields
+      if (pattern.trigger && pattern.emotion) {
+        const emotions = triggerEmotions.get(pattern.trigger) || [];
+        emotions.push(pattern.emotion);
+        triggerEmotions.set(pattern.trigger, emotions);
       }
     }
 
     // Generate insights from patterns
-    for (const [topic, emotions] of topicEmotions) {
+    for (const [trigger, emotions] of triggerEmotions) {
       if (emotions.length >= 2) {
         const dominantEmotion = findMostCommon(emotions);
         if (dominantEmotion) {
           insights.push({
-            pattern: `${capitalize(topic)} Talk`,
-            description: `${capitalize(topic)} conversations often bring up ${dominantEmotion} feelings`,
+            pattern: `${capitalize(trigger)} Talk`,
+            description: `${capitalize(trigger)} conversations often bring up ${dominantEmotion} feelings`,
             evidence: `Noticed across ${emotions.length} conversations`,
-            icon: getTopicEmoji(topic),
+            icon: getTopicEmoji(trigger),
           });
         }
       }
     }
   }
 
-  // Energy patterns
+  // Energy patterns from verbosity preference
   if (profile?.preferences?.verbosity === 'storytelling') {
     insights.push({
       pattern: 'Story Lover',
       description: 'You appreciate when we share stories and examples',
       evidence: 'Based on engagement with narrative content',
       icon: '📖',
+    });
+  }
+
+  // Humor appreciation pattern
+  if (profile?.humorAppreciation === 'high') {
+    insights.push({
+      pattern: 'Humor Enthusiast',
+      description: 'You enjoy lightness and humor in conversations',
+      evidence: 'Based on your interactions',
+      icon: '😄',
     });
   }
 
@@ -294,16 +284,19 @@ function extractLearnedPreferences(profile: UserProfile | null): LearnedPreferen
   if (!profile) return preferences;
 
   // Communication style (from communicationStyle at profile level)
+  // CommunicationStyle is: 'formal' | 'casual' | 'playful' | 'mixed'
   if (profile.communicationStyle) {
     const style = profile.communicationStyle;
     preferences.push({
       category: 'communication',
       insight:
-        style === 'direct'
-          ? 'You prefer direct, clear communication'
-          : style === 'warm'
-            ? 'You appreciate warm, supportive communication'
-            : 'You like a balanced mix of warmth and directness',
+        style === 'formal'
+          ? 'You prefer professional, thoughtful communication'
+          : style === 'casual'
+            ? 'You appreciate relaxed, casual conversation'
+            : style === 'playful'
+              ? 'You enjoy playful, light-hearted exchanges'
+              : 'You like a mix of conversation styles',
       confidence: 0.8,
     });
   }

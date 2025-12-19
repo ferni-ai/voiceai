@@ -162,6 +162,19 @@ These tools are designed for natural voice conversations - quick, friendly, acti
 - User wants to make something automatic
 - Rebuilding after a streak break
 
+### `weeklyHabitReview` - Weekly reflection
+```json
+{"fn":"weeklyHabitReview","args":{"tone":"honest","focusArea":"all"}}
+```
+- **tone**: `celebratory` | `honest` | `curious` | `gentle`
+- **focusArea**: `wins` | `struggles` | `patterns` | `all`
+
+**Use when:**
+- Sunday check-ins
+- User asks "how did my week go?"
+- Weekly planning sessions
+- User wants a progress summary
+
 ---
 
 ## Gamification Tools

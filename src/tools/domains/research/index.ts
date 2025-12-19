@@ -21,7 +21,7 @@ import type { ToolDefinition, ToolContext, ExternalService } from '../../registr
 import { createResearchTools } from './research-tools.js';
 import { createInsightsAnalysisTools } from './insights-analysis.js';
 import { createMarketDataTools } from '../finance/market-data.js';
-import { createQuantTools } from './quant-tools.js';
+import { createQuantTools, createPersistentQuantTools } from './quant-tools.js';
 
 // ============================================================================
 // LEGACY TOOL WRAPPER
@@ -207,6 +207,59 @@ function getQuantToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
+// PERSISTENT QUANT TOOLS (Firestore-backed)
+// ============================================================================
+
+function getPersistentQuantToolDefinitions(): ToolDefinition[] {
+  const persistentTools = createPersistentQuantTools();
+
+  return [
+    wrapLegacyTool(
+      'saveFinancialProfile',
+      'Save Financial Profile',
+      'Save your financial profile (income, expenses, age, retirement goals) for personalized analysis and tracking.',
+      persistentTools.saveFinancialProfile,
+      { tags: ['quant', 'profile', 'persistent', 'setup'] }
+    ),
+    wrapLegacyTool(
+      'addToPortfolio',
+      'Add Portfolio Holding',
+      'Add a stock or fund to your tracked portfolio for ongoing analysis and alerts.',
+      persistentTools.addToPortfolio,
+      { tags: ['quant', 'portfolio', 'persistent', 'tracking'] }
+    ),
+    wrapLegacyTool(
+      'viewPortfolio',
+      'View Portfolio',
+      'View your tracked portfolio holdings with cost basis and account breakdown.',
+      persistentTools.viewPortfolio,
+      { tags: ['quant', 'portfolio', 'persistent', 'view'] }
+    ),
+    wrapLegacyTool(
+      'getDailyBriefing',
+      'Daily Financial Briefing',
+      'Get your personalized daily briefing with market updates, portfolio insights, FIRE progress, and action items.',
+      persistentTools.getDailyBriefing,
+      { tags: ['quant', 'briefing', 'proactive', 'daily'] }
+    ),
+    wrapLegacyTool(
+      'recordBehavior',
+      'Record Financial Behavior',
+      'Track emotional or impulsive financial decisions (panic sells, timing attempts, impulse purchases) for behavioral coaching.',
+      persistentTools.recordBehavior,
+      { tags: ['quant', 'behavior', 'coaching', 'tracking'] }
+    ),
+    wrapLegacyTool(
+      'recordFIREProgress',
+      'Record FIRE Progress',
+      'Record your current net worth and track FIRE progress over time with milestone celebrations.',
+      persistentTools.recordFIREProgress,
+      { tags: ['quant', 'fire', 'progress', 'tracking', 'milestone'] }
+    ),
+  ];
+}
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
@@ -215,6 +268,7 @@ const researchTools: ToolDefinition[] = [
   ...getMarketDataToolDefinitions(),
   ...getInsightsToolDefinitions(),
   ...getQuantToolDefinitions(),
+  ...getPersistentQuantToolDefinitions(),
 ];
 
 // ============================================================================
@@ -231,6 +285,7 @@ export {
   getMarketDataToolDefinitions,
   getInsightsToolDefinitions,
   getQuantToolDefinitions,
+  getPersistentQuantToolDefinitions,
 };
 
 export default getToolDefinitions;

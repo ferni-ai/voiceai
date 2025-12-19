@@ -66,8 +66,9 @@ describe('Peter Quant E2E', () => {
   });
 
   describe('Research Domain Tools', () => {
-    it('should have all 15 research tools registered', () => {
-      expect(researchTools.length).toBe(15);
+    it('should have all 21 research tools registered', () => {
+      // 15 original + 6 new persistent tools
+      expect(researchTools.length).toBe(21);
     });
 
     it('should include all quant tools', () => {

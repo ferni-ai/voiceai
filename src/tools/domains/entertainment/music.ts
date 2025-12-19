@@ -289,24 +289,24 @@ async function playAmbientMusic(query: string): Promise<string> {
     return `Had trouble starting the music. Want to try again?`;
   }
   
-  // Queue remaining tracks for continuous playback
-  const queuedCount = Math.min(tracksWithPreviews.length - 1, 4); // Queue up to 4 more
-  
-  for (let i = 1; i <= queuedCount; i++) {
-    const track = tracksWithPreviews[i];
+  // 🎧 DJ MODE: Queue just ONE backup track for smooth transition
+  // After that, let the DJ decide whether to keep it going with personality!
+  // This makes the DJ feel more alive - not just an auto-queue robot.
+  if (tracksWithPreviews.length > 1) {
+    const backupTrack = tracksWithPreviews[1];
     musicPlayer.addToQueue({
-      name: track.trackName,
-      artist: track.artistName,
-      previewUrl: track.previewUrl!,
+      name: backupTrack.trackName,
+      artist: backupTrack.artistName,
+      previewUrl: backupTrack.previewUrl!,
       duration: ITUNES_PREVIEW_DURATION_MS,
     });
   }
   
   log.info({ 
     firstTrack: firstTrack.trackName,
-    queuedTracks: queuedCount,
-    totalDuration: `~${(queuedCount + 1) * 30}s`,
-  }, '🎧 DJ Ambient Mode: Playlist ready!');
+    backupTrack: tracksWithPreviews[1]?.trackName || 'none',
+    totalTracksFound: tracksWithPreviews.length,
+  }, '🎧 DJ Mode: Playing with one backup, DJ will decide from there!');
   
   // Return ambient-style response (short, doesn't interrupt conversation)
   const ambientResponses = [

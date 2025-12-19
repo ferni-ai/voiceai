@@ -2969,9 +2969,10 @@ export default defineAgent({
           temperature: geminiConfig.temperature,
           language: geminiConfig.language,
           instructions: sessionPersona.systemPrompt,
-          // Enable Google Search for real-time information
+          // Enable Google Search as a built-in Gemini tool for real-time information
+          // NOTE: geminiTools gets merged into the tools config sent to Gemini Live API
           // @see https://ai.google.dev/gemini-api/docs/live-tools#google-search
-          tools: [{ googleSearch: {} }],
+          geminiTools: { googleSearch: {} },
         } as any),
         tts,
         userData,

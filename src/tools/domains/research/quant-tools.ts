@@ -812,5 +812,320 @@ export function createQuantTools() {
   };
 }
 
+// ============================================================================
+// PERSISTENCE-BACKED TOOLS
+// ============================================================================
+
+/**
+ * Create tools that integrate with Firestore persistence
+ * These require userId from context
+ */
+export function createPersistentQuantTools() {
+  return {
+    // FINANCIAL PROFILE MANAGEMENT
+    saveFinancialProfile: llm.tool({
+      description:
+        'Save or update your financial profile. Stores income, expenses, age, retirement goals, and risk tolerance for personalized analysis.',
+      parameters: z.object({
+        monthlyIncome: z.number().describe('Your monthly income'),
+        monthlyExpenses: z.number().describe('Your monthly expenses'),
+        currentAge: z.number().describe('Your current age'),
+        targetRetirementAge: z.number().describe('When you want to retire'),
+        currentRetirementSavings: z.number().describe('Current retirement savings'),
+        riskTolerance: z.enum(['conservative', 'moderate', 'aggressive']).describe('Your risk tolerance'),
+      }),
+      execute: async (
+        { monthlyIncome, monthlyExpenses, currentAge, targetRetirementAge, currentRetirementSavings, riskTolerance },
+        { ctx }
+      ) => {
+        const userId = getUserIdFromContext(ctx);
+        if (!userId) return 'I need to know who you are to save your profile. Please try again.';
+
+        const { getQuantFirestore } = await import('./quant-firestore.js');
+        const firestore = getQuantFirestore();
+
+        await firestore.saveFinancialProfile({
+          userId,
+          monthlyIncome,
+          monthlyExpenses,
+          monthlyDebtPayments: 0,
+          emergencyFundMonths: 0,
+          retirementContribution: 0,
+          currentAge,
+          targetRetirementAge,
+          currentRetirementSavings,
+          riskTolerance,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        const savingsRate = ((monthlyIncome - monthlyExpenses) / monthlyIncome) * 100;
+
+        return [
+          '✅ Financial profile saved!',
+          '',
+          '📊 Your Profile Summary:',
+          `• Monthly Income: $${monthlyIncome.toLocaleString()}`,
+          `• Monthly Expenses: $${monthlyExpenses.toLocaleString()}`,
+          `• Savings Rate: ${savingsRate.toFixed(1)}%`,
+          `• Current Age: ${currentAge}`,
+          `• Target Retirement: ${targetRetirementAge}`,
+          `• Retirement Savings: $${currentRetirementSavings.toLocaleString()}`,
+          `• Risk Tolerance: ${riskTolerance}`,
+          '',
+          "Now I can give you personalized insights and track your progress over time!",
+        ].join('\n');
+      },
+    }),
+
+    // PORTFOLIO MANAGEMENT
+    addToPortfolio: llm.tool({
+      description: 'Add a stock or fund holding to your tracked portfolio.',
+      parameters: z.object({
+        symbol: z.string().describe('Stock/fund ticker symbol (e.g., AAPL, VTI)'),
+        shares: z.number().describe('Number of shares'),
+        costBasis: z.number().describe('Total cost basis (what you paid)'),
+        accountType: z.enum(['taxable', 'ira', '401k', 'roth', 'other']).describe('Type of account'),
+      }),
+      execute: async ({ symbol, shares, costBasis, accountType }, { ctx }) => {
+        const userId = getUserIdFromContext(ctx);
+        if (!userId) return 'I need to know who you are to track your portfolio.';
+
+        const { getQuantFirestore } = await import('./quant-firestore.js');
+        const firestore = getQuantFirestore();
+
+        await firestore.addHolding(userId, {
+          symbol: symbol.toUpperCase(),
+          shares,
+          costBasis,
+          purchaseDate: new Date(),
+          accountType,
+        });
+
+        const avgPrice = costBasis / shares;
+
+        return [
+          `✅ Added ${symbol.toUpperCase()} to your portfolio!`,
+          '',
+          `📈 Holding Details:`,
+          `• Shares: ${shares}`,
+          `• Cost Basis: $${costBasis.toLocaleString()}`,
+          `• Average Price: $${avgPrice.toFixed(2)}`,
+          `• Account: ${accountType.toUpperCase()}`,
+          '',
+          'I can now track this position and alert you to opportunities or risks.',
+        ].join('\n');
+      },
+    }),
+
+    viewPortfolio: llm.tool({
+      description: 'View your tracked portfolio holdings.',
+      parameters: z.object({}),
+      execute: async (_params, { ctx }) => {
+        const userId = getUserIdFromContext(ctx);
+        if (!userId) return 'I need to know who you are to show your portfolio.';
+
+        const { getQuantFirestore } = await import('./quant-firestore.js');
+        const firestore = getQuantFirestore();
+
+        const portfolio = await firestore.loadPortfolio(userId);
+
+        if (!portfolio || portfolio.holdings.length === 0) {
+          return "You haven't added any holdings yet. Use addToPortfolio to start tracking your investments!";
+        }
+
+        const byAccount = new Map<string, typeof portfolio.holdings>();
+        for (const h of portfolio.holdings) {
+          const account = h.accountType || 'other';
+          if (!byAccount.has(account)) byAccount.set(account, []);
+          byAccount.get(account)!.push(h);
+        }
+
+        const lines = ['📊 Your Portfolio:', ''];
+
+        for (const [account, holdings] of byAccount) {
+          lines.push(`**${account.toUpperCase()} Account:**`);
+          for (const h of holdings) {
+            const avgPrice = h.costBasis / h.shares;
+            lines.push(`  • ${h.symbol}: ${h.shares} shares @ $${avgPrice.toFixed(2)} avg ($${h.costBasis.toLocaleString()} basis)`);
+          }
+          lines.push('');
+        }
+
+        const totalBasis = portfolio.holdings.reduce((sum, h) => sum + h.costBasis, 0);
+        lines.push(`💰 Total Cost Basis: $${totalBasis.toLocaleString()}`);
+
+        return lines.join('\n');
+      },
+    }),
+
+    // DAILY BRIEFING
+    getDailyBriefing: llm.tool({
+      description: 'Get your personalized daily financial briefing with market updates, portfolio insights, and action items.',
+      parameters: z.object({}),
+      execute: async (_params, { ctx }) => {
+        const userId = getUserIdFromContext(ctx);
+        if (!userId) return 'I need to know who you are to generate your briefing.';
+
+        const { generateDailyBriefing, formatBriefingForSpeech } = await import('./proactive-quant-insights.js');
+
+        const briefing = await generateDailyBriefing(userId);
+        return formatBriefingForSpeech(briefing);
+      },
+    }),
+
+    // BEHAVIORAL TRACKING
+    recordBehavior: llm.tool({
+      description: 'Record a financial behavior for tracking. Use this when you notice yourself making emotional or impulsive financial decisions.',
+      parameters: z.object({
+        type: z.enum(['panicSell', 'timingAttempt', 'impulsePurchase']).describe('Type of behavior'),
+        description: z.string().describe('What happened'),
+        amount: z.number().optional().describe('Amount involved if applicable'),
+      }),
+      execute: async ({ type, description, amount }, { ctx }) => {
+        const userId = getUserIdFromContext(ctx);
+        if (!userId) return 'I need to know who you are to track this.';
+
+        const { getQuantFirestore } = await import('./quant-firestore.js');
+        const firestore = getQuantFirestore();
+
+        await firestore.recordBehaviorEvent(userId, type, { description, amount });
+
+        const messages: Record<string, string[]> = {
+          panicSell: [
+            '📝 Panic sell recorded.',
+            '',
+            "First: it's okay. We all feel the urge to sell when markets drop.",
+            '',
+            '💡 Studies show panic sellers miss the best recovery days.',
+            'The average investor underperforms by 1.5% annually due to emotional decisions.',
+            '',
+            "Let's talk about what triggered this - understanding the pattern helps prevent future ones.",
+          ],
+          timingAttempt: [
+            '📝 Market timing attempt recorded.',
+            '',
+            "Trying to time the market is tempting but rarely works.",
+            '',
+            "💡 Time in the market > timing the market.",
+            "Even missing the 10 best days over 20 years cuts returns in half.",
+            '',
+            "What made you think now was a good time to time? Let's examine the reasoning.",
+          ],
+          impulsePurchase: [
+            '📝 Impulse purchase recorded.',
+            '',
+            'Good awareness! Recognizing impulse purchases is the first step.',
+            '',
+            '💡 Try the 24-hour rule: Wait a day before unplanned big purchases.',
+            '',
+            'What triggered this purchase? Understanding your patterns helps build discipline.',
+          ],
+        };
+
+        return messages[type].join('\n');
+      },
+    }),
+
+    // FIRE PROGRESS SNAPSHOT
+    recordFIREProgress: llm.tool({
+      description: 'Record your current FIRE progress for tracking over time.',
+      parameters: z.object({
+        netWorth: z.number().describe('Your current total net worth'),
+        monthlyPassiveIncome: z.number().optional().describe('Monthly passive income if any'),
+      }),
+      execute: async ({ netWorth, monthlyPassiveIncome = 0 }, { ctx }) => {
+        const userId = getUserIdFromContext(ctx);
+        if (!userId) return 'I need to know who you are to track your progress.';
+
+        const quantFirestoreModule = await import('./quant-firestore.js');
+        const firestore = quantFirestoreModule.getQuantFirestore();
+
+        // Load profile to calculate FIRE numbers
+        const profile = await firestore.loadFinancialProfile(userId);
+        if (!profile) {
+          return 'Please save your financial profile first so I can calculate your FIRE progress!';
+        }
+
+        const annualExpenses = profile.monthlyExpenses * 12;
+        const fireNumber = annualExpenses * 25; // 4% rule
+        const percentToFire = (netWorth / fireNumber) * 100;
+        const savingsRate = ((profile.monthlyIncome - profile.monthlyExpenses) / profile.monthlyIncome) * 100;
+
+        // Calculate projected FIRE date
+        let projectedFireDate: Date | null = null;
+        if (percentToFire < 100 && savingsRate > 0) {
+          const monthlyNet = profile.monthlyIncome - profile.monthlyExpenses;
+          const remaining = fireNumber - netWorth;
+          const monthsToFire = remaining / (monthlyNet * 1.005); // Rough estimate with growth
+          projectedFireDate = new Date(Date.now() + monthsToFire * 30 * 24 * 60 * 60 * 1000);
+        }
+
+        const snapshot = {
+          date: new Date(),
+          netWorth,
+          fireNumber,
+          percentToFire,
+          projectedFireDate,
+          savingsRate,
+          monthlyPassiveIncome,
+        };
+
+        await firestore.saveFIRESnapshot(userId, snapshot);
+
+        const previousSnapshot = await firestore.getLatestFIRESnapshot(userId);
+        let progressMessage = '';
+        if (previousSnapshot) {
+          const change = percentToFire - previousSnapshot.percentToFire;
+          if (change > 0) {
+            progressMessage = `📈 Up ${change.toFixed(1)}% since last snapshot!`;
+          } else if (change < 0) {
+            progressMessage = `Market volatility - down ${Math.abs(change).toFixed(1)}% (normal!)`;
+          }
+        }
+
+        const progressEmoji = percentToFire >= 100 ? '🎉' : percentToFire >= 75 ? '🔥' : percentToFire >= 50 ? '🚀' : percentToFire >= 25 ? '💪' : '🌱';
+
+        return [
+          '✅ FIRE Progress Recorded!',
+          '',
+          `${progressEmoji} ${percentToFire.toFixed(1)}% to FIRE`,
+          progressMessage,
+          '',
+          '📊 Snapshot:',
+          `• Net Worth: $${netWorth.toLocaleString()}`,
+          `• FIRE Number: $${fireNumber.toLocaleString()}`,
+          `• Savings Rate: ${savingsRate.toFixed(1)}%`,
+          projectedFireDate ? `• Projected FIRE: ${projectedFireDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}` : '',
+          '',
+          "I'll track your progress and celebrate milestones with you!",
+        ].filter(Boolean).join('\n');
+      },
+    }),
+  };
+}
+
+/**
+ * Helper to extract userId from LiveKit context
+ */
+function getUserIdFromContext(ctx: unknown): string | null {
+  if (!ctx || typeof ctx !== 'object') return null;
+  
+  // Try different context patterns
+  if ('userId' in ctx && typeof (ctx as Record<string, unknown>).userId === 'string') {
+    return (ctx as Record<string, unknown>).userId as string;
+  }
+  
+  if ('room' in ctx && typeof ctx === 'object') {
+    const room = (ctx as Record<string, unknown>).room;
+    if (room && typeof room === 'object' && 'name' in room) {
+      // Room name often contains userId
+      return String((room as Record<string, unknown>).name);
+    }
+  }
+
+  return null;
+}
+
 export default createQuantTools;
 

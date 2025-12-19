@@ -322,6 +322,7 @@ interface QuestionCache {
 ### Phase 4 - Persona Behaviors ✅ NO MIGRATION NEEDED
 
 The persona behavior JSON files (`bundles/*/content/behaviors/*.json`) are **already the target format**:
+
 - They're voiced template seeds, not random question banks
 - Include rich SSML for emotional delivery
 - Have contextual variants for different states
@@ -372,20 +373,22 @@ const question = await generateQuestion(context, 'deepening');
 
 ## Estimated Effort (Revised)
 
-| Phase | Files | Estimated Hours | Status      |
-| ----- | ----- | --------------- | ----------- |
-| 1     | 4     | 16-24           | ✅ COMPLETE |
-| 2     | 4     | 12-16           | ✅ COMPLETE |
-| 3     | 6     | 8-12            | ✅ COMPLETE |
+| Phase | Files | Estimated Hours | Status                 |
+| ----- | ----- | --------------- | ---------------------- |
+| 1     | 4     | 16-24           | ✅ COMPLETE            |
+| 2     | 4     | 12-16           | ✅ COMPLETE            |
+| 3     | 6     | 8-12            | ✅ COMPLETE            |
 | 4     | 30+   | 0               | ✅ NO MIGRATION NEEDED |
 
 **ALL PHASES COMPLETE**
 
 Phase 3 was faster than estimated because:
+
 - Created shared `dynamic-tool-questions.ts` utility
 - Domain tools had well-structured content, just needed integration
 
 Phase 4 required no work because:
+
 - Persona behavior JSON files are already the target architecture
 - They're voiced template seeds with rich SSML, not random arrays
 - LLM guidance built into the format

@@ -1172,6 +1172,25 @@ export {
 
 export type { SuperhumanOutreachTrigger } from './superhuman-outreach-integration.js';
 
+// 🌱 Maya Habit Outreach
+export {
+  checkStreaksAtRisk,
+  checkMilestonesToCelebrate,
+  checkSetbackRecoveryNeeded,
+  generateWeeklyReviewData,
+  publishStreakProtectionAlert,
+  publishMilestoneCelebration,
+  publishWeeklyReviewTrigger,
+  publishSetbackRecoveryTrigger,
+  MAYA_STREAK_PROTECTION_MESSAGES,
+  MAYA_MILESTONE_MESSAGES,
+  MAYA_WEEKLY_REVIEW_MESSAGES,
+  MAYA_SETBACK_MESSAGES,
+  MAYA_HABIT_OUTREACH_CONFIG,
+  type HabitOutreachContext,
+  type StreakAtRiskResult,
+} from './maya-habit-outreach.js';
+
 // ============================================================================
 // DEFAULT EXPORT
 // ============================================================================

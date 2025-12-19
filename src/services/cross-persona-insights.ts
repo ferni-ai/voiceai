@@ -1,620 +1,737 @@
 /**
- * Cross-Persona Insight Sharing
+ * Cross-Persona Insights Service
  *
- * > "We believe in making AI human, and the decisions we make will reflect that."
+ * Enables personas to share insights with each other that get injected
+ * during handoffs or proactively surfaced during conversations.
  *
- * When Maya notices you're stressed about work, Ferni should know.
- * When Peter discovers you're interested in investing, Alex should factor that in.
- * This is how real teams work - they share context.
+ * > "What Peter sees in the numbers, Maya needs to know about habits.
+ *    What Maya sees in the patterns, Jordan needs to know about goals."
  *
- * This service enables seamless insight sharing between personas while
- * respecting boundaries and attribution.
+ * INSIGHT TYPES:
  *
- * Philosophy:
- * - Insights are shared, not siloed
- * - Each persona still has their own perspective
- * - Users benefit from collective intelligence
- * - Attribution matters - "Maya mentioned you've been stressed"
+ * 1. HANDOFF INSIGHTS - Passed when transferring to another persona
+ *    - Peter → Maya: "Stress spending detected - habit support needed"
+ *    - Maya → Jordan: "Keystone habit driving momentum - great time for new goal"
+ *    - Jordan → Nayan: "Major life transition in progress"
+ *
+ * 2. PROACTIVE INSIGHTS - Surfaced during conversations
+ *    - "Peter noticed something about your spending patterns..."
+ *    - "Maya wants to celebrate a habit milestone!"
+ *    - "Jordan has a timeline update for your goal..."
+ *
+ * 3. CROSS-TEAM BRIEFINGS - Background context for any persona
+ *    - Current streaks, goals in progress, recent patterns
+ *
+ * @module services/cross-persona-insights
  */
 
 import { createLogger } from '../utils/safe-logger.js';
-import { removeUndefined } from '../utils/firestore-utils.js';
-import { getGlobalServices } from './global-services.js';
+import { getFinancialStore } from './financial-store.js';
+import { getProductivityStore } from './productivity-store.js';
 
-// Get Firestore client from global services
-async function getFirestore(): Promise<FirebaseFirestore.Firestore | null> {
-  try {
-    const services = await getGlobalServices();
-    return (services as unknown as { firestore?: FirebaseFirestore.Firestore }).firestore ?? null;
-  } catch {
-    return null;
-  }
-}
-
-const log = createLogger({ module: 'CrossPersonaInsights' });
+const log = createLogger({ module: 'cross-persona-insights' });
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-export type PersonaId = 'ferni' | 'maya' | 'peter' | 'alex' | 'jordan' | 'nayan' | 'jack';
-
-export type InsightCategory =
-  | 'emotional_state' // User's emotional state
-  | 'life_event' // Significant life event
-  | 'preference' // User preference discovered
-  | 'concern' // Something worrying the user
-  | 'goal' // User's goal or aspiration
-  | 'struggle' // Area where user is struggling
-  | 'win' // Achievement or success
-  | 'boundary' // Topic to avoid
-  | 'relationship' // Relationship insight
-  | 'health' // Health-related
-  | 'work' // Work/career related
-  | 'financial' // Financial situation
-  | 'habit'; // Habit or routine
-
 export type InsightPriority = 'critical' | 'high' | 'normal' | 'low';
+export type InsightSource = 'peter' | 'maya' | 'jordan' | 'nayan' | 'ferni' | 'system';
+export type InsightTarget = InsightSource | 'all';
 
-export interface SharedInsight {
+export interface CrossPersonaInsight {
   id: string;
-  userId: string;
-
-  /** Which persona discovered this */
-  sourcePersona: PersonaId;
-
-  /** When it was discovered */
-  discoveredAt: Date;
-
-  /** Category of insight */
-  category: InsightCategory;
-
-  /** Priority for sharing */
+  source: InsightSource;
+  target: InsightTarget;
   priority: InsightPriority;
-
-  /** The actual insight content */
   content: string;
-
-  /** Brief summary for context injection */
-  summary: string;
-
-  /** How confident we are (0-1) */
-  confidence: number;
-
-  /** Evidence that led to this insight */
-  evidence?: string;
-
-  /** How long this insight is relevant */
-  expiresAt?: Date;
-
-  /** Which personas have acknowledged this */
-  acknowledgedBy: PersonaId[];
-
-  /** Which personas this is particularly relevant for */
-  relevantFor?: PersonaId[];
-
-  /** Should this be surfaced in next conversation? */
-  surfaceInNextConversation: boolean;
-
-  /** Has this been surfaced to the user? */
-  surfaced: boolean;
-
-  /** User's reaction when surfaced */
-  userReaction?: 'positive' | 'neutral' | 'negative' | 'dismissed';
+  category: string;
+  createdAt: number;
+  expiresAt: number;
+  /** If true, surface proactively. If false, only on handoff. */
+  proactive: boolean;
+  /** If true, remove after surfacing once */
+  oneTime: boolean;
+  /** Additional context data */
+  metadata?: Record<string, unknown>;
 }
 
-export interface InsightForPersona {
-  insight: SharedInsight;
-  relevanceScore: number;
-  suggestedApproach: string;
+export interface InsightBriefing {
+  /** Insights from other personas for the current persona */
+  incomingInsights: CrossPersonaInsight[];
+  /** Quick summary of cross-team status */
+  teamStatus: TeamStatusSummary;
+  /** Proactive discoveries to potentially surface */
+  proactiveDiscoveries: string[];
+}
+
+export interface TeamStatusSummary {
+  /** Current habit health (from Maya) */
+  habitHealth: {
+    activeHabits: number;
+    totalStreakDays: number;
+    keystoneActive: boolean;
+    atRiskCount: number;
+  };
+  /** Current goal status (from Jordan) */
+  goalStatus: {
+    activeGoals: number;
+    nearingCompletion: number;
+    totalSaved: number;
+  };
+  /** Financial health (from Peter) */
+  financialHealth: {
+    budgetUsedPercent: number;
+    recentStressTriggers: number;
+    savingsOnTrack: boolean;
+  };
 }
 
 // ============================================================================
-// PERSONA RELEVANCE MAPPING
+// INSIGHT STORE
 // ============================================================================
 
-/**
- * Which categories are most relevant to which personas
- */
-const PERSONA_CATEGORY_RELEVANCE: Record<PersonaId, InsightCategory[]> = {
-  ferni: ['emotional_state', 'life_event', 'goal', 'struggle', 'win', 'boundary', 'relationship'],
-  maya: ['habit', 'health', 'goal', 'struggle', 'win', 'emotional_state'],
-  peter: ['preference', 'goal', 'work', 'financial', 'life_event'],
-  alex: ['work', 'relationship', 'concern', 'goal', 'preference'],
-  jordan: ['life_event', 'goal', 'win', 'relationship', 'preference'],
-  nayan: ['emotional_state', 'relationship', 'life_event', 'goal', 'struggle', 'boundary'],
-  jack: ['goal', 'financial', 'life_event', 'preference', 'work'],
-};
+// Per-user insight storage
+const userInsights = new Map<string, CrossPersonaInsight[]>();
 
-/**
- * How each persona might reference insights from others
- */
-const PERSONA_REFERENCE_STYLES: Record<PersonaId, string> = {
-  ferni: 'I noticed from a previous conversation that',
-  maya: "From what you've shared before,",
-  peter: 'Based on what I understand,',
-  alex: 'I recall you mentioning',
-  jordan: 'I remember you saying',
-  nayan: 'I sense that',
-  jack: 'From what I gather,',
-};
-
-// ============================================================================
-// IN-MEMORY STORAGE (with Firestore persistence)
-// ============================================================================
-
-const insightStore = new Map<string, SharedInsight[]>();
-const lastSyncTime = new Map<string, Date>();
-
-// ============================================================================
-// CORE FUNCTIONS
-// ============================================================================
-
-/**
- * Record a new insight discovered by a persona
- */
-export async function recordInsight(
-  userId: string,
-  sourcePersona: PersonaId,
-  insight: {
-    category: InsightCategory;
-    content: string;
-    summary: string;
-    confidence: number;
-    priority?: InsightPriority;
-    evidence?: string;
-    expiresInDays?: number;
-    relevantFor?: PersonaId[];
-    surfaceInNextConversation?: boolean;
+function getInsightsForUser(userId: string): CrossPersonaInsight[] {
+  if (!userInsights.has(userId)) {
+    userInsights.set(userId, []);
   }
-): Promise<SharedInsight> {
-  const id = `insight_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  return userInsights.get(userId)!;
+}
 
-  const newInsight: SharedInsight = {
-    id,
-    userId,
-    sourcePersona,
-    discoveredAt: new Date(),
-    category: insight.category,
-    priority: insight.priority || determinePriority(insight.category, insight.confidence),
-    content: insight.content,
-    summary: insight.summary,
-    confidence: insight.confidence,
-    evidence: insight.evidence,
-    expiresAt: insight.expiresInDays
-      ? new Date(Date.now() + insight.expiresInDays * 24 * 60 * 60 * 1000)
-      : undefined,
-    acknowledgedBy: [sourcePersona], // Source persona already knows
-    relevantFor: insight.relevantFor,
-    surfaceInNextConversation:
-      insight.surfaceInNextConversation ??
-      (insight.priority === 'high' || insight.priority === 'critical'),
-    surfaced: false,
+// ============================================================================
+// INSIGHT MANAGEMENT
+// ============================================================================
+
+/**
+ * Add an insight to be shared with another persona
+ */
+export function addCrossPersonaInsight(
+  userId: string,
+  insight: Omit<CrossPersonaInsight, 'id' | 'createdAt' | 'expiresAt'>
+): CrossPersonaInsight {
+  const insights = getInsightsForUser(userId);
+
+  const fullInsight: CrossPersonaInsight = {
+    ...insight,
+    id: `insight_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours default
   };
 
-  // Store in memory
-  const userInsights = insightStore.get(userId) || [];
-  userInsights.push(newInsight);
-  insightStore.set(userId, userInsights);
-
-  // Persist to Firestore
-  await persistInsight(userId, newInsight);
+  insights.push(fullInsight);
 
   log.info(
     {
       userId,
-      sourcePersona,
-      category: insight.category,
-      priority: newInsight.priority,
-      summary: insight.summary.slice(0, 50),
+      insightId: fullInsight.id,
+      source: insight.source,
+      target: insight.target,
+      priority: insight.priority,
     },
-    '💡 New cross-persona insight recorded'
+    '📨 Cross-persona insight added'
   );
 
-  return newInsight;
+  return fullInsight;
 }
 
 /**
- * Get insights relevant to a specific persona
+ * Options for getInsightsForPersona (legacy API support)
+ */
+interface GetInsightsOptions {
+  includeAcknowledged?: boolean;
+  maxAge?: number;
+  minConfidence?: number;
+}
+
+/**
+ * Get insights targeted at a specific persona
+ * Supports both new API (2 args) and legacy API (3 args with options)
  */
 export function getInsightsForPersona(
   userId: string,
-  personaId: PersonaId,
-  options: {
-    includeAcknowledged?: boolean;
-    maxAge?: number; // days
-    minConfidence?: number;
-    categories?: InsightCategory[];
-  } = {}
-): InsightForPersona[] {
-  const { includeAcknowledged = false, maxAge = 30, minConfidence = 0.4, categories } = options;
-
-  const userInsights = insightStore.get(userId) || [];
+  personaId: string,
+  options?: GetInsightsOptions
+): SurfaceInsightItem[] {
+  const insights = getInsightsForUser(userId);
   const now = Date.now();
-  const maxAgeMs = maxAge * 24 * 60 * 60 * 1000;
+  const normalizedPersona = normalizePersonaId(personaId);
 
-  // Filter insights
-  const relevantInsights = userInsights.filter((insight) => {
-    // Skip if already acknowledged (unless requested)
-    if (!includeAcknowledged && insight.acknowledgedBy.includes(personaId)) {
-      return false;
-    }
+  // Apply age filter if specified
+  const maxAgeMs = options?.maxAge ? options.maxAge * 24 * 60 * 60 * 1000 : Infinity;
 
-    // Skip if expired
-    if (insight.expiresAt && insight.expiresAt.getTime() < now) {
-      return false;
-    }
+  const filtered = insights.filter(
+    (insight) =>
+      insight.expiresAt > now &&
+      (insight.target === normalizedPersona || insight.target === 'all') &&
+      now - insight.createdAt <= maxAgeMs
+  );
 
-    // Skip if too old
-    if (now - insight.discoveredAt.getTime() > maxAgeMs) {
-      return false;
-    }
-
-    // Skip if below confidence threshold
-    if (insight.confidence < minConfidence) {
-      return false;
-    }
-
-    // Filter by category if specified
-    if (categories && !categories.includes(insight.category)) {
-      return false;
-    }
-
-    return true;
-  });
-
-  // Score and format for the persona
-  return relevantInsights
-    .map((insight) => ({
-      insight,
-      relevanceScore: calculateRelevance(insight, personaId),
-      suggestedApproach: generateApproach(insight, personaId),
-    }))
-    .filter((r) => r.relevanceScore > 0.3)
-    .sort((a, b) => {
-      // Sort by priority first, then relevance
-      const priorityOrder = { critical: 4, high: 3, normal: 2, low: 1 };
-      const aPriority = priorityOrder[a.insight.priority];
-      const bPriority = priorityOrder[b.insight.priority];
-      if (aPriority !== bPriority) return bPriority - aPriority;
-      return b.relevanceScore - a.relevanceScore;
-    });
+  // Return in legacy format
+  return filtered.map((insight) => ({
+    insight: {
+      id: insight.id,
+      category: insight.category,
+      summary: insight.content,
+      sourcePersona: insight.source,
+    },
+    relevanceScore:
+      insight.priority === 'critical'
+        ? 1.0
+        : insight.priority === 'high'
+          ? 0.8
+          : insight.priority === 'normal'
+            ? 0.6
+            : 0.4,
+  }));
 }
 
 /**
- * Get insights that should be surfaced in the next conversation
+ * Internal function to get raw insights for persona (used by other functions)
  */
-export function getInsightsToSurface(
-  userId: string,
-  personaId: PersonaId,
-  limit = 3
-): InsightForPersona[] {
-  const insights = getInsightsForPersona(userId, personaId, {
-    includeAcknowledged: false,
-    minConfidence: 0.5,
-  });
-
-  return insights
-    .filter((i) => i.insight.surfaceInNextConversation && !i.insight.surfaced)
-    .slice(0, limit);
-}
-
-/**
- * Build context string for LLM prompt injection
- */
-export function buildInsightContext(
-  userId: string,
-  personaId: PersonaId,
-  options: {
-    maxInsights?: number;
-    includeEvidence?: boolean;
-  } = {}
-): string | null {
-  const { maxInsights = 3, includeEvidence = false } = options;
-
-  const insights = getInsightsForPersona(userId, personaId, {
-    includeAcknowledged: false,
-    minConfidence: 0.5,
-  });
-
-  if (insights.length === 0) {
-    return null;
-  }
-
-  const topInsights = insights.slice(0, maxInsights);
-  const referenceStyle = PERSONA_REFERENCE_STYLES[personaId];
-
-  const contextParts = topInsights.map(({ insight, suggestedApproach }) => {
-    let line = `- ${referenceStyle} ${insight.summary}`;
-    if (includeEvidence && insight.evidence) {
-      line += ` (${insight.evidence})`;
-    }
-    if (suggestedApproach && insight.sourcePersona !== personaId) {
-      line += ` [${suggestedApproach}]`;
-    }
-    return line;
-  });
-
-  return `[Team Insights - Information shared by other team members]\n${contextParts.join('\n')}`;
-}
-
-/**
- * Acknowledge that a persona has seen an insight
- */
-export async function acknowledgeInsight(
-  userId: string,
-  insightId: string,
-  personaId: PersonaId
-): Promise<void> {
-  const userInsights = insightStore.get(userId);
-  if (!userInsights) return;
-
-  const insight = userInsights.find((i) => i.id === insightId);
-  if (!insight) return;
-
-  if (!insight.acknowledgedBy.includes(personaId)) {
-    insight.acknowledgedBy.push(personaId);
-    await persistInsight(userId, insight);
-  }
-}
-
-/**
- * Mark an insight as surfaced to the user
- */
-export async function markInsightSurfaced(
-  userId: string,
-  insightId: string,
-  reaction?: SharedInsight['userReaction']
-): Promise<void> {
-  const userInsights = insightStore.get(userId);
-  if (!userInsights) return;
-
-  const insight = userInsights.find((i) => i.id === insightId);
-  if (!insight) return;
-
-  insight.surfaced = true;
-  if (reaction) {
-    insight.userReaction = reaction;
-  }
-
-  await persistInsight(userId, insight);
-
-  log.info({ userId, insightId, reaction }, '💬 Insight surfaced to user');
-}
-
-/**
- * Record user's reaction to a surfaced insight
- */
-export async function recordInsightReaction(
-  userId: string,
-  insightId: string,
-  reaction: SharedInsight['userReaction']
-): Promise<void> {
-  await markInsightSurfaced(userId, insightId, reaction);
-
-  // If negative, maybe we should be more careful with similar insights
-  if (reaction === 'negative' || reaction === 'dismissed') {
-    log.warn(
-      { userId, insightId, reaction },
-      '⚠️ User reacted negatively to insight - adjusting approach'
-    );
-    // Could implement learning here to avoid similar surfaces
-  }
-}
-
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
-function determinePriority(category: InsightCategory, confidence: number): InsightPriority {
-  // Critical insights
-  if (category === 'boundary' || category === 'concern') {
-    return confidence > 0.7 ? 'critical' : 'high';
-  }
-
-  // High priority insights
-  if (category === 'emotional_state' || category === 'struggle' || category === 'life_event') {
-    return confidence > 0.6 ? 'high' : 'normal';
-  }
-
-  // Normal priority
-  if (confidence > 0.8) return 'high';
-  if (confidence > 0.5) return 'normal';
-  return 'low';
-}
-
-function calculateRelevance(insight: SharedInsight, personaId: PersonaId): number {
-  let score = insight.confidence;
-
-  // Boost if explicitly relevant for this persona
-  if (insight.relevantFor?.includes(personaId)) {
-    score += 0.3;
-  }
-
-  // Boost if category is relevant to persona's domain
-  const relevantCategories = PERSONA_CATEGORY_RELEVANCE[personaId] || [];
-  if (relevantCategories.includes(insight.category)) {
-    score += 0.2;
-  }
-
-  // Boost for high priority
-  const priorityBoost = { critical: 0.3, high: 0.2, normal: 0.1, low: 0 };
-  score += priorityBoost[insight.priority];
-
-  // Decay based on age (insights become less relevant over time)
-  const ageHours = (Date.now() - insight.discoveredAt.getTime()) / (1000 * 60 * 60);
-  if (ageHours > 24) {
-    score *= Math.max(0.5, 1 - (ageHours - 24) / 720); // Decay after 24h
-  }
-
-  return Math.min(1, score);
-}
-
-function generateApproach(insight: SharedInsight, personaId: PersonaId): string {
-  const { category, sourcePersona } = insight;
-
-  // Different personas have different approaches
-  const approachMap: Record<PersonaId, Partial<Record<InsightCategory | 'default', string>>> = {
-    ferni: {
-      emotional_state: 'Acknowledge gently, offer support',
-      struggle: 'Express understanding, ask how you can help',
-      win: 'Celebrate genuinely',
-      boundary: 'Respect completely - do not probe',
-      default: 'Weave naturally into conversation',
-    },
-    maya: {
-      habit: 'Connect to their existing routines',
-      health: 'Approach with care and sensitivity',
-      struggle: 'Offer practical, gentle suggestions',
-      default: 'Encourage without pressure',
-    },
-    peter: {
-      goal: 'Offer relevant research or insights',
-      work: 'Share relevant information',
-      financial: 'Provide educational context',
-      default: 'Be curious and helpful',
-    },
-    alex: {
-      work: 'Be professional and constructive',
-      relationship: 'Help with communication strategies',
-      default: 'Be clear and supportive',
-    },
-    jordan: {
-      life_event: 'Help with planning and celebration',
-      goal: 'Get excited, offer to help plan',
-      default: 'Be enthusiastic and helpful',
-    },
-    nayan: {
-      emotional_state: 'Listen deeply, offer wisdom gently',
-      relationship: 'Provide perspective with compassion',
-      struggle: 'Reframe with broader perspective',
-      default: 'Be present and wise',
-    },
-    jack: {
-      financial: 'Stay-the-course philosophy',
-      goal: 'Long-term perspective',
-      default: 'Simple, grounded wisdom',
-    },
-  };
-
-  const personaApproaches = approachMap[personaId] || {};
-  const approach =
-    personaApproaches[category] || personaApproaches['default'] || 'Integrate naturally';
-
-  // Add attribution if from another persona
-  if (sourcePersona !== personaId) {
-    return `${approach} (via ${sourcePersona})`;
-  }
-
-  return approach;
-}
-
-// ============================================================================
-// PERSISTENCE
-// ============================================================================
-
-async function persistInsight(userId: string, insight: SharedInsight): Promise<void> {
-  try {
-    const firestore = await getFirestore();
-    if (!firestore) return;
-
-    await firestore
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('cross_persona_insights')
-      .doc(insight.id)
-      .set(
-        removeUndefined({
-          ...insight,
-          discoveredAt: insight.discoveredAt.toISOString(),
-          expiresAt: insight.expiresAt?.toISOString(),
-        })
-      );
-  } catch (error) {
-    log.warn({ error, userId }, 'Failed to persist insight to Firestore');
-  }
-}
-
-/**
- * Load insights from Firestore
- */
-export async function loadInsights(userId: string): Promise<void> {
-  try {
-    const firestore = await getFirestore();
-    if (!firestore) return;
-
-    const snapshot = await firestore
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('cross_persona_insights')
-      .orderBy('discoveredAt', 'desc')
-      .limit(100)
-      .get();
-
-    const insights: SharedInsight[] = snapshot.docs.map(
-      (doc: FirebaseFirestore.QueryDocumentSnapshot) => {
-        const data = doc.data();
-        return {
-          ...data,
-          discoveredAt: new Date(data.discoveredAt),
-          expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
-        } as SharedInsight;
-      }
-    );
-
-    insightStore.set(userId, insights);
-    lastSyncTime.set(userId, new Date());
-
-    log.debug({ userId, count: insights.length }, 'Loaded cross-persona insights');
-  } catch (error) {
-    log.warn({ error, userId }, 'Failed to load insights from Firestore');
-  }
-}
-
-/**
- * Clear old/expired insights
- */
-export async function cleanupInsights(userId: string): Promise<number> {
-  const userInsights = insightStore.get(userId);
-  if (!userInsights) return 0;
-
+function getInsightsForPersonaRaw(userId: string, personaId: string): CrossPersonaInsight[] {
+  const insights = getInsightsForUser(userId);
   const now = Date.now();
-  const originalCount = userInsights.length;
+  const normalizedPersona = normalizePersonaId(personaId);
 
-  const validInsights = userInsights.filter((insight) => {
-    // Remove expired insights
-    if (insight.expiresAt && insight.expiresAt.getTime() < now) {
-      return false;
+  return insights.filter(
+    (insight) =>
+      insight.expiresAt > now && (insight.target === normalizedPersona || insight.target === 'all')
+  );
+}
+
+/**
+ * Get proactive insights that should be surfaced
+ */
+export function getProactiveInsights(userId: string): CrossPersonaInsight[] {
+  const insights = getInsightsForUser(userId);
+  const now = Date.now();
+
+  return insights.filter((insight) => insight.expiresAt > now && insight.proactive);
+}
+
+/**
+ * Mark an insight as consumed (for one-time insights)
+ */
+export function consumeInsight(userId: string, insightId: string): void {
+  const insights = getInsightsForUser(userId);
+  const index = insights.findIndex((i) => i.id === insightId);
+
+  if (index >= 0) {
+    const insight = insights[index];
+    if (insight.oneTime) {
+      insights.splice(index, 1);
+      log.debug({ userId, insightId }, '🗑️ One-time insight consumed');
     }
-    // Remove very old insights (90 days)
-    if (now - insight.discoveredAt.getTime() > 90 * 24 * 60 * 60 * 1000) {
-      return false;
-    }
-    return true;
-  });
+  }
+}
 
-  insightStore.set(userId, validInsights);
-  const removed = originalCount - validInsights.length;
+/**
+ * Clear expired insights
+ */
+export function clearExpiredInsights(userId: string): number {
+  const insights = getInsightsForUser(userId);
+  const now = Date.now();
+  const initialLength = insights.length;
 
+  const activeInsights = insights.filter((i) => i.expiresAt > now);
+  userInsights.set(userId, activeInsights);
+
+  const removed = initialLength - activeInsights.length;
   if (removed > 0) {
-    log.info({ userId, removed }, 'Cleaned up old insights');
+    log.debug({ userId, removed }, '🧹 Expired insights cleared');
   }
 
   return removed;
 }
 
 // ============================================================================
+// TEAM STATUS GENERATION
+// ============================================================================
+
+/**
+ * Generate a cross-team status summary for any persona
+ */
+export async function generateTeamStatus(userId: string): Promise<TeamStatusSummary> {
+  const status: TeamStatusSummary = {
+    habitHealth: {
+      activeHabits: 0,
+      totalStreakDays: 0,
+      keystoneActive: false,
+      atRiskCount: 0,
+    },
+    goalStatus: {
+      activeGoals: 0,
+      nearingCompletion: 0,
+      totalSaved: 0,
+    },
+    financialHealth: {
+      budgetUsedPercent: 0,
+      recentStressTriggers: 0,
+      savingsOnTrack: false,
+    },
+  };
+
+  try {
+    // Habit health (Maya's domain)
+    const productivityStore = getProductivityStore();
+    const userData = productivityStore.getFullUserData(userId);
+    const habits = userData.enhancedHabits || [];
+    const activeHabits = habits.filter((h) => h.isActive && !h.isPaused);
+
+    status.habitHealth.activeHabits = activeHabits.length;
+    status.habitHealth.totalStreakDays = activeHabits.reduce((sum, h) => sum + h.currentStreak, 0);
+    status.habitHealth.keystoneActive = activeHabits.some(
+      (h) => h.isKeystone && h.currentStreak >= 7
+    );
+    status.habitHealth.atRiskCount = activeHabits.filter(
+      (h) => h.longestStreak >= 7 && h.currentStreak <= 1
+    ).length;
+
+    // Goal status (Jordan's domain)
+    const financialStore = getFinancialStore();
+    await financialStore.loadUserData(userId);
+    const goals = financialStore.getActiveSavingsGoals(userId);
+
+    status.goalStatus.activeGoals = goals.length;
+    status.goalStatus.nearingCompletion = goals.filter(
+      (g) => g.currentAmount / g.targetAmount >= 0.8
+    ).length;
+    status.goalStatus.totalSaved = goals.reduce((sum, g) => sum + g.currentAmount, 0);
+
+    // Financial health (Peter's domain)
+    const budget = financialStore.getMainBudget(userId);
+    if (budget) {
+      status.financialHealth.budgetUsedPercent = Math.round(
+        (budget.spent / budget.monthlyLimit) * 100
+      );
+    }
+
+    const triggers = financialStore.getRecentSpendingTriggers(userId, 14);
+    const stressEmotions = ['stressed', 'anxious', 'bored', 'lonely', 'tired'];
+    status.financialHealth.recentStressTriggers = triggers.filter((t) =>
+      stressEmotions.includes(t.emotion)
+    ).length;
+
+    // Determine if savings are on track
+    const goalsOnTrack = goals.filter((g) => {
+      if (!g.deadline) return true;
+      const progress = g.currentAmount / g.targetAmount;
+      const now = new Date();
+      const deadline = new Date(g.deadline);
+      const daysTotal = Math.ceil(
+        (deadline.getTime() - new Date(g.createdAt || now).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      const daysElapsed = Math.ceil(
+        (now.getTime() - new Date(g.createdAt || now).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      const expectedProgress = daysElapsed / daysTotal;
+      return progress >= expectedProgress * 0.8;
+    });
+    status.financialHealth.savingsOnTrack = goalsOnTrack.length >= goals.length * 0.7;
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Could not generate full team status');
+  }
+
+  return status;
+}
+
+// ============================================================================
+// PROACTIVE INSIGHT GENERATION
+// ============================================================================
+
+/**
+ * Scan for cross-persona insights that should be generated
+ * This runs periodically to detect patterns and create shareable insights
+ */
+export async function scanForCrossPersonaInsights(userId: string): Promise<void> {
+  try {
+    const status = await generateTeamStatus(userId);
+
+    // Peter → Maya: Stress spending detected
+    if (status.financialHealth.recentStressTriggers >= 3) {
+      addCrossPersonaInsight(userId, {
+        source: 'peter',
+        target: 'maya',
+        priority: 'high',
+        content: `I noticed ${status.financialHealth.recentStressTriggers} stress-driven purchases in the last 2 weeks. This might be a coping pattern - could a healthy habit help address the underlying stress?`,
+        category: 'stress-spending-pattern',
+        proactive: true,
+        oneTime: true,
+      });
+    }
+
+    // Maya → Jordan: Keystone driving momentum
+    if (status.habitHealth.keystoneActive && status.habitHealth.totalStreakDays >= 30) {
+      addCrossPersonaInsight(userId, {
+        source: 'maya',
+        target: 'jordan',
+        priority: 'normal',
+        content: `Great momentum happening! ${status.habitHealth.totalStreakDays} total streak days and keystone habit is solid. Perfect time to tackle a bigger goal if they're considering one.`,
+        category: 'momentum-opportunity',
+        proactive: false,
+        oneTime: true,
+      });
+    }
+
+    // Jordan → Nayan: Life transition detected
+    if (status.goalStatus.nearingCompletion >= 2) {
+      addCrossPersonaInsight(userId, {
+        source: 'jordan',
+        target: 'nayan',
+        priority: 'low',
+        content: `Multiple goals nearing completion (${status.goalStatus.nearingCompletion}). They might be approaching a life chapter transition - good time for reflection.`,
+        category: 'transition-approaching',
+        proactive: false,
+        oneTime: true,
+      });
+    }
+
+    // Maya → All: Celebration needed
+    if (status.habitHealth.totalStreakDays >= 50) {
+      addCrossPersonaInsight(userId, {
+        source: 'maya',
+        target: 'all',
+        priority: 'high',
+        content: `🎉 CELEBRATION: ${status.habitHealth.totalStreakDays} total streak days across habits! This is massive progress worth acknowledging.`,
+        category: 'streak-milestone',
+        proactive: true,
+        oneTime: true,
+      });
+    }
+
+    // Peter → Jordan: Budget constraint for planning
+    if (status.financialHealth.budgetUsedPercent > 90) {
+      addCrossPersonaInsight(userId, {
+        source: 'peter',
+        target: 'jordan',
+        priority: 'normal',
+        content: `Budget is ${status.financialHealth.budgetUsedPercent}% used this month. If they're planning anything new, timeline might need adjustment.`,
+        category: 'budget-constraint',
+        proactive: false,
+        oneTime: true,
+      });
+    }
+
+    // System → All: At-risk habits
+    if (status.habitHealth.atRiskCount >= 2) {
+      addCrossPersonaInsight(userId, {
+        source: 'system',
+        target: 'all',
+        priority: 'high',
+        content: `${status.habitHealth.atRiskCount} habits at risk (had streaks, now broken). Self-compassion needed - setbacks are data, not failure.`,
+        category: 'habit-support-needed',
+        proactive: true,
+        oneTime: true,
+      });
+    }
+
+    log.debug({ userId }, '🔍 Cross-persona insight scan complete');
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Error scanning for cross-persona insights');
+  }
+}
+
+// ============================================================================
+// INSIGHT BRIEFING FOR HANDOFFS
+// ============================================================================
+
+/**
+ * Build a complete insight briefing for a persona during handoff
+ */
+export async function buildInsightBriefingForHandoff(
+  userId: string,
+  targetPersonaId: string
+): Promise<InsightBriefing> {
+  // Clear expired insights first
+  clearExpiredInsights(userId);
+
+  // Scan for new insights
+  await scanForCrossPersonaInsights(userId);
+
+  const incomingInsights = getInsightsForPersonaRaw(userId, targetPersonaId);
+  const teamStatus = await generateTeamStatus(userId);
+
+  // Generate proactive discoveries
+  const proactiveDiscoveries: string[] = [];
+
+  // Add high-priority proactive insights
+  const proactiveInsights = getProactiveInsights(userId);
+  for (const insight of proactiveInsights.filter(
+    (i) => i.priority === 'high' || i.priority === 'critical'
+  )) {
+    proactiveDiscoveries.push(`From ${insight.source}: ${insight.content}`);
+  }
+
+  // Add status-based discoveries
+  if (teamStatus.habitHealth.keystoneActive) {
+    proactiveDiscoveries.push('Keystone habit driving momentum - foundation is solid');
+  }
+  if (teamStatus.goalStatus.nearingCompletion > 0) {
+    proactiveDiscoveries.push(
+      `${teamStatus.goalStatus.nearingCompletion} goal(s) close to completion - celebration opportunity`
+    );
+  }
+  if (!teamStatus.financialHealth.savingsOnTrack) {
+    proactiveDiscoveries.push('Savings may need attention - some goals falling behind timeline');
+  }
+
+  return {
+    incomingInsights,
+    teamStatus,
+    proactiveDiscoveries,
+  };
+}
+
+/**
+ * Format insight briefing as prompt injection
+ */
+export function formatInsightBriefingForPrompt(briefing: InsightBriefing): string {
+  const lines: string[] = [];
+
+  lines.push('[CROSS-TEAM BRIEFING]');
+
+  // Team status summary
+  lines.push('\n=== TEAM STATUS ===');
+  const { teamStatus } = briefing;
+  lines.push(
+    `• Habits: ${teamStatus.habitHealth.activeHabits} active, ${teamStatus.habitHealth.totalStreakDays} streak days, ` +
+      `keystone ${teamStatus.habitHealth.keystoneActive ? '✅' : '❌'}`
+  );
+  lines.push(
+    `• Goals: ${teamStatus.goalStatus.activeGoals} active, ${teamStatus.goalStatus.nearingCompletion} near completion, ` +
+      `$${teamStatus.goalStatus.totalSaved.toLocaleString()} saved`
+  );
+  lines.push(
+    `• Budget: ${teamStatus.financialHealth.budgetUsedPercent}% used, ` +
+      `${teamStatus.financialHealth.recentStressTriggers} stress triggers recently`
+  );
+
+  // Incoming insights from other personas
+  if (briefing.incomingInsights.length > 0) {
+    lines.push('\n=== INSIGHTS FROM TEAM ===');
+    for (const insight of briefing.incomingInsights) {
+      const priorityEmoji =
+        insight.priority === 'critical'
+          ? '🚨'
+          : insight.priority === 'high'
+            ? '⚡'
+            : insight.priority === 'normal'
+              ? '💡'
+              : '📝';
+      lines.push(`${priorityEmoji} [${insight.source}]: ${insight.content}`);
+    }
+  }
+
+  // Proactive discoveries
+  if (briefing.proactiveDiscoveries.length > 0) {
+    lines.push('\n=== PROACTIVE DISCOVERIES ===');
+    for (const discovery of briefing.proactiveDiscoveries.slice(0, 3)) {
+      lines.push(`• ${discovery}`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+function normalizePersonaId(personaId: string): InsightSource {
+  const normalized = personaId.toLowerCase();
+
+  if (normalized.includes('peter')) return 'peter';
+  if (normalized.includes('maya')) return 'maya';
+  if (normalized.includes('jordan')) return 'jordan';
+  if (normalized.includes('nayan')) return 'nayan';
+  if (normalized.includes('ferni')) return 'ferni';
+
+  return 'ferni'; // Default to coordinator
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
+// ============================================================================
+// BACKWARDS COMPATIBILITY EXPORTS
+// These exports support existing code that was expecting different function names
+// ============================================================================
+
+export type PersonaId = InsightSource | 'alex' | 'jack';
+
+/**
+ * Record an insight (legacy API - flexible arguments)
+ */
+export function recordInsight(
+  userId: string,
+  source: string,
+  contentOrOptions:
+    | string
+    | {
+        category?: string;
+        content: string;
+        summary?: string;
+        confidence?: number;
+        priority?: string;
+        evidence?: string;
+        expiresInDays?: number;
+        surfaceInNextConversation?: boolean;
+      }
+): CrossPersonaInsight {
+  if (typeof contentOrOptions === 'string') {
+    // Simple 3-arg call: (userId, source, content)
+    return addCrossPersonaInsight(userId, {
+      source: normalizePersonaId(source),
+      target: 'all',
+      content: contentOrOptions,
+      priority: 'normal',
+      category: 'general',
+      proactive: false,
+      oneTime: false,
+    });
+  }
+
+  // Object call: (userId, source, { content, category, priority, ... })
+  const opts = contentOrOptions;
+  return addCrossPersonaInsight(userId, {
+    source: normalizePersonaId(source),
+    target: 'all',
+    content: opts.content,
+    priority: (opts.priority as InsightPriority) || 'normal',
+    category: opts.category || 'general',
+    proactive: opts.surfaceInNextConversation || false,
+    oneTime: false,
+    metadata: {
+      summary: opts.summary,
+      confidence: opts.confidence,
+      evidence: opts.evidence,
+      expiresInDays: opts.expiresInDays,
+    },
+  });
+}
+
+/**
+ * Load insights for a user (alias for clearing and scanning)
+ */
+export async function loadInsights(userId: string): Promise<void> {
+  clearExpiredInsights(userId);
+  await scanForCrossPersonaInsights(userId);
+}
+
+/**
+ * Surface insight item - wrapper type for backwards compatibility
+ */
+interface SurfaceInsightItem {
+  insight: {
+    id: string;
+    category: string;
+    summary: string;
+    sourcePersona: string;
+  };
+  relevanceScore: number;
+}
+
+/**
+ * Get insights to surface (legacy API - returns wrapped items with old shape)
+ */
+export function getInsightsToSurface(
+  userId: string,
+  personaId?: string,
+  _limit?: number
+): SurfaceInsightItem[] {
+  let insights: CrossPersonaInsight[];
+  if (personaId) {
+    insights = getInsightsForPersonaRaw(userId, personaId);
+  } else {
+    insights = getProactiveInsights(userId);
+  }
+
+  // Wrap in expected legacy format
+  return insights.map((insight) => ({
+    insight: {
+      id: insight.id,
+      category: insight.category,
+      summary: insight.content,
+      sourcePersona: insight.source,
+    },
+    relevanceScore:
+      insight.priority === 'critical'
+        ? 1.0
+        : insight.priority === 'high'
+          ? 0.8
+          : insight.priority === 'normal'
+            ? 0.6
+            : 0.4,
+  }));
+}
+
+/**
+ * Acknowledge an insight (legacy API - returns Promise)
+ */
+export async function acknowledgeInsight(
+  userId: string,
+  insightId: string,
+  _personaId?: string
+): Promise<void> {
+  consumeInsight(userId, insightId);
+  return Promise.resolve();
+}
+
+/**
+ * Build insight context for injection (legacy API - takes options)
+ */
+export function buildInsightContext(
+  userId: string,
+  personaId: string,
+  _options?: { maxInsights?: number }
+): string {
+  // Synchronous version - won't have fresh insights but avoids async issues
+  clearExpiredInsights(userId);
+  const insights = getInsightsForPersonaRaw(userId, personaId);
+
+  if (insights.length === 0) {
+    return '';
+  }
+
+  const lines: string[] = ['[CROSS-TEAM INSIGHTS]'];
+  for (const insight of insights.slice(0, _options?.maxInsights || 5)) {
+    const priorityEmoji =
+      insight.priority === 'critical'
+        ? '🚨'
+        : insight.priority === 'high'
+          ? '⚡'
+          : insight.priority === 'normal'
+            ? '💡'
+            : '📝';
+    lines.push(`${priorityEmoji} [${insight.source}]: ${insight.content}`);
+  }
+
+  return lines.join('\n');
+}
+
+// ============================================================================
+// DEFAULT EXPORT
+// ============================================================================
+
 export default {
-  recordInsight,
+  // New API
+  addCrossPersonaInsight,
   getInsightsForPersona,
-  getInsightsToSurface,
-  buildInsightContext,
-  acknowledgeInsight,
-  markInsightSurfaced,
-  recordInsightReaction,
+  getProactiveInsights,
+  consumeInsight,
+  clearExpiredInsights,
+  generateTeamStatus,
+  scanForCrossPersonaInsights,
+  buildInsightBriefingForHandoff,
+  formatInsightBriefingForPrompt,
+  // Backwards compatibility
+  recordInsight,
   loadInsights,
-  cleanupInsights,
+  getInsightsToSurface,
+  acknowledgeInsight,
+  buildInsightContext,
 };
