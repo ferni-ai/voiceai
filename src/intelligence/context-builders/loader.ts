@@ -165,7 +165,8 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'relationship-behaviors',
     'session-flow',
     'calendar-awareness',
-    'contact-awareness', // Alex: injects calendar snapshot for scheduling context
+    'contact-awareness',
+    'message-review-awareness', // Alex: injects calendar snapshot for scheduling context
     'goodbye',
     'rag',
     'tasks',

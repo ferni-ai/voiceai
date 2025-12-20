@@ -1,36 +1,35 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- Ferni Maskable Icon 512x512 - Three Stones (Safe Zone Design) -->
-  <!-- Maskable icons need content within the safe zone (center 80%) -->
+  <!-- Ferni Three Stones Logo - 512x512 -->
   <defs>
-    <radialGradient id="stoneGradMask" cx="40%" cy="40%">
+    <radialGradient id="stoneGrad512" cx="40%" cy="40%">
       <stop offset="0%" stop-color="#5a8060"/>
       <stop offset="70%" stop-color="#4a6741"/>
       <stop offset="100%" stop-color="#3d5a35"/>
     </radialGradient>
-    <radialGradient id="catchlightGradMask" cx="30%" cy="30%">
+    <radialGradient id="catchlightGrad512" cx="30%" cy="30%">
       <stop offset="0%" stop-color="white" stop-opacity="0.9"/>
       <stop offset="100%" stop-color="white" stop-opacity="0"/>
     </radialGradient>
   </defs>
-  
-  <!-- Background (full bleed - will be cropped) -->
+
+  <!-- Background -->
   <rect width="512" height="512" fill="#F5F1E8"/>
   
-  <!-- Outer Stone: Body (scaled for safe zone) -->
-  <circle cx="256" cy="256" r="160" fill="url(#stoneGradMask)"/>
-  
+  <!-- Outer Stone: Body -->
+  <circle cx="256" cy="256" r="175.616" fill="url(#stoneGrad512)"/>
+
   <!-- Middle Stone: Eye White -->
-  <circle cx="256" cy="256" r="66" fill="white"/>
-  
+  <circle cx="256" cy="256" r="72.00256" fill="white"/>
+
   <!-- Iris -->
-  <circle cx="256" cy="256" r="43" fill="#5a8060"/>
-  
+  <circle cx="256" cy="256" r="46.71385600000001" fill="#5a8060"/>
+
   <!-- Inner Stone: Pupil -->
-  <circle cx="256" cy="256" r="22" fill="#2c2520"/>
-  
+  <circle cx="256" cy="256" r="23.356928000000003" fill="#2c2520"/>
+
   <!-- Catchlight (life spark) -->
-  <circle cx="242" cy="242" r="9" fill="url(#catchlightGradMask)"/>
+  <circle cx="227.90144" cy="227.90144" r="9.658880000000002" fill="url(#catchlightGrad512)"/>
   
   <!-- Secondary catchlight -->
-  <circle cx="270" cy="266" r="3.5" fill="white" opacity="0.4"/>
+  <circle cx="270.04928" cy="267.239424" r="3.8635520000000008" fill="white" opacity="0.4"/>
 </svg>

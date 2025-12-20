@@ -1,16 +1,34 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- Ferni Favicon 32x32 -->
+  <!-- 
+    Ferni Favicon 32x32 - Three Stones
+    Standard favicon with full detail
+  -->
+  
+  <!-- Background with rounded corners -->
+  <rect width="32" height="32" rx="6" fill="#F5F1E8"/>
+  
+  <!-- Subtle outer glow -->
+  <circle cx="16" cy="16" r="12.5" fill="none" stroke="#4a6741" stroke-width="0.5" opacity="0.3"/>
+  
+  <!-- Outer Stone: Body - with subtle gradient -->
   <defs>
-    <linearGradient id="favGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#325038"/>
-      <stop offset="100%" stop-color="#4a6d52"/>
-    </linearGradient>
+    <radialGradient id="stoneGrad32" cx="40%" cy="40%">
+      <stop offset="0%" stop-color="#5a8060"/>
+      <stop offset="70%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3d5a35"/>
+    </radialGradient>
   </defs>
-  <rect width="32" height="32" rx="6" fill="url(#favGrad)"/>
-  <text x="16" y="22" 
-        font-family="system-ui, -apple-system, sans-serif" 
-        font-size="15" 
-        font-weight="800" 
-        fill="white" 
-        text-anchor="middle">FE</text>
+  <circle cx="16" cy="16" r="11" fill="url(#stoneGrad32)"/>
+  
+  <!-- Middle Stone: Eye White -->
+  <circle cx="16" cy="16" r="4.5" fill="white"/>
+  
+  <!-- Iris -->
+  <circle cx="16" cy="16" r="3" fill="#5a8060"/>
+  
+  <!-- Inner Stone: Pupil -->
+  <circle cx="16" cy="16" r="1.5" fill="#2c2520"/>
+  
+  <!-- Catchlight (life spark) -->
+  <circle cx="14.8" cy="14.8" r="0.6" fill="white" opacity="0.9"/>
 </svg>

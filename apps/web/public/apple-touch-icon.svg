@@ -1,42 +1,40 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
-  <!-- Ferni Apple Touch Icon 192x192 - Three Stones -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <!-- Ferni Three Stones Logo - 192x192 -->
   <defs>
-    <radialGradient id="stoneGrad" cx="40%" cy="40%">
+    <radialGradient id="stoneGrad192" cx="40%" cy="40%">
       <stop offset="0%" stop-color="#5a8060"/>
       <stop offset="70%" stop-color="#4a6741"/>
       <stop offset="100%" stop-color="#3d5a35"/>
     </radialGradient>
-    <filter id="glowFilter" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="2" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
-    <radialGradient id="catchlightGrad" cx="30%" cy="30%">
+    <radialGradient id="catchlightGrad192" cx="30%" cy="30%">
       <stop offset="0%" stop-color="white" stop-opacity="0.9"/>
       <stop offset="100%" stop-color="white" stop-opacity="0"/>
     </radialGradient>
+    <filter id="glowFilter192" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
   </defs>
-  
+
   <!-- Background -->
   <rect width="192" height="192" rx="38" fill="#F5F1E8"/>
   
-  <!-- Outer glow ring -->
-  <circle cx="96" cy="96" r="76" fill="none" stroke="#4a6741" stroke-width="1.5" opacity="0.25"/>
-  
+  <circle cx="96" cy="96" r="72.44160000000002" fill="none" stroke="#4a6741" stroke-width="0.5760000000000001" opacity="0.25"/>
   <!-- Outer Stone: Body -->
-  <circle cx="96" cy="96" r="68" fill="url(#stoneGrad)" filter="url(#glowFilter)"/>
-  
+  <circle cx="96" cy="96" r="65.85600000000001" fill="url(#stoneGrad192)" filter="url(#glowFilter192)"/>
+
   <!-- Middle Stone: Eye White -->
-  <circle cx="96" cy="96" r="28" fill="white"/>
-  
+  <circle cx="96" cy="96" r="27.000960000000003" fill="white"/>
+
   <!-- Iris -->
-  <circle cx="96" cy="96" r="18" fill="#5a8060"/>
-  
+  <circle cx="96" cy="96" r="17.517696000000004" fill="#5a8060"/>
+
   <!-- Inner Stone: Pupil -->
-  <circle cx="96" cy="96" r="9" fill="#2c2520"/>
-  
+  <circle cx="96" cy="96" r="8.758848000000002" fill="#2c2520"/>
+
   <!-- Catchlight (life spark) -->
-  <circle cx="90" cy="90" r="4" fill="url(#catchlightGrad)"/>
+  <circle cx="85.46303999999999" cy="85.46303999999999" r="3.6220800000000004" fill="url(#catchlightGrad192)"/>
   
   <!-- Secondary catchlight -->
-  <circle cx="102" cy="100" r="1.5" fill="white" opacity="0.4"/>
+  <circle cx="101.26848" cy="100.214784" r="1.4488320000000003" fill="white" opacity="0.4"/>
 </svg>

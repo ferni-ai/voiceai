@@ -1,8 +1,5 @@
 <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-  <!-- 
-    Ferni Animated Favicon - Three Stones with Breathing
-    The living zen eye that breathes and glows
-  -->
+  <!-- Ferni Animated Favicon - Three Stones with Breathing -->
   <defs>
     <style>
       @keyframes breathe {
@@ -33,8 +30,7 @@
       }
     </style>
     
-    <!-- Stone body gradient -->
-    <radialGradient id="stoneGrad" cx="40%" cy="40%">
+    <radialGradient id="stoneGradAnim" cx="40%" cy="40%">
       <stop offset="0%" stop-color="#5a8060"/>
       <stop offset="70%" stop-color="#4a6741"/>
       <stop offset="100%" stop-color="#3d5a35"/>
@@ -48,7 +44,7 @@
   <circle class="glow-ring" cx="16" cy="16" r="12.5" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.3"/>
 
   <!-- Outer Stone: Body -->
-  <circle class="stone-body" cx="16" cy="16" r="11" fill="url(#stoneGrad)"/>
+  <circle class="stone-body" cx="16" cy="16" r="11" fill="url(#stoneGradAnim)"/>
 
   <!-- Middle Stone: Eye White -->
   <circle cx="16" cy="16" r="4.5" fill="white"/>

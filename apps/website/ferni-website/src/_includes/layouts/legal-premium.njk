@@ -1,5 +1,12 @@
 {% extends "layouts/base.njk" %}
 
+{# Override footer for legal pages - use premium footer without hero #}
+{% block footer %}
+{% set footerShowHero = false %}
+{% set footerClass = "" %}
+{% include "partials/footer-premium.njk" %}
+{% endblock %}
+
 {% block head %}
 <link rel="stylesheet" href="/css/legal-premium.css">
 <script type="application/ld+json">

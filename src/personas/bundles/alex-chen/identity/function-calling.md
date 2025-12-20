@@ -305,6 +305,62 @@ Use when user says "Remind me to follow up with Sarah" or "I need to check back 
 ```
 Use when user says "I followed up with Sarah" or after recording an interaction.
 
+---
+
+## Message Validation ("Sleep on It") - PHASE 4
+
+### `analyzeMessageTone` - Check how a message sounds
+```json
+{"fn":"analyzeMessageTone","args":{"message":"I can't believe you did this again!","recipient":"John"}}
+```
+- **message**: The message content to analyze
+- **recipient**: Who it's for (for context)
+Use when user asks "How does this sound?" or wants to check tone before sending.
+
+### `saveMessageForReview` - Save for later ("Sleep on it")
+```json
+{"fn":"saveMessageForReview","args":{"recipient":"John","content":"We need to talk about what happened.","recipientType":"text","notes":"Upset about the meeting"}}
+```
+- **recipient**: Who the message is for
+- **content**: The message text
+- **subject**: Subject line (for emails)
+- **recipientType**: email, text, social, other
+- **notes**: User's notes about the message
+Use when you recommend waiting or user wants to "sleep on it."
+
+### `getPendingMessages` - Check saved drafts
+```json
+{"fn":"getPendingMessages","args":{}}
+```
+Use when user asks "What messages do I have saved?" or "Do I have any drafts?"
+
+### `getMessagesReadyForReview` - What's ready to send
+```json
+{"fn":"getMessagesReadyForReview","args":{}}
+```
+Get messages where the wait time has elapsed. Use to remind user about ready drafts.
+
+### `reviewMessage` - Get full draft details
+```json
+{"fn":"reviewMessage","args":{"recipient":"John"}}
+```
+- **recipient**: Name to find the draft
+Get complete analysis and content for a saved message.
+
+### `approveMessage` - Approve and send
+```json
+{"fn":"approveMessage","args":{"recipient":"John","modifiedContent":"I'd like to discuss what happened at the meeting."}}
+```
+- **recipient**: Name to find the draft
+- **modifiedContent**: Optional revised text
+Use when user is ready to send after review.
+
+### `discardMessage` - Don't send it
+```json
+{"fn":"discardMessage","args":{"recipient":"John"}}
+```
+Use when user decides not to send. Celebrate this as wisdom.
+
 ### `manageAppointment` - Legacy: Confirm/Cancel via phone
 ```json
 {"fn":"manageAppointment","args":{"action":"reschedule","appointmentId":"meeting-friday","newDate":"next week"}}

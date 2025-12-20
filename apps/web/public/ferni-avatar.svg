@@ -1,48 +1,40 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
-  <!-- Ferni Orb Logo - 200x200 -->
+  <!-- Ferni Three Stones Logo - 200x200 -->
   <defs>
-    <linearGradient id="orbGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#3d5a35"/>
-      <stop offset="40%" stop-color="#4a6741"/>
-      <stop offset="100%" stop-color="#5a7a4d"/>
-    </linearGradient>
-    <radialGradient id="orbHighlight" cx="35%" cy="25%" r="40%">
-      <stop offset="0%" stop-color="rgba(255,255,255,0.4)"/>
-      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    <radialGradient id="stoneGrad200" cx="40%" cy="40%">
+      <stop offset="0%" stop-color="#5a8060"/>
+      <stop offset="70%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3d5a35"/>
     </radialGradient>
-    
-    <filter id="orbGlow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="8" result="blur"/>
-      <feFlood flood-color="#4a6741" flood-opacity="0.35"/>
-      <feComposite in2="blur" operator="in"/>
-      <feMerge>
-        <feMergeNode/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+    <radialGradient id="catchlightGrad200" cx="30%" cy="30%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glowFilter200" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
     </filter>
   </defs>
 
+  <!-- Background -->
   <rect width="200" height="200" fill="transparent"/>
   
-    <circle cx="100" cy="100" r="82.584" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.15"/>
-    <circle cx="100" cy="100" r="74.59200000000001" fill="none" stroke="#4a6741" stroke-width="1" opacity="0.1"/>
+  <circle cx="100" cy="100" r="75.46000000000002" fill="none" stroke="#4a6741" stroke-width="0.6" opacity="0.25"/>
+  <!-- Outer Stone: Body -->
+  <circle cx="100" cy="100" r="68.60000000000001" fill="url(#stoneGrad200)" filter="url(#glowFilter200)"/>
 
-  <!-- Main orb -->
-  <circle cx="100" cy="100" r="66.60000000000001" fill="url(#orbGradient)" filter="url(#orbGlow)"/>
+  <!-- Middle Stone: Eye White -->
+  <circle cx="100" cy="100" r="28.126" fill="white"/>
 
-  <!-- Top highlight -->
-  <circle cx="100" cy="100" r="66.60000000000001" fill="url(#orbHighlight)"/>
+  <!-- Iris -->
+  <circle cx="100" cy="100" r="18.247600000000002" fill="#5a8060"/>
 
-  <!-- Waveform bars -->
-  <g>
-    <rect x="67" y="95.005" width="2" height="9.990000000000002" rx="1" fill="rgba(255,255,255,0.95)"/>
-    <rect x="75" y="92.5075" width="2" height="14.985000000000003" rx="1" fill="rgba(255,255,255,0.95)"/>
-    <rect x="83" y="90.00999999999999" width="2" height="19.980000000000004" rx="1" fill="rgba(255,255,255,0.95)"/>
-    <rect x="91" y="88.345" width="2" height="23.310000000000002" rx="1" fill="rgba(255,255,255,0.95)"/>
-    <rect x="99" y="86.67999999999999" width="2" height="26.640000000000004" rx="1" fill="rgba(255,255,255,0.95)"/>
-    <rect x="107" y="88.345" width="2" height="23.310000000000002" rx="1" fill="rgba(255,255,255,0.95)"/>
-    <rect x="115" y="90.00999999999999" width="2" height="19.980000000000004" rx="1" fill="rgba(255,255,255,0.95)"/>
-    <rect x="123" y="92.5075" width="2" height="14.985000000000003" rx="1" fill="rgba(255,255,255,0.95)"/>
-    <rect x="131" y="95.005" width="2" height="9.990000000000002" rx="1" fill="rgba(255,255,255,0.95)"/>
-  </g>
+  <!-- Inner Stone: Pupil -->
+  <circle cx="100" cy="100" r="9.123800000000001" fill="#2c2520"/>
+
+  <!-- Catchlight (life spark) -->
+  <circle cx="89.024" cy="89.024" r="3.7730000000000006" fill="url(#catchlightGrad200)"/>
+  
+  <!-- Secondary catchlight -->
+  <circle cx="105.488" cy="104.3904" r="1.5092000000000003" fill="white" opacity="0.4"/>
 </svg>

@@ -1110,9 +1110,13 @@ class VoiceAIApp {
 
       // 🔔 Cross-Team Notifications - Real-time alerts from team insights
       // Initialize with userId if available (will connect to WebSocket)
-      const userId = appState.userId || (await this.getCurrentUserId());
-      if (userId) {
-        initCrossTeamNotifications(userId);
+      if (appState.userId) {
+        initCrossTeamNotifications(appState.userId);
+      } else {
+        // Async fallback - initialize once userId is available
+        void this.getCurrentUserId?.().then((userId) => {
+          if (userId) initCrossTeamNotifications(userId);
+        });
       }
 
       // Set up gentle check-in handler for significant concern detection
@@ -2569,6 +2573,11 @@ class VoiceAIApp {
     disposeProactiveOutreach();
     disposeTeamInsightsUI();
     disposeCrossTeamNotifications();
+    
+    // 🔍 Insights Debug Panel cleanup
+    import('./ui/insights-debug-panel.ui.js')
+      .then(({ disposeInsightsDebugPanel }) => disposeInsightsDebugPanel())
+      .catch(() => { /* ignore if not loaded */ });
     disposeAvatarSoul();
     disposeAvatarLamp();
     disposeAmbientLife();

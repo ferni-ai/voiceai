@@ -1,13 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
   <!-- Safari Pinned Tab - Monochrome Three Stones -->
-  <!-- Must be single color (black) for Safari pinned tab -->
-  
-  <!-- Outer Stone: Body -->
   <circle cx="8" cy="8" r="6" fill="black"/>
-  
-  <!-- Eye White (cutout effect) -->
   <circle cx="8" cy="8" r="2.5" fill="white"/>
-  
-  <!-- Pupil -->
   <circle cx="8" cy="8" r="1.2" fill="black"/>
 </svg>
