@@ -43,6 +43,11 @@ export async function handleMarketplaceRoutes(
     return handlePublisherRoutes(req, res, pathname, method);
   }
 
+  // Registry route - returns full marketplace catalog for frontend
+  if (pathname === '/api/marketplace/registry') {
+    return handleBrowseRoutes(req, res, pathname, method);
+  }
+
   // Browse routes
   if (pathname.startsWith('/api/marketplace/browse')) {
     return handleBrowseRoutes(req, res, pathname, method);
@@ -86,7 +91,8 @@ export async function handleMarketplaceRoutes(
 export function isMarketplaceRoute(pathname: string): boolean {
   return (
     pathname.startsWith('/api/marketplace/') &&
-    (pathname.startsWith('/api/marketplace/publisher') ||
+    (pathname === '/api/marketplace/registry' ||
+      pathname.startsWith('/api/marketplace/publisher') ||
       pathname.startsWith('/api/marketplace/review') ||
       pathname.startsWith('/api/marketplace/browse') ||
       pathname.startsWith('/api/marketplace/install') ||

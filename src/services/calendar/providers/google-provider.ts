@@ -14,7 +14,7 @@ import type {
   CalendarProvider,
 } from '../types.js';
 import {
-  isCalendarConfigured,
+  isOAuthConfigured,
   getValidAccessToken,
   getEvents as getGoogleEvents,
   createEvent as createGoogleEvent,
@@ -51,7 +51,6 @@ function googleToUnified(event: GoogleCalendarEvent, userId: string): Omit<Calen
       method: r.method as 'email' | 'popup',
       minutesBefore: r.minutes,
     })),
-    etag: event.etag,
   };
 }
 
@@ -81,7 +80,6 @@ function unifiedToGoogle(event: CalendarEvent): GoogleCalendarEvent {
         minutes: r.minutesBefore,
       })),
     },
-    etag: event.etag,
   };
 }
 
@@ -95,7 +93,8 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
    * Check if Google Calendar is configured (has OAuth credentials)
    */
   isConfigured(): boolean {
-    return isCalendarConfigured();
+    // Use the service check which can be mocked in tests
+    return isOAuthConfigured() || !!(process.env.GOOGLE_CALENDAR_CLIENT_ID && process.env.GOOGLE_CALENDAR_CLIENT_SECRET);
   }
 
   /**
@@ -283,8 +282,8 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
         throw new Error(`Failed to fetch calendars: ${response.status}`);
       }
 
-      const data = await response.json();
-      return (data.items || []).map((cal: { id: string; summary: string; primary?: boolean }) => ({
+      const data = (await response.json()) as { items?: Array<{ id: string; summary: string; primary?: boolean }> };
+      return (data.items || []).map((cal) => ({
         id: cal.id,
         name: cal.summary,
         primary: !!cal.primary,
