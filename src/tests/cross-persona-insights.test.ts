@@ -122,9 +122,8 @@ describe('Cross-Persona Insights Service', () => {
 
   describe('buildInsightBriefingForHandoff', () => {
     it('should return briefing structure', async () => {
-      const { buildInsightBriefingForHandoff } = await import(
-        '../services/cross-persona-insights.js'
-      );
+      const { buildInsightBriefingForHandoff } =
+        await import('../services/cross-persona-insights.js');
 
       const userId = `test-user-${Date.now()}-6`;
       const briefing = await buildInsightBriefingForHandoff(userId, 'ferni');
@@ -144,9 +143,8 @@ describe('Alex Communication Insights Builder', () => {
 
   it('should only activate for Alex persona', async () => {
     // Dynamic import to ensure mocks are in place
-    const { buildAlexCommunicationInsightsContext } = await import(
-      '../intelligence/context-builders/alex-communication-insights.js'
-    );
+    const { buildAlexCommunicationInsightsContext } =
+      await import('../intelligence/context-builders/alex-communication-insights.js');
 
     // Test with non-Alex persona
     const nonAlexInput = {
@@ -160,9 +158,8 @@ describe('Alex Communication Insights Builder', () => {
   });
 
   it('should activate and return injection for Alex persona', async () => {
-    const { buildAlexCommunicationInsightsContext } = await import(
-      '../intelligence/context-builders/alex-communication-insights.js'
-    );
+    const { buildAlexCommunicationInsightsContext } =
+      await import('../intelligence/context-builders/alex-communication-insights.js');
 
     const alexInput = {
       services: { userId: 'test-user', personaId: 'alex-chen' },
@@ -188,9 +185,8 @@ describe('Ferni Coordinator Intelligence Builder', () => {
   });
 
   it('should only activate for Ferni persona', async () => {
-    const { buildFerniCoordinatorIntelligenceContext } = await import(
-      '../intelligence/context-builders/ferni-coordinator-intelligence.js'
-    );
+    const { buildFerniCoordinatorIntelligenceContext } =
+      await import('../intelligence/context-builders/ferni-coordinator-intelligence.js');
 
     // Test with non-Ferni persona
     const nonFerniInput = {
@@ -204,9 +200,8 @@ describe('Ferni Coordinator Intelligence Builder', () => {
   });
 
   it('should activate and return injection for Ferni persona', async () => {
-    const { buildFerniCoordinatorIntelligenceContext } = await import(
-      '../intelligence/context-builders/ferni-coordinator-intelligence.js'
-    );
+    const { buildFerniCoordinatorIntelligenceContext } =
+      await import('../intelligence/context-builders/ferni-coordinator-intelligence.js');
 
     const ferniInput = {
       services: { userId: 'test-user', personaId: 'ferni' },
@@ -222,7 +217,12 @@ describe('Ferni Coordinator Intelligence Builder', () => {
     // Content should reference Ferni/coordinator in some form
     const contentLower = (result[0].content || '').toLowerCase();
     const sourceLower = (result[0].source || '').toLowerCase();
-    expect(contentLower.includes('ferni') || contentLower.includes('coordinator') || sourceLower.includes('ferni') || sourceLower.includes('coordinator')).toBe(true);
+    expect(
+      contentLower.includes('ferni') ||
+        contentLower.includes('coordinator') ||
+        sourceLower.includes('ferni') ||
+        sourceLower.includes('coordinator')
+    ).toBe(true);
   });
 });
 
@@ -232,9 +232,8 @@ describe('Handoff Suggestion Analysis', () => {
   });
 
   it('should return coordinator intelligence for Ferni with team context', async () => {
-    const { buildFerniCoordinatorIntelligenceContext } = await import(
-      '../intelligence/context-builders/ferni-coordinator-intelligence.js'
-    );
+    const { buildFerniCoordinatorIntelligenceContext } =
+      await import('../intelligence/context-builders/ferni-coordinator-intelligence.js');
 
     const userId = `test-handoff-${Date.now()}`;
 
@@ -273,9 +272,8 @@ describe('Peter Research Insights Builder', () => {
   });
 
   it('should only activate for Peter persona', async () => {
-    const { buildPeterResearchInsightsContext } = await import(
-      '../intelligence/context-builders/peter-research-insights.js'
-    );
+    const { buildPeterResearchInsightsContext } =
+      await import('../intelligence/context-builders/peter-research-insights.js');
 
     // Test with non-Peter persona
     const nonPeterInput = {
@@ -290,9 +288,8 @@ describe('Peter Research Insights Builder', () => {
   });
 
   it('should activate and return injection for Peter persona', async () => {
-    const { buildPeterResearchInsightsContext } = await import(
-      '../intelligence/context-builders/peter-research-insights.js'
-    );
+    const { buildPeterResearchInsightsContext } =
+      await import('../intelligence/context-builders/peter-research-insights.js');
 
     const peterInput = {
       services: { userId: 'test-user', personaId: 'peter-john', sessionId: 'test-session' },
@@ -318,9 +315,8 @@ describe('Peter Research Insights Builder', () => {
   });
 
   it('should include cross-team data references in briefing', async () => {
-    const { buildPeterResearchInsightsContext } = await import(
-      '../intelligence/context-builders/peter-research-insights.js'
-    );
+    const { buildPeterResearchInsightsContext } =
+      await import('../intelligence/context-builders/peter-research-insights.js');
 
     const peterInput = {
       services: { userId: 'test-user-xteam', personaId: 'peter-john', sessionId: 'test-session' },
@@ -354,9 +350,8 @@ describe('Maya Coaching Insights Builder', () => {
   });
 
   it('should only activate for Maya persona', async () => {
-    const { buildMayaCoachingInsightsContext } = await import(
-      '../intelligence/context-builders/maya-coaching-insights.js'
-    );
+    const { buildMayaCoachingInsightsContext } =
+      await import('../intelligence/context-builders/maya-coaching-insights.js');
 
     // Test with non-Maya persona
     const nonMayaInput = {
@@ -371,9 +366,8 @@ describe('Maya Coaching Insights Builder', () => {
   });
 
   it('should activate and return injection for Maya persona', async () => {
-    const { buildMayaCoachingInsightsContext } = await import(
-      '../intelligence/context-builders/maya-coaching-insights.js'
-    );
+    const { buildMayaCoachingInsightsContext } =
+      await import('../intelligence/context-builders/maya-coaching-insights.js');
 
     const mayaInput = {
       services: { userId: 'test-user', personaId: 'maya-santos', sessionId: 'test-session' },
@@ -399,9 +393,8 @@ describe('Maya Coaching Insights Builder', () => {
   });
 
   it('should include coaching principles on first turn', async () => {
-    const { buildMayaCoachingInsightsContext } = await import(
-      '../intelligence/context-builders/maya-coaching-insights.js'
-    );
+    const { buildMayaCoachingInsightsContext } =
+      await import('../intelligence/context-builders/maya-coaching-insights.js');
 
     const mayaInput = {
       services: { userId: 'test-user-coach', personaId: 'maya-santos', sessionId: 'test-session' },
@@ -413,7 +406,10 @@ describe('Maya Coaching Insights Builder', () => {
     const result = await buildMayaCoachingInsightsContext(mayaInput as never);
 
     // Should include mindset injection with coaching principles
-    const allContent = result.map((r) => r.content || '').join(' ').toLowerCase();
+    const allContent = result
+      .map((r) => r.content || '')
+      .join(' ')
+      .toLowerCase();
     expect(
       allContent.includes('compassion') ||
         allContent.includes('celebrate') ||
@@ -434,9 +430,8 @@ describe('Jordan Milestone Insights Builder', () => {
   });
 
   it('should only activate for Jordan persona', async () => {
-    const { buildJordanMilestoneInsightsContext } = await import(
-      '../intelligence/context-builders/jordan-milestone-insights.js'
-    );
+    const { buildJordanMilestoneInsightsContext } =
+      await import('../intelligence/context-builders/jordan-milestone-insights.js');
 
     // Test with non-Jordan persona
     const nonJordanInput = {
@@ -451,9 +446,8 @@ describe('Jordan Milestone Insights Builder', () => {
   });
 
   it('should activate and return injection for Jordan persona', async () => {
-    const { buildJordanMilestoneInsightsContext } = await import(
-      '../intelligence/context-builders/jordan-milestone-insights.js'
-    );
+    const { buildJordanMilestoneInsightsContext } =
+      await import('../intelligence/context-builders/jordan-milestone-insights.js');
 
     const jordanInput = {
       services: { userId: 'test-user', personaId: 'jordan-taylor', sessionId: 'test-session' },
@@ -479,9 +473,8 @@ describe('Jordan Milestone Insights Builder', () => {
   });
 
   it('should include computed metrics in briefing', async () => {
-    const { buildJordanMilestoneInsightsContext } = await import(
-      '../intelligence/context-builders/jordan-milestone-insights.js'
-    );
+    const { buildJordanMilestoneInsightsContext } =
+      await import('../intelligence/context-builders/jordan-milestone-insights.js');
 
     const jordanInput = {
       services: { userId: 'test-user-metrics', personaId: 'jordan-taylor', sessionId: 'test' },
@@ -491,7 +484,10 @@ describe('Jordan Milestone Insights Builder', () => {
     };
 
     const result = await buildJordanMilestoneInsightsContext(jordanInput as never);
-    const content = result.map((r) => r.content || '').join(' ').toLowerCase();
+    const content = result
+      .map((r) => r.content || '')
+      .join(' ')
+      .toLowerCase();
 
     // Should include computed metrics
     expect(
@@ -514,9 +510,8 @@ describe('Nayan Wisdom Insights Builder', () => {
   });
 
   it('should only activate for Nayan persona', async () => {
-    const { buildNayanWisdomInsightsContext } = await import(
-      '../intelligence/context-builders/nayan-wisdom-insights.js'
-    );
+    const { buildNayanWisdomInsightsContext } =
+      await import('../intelligence/context-builders/nayan-wisdom-insights.js');
 
     // Test with non-Nayan persona
     const nonNayanInput = {
@@ -531,9 +526,8 @@ describe('Nayan Wisdom Insights Builder', () => {
   });
 
   it('should activate and return injection for Nayan persona', async () => {
-    const { buildNayanWisdomInsightsContext } = await import(
-      '../intelligence/context-builders/nayan-wisdom-insights.js'
-    );
+    const { buildNayanWisdomInsightsContext } =
+      await import('../intelligence/context-builders/nayan-wisdom-insights.js');
 
     const nayanInput = {
       services: { userId: 'test-user', personaId: 'nayan-patel', sessionId: 'test-session' },
@@ -559,9 +553,8 @@ describe('Nayan Wisdom Insights Builder', () => {
   });
 
   it('should include life synthesis and team patterns', async () => {
-    const { buildNayanWisdomInsightsContext } = await import(
-      '../intelligence/context-builders/nayan-wisdom-insights.js'
-    );
+    const { buildNayanWisdomInsightsContext } =
+      await import('../intelligence/context-builders/nayan-wisdom-insights.js');
 
     const nayanInput = {
       services: { userId: 'test-user-synth', personaId: 'nayan-patel', sessionId: 'test-session' },
@@ -571,7 +564,10 @@ describe('Nayan Wisdom Insights Builder', () => {
     };
 
     const result = await buildNayanWisdomInsightsContext(nayanInput as never);
-    const content = result.map((r) => r.content || '').join(' ').toLowerCase();
+    const content = result
+      .map((r) => r.content || '')
+      .join(' ')
+      .toLowerCase();
 
     // Should include life synthesis concepts
     expect(
@@ -586,9 +582,8 @@ describe('Nayan Wisdom Insights Builder', () => {
   });
 
   it('should include deep questions in briefing', async () => {
-    const { buildNayanWisdomInsightsContext } = await import(
-      '../intelligence/context-builders/nayan-wisdom-insights.js'
-    );
+    const { buildNayanWisdomInsightsContext } =
+      await import('../intelligence/context-builders/nayan-wisdom-insights.js');
 
     const nayanInput = {
       services: { userId: 'test-user-quest', personaId: 'nayan-patel', sessionId: 'test-session' },
@@ -598,7 +593,10 @@ describe('Nayan Wisdom Insights Builder', () => {
     };
 
     const result = await buildNayanWisdomInsightsContext(nayanInput as never);
-    const content = result.map((r) => r.content || '').join(' ').toLowerCase();
+    const content = result
+      .map((r) => r.content || '')
+      .join(' ')
+      .toLowerCase();
 
     // Should include philosophical/deep questions
     expect(
@@ -621,12 +619,8 @@ describe('Cross-Persona Integration', () => {
   });
 
   it('should ensure all persona builders are registered in loader', async () => {
-    const { BUILDER_MANIFEST } = await import(
-      '../intelligence/context-builders/loader.js'
-    );
-    const { BuilderCategory } = await import(
-      '../intelligence/context-builders/index.js'
-    );
+    const { BUILDER_MANIFEST } = await import('../intelligence/context-builders/loader.js');
+    const { BuilderCategory } = await import('../intelligence/context-builders/index.js');
 
     const personaBuilders = BUILDER_MANIFEST[BuilderCategory.PERSONA] || [];
 
@@ -647,26 +641,38 @@ describe('Cross-Persona Integration', () => {
 
   it('should have consistent injection structure across all builders', async () => {
     // Import all builders
-    const { buildPeterResearchInsightsContext } = await import(
-      '../intelligence/context-builders/peter-research-insights.js'
-    );
-    const { buildMayaCoachingInsightsContext } = await import(
-      '../intelligence/context-builders/maya-coaching-insights.js'
-    );
-    const { buildJordanMilestoneInsightsContext } = await import(
-      '../intelligence/context-builders/jordan-milestone-insights.js'
-    );
-    const { buildNayanWisdomInsightsContext } = await import(
-      '../intelligence/context-builders/nayan-wisdom-insights.js'
-    );
+    const { buildPeterResearchInsightsContext } =
+      await import('../intelligence/context-builders/peter-research-insights.js');
+    const { buildMayaCoachingInsightsContext } =
+      await import('../intelligence/context-builders/maya-coaching-insights.js');
+    const { buildJordanMilestoneInsightsContext } =
+      await import('../intelligence/context-builders/jordan-milestone-insights.js');
+    const { buildNayanWisdomInsightsContext } =
+      await import('../intelligence/context-builders/nayan-wisdom-insights.js');
 
     const userId = `test-consistency-${Date.now()}`;
 
     const inputs = {
-      peter: { services: { userId, personaId: 'peter-john', sessionId: 's1' }, userData: { turnCount: 0 }, persona: { id: 'peter-john' } },
-      maya: { services: { userId, personaId: 'maya-santos', sessionId: 's2' }, userData: { turnCount: 0 }, persona: { id: 'maya-santos' } },
-      jordan: { services: { userId, personaId: 'jordan-taylor', sessionId: 's3' }, userData: { turnCount: 0 }, persona: { id: 'jordan-taylor' } },
-      nayan: { services: { userId, personaId: 'nayan-patel', sessionId: 's4' }, userData: { turnCount: 0 }, persona: { id: 'nayan-patel' } },
+      peter: {
+        services: { userId, personaId: 'peter-john', sessionId: 's1' },
+        userData: { turnCount: 0 },
+        persona: { id: 'peter-john' },
+      },
+      maya: {
+        services: { userId, personaId: 'maya-santos', sessionId: 's2' },
+        userData: { turnCount: 0 },
+        persona: { id: 'maya-santos' },
+      },
+      jordan: {
+        services: { userId, personaId: 'jordan-taylor', sessionId: 's3' },
+        userData: { turnCount: 0 },
+        persona: { id: 'jordan-taylor' },
+      },
+      nayan: {
+        services: { userId, personaId: 'nayan-patel', sessionId: 's4' },
+        userData: { turnCount: 0 },
+        persona: { id: 'nayan-patel' },
+      },
     };
 
     const results = await Promise.all([
@@ -679,7 +685,7 @@ describe('Cross-Persona Integration', () => {
     // All should return arrays
     for (const result of results) {
       expect(Array.isArray(result)).toBe(true);
-      
+
       // If there are injections, they should have required properties
       if (result.length > 0) {
         expect(result[0]).toHaveProperty('content');
@@ -700,12 +706,10 @@ describe('E2E Handoff Chain Tests', () => {
   });
 
   it('should support Ferni → Peter → Maya handoff chain', async () => {
-    const { buildPeterResearchInsightsContext } = await import(
-      '../intelligence/context-builders/peter-research-insights.js'
-    );
-    const { buildMayaCoachingInsightsContext } = await import(
-      '../intelligence/context-builders/maya-coaching-insights.js'
-    );
+    const { buildPeterResearchInsightsContext } =
+      await import('../intelligence/context-builders/peter-research-insights.js');
+    const { buildMayaCoachingInsightsContext } =
+      await import('../intelligence/context-builders/maya-coaching-insights.js');
 
     const userId = `test-chain-${Date.now()}`;
 
@@ -726,23 +730,24 @@ describe('E2E Handoff Chain Tests', () => {
     };
     const mayaResult = await buildMayaCoachingInsightsContext(mayaInput as never);
     expect(mayaResult.length).toBeGreaterThan(0);
-    
+
     // Maya should have coaching context
-    const mayaContent = mayaResult.map(r => r.content || '').join(' ').toLowerCase();
+    const mayaContent = mayaResult
+      .map((r) => r.content || '')
+      .join(' ')
+      .toLowerCase();
     expect(
       mayaContent.includes('coaching') ||
-      mayaContent.includes('habit') ||
-      mayaContent.includes('maya')
+        mayaContent.includes('habit') ||
+        mayaContent.includes('maya')
     ).toBe(true);
   });
 
   it('should support Jordan → Nayan handoff for deep questions', async () => {
-    const { buildJordanMilestoneInsightsContext } = await import(
-      '../intelligence/context-builders/jordan-milestone-insights.js'
-    );
-    const { buildNayanWisdomInsightsContext } = await import(
-      '../intelligence/context-builders/nayan-wisdom-insights.js'
-    );
+    const { buildJordanMilestoneInsightsContext } =
+      await import('../intelligence/context-builders/jordan-milestone-insights.js');
+    const { buildNayanWisdomInsightsContext } =
+      await import('../intelligence/context-builders/nayan-wisdom-insights.js');
 
     const userId = `test-deep-${Date.now()}`;
 
@@ -763,33 +768,31 @@ describe('E2E Handoff Chain Tests', () => {
     };
     const nayanResult = await buildNayanWisdomInsightsContext(nayanInput as never);
     expect(nayanResult.length).toBeGreaterThan(0);
-    
+
     // Nayan should include wisdom/philosophical content
-    const nayanContent = nayanResult.map(r => r.content || '').join(' ').toLowerCase();
+    const nayanContent = nayanResult
+      .map((r) => r.content || '')
+      .join(' ')
+      .toLowerCase();
     expect(
       nayanContent.includes('wisdom') ||
-      nayanContent.includes('question') ||
-      nayanContent.includes('meaning') ||
-      nayanContent.includes('life')
+        nayanContent.includes('question') ||
+        nayanContent.includes('meaning') ||
+        nayanContent.includes('life')
     ).toBe(true);
   });
 
   it('should include computed metrics in all builders', async () => {
-    const { buildPeterResearchInsightsContext } = await import(
-      '../intelligence/context-builders/peter-research-insights.js'
-    );
-    const { buildMayaCoachingInsightsContext } = await import(
-      '../intelligence/context-builders/maya-coaching-insights.js'
-    );
-    const { buildJordanMilestoneInsightsContext } = await import(
-      '../intelligence/context-builders/jordan-milestone-insights.js'
-    );
-    const { buildNayanWisdomInsightsContext } = await import(
-      '../intelligence/context-builders/nayan-wisdom-insights.js'
-    );
-    const { buildAlexCommunicationInsightsContext } = await import(
-      '../intelligence/context-builders/alex-communication-insights.js'
-    );
+    const { buildPeterResearchInsightsContext } =
+      await import('../intelligence/context-builders/peter-research-insights.js');
+    const { buildMayaCoachingInsightsContext } =
+      await import('../intelligence/context-builders/maya-coaching-insights.js');
+    const { buildJordanMilestoneInsightsContext } =
+      await import('../intelligence/context-builders/jordan-milestone-insights.js');
+    const { buildNayanWisdomInsightsContext } =
+      await import('../intelligence/context-builders/nayan-wisdom-insights.js');
+    const { buildAlexCommunicationInsightsContext } =
+      await import('../intelligence/context-builders/alex-communication-insights.js');
 
     const userId = `test-metrics-${Date.now()}`;
 
@@ -809,16 +812,20 @@ describe('E2E Handoff Chain Tests', () => {
       };
 
       const result = await builder.fn(input as never);
-      
+
       if (result.length > 0) {
-        const content = result.map(r => r.content || '').join(' ').toLowerCase();
+        const content = result
+          .map((r) => r.content || '')
+          .join(' ')
+          .toLowerCase();
         // Each builder should include some form of metrics or computed data
-        const hasMetrics = content.includes('metric') || 
-                          content.includes('/100') || 
-                          content.includes('score') ||
-                          content.includes('index') ||
-                          content.includes('%');
-        
+        const hasMetrics =
+          content.includes('metric') ||
+          content.includes('/100') ||
+          content.includes('score') ||
+          content.includes('index') ||
+          content.includes('%');
+
         // All enhanced builders should include metrics
         expect(hasMetrics).toBe(true);
       }
@@ -836,9 +843,8 @@ describe('Proactive Trigger Detection', () => {
   });
 
   it('should detect celebration triggers in Maya', async () => {
-    const { buildMayaCoachingInsightsContext } = await import(
-      '../intelligence/context-builders/maya-coaching-insights.js'
-    );
+    const { buildMayaCoachingInsightsContext } =
+      await import('../intelligence/context-builders/maya-coaching-insights.js');
 
     const userId = `test-celebrate-${Date.now()}`;
     const input = {
@@ -848,25 +854,27 @@ describe('Proactive Trigger Detection', () => {
     };
 
     const result = await buildMayaCoachingInsightsContext(input as never);
-    
+
     // Should include some form of celebration or positive coaching content
     if (result.length > 0) {
-      const content = result.map(r => r.content || '').join(' ').toLowerCase();
+      const content = result
+        .map((r) => r.content || '')
+        .join(' ')
+        .toLowerCase();
       // Maya's coaching should have positivity elements
       expect(
         content.includes('celebrate') ||
-        content.includes('win') ||
-        content.includes('progress') ||
-        content.includes('success') ||
-        content.includes('compassion')
+          content.includes('win') ||
+          content.includes('progress') ||
+          content.includes('success') ||
+          content.includes('compassion')
       ).toBe(true);
     }
   });
 
   it('should detect wisdom opportunities in Nayan', async () => {
-    const { buildNayanWisdomInsightsContext } = await import(
-      '../intelligence/context-builders/nayan-wisdom-insights.js'
-    );
+    const { buildNayanWisdomInsightsContext } =
+      await import('../intelligence/context-builders/nayan-wisdom-insights.js');
 
     const userId = `test-wisdom-${Date.now()}`;
     const input = {
@@ -876,24 +884,26 @@ describe('Proactive Trigger Detection', () => {
     };
 
     const result = await buildNayanWisdomInsightsContext(input as never);
-    
+
     if (result.length > 0) {
-      const content = result.map(r => r.content || '').join(' ').toLowerCase();
+      const content = result
+        .map((r) => r.content || '')
+        .join(' ')
+        .toLowerCase();
       // Nayan should include wisdom opportunities or life questions
       expect(
         content.includes('wisdom') ||
-        content.includes('question') ||
-        content.includes('opportunity') ||
-        content.includes('pattern') ||
-        content.includes('meaning')
+          content.includes('question') ||
+          content.includes('opportunity') ||
+          content.includes('pattern') ||
+          content.includes('meaning')
       ).toBe(true);
     }
   });
 
   it('should include communication metrics in Alex', async () => {
-    const { buildAlexCommunicationInsightsContext } = await import(
-      '../intelligence/context-builders/alex-communication-insights.js'
-    );
+    const { buildAlexCommunicationInsightsContext } =
+      await import('../intelligence/context-builders/alex-communication-insights.js');
 
     const userId = `test-alex-metrics-${Date.now()}`;
     const input = {
@@ -903,16 +913,19 @@ describe('Proactive Trigger Detection', () => {
     };
 
     const result = await buildAlexCommunicationInsightsContext(input as never);
-    
+
     if (result.length > 0) {
-      const content = result.map(r => r.content || '').join(' ').toLowerCase();
+      const content = result
+        .map((r) => r.content || '')
+        .join(' ')
+        .toLowerCase();
       // Alex should include communication-related metrics or context
       expect(
         content.includes('communication') ||
-        content.includes('readiness') ||
-        content.includes('stress') ||
-        content.includes('state') ||
-        content.includes('alex')
+          content.includes('readiness') ||
+          content.includes('stress') ||
+          content.includes('state') ||
+          content.includes('alex')
       ).toBe(true);
     }
   });
@@ -928,9 +941,8 @@ describe('Values Alignment and Life Narrative', () => {
   });
 
   it('should include values alignment in Nayan briefing', async () => {
-    const { buildNayanWisdomInsightsContext } = await import(
-      '../intelligence/context-builders/nayan-wisdom-insights.js'
-    );
+    const { buildNayanWisdomInsightsContext } =
+      await import('../intelligence/context-builders/nayan-wisdom-insights.js');
 
     const userId = `test-values-${Date.now()}`;
     const input = {
@@ -940,24 +952,26 @@ describe('Values Alignment and Life Narrative', () => {
     };
 
     const result = await buildNayanWisdomInsightsContext(input as never);
-    
+
     if (result.length > 0) {
-      const content = result.map(r => r.content || '').join(' ').toLowerCase();
+      const content = result
+        .map((r) => r.content || '')
+        .join(' ')
+        .toLowerCase();
       // Should include values or alignment concepts
       expect(
         content.includes('value') ||
-        content.includes('alignment') ||
-        content.includes('coherent') ||
-        content.includes('chapter') ||
-        content.includes('narrative')
+          content.includes('alignment') ||
+          content.includes('coherent') ||
+          content.includes('chapter') ||
+          content.includes('narrative')
       ).toBe(true);
     }
   });
 
   it('should include life chapter in Jordan briefing', async () => {
-    const { buildJordanMilestoneInsightsContext } = await import(
-      '../intelligence/context-builders/jordan-milestone-insights.js'
-    );
+    const { buildJordanMilestoneInsightsContext } =
+      await import('../intelligence/context-builders/jordan-milestone-insights.js');
 
     const userId = `test-chapter-${Date.now()}`;
     const input = {
@@ -967,18 +981,20 @@ describe('Values Alignment and Life Narrative', () => {
     };
 
     const result = await buildJordanMilestoneInsightsContext(input as never);
-    
+
     if (result.length > 0) {
-      const content = result.map(r => r.content || '').join(' ').toLowerCase();
+      const content = result
+        .map((r) => r.content || '')
+        .join(' ')
+        .toLowerCase();
       // Jordan should include milestone or life planning content
       expect(
         content.includes('milestone') ||
-        content.includes('planning') ||
-        content.includes('goal') ||
-        content.includes('celebration') ||
-        content.includes('stage')
+          content.includes('planning') ||
+          content.includes('goal') ||
+          content.includes('celebration') ||
+          content.includes('stage')
       ).toBe(true);
     }
   });
 });
-

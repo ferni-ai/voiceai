@@ -28,15 +28,15 @@ const REFERRAL_NEW_USER_BONUS = 25;
 
 /** Gift multipliers - "Love multiplies" */
 const GIFT_MULTIPLIERS: Record<number, number> = {
-  10: 1.2,   // 10 → 12 (+20%)
-  25: 1.28,  // 25 → 32 (+28%)
-  50: 1.4,   // 50 → 70 (+40%)
+  10: 1.2, // 10 → 12 (+20%)
+  25: 1.28, // 25 → 32 (+28%)
+  50: 1.4, // 50 → 70 (+40%)
 };
 
 /** Garden passive income rates */
 const GARDEN_RATES: Record<string, number> = {
-  'seedling': 2,
-  'gardener': 3,
+  seedling: 2,
+  gardener: 3,
   'grove-keeper': 5,
   'forest-guardian': 7,
 };
@@ -114,8 +114,23 @@ function getFirestore(): admin.firestore.Firestore | null {
 // =============================================================================
 
 const REFERRAL_WORDS = [
-  'sunrise', 'garden', 'bloom', 'river', 'forest', 'meadow', 'breeze', 'willow',
-  'cedar', 'sage', 'ember', 'dawn', 'dusk', 'haven', 'grove', 'fern', 'moss',
+  'sunrise',
+  'garden',
+  'bloom',
+  'river',
+  'forest',
+  'meadow',
+  'breeze',
+  'willow',
+  'cedar',
+  'sage',
+  'ember',
+  'dawn',
+  'dusk',
+  'haven',
+  'grove',
+  'fern',
+  'moss',
 ];
 
 function generateReferralCode(): string {
@@ -338,7 +353,7 @@ export async function handleSeedsRoutes(
 
     // POST /api/seeds/gift - Gift seeds to another user
     if (pathname === '/api/seeds/gift' && req.method === 'POST') {
-      const body = await parseBody(req) as { toUserId: string; amount: number; message?: string };
+      const body = (await parseBody(req)) as { toUserId: string; amount: number; message?: string };
       const { toUserId, amount, message } = body;
 
       if (!toUserId || !amount) {
@@ -394,7 +409,14 @@ export async function handleSeedsRoutes(
             referredBy: null,
             referrals: [],
             gardenTitle: 'seedling',
-            earnedFrom: { daily: 0, streaks: 0, conversations: 0, referrals: 0, gifts: totalReceived, milestones: 0 },
+            earnedFrom: {
+              daily: 0,
+              streaks: 0,
+              conversations: 0,
+              referrals: 0,
+              gifts: totalReceived,
+              milestones: 0,
+            },
             createdAt: admin.firestore.Timestamp.now(),
             updatedAt: admin.firestore.Timestamp.now(),
           });
@@ -440,7 +462,7 @@ export async function handleSeedsRoutes(
 
     // POST /api/seeds/referral - Process a referral signup
     if (pathname === '/api/seeds/referral' && req.method === 'POST') {
-      const body = await parseBody(req) as { referralCode: string };
+      const body = (await parseBody(req)) as { referralCode: string };
       const { referralCode } = body;
 
       if (!referralCode) {
@@ -448,7 +470,8 @@ export async function handleSeedsRoutes(
         return true;
       }
 
-      const referrersQuery = await db.collection('user_seeds')
+      const referrersQuery = await db
+        .collection('user_seeds')
         .where('referralCode', '==', referralCode)
         .limit(1)
         .get();
@@ -486,7 +509,14 @@ export async function handleSeedsRoutes(
             referredBy: referrerId,
             referrals: [],
             gardenTitle: 'seedling',
-            earnedFrom: { daily: 0, streaks: 0, conversations: 0, referrals: REFERRAL_NEW_USER_BONUS, gifts: 0, milestones: 0 },
+            earnedFrom: {
+              daily: 0,
+              streaks: 0,
+              conversations: 0,
+              referrals: REFERRAL_NEW_USER_BONUS,
+              gifts: 0,
+              milestones: 0,
+            },
             createdAt: admin.firestore.Timestamp.now(),
             updatedAt: admin.firestore.Timestamp.now(),
           });
@@ -533,4 +563,3 @@ export async function handleSeedsRoutes(
 }
 
 export default handleSeedsRoutes;
-

@@ -44,7 +44,7 @@ export interface CoachingMemoryContext {
 
 /**
  * Load memories formatted for coaching questions
- * 
+ *
  * This aggregates from multiple memory sources and formats them
  * for the coaching question system.
  */
@@ -75,9 +75,7 @@ export async function loadCoachingMemories(
 
       // Add important moments
       for (const moment of voiceMemory.importantMoments.slice(0, 5)) {
-        const daysAgo = Math.floor(
-          (now.getTime() - moment.date.getTime()) / (1000 * 60 * 60 * 24)
-        );
+        const daysAgo = Math.floor((now.getTime() - moment.date.getTime()) / (1000 * 60 * 60 * 24));
         memories.push({
           topic: moment.type,
           daysAgo,
@@ -103,7 +101,7 @@ export async function loadCoachingMemories(
       }
 
       // Build context
-      const firstConversation = voiceMemory.firstConversation;
+      const { firstConversation } = voiceMemory;
       const relationshipDays = firstConversation
         ? Math.floor((now.getTime() - firstConversation.getTime()) / (1000 * 60 * 60 * 24))
         : 0;
@@ -196,9 +194,13 @@ export async function getSuggestedFollowUps(
       if (memory.type === 'topic') {
         suggestions.push(`Last time you mentioned ${memory.topic}. How's that going?`);
       } else if (memory.type === 'moment') {
-        suggestions.push(`I've been thinking about when you shared ${memory.summary.toLowerCase()}. Any updates?`);
+        suggestions.push(
+          `I've been thinking about when you shared ${memory.summary.toLowerCase()}. Any updates?`
+        );
       } else if (memory.type === 'milestone') {
-        suggestions.push(`You mentioned ${memory.topic} ${memory.daysAgo} days ago. How do you feel about it now?`);
+        suggestions.push(
+          `You mentioned ${memory.topic} ${memory.daysAgo} days ago. How do you feel about it now?`
+        );
       }
     }
   }
@@ -225,9 +227,8 @@ interface VoiceMemoryData {
 async function loadVoiceConversationMemory(userId: string): Promise<VoiceMemoryData | null> {
   try {
     // Dynamic import to avoid circular dependencies
-    const { getUserMemory, getConversationContext } = await import(
-      '../services/voice-conversation-memory.js'
-    );
+    const { getUserMemory, getConversationContext } =
+      await import('../services/voice-conversation-memory.js');
 
     const [memory, context] = await Promise.all([
       getUserMemory(userId),
@@ -249,10 +250,11 @@ async function loadVoiceConversationMemory(userId: string): Promise<VoiceMemoryD
           date: m.date,
         })
       ),
-      milestones: memory.relationshipMilestones?.map((m: { milestone: string; date: Date }) => ({
-        name: m.milestone,
-        date: m.date,
-      })) || [],
+      milestones:
+        memory.relationshipMilestones?.map((m: { milestone: string; date: Date }) => ({
+          name: m.milestone,
+          date: m.date,
+        })) || [],
       totalConversations: memory.totalConversations,
       firstConversation: memory.firstConversation,
       suggestedFollowUps: context.suggestedFollowUps,
@@ -301,4 +303,3 @@ export default {
   getMemoriesForTopic,
   getSuggestedFollowUps,
 };
-

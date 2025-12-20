@@ -112,10 +112,7 @@ export function analyzeVoiceSignals(context: SignalContext): VoiceSignals {
 
   // Changed subject quickly
   if (context.currentTopic && context.previousTopic) {
-    const topicSimilarity = calculateTopicSimilarity(
-      context.currentTopic,
-      context.previousTopic
-    );
+    const topicSimilarity = calculateTopicSimilarity(context.currentTopic, context.previousTopic);
     if (topicSimilarity < 0.3) {
       signals.changedSubject = true;
       log.debug(
@@ -141,7 +138,7 @@ export function analyzeVoiceSignals(context: SignalContext): VoiceSignals {
   if (context.currentTranscript && context.previousTranscript) {
     const currentWordCount = context.currentTranscript.split(' ').length;
     const previousWordCount = context.previousTranscript.split(' ').length;
-    
+
     // If significantly shorter with same topic, might indicate slowing down
     if (currentWordCount < previousWordCount * 0.6) {
       signals.speechPace = 'slower';
@@ -161,10 +158,10 @@ export function analyzeVoiceSignals(context: SignalContext): VoiceSignals {
 function calculateTopicSimilarity(topic1: string, topic2: string): number {
   const words1 = new Set(topic1.toLowerCase().split(/\s+/));
   const words2 = new Set(topic2.toLowerCase().split(/\s+/));
-  
+
   const intersection = new Set([...words1].filter((x) => words2.has(x)));
   const union = new Set([...words1, ...words2]);
-  
+
   return intersection.size / union.size;
 }
 
@@ -211,7 +208,7 @@ export function getAnticipatedNeed(signals: VoiceSignals): AnticipatedNeed | nul
     needs.push({
       signal: 'Changed subject quickly',
       anticipated: 'Topic was uncomfortable',
-      checkQuestion: "We moved away from something. Should we go back to it, or leave it?",
+      checkQuestion: 'We moved away from something. Should we go back to it, or leave it?',
       confidence: 0.65,
       ifConfirmed: 'Gently return',
       ifDenied: 'Respect the boundary',
@@ -391,4 +388,3 @@ export default {
   getVoiceSignalsForTurn,
   clearVoiceHistory,
 };
-

@@ -216,10 +216,7 @@ describe('Trust Outreach Bridge - Batch Processing', () => {
   });
 
   it('should skip test users in batch', async () => {
-    const result = await runTrustBasedOutreachBatch([
-      'test-user-1',
-      'e2e-test-2',
-    ]);
+    const result = await runTrustBasedOutreachBatch(['test-user-1', 'e2e-test-2']);
 
     // Test users should be processed but create no triggers
     expect(result.processed).toBe(2);

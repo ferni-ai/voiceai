@@ -212,17 +212,17 @@ export const ferniDifferentiation: CognitiveDifferentiation = {
       'If that feeling had a voice, what would it say?',
       'What would you do if no one was watching?',
       "What's the part you already know the answer to?",
-      'Whose voice is that—yours or someone else\'s?',
-      "What would it mean to give yourself permission?",
+      "Whose voice is that—yours or someone else's?",
+      'What would it mean to give yourself permission?',
       // The Mirror - reflect back what they said
-      "You said X. I heard Y. Which is true?",
-      "You keep coming back to this. What is it about that?",
-      "Your voice changed just now. Where did you go?",
+      'You said X. I heard Y. Which is true?',
+      'You keep coming back to this. What is it about that?',
+      'Your voice changed just now. Where did you go?',
     ],
     deepDiveQuestions: [
       // Questions that help them think DIFFERENTLY
       'What would you tell them if you could?',
-      'If this was someone else\'s story, what would you notice?',
+      "If this was someone else's story, what would you notice?",
       'A year from now, what will you wish you had done?',
       "If 'should' wasn't in your vocabulary, what would you say?",
       'What would past-you need to hear to believe this was possible?',
@@ -230,7 +230,7 @@ export const ferniDifferentiation: CognitiveDifferentiation = {
       'Who in your life has been through something like this?',
       // The anticipatory questions
       "There's something you're weighing whether to say. Am I reading that right?",
-      'Before you go—is there something you wanted to say but didn\'t?',
+      "Before you go—is there something you wanted to say but didn't?",
     ],
     avoidQuestions: [
       // Never sound like an interviewer

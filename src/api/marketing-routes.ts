@@ -6,7 +6,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { URL } from 'url';
+import type { URL } from 'url';
 import { TwitterClient } from '../tools/domains/marketing/twitter-client.js';
 import { LinkedInClient } from '../tools/domains/marketing/linkedin-client.js';
 import { MarketingStorage } from '../tools/domains/marketing/storage.js';
@@ -290,4 +290,3 @@ export async function handleMarketingRoutes(
 }
 
 export default handleMarketingRoutes;
-

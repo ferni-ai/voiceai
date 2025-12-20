@@ -79,14 +79,30 @@ const BACKCHANNELS: Record<Backchannel['type'], Array<Omit<Backchannel, 'type'>>
   ],
   // Gentle invitations - NOT commands. These should feel like an open door, not a push.
   encouragement: [
-    { verbal: "I'm with you.", ssml: '<volume ratio="0.85"/><break time="100ms"/>I\'m with you.', energy: 'low' },
-    { verbal: "I'm here.", ssml: '<volume ratio="0.8"/><break time="100ms"/>I\'m here.', energy: 'low' },
-    { verbal: 'Take your time.', ssml: '<volume ratio="0.85"/><break time="150ms"/>Take your time.', energy: 'low' },
+    {
+      verbal: "I'm with you.",
+      ssml: '<volume ratio="0.85"/><break time="100ms"/>I\'m with you.',
+      energy: 'low',
+    },
+    {
+      verbal: "I'm here.",
+      ssml: '<volume ratio="0.8"/><break time="100ms"/>I\'m here.',
+      energy: 'low',
+    },
+    {
+      verbal: 'Take your time.',
+      ssml: '<volume ratio="0.85"/><break time="150ms"/>Take your time.',
+      energy: 'low',
+    },
   ],
   // Holding space for heavy moments - soft, present, not reactive
   empathy: [
     { verbal: 'Mm.', ssml: '<volume ratio="0.7"/><break time="200ms"/>Mm.', energy: 'low' },
-    { verbal: 'I hear you.', ssml: '<volume ratio="0.75"/><break time="200ms"/>I hear you.', energy: 'low' },
+    {
+      verbal: 'I hear you.',
+      ssml: '<volume ratio="0.75"/><break time="200ms"/>I hear you.',
+      energy: 'low',
+    },
     { verbal: 'Yeah.', ssml: '<volume ratio="0.7"/><break time="150ms"/>Yeah.', energy: 'low' },
     {
       verbal: "That's a lot.",
@@ -151,7 +167,11 @@ const PERSONA_BACKCHANNEL_STYLES: Record<
     preferred: ['empathy', 'acknowledgment'],
     energyBias: 'low',
     uniquePhrases: [
-      { phrase: 'I feel that.', type: 'empathy', ssml: '<volume ratio="0.8"/><break time="150ms"/>I feel that.' },
+      {
+        phrase: 'I feel that.',
+        type: 'empathy',
+        ssml: '<volume ratio="0.8"/><break time="150ms"/>I feel that.',
+      },
       {
         phrase: 'Mm.',
         type: 'acknowledgment',

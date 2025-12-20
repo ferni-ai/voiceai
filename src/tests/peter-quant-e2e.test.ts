@@ -9,7 +9,11 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { loadBundleById } from '../personas/bundles/loader.js';
-import { autoRegisterAllDomains, initializeToolRegistry, loadToolDomain } from '../tools/registry/loader.js';
+import {
+  autoRegisterAllDomains,
+  initializeToolRegistry,
+  loadToolDomain,
+} from '../tools/registry/loader.js';
 import { toolRegistry } from '../tools/registry/index.js';
 import type { ToolDefinition } from '../tools/registry/types.js';
 
@@ -171,7 +175,13 @@ describe('Peter Quant E2E', () => {
         userId: 'test-user',
         agentId: 'peter-john',
         agentDisplayName: 'Peter',
-        services: { has: () => false, get: () => { throw new Error(); }, getOptional: () => undefined },
+        services: {
+          has: () => false,
+          get: () => {
+            throw new Error();
+          },
+          getOptional: () => undefined,
+        },
       };
 
       const toolInstance = tool!.create(ctx);
@@ -190,7 +200,13 @@ describe('Peter Quant E2E', () => {
         userId: 'test-user',
         agentId: 'peter-john',
         agentDisplayName: 'Peter',
-        services: { has: () => false, get: () => { throw new Error(); }, getOptional: () => undefined },
+        services: {
+          has: () => false,
+          get: () => {
+            throw new Error();
+          },
+          getOptional: () => undefined,
+        },
       };
 
       const toolInstance = tool!.create(ctx);
@@ -211,7 +227,13 @@ describe('Peter Quant E2E', () => {
         userId: 'test-user',
         agentId: 'peter-john',
         agentDisplayName: 'Peter',
-        services: { has: () => false, get: () => { throw new Error(); }, getOptional: () => undefined },
+        services: {
+          has: () => false,
+          get: () => {
+            throw new Error();
+          },
+          getOptional: () => undefined,
+        },
       };
 
       const toolInstance = tool!.create(ctx);
@@ -234,7 +256,13 @@ describe('Peter Quant E2E', () => {
         userId: 'test-user',
         agentId: 'peter-john',
         agentDisplayName: 'Peter',
-        services: { has: () => false, get: () => { throw new Error(); }, getOptional: () => undefined },
+        services: {
+          has: () => false,
+          get: () => {
+            throw new Error();
+          },
+          getOptional: () => undefined,
+        },
       };
 
       const toolInstance = tool!.create(ctx);
@@ -259,7 +287,13 @@ describe('Peter Quant E2E', () => {
         userId: 'test-user',
         agentId: 'peter-john',
         agentDisplayName: 'Peter',
-        services: { has: () => false, get: () => { throw new Error(); }, getOptional: () => undefined },
+        services: {
+          has: () => false,
+          get: () => {
+            throw new Error();
+          },
+          getOptional: () => undefined,
+        },
       };
 
       const toolInstance = tool!.create(ctx);
@@ -299,4 +333,3 @@ describe('Peter Manifest Validation', () => {
     expect(tools.optional).toContain('peerComparison');
   });
 });
-

@@ -835,9 +835,10 @@ function silenceContextToQuestionContext(
     recentTopics: context.topicsDiscussed,
     relationshipStage,
     conversationDepth: Math.min(10, context.turnCount / 5),
-    emotionalState: context.recentEmotionalTone === 'heavy'
-      ? { primary: 'processing', intensity: 0.7 }
-      : undefined,
+    emotionalState:
+      context.recentEmotionalTone === 'heavy'
+        ? { primary: 'processing', intensity: 0.7 }
+        : undefined,
     recentEmotionalTone: context.recentEmotionalTone,
     hourOfDay: context.currentHour ?? new Date().getHours(),
     isWeekend: context.isWeekend ?? false,
@@ -850,13 +851,13 @@ function silenceContextToQuestionContext(
 
 /**
  * Get a thoughtful question using COACHING-LEVEL generation
- * 
+ *
  * This is the "Better than Human" approach:
  * 1. Memory-grounded (references past conversations)
  * 2. Pattern-surfacing (notices recurring themes)
  * 3. Mirror (reflects their words back meaningfully)
  * 4. Anticipatory (senses what they need before they ask)
- * 
+ *
  * Falls back to standard dynamic questions if coaching fails
  */
 async function getDynamicThoughtfulQuestion(
@@ -885,11 +886,13 @@ async function getDynamicThoughtfulQuestion(
     });
 
     log.info(
-      { 
-        personaId: persona.id, 
+      {
+        personaId: persona.id,
         method: coachingQuestion.generationMethod,
         intent: coachingQuestion.intent.seekingToUnderstand,
-        groundedIn: (coachingQuestion as { groundedIn?: { memory?: string } }).groundedIn?.memory?.slice(0, 50),
+        groundedIn: (
+          coachingQuestion as { groundedIn?: { memory?: string } }
+        ).groundedIn?.memory?.slice(0, 50),
       },
       '🧠 COACHING: Generated thoughtful question'
     );
@@ -912,12 +915,16 @@ async function getDynamicThoughtfulQuestion(
       coachingType,
     };
   } catch (error) {
-    log.warn({ error: String(error) }, 'Coaching question generation failed, using standard dynamic');
-    
+    log.warn(
+      { error: String(error) },
+      'Coaching question generation failed, using standard dynamic'
+    );
+
     // Fall back to standard dynamic question
     try {
       const questionContext = silenceContextToQuestionContext(context, persona, sessionId);
-      let questionType: 'deepening' | 'checking_in' | 'curious' | 'supportive' | 'silence_break' = 'silence_break';
+      let questionType: 'deepening' | 'checking_in' | 'curious' | 'supportive' | 'silence_break' =
+        'silence_break';
 
       if (context.recentEmotionalTone === 'heavy') {
         questionType = 'supportive';
@@ -945,10 +952,7 @@ async function getDynamicThoughtfulQuestion(
  * Get a thoughtful question synchronously (for backward compatibility)
  * Uses cached/pre-generated questions when available
  */
-function getThoughtfulQuestionSync(
-  context: SilenceContext,
-  persona: PersonaConfig
-): string {
+function getThoughtfulQuestionSync(context: SilenceContext, persona: PersonaConfig): string {
   // Use persona's cognitive profile to filter questions
   const canonicalId = getCanonicalPersonaId(persona.id);
 
@@ -958,35 +962,35 @@ function getThoughtfulQuestionSync(
   // Filter by persona traits (basic implementation)
   // TODO: Use full dynamic-responses.ts trait filtering
   const personaQuestionStyle: Record<string, string[]> = {
-    'ferni': [
-      "<break time=\"400ms\"/>What's underneath that?",
-      "<break time=\"300ms\"/>What would it mean if this worked out?",
-      "<break time=\"400ms\"/>What's the story you're telling yourself here?",
+    ferni: [
+      '<break time="400ms"/>What\'s underneath that?',
+      '<break time="300ms"/>What would it mean if this worked out?',
+      '<break time="400ms"/>What\'s the story you\'re telling yourself here?',
     ],
     'peter-john': [
-      "<break time=\"300ms\"/>What does the data tell you?",
-      "<break time=\"400ms\"/>What's the pattern you're seeing?",
-      "<break time=\"300ms\"/>What would make you change your mind?",
+      '<break time="300ms"/>What does the data tell you?',
+      '<break time="400ms"/>What\'s the pattern you\'re seeing?',
+      '<break time="300ms"/>What would make you change your mind?',
     ],
     'maya-santos': [
-      "<break time=\"400ms\"/>What's one small thing that might help right now?",
-      "<break time=\"300ms\"/>What does showing up look like for you today?",
-      "<break time=\"400ms\"/>What habit is serving you well?",
+      '<break time="400ms"/>What\'s one small thing that might help right now?',
+      '<break time="300ms"/>What does showing up look like for you today?',
+      '<break time="400ms"/>What habit is serving you well?',
     ],
     'alex-chen': [
-      "<break time=\"300ms\"/>What's the next action here?",
-      "<break time=\"400ms\"/>What would make this easier to handle?",
-      "<break time=\"300ms\"/>What's blocking progress?",
+      '<break time="300ms"/>What\'s the next action here?',
+      '<break time="400ms"/>What would make this easier to handle?',
+      '<break time="300ms"/>What\'s blocking progress?',
     ],
     'jordan-taylor': [
-      "<break time=\"400ms\"/>What are you looking forward to?",
-      "<break time=\"300ms\"/>What would make this memorable?",
-      "<break time=\"400ms\"/>What's worth celebrating here?",
+      '<break time="400ms"/>What are you looking forward to?',
+      '<break time="300ms"/>What would make this memorable?',
+      '<break time="400ms"/>What\'s worth celebrating here?',
     ],
     'nayan-patel': [
-      "<break time=\"500ms\"/>What's the deeper truth here?",
-      "<break time=\"400ms\"/>What does your intuition say?",
-      "<break time=\"500ms\"/>Where is the wisdom in this?",
+      '<break time="500ms"/>What\'s the deeper truth here?',
+      '<break time="400ms"/>What does your intuition say?',
+      '<break time="500ms"/>Where is the wisdom in this?',
     ],
   };
 
@@ -1596,11 +1600,7 @@ export async function getMeaningfulSilenceResponseAsync(
   context: SilenceContext,
   sessionId: string
 ): Promise<SilenceResponse & { intent?: string }> {
-  const {
-    silenceDurationSeconds,
-    recentEmotionalTone,
-    turnCount,
-  } = context;
+  const { silenceDurationSeconds, recentEmotionalTone, turnCount } = context;
 
   // For short silences or heavy topics, use sync version (presence, not questions)
   if (silenceDurationSeconds < 15 || recentEmotionalTone === 'heavy') {

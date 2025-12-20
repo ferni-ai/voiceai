@@ -123,7 +123,7 @@ export interface TierConfig {
 export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
   free: {
     name: 'Community',
-    description: "Ferni is free. Really free. Talk whenever you need.",
+    description: 'Ferni is free. Really free. Talk whenever you need.',
     conversationsPerMonth: null, // UNLIMITED with Ferni!
     minutesPerMonth: null, // No monthly limit
     // Session time is configurable via env var for A/B testing (default: 7 minutes)
@@ -158,8 +158,15 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
     priceInCents: 1000, // $10/month (round number feels like "chipping in")
     annualPriceInCents: 10000, // $100/year = $8.33/month (2 months free!)
     annualSavingsPerMonth: 167, // Save $1.67/month ($20/year)
-    stripePriceId: process.env.STRIPE_PRICE_FOUNDING_MEMBER || process.env.STRIPE_PRICE_FRIEND || process.env.STRIPE_FRIEND_PRICE_ID || null,
-    stripeAnnualPriceId: process.env.STRIPE_PRICE_FOUNDING_MEMBER_ANNUAL || process.env.STRIPE_PRICE_FRIEND_ANNUAL || null,
+    stripePriceId:
+      process.env.STRIPE_PRICE_FOUNDING_MEMBER ||
+      process.env.STRIPE_PRICE_FRIEND ||
+      process.env.STRIPE_FRIEND_PRICE_ID ||
+      null,
+    stripeAnnualPriceId:
+      process.env.STRIPE_PRICE_FOUNDING_MEMBER_ANNUAL ||
+      process.env.STRIPE_PRICE_FRIEND_ANNUAL ||
+      null,
   },
   partner: {
     name: 'Founding Patron',
@@ -177,8 +184,15 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
     priceInCents: 2000, // $20/month (round number)
     annualPriceInCents: 20000, // $200/year = $16.67/month (2 months free!)
     annualSavingsPerMonth: 333, // Save $3.33/month ($40/year)
-    stripePriceId: process.env.STRIPE_PRICE_FOUNDING_PATRON || process.env.STRIPE_PRICE_PARTNER || process.env.STRIPE_PARTNER_PRICE_ID || null,
-    stripeAnnualPriceId: process.env.STRIPE_PRICE_FOUNDING_PATRON_ANNUAL || process.env.STRIPE_PRICE_PARTNER_ANNUAL || null,
+    stripePriceId:
+      process.env.STRIPE_PRICE_FOUNDING_PATRON ||
+      process.env.STRIPE_PRICE_PARTNER ||
+      process.env.STRIPE_PARTNER_PRICE_ID ||
+      null,
+    stripeAnnualPriceId:
+      process.env.STRIPE_PRICE_FOUNDING_PATRON_ANNUAL ||
+      process.env.STRIPE_PRICE_PARTNER_ANNUAL ||
+      null,
   },
 };
 
@@ -684,8 +698,8 @@ export const LIMIT_MESSAGES = {
 
   /** Teasing longer sessions - Founders Fund language */
   longerSessions: [
-    "Want to keep talking without the timer? Founding Members get unlimited time - and they help keep Ferni free for everyone.",
-    "If these sessions feel too short, Founding Members can talk as long as they need. No pressure - just letting you know.",
+    'Want to keep talking without the timer? Founding Members get unlimited time - and they help keep Ferni free for everyone.',
+    'If these sessions feel too short, Founding Members can talk as long as they need. No pressure - just letting you know.',
   ],
 
   /** Teasing team members - Founders Fund language */

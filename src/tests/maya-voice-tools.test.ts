@@ -21,9 +21,9 @@ vi.mock('../../services/productivity-store.js', () => ({
       { id: 'habit-2', name: 'Exercise', isActive: true },
       { id: 'habit-3', name: 'Read for 30 minutes', isActive: true },
     ]),
-    getUserHabitLogs: vi.fn().mockReturnValue([
-      { habitId: 'habit-1', date: new Date().toISOString(), completed: true },
-    ]),
+    getUserHabitLogs: vi
+      .fn()
+      .mockReturnValue([{ habitId: 'habit-1', date: new Date().toISOString(), completed: true }]),
   }),
 }));
 
@@ -97,7 +97,8 @@ describe('Maya Voice-First Tools', () => {
 
   describe('quickHabitCheck Definition', () => {
     it('should have correct metadata', async () => {
-      const { quickHabitCheckDefinition } = await import('../tools/domains/habits/maya-voice-tools.js');
+      const { quickHabitCheckDefinition } =
+        await import('../tools/domains/habits/maya-voice-tools.js');
 
       expect(quickHabitCheckDefinition.id).toBe('quickHabitCheck');
       expect(quickHabitCheckDefinition.name).toBe('Quick Habit Check');
@@ -108,7 +109,8 @@ describe('Maya Voice-First Tools', () => {
 
   describe('microCommitNow Definition', () => {
     it('should have correct metadata', async () => {
-      const { microCommitNowDefinition } = await import('../tools/domains/habits/maya-voice-tools.js');
+      const { microCommitNowDefinition } =
+        await import('../tools/domains/habits/maya-voice-tools.js');
 
       expect(microCommitNowDefinition.id).toBe('microCommitNow');
       expect(microCommitNowDefinition.name).toBe('Micro Commit Now');
@@ -119,7 +121,8 @@ describe('Maya Voice-First Tools', () => {
 
   describe('implementationIntention Definition', () => {
     it('should have correct metadata', async () => {
-      const { implementationIntentionDefinition } = await import('../tools/domains/habits/maya-voice-tools.js');
+      const { implementationIntentionDefinition } =
+        await import('../tools/domains/habits/maya-voice-tools.js');
 
       expect(implementationIntentionDefinition.id).toBe('implementationIntention');
       expect(implementationIntentionDefinition.name).toBe('Implementation Intention');
@@ -156,7 +159,8 @@ describe('Maya Voice-First Tools', () => {
       ];
 
       // We can't directly access the constant, but we can verify the tool uses it
-      const { microCommitNowDefinition } = await import('../tools/domains/habits/maya-voice-tools.js');
+      const { microCommitNowDefinition } =
+        await import('../tools/domains/habits/maya-voice-tools.js');
 
       expect(microCommitNowDefinition).toBeDefined();
       expect(microCommitNowDefinition.description).toContain('2-minute');
@@ -211,7 +215,8 @@ describe('Maya Voice Tools - Voice-First Design', () => {
   });
 
   it('should have time-based context parameters', async () => {
-    const { quickHabitCheckDefinition } = await import('../tools/domains/habits/maya-voice-tools.js');
+    const { quickHabitCheckDefinition } =
+      await import('../tools/domains/habits/maya-voice-tools.js');
 
     // quickHabitCheck should have a context parameter for time of day
     expect(quickHabitCheckDefinition.description).toContain('morning');
@@ -219,7 +224,8 @@ describe('Maya Voice Tools - Voice-First Design', () => {
   });
 
   it('should support energy level calibration', async () => {
-    const { microCommitNowDefinition } = await import('../tools/domains/habits/maya-voice-tools.js');
+    const { microCommitNowDefinition } =
+      await import('../tools/domains/habits/maya-voice-tools.js');
 
     // microCommitNow should adapt to energy levels
     expect(microCommitNowDefinition.description).toContain('momentum');
@@ -229,7 +235,8 @@ describe('Maya Voice Tools - Voice-First Design', () => {
 
 describe('Maya Voice Tools - Behavioral Science', () => {
   it('should implement implementation intentions correctly', async () => {
-    const { implementationIntentionDefinition } = await import('../tools/domains/habits/maya-voice-tools.js');
+    const { implementationIntentionDefinition } =
+      await import('../tools/domains/habits/maya-voice-tools.js');
 
     // Should reference "When X, I will Y" pattern
     expect(implementationIntentionDefinition.description).toContain('When');
@@ -237,7 +244,8 @@ describe('Maya Voice Tools - Behavioral Science', () => {
   });
 
   it('should provide evidence-based guidance', async () => {
-    const { implementationIntentionDefinition } = await import('../tools/domains/habits/maya-voice-tools.js');
+    const { implementationIntentionDefinition } =
+      await import('../tools/domains/habits/maya-voice-tools.js');
 
     // Should mention research/science
     expect(
@@ -247,4 +255,3 @@ describe('Maya Voice Tools - Behavioral Science', () => {
     ).toBe(true);
   });
 });
-

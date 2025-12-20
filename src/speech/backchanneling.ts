@@ -174,19 +174,14 @@ export class BackchannelingSystem {
       const supportPhrases = [
         "I'm listening. Take your time.",
         "I'm here.",
-        "Take your time.",
+        'Take your time.',
         "I'm with you.",
       ];
       return supportPhrases[Math.floor(Math.random() * supportPhrases.length)];
     }
 
     // Neutral: soft presence sounds, not commands
-    const neutralPhrases = [
-      "I'm here.",
-      "Mm-hmm.",
-      "Yeah.",
-      "I'm with you.",
-    ];
+    const neutralPhrases = ["I'm here.", 'Mm-hmm.', 'Yeah.', "I'm with you."];
 
     return neutralPhrases[Math.floor(Math.random() * neutralPhrases.length)];
   }

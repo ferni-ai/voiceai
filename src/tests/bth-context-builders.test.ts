@@ -92,9 +92,8 @@ describe('Commitment Tracking', () => {
 
   describe('detectCommitments', () => {
     it('should detect explicit commitment with "I will"', async () => {
-      const { detectCommitments } = await import(
-        '../services/trust-systems/commitment-tracking.js'
-      );
+      const { detectCommitments } =
+        await import('../services/trust-systems/commitment-tracking.js');
 
       const result = detectCommitments('I will start exercising tomorrow');
 
@@ -104,9 +103,8 @@ describe('Commitment Tracking', () => {
     });
 
     it('should detect explicit commitment with "I\'m going to"', async () => {
-      const { detectCommitments } = await import(
-        '../services/trust-systems/commitment-tracking.js'
-      );
+      const { detectCommitments } =
+        await import('../services/trust-systems/commitment-tracking.js');
 
       const result = detectCommitments("I'm going to call my mom this weekend");
 
@@ -115,9 +113,8 @@ describe('Commitment Tracking', () => {
     });
 
     it('should detect implicit commitment with "I should"', async () => {
-      const { detectCommitments } = await import(
-        '../services/trust-systems/commitment-tracking.js'
-      );
+      const { detectCommitments } =
+        await import('../services/trust-systems/commitment-tracking.js');
 
       const result = detectCommitments('I should probably eat healthier');
 
@@ -126,9 +123,8 @@ describe('Commitment Tracking', () => {
     });
 
     it('should return empty array for no commitments', async () => {
-      const { detectCommitments } = await import(
-        '../services/trust-systems/commitment-tracking.js'
-      );
+      const { detectCommitments } =
+        await import('../services/trust-systems/commitment-tracking.js');
 
       const result = detectCommitments('The weather is nice today');
 
@@ -136,13 +132,10 @@ describe('Commitment Tracking', () => {
     });
 
     it('should detect multiple commitments in one message', async () => {
-      const { detectCommitments } = await import(
-        '../services/trust-systems/commitment-tracking.js'
-      );
+      const { detectCommitments } =
+        await import('../services/trust-systems/commitment-tracking.js');
 
-      const result = detectCommitments(
-        "I will start running and I should eat better"
-      );
+      const result = detectCommitments('I will start running and I should eat better');
 
       expect(result.length).toBeGreaterThanOrEqual(1);
     });
@@ -150,9 +143,8 @@ describe('Commitment Tracking', () => {
 
   describe('detectProgress', () => {
     it('should detect completion with related commitment', async () => {
-      const { detectProgress, Commitment } = await import(
-        '../services/trust-systems/commitment-tracking.js'
-      );
+      const { detectProgress, Commitment } =
+        await import('../services/trust-systems/commitment-tracking.js');
 
       const existingCommitments = [
         {
@@ -176,9 +168,7 @@ describe('Commitment Tracking', () => {
     });
 
     it('should return empty array for no progress', async () => {
-      const { detectProgress } = await import(
-        '../services/trust-systems/commitment-tracking.js'
-      );
+      const { detectProgress } = await import('../services/trust-systems/commitment-tracking.js');
 
       const result = detectProgress('What time is it?', []);
 
@@ -188,9 +178,8 @@ describe('Commitment Tracking', () => {
 
   describe('generateFollowUpPhrase', () => {
     it('should generate a follow-up phrase for explicit commitment', async () => {
-      const { generateFollowUpPhrase } = await import(
-        '../services/trust-systems/commitment-tracking.js'
-      );
+      const { generateFollowUpPhrase } =
+        await import('../services/trust-systems/commitment-tracking.js');
 
       const commitment = {
         id: 'test-1',
@@ -214,9 +203,8 @@ describe('Commitment Tracking', () => {
     });
 
     it('should generate different phrases for different follow-up counts', async () => {
-      const { generateFollowUpPhrase } = await import(
-        '../services/trust-systems/commitment-tracking.js'
-      );
+      const { generateFollowUpPhrase } =
+        await import('../services/trust-systems/commitment-tracking.js');
 
       const baseCommitment = {
         id: 'test-1',
@@ -242,9 +230,8 @@ describe('Commitment Tracking', () => {
 
   describe('processCommitments', () => {
     it('should process commitments without throwing', async () => {
-      const { processCommitments } = await import(
-        '../services/trust-systems/commitment-tracking.js'
-      );
+      const { processCommitments } =
+        await import('../services/trust-systems/commitment-tracking.js');
 
       await expect(
         processCommitments('test-user-123', "I'm going to meditate daily", {
@@ -262,9 +249,7 @@ describe('Commitment Tracking', () => {
 
 describe('BTH Context Builder Registration', () => {
   it('should have proactive-noticing in builder manifest', async () => {
-    const { getAllBuilderModules } = await import(
-      '../intelligence/context-builders/loader.js'
-    );
+    const { getAllBuilderModules } = await import('../intelligence/context-builders/loader.js');
 
     const modules = getAllBuilderModules();
 
@@ -272,9 +257,7 @@ describe('BTH Context Builder Registration', () => {
   });
 
   it('should have commitment-follow-up in builder manifest', async () => {
-    const { getAllBuilderModules } = await import(
-      '../intelligence/context-builders/loader.js'
-    );
+    const { getAllBuilderModules } = await import('../intelligence/context-builders/loader.js');
 
     const modules = getAllBuilderModules();
 
@@ -282,9 +265,7 @@ describe('BTH Context Builder Registration', () => {
   });
 
   it('should have temporal-intelligence in builder manifest', async () => {
-    const { getAllBuilderModules } = await import(
-      '../intelligence/context-builders/loader.js'
-    );
+    const { getAllBuilderModules } = await import('../intelligence/context-builders/loader.js');
 
     const modules = getAllBuilderModules();
 
@@ -292,9 +273,7 @@ describe('BTH Context Builder Registration', () => {
   });
 
   it('should have deep-relationship in builder manifest', async () => {
-    const { getAllBuilderModules } = await import(
-      '../intelligence/context-builders/loader.js'
-    );
+    const { getAllBuilderModules } = await import('../intelligence/context-builders/loader.js');
 
     const modules = getAllBuilderModules();
 
@@ -302,9 +281,7 @@ describe('BTH Context Builder Registration', () => {
   });
 
   it('should have import functions for all BTH builders', async () => {
-    const { BUILDER_IMPORTS } = await import(
-      '../intelligence/context-builders/builder-imports.js'
-    );
+    const { BUILDER_IMPORTS } = await import('../intelligence/context-builders/builder-imports.js');
 
     expect(BUILDER_IMPORTS['proactive-noticing']).toBeDefined();
     expect(typeof BUILDER_IMPORTS['proactive-noticing']).toBe('function');
@@ -326,9 +303,7 @@ describe('BTH Context Builder Registration', () => {
 
 describe('Commitment Type Detection', () => {
   it('should detect "I need to" as implicit', async () => {
-    const { detectCommitments } = await import(
-      '../services/trust-systems/commitment-tracking.js'
-    );
+    const { detectCommitments } = await import('../services/trust-systems/commitment-tracking.js');
 
     const result = detectCommitments('I need to start saving more money');
 
@@ -337,9 +312,7 @@ describe('Commitment Type Detection', () => {
   });
 
   it('should detect "I want to" as implicit', async () => {
-    const { detectCommitments } = await import(
-      '../services/trust-systems/commitment-tracking.js'
-    );
+    const { detectCommitments } = await import('../services/trust-systems/commitment-tracking.js');
 
     const result = detectCommitments('I want to learn to play guitar');
 
@@ -347,9 +320,7 @@ describe('Commitment Type Detection', () => {
   });
 
   it('should detect "I promise" as explicit', async () => {
-    const { detectCommitments } = await import(
-      '../services/trust-systems/commitment-tracking.js'
-    );
+    const { detectCommitments } = await import('../services/trust-systems/commitment-tracking.js');
 
     const result = detectCommitments('I promise to call you tomorrow');
 
@@ -358,9 +329,7 @@ describe('Commitment Type Detection', () => {
   });
 
   it('should have high confidence for explicit commitments', async () => {
-    const { detectCommitments } = await import(
-      '../services/trust-systems/commitment-tracking.js'
-    );
+    const { detectCommitments } = await import('../services/trust-systems/commitment-tracking.js');
 
     const result = detectCommitments('I will definitely start exercising');
 
@@ -373,9 +342,7 @@ describe('Commitment Type Detection', () => {
   });
 
   it('should have lower confidence for implicit commitments', async () => {
-    const { detectCommitments } = await import(
-      '../services/trust-systems/commitment-tracking.js'
-    );
+    const { detectCommitments } = await import('../services/trust-systems/commitment-tracking.js');
 
     const result = detectCommitments('I should probably start exercising');
 
@@ -394,9 +361,8 @@ describe('Commitment Type Detection', () => {
 
 describe('Follow-Up Phrase Variety', () => {
   it('should not repeat phrases for same commitment', async () => {
-    const { generateFollowUpPhrase } = await import(
-      '../services/trust-systems/commitment-tracking.js'
-    );
+    const { generateFollowUpPhrase } =
+      await import('../services/trust-systems/commitment-tracking.js');
 
     const commitment = {
       id: 'test-variety',
@@ -422,9 +388,8 @@ describe('Follow-Up Phrase Variety', () => {
   });
 
   it('should include commitment content in phrase', async () => {
-    const { generateFollowUpPhrase } = await import(
-      '../services/trust-systems/commitment-tracking.js'
-    );
+    const { generateFollowUpPhrase } =
+      await import('../services/trust-systems/commitment-tracking.js');
 
     const commitment = {
       id: 'test-content',

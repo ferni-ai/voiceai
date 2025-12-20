@@ -107,8 +107,12 @@ export function detectPatternsInTranscript(
   }
 
   // Deflection patterns
-  if (lowerTranscript.includes('haha') || lowerTranscript.includes('lol') || 
-      lowerTranscript.includes('anyway') || lowerTranscript.includes('whatever')) {
+  if (
+    lowerTranscript.includes('haha') ||
+    lowerTranscript.includes('lol') ||
+    lowerTranscript.includes('anyway') ||
+    lowerTranscript.includes('whatever')
+  ) {
     if (emotion === 'heavy' || emotion === 'sad' || emotion === 'anxious') {
       detected.push({
         type: 'deflection_humor',
@@ -118,8 +122,11 @@ export function detectPatternsInTranscript(
     }
   }
 
-  if (lowerTranscript.includes("i'm busy") || lowerTranscript.includes('no time') ||
-      lowerTranscript.includes("don't have time")) {
+  if (
+    lowerTranscript.includes("i'm busy") ||
+    lowerTranscript.includes('no time') ||
+    lowerTranscript.includes("don't have time")
+  ) {
     detected.push({
       type: 'deflection_busy',
       pattern: 'uses_busy_as_deflection',
@@ -154,7 +161,7 @@ export function detectPatternsInTranscript(
  */
 function extractMentionedPeople(transcript: string): string[] {
   const people: string[] = [];
-  
+
   // Common relationship words followed by names
   const patterns = [
     /my\s+(mom|mother|dad|father|sister|brother|boss|partner|husband|wife|friend|colleague)\b/gi,
@@ -222,14 +229,17 @@ export async function recordPattern(observation: PatternObservation): Promise<vo
       // Update existing pattern
       const doc = existing.docs[0];
       const data = doc.data();
-      
+
       await doc.ref.update({
         occurrences: (data.occurrences || 0) + 1,
         lastSeen: now,
         contexts: [...(data.contexts || []).slice(-9), { ...context, timestamp: now, triggerText }],
       });
-      
-      log.debug({ userId, patternType, pattern, occurrences: data.occurrences + 1 }, 'Updated pattern record');
+
+      log.debug(
+        { userId, patternType, pattern, occurrences: data.occurrences + 1 },
+        'Updated pattern record'
+      );
     }
 
     // Invalidate cache
@@ -270,7 +280,8 @@ export async function getUserPatterns(userId: string): Promise<UserPattern[]> {
         occurrences: data.occurrences,
         contexts: (data.contexts || []).map((c: Record<string, unknown>) => ({
           ...c,
-          timestamp: (c.timestamp as { toDate: () => Date })?.toDate?.() || new Date(c.timestamp as string),
+          timestamp:
+            (c.timestamp as { toDate: () => Date })?.toDate?.() || new Date(c.timestamp as string),
         })),
         firstSeen: data.firstSeen?.toDate?.() || new Date(),
         lastSeen: data.lastSeen?.toDate?.() || new Date(),
@@ -290,7 +301,7 @@ export async function getUserPatterns(userId: string): Promise<UserPattern[]> {
 
 /**
  * Get patterns ready to be surfaced to user
- * 
+ *
  * A pattern is ready to surface when:
  * - It has occurred at least 3 times
  * - It hasn't been surfaced before (or was well-received)
@@ -303,10 +314,10 @@ export async function getPatternsToSurface(userId: string): Promise<UserPattern[
   return allPatterns.filter((p) => {
     // Minimum occurrences
     if (p.occurrences < 3) return false;
-    
+
     // Not surfaced or surfaced long ago
     if (p.surfacedToUser && p.surfacedAt && p.surfacedAt > oneWeekAgo) return false;
-    
+
     // Don't resurface dismissed patterns
     if (p.userReaction === 'dismissed') return false;
 
@@ -325,11 +336,14 @@ export async function markPatternSurfaced(
   if (!db) return;
 
   try {
-    await db.collection(PATTERNS_COLLECTION).doc(patternId).update({
-      surfacedToUser: true,
-      surfacedAt: new Date(),
-      ...(reaction && { userReaction: reaction }),
-    });
+    await db
+      .collection(PATTERNS_COLLECTION)
+      .doc(patternId)
+      .update({
+        surfacedToUser: true,
+        surfacedAt: new Date(),
+        ...(reaction && { userReaction: reaction }),
+      });
 
     // Invalidate cache (get userId from pattern ID format)
     const userId = patternId.split('_')[0];
@@ -442,7 +456,7 @@ export async function getPatternForSilence(userId: string): Promise<{
   question: string;
 } | null> {
   const patternsToSurface = await getPatternsToSurface(userId);
-  
+
   if (patternsToSurface.length === 0) return null;
 
   // Pick the most significant pattern
@@ -462,4 +476,3 @@ export default {
   processTranscriptForPatterns,
   getPatternForSilence,
 };
-

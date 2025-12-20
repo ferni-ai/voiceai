@@ -9,7 +9,7 @@
  */
 
 // Re-export everything from the canonical file
-export * from './gce-voice-worker.js';
+export type * from './gce-voice-worker.js';
 
 // If this file is run directly, run the main worker
 // This maintains backwards compatibility with `node dist/agents/worker.js start`

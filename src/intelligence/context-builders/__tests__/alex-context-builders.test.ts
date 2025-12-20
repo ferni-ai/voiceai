@@ -11,19 +11,20 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // MOCKS
 // ============================================================================
 
-// Mock logger
-const createMockLogger = () => ({
-  debug: vi.fn(),
-  info: vi.fn(),
-  warn: vi.fn(),
-  error: vi.fn(),
-  child: vi.fn(() => createMockLogger()),
+// Mock logger - must be defined inline due to hoisting
+vi.mock('../../../utils/safe-logger.js', () => {
+  const mockLogger = {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    child: vi.fn().mockReturnThis(),
+  };
+  return {
+    createLogger: vi.fn(() => mockLogger),
+    getLogger: vi.fn(() => mockLogger),
+  };
 });
-
-vi.mock('../../../utils/safe-logger.js', () => ({
-  createLogger: () => createMockLogger(),
-  getLogger: () => createMockLogger(),
-}));
 
 // Mock calendar service
 const mockIsConnected = vi.fn();
@@ -68,31 +69,35 @@ import { buildCalendarAwarenessContext } from '../calendar-awareness.js';
 
 function createMockDayOverview(overrides = {}) {
   return {
-    totalEvents: 3,
-    busyHours: 4,
-    freeHours: 4,
+    date: new Date('2024-01-15'),
     events: [
       {
         id: 'event-1',
-        title: 'Team Standup',
-        startTime: new Date('2024-01-15T09:00:00'),
-        endTime: new Date('2024-01-15T09:30:00'),
+        summary: 'Team Standup',
+        start: { dateTime: '2024-01-15T09:00:00' },
+        end: { dateTime: '2024-01-15T09:30:00' },
+        status: 'confirmed' as const,
       },
       {
         id: 'event-2',
-        title: 'Client Call',
-        startTime: new Date('2024-01-15T14:00:00'),
-        endTime: new Date('2024-01-15T15:00:00'),
+        summary: 'Client Call',
+        start: { dateTime: '2024-01-15T14:00:00' },
+        end: { dateTime: '2024-01-15T15:00:00' },
+        status: 'confirmed' as const,
       },
     ],
+    totalMeetings: 3,
+    totalMeetingMinutes: 180,
+    freeTimeMinutes: 420,
     firstEvent: {
       id: 'event-1',
-      title: 'Team Standup',
-      startTime: new Date('2024-01-15T09:00:00'),
-      endTime: new Date('2024-01-15T09:30:00'),
+      summary: 'Team Standup',
+      start: { dateTime: '2024-01-15T09:00:00' },
+      end: { dateTime: '2024-01-15T09:30:00' },
+      status: 'confirmed' as const,
     },
     isOverloaded: false,
-    summary: '3 meetings today',
+    hasBackToBack: false,
     ...overrides,
   };
 }
@@ -157,15 +162,15 @@ describe('calendar-awareness context builder', () => {
     it('should include day overview in context', async () => {
       mockGetDayOverview.mockResolvedValue(
         createMockDayOverview({
-          totalEvents: 5,
-          busyHours: 6,
+          totalMeetings: 5,
+          totalMeetingMinutes: 300,
           isOverloaded: true,
         })
       );
 
       const result = await buildCalendarAwarenessContext('user-123', 'alex-chen');
 
-      expect(result.todayOverview?.totalEvents).toBe(5);
+      expect(result.todayOverview?.totalMeetings).toBe(5);
       expect(result.todayOverview?.isOverloaded).toBe(true);
     });
 
@@ -192,8 +197,9 @@ describe('calendar-awareness context builder', () => {
 
       const result = await buildCalendarAwarenessContext('user-123', 'alex-chen');
 
+      // Should still indicate connected but with no context injection
       expect(result.isConnected).toBe(true);
-      expect(result.contextInjection).toContain('error');
+      expect(result.contextInjection).toBeNull();
     });
   });
 

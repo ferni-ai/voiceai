@@ -44,11 +44,13 @@ describe('Persona Tool Integration', () => {
       const bundle = await loadBundleById(personaId);
       expect(bundle, `Bundle not found for ${personaId}`).toBeDefined();
 
-      const manifest = bundle!.manifest;
+      const { manifest } = bundle!;
       const requiredTools = manifest.tools?.required || [];
       const registeredTools = toolRegistry.getAll().map((t) => t.id);
 
-      const missingTools = requiredTools.filter((toolId: string) => !registeredTools.includes(toolId));
+      const missingTools = requiredTools.filter(
+        (toolId: string) => !registeredTools.includes(toolId)
+      );
 
       expect(
         missingTools,
@@ -60,17 +62,17 @@ describe('Persona Tool Integration', () => {
       const bundle = await loadBundleById(personaId);
       expect(bundle, `Bundle not found for ${personaId}`).toBeDefined();
 
-      const manifest = bundle!.manifest;
+      const { manifest } = bundle!;
       const optionalTools = manifest.tools?.optional || [];
       const registeredTools = toolRegistry.getAll().map((t) => t.id);
 
-      const missingTools = optionalTools.filter((toolId: string) => !registeredTools.includes(toolId));
+      const missingTools = optionalTools.filter(
+        (toolId: string) => !registeredTools.includes(toolId)
+      );
 
       // Just warn for optional tools (they might be experimental)
       if (missingTools.length > 0) {
-        console.warn(
-          `${personaId}: Optional tools not in registry: ${missingTools.join(', ')}`
-        );
+        console.warn(`${personaId}: Optional tools not in registry: ${missingTools.join(', ')}`);
       }
     });
 
@@ -78,7 +80,7 @@ describe('Persona Tool Integration', () => {
       const bundle = await loadBundleById(personaId);
       expect(bundle, `Bundle not found for ${personaId}`).toBeDefined();
 
-      const manifest = bundle!.manifest;
+      const { manifest } = bundle!;
       const domains = manifest.tools?.domains || [];
 
       // Get all valid domains from registry
@@ -112,10 +114,9 @@ describe('Persona Tool Integration', () => {
 
       // At minimum, all team personas should be in DOMAIN_OWNERSHIP
       for (const personaId of TEAM_PERSONAS) {
-        expect(
-          domainOwnershipPersonas,
-          `${personaId} not found in DOMAIN_OWNERSHIP`
-        ).toContain(personaId);
+        expect(domainOwnershipPersonas, `${personaId} not found in DOMAIN_OWNERSHIP`).toContain(
+          personaId
+        );
       }
     });
   });
@@ -136,10 +137,9 @@ describe('Persona Tool Integration', () => {
       const registeredTools = new Set(toolRegistry.getAll().map((t) => t.id));
 
       for (const toolId of allRequiredTools) {
-        expect(
-          registeredTools.has(toolId),
-          `Required tool ${toolId} not found in registry`
-        ).toBe(true);
+        expect(registeredTools.has(toolId), `Required tool ${toolId} not found in registry`).toBe(
+          true
+        );
       }
     });
 
@@ -151,10 +151,7 @@ describe('Persona Tool Integration', () => {
       const expectedTools = ['analyzeStock', 'findStocks', 'marketData', 'analyzePatterns'];
 
       for (const expected of expectedTools) {
-        expect(
-          toolIds,
-          `Research domain missing expected tool: ${expected}`
-        ).toContain(expected);
+        expect(toolIds, `Research domain missing expected tool: ${expected}`).toContain(expected);
       }
     });
 
@@ -165,10 +162,7 @@ describe('Persona Tool Integration', () => {
       const expectedTools = ['createHabit', 'getHabits', 'logHabitCompletion', 'habitCheckIn'];
 
       for (const expected of expectedTools) {
-        expect(
-          toolIds,
-          `Habits domain missing expected tool: ${expected}`
-        ).toContain(expected);
+        expect(toolIds, `Habits domain missing expected tool: ${expected}`).toContain(expected);
       }
     });
 
@@ -179,10 +173,9 @@ describe('Persona Tool Integration', () => {
       const expectedTools = ['sendMessage', 'draftMessage', 'analyzeMessage', 'scheduleReminder'];
 
       for (const expected of expectedTools) {
-        expect(
-          toolIds,
-          `Communication domain missing expected tool: ${expected}`
-        ).toContain(expected);
+        expect(toolIds, `Communication domain missing expected tool: ${expected}`).toContain(
+          expected
+        );
       }
     });
 
@@ -194,10 +187,9 @@ describe('Persona Tool Integration', () => {
       const expectedTools = ['getNews', 'getWeather', 'getSports'];
 
       for (const expected of expectedTools) {
-        expect(
-          toolIds,
-          `Information domain missing expected tool: ${expected}`
-        ).toContain(expected);
+        expect(toolIds, `Information domain missing expected tool: ${expected}`).toContain(
+          expected
+        );
       }
     });
   });
@@ -289,4 +281,3 @@ describe('Cross-Persona Tool Conflicts', () => {
     }
   });
 });
-

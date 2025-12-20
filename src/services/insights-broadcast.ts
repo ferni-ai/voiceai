@@ -207,7 +207,10 @@ class InsightsBroadcast extends EventEmitter {
    * Alias for notifyNewInsight for use by cross-persona-insights
    */
   publishInsight(userId: string, insight: CrossPersonaInsight): void {
-    log.debug({ userId, insightId: insight.id, priority: insight.priority }, '🔔 Broadcasting insight');
+    log.debug(
+      { userId, insightId: insight.id, priority: insight.priority },
+      '🔔 Broadcasting insight'
+    );
     this.notifyNewInsight(userId, insight);
   }
 

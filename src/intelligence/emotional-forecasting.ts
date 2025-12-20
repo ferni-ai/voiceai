@@ -182,7 +182,7 @@ export function recordDifficultDate(
   date: Date,
   type: DifficultDate['type'],
   description: string,
-  significanceLevel: number = 0.7
+  significanceLevel = 0.7
 ): void {
   const state = getOrCreateState(userId);
 
@@ -292,9 +292,7 @@ function getUpcomingDifficultDates(
       targetDate = nextYear;
     }
 
-    const daysUntil = Math.floor(
-      (targetDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
-    );
+    const daysUntil = Math.floor((targetDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
 
     if (daysUntil <= daysAhead && daysUntil >= 0) {
       upcoming.push({
@@ -550,7 +548,7 @@ function determineProactiveAction(
     const eventFactor = factors.find((f) => f.type === 'upcoming_event');
     const opener = eventFactor
       ? `I was thinking about you - ${eventFactor.description.toLowerCase()}. Just wanted you to know I'm here.`
-      : "Just checking in. How are you really doing?";
+      : 'Just checking in. How are you really doing?';
 
     // Calculate optimal timing (evening before if we know a specific date)
     let optimalTiming: Date | undefined;
@@ -651,7 +649,8 @@ export function buildForecastContextForPrompt(forecast: EmotionalForecast | null
     lines.push('');
     lines.push('Upcoming:');
     for (const event of forecast.signals.upcomingEvents) {
-      const emoji = event.sentiment === 'difficult' ? '⚠️' : event.sentiment === 'positive' ? '🎉' : '📅';
+      const emoji =
+        event.sentiment === 'difficult' ? '⚠️' : event.sentiment === 'positive' ? '🎉' : '📅';
       lines.push(`${emoji} ${event.description}`);
     }
   }
@@ -671,4 +670,3 @@ export function buildForecastContextForPrompt(forecast: EmotionalForecast | null
 export {
   getOrCreateState as _getOrCreateState, // For testing
 };
-

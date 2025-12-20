@@ -140,76 +140,76 @@ export type QuestionType =
 
 /**
  * COACHING-LEVEL QUESTIONS
- * 
+ *
  * These questions follow the "Better Than Human" coaching philosophy:
  * - Make them PAUSE before answering
  * - Help them think DIFFERENTLY than they were
  * - Make them feel UNDERSTOOD, not interrogated
  * - Make them WANT to answer (not have to)
- * 
+ *
  * The gold standard: "Huh. I never thought about it that way."
  */
 const UNIVERSAL_QUESTIONS: Record<QuestionType, string[]> = {
   deepening: [
     // Don't just go deeper - help them see it differently
-    "What would you tell them if you could?",
+    'What would you tell them if you could?',
     "If this was someone else's story, what would you notice?",
-    "What would you do if no one was watching?",
-    "Where do you feel that in your body?",
+    'What would you do if no one was watching?',
+    'Where do you feel that in your body?',
     "What's the version of this you're not saying out loud?",
-    "If that feeling had a voice, what would it say?",
-    "What part of this do you already know the answer to?",
+    'If that feeling had a voice, what would it say?',
+    'What part of this do you already know the answer to?',
   ],
   checking_in: [
     // Not "how are you" - specific, opens doors
     "What's actually true for you today?",
     "What's taking up the most space in your head right now?",
-    "What moment from today keeps coming back to you?",
+    'What moment from today keeps coming back to you?',
     "What haven't you told anyone yet?",
-    "What would make today feel worth it?",
+    'What would make today feel worth it?',
     "What's one thing that went right that you didn't expect?",
   ],
   curious: [
     // Genuine curiosity that invites depth
     "What's something you've been avoiding thinking about?",
-    "What would be different if you gave yourself permission?",
+    'What would be different if you gave yourself permission?',
     "What's one thing you'd fight for?",
-    "What would you be sad to never do?",
-    "If you woke up tomorrow and everything was different, what changed?",
+    'What would you be sad to never do?',
+    'If you woke up tomorrow and everything was different, what changed?',
     "What do you know now that you wish you'd known sooner?",
   ],
   supportive: [
     // Not "that's hard" - help them find their own strength
     "What's the part of this that feels most unfair?",
-    "What would you need to hear right now?",
-    "If you could change just one thing about this, what would it be?",
+    'What would you need to hear right now?',
+    'If you could change just one thing about this, what would it be?',
     "What's keeping you going through this?",
     "What would 'good enough' look like here?",
-    "Who in your life has been through something like this?",
+    'Who in your life has been through something like this?',
   ],
   celebratory: [
     // Don't rush past wins - let them land
-    "I want to stay here for a second. How does this actually feel?",
-    "What made you the kind of person who could do this?",
-    "Who do you want to tell first?",
-    "What did past-you need to hear to believe this was possible?",
-    "What does this change about how you see yourself?",
+    'I want to stay here for a second. How does this actually feel?',
+    'What made you the kind of person who could do this?',
+    'Who do you want to tell first?',
+    'What did past-you need to hear to believe this was possible?',
+    'What does this change about how you see yourself?',
   ],
   reflective: [
     // Help them hear themselves
-    "What part of what you just said surprised you?",
-    "If you were giving advice to someone in your exact situation, what would you say?",
+    'What part of what you just said surprised you?',
+    'If you were giving advice to someone in your exact situation, what would you say?',
     "What's the pattern here that you keep bumping into?",
-    "A year from now, what will you wish you had done?",
-    "What would you tell yourself six months ago?",
+    'A year from now, what will you wish you had done?',
+    'What would you tell yourself six months ago?',
   ],
   silence_break: [
     // Don't fill silence - honor it, then gently open
-    "Where did your mind just go?",
-    "Something shifted. What is it?",
+    'Where did your mind just go?',
+    'Something shifted. What is it?',
     "Take your time. I'm not going anywhere.",
-    "What just came up for you?",
-    "You got quiet. That usually means something.",
+    'What just came up for you?',
+    'You got quiet. That usually means something.',
   ],
   relationship_building: [
     // Build real connection, not small talk
@@ -217,7 +217,7 @@ const UNIVERSAL_QUESTIONS: Record<QuestionType, string[]> = {
     "What's something you're proud of that you don't talk about?",
     "What's a question you wish someone would ask you?",
     "What's something you've changed your mind about?",
-    "What do you wish you could spend more time on?",
+    'What do you wish you could spend more time on?',
     "What's something you're better at than most people realize?",
   ],
 };
@@ -245,7 +245,10 @@ function wasRecentlyAsked(sessionId: string, contentHash: string): boolean {
 
 function hashContent(text: string): string {
   // Simple hash for deduplication
-  return text.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 50);
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 50);
 }
 
 /**
@@ -302,9 +305,7 @@ function getPersonaFilteredQuestion(
   }
 
   // Filter out recently asked questions
-  const unused = candidates.filter(
-    (q) => !wasRecentlyAsked(context.sessionId, hashContent(q))
-  );
+  const unused = candidates.filter((q) => !wasRecentlyAsked(context.sessionId, hashContent(q)));
 
   if (unused.length === 0) {
     // Fall back to universal
@@ -325,9 +326,8 @@ function getPersonaFilteredQuestion(
       seekingToUnderstand: `User's ${type} in current conversation`,
       timingReason: `${type} question appropriate for conversation state`,
       expectedInsight: 'Deepen understanding or connection',
-      buildsOnContext: context.recentTopics.length > 0
-        ? `Relates to: ${context.recentTopics[0]}`
-        : undefined,
+      buildsOnContext:
+        context.recentTopics.length > 0 ? `Relates to: ${context.recentTopics[0]}` : undefined,
     },
     followUpStrategy: {
       ifPositive: 'Acknowledge and explore further',
@@ -521,7 +521,7 @@ export async function generateQuestion(
 
       // Parse JSON response
       const parsed = JSON.parse(response);
-      const question = parsed.question;
+      const { question } = parsed;
       const contentHash = hashContent(question);
 
       // Check for duplicates
@@ -561,15 +561,24 @@ export async function generateQuestion(
 
         return result;
       } else {
-        log.debug({ contentHash }, '🧠 DYNAMIC QUESTION: LLM question was duplicate, trying fallback');
+        log.debug(
+          { contentHash },
+          '🧠 DYNAMIC QUESTION: LLM question was duplicate, trying fallback'
+        );
       }
     } catch (error) {
-      log.warn({ error: String(error) }, '🧠 DYNAMIC QUESTION: LLM generation failed, using fallback');
+      log.warn(
+        { error: String(error) },
+        '🧠 DYNAMIC QUESTION: LLM generation failed, using fallback'
+      );
     }
   }
 
   // Fallback to persona-filtered
-  log.debug({ type, personaId: context.personaId }, '🧠 DYNAMIC QUESTION: Trying persona-filtered fallback');
+  log.debug(
+    { type, personaId: context.personaId },
+    '🧠 DYNAMIC QUESTION: Trying persona-filtered fallback'
+  );
   const filtered = getPersonaFilteredQuestion(context, type);
   if (filtered) {
     log.info(
@@ -729,4 +738,3 @@ export default {
   clearQuestionHistory,
   getPersonaQuestionCapabilities,
 };
-

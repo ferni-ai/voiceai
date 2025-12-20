@@ -129,7 +129,7 @@ const PROCESSING_PHRASES: Record<ProcessingType, Record<ProcessingWeight, string
   after_tool_result: {
     light: ['Got it.', 'Here we go.', 'Okay.'],
     medium: ['Interesting.', 'Let me make sense of this.', 'So...'],
-    heavy: ["That's a lot to unpack.", 'Okay, let me walk through this.', 'There\'s a lot here.'],
+    heavy: ["That's a lot to unpack.", 'Okay, let me walk through this.', "There's a lot here."],
   },
   context_loading: {
     light: ['Just a moment.', 'Bear with me.'],
@@ -411,7 +411,7 @@ const PERSONA_OVERRIDES: Record<
     },
     memory_recall: {
       medium: ['I remember something about this...', 'Let me think back...'],
-      heavy: ['There\'s a lot here. Give me a moment.', 'I want to do this justice.'],
+      heavy: ["There's a lot here. Give me a moment.", 'I want to do this justice.'],
     },
   },
   maya: {
@@ -421,7 +421,7 @@ const PERSONA_OVERRIDES: Record<
     },
     tool_call: {
       light: ['Checking that for you.', 'One sec.'],
-      medium: ["Let me look into this.", "I'll find that."],
+      medium: ['Let me look into this.', "I'll find that."],
     },
     emotional: {
       medium: ['I hear you.', "That's real."],
@@ -436,7 +436,7 @@ const PERSONA_OVERRIDES: Record<
     tool_call: {
       light: ['Let me pull that up.', 'Researching...'],
       medium: ['Digging into the numbers.', 'Analyzing this.'],
-      heavy: ['This needs a deep dive.', "Let me really examine this."],
+      heavy: ['This needs a deep dive.', 'Let me really examine this.'],
     },
     memory_recall: {
       medium: ['If I recall correctly...', 'The research showed...'],
@@ -459,7 +459,7 @@ const PERSONA_OVERRIDES: Record<
     thinking: {
       light: ['Ooh! Let me think.', 'Okay, ideas forming...'],
       medium: ["I'm brainstorming!", "Let's figure this out."],
-      heavy: ['Big question! Give me a second.', "I want to do this right."],
+      heavy: ['Big question! Give me a second.', 'I want to do this right.'],
     },
     tool_call: {
       light: ['Checking!', 'Let me look.'],
@@ -481,7 +481,7 @@ const PERSONA_OVERRIDES: Record<
     },
     emotional: {
       medium: ['I hear you.', 'Got it.'],
-      heavy: ['That\'s heavy. I\'m here.', 'Take your time.'],
+      heavy: ["That's heavy. I'm here.", 'Take your time.'],
     },
     memory_recall: {
       light: ['If I recall...', 'From what you said...'],

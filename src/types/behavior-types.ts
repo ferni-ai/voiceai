@@ -330,4 +330,3 @@ export const PAUSE_MULTIPLIERS: Record<PauseDuration, number> = {
   normal: 1.0,
   longer: 1.5, // 50% longer
 };
-

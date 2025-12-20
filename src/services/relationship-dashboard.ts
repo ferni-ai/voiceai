@@ -17,7 +17,12 @@
  */
 
 import { createLogger } from '../utils/safe-logger.js';
-import type { UserProfile, KeyMoment, EmotionalPattern, FamilyMember } from '../types/user-profile.js';
+import type {
+  UserProfile,
+  KeyMoment,
+  EmotionalPattern,
+  FamilyMember,
+} from '../types/user-profile.js';
 
 const log = createLogger({ module: 'RelationshipDashboard' });
 
@@ -98,7 +103,10 @@ export async function generateDashboard(
   }
 ): Promise<RelationshipDashboard> {
   const journey = buildJourneyOverview(userProfile, additionalData?.sessionHistory);
-  const emotionalPatterns = extractEmotionalPatterns(userProfile, additionalData?.emotionalPatterns);
+  const emotionalPatterns = extractEmotionalPatterns(
+    userProfile,
+    additionalData?.emotionalPatterns
+  );
   const learnedPreferences = extractLearnedPreferences(userProfile);
   const memorableQuotes = extractMemorableQuotes(userProfile, additionalData?.keyMoments);
   const teamConnections = buildTeamConnections(userProfile);
@@ -161,9 +169,7 @@ function buildJourneyOverview(
   // Calculate current streak
   let currentStreak = 0;
   if (sessionHistory && sessionHistory.length > 0) {
-    const sortedSessions = [...sessionHistory].sort(
-      (a, b) => b.date.getTime() - a.date.getTime()
-    );
+    const sortedSessions = [...sessionHistory].sort((a, b) => b.date.getTime() - a.date.getTime());
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -303,7 +309,7 @@ function extractLearnedPreferences(profile: UserProfile | null): LearnedPreferen
 
   // Response length preference
   if (profile.preferences?.verbosity) {
-    const verbosity = profile.preferences.verbosity;
+    const { verbosity } = profile.preferences;
     preferences.push({
       category: 'communication',
       insight:
@@ -330,7 +336,9 @@ function extractLearnedPreferences(profile: UserProfile | null): LearnedPreferen
 
   // Important people (from family members)
   if (profile.familyMembers && profile.familyMembers.length > 0) {
-    const importantPeople = profile.familyMembers.slice(0, 3).map((p: FamilyMember) => p.name || p.relationship);
+    const importantPeople = profile.familyMembers
+      .slice(0, 3)
+      .map((p: FamilyMember) => p.name || p.relationship);
     preferences.push({
       category: 'topics',
       insight: `${importantPeople.join(', ')} are important people in your life`,
@@ -372,10 +380,7 @@ function extractMemorableQuotes(
           text: moment.summary,
           context: moment.topics.join(', ') || 'In conversation',
           date: moment.timestamp,
-          significance:
-            moment.type === 'breakthrough'
-              ? 'breakthrough'
-              : 'meaningful',
+          significance: moment.type === 'breakthrough' ? 'breakthrough' : 'meaningful',
         });
       }
     }
@@ -414,11 +419,16 @@ function buildTeamConnections(profile: UserProfile | null): TeamConnection[] {
   };
 
   // Check if personaInteractions exists in customData
-  const personaInteractions = profile.customData?.personaInteractions as Record<string, {
-    conversationCount?: number;
-    frequentTopics?: string[];
-    lastInteraction?: Date;
-  }> | undefined;
+  const personaInteractions = profile.customData?.personaInteractions as
+    | Record<
+        string,
+        {
+          conversationCount?: number;
+          frequentTopics?: string[];
+          lastInteraction?: Date;
+        }
+      >
+    | undefined;
 
   if (personaInteractions) {
     for (const [personaId, interaction] of Object.entries(personaInteractions)) {
@@ -489,7 +499,9 @@ function generateSummary(
   }
 
   if (journey.breakthroughMoments > 0) {
-    parts.push(`${journey.breakthroughMoments} breakthrough${journey.breakthroughMoments > 1 ? 's' : ''}`);
+    parts.push(
+      `${journey.breakthroughMoments} breakthrough${journey.breakthroughMoments > 1 ? 's' : ''}`
+    );
   }
 
   if (journey.currentStreak > 2) {
@@ -602,7 +614,9 @@ export function formatDashboardForPrompt(dashboard: RelationshipDashboard): stri
   const lines: string[] = ['[RELATIONSHIP CONTEXT]'];
 
   lines.push(`Stage: ${dashboard.journey.relationshipStage.replace(/_/g, ' ')}`);
-  lines.push(`Together: ${dashboard.journey.totalConversations} conversations, ${dashboard.journey.totalHoursTogether}h`);
+  lines.push(
+    `Together: ${dashboard.journey.totalConversations} conversations, ${dashboard.journey.totalHoursTogether}h`
+  );
 
   if (dashboard.emotionalPatterns.length > 0) {
     lines.push('');
@@ -630,4 +644,3 @@ export function formatDashboardForPrompt(dashboard: RelationshipDashboard): stri
 
   return lines.join('\n');
 }
-

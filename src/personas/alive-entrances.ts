@@ -622,7 +622,7 @@ function getPersonaGroundedFollowUp(personaId: string): string {
 
   // Persona-specific follow-up questions based on their cognitive style
   const personaFollowUps: Record<string, string[]> = {
-    'ferni': [
+    ferni: [
       '<break time="200ms"/>What\'s going on?',
       '<break time="200ms"/>What\'s on your mind?',
       '<break time="200ms"/>What\'s happening?',
@@ -661,10 +661,13 @@ function getPersonaGroundedFollowUp(personaId: string): string {
   };
 
   // Use cognitive profile question starters if available
-  if (cognitiveDiff?.questioning?.questionStarters && cognitiveDiff.questioning.questionStarters.length > 0) {
+  if (
+    cognitiveDiff?.questioning?.questionStarters &&
+    cognitiveDiff.questioning.questionStarters.length > 0
+  ) {
     // Pick a short one (first word + context) for entrance
     const starters = cognitiveDiff.questioning.questionStarters;
-    const shortOnes = starters.filter(q => q.length < 40);
+    const shortOnes = starters.filter((q) => q.length < 40);
     if (shortOnes.length > 0) {
       const starter = shortOnes[Math.floor(Math.random() * shortOnes.length)];
       return `<break time="200ms"/>${starter}`;

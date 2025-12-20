@@ -67,7 +67,9 @@ vi.mock('../../services/productivity-store.js', () => ({
 
 // Mock the trigger publisher
 vi.mock('../../services/outreach/trigger-publisher.js', () => ({
-  publishOutreachTrigger: vi.fn().mockResolvedValue({ success: true, triggerId: 'test-trigger-123' }),
+  publishOutreachTrigger: vi
+    .fn()
+    .mockResolvedValue({ success: true, triggerId: 'test-trigger-123' }),
 }));
 
 // Mock logger
@@ -133,7 +135,8 @@ describe('Maya Habit Outreach', () => {
 
   describe('checkMilestonesToCelebrate', () => {
     it('should detect milestone achievements', async () => {
-      const { checkMilestonesToCelebrate } = await import('../services/outreach/maya-habit-outreach.js');
+      const { checkMilestonesToCelebrate } =
+        await import('../services/outreach/maya-habit-outreach.js');
 
       const milestones = await checkMilestonesToCelebrate('test-user');
 
@@ -142,7 +145,8 @@ describe('Maya Habit Outreach', () => {
     });
 
     it('should return milestone details', async () => {
-      const { checkMilestonesToCelebrate } = await import('../services/outreach/maya-habit-outreach.js');
+      const { checkMilestonesToCelebrate } =
+        await import('../services/outreach/maya-habit-outreach.js');
 
       const milestones = await checkMilestonesToCelebrate('test-user');
 
@@ -157,7 +161,8 @@ describe('Maya Habit Outreach', () => {
 
   describe('checkSetbackRecoveryNeeded', () => {
     it('should detect habits needing setback recovery', async () => {
-      const { checkSetbackRecoveryNeeded } = await import('../services/outreach/maya-habit-outreach.js');
+      const { checkSetbackRecoveryNeeded } =
+        await import('../services/outreach/maya-habit-outreach.js');
 
       const setbacks = await checkSetbackRecoveryNeeded('test-user');
 
@@ -166,7 +171,8 @@ describe('Maya Habit Outreach', () => {
     });
 
     it('should return setback details', async () => {
-      const { checkSetbackRecoveryNeeded } = await import('../services/outreach/maya-habit-outreach.js');
+      const { checkSetbackRecoveryNeeded } =
+        await import('../services/outreach/maya-habit-outreach.js');
 
       const setbacks = await checkSetbackRecoveryNeeded('test-user');
 
@@ -182,7 +188,8 @@ describe('Maya Habit Outreach', () => {
 
   describe('generateWeeklyReviewData', () => {
     it('should generate weekly review data', async () => {
-      const { generateWeeklyReviewData } = await import('../services/outreach/maya-habit-outreach.js');
+      const { generateWeeklyReviewData } =
+        await import('../services/outreach/maya-habit-outreach.js');
 
       const reviewData = await generateWeeklyReviewData('test-user');
 
@@ -198,7 +205,8 @@ describe('Maya Habit Outreach', () => {
     });
 
     it('should handle users with no habits gracefully', async () => {
-      const { generateWeeklyReviewData } = await import('../services/outreach/maya-habit-outreach.js');
+      const { generateWeeklyReviewData } =
+        await import('../services/outreach/maya-habit-outreach.js');
 
       // The function should handle users with no habits without throwing
       const reviewData = await generateWeeklyReviewData('user-with-no-habits');
@@ -210,9 +218,8 @@ describe('Maya Habit Outreach', () => {
 
   describe('Message Templates', () => {
     it('should have streak protection messages', async () => {
-      const { MAYA_STREAK_PROTECTION_MESSAGES } = await import(
-        '../services/outreach/maya-habit-outreach.js'
-      );
+      const { MAYA_STREAK_PROTECTION_MESSAGES } =
+        await import('../services/outreach/maya-habit-outreach.js');
 
       expect(MAYA_STREAK_PROTECTION_MESSAGES).toBeDefined();
       expect(Array.isArray(MAYA_STREAK_PROTECTION_MESSAGES)).toBe(true);
@@ -226,7 +233,8 @@ describe('Maya Habit Outreach', () => {
     });
 
     it('should have milestone messages for key milestones', async () => {
-      const { MAYA_MILESTONE_MESSAGES } = await import('../services/outreach/maya-habit-outreach.js');
+      const { MAYA_MILESTONE_MESSAGES } =
+        await import('../services/outreach/maya-habit-outreach.js');
 
       expect(MAYA_MILESTONE_MESSAGES).toBeDefined();
 
@@ -239,7 +247,8 @@ describe('Maya Habit Outreach', () => {
     });
 
     it('should have weekly review messages for different performance levels', async () => {
-      const { MAYA_WEEKLY_REVIEW_MESSAGES } = await import('../services/outreach/maya-habit-outreach.js');
+      const { MAYA_WEEKLY_REVIEW_MESSAGES } =
+        await import('../services/outreach/maya-habit-outreach.js');
 
       expect(MAYA_WEEKLY_REVIEW_MESSAGES).toBeDefined();
 
@@ -270,7 +279,8 @@ describe('Maya Habit Outreach', () => {
 
   describe('Configuration', () => {
     it('should export configuration constants', async () => {
-      const { MAYA_HABIT_OUTREACH_CONFIG } = await import('../services/outreach/maya-habit-outreach.js');
+      const { MAYA_HABIT_OUTREACH_CONFIG } =
+        await import('../services/outreach/maya-habit-outreach.js');
 
       expect(MAYA_HABIT_OUTREACH_CONFIG).toBeDefined();
       expect(MAYA_HABIT_OUTREACH_CONFIG.streakProtectionThreshold).toBeGreaterThan(0);
@@ -286,27 +296,30 @@ describe('Maya Habit Outreach - Publishing', () => {
   });
 
   it('should have publishStreakProtectionAlert function', async () => {
-    const { publishStreakProtectionAlert } = await import('../services/outreach/maya-habit-outreach.js');
+    const { publishStreakProtectionAlert } =
+      await import('../services/outreach/maya-habit-outreach.js');
 
     expect(publishStreakProtectionAlert).toBeInstanceOf(Function);
   });
 
   it('should have publishMilestoneCelebration function', async () => {
-    const { publishMilestoneCelebration } = await import('../services/outreach/maya-habit-outreach.js');
+    const { publishMilestoneCelebration } =
+      await import('../services/outreach/maya-habit-outreach.js');
 
     expect(publishMilestoneCelebration).toBeInstanceOf(Function);
   });
 
   it('should have publishSetbackRecoveryTrigger function', async () => {
-    const { publishSetbackRecoveryTrigger } = await import('../services/outreach/maya-habit-outreach.js');
+    const { publishSetbackRecoveryTrigger } =
+      await import('../services/outreach/maya-habit-outreach.js');
 
     expect(publishSetbackRecoveryTrigger).toBeInstanceOf(Function);
   });
 
   it('should have publishWeeklyReviewTrigger function', async () => {
-    const { publishWeeklyReviewTrigger } = await import('../services/outreach/maya-habit-outreach.js');
+    const { publishWeeklyReviewTrigger } =
+      await import('../services/outreach/maya-habit-outreach.js');
 
     expect(publishWeeklyReviewTrigger).toBeInstanceOf(Function);
   });
 });
-

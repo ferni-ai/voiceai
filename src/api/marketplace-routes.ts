@@ -15,5 +15,9 @@
  */
 
 // Re-export everything from the modular implementation
-export { handleMarketplaceRoutes, isMarketplaceRoute, isMarketplaceAdminRoute } from './marketplace/index.js';
+export {
+  handleMarketplaceRoutes,
+  isMarketplaceRoute,
+  isMarketplaceAdminRoute,
+} from './marketplace/index.js';
 export type { PublisherSession } from './marketplace/helpers.js';

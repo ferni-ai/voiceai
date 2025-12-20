@@ -97,15 +97,15 @@ export interface AppConfig {
     stripePublishableKey?: string;
     // Seed Fund one-time contribution prices
     seedFundPrices: {
-      seed5?: string;    // Plant a Seed ($5)
-      seed10?: string;   // Sponsor a Conversation ($10)
-      seed25?: string;   // Help Someone Get Started ($25)
-      seed50?: string;   // Support the Mission ($50)
+      seed5?: string; // Plant a Seed ($5)
+      seed10?: string; // Sponsor a Conversation ($10)
+      seed25?: string; // Help Someone Get Started ($25)
+      seed50?: string; // Support the Mission ($50)
     };
     // Monthly subscription prices (Founding Member/Patron)
     subscriptionPrices: {
-      foundingMember?: string;   // $10/month
-      foundingPatron?: string;   // $20/month
+      foundingMember?: string; // $10/month
+      foundingPatron?: string; // $20/month
     };
   };
 
@@ -212,16 +212,18 @@ export function loadConfig(): AppConfig {
     payments: {
       stripeSecretKey: process.env.STRIPE_SECRET_KEY,
       stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
-      stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || process.env.VITE_STRIPE_PUBLISHABLE_KEY,
+      stripePublishableKey:
+        process.env.STRIPE_PUBLISHABLE_KEY || process.env.VITE_STRIPE_PUBLISHABLE_KEY,
       seedFundPrices: {
-        seed5: process.env.STRIPE_PRICE_SEED_5,     // Plant a Seed ($5)
-        seed10: process.env.STRIPE_PRICE_SEED_10,   // Sponsor a Conversation ($10)
-        seed25: process.env.STRIPE_PRICE_SEED_25,   // Help Someone Get Started ($25)
-        seed50: process.env.STRIPE_PRICE_SEED_50,   // Support the Mission ($50)
+        seed5: process.env.STRIPE_PRICE_SEED_5, // Plant a Seed ($5)
+        seed10: process.env.STRIPE_PRICE_SEED_10, // Sponsor a Conversation ($10)
+        seed25: process.env.STRIPE_PRICE_SEED_25, // Help Someone Get Started ($25)
+        seed50: process.env.STRIPE_PRICE_SEED_50, // Support the Mission ($50)
       },
       subscriptionPrices: {
         foundingMember: process.env.STRIPE_PRICE_FOUNDING_MEMBER || process.env.STRIPE_PRICE_FRIEND,
-        foundingPatron: process.env.STRIPE_PRICE_FOUNDING_PATRON || process.env.STRIPE_PRICE_PARTNER,
+        foundingPatron:
+          process.env.STRIPE_PRICE_FOUNDING_PATRON || process.env.STRIPE_PRICE_PARTNER,
       },
     },
 

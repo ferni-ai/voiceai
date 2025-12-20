@@ -155,10 +155,309 @@ function selectParticipants(topic: string): string[] {
 }
 
 // ============================================================================
-// PERSONA-SPECIFIC COMMENTS FROM TEAM ENGAGEMENT SERVICE
+// USER ENGAGEMENT DATA FOR PERSONALIZED COMMENTS
 // ============================================================================
 
-function getPersonaComment(personaId: string, topic: string): string {
+interface UserEngagementInsights {
+  // Habit tracking
+  streaks: Array<{
+    ritualName: string;
+    currentStreak: number;
+    longestStreak: number;
+    isPersonalBest: boolean;
+    lastCompletedAt: string | null;
+  }>;
+  activeStreakCount: number;
+  longestOverallStreak: number;
+  totalRitualDays: number;
+
+  // Mood patterns (includes all EmotionalWeather types)
+  recentMood:
+    | 'sunny'
+    | 'partly-cloudy'
+    | 'cloudy'
+    | 'rainy'
+    | 'stormy'
+    | 'foggy'
+    | 'rainbow'
+    | null;
+  moodTrend: 'improving' | 'stable' | 'declining' | 'unknown';
+  averageEnergy: 'high' | 'medium' | 'low' | null;
+
+  // Engagement
+  totalConversations: number;
+  daysSinceFirstConversation: number;
+  conversationsThisWeek: number;
+
+  // Time patterns
+  mostActiveDay: string | null;
+  preferredTime: 'morning' | 'afternoon' | 'evening' | null;
+}
+
+/**
+ * Fetch user engagement data for generating personalized comments
+ */
+async function getUserEngagementInsights(userId: string): Promise<UserEngagementInsights> {
+  const defaultInsights: UserEngagementInsights = {
+    streaks: [],
+    activeStreakCount: 0,
+    longestOverallStreak: 0,
+    totalRitualDays: 0,
+    recentMood: null,
+    moodTrend: 'unknown',
+    averageEnergy: null,
+    totalConversations: 0,
+    daysSinceFirstConversation: 0,
+    conversationsThisWeek: 0,
+    mostActiveDay: null,
+    preferredTime: null,
+  };
+
+  try {
+    const { getEngagementStore } = await import('../../services/engagement-store.js');
+    const store = await getEngagementStore();
+
+    // Get profile and streaks
+    const profile = await store.getProfile(userId);
+    const streaks = await store.getAllStreaks(userId);
+    const weatherHistory = await store.getWeatherHistory(userId, 14);
+
+    // Process streaks
+    const processedStreaks = streaks.map((s) => ({
+      ritualName: getRitualDisplayName(s.ritualId),
+      currentStreak: s.currentStreak,
+      longestStreak: s.longestStreak,
+      isPersonalBest: s.currentStreak >= s.longestStreak && s.currentStreak > 0,
+      lastCompletedAt: s.lastCompletedAt,
+    }));
+
+    // Calculate mood trend from weather history
+    let moodTrend: UserEngagementInsights['moodTrend'] = 'unknown';
+    let recentMood: UserEngagementInsights['recentMood'] = null;
+    let averageEnergy: UserEngagementInsights['averageEnergy'] = null;
+
+    if (weatherHistory.length > 0) {
+      recentMood = weatherHistory[0]?.weather?.primary || null;
+
+      // Calculate mood trend (last 7 days vs previous 7)
+      const moodValues: Record<string, number> = {
+        sunny: 5,
+        'partly-cloudy': 4,
+        cloudy: 3,
+        rainy: 2,
+        stormy: 1,
+      };
+
+      const recentWeather = weatherHistory.slice(0, 7);
+      const olderWeather = weatherHistory.slice(7, 14);
+
+      if (recentWeather.length >= 3 && olderWeather.length >= 3) {
+        const recentAvg =
+          recentWeather.reduce((sum, w) => sum + (moodValues[w.weather.primary] || 3), 0) /
+          recentWeather.length;
+        const olderAvg =
+          olderWeather.reduce((sum, w) => sum + (moodValues[w.weather.primary] || 3), 0) /
+          olderWeather.length;
+
+        if (recentAvg > olderAvg + 0.5) moodTrend = 'improving';
+        else if (recentAvg < olderAvg - 0.5) moodTrend = 'declining';
+        else moodTrend = 'stable';
+      }
+
+      // Calculate average energy
+      const energyValues: Record<string, number> = { high: 3, medium: 2, low: 1 };
+      const energySum = recentWeather.reduce(
+        (sum, w) => sum + (energyValues[w.weather.energy] || 2),
+        0
+      );
+      const energyAvg = energySum / recentWeather.length;
+      if (energyAvg >= 2.5) averageEnergy = 'high';
+      else if (energyAvg >= 1.5) averageEnergy = 'medium';
+      else averageEnergy = 'low';
+    }
+
+    // Calculate days since first conversation
+    const createdAt = profile.createdAt ? new Date(profile.createdAt) : new Date();
+    const daysSinceFirst = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+
+    return {
+      streaks: processedStreaks,
+      activeStreakCount: streaks.filter((s) => s.currentStreak > 0).length,
+      longestOverallStreak: profile.longestOverallStreak || 0,
+      totalRitualDays: profile.totalRitualDays || 0,
+      recentMood,
+      moodTrend,
+      averageEnergy,
+      totalConversations: profile.stats?.totalSkyChecks || 0,
+      daysSinceFirstConversation: daysSinceFirst,
+      conversationsThisWeek: weatherHistory.length,
+      mostActiveDay: null, // TODO: Calculate from session data
+      preferredTime: profile.preferences?.preferredTime || null,
+    };
+  } catch (err) {
+    log.warn({ error: err, userId }, 'Failed to fetch engagement insights, using defaults');
+    return defaultInsights;
+  }
+}
+
+/**
+ * Get display name for a ritual ID
+ */
+function getRitualDisplayName(ritualId: string): string {
+  const names: Record<string, string> = {
+    'ferni-sky-check': 'Morning Sky Check',
+    'maya-habit-heartbeat': 'Habit Heartbeat',
+    'alex-inbox-pulse': 'Inbox Pulse',
+    'jordan-todays-chapter': "Today's Chapter",
+    'nayan-morning-stillness': 'Morning Stillness',
+    'peter-pattern-pulse': 'Pattern Pulse',
+  };
+  return names[ritualId] || ritualId;
+}
+
+// ============================================================================
+// PERSONA-SPECIFIC COMMENTS - DATA-DRIVEN
+// ============================================================================
+
+/**
+ * Generate a personalized comment based on real user data
+ * Falls back to static templates if no relevant data exists
+ */
+async function getPersonaComment(
+  personaId: string,
+  topic: string,
+  userId: string
+): Promise<string> {
+  // Fetch user engagement data
+  const insights = await getUserEngagementInsights(userId);
+
+  // Try to generate a data-driven comment first
+  const dataComment = generateDataDrivenComment(personaId, insights, topic);
+  if (dataComment) {
+    return dataComment;
+  }
+
+  // Fall back to static templates
+  return getStaticPersonaComment(personaId, topic);
+}
+
+/**
+ * Generate a comment based on actual user data
+ */
+function generateDataDrivenComment(
+  personaId: string,
+  insights: UserEngagementInsights,
+  _topic: string
+): string | null {
+  // Ferni - General life coaching insights
+  if (personaId === 'ferni') {
+    if (insights.daysSinceFirstConversation > 30 && insights.totalConversations > 10) {
+      return "I've been watching your journey. The person I'm talking to now has grown since we started.";
+    }
+    if (insights.moodTrend === 'improving') {
+      return "I've noticed your energy shifting lately. Something's clicking for you.";
+    }
+    if (insights.moodTrend === 'declining' && insights.activeStreakCount > 0) {
+      return "It's been a heavier stretch, but you're still showing up. That matters.";
+    }
+    if (insights.totalConversations < 5) {
+      return "We're still getting to know each other, but I like what I'm seeing.";
+    }
+  }
+
+  // Maya - Habits and routines
+  if (personaId === 'maya-santos') {
+    // Find the best active streak
+    const bestStreak = insights.streaks.find((s) => s.currentStreak > 0);
+    if (bestStreak && bestStreak.currentStreak >= 7) {
+      return `${bestStreak.currentStreak} days on your ${bestStreak.ritualName}. That's not luck—that's you building something real.`;
+    }
+    if (bestStreak && bestStreak.isPersonalBest) {
+      return `Personal best on your ${bestStreak.ritualName}! Compound and Interest are proud of you.`;
+    }
+    if (insights.activeStreakCount >= 2) {
+      return `${insights.activeStreakCount} active streaks right now. You're building momentum.`;
+    }
+    if (insights.activeStreakCount === 0 && insights.totalRitualDays > 0) {
+      return "Streaks come and go—what matters is that you've shown up before. Ready to rebuild?";
+    }
+  }
+
+  // Peter John - Data patterns
+  if (personaId === 'peter-john') {
+    if (insights.moodTrend !== 'unknown' && insights.conversationsThisWeek >= 3) {
+      if (insights.moodTrend === 'improving') {
+        return "The data shows an upward trend in your energy this week. Something's working.";
+      }
+      if (insights.moodTrend === 'stable') {
+        return 'Your patterns are remarkably consistent lately. That stability is valuable.';
+      }
+    }
+    if (insights.preferredTime) {
+      const timeLabel =
+        insights.preferredTime === 'morning'
+          ? 'morning'
+          : insights.preferredTime === 'afternoon'
+            ? 'afternoon'
+            : 'evening';
+      return `The data suggests you do your best work in the ${timeLabel}. Protect that time.`;
+    }
+    if (insights.longestOverallStreak >= 14) {
+      return `Your longest streak was ${insights.longestOverallStreak} days. The data says you have that consistency in you.`;
+    }
+  }
+
+  // Alex - Communication and productivity
+  if (personaId === 'alex-chen') {
+    if (insights.conversationsThisWeek >= 5) {
+      return "You've been checking in consistently this week. That level of engagement drives results.";
+    }
+    if (insights.averageEnergy === 'high') {
+      return 'Your energy levels have been high. Channel that into your priorities.';
+    }
+    if (insights.averageEnergy === 'low') {
+      return "Energy's been lower lately. Sometimes that means it's time to protect your boundaries.";
+    }
+  }
+
+  // Jordan - Milestones and life arcs
+  if (personaId === 'jordan-taylor') {
+    if (insights.daysSinceFirstConversation >= 30) {
+      const months = Math.floor(insights.daysSinceFirstConversation / 30);
+      return `${months} month${months > 1 ? 's' : ''} on this journey. That's a chapter worth acknowledging.`;
+    }
+    if (insights.totalRitualDays >= 21) {
+      return `${insights.totalRitualDays} days of showing up. You're writing a growth chapter.`;
+    }
+    const personalBestStreak = insights.streaks.find(
+      (s) => s.isPersonalBest && s.currentStreak > 3
+    );
+    if (personalBestStreak) {
+      return `New personal best coming up! That's milestone territory.`;
+    }
+  }
+
+  // Nayan - Mindfulness and wisdom
+  if (personaId === 'nayan-patel') {
+    if (insights.moodTrend === 'declining') {
+      return "The heaviness you're feeling—are you sitting with it, or running from it?";
+    }
+    if (insights.recentMood === 'stormy' || insights.recentMood === 'rainy') {
+      return 'Difficult weather passes. The stillness is always there underneath.';
+    }
+    if (insights.activeStreakCount >= 2) {
+      return "Consistency is a form of presence. You're showing up for yourself.";
+    }
+  }
+
+  // No data-driven comment available
+  return null;
+}
+
+/**
+ * Get a static comment from templates (fallback)
+ */
+function getStaticPersonaComment(personaId: string, topic: string): string {
   const scripts = TEAM_HUDDLE_SCRIPTS.personaComments;
   const personaScripts = scripts[personaId as keyof typeof scripts] as
     | Record<string, string[]>
@@ -373,17 +672,19 @@ async function handleStartHuddle(
     // Select participants based on topic
     const participantIds = selectParticipants(topic);
 
-    // Build participant details with persona-specific comments
-    const participantDetails = participantIds.map((personaId) => {
-      const persona = PERSONAS.find((p) => p.id === personaId);
-      return {
-        personaId,
-        name: persona?.name || personaId,
-        initials: persona?.initials || personaId.charAt(0).toUpperCase(),
-        comment: getPersonaComment(personaId, topic),
-        avatarColor: PERSONA_COLORS[personaId] || 'var(--persona-ferni-primary)',
-      };
-    });
+    // Build participant details with persona-specific comments (data-driven)
+    const participantDetails = await Promise.all(
+      participantIds.map(async (personaId) => {
+        const persona = PERSONAS.find((p) => p.id === personaId);
+        return {
+          personaId,
+          name: persona?.name || personaId,
+          initials: persona?.initials || personaId.charAt(0).toUpperCase(),
+          comment: await getPersonaComment(personaId, topic, userId),
+          avatarColor: PERSONA_COLORS[personaId] || 'var(--persona-ferni-primary)',
+        };
+      })
+    );
 
     // Get intro/outro from TeamEngagementService scripts
     const scripts = TEAM_HUDDLE_SCRIPTS.weekly;

@@ -905,7 +905,7 @@ export function getMusicTransition(input: TransitionInput): EnhancedTransitionRe
     if (relationshipStage === 'friend' || relationshipStage === 'close_friend') {
       availableTypes.push('check_in');
     }
-    
+
     // 🎧 DJ VIBES: For background/ambient music, let the DJ offer more!
     // This makes the DJ feel alive - not just an auto-queue robot.
     // 40% chance for ambient/background, 25% chance for other music

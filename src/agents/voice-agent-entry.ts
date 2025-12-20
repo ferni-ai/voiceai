@@ -318,7 +318,13 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       identity: defaultIdentity,
       knowledge: {
         domains: ['life-coaching', 'personal-growth'],
-        qualifiedTopics: ['goal-setting', 'habits', 'motivation', 'relationships', 'work-life-balance'],
+        qualifiedTopics: [
+          'goal-setting',
+          'habits',
+          'motivation',
+          'relationships',
+          'work-life-balance',
+        ],
         outOfScopeTopics: ['medical-diagnosis', 'legal-advice', 'financial-advice'],
         outOfScopeResponse:
           "That's outside my expertise. I'd recommend speaking with a qualified professional for that.",
@@ -1147,7 +1153,9 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
           | 'trusted_advisor'
           | undefined,
         // Pass userProfile for superhuman memory callbacks (birthdays, growth celebrations, etc.)
-        userProfile: services.userProfile ? { humanMemory: services.userProfile.humanMemory } : undefined,
+        userProfile: services.userProfile
+          ? { humanMemory: services.userProfile.humanMemory }
+          : undefined,
       });
 
       if (conversationSession) {

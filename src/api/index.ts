@@ -51,7 +51,11 @@ export { handleWellbeingRoutes } from './wellbeing-handler.js';
 
 // Modular route handlers
 export { handleVoiceAuthRoutes } from './voice-auth-handler.js';
-export { handleMarketplaceRoutes, isMarketplaceRoute, isMarketplaceAdminRoute } from './marketplace-routes.js';
+export {
+  handleMarketplaceRoutes,
+  isMarketplaceRoute,
+  isMarketplaceAdminRoute,
+} from './marketplace-routes.js';
 
 // Helpers
 export {

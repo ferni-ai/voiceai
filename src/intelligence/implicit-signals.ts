@@ -340,7 +340,8 @@ export function recordSessionSignals(
 
     profile.baselineUtteranceLength =
       profile.baselineUtteranceLength * 0.7 + recentAvgUtterance * 0.3;
-    profile.baselineSessionDuration = profile.baselineSessionDuration * 0.7 + recentAvgDuration * 0.3;
+    profile.baselineSessionDuration =
+      profile.baselineSessionDuration * 0.7 + recentAvgDuration * 0.3;
   }
 
   profile.updatedAt = new Date();
@@ -374,9 +375,7 @@ export function classifySessionDuration(
 /**
  * Calculate return interval classification
  */
-export function classifyReturnInterval(
-  userId: string
-): 'came_back_quickly' | 'normal' | 'delayed' {
+export function classifyReturnInterval(userId: string): 'came_back_quickly' | 'normal' | 'delayed' {
   const profile = getOrCreateProfile(userId);
 
   if (profile.recentSessions.length < 2) return 'normal';
@@ -446,7 +445,8 @@ export function inferResponseQuality(
   const positiveScore = positiveIndicators.length;
   const negativeScore = negativeIndicators.length;
   const responseWorked = positiveScore > negativeScore;
-  const confidence = Math.abs(positiveScore - negativeScore) / Math.max(positiveScore + negativeScore, 1);
+  const confidence =
+    Math.abs(positiveScore - negativeScore) / Math.max(positiveScore + negativeScore, 1);
 
   // Generate suggested adjustments
   const suggestedAdjustments: string[] = [];
@@ -572,7 +572,11 @@ export function getEffectiveResponseTypes(userId: string): Array<{
 
   // Aggregate positive outcomes
   for (const r of profile.responsesWorked) {
-    const stats = typeStats.get(r.responseType) || { positive: 0, negative: 0, contexts: new Set() };
+    const stats = typeStats.get(r.responseType) || {
+      positive: 0,
+      negative: 0,
+      contexts: new Set(),
+    };
     stats.positive++;
     stats.contexts.add(r.emotionalContext);
     typeStats.set(r.responseType, stats);
@@ -580,7 +584,11 @@ export function getEffectiveResponseTypes(userId: string): Array<{
 
   // Aggregate negative outcomes
   for (const r of profile.responsesDidntWork) {
-    const stats = typeStats.get(r.responseType) || { positive: 0, negative: 0, contexts: new Set() };
+    const stats = typeStats.get(r.responseType) || {
+      positive: 0,
+      negative: 0,
+      contexts: new Set(),
+    };
     stats.negative++;
     typeStats.set(r.responseType, stats);
   }
@@ -617,4 +625,3 @@ export function getEffectiveResponseTypes(userId: string): Array<{
 export {
   getOrCreateProfile as _getOrCreateProfile, // For testing
 };
-

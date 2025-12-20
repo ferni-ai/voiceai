@@ -145,7 +145,10 @@ export function getVoiceEmotionEntranceAdjustment(
 
   // Low confidence - minimal adjustment
   if (voiceContext.voiceConfidence && voiceContext.voiceConfidence < 0.4) {
-    log.debug({ confidence: voiceContext.voiceConfidence }, 'Low voice confidence - minimal entrance adjustment');
+    log.debug(
+      { confidence: voiceContext.voiceConfidence },
+      'Low voice confidence - minimal entrance adjustment'
+    );
     return defaultAdjustment;
   }
 
@@ -174,7 +177,8 @@ export function getVoiceEmotionEntranceAdjustment(
   if (voiceContext.valence !== undefined && voiceContext.valence < -0.3) {
     adjustment.toneAdjustments.warmer = true;
     adjustment.toneAdjustments.softer = true;
-    adjustment.preferredStyle = adjustment.preferredStyle === 'standard' ? 'warm' : adjustment.preferredStyle;
+    adjustment.preferredStyle =
+      adjustment.preferredStyle === 'standard' ? 'warm' : adjustment.preferredStyle;
     adjustment.reason += ' (negative valence)';
   }
 
@@ -227,7 +231,7 @@ export function applyVoiceAdjustmentToEntrance(
   entrance: AliveEntranceResult,
   adjustment: EntranceAdjustment
 ): AliveEntranceResult {
-  let modified = { ...entrance };
+  const modified = { ...entrance };
 
   // Don't modify if already calm support and adjustment is calm
   if (entrance.style === 'calm_support' && adjustment.preferredStyle === 'calm') {
@@ -238,7 +242,11 @@ export function applyVoiceAdjustmentToEntrance(
   let entranceText = entrance.entrance;
 
   // Add warmer language if needed
-  if (adjustment.toneAdjustments.warmer && !entranceText.includes('glad') && !entranceText.includes('good')) {
+  if (
+    adjustment.toneAdjustments.warmer &&
+    !entranceText.includes('glad') &&
+    !entranceText.includes('good')
+  ) {
     // Prepend a warm acknowledgment for stressed users
     if (adjustment.preferredStyle === 'calm' || adjustment.preferredStyle === 'gentle') {
       entranceText = `Hey... ${entranceText.toLowerCase()}`;
@@ -315,4 +323,3 @@ export const voiceEmotionEntrances = {
 };
 
 export default voiceEmotionEntrances;
-

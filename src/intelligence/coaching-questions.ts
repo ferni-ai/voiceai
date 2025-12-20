@@ -19,7 +19,11 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
-import { generateQuestion, type QuestionContext, type GeneratedQuestion } from './dynamic-questions.js';
+import {
+  generateQuestion,
+  type QuestionContext,
+  type GeneratedQuestion,
+} from './dynamic-questions.js';
 
 const log = getLogger();
 
@@ -80,7 +84,7 @@ const PATTERN_TEMPLATES: Array<{
       'You made that into a joke. What would the serious version sound like?',
       "There's usually something real underneath the humor. What is it?",
     ],
-    intent: 'Surface what they\'re protecting with humor',
+    intent: "Surface what they're protecting with humor",
   },
   {
     signal: 'uses_should_frequently',
@@ -94,17 +98,21 @@ const PATTERN_TEMPLATES: Array<{
   },
   {
     signal: 'mentions_being_fine',
-    detector: (ctx) => ctx.recentTopics.some((t) => t.toLowerCase().includes('fine') || t.toLowerCase().includes('okay')),
+    detector: (ctx) =>
+      ctx.recentTopics.some(
+        (t) => t.toLowerCase().includes('fine') || t.toLowerCase().includes('okay')
+      ),
     questions: [
       "You said 'fine'. If that word wasn't available, what would you say?",
       "'Fine' is often a placeholder. What's the real word?",
       "When you say 'fine'—what are you not saying?",
     ],
-    intent: 'Get past the social script to what\'s real',
+    intent: "Get past the social script to what's real",
   },
   {
     signal: 'energy_dropped',
-    detector: (ctx) => ctx.emotionalState?.primary === 'subdued' || ctx.emotionalState?.primary === 'low',
+    detector: (ctx) =>
+      ctx.emotionalState?.primary === 'subdued' || ctx.emotionalState?.primary === 'low',
     questions: [
       'Your energy shifted just now. Where did you go?',
       'Something changed. What came up for you?',
@@ -114,7 +122,9 @@ const PATTERN_TEMPLATES: Array<{
   },
   {
     signal: 'talking_about_others',
-    detector: (ctx) => ctx.recentTopics.length > 2 && !ctx.recentTopics.some((t) => t.includes('I ') || t.includes('me')),
+    detector: (ctx) =>
+      ctx.recentTopics.length > 2 &&
+      !ctx.recentTopics.some((t) => t.includes('I ') || t.includes('me')),
     questions: [
       "You've been talking about what others think. What do YOU think?",
       "We've talked a lot about them. What about you?",
@@ -153,7 +163,7 @@ const MIRROR_TEMPLATES: Array<{
     createMirror: (observed) => ({
       observed,
       reflection: "'Should' often carries someone else's voice",
-      question: "Whose expectations are you trying to meet?",
+      question: 'Whose expectations are you trying to meet?',
       gentleness: 'curious',
     }),
   },
@@ -172,7 +182,9 @@ const MIRROR_TEMPLATES: Array<{
   {
     trigger: (t) => {
       const justMatch = t.match(/I just\s|just a\s|it's just/gi);
-      return justMatch && justMatch.length >= 2 ? `minimized with "just" ${justMatch.length} times` : null;
+      return justMatch && justMatch.length >= 2
+        ? `minimized with "just" ${justMatch.length} times`
+        : null;
     },
     createMirror: (observed) => ({
       observed,
@@ -211,7 +223,7 @@ const ANTICIPATORY_TEMPLATES: AnticipatedNeed[] = [
   {
     signal: 'Changed subject quickly',
     anticipated: 'Topic was uncomfortable',
-    checkQuestion: "We moved away from something. Should we go back to it, or leave it?",
+    checkQuestion: 'We moved away from something. Should we go back to it, or leave it?',
     ifConfirmed: 'Gently return',
     ifDenied: 'Respect the boundary',
   },
@@ -371,7 +383,9 @@ export function getAnticipatoryQuestion(signals: {
     return ANTICIPATORY_TEMPLATES.find((t) => t.signal === 'Voice dropped or slowed') || null;
   }
   if (signals.shortAnswers) {
-    return ANTICIPATORY_TEMPLATES.find((t) => t.signal === 'Short answers after longer ones') || null;
+    return (
+      ANTICIPATORY_TEMPLATES.find((t) => t.signal === 'Short answers after longer ones') || null
+    );
   }
   if (signals.changedSubject) {
     return ANTICIPATORY_TEMPLATES.find((t) => t.signal === 'Changed subject quickly') || null;
@@ -422,7 +436,9 @@ export async function getCoachingQuestion(
     const anticipated = getAnticipatoryQuestion(options.signals);
     if (anticipated) {
       log.info({ signal: anticipated.signal }, '🧠 COACHING: Using anticipatory question');
-      const baseQuestion = await generateQuestion(context, 'supportive', { llmCall: options.llmCall });
+      const baseQuestion = await generateQuestion(context, 'supportive', {
+        llmCall: options.llmCall,
+      });
       return {
         ...baseQuestion,
         text: anticipated.checkQuestion,
@@ -441,7 +457,9 @@ export async function getCoachingQuestion(
     const mirror = generateMirror(options.transcript);
     if (mirror) {
       log.info({ observed: mirror.observed }, '🧠 COACHING: Using mirror reflection');
-      const baseQuestion = await generateQuestion(context, 'reflective', { llmCall: options.llmCall });
+      const baseQuestion = await generateQuestion(context, 'reflective', {
+        llmCall: options.llmCall,
+      });
       return {
         ...baseQuestion,
         text: mirror.question,
@@ -508,4 +526,3 @@ export default {
   getCoachingQuestion,
   detectPatterns,
 };
-
