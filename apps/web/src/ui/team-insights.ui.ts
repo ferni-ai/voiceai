@@ -17,6 +17,7 @@
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
+import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './toast.ui.js';
@@ -354,10 +355,11 @@ function getUserIdFromPage(): string | null {
 
 async function fetchTeamInsights(): Promise<{ insights: TeamInsight[]; teamStatus: TeamStatus }> {
   try {
+    // Get authenticated headers (includes X-User-Id and Firebase token)
+    const headers = await getApiHeadersAsync();
+    
     const response = await fetch('/api/team-insights', {
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       credentials: 'include',
     });
 

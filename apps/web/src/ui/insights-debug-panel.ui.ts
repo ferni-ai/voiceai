@@ -9,8 +9,9 @@
  * @module ui/insights-debug-panel
  */
 
-import { createLogger } from '../utils/logger.js';
 import { getState as getNotificationState } from '../services/cross-team-notifications.service.js';
+import { getApiHeadersAsync } from '../utils/api-helpers.js';
+import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('InsightsDebugPanel');
 
@@ -246,6 +247,43 @@ const PANEL_STYLES = `
     font-size: 11px;
     font-family: monospace;
   }
+
+  /* Health Indicator */
+  .insights-debug-panel__health-indicator {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+
+  .insights-debug-panel__health-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(0.95); }
+  }
+
+  .insights-debug-panel__health-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .insights-debug-panel__health-dot {
+      animation: none;
+    }
+  }
 `;
 
 // ============================================================================
@@ -304,13 +342,50 @@ function createPanel(): HTMLElement {
 // RENDERING
 // ============================================================================
 
+function getHealthStatus(state: ReturnType<typeof getNotificationState>): {
+  status: 'healthy' | 'degraded' | 'disconnected';
+  label: string;
+  color: string;
+} {
+  if (state.wsConnected) {
+    if (state.reconnectAttempts === 0) {
+      return { status: 'healthy', label: 'Healthy', color: 'var(--color-semantic-success, #22c55e)' };
+    }
+    return { status: 'degraded', label: 'Recovered', color: 'var(--color-semantic-warning, #f59e0b)' };
+  }
+  
+  if (state.reconnectPending) {
+    return { status: 'degraded', label: 'Reconnecting...', color: 'var(--color-semantic-warning, #f59e0b)' };
+  }
+  
+  return { status: 'disconnected', label: 'Disconnected', color: 'var(--color-semantic-error, #ef4444)' };
+}
+
 function renderConnectionStats(): void {
   const container = document.getElementById('insights-connection-stats');
   if (!container) return;
 
   const state = getNotificationState();
+  const health = getHealthStatus(state);
+  
+  // Format last notification time
+  let lastNotifText = 'Never';
+  if (state.lastNotificationAgo >= 0) {
+    const seconds = Math.floor(state.lastNotificationAgo / 1000);
+    if (seconds < 60) {
+      lastNotifText = `${seconds}s ago`;
+    } else if (seconds < 3600) {
+      lastNotifText = `${Math.floor(seconds / 60)}m ago`;
+    } else {
+      lastNotifText = `${Math.floor(seconds / 3600)}h ago`;
+    }
+  }
 
   container.innerHTML = `
+    <div class="insights-debug-panel__health-indicator">
+      <div class="insights-debug-panel__health-dot" style="background: ${health.color}; box-shadow: 0 0 8px ${health.color};"></div>
+      <div class="insights-debug-panel__health-label">${health.label}</div>
+    </div>
     <div class="insights-debug-panel__stat">
       <div class="insights-debug-panel__stat-label">WebSocket</div>
       <div class="insights-debug-panel__stat-value ${state.wsConnected ? 'insights-debug-panel__stat-value--good' : 'insights-debug-panel__stat-value--error'}">
@@ -318,14 +393,18 @@ function renderConnectionStats(): void {
       </div>
     </div>
     <div class="insights-debug-panel__stat">
-      <div class="insights-debug-panel__stat-label">Reconnect Attempts</div>
-      <div class="insights-debug-panel__stat-value ${state.reconnectAttempts > 3 ? 'insights-debug-panel__stat-value--warning' : ''}">
-        ${state.reconnectAttempts}
+      <div class="insights-debug-panel__stat-label">Reconnects</div>
+      <div class="insights-debug-panel__stat-value ${state.reconnectAttempts > 3 ? 'insights-debug-panel__stat-value--warning' : state.reconnectAttempts > 0 ? 'insights-debug-panel__stat-value--warning' : ''}">
+        ${state.reconnectAttempts}${state.reconnectPending ? ' (pending)' : ''}
       </div>
     </div>
     <div class="insights-debug-panel__stat">
       <div class="insights-debug-panel__stat-label">Notifications</div>
       <div class="insights-debug-panel__stat-value">${state.notificationCount}</div>
+    </div>
+    <div class="insights-debug-panel__stat">
+      <div class="insights-debug-panel__stat-label">Last Notif</div>
+      <div class="insights-debug-panel__stat-value">${lastNotifText}</div>
     </div>
     <div class="insights-debug-panel__stat">
       <div class="insights-debug-panel__stat-label">Session</div>
@@ -341,7 +420,8 @@ async function renderPerformanceStats(): Promise<void> {
 
   try {
     // Fetch performance stats from API (backend has the actual data)
-    const response = await fetch('/api/team-insights/performance');
+    const headers = await getApiHeadersAsync();
+    const response = await fetch('/api/team-insights/performance', { headers });
     if (!response.ok) throw new Error('Failed to fetch performance stats');
 
     const stats = await response.json();
@@ -405,8 +485,9 @@ async function renderInsightsList(): Promise<void> {
   if (!container) return;
 
   try {
-    // Fetch insights from API
-    const response = await fetch('/api/team-insights?limit=10');
+    // Fetch insights from API (with auth headers)
+    const headers = await getApiHeadersAsync();
+    const response = await fetch('/api/team-insights?limit=10', { headers });
     if (!response.ok) throw new Error('Failed to fetch insights');
 
     const data = await response.json();
@@ -480,9 +561,11 @@ function setupEventListeners(): void {
   const clearBtn = document.getElementById('insights-clear-btn');
   clearBtn?.addEventListener('click', async () => {
     try {
-      // Call backend API to clear caches
+      // Call backend API to clear caches (with auth headers)
+      const headers = await getApiHeadersAsync();
       const response = await fetch('/api/team-insights/performance/clear', {
         method: 'POST',
+        headers,
       });
       if (!response.ok) throw new Error('Failed to clear caches');
       

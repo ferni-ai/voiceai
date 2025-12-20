@@ -100,36 +100,131 @@ const PERSONA_SUPERHUMAN_MAP: Record<PersonaSuperhuman, SuperhumanSelectors> = {
 };
 
 // ============================================================================
-// CACHING
+// TIERED CACHING SYSTEM
 // ============================================================================
 
+/**
+ * Different capabilities have different staleness tolerances:
+ * - Stable (5 min): seasonal, narrative, values - change slowly
+ * - Normal (2 min): network, dreams, milestones - moderate change
+ * - Fresh (30s): commitments, predictions, capacity - change frequently
+ */
 interface CachedSuperhuman {
   context: SuperhumanCapabilities;
   timestamp: number;
   userId: string;
 }
 
-const cache = new Map<string, CachedSuperhuman>();
-const CACHE_TTL_MS = 60000; // 1 minute cache
+interface TieredCache {
+  stable: Map<string, { value: string; timestamp: number }>;   // 5 min TTL
+  normal: Map<string, { value: string; timestamp: number }>;   // 2 min TTL
+  fresh: Map<string, { value: string; timestamp: number }>;    // 30s TTL
+  full: Map<string, CachedSuperhuman>;                         // Full context cache
+}
 
-function getCacheKey(userId: string): string {
-  return `superhuman:${userId}`;
+const tieredCache: TieredCache = {
+  stable: new Map(),
+  normal: new Map(),
+  fresh: new Map(),
+  full: new Map(),
+};
+
+const CACHE_TTL = {
+  STABLE: 5 * 60 * 1000,   // 5 minutes for seasonal, narrative, values
+  NORMAL: 2 * 60 * 1000,   // 2 minutes for network, dreams, milestones
+  FRESH: 30 * 1000,        // 30 seconds for commitments, predictions, capacity
+  FULL: 60 * 1000,         // 1 minute for complete context
+} as const;
+
+// Map capabilities to their cache tier
+const CAPABILITY_TIERS: Record<keyof SuperhumanCapabilities, keyof Omit<TieredCache, 'full'>> = {
+  seasonal: 'stable',
+  narrative: 'stable',
+  values: 'stable',
+  network: 'normal',
+  dreams: 'normal',
+  milestones: 'normal',
+  commitments: 'fresh',
+  predictions: 'fresh',
+  capacity: 'fresh',
+  crisis: 'fresh',
+};
+
+function getCacheKey(userId: string, capability?: string): string {
+  return capability ? `superhuman:${userId}:${capability}` : `superhuman:${userId}`;
+}
+
+function getTieredValue(
+  userId: string,
+  capability: keyof SuperhumanCapabilities
+): string | null {
+  const tier = CAPABILITY_TIERS[capability];
+  const cacheMap = tieredCache[tier];
+  const key = getCacheKey(userId, capability);
+  const cached = cacheMap.get(key);
+  
+  if (!cached) return null;
+  
+  const ttl = tier === 'stable' ? CACHE_TTL.STABLE : 
+              tier === 'normal' ? CACHE_TTL.NORMAL : CACHE_TTL.FRESH;
+  
+  if (Date.now() - cached.timestamp < ttl) {
+    return cached.value;
+  }
+  
+  cacheMap.delete(key);
+  return null;
+}
+
+function setTieredValue(
+  userId: string,
+  capability: keyof SuperhumanCapabilities,
+  value: string
+): void {
+  const tier = CAPABILITY_TIERS[capability];
+  const cacheMap = tieredCache[tier];
+  const key = getCacheKey(userId, capability);
+  cacheMap.set(key, { value, timestamp: Date.now() });
 }
 
 function getCachedContext(userId: string): SuperhumanCapabilities | null {
-  const cached = cache.get(getCacheKey(userId));
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+  const cached = tieredCache.full.get(getCacheKey(userId));
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL.FULL) {
     return cached.context;
   }
   return null;
 }
 
 function setCachedContext(userId: string, context: SuperhumanCapabilities): void {
-  cache.set(getCacheKey(userId), {
+  tieredCache.full.set(getCacheKey(userId), {
     context,
     timestamp: Date.now(),
     userId,
   });
+  
+  // Also populate tiered caches for individual capabilities
+  for (const [key, value] of Object.entries(context) as [keyof SuperhumanCapabilities, string | null][]) {
+    if (value && typeof value === 'string') {
+      setTieredValue(userId, key, value);
+    }
+  }
+}
+
+/**
+ * Get partially cached context - returns cached values where available
+ * and null for values that need refresh
+ */
+function getPartialCachedContext(userId: string): Partial<SuperhumanCapabilities> {
+  const partial: Partial<SuperhumanCapabilities> = {};
+  
+  for (const capability of Object.keys(CAPABILITY_TIERS) as (keyof SuperhumanCapabilities)[]) {
+    const cached = getTieredValue(userId, capability);
+    if (cached !== null) {
+      partial[capability] = cached;
+    }
+  }
+  
+  return partial;
 }
 
 // ============================================================================
@@ -376,14 +471,64 @@ export async function getSeasonalContext(userId: string): Promise<string> {
  * Clear cached superhuman context for a user
  */
 export function clearSuperhumanCache(userId: string): void {
-  cache.delete(getCacheKey(userId));
+  tieredCache.full.delete(getCacheKey(userId));
+  
+  // Clear all tiered caches for this user
+  for (const capability of Object.keys(CAPABILITY_TIERS) as (keyof SuperhumanCapabilities)[]) {
+    const key = getCacheKey(userId, capability);
+    tieredCache.stable.delete(key);
+    tieredCache.normal.delete(key);
+    tieredCache.fresh.delete(key);
+  }
 }
 
 /**
  * Clear all superhuman cache
  */
 export function clearAllSuperhumanCache(): void {
-  cache.clear();
+  tieredCache.full.clear();
+  tieredCache.stable.clear();
+  tieredCache.normal.clear();
+  tieredCache.fresh.clear();
+}
+
+/**
+ * Pre-warm cache for a user (call during session start)
+ * This builds context in the background so it's ready when needed.
+ */
+export async function warmupSuperhumanCache(userId: string): Promise<void> {
+  try {
+    // Don't block - run in background
+    const start = Date.now();
+    
+    const {
+      buildSuperhumanContext,
+    } = await import('../../services/superhuman/index.js');
+    
+    const context = await buildSuperhumanContext(userId);
+    setCachedContext(userId, context);
+    
+    log.info({ userId, durationMs: Date.now() - start }, '🔥 Warmed superhuman cache');
+  } catch (error) {
+    log.debug({ error, userId }, 'Cache warmup failed (non-critical)');
+  }
+}
+
+/**
+ * Get cache statistics for debugging
+ */
+export function getCacheStats(): {
+  fullCacheSize: number;
+  stableCacheSize: number;
+  normalCacheSize: number;
+  freshCacheSize: number;
+} {
+  return {
+    fullCacheSize: tieredCache.full.size,
+    stableCacheSize: tieredCache.stable.size,
+    normalCacheSize: tieredCache.normal.size,
+    freshCacheSize: tieredCache.fresh.size,
+  };
 }
 
 // ============================================================================

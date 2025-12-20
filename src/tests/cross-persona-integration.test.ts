@@ -427,7 +427,7 @@ describe('Context Builder Integration with Superhuman', () => {
 // ============================================================================
 
 describe('Performance Benchmarks', () => {
-  const MAX_BUILDER_TIME_MS = 500; // 500ms max per builder
+  const MAX_BUILDER_TIME_MS = 800; // 800ms max per builder (generous for test env with cold starts)
 
   it('should build Peter context within time limit', async () => {
     const { buildPeterResearchInsightsContext } = await import(

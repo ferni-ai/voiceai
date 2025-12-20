@@ -43,6 +43,10 @@ const ICONS = {
     <line x1="8" y1="2" x2="8" y2="6"/>
     <line x1="3" y1="10" x2="21" y2="10"/>
   </svg>`,
+  mail: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect width="20" height="16" x="2" y="4" rx="2"/>
+    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+  </svg>`,
   close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <line x1="18" y1="6" x2="6" y2="18"/>
     <line x1="6" y1="6" x2="18" y2="18"/>
@@ -209,8 +213,21 @@ class CalendarSettingsUI {
         <div class="calendar-settings__status calendar-settings__status--connected">
           <div class="calendar-settings__status-icon">${ICONS.check}</div>
           <div class="calendar-settings__status-text">
-            <span class="calendar-settings__status-label">Connected</span>
+            <span class="calendar-settings__status-label">Google Connected</span>
             ${this.status.email ? `<span class="calendar-settings__status-detail">${this.escapeHtml(this.status.email)}</span>` : ''}
+          </div>
+        </div>
+
+        <div class="calendar-settings__services">
+          <div class="calendar-settings__service">
+            <div class="calendar-settings__service-icon">${ICONS.calendar}</div>
+            <div class="calendar-settings__service-name">Calendar</div>
+            <div class="calendar-settings__service-status calendar-settings__service-status--active">Active</div>
+          </div>
+          <div class="calendar-settings__service">
+            <div class="calendar-settings__service-icon">${ICONS.mail}</div>
+            <div class="calendar-settings__service-name">Gmail (read-only)</div>
+            <div class="calendar-settings__service-status calendar-settings__service-status--active">Active</div>
           </div>
         </div>
 
@@ -218,7 +235,7 @@ class CalendarSettingsUI {
           this.status.calendarName
             ? `
           <div class="calendar-settings__info">
-            <span class="calendar-settings__info-label">Calendar</span>
+            <span class="calendar-settings__info-label">Primary Calendar</span>
             <span class="calendar-settings__info-value">${this.escapeHtml(this.status.calendarName)}</span>
           </div>
         `
@@ -257,31 +274,31 @@ class CalendarSettingsUI {
         </div>
 
         <div class="calendar-settings__benefits">
-          <h3>What you'll get:</h3>
+          <h3>What you'll unlock:</h3>
           <ul>
-            <li>Smart appointment scheduling through voice</li>
-            <li>Context-aware coaching based on your schedule</li>
-            <li>Proactive check-ins that respect your busy times</li>
-            <li>Meeting prep summaries before important events</li>
+            <li>Calendar: Smart scheduling through voice</li>
+            <li>Calendar: Context-aware coaching based on your schedule</li>
+            <li>Gmail: Inbox triage and email summaries (read-only)</li>
+            <li>Gmail: Help prioritizing what needs your attention</li>
           </ul>
         </div>
 
         <div class="calendar-settings__actions">
           <button class="calendar-settings__btn calendar-settings__btn--primary" data-action="connect">
             ${ICONS.link}
-            <span>Connect Google Calendar</span>
+            <span>Connect Google Account</span>
           </button>
         </div>
 
         <p class="calendar-settings__privacy">
-          We only access your calendar to help you. Your events stay private.
+          We only read your calendar and inbox to help you. Your data stays private. We never send emails on your behalf.
         </p>
       `;
 
     this.wrapper.innerHTML = `
       <header class="calendar-settings__header">
         <div class="calendar-settings__icon">${ICONS.calendar}</div>
-        <h2 class="calendar-settings__title">Calendar</h2>
+        <h2 class="calendar-settings__title">Google Connection</h2>
         <button class="calendar-settings__close" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
@@ -301,7 +318,7 @@ class CalendarSettingsUI {
     this.wrapper.innerHTML = `
       <header class="calendar-settings__header">
         <div class="calendar-settings__icon">${ICONS.calendar}</div>
-        <h2 class="calendar-settings__title">Calendar</h2>
+        <h2 class="calendar-settings__title">Google Connection</h2>
         <button class="calendar-settings__close" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
@@ -627,6 +644,56 @@ class CalendarSettingsUI {
       }
 
       /* ========================================================================
+         CONNECTED SERVICES
+         ======================================================================== */
+      .calendar-settings__services {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2, 8px);
+        margin-bottom: var(--ma-rest, 21px);
+        padding: var(--space-3, 12px);
+        background: var(--color-background-secondary, rgba(44, 37, 32, 0.03));
+        border-radius: var(--radius-lg, 12px);
+      }
+
+      .calendar-settings__service {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3, 12px);
+      }
+
+      .calendar-settings__service-icon {
+        width: 20px;
+        height: 20px;
+        color: var(--color-text-muted, #756a5e);
+      }
+
+      .calendar-settings__service-icon svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .calendar-settings__service-name {
+        flex: 1;
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-primary, #2c2520);
+      }
+
+      .calendar-settings__service-status {
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        font-weight: var(--font-weight-medium, 500);
+        padding: 2px 8px;
+        border-radius: var(--radius-full, 9999px);
+      }
+
+      .calendar-settings__service-status--active {
+        background: var(--color-semantic-success-bg, rgba(74, 103, 65, 0.1));
+        color: var(--color-semantic-success, #4a6741);
+      }
+
+      /* ========================================================================
          BENEFITS
          ======================================================================== */
       .calendar-settings__benefits {
@@ -809,6 +876,19 @@ class CalendarSettingsUI {
       [data-theme="midnight"] .calendar-settings__close {
         background: var(--color-background-tertiary, #685852);
         color: var(--color-text-secondary, #f0ebe4);
+      }
+
+      [data-theme="midnight"] .calendar-settings__services {
+        background: var(--color-background-tertiary, #685852);
+      }
+
+      [data-theme="midnight"] .calendar-settings__service-name {
+        color: var(--color-text-primary, #faf6f0);
+      }
+
+      [data-theme="midnight"] .calendar-settings__service-status--active {
+        background: var(--color-semantic-success-bg, rgba(74, 103, 65, 0.2));
+        color: var(--color-semantic-success, #7aaf70);
       }
 
       [data-theme="midnight"] .calendar-settings__btn--secondary {

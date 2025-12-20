@@ -365,8 +365,9 @@ export const PERSONA_EVOLUTION_STORIES: PersonaEvolutionEvent[] = [
 export const TEAM_HUDDLE_SCRIPTS = {
   weekly: {
     intro: [
-      'The team wanted to check in on your week. <break time="300ms"/>Here\'s what they\'re seeing:',
-      'Quick team huddle! <break time="200ms"/>Here\'s what the crew noticed about your progress:',
+      'The team wanted to share something with you. <break time="300ms"/>Here\'s what they\'re noticing:',
+      'Everyone\'s been thinking about your progress. <break time="200ms"/>Here\'s what they see:',
+      'We gathered some thoughts for you. <break time="300ms"/>Here\'s what the team is seeing:',
     ],
     transitions: [
       '<break time="400ms"/>And...',
@@ -374,8 +375,9 @@ export const TEAM_HUDDLE_SCRIPTS = {
       '<break time="400ms"/>One more thing...',
     ],
     outro: [
-      '<break time="500ms"/>That\'s the team\'s take. <break time="200ms"/>What stands out to you?',
-      '<break time="500ms"/>The squad has spoken. <break time="200ms"/>Any of that resonate?',
+      '<break time="500ms"/>That\'s what they\'re seeing. <break time="200ms"/>What stands out to you?',
+      '<break time="500ms"/>Those are their thoughts. <break time="200ms"/>Does any of that resonate?',
+      '<break time="500ms"/>That\'s the team\'s perspective. <break time="200ms"/>What do you think?',
     ],
   },
 

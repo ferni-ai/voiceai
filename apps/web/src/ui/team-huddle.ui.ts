@@ -250,13 +250,15 @@ class TeamHuddleUI {
   private renderParticipant(participant: TeamHuddleParticipant, index: number): string {
     const colors = PERSONA_COLORS[participant.personaId] ?? PERSONA_COLORS['ferni'] ?? { bg: '#3d5a35', text: '#faf8f5', border: '#4a6741' };
     const delay = index * STAGGER.RELAXED;
+    const personaIcon = this.getPersonaIcon(participant.personaId);
 
     return `
       <div class="team-huddle__participant" 
            data-persona="${participant.personaId}"
-           style="--participant-delay: ${delay}ms; --participant-color: ${colors.bg}">
-        <div class="team-huddle__participant-avatar" style="background: ${colors.bg}">
-          ${participant.initials}
+           style="--participant-delay: ${delay}ms; --participant-color: ${colors.bg}; --participant-border: ${colors.border}">
+        <div class="team-huddle__participant-avatar" style="background: linear-gradient(135deg, ${colors.bg}, ${colors.border})">
+          <span class="team-huddle__participant-initials">${participant.initials}</span>
+          <span class="team-huddle__participant-icon">${personaIcon}</span>
         </div>
         <div class="team-huddle__participant-content">
           <div class="team-huddle__participant-name">${this.escapeHtml(participant.name)}</div>
@@ -264,6 +266,21 @@ class TeamHuddleUI {
         </div>
       </div>
     `;
+  }
+
+  /**
+   * Get a small icon for each persona's specialty (Lucide-style SVG)
+   */
+  private getPersonaIcon(personaId: string): string {
+    const icons: Record<string, string> = {
+      ferni: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>`,
+      'maya-santos': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`,
+      'peter-john': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>`,
+      'alex-chen': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+      'jordan-taylor': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+      'nayan-patel': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`,
+    };
+    return icons[personaId] || icons.ferni;
   }
 
   private renderAvatar(participant: TeamHuddleParticipant): string {
@@ -319,9 +336,29 @@ class TeamHuddleUI {
     });
   }
 
+  /**
+   * Strip SSML markup from text (e.g., <break time="200ms"/>)
+   * SSML is for speech synthesis, not display
+   */
+  private stripSSML(text: string): string {
+    return text
+      // Remove <break> tags with any attributes
+      .replace(/<break[^>]*\/?>/gi, '')
+      // Remove other common SSML tags
+      .replace(/<\/?(?:speak|voice|prosody|emphasis|say-as|audio|p|s)[^>]*>/gi, '')
+      // Clean up multiple spaces left behind
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
+  /**
+   * Escape HTML to prevent XSS, and strip SSML for display
+   */
   private escapeHtml(text: string): string {
+    // First strip SSML, then escape HTML
+    const cleanText = this.stripSSML(text);
     const div = document.createElement('div');
-    div.textContent = text;
+    div.textContent = cleanText;
     return div.innerHTML;
   }
 
@@ -478,16 +515,46 @@ class TeamHuddleUI {
 
       .team-huddle__participant-avatar {
         flex-shrink: 0;
-        width: 44px;
-        height: 44px;
+        position: relative;
+        width: 52px;
+        height: 52px;
         border-radius: var(--radius-full, 9999px);
         display: flex;
         align-items: center;
         justify-content: center;
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-        font-size: var(--text-sm, 0.875rem);
+        font-size: var(--text-base, 1rem);
         font-weight: var(--font-weight-semibold, 600);
         color: var(--color-text-inverse, #faf8f5);
+        box-shadow: 
+          0 2px 8px rgba(44, 37, 32, 0.15),
+          inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        border: 2px solid var(--participant-border, rgba(255, 255, 255, 0.2));
+      }
+
+      .team-huddle__participant-initials {
+        z-index: 1;
+      }
+
+      .team-huddle__participant-icon {
+        position: absolute;
+        bottom: -2px;
+        right: -2px;
+        width: 20px;
+        height: 20px;
+        padding: 3px;
+        background: var(--color-background-elevated, #fffdfb);
+        border-radius: var(--radius-full, 9999px);
+        box-shadow: 0 1px 3px rgba(44, 37, 32, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .team-huddle__participant-icon svg {
+        width: 12px;
+        height: 12px;
+        color: var(--participant-color, var(--color-accent-primary));
       }
 
       .team-huddle__participant-content {
@@ -523,22 +590,29 @@ class TeamHuddleUI {
       }
 
       .team-huddle__mini-avatar {
-        width: 32px;
-        height: 32px;
+        width: 36px;
+        height: 36px;
         border-radius: var(--radius-full, 9999px);
         display: flex;
         align-items: center;
         justify-content: center;
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-        font-size: 10px;
+        font-size: 11px;
         font-weight: var(--font-weight-semibold, 600);
         color: var(--color-text-inverse, #faf8f5);
-        border: 2px solid var(--color-background-elevated, #fffdfb);
-        margin-left: -8px;
+        border: 3px solid var(--color-background-elevated, #fffdfb);
+        margin-left: -10px;
+        box-shadow: 0 2px 6px rgba(44, 37, 32, 0.12);
+        transition: transform ${DURATION.FAST}ms ${EASING.SPRING};
       }
 
       .team-huddle__mini-avatar:first-child {
         margin-left: 0;
+      }
+
+      .team-huddle__mini-avatar:hover {
+        transform: scale(1.1) translateY(-2px);
+        z-index: 1;
       }
 
       /* ========================================================================
@@ -586,6 +660,14 @@ class TeamHuddleUI {
       [data-theme="midnight"] .team-huddle__close:hover {
         background: var(--color-background-secondary, #60504a);
         color: var(--color-text-primary, #faf6f0);
+      }
+
+      [data-theme="midnight"] .team-huddle__participant-icon {
+        background: var(--color-background-tertiary, #685852);
+      }
+
+      [data-theme="midnight"] .team-huddle__mini-avatar {
+        border-color: var(--color-background-elevated, #70605a);
       }
 
       /* WCAG AA Compliant Text */

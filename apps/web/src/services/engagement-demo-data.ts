@@ -247,16 +247,16 @@ export const DEMO_TEAM_HUDDLES: TeamHuddleData[] = [
   {
     id: 'demo-huddle-weekly',
     title: 'Weekly Team Check-in',
-    intro: "The team wanted to check in on your week. Here's what they're noticing about your progress:",
+    intro: "The team wanted to share something with you. Here's what they're noticing:",
     participants: DEMO_TEAM_HUDDLE_PARTICIPANTS,
-    outro: "That's the team's take. What stands out to you?",
+    outro: "That's what they're seeing. What stands out to you?",
     scheduledAt: new Date().toISOString(),
     type: 'weekly',
   },
   {
     id: 'demo-huddle-milestone',
     title: 'Milestone Celebration',
-    intro: "We noticed something worth celebrating. The whole team wanted to acknowledge your progress:",
+    intro: "We noticed something worth celebrating. Everyone wanted to acknowledge your progress:",
     participants: [
       {
         personaId: 'ferni',

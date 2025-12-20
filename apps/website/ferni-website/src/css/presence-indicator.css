@@ -1,0 +1,192 @@
+/**
+ * Presence Indicator CSS
+ * "X people talking with Ferni right now"
+ */
+
+/* ============================================================================
+   BASE INDICATOR
+   ============================================================================ */
+
+.presence-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 100px;
+  box-shadow: 
+    0 2px 12px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(74, 103, 65, 0.08);
+  font-size: 13px;
+  color: var(--color-text-secondary, #5C544A);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: 
+    opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.presence-indicator.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================================================
+   PULSE ANIMATION
+   ============================================================================ */
+
+.presence-indicator__pulse {
+  position: relative;
+  width: 10px;
+  height: 10px;
+}
+
+.presence-indicator__pulse::before,
+.presence-indicator__pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+/* Inner dot - always visible */
+.presence-indicator__pulse::before {
+  background: var(--color-ferni, #4a6741);
+}
+
+/* Outer pulse - animates */
+.presence-indicator__pulse::after {
+  background: var(--color-ferni, #4a6741);
+  animation: presence-pulse 2s ease-in-out infinite;
+}
+
+@keyframes presence-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* ============================================================================
+   COUNT NUMBER
+   ============================================================================ */
+
+.presence-indicator__count {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ferni, #4a6741);
+  min-width: 24px;
+  text-align: center;
+  transition: transform 0.2s ease;
+}
+
+.presence-indicator__count.is-changing {
+  animation: count-pop 0.2s ease-out;
+}
+
+@keyframes count-pop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ============================================================================
+   TEXT
+   ============================================================================ */
+
+.presence-indicator__text {
+  letter-spacing: -0.01em;
+}
+
+/* ============================================================================
+   UPDATE STATE
+   ============================================================================ */
+
+.presence-indicator.is-updating {
+  animation: indicator-pulse 0.6s ease-out;
+}
+
+@keyframes indicator-pulse {
+  0% {
+    box-shadow: 
+      0 2px 12px rgba(0, 0, 0, 0.06),
+      0 0 0 1px rgba(74, 103, 65, 0.08);
+  }
+  50% {
+    box-shadow: 
+      0 2px 20px rgba(74, 103, 65, 0.15),
+      0 0 0 2px rgba(74, 103, 65, 0.15);
+  }
+  100% {
+    box-shadow: 
+      0 2px 12px rgba(0, 0, 0, 0.06),
+      0 0 0 1px rgba(74, 103, 65, 0.08);
+  }
+}
+
+/* ============================================================================
+   PLACEMENT VARIANTS
+   ============================================================================ */
+
+/* Floating position (absolute) */
+.presence-indicator--floating {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 100;
+}
+
+/* Hero placement */
+.hero .presence-indicator {
+  margin-top: 24px;
+}
+
+/* Badge row placement */
+.hero__badges .presence-indicator {
+  margin-left: auto;
+}
+
+/* ============================================================================
+   MOBILE RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .presence-indicator {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  
+  .presence-indicator--floating {
+    left: 16px;
+    bottom: 16px;
+    right: 16px;
+    justify-content: center;
+  }
+  
+  .presence-indicator__text {
+    display: inline;
+  }
+}
+
+/* ============================================================================
+   DARK MODE
+   ============================================================================ */
+
+@media (prefers-color-scheme: dark) {
+  .presence-indicator {
+    background: rgba(44, 37, 32, 0.8);
+    color: rgba(255, 255, 255, 0.8);
+  }
+}
+

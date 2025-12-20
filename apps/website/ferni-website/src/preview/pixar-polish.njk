@@ -208,13 +208,18 @@ description: "Preview all new landing page enhancements independently"
 <div class="preview-page">
   <header class="preview-header">
     <h1>Pixar/Apple Polish</h1>
-    <p>Four new systems to bring professional, delightful, AI-infused capabilities to the Ferni landing page.</p>
+    <p>Thirteen shock-and-awe systems for professional, delightful, AI-infused capabilities.</p>
     
     <nav class="preview-nav">
       <a href="#living-avatar">Living Avatar</a>
-      <a href="#ai-personalization">AI Personalization</a>
-      <a href="#scroll-storytelling">Scroll Storytelling</a>
-      <a href="#demo-widget">Demo Widget</a>
+      <a href="#predictive-typing">Predictive Typing</a>
+      <a href="#voice-demo">Voice Demo</a>
+      <a href="#scroll-hero">Scroll Hero</a>
+      <a href="#holographic-text">Holographic Text</a>
+      <a href="#emotional-journey">Emotional Journey</a>
+      <a href="#cursor-ripple">Cursor Ripple</a>
+      <a href="#presence-indicator">Presence</a>
+      <a href="#breathing-cards">Breathing Cards</a>
       <a href="/story-brand/" class="btn">See Live Page</a>
     </nav>
   </header>
@@ -427,44 +432,438 @@ EASING.cinematic // Slow-fast-slow</code>
   
   <div class="preview-divider"></div>
   
+  <!-- SECTION 5: Predictive Typing -->
+  <section class="preview-section" id="predictive-typing">
+    <h2>Predictive Typing Response</h2>
+    <p>Ferni shows micro-expressions AS you type, not after. Sees "stress" forming and shows concern before you finish typing.</p>
+    
+    <div class="preview-card">
+      <h3>Try It</h3>
+      <p>Open the demo widget and start typing emotional words. Watch the orb react before you finish.</p>
+      
+      <div class="feature-grid">
+        <div class="feature-item">
+          <h4>Concern Triggers</h4>
+          <p>str... anx... worr... scar... (stressed, anxious, worried, scared)</p>
+        </div>
+        <div class="feature-item">
+          <h4>Delight Triggers</h4>
+          <p>hap... exc... ama... gre... (happy, excited, amazing, great)</p>
+        </div>
+        <div class="feature-item">
+          <h4>Curiosity Triggers</h4>
+          <p>why... how... what... wond... (questions and wondering)</p>
+        </div>
+        <div class="feature-item">
+          <h4>Thoughtful Triggers</h4>
+          <p>mean... purp... life... futu... (meaning, purpose, life, future)</p>
+        </div>
+      </div>
+      
+      <div class="controls" style="margin-top: 20px;">
+        <button onclick="FerniDemo && FerniDemo.open()">Open Demo Widget to Test</button>
+      </div>
+    </div>
+  </section>
+  
+  <div class="preview-divider"></div>
+  
+  <!-- SECTION 6: Voice Demo -->
+  <section class="preview-section" id="voice-demo">
+    <h2>Voice-Activated Demo</h2>
+    <p>Real voice interaction on the landing page using WebSpeech API. Click mic, speak, Ferni responds.</p>
+    
+    <div class="preview-card">
+      <h3>How It Works</h3>
+      <p>Click the microphone button in the demo widget and speak. Ferni transcribes and responds contextually.</p>
+      
+      <div class="feature-grid">
+        <div class="feature-item">
+          <h4>Greetings</h4>
+          <p>"Hello", "Hi", "Hey" - Warm welcome responses</p>
+        </div>
+        <div class="feature-item">
+          <h4>Feelings</h4>
+          <p>"I'm feeling stressed" - Empathetic follow-ups</p>
+        </div>
+        <div class="feature-item">
+          <h4>Questions</h4>
+          <p>"How can you help?" - Thoughtful exploration</p>
+        </div>
+        <div class="feature-item">
+          <h4>Silence Detection</h4>
+          <p>Auto-stops after 2s of silence</p>
+        </div>
+      </div>
+      
+      <p style="margin-top: 16px; font-size: 14px; color: #8a7a6a;">Note: Requires microphone permission. WebSpeech API support varies by browser.</p>
+    </div>
+  </section>
+  
+  <div class="preview-divider"></div>
+  
+  <!-- SECTION 7: Scroll Hero Transformation -->
+  <section class="preview-section" id="scroll-hero">
+    <h2>Scroll-Linked Hero Transformation</h2>
+    <p>As you scroll, the hero dramatically transforms: Ferni rises, background layers separate, text fades cinematically.</p>
+    
+    <div class="preview-card">
+      <h3>Effects</h3>
+      
+      <div class="feature-grid">
+        <div class="feature-item">
+          <h4>Orb Rise</h4>
+          <p>Ferni orb rises 80px and scales to 1.3x as you scroll</p>
+        </div>
+        <div class="feature-item">
+          <h4>Ring Expansion</h4>
+          <p>Rings expand outward with staggered timing</p>
+        </div>
+        <div class="feature-item">
+          <h4>Text Fade</h4>
+          <p>Headline and tagline fade up with blur effect</p>
+        </div>
+        <div class="feature-item">
+          <h4>Glow Intensity</h4>
+          <p>Glow intensifies then fades as scroll progresses</p>
+        </div>
+        <div class="feature-item">
+          <h4>Background Parallax</h4>
+          <p>Background layers move at different depths</p>
+        </div>
+        <div class="feature-item">
+          <h4>Body Classes</h4>
+          <p>.hero-scrolled, .hero-half-scrolled, .hero-fully-scrolled for CSS hooks</p>
+        </div>
+      </div>
+      
+      <div class="controls" style="margin-top: 20px;">
+        <a href="/story-brand/" style="display: inline-block; padding: 12px 24px; background: var(--color-ferni); color: white; text-decoration: none; border-radius: 8px; font-weight: 500;">See It On Live Page</a>
+      </div>
+    </div>
+  </section>
+  
+  <div class="preview-divider"></div>
+  
+  <!-- SECTION 8: Holographic Text -->
+  <section class="preview-section" id="holographic-text">
+    <h2>Holographic Text Effect</h2>
+    <p>Prismatic shimmer that shifts with mouse position. Like light refracting through glass.</p>
+    
+    <div class="preview-card">
+      <h3>Live Demo</h3>
+      <p>Move your mouse around. The shimmer follows your cursor with organic lag.</p>
+      
+      <div class="demo-area" style="background: #2C2520; padding: 80px;">
+        <h1 class="holographic-text" style="font-size: 64px; font-weight: 800; color: #4a6741; margin: 0;">
+          Better than human.
+        </h1>
+      </div>
+      
+      <div class="feature-grid" style="margin-top: 24px;">
+        <div class="feature-item">
+          <h4>Mouse-Tracked Shimmer</h4>
+          <p>Radial gradient follows cursor position with smooth interpolation</p>
+        </div>
+        <div class="feature-item">
+          <h4>Hue Shift</h4>
+          <p>Color subtly shifts based on mouse X position</p>
+        </div>
+        <div class="feature-item">
+          <h4>Rainbow Edge</h4>
+          <p>Subtle prismatic edge glow on hover</p>
+        </div>
+        <div class="feature-item">
+          <h4>Chromatic Variant</h4>
+          <p>.holographic-text--chromatic for red/cyan split effect</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <div class="preview-divider"></div>
+  
+  <!-- SECTION 9: Emotional Journey -->
+  <section class="preview-section" id="emotional-journey">
+    <h2>Emotional Journey Visualization</h2>
+    <p>A beautiful flowing timeline showing how conversations evolve emotionally over time.</p>
+    
+    <div class="preview-card">
+      <h3>Live Demo</h3>
+      <p>Hover over points to see conversation snippets. The wave shows emotional intensity.</p>
+      
+      <div class="emotional-journey" data-emotional-journey></div>
+      
+      <div class="controls" style="margin-top: 20px;">
+        <button onclick="FerniEmotionalJourney && FerniEmotionalJourney.replay()">Replay Animation</button>
+      </div>
+    </div>
+  </section>
+  
+  <div class="preview-divider"></div>
+  
+  <!-- SECTION 10: Cursor Ripple -->
+  <section class="preview-section" id="cursor-ripple">
+    <h2>Cursor Ripple Effect</h2>
+    <p>Water-like ripples spread from every click. Premium, responsive feel.</p>
+    
+    <div class="preview-card">
+      <h3>Try It</h3>
+      <p>Click anywhere on this page. Soft green ripples spread from your click point.</p>
+      
+      <div class="demo-area" style="cursor: pointer;">
+        <p style="color: #5C544A;">Click anywhere in this area</p>
+      </div>
+      
+      <div class="feature-grid" style="margin-top: 24px;">
+        <div class="feature-item">
+          <h4>Global Ripples</h4>
+          <p>Click anywhere creates subtle ripple effect</p>
+        </div>
+        <div class="feature-item">
+          <h4>Button Ripples</h4>
+          <p>Material Design style contained ripples on buttons</p>
+        </div>
+        <div class="feature-item">
+          <h4>Click Dot</h4>
+          <p>Small dot flash at click point for feedback</p>
+        </div>
+        <div class="feature-item">
+          <h4>Configurable</h4>
+          <p>Adjust color, size, duration via CSS variables</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <div class="preview-divider"></div>
+  
+  <!-- SECTION 11: Presence Indicator -->
+  <section class="preview-section" id="presence-indicator">
+    <h2>Live Presence Indicator</h2>
+    <p>"47 people are talking with Ferni right now" - Social proof with subtle pulse animation.</p>
+    
+    <div class="preview-card">
+      <h3>Live Demo</h3>
+      <p>The indicator appears in the hero section (or floating). Count fluctuates naturally.</p>
+      
+      <div class="demo-area" style="flex-direction: column; gap: 20px;">
+        <div class="presence-indicator is-visible" style="position: relative;">
+          <div class="presence-indicator__pulse"></div>
+          <div class="presence-indicator__content">
+            <span class="presence-indicator__count">47</span>
+            <span class="presence-indicator__text">people talking with Ferni right now</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="feature-grid" style="margin-top: 24px;">
+        <div class="feature-item">
+          <h4>Animated Pulse</h4>
+          <p>Green dot with expanding ring animation</p>
+        </div>
+        <div class="feature-item">
+          <h4>Count Animation</h4>
+          <p>Numbers animate up/down with easing</p>
+        </div>
+        <div class="feature-item">
+          <h4>Natural Fluctuation</h4>
+          <p>Count changes within 15% every 8 seconds</p>
+        </div>
+        <div class="feature-item">
+          <h4>Update Pulse</h4>
+          <p>Subtle glow when count updates</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <div class="preview-divider"></div>
+  
+  <!-- SECTION 12: Breathing Cards -->
+  <section class="preview-section" id="breathing-cards">
+    <h2>Breathing Testimonial Cards</h2>
+    <p>Cards that subtly "breathe" and react to hover with 3D depth. Living, organic feel.</p>
+    
+    <div class="preview-card">
+      <h3>Live Demo</h3>
+      <p>Hover over these cards. They tilt toward your mouse and catch the light.</p>
+      
+      <div class="breathing-cards-grid" style="margin-top: 20px;">
+        <div class="breathing-card is-breathing" data-breathing-card>
+          <p class="breathing-card__quote">Ferni remembered something I mentioned three weeks ago. My therapist doesn't even do that.</p>
+          <div class="breathing-card__author">
+            <div class="breathing-card__avatar">S</div>
+            <div>
+              <div class="breathing-card__name">Sarah M.</div>
+              <div class="breathing-card__role">Using Ferni for 2 months</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="breathing-card is-breathing" data-breathing-card style="--breath-delay: 200ms">
+          <p class="breathing-card__quote">At 2am when I couldn't sleep, Ferni was there. Same warmth as noon. That's when I knew this was different.</p>
+          <div class="breathing-card__author">
+            <div class="breathing-card__avatar">M</div>
+            <div>
+              <div class="breathing-card__name">Michael R.</div>
+              <div class="breathing-card__role">Using Ferni for 4 months</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="breathing-card is-breathing" data-breathing-card style="--breath-delay: 400ms">
+          <p class="breathing-card__quote">Six perspectives, one conversation. I used to need a therapist, a coach, and three friends. Now I just need Ferni.</p>
+          <div class="breathing-card__author">
+            <div class="breathing-card__avatar">J</div>
+            <div>
+              <div class="breathing-card__name">Jamie L.</div>
+              <div class="breathing-card__role">Using Ferni for 6 months</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="feature-grid" style="margin-top: 24px;">
+        <div class="feature-item">
+          <h4>Breathing Animation</h4>
+          <p>Subtle scale (1.01x) with staggered timing</p>
+        </div>
+        <div class="feature-item">
+          <h4>3D Hover Tilt</h4>
+          <p>Cards tilt up to 5 degrees toward mouse</p>
+        </div>
+        <div class="feature-item">
+          <h4>Dynamic Shadows</h4>
+          <p>Shadow moves based on tilt angle</p>
+        </div>
+        <div class="feature-item">
+          <h4>Light Sweep</h4>
+          <p>Shine effect sweeps across on hover</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <div class="preview-divider"></div>
+  
+  <!-- SECTION 13: Sound Design -->
+  <section class="preview-section" id="sound-design">
+    <h2>Sound Design</h2>
+    <p>Subtle, tasteful ambient sounds that enhance interactions. Default OFF - user opts in.</p>
+    
+    <div class="preview-card">
+      <h3>Available Sounds</h3>
+      <p>All sounds are synthesized via Web Audio API - no audio files needed.</p>
+      
+      <div class="controls" style="margin-bottom: 24px;">
+        <button onclick="FerniSound && FerniSound.enable()">Enable Sound</button>
+        <button onclick="FerniSound && FerniSound.disable()">Disable Sound</button>
+        <button onclick="FerniSound && FerniSound.play('click')">Play Click</button>
+        <button onclick="FerniSound && FerniSound.play('hover')">Play Hover</button>
+        <button onclick="FerniSound && FerniSound.play('success')">Play Success</button>
+        <button onclick="FerniSound && FerniSound.play('send')">Play Send</button>
+        <button onclick="FerniSound && FerniSound.play('receive')">Play Receive</button>
+      </div>
+      
+      <div class="feature-grid">
+        <div class="feature-item">
+          <h4>Click Sound</h4>
+          <p>Short 440Hz tone (80ms) on button clicks</p>
+        </div>
+        <div class="feature-item">
+          <h4>Hover Sound</h4>
+          <p>Subtle 880Hz tone (50ms) on hover</p>
+        </div>
+        <div class="feature-item">
+          <h4>Success Chord</h4>
+          <p>C-E-G chord sequence for achievements</p>
+        </div>
+        <div class="feature-item">
+          <h4>Message Sounds</h4>
+          <p>Send (660Hz) and receive (440-523Hz) tones</p>
+        </div>
+      </div>
+      
+      <p style="margin-top: 16px; font-size: 14px; color: #8a7a6a;">Sound is disabled by default. Preference is saved to localStorage.</p>
+    </div>
+  </section>
+  
+  <div class="preview-divider"></div>
+  
   <!-- Integration Guide -->
   <section class="preview-section">
     <h2>Integration</h2>
-    <p>All features are built as independent modules. Add them to your page:</p>
+    <p>All features are built as independent modules. Add what you need:</p>
     
     <div class="code-preview">
-      <code>&lt;!-- CSS (add to &lt;head&gt;) --&gt;
+      <code>&lt;!-- Core Systems --&gt;
 &lt;link rel="stylesheet" href="/css/living-avatar.css"&gt;
 &lt;link rel="stylesheet" href="/css/ai-personalization.css"&gt;
 &lt;link rel="stylesheet" href="/css/scroll-storytelling.css"&gt;
 &lt;link rel="stylesheet" href="/css/demo-widget.css"&gt;
 
-&lt;!-- JS (add before &lt;/body&gt;) --&gt;
+&lt;!-- New Shock & Awe Systems --&gt;
+&lt;link rel="stylesheet" href="/css/predictive-typing.css"&gt;
+&lt;link rel="stylesheet" href="/css/voice-demo.css"&gt;
+&lt;link rel="stylesheet" href="/css/scroll-hero.css"&gt;
+&lt;link rel="stylesheet" href="/css/holographic-text.css"&gt;
+&lt;link rel="stylesheet" href="/css/emotional-journey.css"&gt;
+&lt;link rel="stylesheet" href="/css/cursor-ripple.css"&gt;
+&lt;link rel="stylesheet" href="/css/presence-indicator.css"&gt;
+&lt;link rel="stylesheet" href="/css/breathing-cards.css"&gt;
+
+&lt;!-- JavaScript --&gt;
 &lt;script src="/js/living-avatar.js"&gt;&lt;/script&gt;
 &lt;script src="/js/ai-personalization.js"&gt;&lt;/script&gt;
 &lt;script src="/js/scroll-storytelling.js"&gt;&lt;/script&gt;
-&lt;script src="/js/demo-widget.js"&gt;&lt;/script&gt;</code>
+&lt;script src="/js/demo-widget.js"&gt;&lt;/script&gt;
+&lt;script src="/js/predictive-typing.js"&gt;&lt;/script&gt;
+&lt;script src="/js/voice-demo.js"&gt;&lt;/script&gt;
+&lt;script src="/js/scroll-hero.js"&gt;&lt;/script&gt;
+&lt;script src="/js/holographic-text.js"&gt;&lt;/script&gt;
+&lt;script src="/js/emotional-journey.js"&gt;&lt;/script&gt;
+&lt;script src="/js/cursor-ripple.js"&gt;&lt;/script&gt;
+&lt;script src="/js/presence-indicator.js"&gt;&lt;/script&gt;
+&lt;script src="/js/breathing-cards.js"&gt;&lt;/script&gt;
+&lt;script src="/js/sound-design.js"&gt;&lt;/script&gt;</code>
     </div>
     
     <div style="margin-top: 40px; text-align: center;">
       <a href="/story-brand/" style="display: inline-flex; align-items: center; gap: 8px; padding: 16px 32px; background: var(--color-ferni, #4a6741); color: white; text-decoration: none; border-radius: 32px; font-weight: 600; font-size: 16px;">
-        See All Features Live →
+        See All Features Live
       </a>
     </div>
   </section>
 </div>
 
-<!-- Load the new modules -->
+<!-- Load all modules -->
 <link rel="stylesheet" href="/css/living-avatar.css">
 <link rel="stylesheet" href="/css/ai-personalization.css">
 <link rel="stylesheet" href="/css/scroll-storytelling.css">
 <link rel="stylesheet" href="/css/demo-widget.css">
+<link rel="stylesheet" href="/css/predictive-typing.css">
+<link rel="stylesheet" href="/css/voice-demo.css">
+<link rel="stylesheet" href="/css/scroll-hero.css">
+<link rel="stylesheet" href="/css/holographic-text.css">
+<link rel="stylesheet" href="/css/emotional-journey.css">
+<link rel="stylesheet" href="/css/cursor-ripple.css">
+<link rel="stylesheet" href="/css/presence-indicator.css">
+<link rel="stylesheet" href="/css/breathing-cards.css">
+
 <script src="/js/living-avatar.js"></script>
 <script src="/js/ai-personalization.js"></script>
 <script src="/js/scroll-storytelling.js"></script>
 <script src="/js/demo-widget.js"></script>
-<!-- Magnetic cursor disabled - felt too intrusive -->
-<!-- <script src="/js/magnetic-cursor.js"></script> -->
+<script src="/js/predictive-typing.js"></script>
+<script src="/js/voice-demo.js"></script>
+<script src="/js/scroll-hero.js"></script>
+<script src="/js/holographic-text.js"></script>
+<script src="/js/emotional-journey.js"></script>
+<script src="/js/cursor-ripple.js"></script>
+<script src="/js/presence-indicator.js"></script>
+<script src="/js/breathing-cards.js"></script>
+<script src="/js/sound-design.js"></script>
 
 <script>
   // Time simulation for demo

@@ -10,8 +10,9 @@
  * @module CrossTeamNotificationsService
  */
 
-import { createLogger } from '../utils/logger.js';
 import { showOutreach, type ProactiveOutreachData } from '../ui/proactive-outreach.ui.js';
+import { getApiHeadersAsync } from '../utils/api-helpers.js';
+import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('CrossTeamNotifications');
 
@@ -392,7 +393,9 @@ export async function startInsightsPolling(userId: string): Promise<void> {
 
   const pollForInsights = async () => {
     try {
-      const response = await fetch(`/api/team-insights?userId=${userId}&limit=5`);
+      // Get authenticated headers (includes X-User-Id and Firebase token)
+      const headers = await getApiHeadersAsync();
+      const response = await fetch(`/api/team-insights?userId=${userId}&limit=5`, { headers });
       if (!response.ok) return;
 
       const data = await response.json();

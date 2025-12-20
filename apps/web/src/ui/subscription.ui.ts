@@ -29,6 +29,7 @@ import { t } from '../i18n/index.js';
 import { modalCoordinator } from '../services/modal-coordinator.service.js';
 import { teamUnlockService } from '../services/team-unlock.service.js';
 import { appState } from '../state/app.state.js';
+import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { addTapListener, addTapListeners, cleanupTapListeners } from '../utils/ios-touch.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
@@ -905,9 +906,12 @@ function showUpgradeError(): void {
  */
 async function handleDevUpgrade(tier: string, deviceId: string): Promise<void> {
   try {
+    // Get authenticated headers (includes X-User-Id and Firebase token)
+    const headers = await getApiHeadersAsync();
+    
     const response = await fetch('/subscription/upgrade', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         device_id: deviceId,
         tier,

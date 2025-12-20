@@ -10,6 +10,7 @@
  * - We're there when you need us, not when we want attention
  */
 
+import { getApiHeadersAsync } from '../utils/api-helpers.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('OutreachService');
@@ -68,11 +69,12 @@ async function apiCall<T>(
   method: 'GET' | 'POST' = 'GET',
   body?: unknown
 ): Promise<T> {
+  // Get authenticated headers (includes X-User-Id and Firebase token)
+  const headers = await getApiHeadersAsync();
+  
   const response = await fetch(`${API_BASE}${endpoint}`, {
     method,
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
     credentials: 'include', // Include auth cookies
     body: body ? JSON.stringify(body) : undefined,
   });

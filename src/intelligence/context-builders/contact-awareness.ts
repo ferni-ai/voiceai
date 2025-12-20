@@ -78,6 +78,7 @@ export const contactAwarenessBuilder: ContextBuilder = {
       return [
         createStandardInjection('contact_awareness', content, {
           category: 'contacts',
+          confidence: 0.7,
         }),
       ];
     } catch (error) {
