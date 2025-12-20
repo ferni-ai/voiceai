@@ -1537,6 +1537,20 @@ class CalendarSettingsUI {
       }
 
       /* ========================================================================
+         CONFLICTS SECTION
+         ======================================================================== */
+      .calendar-settings__conflicts-section {
+        margin-top: var(--ma-rest, 21px);
+        padding-top: var(--ma-breath, 13px);
+        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      }
+
+      .calendar-settings__btn--full {
+        width: 100%;
+        justify-content: center;
+      }
+
+      /* ========================================================================
          PRIVACY NOTE
          ======================================================================== */
       .calendar-settings__privacy {

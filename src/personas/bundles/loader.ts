@@ -977,7 +977,10 @@ export function getBundleSearchPaths(): string[] {
   // 3. Also check dist/personas/bundles/ relative path (in case content is there)
   paths.push(join(process.cwd(), 'dist/personas/bundles'));
 
-  // 4. User-level bundles
+  // 4. Marketplace agents (community/premium agents from apps/marketplace-agents)
+  paths.push(join(process.cwd(), 'apps/marketplace-agents/agents'));
+
+  // 5. User-level bundles
   const home = process.env.HOME || process.env.USERPROFILE;
   if (home) {
     paths.push(join(home, '.voiceai/personas'));

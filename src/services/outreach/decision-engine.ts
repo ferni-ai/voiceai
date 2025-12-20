@@ -60,6 +60,7 @@ export type OutreachTriggerType =
   | 'thinking_of_you' // Random kindness
   | 'follow_up' // Explicit follow-up request
   | 'accountability' // Agreed accountability check
+  | 'personal_share' // User wants to share Ferni with someone
   | 'check_in' // General check-in
 
   // Content triggers

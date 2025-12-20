@@ -322,6 +322,12 @@ export type SuggestionType =
   | 'seasonal' // Holiday greetings opportunity
   | 'life_event'; // Congrats/sympathy opportunity
 
+// ============================================================================
+// GIFT SUGGESTIONS
+// ============================================================================
+
+export type BudgetRange = 'thoughtful' | 'moderate' | 'generous' | 'splurge';
+
 export interface OutreachSuggestion {
   type: SuggestionType;
   contact: EnhancedContact;

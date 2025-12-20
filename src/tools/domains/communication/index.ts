@@ -37,6 +37,8 @@ import { getAlexContactToolDefinitions } from './alex-contact-tools.js';
 import { getAlexMessageValidationToolDefinitions } from './alex-message-validation-tools.js';
 // Personalized outreach tools (batch messaging, groups, seasonal)
 import { getPersonalizedOutreachToolDefinitions } from './personalized-outreach-tools.js';
+// Enhanced outreach tools (voice messages, rich email, gifts, optimal timing)
+import { getEnhancedOutreachToolDefinitions } from './enhanced-outreach-tools.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
@@ -352,6 +354,7 @@ const communicationTools: ToolDefinition[] = [
   ...getAlexContactToolDefinitions(),
   ...getAlexMessageValidationToolDefinitions(),
   ...getPersonalizedOutreachToolDefinitions(),
+  ...getEnhancedOutreachToolDefinitions(),
 ];
 
 // ============================================================================
@@ -371,6 +374,7 @@ export {
   getAlexContactToolDefinitions,
   getAlexMessageValidationToolDefinitions,
   getPersonalizedOutreachToolDefinitions,
+  getEnhancedOutreachToolDefinitions,
 };
 
 // Re-export legacy tool creators for direct use by persona agents

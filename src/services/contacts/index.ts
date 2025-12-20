@@ -59,13 +59,52 @@ export {
   getOutreachSuggestions,
 } from './personalized-outreach.js';
 
+// Rich Email Templates
+export {
+  christmasTemplate,
+  newYearTemplate,
+  birthdayTemplate,
+  thanksgivingTemplate,
+  checkInTemplate,
+  sympathyTemplate,
+  congratulationsTemplate,
+  anniversaryTemplate,
+  getTemplateForOccasion,
+  generatePlainTextVersion,
+  emailTemplates,
+} from './rich-email-templates.js';
+
+// Gift Suggestions
+export {
+  generateGiftRecommendations,
+  recordGiftGiven,
+  getPastGifts,
+  giftSuggestions,
+} from './gift-suggestions.js';
+
+// Optimal Timing ML
+export {
+  getTimingProfile,
+  recordOutcome,
+  getTimingRecommendation,
+  getBatchTimingRecommendations,
+  groupByOptimalTime,
+  optimalTiming,
+} from './optimal-timing.js';
+
 // Default export for convenient importing
 import contactRelationshipService from './contact-relationship-service.js';
 import contactGroups from './contact-groups.js';
 import personalizedOutreach from './personalized-outreach.js';
+import { emailTemplates } from './rich-email-templates.js';
+import { giftSuggestions } from './gift-suggestions.js';
+import { optimalTiming } from './optimal-timing.js';
 
 export default {
   ...contactRelationshipService,
   ...contactGroups,
   ...personalizedOutreach,
+  emailTemplates,
+  giftSuggestions,
+  optimalTiming,
 };

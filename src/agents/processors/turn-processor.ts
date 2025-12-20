@@ -1653,11 +1653,26 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
     const relationshipStage =
       (services.userProfile?.relationshipStage as 'new' | 'building' | 'established' | 'deep') ||
       'building';
-    const userMood = emotionalState.dominant?.category?.includes('positive')
-      ? 'positive'
-      : emotionalState.dominant?.category?.includes('negative')
-        ? 'struggling'
-        : 'neutral';
+
+    // Determine mood from emotional state
+    const userMood =
+      emotionalState.intensity < 0.3
+        ? 'neutral'
+        : emotionalState.primary?.toLowerCase().includes('joy') ||
+            emotionalState.primary?.toLowerCase().includes('happy') ||
+            emotionalState.primary?.toLowerCase().includes('excit')
+          ? 'positive'
+          : emotionalState.distressLevel > 0.5
+            ? 'struggling'
+            : 'neutral';
+
+    // Extract topic strings
+    const topics =
+      typeof analysisResult.analysis?.topics === 'object' && analysisResult.analysis?.topics
+        ? Array.isArray(analysisResult.analysis.topics)
+          ? analysisResult.analysis.topics
+          : analysisResult.analysis.topics.mentioned || []
+        : [];
 
     const referralResult = await buildReferralPromptInjection({
       userId: services.userId || 'unknown',
@@ -1665,7 +1680,7 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
       turnCount: userData.turnCount || 1,
       relationshipStage,
       userMood: userMood as 'positive' | 'neutral' | 'struggling',
-      recentTopics: analysisResult.analysis?.topics,
+      recentTopics: topics,
       userText,
     });
 
@@ -1674,7 +1689,7 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
       diag.info('🌱 Referral prompt injected (natural trigger detected)');
     }
   } catch (error) {
-    diag.warn({ error: String(error) }, 'Referral prompt injection failed (non-blocking)');
+    diag.warn('Referral prompt injection failed (non-blocking)', String(error));
   }
 
   // 16. Conversation dynamics (extracted to injection-builders.ts)

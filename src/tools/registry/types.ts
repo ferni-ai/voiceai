@@ -76,7 +76,8 @@ export type ToolDomain =
   | 'developer' // Developer tools: CLI commands, file editing, bash
   | 'behavior' // Behavior control: modes, pacing, processing, presence
   | 'life-thesis' // Life thesis: capturing and recalling "why" across all life domains
-  | 'marketing'; // Social media management: content generation, publishing, analytics
+  | 'marketing' // Social media management: content generation, publishing, analytics
+  | 'referral'; // Viral growth via voice calls
 
 /**
  * All available tool domains

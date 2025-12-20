@@ -53,6 +53,9 @@ import type { BundleRuntimeEngine } from '../personas/bundles/runtime.js';
 // Centralized model configuration (toggle models via admin UI or model-config.json)
 import { modelConfig } from '../services/model-config.js';
 
+// FinOps cost tracking for session economics
+import { finops } from '../services/observability/finops.js';
+
 // ============================================================================
 // LIGHTWEIGHT VOICE AGENT REF (For Handoff Support)
 // ============================================================================
@@ -446,6 +449,21 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     process.stderr.write(
       `[voice-agent-entry] 📦 Services initialized (userId: ${userId || 'anonymous'}, returning: ${isReturningUser})\n`
     );
+
+    // Start FinOps cost tracking for this session
+    // Determine tier from user profile subscription
+    const subscriptionTier = services.userProfile?.subscription?.tier || 'free';
+    const finopsTier = subscriptionTier === 'partner'
+      ? 'partner'
+      : subscriptionTier === 'friend'
+        ? 'friend'
+        : 'free';
+    finops.startSession({
+      sessionId,
+      userId,
+      tier: finopsTier,
+    });
+    process.stderr.write(`[voice-agent-entry] FinOps tracking started (tier: ${finopsTier})\n`);
 
     // Register session with SessionDataManager for proper cache cleanup
     // This is CRITICAL for preventing memory leaks - when session ends,
@@ -1327,6 +1345,22 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     });
 
     e2e.sessionEnded(jobId, 'disconnected', Date.now() - startTime);
+
+    // End FinOps cost tracking and record final costs
+    const sessionDurationMs = Date.now() - startTime;
+    const sessionDurationMinutes = sessionDurationMs / 60000;
+    finops.recordLiveKitCost({
+      durationMinutes: sessionDurationMinutes,
+      userId,
+      sessionId,
+      tier: finopsTier,
+    });
+    const finopsSession = finops.endSession(sessionId);
+    if (finopsSession) {
+      process.stderr.write(
+        `[voice-agent-entry] 💰 FinOps: Session cost $${finopsSession.totalCost.toFixed(4)} (${sessionDurationMinutes.toFixed(1)} min, tier: ${finopsSession.tier})\n`
+      );
+    }
 
     // Run event cleanup registry (cleans up all registered event handlers)
     process.stderr.write(`[voice-agent-entry] 🧹 Running event cleanup registry...\n`);

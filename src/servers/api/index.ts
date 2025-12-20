@@ -49,6 +49,19 @@ import { shutdown as shutdownGoogleCalendar } from '../token/oauth/google-calend
 import { shutdown as shutdownSpotifyOAuth } from '../token/oauth/spotify.js';
 import { shutdownPersistence } from '../../services/persistence/index.js';
 
+// Calendar real-time sync services
+import {
+  startPolling as startApplePolling,
+  loadRegisteredUsers as loadApplePollingUsers,
+  stopPolling as shutdownApplePolling,
+} from '../../services/calendar/polling/apple-polling.js';
+import {
+  renewExpiringChannels as startGoogleWebhookRenewal,
+} from '../../services/calendar/webhooks/google-webhook.js';
+import {
+  renewExpiringSubscriptions as startOutlookSubscriptionRenewal,
+} from '../../services/calendar/webhooks/outlook-webhook.js';
+
 // Existing API route handlers (from dist/)
 import { handleEngagementRoutes } from '../../api/engagement-routes.js';
 import { handleDiagnosticsRoutes } from '../../api/handoff-diagnostics.js';
@@ -729,7 +742,7 @@ registerDDoSAlertCallback(async (details) => {
 const stopDDoSMonitoring = startDDoSMonitoring('ui-server', 30_000);
 
 // Start the server
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', async () => {
   log.info(
     {
       port: PORT,
@@ -741,6 +754,24 @@ server.listen(PORT, '0.0.0.0', () => {
 
   // Start Spotify token auto-refresh
   startSpotifyAutoRefresh();
+
+  // Start Calendar real-time sync services
+  try {
+    // Apple Calendar polling (CalDAV doesn't support webhooks)
+    await loadApplePollingUsers();
+    startApplePolling();
+    log.info('🍎 Apple Calendar polling service started');
+
+    // Google Calendar webhook renewal (watches expire after 7 days)
+    startGoogleWebhookRenewal();
+    log.info('📅 Google Calendar webhook renewal service started');
+
+    // Outlook subscription renewal (subscriptions expire after hours)
+    startOutlookSubscriptionRenewal();
+    log.info('📧 Outlook Calendar subscription renewal service started');
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Calendar sync services failed to start (non-blocking)');
+  }
 });
 
 // ============================================================================
@@ -772,6 +803,7 @@ async function gracefulShutdown(): Promise<void> {
       shutdownGoogleCalendar(),
       shutdownSpotifyOAuth(),
       shutdownPersistence(),
+      shutdownApplePolling(),
     ]);
     log.info('All services shutdown complete');
   } catch (err) {

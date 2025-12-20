@@ -13,7 +13,6 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { getDefaultStore } from '../../memory/index.js';
 import type { ContextInjection } from '../../agents/processors/types.js';
 
 const log = getLogger().child({ module: 'referral-prompt' });
@@ -114,54 +113,23 @@ You can gently offer:
 // LAST PROMPT TRACKING
 // ============================================================================
 
-// In-memory cache (also stored in Firestore for persistence)
+// In-memory cache for tracking last referral prompt
+// Note: This resets on server restart, but that's fine for the frequency we want
 const lastPromptCache = new Map<string, Date>();
 
 /**
  * Check when user last received a referral prompt
  */
-async function getLastReferralPromptDate(userId: string): Promise<Date | null> {
-  // Check cache first
-  if (lastPromptCache.has(userId)) {
-    return lastPromptCache.get(userId)!;
-  }
-
-  try {
-    const store = getDefaultStore();
-    const memories = await store.getMemories(userId, {
-      type: 'referral_prompt_shown',
-      limit: 1,
-    });
-
-    if (memories.length > 0) {
-      const lastDate = new Date(memories[0].createdAt || Date.now());
-      lastPromptCache.set(userId, lastDate);
-      return lastDate;
-    }
-  } catch (error) {
-    log.warn({ error }, 'Failed to check last referral prompt');
-  }
-
-  return null;
+function getLastReferralPromptDate(userId: string): Date | null {
+  return lastPromptCache.get(userId) || null;
 }
 
 /**
  * Record that we showed a referral prompt
  */
-async function recordReferralPromptShown(userId: string): Promise<void> {
-  const now = new Date();
-  lastPromptCache.set(userId, now);
-
-  try {
-    const store = getDefaultStore();
-    await store.saveMemory(userId, {
-      type: 'referral_prompt_shown',
-      content: 'Showed referral prompt to user',
-      metadata: { shownAt: now.toISOString() },
-    });
-  } catch (error) {
-    log.warn({ error }, 'Failed to record referral prompt');
-  }
+function recordReferralPromptShown(userId: string): void {
+  lastPromptCache.set(userId, new Date());
+  log.debug({ userId }, 'Recorded referral prompt shown');
 }
 
 // ============================================================================

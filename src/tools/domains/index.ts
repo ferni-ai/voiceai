@@ -231,6 +231,9 @@ export { getToolDefinitions as getDeveloperToolDefinitions } from './developer/i
 // Marketing domain - social media management (Alex's dogfooding tools)
 export { getToolDefinitions as getMarketingToolDefinitions } from './marketing/index.js';
 
+// Referral domain - viral growth via voice calls
+export { getToolDefinitions as getReferralToolDefinitions } from './referral/index.js';
+
 // ============================================================================
 // LEGACY DOMAIN EXPORTS (for backwards compatibility)
 // These will be deprecated once all consumers migrate to registry-based system
@@ -326,6 +329,8 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./developer/index.js').then(async (m) => m.getToolDefinitions()),
     // Marketing domain - social media management (Alex's dogfooding tools)
     import('./marketing/index.js').then(async (m) => m.getToolDefinitions()),
+    // Referral domain - viral growth via voice calls
+    import('./referral/index.js').then(async (m) => m.getToolDefinitions()),
   ]);
 
   // Collect successful results
@@ -673,6 +678,13 @@ export const DOMAIN_METADATA = {
     description:
       "Alex's marketing tools: social content generation, Twitter/X posting, LinkedIn publishing, analytics",
     icon: '📣',
+    status: 'active',
+  },
+  referral: {
+    name: 'Voice Referrals',
+    description:
+      'Viral growth via voice calls - Ferni personally calls friends to introduce herself',
+    icon: '📞',
     status: 'active',
   },
 } as const;

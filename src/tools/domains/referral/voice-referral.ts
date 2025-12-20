@@ -30,7 +30,11 @@ import { z } from 'zod';
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { callWithPersonaVoice } from '../../../services/voice-call.js';
-import { getDefaultStore } from '../../../memory/index.js';
+import {
+  makeConversationalCall,
+  isConversationalCallsConfigured,
+  type OutboundCallContext,
+} from '../../../services/outreach/conversational-calls.js';
 
 const log = getLogger().child({ module: 'voice-referral' });
 
@@ -341,11 +345,108 @@ If the conversation naturally leads to it (e.g., user mentions a friend going th
 `;
 
 // ============================================================================
+// CONVERSATIONAL REFERRAL CALL
+// ============================================================================
+
+/**
+ * Make a two-way conversational referral call
+ *
+ * Instead of just playing a message, this connects to LiveKit
+ * so Ferni can have a REAL conversation with the person!
+ */
+export async function makeConversationalReferralCall(params: {
+  referrerId: string;
+  referrerName: string;
+  recipientName: string;
+  recipientPhone: string;
+  personalNote?: string;
+  occasion?: string;
+}): Promise<{ success: boolean; callId?: string; error?: string }> {
+  const { referrerId, referrerName, recipientName, recipientPhone, personalNote, occasion } = params;
+
+  // Check if conversational calls are configured
+  if (!isConversationalCallsConfigured()) {
+    log.info('Conversational calls not configured, falling back to simple voice message');
+    return makeVoiceReferralCall({
+      referrerId,
+      referrerName,
+      recipientName,
+      recipientPhone,
+      personalNote,
+      occasion,
+    });
+  }
+
+  log.info(
+    { referrerId, referrerName, recipientName, phone: recipientPhone.slice(-4) },
+    '📞 Initiating CONVERSATIONAL referral call (two-way!)'
+  );
+
+  const callContext: OutboundCallContext = {
+    trigger: {
+      id: `ref_${Date.now()}`,
+      type: 'personal_share',
+      reason: `${referrerName} wants to introduce Ferni to ${recipientName}`,
+      urgency: 'low',
+    },
+    user: {
+      id: `ref_${recipientPhone.replace(/\D/g, '')}`,
+      name: recipientName,
+      phone: recipientPhone,
+      relationshipStage: 'new',
+    },
+    context: {
+      lastConversationSummary: personalNote
+        ? `${referrerName} said: ${personalNote}`
+        : `${referrerName} thought ${recipientName} would enjoy meeting Ferni`,
+      insideJokes: [],
+      avoidTopics: [],
+    },
+    approach: {
+      tone: occasion ? 'celebratory' : 'casual',
+      primaryGoal: `Introduce myself as a friend of ${referrerName}'s and let them know I'm here if they ever want to chat`,
+      secondaryGoals: [
+        `Mention that ${referrerName} speaks highly of them`,
+        "Be warm but not pushy - it's okay if they're not interested",
+        "If they're curious, explain what I do without using 'AI' or technical terms",
+      ],
+      maxDuration: 5, // Keep intro calls short
+    },
+    persona: 'ferni',
+  };
+
+  try {
+    const call = await makeConversationalCall(callContext);
+
+    // Track the referral
+    await trackVoiceReferral({
+      referrerId,
+      referrerName,
+      recipientName,
+      recipientPhone,
+      personalNote,
+      callSid: call.twilioCallSid,
+    });
+
+    log.info(
+      { referrerId, recipientName, callId: call.id },
+      '✅ Conversational referral call initiated'
+    );
+
+    return { success: true, callId: call.id };
+  } catch (error) {
+    log.error({ error }, 'Conversational referral call error');
+    return { success: false, error: String(error) };
+  }
+}
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
 export default {
   makeVoiceReferralCall,
+  makeConversationalReferralCall,
   createVoiceReferralTools,
   REFERRAL_PROMPT_INJECTION,
   INTRO_TEMPLATES,
