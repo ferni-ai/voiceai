@@ -65,6 +65,15 @@
         "setContactFollowUp",
         "completeContactFollowUp"
       ],
+      "message-validation": [
+        "analyzeMessageTone",
+        "saveMessageForReview",
+        "getPendingMessages",
+        "getMessagesReadyForReview",
+        "reviewMessage",
+        "approveMessage",
+        "discardMessage"
+      ],
       "handoffs": [
         "handoffToFerni",
         "handoffToPeter",
