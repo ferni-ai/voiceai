@@ -273,7 +273,18 @@ class ConnectionService {
     try {
       this.updateState('connecting');
 
-      // Get connection parameters from state
+      // CRITICAL FIX: Wait for Firebase Auth to initialize before connecting
+      // This ensures we have the Firebase UID for proper user identification
+      try {
+        const { initializeAuth } = await import('./auth-init.service.js');
+        await initializeAuth();
+        log.debug('Firebase auth ready for connection');
+      } catch (authError) {
+        // Continue even if auth fails - will fall back to device ID
+        log.warn('Auth init failed, will use device ID:', authError);
+      }
+
+      // Get connection parameters from state (now with Firebase UID if available)
       const state = appState.getState();
 
       // Check for claimed demo conversation ("Better than human")
@@ -314,6 +325,13 @@ class ConnectionService {
         // Claimed demo conversation (Better than human - remember first conversation)
         claimedDemoConversation,
       };
+
+      // Debug: Log identity being used for connection
+      log.info('Connection identity', {
+        firebaseUid: state.firebaseUid ? state.firebaseUid.substring(0, 8) + '...' : 'none',
+        deviceId: state.deviceId.substring(0, 16) + '...',
+        hasFirebaseUid: !!state.firebaseUid,
+      });
 
       // Fetch token
       let tokenResponse;
