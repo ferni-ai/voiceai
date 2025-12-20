@@ -10,4 +10,4 @@ export { handleGoogleCalendarRoutes } from './google-calendar.js';
 export { handleMusicRoutes } from './music.js';
 export { handleAgentRoutes } from './agents.js';
 export { handlePushRoutes } from './push.js';
-export { handleCalendarDataRoutes } from './calendar-data.js';
+// NOTE: calendar-data.ts was removed - calendar data is served via /api/calendar/* routes in calendar-routes.ts
