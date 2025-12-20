@@ -217,6 +217,172 @@
     #3d5a35 100%
   );
   color: white;
+}
+
+/* ============================================================================
+   VISITOR TIER RECOGNITION - Progressive warmth
+   ============================================================================ */
+
+/* First-time visitor - clean, inviting */
+.visitor-new {
+  /* Default styling */
+}
+
+/* Returning visitor - subtle recognition */
+.visitor-returning .hero__tagline {
+  opacity: 0;
+  animation: tagline-reveal 0.8s ease-out 0.3s forwards;
+}
+
+@keyframes tagline-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Familiar visitor (3+ visits) - warmer recognition */
+.visitor-familiar .hero__tagline::before {
+  content: 'Welcome back. ';
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.visitor-familiar .hero-ferni__orb {
+  animation: familiar-pulse 0.6s ease-out;
+}
+
+@keyframes familiar-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+    filter: brightness(1.1);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+/* Loyal visitor (10+ visits) - special warmth */
+.visitor-loyal .hero-ferni__glow {
+  opacity: 0.6;
+  animation: loyal-glow 3s ease-in-out infinite;
+}
+
+@keyframes loyal-glow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.65;
+  }
+}
+
+/* ============================================================================
+   ENGAGEMENT STATE INDICATORS
+   ============================================================================ */
+
+/* High engagement - user is interested */
+.engagement-high .btn--primary {
+  position: relative;
+  overflow: visible;
+}
+
+.engagement-high .btn--primary::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: var(--color-ferni);
+  border-radius: inherit;
+  filter: blur(8px);
+  opacity: 0.3;
+  z-index: -1;
+  animation: engagement-glow 2s ease-in-out infinite;
+}
+
+@keyframes engagement-glow {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(1.02);
+  }
+}
+
+/* Hesitating user - gentle nudge */
+.user-hesitating .btn--secondary {
+  animation: subtle-attention 2s ease-in-out infinite;
+}
+
+@keyframes subtle-attention {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(74, 103, 65, 0.1);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(74, 103, 65, 0.2);
+  }
+}
+
+/* Helpful nudge tooltip */
+.helpful-nudge {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: var(--color-background-elevated, white);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  opacity: 0;
+  animation: nudge-appear 0.4s ease-out forwards;
+}
+
+.helpful-nudge::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--color-background-elevated, white);
+}
+
+@keyframes nudge-appear {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.helpful-nudge--fading {
+  animation: nudge-fade 0.5s ease-out forwards;
+}
+
+@keyframes nudge-fade {
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px);
+  }
   box-shadow: 
     0 6px 20px rgba(74, 103, 65, 0.4),
     0 0 0 3px rgba(74, 103, 65, 0.15);

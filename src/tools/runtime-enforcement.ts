@@ -122,6 +122,14 @@ const DOMAIN_OWNERSHIP: Record<string, string[]> = {
     'recordContactInteraction',
     'setContactFollowUp',
     'completeContactFollowUp',
+    // Message Validation Tools (Phase 4 - "Sleep on It")
+    'analyzeMessageTone',
+    'saveMessageForReview',
+    'getPendingMessages',
+    'getMessagesReadyForReview',
+    'reviewMessage',
+    'approveMessage',
+    'discardMessage',
     // Legacy Calendar/Appointment Tools
     'manageAppointment',
     'scheduleReminder',

@@ -427,6 +427,56 @@
   }
 }
 
+/* Deep breath - settling/calming ambient behavior */
+.hero-ferni--deep-breath .hero-ferni__orb {
+  animation: deep-breath-orb 3000ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hero-ferni--deep-breath .hero-ferni__glow {
+  animation: deep-breath-glow 3000ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes deep-breath-orb {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.05);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+  75% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes deep-breath-glow {
+  0% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  25% {
+    opacity: 0.5;
+    transform: scale(1.1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(1.15);
+  }
+  75% {
+    opacity: 0.5;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+}
+
 /* Anticipation - Lean forward */
 .hero-ferni--anticipation {
   animation: anticipation-lean 500ms cubic-bezier(0.4, 0, 0.2, 1);

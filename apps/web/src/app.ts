@@ -1199,6 +1199,12 @@ class VoiceAIApp {
       initDevPanel();
     });
 
+    // 🔍 Insights Debug Panel - Cross-persona insights debugging (Cmd/Ctrl+Shift+I)
+    this.safeInit('InsightsDebugPanel', async () => {
+      const { initInsightsDebugPanel } = await import('./ui/insights-debug-panel.ui.js');
+      initInsightsDebugPanel();
+    });
+
     // 📊 Engagement UI - Daily practice, streaks, predictions
     this.safeInit('EngagementUI', () => initializeEngagementUI());
     this.safeInit('PredictionsUI', () => {

@@ -389,12 +389,69 @@
     widgetContainer.classList.add('is-visible');
   }
   
+  // ============================================================================
+  // PEEK MESSAGES - Time-aware and contextual
+  // ============================================================================
+  
+  const PEEK_MESSAGES = {
+    morning: [
+      "Morning. Ready when you are.",
+      "How are you starting today?",
+      "Coffee and a thought?"
+    ],
+    afternoon: [
+      "Something on your mind?",
+      "Taking a break?",
+      "How's your day going?"
+    ],
+    evening: [
+      "Winding down?",
+      "How was today?",
+      "Want to reflect on today?"
+    ],
+    lateNight: [
+      "Can't sleep?",
+      "Late thoughts?",
+      "I'm here. No rush."
+    ],
+    returning: [
+      "Good to see you again.",
+      "Welcome back.",
+      "Still here whenever."
+    ]
+  };
+  
+  function getPeekMessage() {
+    const hour = new Date().getHours();
+    const visitCount = parseInt(localStorage.getItem('ferni_visit_count') || '0', 10);
+    
+    // Returning visitor gets special messages
+    if (visitCount > 2 && Math.random() < 0.4) {
+      const messages = PEEK_MESSAGES.returning;
+      return messages[Math.floor(Math.random() * messages.length)];
+    }
+    
+    // Time-based messages
+    let messages;
+    if (hour >= 23 || hour < 5) {
+      messages = PEEK_MESSAGES.lateNight;
+    } else if (hour < 12) {
+      messages = PEEK_MESSAGES.morning;
+    } else if (hour < 17) {
+      messages = PEEK_MESSAGES.afternoon;
+    } else {
+      messages = PEEK_MESSAGES.evening;
+    }
+    
+    return messages[Math.floor(Math.random() * messages.length)];
+  }
+  
   function showPeek() {
     if (state.isOpen) return;
     
     state.isPeeking = true;
     const peekText = widgetContainer.querySelector('.demo-widget__peek-text');
-    peekText.textContent = "Something on your mind?";
+    peekText.textContent = getPeekMessage();
     widgetContainer.classList.add('is-peeking');
     
     // Auto-hide after 5s
@@ -402,8 +459,21 @@
       if (state.isPeeking) {
         widgetContainer.classList.remove('is-peeking');
         state.isPeeking = false;
+        
+        // Schedule another peek later
+        scheduleNextPeek();
       }
     }, 5000);
+  }
+  
+  function scheduleNextPeek() {
+    // Show another peek after 30-60 seconds if still not opened
+    const delay = 30000 + Math.random() * 30000;
+    setTimeout(() => {
+      if (!state.isOpen) {
+        showPeek();
+      }
+    }, delay);
   }
 
   // ============================================================================
