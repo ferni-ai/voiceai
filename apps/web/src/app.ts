@@ -54,6 +54,11 @@ import {
 } from './ui/spotify.ui.js';
 import { initTeamUI, teamUI } from './ui/team.ui.js';
 import { initWaveformUI, waveformUI } from './ui/waveform.ui.js';
+// Relationship Management (Your People)
+import { initYourPeopleUI, openYourPeople } from './ui/your-people.ui.js';
+// Legacy contact management (backward compatibility)
+import { initContactsUI } from './ui/contacts.ui.js';
+import { initGiftsUI } from './ui/gifts.ui.js';
 
 // Premium UI Features
 import { celebrationsUI, initCelebrationsUI } from './ui/celebrations.ui.js';
@@ -180,7 +185,7 @@ import { getOnboardingUI, initOnboardingUI, startOnboardingIfNeeded } from './ui
 import { initPersonaTransitionUI } from './ui/persona-transition.ui.js';
 // 🎬 Cameo Roster - Team member pop-in animations in the roster
 import { initCameoRoster } from './ui/cameo-roster.ui.js';
-import { initRelationshipProgressUI } from './ui/relationship-progress.ui.js';
+import { initRelationshipProgressUI } from './ui/stage-celebration.ui.js';
 // Trust Journey is now integrated into journey.ui.ts - no separate init needed
 // Music Dashboard UI - "Musical You" insights
 import { showGamePicker } from './ui/game-picker.ui.js';
@@ -200,6 +205,8 @@ import { openContactSettings } from './ui/contact-settings.ui.js';
 import { openCalendarSettings } from './ui/calendar-settings.ui.js';
 // Calendar View UI - Visual schedule display
 import { showCalendarView, setCalendarViewCallbacks } from './ui/calendar-view.ui.js';
+// Calendar Analytics UI - Insights dashboard
+// Calendar analytics is now integrated into calendar-view.ui.ts
 // Wearable Settings UI - Connected device management
 import { showWearableSettings } from './ui/wearable-settings.ui.js';
 // Video Settings UI - Video session controls
@@ -1045,6 +1052,11 @@ class VoiceAIApp {
     this.safeInit('EasterEggsUI', () => initEasterEggsUI());
     this.safeInit('MoodUI', () => initMoodUI());
     this.safeInit('AvatarFeedback', () => initAvatarFeedback()); // ✨ For music dancing!
+    // Relationship Management - Better than human relationship support
+    this.safeInit('YourPeopleUI', () => initYourPeopleUI());
+    // Legacy contact/gift UIs (backward compatibility)
+    this.safeInit('ContactsUI', () => initContactsUI());
+    this.safeInit('GiftsUI', () => initGiftsUI());
     // 📱 Mobile Delights - Tilt parallax, tap-to-look, haptics, pull-to-connect, immersive mode
     this.safeInit('MobileDelights', () =>
       initMobileDelights({
@@ -1133,14 +1145,10 @@ class VoiceAIApp {
       // Shows insights from the whole team (Peter, Maya, Jordan, etc.)
 
       // 🔔 Cross-Team Notifications - Real-time alerts from team insights
-      // Initialize with userId if available (will connect to WebSocket)
-      if (appState.userId) {
-        initCrossTeamNotifications(appState.userId);
-      } else {
-        // Async fallback - initialize once userId is available
-        void this.getCurrentUserId?.().then((userId) => {
-          if (userId) initCrossTeamNotifications(userId);
-        });
+      // Initialize with userId (deviceId) if available (will connect to WebSocket)
+      const userId = appState.get('deviceId');
+      if (userId) {
+        initCrossTeamNotifications(userId);
       }
 
       // Set up gentle check-in handler for significant concern detection
@@ -1489,7 +1497,7 @@ class VoiceAIApp {
           setCalendarViewCallbacks({
             onConnectCalendar: () => {
               // Redirect to Google OAuth flow
-              const userId = this.bogleClient?.getUserId() || 'anonymous';
+              const userId = appState.get('deviceId') || 'anonymous';
               window.location.href = `/auth/google/calendar?userId=${userId}`;
             },
           });
@@ -1518,11 +1526,13 @@ class VoiceAIApp {
           }
         },
         onCreativeYouClick: () => {
-          const userId = this.bogleClient?.getUserId() || 'anonymous';
+          const userId = appState.get('deviceId') || 'anonymous';
           openCreativeYouDashboard(userId);
         },
         onDiscoverAgentsClick: () => void openMarketplace(),
         onConnectionsClick: () => void showIntegrationsSettings(),
+        onContactsClick: () => void openYourPeople(),
+        onGiftsClick: () => void openYourPeople(), // Gifts now integrated into relationship cards
       });
 
       // Wire up Spotify state changes to menu

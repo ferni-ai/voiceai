@@ -85,6 +85,8 @@ export interface SettingsMenuUICallbacks {
   onCreativeYouClick?: () => void;
   onDiscoverAgentsClick?: () => void;
   onConnectionsClick?: () => void;
+  onContactsClick?: () => void;
+  onGiftsClick?: () => void;
   onClose?: () => void;
 }
 
@@ -171,6 +173,11 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
   download:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M8 21h8"/><path d="M3 16v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/></svg>',
+  // Contacts & Gifts
+  contacts:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M8 6h8"/><path d="M8 10h8"/><path d="M8 14h4"/><circle cx="12" cy="18" r="1"/></svg>',
+  gift:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="8" width="18" height="14" rx="2"/><path d="M12 8V22"/><path d="M3 12h18"/><path d="M12 8a4 4 0 0 0-4-4c-1.7 0-3 1.3-3 3 0 1 .4 1.9 1 2.5"/><path d="M12 8a4 4 0 0 1 4-4c1.7 0 3 1.3 3 3 0 1-.4 1.9-1 2.5"/></svg>',
 
   // Help & Support
   help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>',
@@ -589,7 +596,7 @@ class SettingsMenuUI {
                   expandedSections.has('connect'),
                   `
             ${this.renderMenuItem('play-games', ICONS.sparkles, t('menu.items.playGames'))}
-            ${this.renderMenuItem('music-dashboard', ICONS.music, t('menu.items.musicalYou'))}
+            ${this.renderMenuItemWithBadge('music-dashboard', ICONS.music, t('menu.items.musicalYou'), t('common.updated'))}
             ${this.renderMenuItemWithBadge('creative-you', ICONS.creative, t('menu.items.creativeYou'), t('common.new'))}
             ${this.renderMenuItem('discover-agents', ICONS.compass, t('menu.items.discoverAgents'))}
             ${this.renderMenuItem('video-settings', ICONS.video, t('menu.items.videoSessions'))}
@@ -627,6 +634,7 @@ class SettingsMenuUI {
                   t('menu.sections.remember'),
                   expandedSections.has('remember'),
                   `
+            ${this.renderMenuItem('contacts', ICONS.users, 'Your People')}
             ${this.renderMenuItem('conversation-memory', ICONS.memory, t('menu.items.memoryBrowser'))}
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
           `
@@ -1132,6 +1140,12 @@ class SettingsMenuUI {
         break;
       case 'connections':
         this.callbacks.onConnectionsClick?.();
+        break;
+      case 'contacts':
+        this.callbacks.onContactsClick?.();
+        break;
+      case 'gifts':
+        this.callbacks.onGiftsClick?.();
         break;
       case 'whats-growing':
         // Open roadmap panel with overview (no specific feature)

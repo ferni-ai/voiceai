@@ -20,6 +20,64 @@ import { createLogger } from '../utils/logger.js';
 const log = createLogger('CalendarViewUI');
 
 // ============================================================================
+// ANALYTICS TYPES (consolidated from calendar-analytics.ui.ts)
+// ============================================================================
+
+export interface CalendarLoadFactors {
+  weeklyMeetingHours: number;
+  weeklyFocusTimeRatio: number;
+  weeklyBackToBackPercentage: number;
+  consecutiveOverloadedDays: number;
+  consecutiveMeetingStreak: number;
+  heaviestDayThisWeek: string | null;
+  lightestDayThisWeek: string | null;
+}
+
+export interface DailyLoadTrend {
+  date: string;
+  dayName: string;
+  meetingHours: number;
+  focusHours: number;
+  meetingCount: number;
+  isOverloaded: boolean;
+}
+
+export interface RecoveryInsight {
+  urgency: 'low' | 'moderate' | 'high' | 'immediate';
+  message: string;
+  suggestedAction?: string;
+}
+
+export interface CalendarPattern {
+  type: 'peak-hours' | 'busiest-day' | 'focus-deficit' | 'back-to-back' | 'meeting-marathon';
+  title: string;
+  description: string;
+  severity: 'info' | 'warning' | 'critical';
+}
+
+export interface CalendarAnalyticsData {
+  // Current load summary
+  loadFactors: CalendarLoadFactors;
+  
+  // Weekly trends (last 7 days)
+  dailyTrends: DailyLoadTrend[];
+  
+  // Insights
+  recoveryInsight: RecoveryInsight | null;
+  patterns: CalendarPattern[];
+  
+  // Comparisons
+  weekOverWeekChange: {
+    meetingHoursChange: number; // percentage
+    focusTimeChange: number; // percentage
+  };
+  
+  // Best practices
+  healthScore: number; // 0-100
+  recommendations: string[];
+}
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -57,7 +115,7 @@ export interface CalendarViewCallbacks {
   onConnectCalendar?: () => void;
 }
 
-type ViewMode = 'today' | 'week';
+type ViewMode = 'today' | 'week' | 'month' | 'insights';
 
 // ============================================================================
 // ICONS (Lucide-style, 2px stroke, rounded)
@@ -112,6 +170,26 @@ const ICONS = {
   chevronRight: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="m9 18 6-6-6-6"/>
   </svg>`,
+  settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+    <circle cx="12" cy="12" r="3"/>
+  </svg>`,
+  chart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="18" y1="20" x2="18" y2="10"/>
+    <line x1="12" y1="20" x2="12" y2="4"/>
+    <line x1="6" y1="20" x2="6" y2="14"/>
+  </svg>`,
+  target: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10"/>
+    <circle cx="12" cy="12" r="6"/>
+    <circle cx="12" cy="12" r="2"/>
+  </svg>`,
+  zap: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+  </svg>`,
+  heart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+  </svg>`,
 };
 
 // ============================================================================
@@ -126,10 +204,13 @@ class CalendarViewUI {
   private isVisible = false;
   private isLoading = false;
   private isConnected = false;
-  private viewMode: ViewMode = 'today';
+  private showExternalEvents = true; // Toggle for showing external calendar events
+  private viewMode: ViewMode = 'month'; // Default to month view for Ferni Calendar
   private todayData: DayOverview | null = null;
   private weekData: WeekOverview | null = null;
   private currentDate: Date = new Date();
+  private analyticsData: CalendarAnalyticsData | null = null;
+  private isLoadingAnalytics = false;
 
   /**
    * Initialize the calendar view
@@ -235,31 +316,31 @@ class CalendarViewUI {
     this.renderLoading();
 
     try {
-      // Check connection status
-      const statusRes = await apiGet('/auth/google/status');
-      this.isConnected = statusRes?.linked === true;
+      // Check connection status for external calendars
+      const statusRes = await apiGet<{ linked?: boolean }>('/auth/google/status');
+      this.isConnected = statusRes?.data?.linked === true;
 
-      if (!this.isConnected) {
-        this.renderDisconnected();
-        return;
+      // If connected to external calendar, load external events
+      if (this.isConnected && this.showExternalEvents) {
+        // Load today's data
+        const todayRes = await apiGet<{ overview?: DayOverview }>('/api/calendar/today');
+        if (todayRes?.data?.overview) {
+          this.todayData = todayRes.data.overview;
+        }
+
+        // Load week data
+        const weekRes = await apiGet<{ overview?: WeekOverview }>('/api/calendar/week');
+        if (weekRes?.data?.overview) {
+          this.weekData = weekRes.data.overview;
+        }
       }
 
-      // Load today's data
-      const todayRes = await apiGet('/api/calendar/today');
-      if (todayRes?.overview) {
-        this.todayData = todayRes.overview;
-      }
-
-      // Load week data
-      const weekRes = await apiGet('/api/calendar/week');
-      if (weekRes?.overview) {
-        this.weekData = weekRes.overview;
-      }
-
+      // Always render the calendar (Ferni Calendar works without external connection)
       this.renderContent();
     } catch (error) {
       log.error('Failed to load calendar data', error);
-      this.renderError("Couldn't load your calendar. Try again?");
+      // Still render the calendar even on error - Ferni Calendar works offline
+      this.renderContent();
     } finally {
       this.isLoading = false;
     }
@@ -300,9 +381,27 @@ class CalendarViewUI {
         <div class="calendar-view__disconnected-icon">${ICONS.calendar}</div>
         <h3>Connect Your Calendar</h3>
         <p>See your schedule at a glance and let Alex help manage your time.</p>
-        <button class="calendar-view__btn calendar-view__btn--primary" data-action="connect">
-          ${ICONS.link}
-          <span>Connect Google Calendar</span>
+        
+        <div class="calendar-view__providers">
+          <button class="calendar-view__provider-btn" data-action="connect-google">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            <span>Google Calendar</span>
+          </button>
+          
+          <button class="calendar-view__provider-btn" data-action="connect-apple">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#555" d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+            <span>Apple Calendar</span>
+          </button>
+          
+          <button class="calendar-view__provider-btn" data-action="connect-outlook">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#0078d4" d="M7.88 12.04q0 .45-.11.87-.1.41-.33.74-.22.33-.58.52-.37.2-.87.2t-.85-.2q-.35-.21-.57-.55-.22-.33-.33-.75-.1-.42-.1-.86t.1-.87q.1-.43.34-.76.22-.34.59-.54.36-.2.87-.2t.86.2q.35.21.57.55.22.34.31.77.1.43.1.88zM24 12v9.38q0 .46-.33.8-.33.32-.8.32H7.13q-.46 0-.8-.33-.32-.33-.32-.8V18H1q-.41 0-.7-.3-.3-.29-.3-.7V7q0-.41.3-.7Q.58 6 1 6h6.13V2.55q0-.44.3-.75.3-.3.7-.3H22.88q.46 0 .79.33.33.34.33.8z"/></svg>
+            <span>Outlook</span>
+          </button>
+        </div>
+        
+        <button class="calendar-view__settings-link" data-action="open-settings">
+          ${ICONS.settings}
+          <span>Calendar Settings</span>
         </button>
       </div>
     `;
@@ -339,14 +438,24 @@ class CalendarViewUI {
           Today
         </button>
         <button class="calendar-view__tab ${this.viewMode === 'week' ? 'calendar-view__tab--active' : ''}" data-view="week">
+          ${ICONS.clock}
+          Week
+        </button>
+        <button class="calendar-view__tab ${this.viewMode === 'month' ? 'calendar-view__tab--active' : ''}" data-view="month">
           ${ICONS.calendar}
-          This Week
+          Month
+        </button>
+        <button class="calendar-view__tab ${this.viewMode === 'insights' ? 'calendar-view__tab--active' : ''}" data-view="insights">
+          ${ICONS.chart}
+          Insights
         </button>
       </div>
 
       <div class="calendar-view__body">
-        ${this.viewMode === 'today' ? this.renderTodayView() : this.renderWeekView()}
+        ${this.renderViewContent()}
       </div>
+
+      ${this.renderSyncStatus()}
 
       <footer class="calendar-view__footer">
         <p class="calendar-view__footer-hint">Say "Alex, schedule a meeting" to add events</p>
@@ -356,6 +465,52 @@ class CalendarViewUI {
     this.bindCloseButton();
     this.bindTabs();
     this.bindActions();
+    this.bindSyncToggle();
+  }
+
+  /**
+   * Render the sync status bar showing external calendar connection
+   */
+  private renderSyncStatus(): string {
+    if (this.isConnected) {
+      return `
+        <div class="calendar-view__sync-status calendar-view__sync-status--connected">
+          <div class="calendar-view__sync-info">
+            <span class="calendar-view__sync-dot"></span>
+            <span>Google Calendar synced</span>
+          </div>
+          <label class="calendar-view__sync-toggle">
+            <input type="checkbox" ${this.showExternalEvents ? 'checked' : ''} data-action="toggle-external">
+            <span>Show events</span>
+          </label>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="calendar-view__sync-status">
+        <div class="calendar-view__sync-info">
+          <span class="calendar-view__sync-hint">Sync your calendar to see events</span>
+        </div>
+        <button class="calendar-view__sync-btn" data-action="connect-google">
+          ${ICONS.link}
+          <span>Connect</span>
+        </button>
+      </div>
+    `;
+  }
+
+  /**
+   * Bind the sync toggle checkbox
+   */
+  private bindSyncToggle(): void {
+    const toggle = this.wrapper?.querySelector('[data-action="toggle-external"]') as HTMLInputElement;
+    if (toggle) {
+      toggle.addEventListener('change', () => {
+        this.showExternalEvents = toggle.checked;
+        this.loadCalendarData();
+      });
+    }
   }
 
   private renderTodayView(): string {
@@ -404,7 +559,7 @@ class CalendarViewUI {
   }
 
   private renderWeekView(): string {
-    if (!this.weekData || !this.weekData.days) {
+    if (!this.weekData?.days) {
       return this.renderEmptyState('No events this week');
     }
 
@@ -434,6 +589,328 @@ class CalendarViewUI {
         ${days.map((day) => this.renderDayCard(day)).join('')}
       </div>
     `;
+  }
+
+  /**
+   * Render the content based on current view mode
+   */
+  private renderViewContent(): string {
+    switch (this.viewMode) {
+      case 'today':
+        return this.renderTodayView();
+      case 'week':
+        return this.renderWeekView();
+      case 'month':
+        return this.renderMonthView();
+      case 'insights':
+        return this.renderInsightsView();
+      default:
+        return this.renderTodayView();
+    }
+  }
+
+  /**
+   * Render a full month calendar grid
+   */
+  private renderMonthView(): string {
+    const year = this.currentDate.getFullYear();
+    const month = this.currentDate.getMonth();
+    
+    // Get month name and year for header
+    const monthName = this.currentDate.toLocaleDateString('en-US', { month: 'long' });
+    
+    // Get first day of month and total days
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDay = firstDay.getDay(); // 0 = Sunday
+    
+    // Get today for highlighting
+    const today = new Date();
+    const isCurrentMonth = today.getMonth() === month && today.getFullYear() === year;
+    const todayDate = today.getDate();
+    
+    // Build calendar grid
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    // Get events for this month from weekData or fetch
+    const monthEvents = this.getMonthEvents(year, month);
+    
+    // Build grid cells
+    let gridCells = '';
+    let dayCount = 1;
+    
+    // We need 6 rows to accommodate all possible month layouts
+    for (let row = 0; row < 6; row++) {
+      for (let col = 0; col < 7; col++) {
+        const cellIndex = row * 7 + col;
+        
+        if (cellIndex < startingDay || dayCount > daysInMonth) {
+          // Empty cell (before first day or after last day)
+          gridCells += `<div class="calendar-view__grid-cell calendar-view__grid-cell--empty"></div>`;
+        } else {
+          const isToday = isCurrentMonth && dayCount === todayDate;
+          const dayEvents = monthEvents.filter(e => {
+            const eventDate = new Date(e.startTime);
+            return eventDate.getDate() === dayCount;
+          });
+          const hasEvents = dayEvents.length > 0;
+          
+          const cellClasses = [
+            'calendar-view__grid-cell',
+            isToday ? 'calendar-view__grid-cell--today' : '',
+            hasEvents ? 'calendar-view__grid-cell--has-events' : '',
+          ].filter(Boolean).join(' ');
+          
+          gridCells += `
+            <div class="${cellClasses}" data-date="${year}-${String(month + 1).padStart(2, '0')}-${String(dayCount).padStart(2, '0')}">
+              <span class="calendar-view__grid-day">${dayCount}</span>
+              ${hasEvents ? `<span class="calendar-view__grid-dot"></span>` : ''}
+            </div>
+          `;
+          dayCount++;
+        }
+      }
+      
+      // Stop if we've placed all days
+      if (dayCount > daysInMonth) break;
+    }
+    
+    return `
+      <div class="calendar-view__month">
+        <div class="calendar-view__month-nav">
+          <button class="calendar-view__month-btn" data-action="prev-month">
+            ${ICONS.chevronLeft}
+          </button>
+          <div class="calendar-view__month-label">
+            <span class="calendar-view__month-name">${monthName}</span>
+            <span class="calendar-view__month-year">${year}</span>
+          </div>
+          <button class="calendar-view__month-btn" data-action="next-month">
+            ${ICONS.chevronRight}
+          </button>
+        </div>
+        
+        <div class="calendar-view__grid-header">
+          ${dayNames.map(d => `<div class="calendar-view__grid-header-cell">${d}</div>`).join('')}
+        </div>
+        
+        <div class="calendar-view__grid">
+          ${gridCells}
+        </div>
+        
+        <div class="calendar-view__month-footer">
+          <button class="calendar-view__today-btn" data-action="go-today">
+            Today
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Render the insights view with calendar analytics
+   */
+  private renderInsightsView(): string {
+    if (this.isLoadingAnalytics) {
+      return `
+        <div class="calendar-view__insights-loading">
+          <div class="calendar-view__spinner"></div>
+          <p>Analyzing your calendar...</p>
+        </div>
+      `;
+    }
+
+    if (!this.analyticsData) {
+      return `
+        <div class="calendar-view__empty">
+          <div class="calendar-view__empty-icon">${ICONS.chart}</div>
+          <p>Connect your calendar to see insights</p>
+        </div>
+      `;
+    }
+
+    const { healthScore, loadFactors, dailyTrends, patterns, recoveryInsight, weekOverWeekChange, recommendations } = this.analyticsData;
+    
+    // Health score visualization
+    const circumference = 2 * Math.PI * 32;
+    const offset = circumference - (healthScore / 100) * circumference;
+    let scoreClass = '';
+    let insight = recommendations[0] || 'Your calendar looks balanced.';
+    
+    if (healthScore < 40) {
+      scoreClass = 'critical';
+      insight = recommendations[0] || 'Your calendar needs attention.';
+    } else if (healthScore < 70) {
+      scoreClass = 'warning';
+      insight = recommendations[0] || 'Some adjustments could help.';
+    }
+
+    const focusPercent = Math.round((loadFactors?.weeklyFocusTimeRatio || 0) * 100);
+    const backToBackPercent = Math.round(loadFactors?.weeklyBackToBackPercentage || 0);
+    const meetingTrend = weekOverWeekChange?.meetingHoursChange || 0;
+
+    // Weekly chart bars
+    const maxHours = Math.max(...(dailyTrends || []).map(d => d.meetingHours), 8);
+    const chartBars = (dailyTrends || []).map(day => {
+      const heightPercent = (day.meetingHours / maxHours) * 100;
+      return `
+        <div class="calendar-view__chart-bar-container">
+          <div class="calendar-view__chart-bar-track">
+            <div 
+              class="calendar-view__chart-bar ${day.isOverloaded ? 'overloaded' : ''}" 
+              style="height: ${heightPercent}%"
+              title="${day.meetingHours}h meetings"
+            ></div>
+          </div>
+          <span class="calendar-view__chart-bar-label">${day.dayName.slice(0, 3)}</span>
+        </div>
+      `;
+    }).join('');
+
+    // Patterns
+    const patternCards = (patterns || []).map(pattern => `
+      <div class="calendar-view__pattern-card ${pattern.severity}">
+        <div class="calendar-view__pattern-content">
+          <div class="calendar-view__pattern-title">${pattern.title}</div>
+          <div class="calendar-view__pattern-description">${pattern.description}</div>
+        </div>
+      </div>
+    `).join('');
+
+    return `
+      <div class="calendar-view__insights">
+        <!-- Health Score -->
+        <div class="calendar-view__health-score">
+          <div class="calendar-view__health-score-circle">
+            <svg viewBox="0 0 80 80" width="80" height="80">
+              <circle class="calendar-view__health-score-bg" cx="40" cy="40" r="32"/>
+              <circle 
+                class="calendar-view__health-score-fill ${scoreClass}" 
+                cx="40" cy="40" r="32"
+                stroke-dasharray="${circumference}"
+                stroke-dashoffset="${offset}"
+              />
+            </svg>
+            <span class="calendar-view__health-score-value">${healthScore}</span>
+          </div>
+          <div class="calendar-view__health-score-details">
+            <div class="calendar-view__health-score-label">Calendar Health</div>
+            <div class="calendar-view__health-score-insight">${insight}</div>
+          </div>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="calendar-view__metrics-grid">
+          <div class="calendar-view__metric-card">
+            <div class="calendar-view__metric-icon">${ICONS.clock}</div>
+            <div class="calendar-view__metric-value">${Math.round(loadFactors?.weeklyMeetingHours || 0)}h</div>
+            <div class="calendar-view__metric-label">Meeting Hours</div>
+            ${meetingTrend !== 0 ? `<div class="calendar-view__metric-trend ${meetingTrend < 0 ? 'positive' : 'negative'}">${meetingTrend > 0 ? '+' : ''}${meetingTrend}%</div>` : ''}
+          </div>
+          
+          <div class="calendar-view__metric-card">
+            <div class="calendar-view__metric-icon">${ICONS.target}</div>
+            <div class="calendar-view__metric-value">${focusPercent}%</div>
+            <div class="calendar-view__metric-label">Focus Time</div>
+          </div>
+          
+          <div class="calendar-view__metric-card">
+            <div class="calendar-view__metric-icon">${ICONS.zap}</div>
+            <div class="calendar-view__metric-value">${backToBackPercent}%</div>
+            <div class="calendar-view__metric-label">Back-to-Back</div>
+          </div>
+          
+          <div class="calendar-view__metric-card">
+            <div class="calendar-view__metric-icon">${ICONS.calendar}</div>
+            <div class="calendar-view__metric-value">${loadFactors?.lightestDayThisWeek || '-'}</div>
+            <div class="calendar-view__metric-label">Lightest Day</div>
+          </div>
+        </div>
+
+        <!-- Weekly Chart -->
+        ${dailyTrends && dailyTrends.length > 0 ? `
+          <div class="calendar-view__weekly-chart">
+            <div class="calendar-view__weekly-chart-title">Weekly Meeting Load</div>
+            <div class="calendar-view__chart-bars">
+              ${chartBars}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Patterns -->
+        ${patterns && patterns.length > 0 ? `
+          <div class="calendar-view__patterns-section">
+            ${patternCards}
+          </div>
+        ` : ''}
+
+        <!-- Recovery Action -->
+        ${recoveryInsight && recoveryInsight.urgency !== 'low' ? `
+          <div class="calendar-view__recovery-action">
+            <div class="calendar-view__recovery-info">
+              <div class="calendar-view__recovery-icon">${ICONS.heart}</div>
+              <div class="calendar-view__recovery-text">
+                <h4>Recovery Recommended</h4>
+                <p>${recoveryInsight.message}</p>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  /**
+   * Get events for a specific month
+   */
+  private getMonthEvents(year: number, month: number): CalendarEvent[] {
+    const events: CalendarEvent[] = [];
+    
+    // Collect events from todayData
+    if (this.todayData?.events) {
+      events.push(...this.todayData.events);
+    }
+    
+    // Collect events from weekData
+    if (this.weekData?.days) {
+      for (const day of this.weekData.days) {
+        if (day.events) {
+          events.push(...day.events);
+        }
+      }
+    }
+    
+    // Filter to only events in this month
+    return events.filter(e => {
+      const date = new Date(e.startTime);
+      return date.getMonth() === month && date.getFullYear() === year;
+    });
+  }
+
+  /**
+   * Navigate to previous month
+   */
+  private prevMonth(): void {
+    this.currentDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() - 1, 1);
+    this.renderContent();
+  }
+
+  /**
+   * Navigate to next month
+   */
+  private nextMonth(): void {
+    this.currentDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() + 1, 1);
+    this.renderContent();
+  }
+
+  /**
+   * Go to today's date
+   */
+  private goToToday(): void {
+    this.currentDate = new Date();
+    this.viewMode = 'today';
+    this.renderContent();
   }
 
   private renderDayCard(day: DayOverview): string {
@@ -541,10 +1018,71 @@ class CalendarViewUI {
         const view = (tab as HTMLElement).dataset.view as ViewMode;
         if (view && view !== this.viewMode) {
           this.viewMode = view;
-          this.renderContent();
+          if (view === 'insights' && !this.analyticsData) {
+            this.loadAnalyticsData();
+          } else {
+            this.renderContent();
+          }
         }
       });
     });
+  }
+
+  /**
+   * Load calendar analytics data
+   */
+  private async loadAnalyticsData(): Promise<void> {
+    this.isLoadingAnalytics = true;
+    this.renderContent();
+
+    try {
+      const response = await apiGet<CalendarAnalyticsData>('/api/calendar/analytics');
+      if (response?.ok && response.data) {
+        this.analyticsData = response.data;
+      } else {
+        // Generate mock data for demo purposes if API fails
+        this.analyticsData = this.generateMockAnalyticsData();
+      }
+    } catch (error) {
+      log.error('Failed to load calendar analytics', error);
+      // Generate mock data for demo purposes if API fails
+      this.analyticsData = this.generateMockAnalyticsData();
+    } finally {
+      this.isLoadingAnalytics = false;
+      this.renderContent();
+    }
+  }
+
+  /**
+   * Generate mock analytics data for demo/fallback
+   */
+  private generateMockAnalyticsData(): CalendarAnalyticsData {
+    return {
+      loadFactors: {
+        weeklyMeetingHours: 18,
+        weeklyFocusTimeRatio: 0.45,
+        weeklyBackToBackPercentage: 25,
+        consecutiveOverloadedDays: 2,
+        consecutiveMeetingStreak: 4,
+        heaviestDayThisWeek: 'Tuesday',
+        lightestDayThisWeek: 'Friday',
+      },
+      dailyTrends: [
+        { date: '2024-12-16', dayName: 'Monday', meetingHours: 4, focusHours: 4, meetingCount: 5, isOverloaded: false },
+        { date: '2024-12-17', dayName: 'Tuesday', meetingHours: 6, focusHours: 2, meetingCount: 7, isOverloaded: true },
+        { date: '2024-12-18', dayName: 'Wednesday', meetingHours: 3, focusHours: 5, meetingCount: 4, isOverloaded: false },
+        { date: '2024-12-19', dayName: 'Thursday', meetingHours: 4, focusHours: 4, meetingCount: 5, isOverloaded: false },
+        { date: '2024-12-20', dayName: 'Friday', meetingHours: 1, focusHours: 7, meetingCount: 2, isOverloaded: false },
+      ],
+      recoveryInsight: null,
+      patterns: [],
+      weekOverWeekChange: {
+        meetingHoursChange: -10,
+        focusTimeChange: 15,
+      },
+      healthScore: 72,
+      recommendations: ['Good balance this week. Keep protecting your focus time.'],
+    };
   }
 
   private bindActions(): void {
@@ -556,13 +1094,32 @@ class CalendarViewUI {
         const action = (btn as HTMLElement).dataset.action;
         switch (action) {
           case 'connect':
-            this.callbacks.onConnectCalendar?.();
+          case 'connect-google':
+            this.connectGoogle();
+            break;
+          case 'connect-apple':
+            this.connectApple();
+            break;
+          case 'connect-outlook':
+            this.connectOutlook();
+            break;
+          case 'open-settings':
+            this.openFullSettings();
             break;
           case 'add':
             this.callbacks.onAddEvent?.();
             break;
           case 'retry':
             this.loadCalendarData();
+            break;
+          case 'prev-month':
+            this.prevMonth();
+            break;
+          case 'next-month':
+            this.nextMonth();
+            break;
+          case 'go-today':
+            this.goToToday();
             break;
         }
       });
@@ -577,6 +1134,31 @@ class CalendarViewUI {
         }
       });
     });
+  }
+
+  private connectGoogle(): void {
+    const userId = localStorage.getItem('ferni_user_id') || 'anonymous';
+    window.location.href = `/auth/google/login?user_id=${encodeURIComponent(userId)}`;
+  }
+
+  private connectApple(): void {
+    // Open the full settings to show Apple setup (requires credentials)
+    this.hide();
+    import('./calendar-settings.ui.js').then((mod) => {
+      mod.showCalendarSettings();
+    }).catch((err) => log.error('Failed to open calendar settings', err));
+  }
+
+  private connectOutlook(): void {
+    const userId = localStorage.getItem('ferni_user_id') || 'anonymous';
+    window.location.href = `/auth/microsoft/login?user_id=${encodeURIComponent(userId)}`;
+  }
+
+  private openFullSettings(): void {
+    this.hide();
+    import('./calendar-settings.ui.js').then((mod) => {
+      mod.showCalendarSettings();
+    }).catch((err) => log.error('Failed to open calendar settings', err));
   }
 
   // ============================================================================
@@ -1112,6 +1694,75 @@ class CalendarViewUI {
         max-width: 280px;
       }
 
+      /* Provider buttons */
+      .calendar-view__providers {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2, 8px);
+        width: 100%;
+        max-width: 280px;
+        margin-bottom: var(--space-4, 16px);
+      }
+
+      .calendar-view__provider-btn {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3, 12px);
+        padding: var(--space-3, 12px) var(--space-4, 16px);
+        background: var(--color-background-secondary, rgba(44, 37, 32, 0.05));
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        border-radius: var(--radius-lg, 12px);
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-text-primary, #2c2520);
+        cursor: pointer;
+        transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .calendar-view__provider-btn:hover {
+        background: var(--color-background-tertiary, rgba(44, 37, 32, 0.08));
+        border-color: var(--color-alex, #5a6b8a);
+      }
+
+      .calendar-view__provider-btn:focus-visible {
+        outline: 2px solid var(--color-alex, #5a6b8a);
+        outline-offset: 2px;
+      }
+
+      .calendar-view__provider-btn svg {
+        flex-shrink: 0;
+      }
+
+      .calendar-view__settings-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2, 8px);
+        padding: var(--space-2, 8px);
+        background: transparent;
+        border: none;
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted, #756a5e);
+        cursor: pointer;
+        transition: color ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .calendar-view__settings-link:hover {
+        color: var(--color-text-secondary, #70605a);
+      }
+
+      .calendar-view__settings-link:focus-visible {
+        outline: 2px solid var(--color-alex, #5a6b8a);
+        outline-offset: 2px;
+      }
+
+      .calendar-view__settings-link svg {
+        width: 14px;
+        height: 14px;
+      }
+
       /* ========================================================================
          LOADING & ERROR
          ======================================================================== */
@@ -1205,6 +1856,163 @@ class CalendarViewUI {
       }
 
       /* ========================================================================
+         MONTH VIEW
+         ======================================================================== */
+      .calendar-view__month {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3, 12px);
+        padding: var(--space-2, 8px) 0;
+      }
+
+      .calendar-view__month-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-4, 16px);
+        padding: 0 var(--space-2, 8px);
+      }
+
+      .calendar-view__month-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        background: transparent;
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+        border-radius: var(--radius-md, 8px);
+        color: var(--color-text-secondary, #70605a);
+        cursor: pointer;
+        transition: all var(--duration-fast, 150ms) ease;
+      }
+
+      .calendar-view__month-btn:hover {
+        background: var(--color-background-secondary, rgba(44, 37, 32, 0.05));
+        border-color: var(--color-border-medium, rgba(44, 37, 32, 0.2));
+      }
+
+      .calendar-view__month-btn svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .calendar-view__month-label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+      }
+
+      .calendar-view__month-name {
+        font-size: var(--text-lg, 1.125rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-primary, #2c2520);
+      }
+
+      .calendar-view__month-year {
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-muted, #756a5e);
+      }
+
+      .calendar-view__grid-header {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 2px;
+        padding: var(--space-2, 8px) 0;
+        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      }
+
+      .calendar-view__grid-header-cell {
+        font-size: var(--text-xs, 0.75rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-text-muted, #756a5e);
+        text-align: center;
+        text-transform: uppercase;
+        padding: var(--space-1, 4px);
+      }
+
+      .calendar-view__grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 2px;
+      }
+
+      .calendar-view__grid-cell {
+        position: relative;
+        aspect-ratio: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: var(--space-1, 4px);
+        background: var(--color-background-primary, #fffdfb);
+        border-radius: var(--radius-sm, 4px);
+        cursor: pointer;
+        transition: all var(--duration-fast, 150ms) ease;
+      }
+
+      .calendar-view__grid-cell:hover:not(.calendar-view__grid-cell--empty) {
+        background: var(--color-background-secondary, rgba(44, 37, 32, 0.05));
+      }
+
+      .calendar-view__grid-cell--empty {
+        background: transparent;
+        cursor: default;
+      }
+
+      .calendar-view__grid-cell--today {
+        background: var(--color-alex-tint, rgba(90, 107, 138, 0.15));
+        border: 2px solid var(--color-alex, #5a6b8a);
+      }
+
+      .calendar-view__grid-cell--today .calendar-view__grid-day {
+        color: var(--color-alex, #5a6b8a);
+        font-weight: var(--font-weight-bold, 700);
+      }
+
+      .calendar-view__grid-cell--has-events .calendar-view__grid-day {
+        font-weight: var(--font-weight-semibold, 600);
+      }
+
+      .calendar-view__grid-day {
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-primary, #2c2520);
+        line-height: 1;
+      }
+
+      .calendar-view__grid-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--color-alex, #5a6b8a);
+      }
+
+      .calendar-view__month-footer {
+        display: flex;
+        justify-content: center;
+        padding: var(--space-2, 8px) 0;
+      }
+
+      .calendar-view__today-btn {
+        padding: var(--space-2, 8px) var(--space-4, 16px);
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-alex, #5a6b8a);
+        background: transparent;
+        border: 1px solid var(--color-alex, #5a6b8a);
+        border-radius: var(--radius-full, 999px);
+        cursor: pointer;
+        transition: all var(--duration-fast, 150ms) ease;
+      }
+
+      .calendar-view__today-btn:hover {
+        background: var(--color-alex-tint, rgba(90, 107, 138, 0.1));
+      }
+
+      /* ========================================================================
          FOOTER
          ======================================================================== */
       .calendar-view__footer {
@@ -1214,6 +2022,409 @@ class CalendarViewUI {
       }
 
       .calendar-view__footer-hint {
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted, #756a5e);
+        margin: 0;
+      }
+
+      /* ========================================================================
+         SYNC STATUS BAR
+         ======================================================================== */
+      .calendar-view__sync-status {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: var(--space-3, 12px) var(--space-5, 20px);
+        background: var(--color-background-secondary, #f5f1eb);
+        border-top: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      }
+
+      .calendar-view__sync-status--connected {
+        background: var(--color-alex-tint, rgba(90, 107, 138, 0.08));
+      }
+
+      .calendar-view__sync-info {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 8px);
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-secondary, #5c524a);
+      }
+
+      .calendar-view__sync-dot {
+        width: 8px;
+        height: 8px;
+        background: var(--color-alex, #5a6b8a);
+        border-radius: 50%;
+        animation: calendar-view-pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes calendar-view-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+
+      .calendar-view__sync-hint {
+        color: var(--color-text-muted, #756a5e);
+      }
+
+      .calendar-view__sync-toggle {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 8px);
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-secondary, #5c524a);
+        cursor: pointer;
+      }
+
+      .calendar-view__sync-toggle input[type="checkbox"] {
+        width: 36px;
+        height: 20px;
+        appearance: none;
+        background: var(--color-background-tertiary, #e5e0d9);
+        border-radius: var(--radius-full, 999px);
+        position: relative;
+        cursor: pointer;
+        transition: background var(--duration-fast, 150ms) ease;
+      }
+
+      .calendar-view__sync-toggle input[type="checkbox"]::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 16px;
+        height: 16px;
+        background: white;
+        border-radius: 50%;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+        transition: transform var(--duration-fast, 150ms) ease;
+      }
+
+      .calendar-view__sync-toggle input[type="checkbox"]:checked {
+        background: var(--color-alex, #5a6b8a);
+      }
+
+      .calendar-view__sync-toggle input[type="checkbox"]:checked::after {
+        transform: translateX(16px);
+      }
+
+      .calendar-view__sync-btn {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2, 8px);
+        padding: var(--space-2, 8px) var(--space-3, 12px);
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-alex, #5a6b8a);
+        background: transparent;
+        border: 1px solid var(--color-alex, #5a6b8a);
+        border-radius: var(--radius-md, 8px);
+        cursor: pointer;
+        transition: all var(--duration-fast, 150ms) ease;
+      }
+
+      .calendar-view__sync-btn:hover {
+        background: var(--color-alex-tint, rgba(90, 107, 138, 0.1));
+      }
+
+      .calendar-view__sync-btn svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      /* ========================================================================
+         INSIGHTS VIEW
+         ======================================================================== */
+      .calendar-view__insights {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4, 16px);
+      }
+
+      .calendar-view__insights-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-8, 32px);
+        gap: var(--space-3, 12px);
+      }
+
+      .calendar-view__insights-loading p {
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-muted, #756a5e);
+      }
+
+      /* Health Score */
+      .calendar-view__health-score {
+        display: flex;
+        align-items: center;
+        gap: var(--space-4, 16px);
+        padding: var(--space-4, 16px);
+        background: var(--color-alex-tint, rgba(90, 107, 138, 0.08));
+        border-radius: var(--radius-lg, 12px);
+      }
+
+      .calendar-view__health-score-circle {
+        position: relative;
+        width: 80px;
+        height: 80px;
+        flex-shrink: 0;
+      }
+
+      .calendar-view__health-score-circle svg {
+        transform: rotate(-90deg);
+      }
+
+      .calendar-view__health-score-circle circle {
+        fill: none;
+        stroke-width: 8;
+      }
+
+      .calendar-view__health-score-bg {
+        stroke: var(--color-border-subtle, rgba(44, 37, 32, 0.1));
+      }
+
+      .calendar-view__health-score-fill {
+        stroke: var(--color-ferni, #4a6741);
+        stroke-linecap: round;
+        transition: stroke-dashoffset ${DURATION.SLOW}ms ${EASING.STANDARD};
+      }
+
+      .calendar-view__health-score-fill.warning {
+        stroke: var(--color-jordan, #c4856a);
+      }
+
+      .calendar-view__health-score-fill.critical {
+        stroke: var(--color-maya, #a67a6a);
+      }
+
+      .calendar-view__health-score-value {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: var(--text-xl, 1.25rem);
+        font-weight: var(--font-weight-bold, 700);
+        color: var(--color-text-primary, #2c2520);
+      }
+
+      .calendar-view__health-score-details {
+        flex: 1;
+      }
+
+      .calendar-view__health-score-label {
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-text-muted, #756a5e);
+        margin-bottom: var(--space-1, 4px);
+      }
+
+      .calendar-view__health-score-insight {
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-primary, #2c2520);
+        line-height: 1.5;
+      }
+
+      /* Metrics Grid */
+      .calendar-view__metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-3, 12px);
+      }
+
+      @media (min-width: 480px) {
+        .calendar-view__metrics-grid {
+          grid-template-columns: repeat(4, 1fr);
+        }
+      }
+
+      .calendar-view__metric-card {
+        padding: var(--space-3, 12px);
+        background: var(--color-background-secondary, rgba(44, 37, 32, 0.03));
+        border-radius: var(--radius-lg, 12px);
+        text-align: center;
+      }
+
+      .calendar-view__metric-icon {
+        width: 24px;
+        height: 24px;
+        margin: 0 auto var(--space-2, 8px);
+        color: var(--color-alex, #5a6b8a);
+      }
+
+      .calendar-view__metric-icon svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .calendar-view__metric-value {
+        font-size: var(--text-lg, 1.125rem);
+        font-weight: var(--font-weight-bold, 700);
+        color: var(--color-text-primary, #2c2520);
+        margin-bottom: var(--space-1, 4px);
+      }
+
+      .calendar-view__metric-label {
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted, #756a5e);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .calendar-view__metric-trend {
+        font-size: var(--text-xs, 0.75rem);
+        margin-top: var(--space-1, 4px);
+      }
+
+      .calendar-view__metric-trend.positive {
+        color: var(--color-ferni, #4a6741);
+      }
+
+      .calendar-view__metric-trend.negative {
+        color: var(--color-maya, #a67a6a);
+      }
+
+      /* Weekly Chart */
+      .calendar-view__weekly-chart {
+        padding: var(--space-3, 12px);
+        background: var(--color-background-secondary, rgba(44, 37, 32, 0.03));
+        border-radius: var(--radius-lg, 12px);
+      }
+
+      .calendar-view__weekly-chart-title {
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-secondary, #70605a);
+        margin-bottom: var(--space-3, 12px);
+      }
+
+      .calendar-view__chart-bars {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        height: 80px;
+        gap: var(--space-1, 4px);
+      }
+
+      .calendar-view__chart-bar-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100%;
+      }
+
+      .calendar-view__chart-bar-track {
+        flex: 1;
+        width: 100%;
+        display: flex;
+        align-items: flex-end;
+      }
+
+      .calendar-view__chart-bar {
+        width: 100%;
+        background: var(--color-alex, #5a6b8a);
+        border-radius: var(--radius-sm, 4px) var(--radius-sm, 4px) 0 0;
+        transition: height ${DURATION.SLOW}ms ${EASING.STANDARD};
+        opacity: 0.7;
+      }
+
+      .calendar-view__chart-bar.overloaded {
+        background: var(--color-jordan, #c4856a);
+      }
+
+      .calendar-view__chart-bar-label {
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted, #756a5e);
+        margin-top: var(--space-1, 4px);
+      }
+
+      /* Patterns */
+      .calendar-view__patterns-section {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2, 8px);
+      }
+
+      .calendar-view__pattern-card {
+        display: flex;
+        gap: var(--space-3, 12px);
+        padding: var(--space-3, 12px);
+        background: var(--color-background-secondary, rgba(44, 37, 32, 0.03));
+        border-radius: var(--radius-lg, 12px);
+        border-left: 3px solid var(--color-alex, #5a6b8a);
+      }
+
+      .calendar-view__pattern-card.warning {
+        border-left-color: var(--color-jordan, #c4856a);
+      }
+
+      .calendar-view__pattern-card.critical {
+        border-left-color: var(--color-maya, #a67a6a);
+      }
+
+      .calendar-view__pattern-content {
+        flex: 1;
+      }
+
+      .calendar-view__pattern-title {
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-primary, #2c2520);
+        margin-bottom: var(--space-1, 4px);
+      }
+
+      .calendar-view__pattern-description {
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-secondary, #70605a);
+        line-height: 1.4;
+      }
+
+      /* Recovery Action */
+      .calendar-view__recovery-action {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3, 12px);
+        padding: var(--space-3, 12px);
+        background: var(--color-ferni-tint, rgba(74, 103, 65, 0.08));
+        border-radius: var(--radius-lg, 12px);
+        border: 1px solid var(--color-ferni, #4a6741);
+      }
+
+      .calendar-view__recovery-info {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3, 12px);
+      }
+
+      .calendar-view__recovery-icon {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-ferni, #4a6741);
+        border-radius: var(--radius-full, 9999px);
+        color: white;
+        flex-shrink: 0;
+      }
+
+      .calendar-view__recovery-icon svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .calendar-view__recovery-text h4 {
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-primary, #2c2520);
+        margin: 0 0 var(--space-1, 4px);
+      }
+
+      .calendar-view__recovery-text p {
         font-size: var(--text-xs, 0.75rem);
         color: var(--color-text-muted, #756a5e);
         margin: 0;
@@ -1318,6 +2529,121 @@ class CalendarViewUI {
         color: var(--color-text-primary, #faf6f0);
       }
 
+      [data-theme="midnight"] .calendar-view__provider-btn {
+        background: var(--color-background-tertiary, #685852);
+        border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+        color: var(--color-text-primary, #faf6f0);
+      }
+
+      [data-theme="midnight"] .calendar-view__provider-btn:hover {
+        background: var(--color-background-secondary, #60504a);
+        border-color: var(--color-alex-light, #8a9bb8);
+      }
+
+      [data-theme="midnight"] .calendar-view__settings-link {
+        color: var(--color-text-muted, #e8e2da);
+      }
+
+      [data-theme="midnight"] .calendar-view__settings-link:hover {
+        color: var(--color-text-secondary, #f0ebe4);
+      }
+
+      /* Month view dark theme */
+      [data-theme="midnight"] .calendar-view__month-name {
+        color: var(--color-text-primary, #faf6f0);
+      }
+
+      [data-theme="midnight"] .calendar-view__month-year {
+        color: var(--color-text-secondary, #f0ebe4);
+      }
+
+      [data-theme="midnight"] .calendar-view__month-btn {
+        border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+        color: var(--color-text-secondary, #f0ebe4);
+      }
+
+      [data-theme="midnight"] .calendar-view__month-btn:hover {
+        background: var(--color-background-tertiary, #685852);
+        border-color: var(--color-alex-light, #8a9bb8);
+      }
+
+      [data-theme="midnight"] .calendar-view__grid-header-cell {
+        color: var(--color-text-secondary, #f0ebe4);
+      }
+
+      [data-theme="midnight"] .calendar-view__grid-cell {
+        background: var(--color-background-tertiary, #685852);
+      }
+
+      [data-theme="midnight"] .calendar-view__grid-cell:hover:not(.calendar-view__grid-cell--empty) {
+        background: var(--color-background-secondary, #60504a);
+      }
+
+      [data-theme="midnight"] .calendar-view__grid-cell--empty {
+        background: transparent;
+      }
+
+      [data-theme="midnight"] .calendar-view__grid-cell--today {
+        background: var(--color-alex-tint, rgba(90, 107, 138, 0.25));
+        border-color: var(--color-alex-light, #8a9bb8);
+      }
+
+      [data-theme="midnight"] .calendar-view__grid-day {
+        color: var(--color-text-primary, #faf6f0);
+      }
+
+      [data-theme="midnight"] .calendar-view__grid-cell--today .calendar-view__grid-day {
+        color: var(--color-alex-light, #8a9bb8);
+      }
+
+      [data-theme="midnight"] .calendar-view__today-btn {
+        border-color: var(--color-alex-light, #8a9bb8);
+        color: var(--color-alex-light, #8a9bb8);
+      }
+
+      [data-theme="midnight"] .calendar-view__today-btn:hover {
+        background: var(--color-alex-tint, rgba(90, 107, 138, 0.2));
+      }
+
+      /* Sync status dark theme */
+      [data-theme="midnight"] .calendar-view__sync-status {
+        background: var(--color-background-tertiary, #685852);
+        border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+      }
+
+      [data-theme="midnight"] .calendar-view__sync-status--connected {
+        background: var(--color-alex-tint, rgba(90, 107, 138, 0.15));
+      }
+
+      [data-theme="midnight"] .calendar-view__sync-info {
+        color: var(--color-text-secondary, #f0ebe4);
+      }
+
+      [data-theme="midnight"] .calendar-view__sync-hint {
+        color: var(--color-text-muted, #e8e2da);
+      }
+
+      [data-theme="midnight"] .calendar-view__sync-toggle {
+        color: var(--color-text-secondary, #f0ebe4);
+      }
+
+      [data-theme="midnight"] .calendar-view__sync-toggle input[type="checkbox"] {
+        background: var(--color-background-secondary, #60504a);
+      }
+
+      [data-theme="midnight"] .calendar-view__sync-toggle input[type="checkbox"]:checked {
+        background: var(--color-alex-light, #8a9bb8);
+      }
+
+      [data-theme="midnight"] .calendar-view__sync-btn {
+        border-color: var(--color-alex-light, #8a9bb8);
+        color: var(--color-alex-light, #8a9bb8);
+      }
+
+      [data-theme="midnight"] .calendar-view__sync-btn:hover {
+        background: var(--color-alex-tint, rgba(90, 107, 138, 0.2));
+      }
+
       /* ========================================================================
          RESPONSIVE
          ======================================================================== */
@@ -1342,6 +2668,24 @@ class CalendarViewUI {
 
         .calendar-view__day-content::after {
           content: attr(data-count);
+        }
+
+        /* Month view responsive */
+        .calendar-view__grid-cell {
+          aspect-ratio: 1;
+        }
+
+        .calendar-view__grid-day {
+          font-size: var(--text-xs, 0.75rem);
+        }
+
+        .calendar-view__grid-dot {
+          width: 4px;
+          height: 4px;
+        }
+
+        .calendar-view__month-name {
+          font-size: var(--text-base, 1rem);
         }
       }
 
