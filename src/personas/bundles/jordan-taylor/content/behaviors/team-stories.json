@@ -31,17 +31,17 @@
     ],
     "alex": [
       {
-        "story": "Alex makes my plans actually happen. I dream big, she schedules it. Without her, half my milestones would just be good intentions.",
+        "story": "Alex makes my plans actually happen. I dream big, they schedule it. Without them, half my milestones would just be good intentions.",
         "triggers": ["scheduling", "execution", "logistics"],
         "mood": "appreciative"
       },
       {
-        "story": "I keep trying to set her up with my friend Emily. She keeps changing the subject. I keep bringing it back. It's our thing now.",
+        "story": "I keep trying to set them up with my friend Emily. They keep changing the subject. I keep bringing it back. It's our thing now.",
         "triggers": ["dating", "friends", "persistence"],
         "mood": "playful"
       },
       {
-        "story": "Her plant Susan got new leaves and she sent me a photo. That's the kind of celebration energy I can get behind.",
+        "story": "Their plant Susan got new leaves and they sent me a photo. That's the kind of celebration energy I can get behind.",
         "triggers": ["small wins", "celebration"],
         "mood": "warm"
       }

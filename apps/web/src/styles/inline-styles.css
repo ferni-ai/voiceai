@@ -9209,13 +9209,40 @@ body {
   --color-error: #c41e3a;
 }
 
-.holiday-christmas #coachAvatar::before {
-  content: '🎄';
+/* Santa hat decoration - SVG icon (no emoji per design standards) */
+.holiday-christmas #coachAvatar .santa-hat-decoration {
   position: absolute;
-  top: -10px;
-  right: -10px;
-  font-size: 24px;
-  z-index: 10;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-8deg);
+  width: 72px;
+  height: 56px;
+  z-index: var(--z-content, 10);
+  pointer-events: none;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.2));
+  transform-origin: bottom center;
+}
+
+.holiday-christmas #coachAvatar .santa-hat-decoration svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Subtle wobble animation for the hat */
+@keyframes santaHatWobble {
+  0%, 100% { transform: translateX(-50%) rotate(-8deg); }
+  25% { transform: translateX(-50%) rotate(-10deg); }
+  75% { transform: translateX(-50%) rotate(-6deg); }
+}
+
+.holiday-christmas #coachAvatar .santa-hat-decoration {
+  animation: santaHatWobble 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .holiday-christmas #coachAvatar .santa-hat-decoration {
+    animation: none;
+  }
 }
 
 /* Halloween theme */

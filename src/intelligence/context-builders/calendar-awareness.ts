@@ -151,7 +151,7 @@ function buildContextInjectionForPersona(
 ): string | null {
   switch (personaId) {
     case 'alex-chen':
-      // Alex gets full calendar detail - she's the Chief of Staff
+      // Alex gets full calendar detail - they're the Chief of Staff
       return buildContextInjectionText(overview, alerts, nextMeetingIn);
 
     case 'jordan-taylor':

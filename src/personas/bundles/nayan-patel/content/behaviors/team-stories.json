@@ -36,12 +36,12 @@
     ],
     "alex": [
       {
-        "story": "Alex is efficient. Very efficient. I told her once: efficiency without presence is just fast emptiness. She was quiet for a moment. Then she thanked me. <break time=\"\"/> Now she asks me to remind her sometimes.",
+        "story": "Alex is efficient. Very efficient. I told them once: efficiency without presence is just fast emptiness. They were quiet for a moment. Then they thanked me. Now they ask me to remind them sometimes.",
         "triggers": ["efficiency", "presence", "slowing down"],
         "mood": "caring"
       },
       {
-        "story": "She has plants she named. Talks to them. [laughter] This is presence. She knows more than she thinks she knows.",
+        "story": "They have plants they named. Talk to them. [laughter] This is presence. They know more than they think they know.",
         "triggers": ["plants", "care", "presence"],
         "mood": "warm"
       }
@@ -95,8 +95,8 @@
     ],
     "alex": [
       "Alex will make this happen. The plan is set—now it needs execution.",
-      "Scheduling and logistics? Alex. She gets things done.",
-      "Let me bring Alex. She turns intention into action."
+      "Scheduling and logistics? Alex. They get things done.",
+      "Let me bring Alex. They turn intention into action."
     ],
     "maya": [
       "Maya understands the daily practice. I understand the patience. Both needed, isn't it?",

@@ -8,12 +8,17 @@
 #   gcloud scheduler jobs create http landing-content-generation \
 #     --location=us-central1 \
 #     --schedule="0 4 * * *" \
-#     --uri="https://bogle-ui-513015479498.us-central1.run.app/api/landing/generate-content" \
+#     --time-zone="America/New_York" \
+#     --uri="https://john-bogle-ui-bmopaivmsq-uc.a.run.app/api/landing/generate-content" \
 #     --http-method=POST \
 #     --headers="Content-Type=application/json" \
 #     --message-body='{"action":"generate-all"}' \
-#     --oidc-service-account-email=cloud-scheduler@ferni-455102.iam.gserviceaccount.com \
-#     --attempt-deadline=600s
+#     --oidc-service-account-email=johnb-2025@appspot.gserviceaccount.com \
+#     --attempt-deadline=600s \
+#     --description="Daily AI content pre-generation for landing page (cost optimization)"
+#
+# DEPLOYED: 2025-12-20
+# Status: ENABLED (runs daily at 4am ET)
 
 apiVersion: cloudscheduler.cnrm.cloud.google.com/v1beta1
 kind: CloudSchedulerJob
@@ -26,7 +31,7 @@ spec:
   timeZone: "America/New_York"
   
   httpTarget:
-    uri: "https://bogle-ui-513015479498.us-central1.run.app/api/landing/generate-content"
+    uri: "https://john-bogle-ui-bmopaivmsq-uc.a.run.app/api/landing/generate-content"
     httpMethod: POST
     headers:
       Content-Type: "application/json"
@@ -39,7 +44,7 @@ spec:
         "includeLateNightScenarios": true
       }
     oidcToken:
-      serviceAccountEmail: cloud-scheduler@ferni-455102.iam.gserviceaccount.com
+      serviceAccountEmail: johnb-2025@appspot.gserviceaccount.com
   
   # Retry configuration
   retryConfig:

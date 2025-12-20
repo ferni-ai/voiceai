@@ -80,7 +80,7 @@ const GOSSIP_TEMPLATES: GossipTemplate[] = [
     fromPersona: 'alex-chen',
     aboutPersona: 'ferni',
     message:
-      "Alex was reviewing things and said she's noticed you've been managing a lot lately. She's impressed with how you're holding it together.",
+      "Alex was reviewing things and noticed you've been managing a lot lately. They're impressed with how you're holding it together.",
   },
   {
     trigger: 'schedule',

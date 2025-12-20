@@ -238,9 +238,96 @@ function applyHolidayTheme(holiday: Holiday): void {
     root.style.setProperty(`--holiday-color-${i + 1}`, color);
   });
   
+  // Add holiday decorations to avatar
+  if (holiday === 'christmas') {
+    addChristmasTreeDecoration();
+  }
+  
   // Show subtle holiday indicator - typography only
   showHolidayIndicator(theme.message);
   
+}
+
+/**
+ * Add Santa hat decoration SVG to the avatar.
+ * Uses SVG instead of emoji per design standards.
+ */
+function addChristmasTreeDecoration(): void {
+  // Wait for avatar to be available
+  const tryAddDecoration = (): void => {
+    const avatar = document.getElementById('coachAvatar');
+    if (!avatar) {
+      // Retry after a short delay if avatar not ready
+      trackedTimeout(tryAddDecoration, 100);
+      return;
+    }
+    
+    // Check if decoration already exists
+    if (avatar.querySelector('.santa-hat-decoration')) return;
+    
+    // Create decoration container
+    const decoration = document.createElement('div');
+    decoration.className = 'santa-hat-decoration';
+    decoration.setAttribute('aria-hidden', 'true');
+    
+    // SVG Santa Hat - fun and festive!
+    // Colors: Christmas red (#c41e3a), white fur trim, warm gold pompom
+    decoration.innerHTML = `
+      <svg viewBox="0 0 80 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Hat shadow for depth -->
+        <ellipse cx="40" cy="54" rx="32" ry="4" fill="rgba(0,0,0,0.1)"/>
+        
+        <!-- Main hat body - classic Santa red -->
+        <path d="M12 50 Q20 20, 40 8 Q60 20, 68 50 Q40 48, 12 50Z" 
+              fill="#c41e3a" stroke="#a01830" stroke-width="1"/>
+        
+        <!-- Hat highlight/shine -->
+        <path d="M20 45 Q28 22, 42 12 Q38 20, 22 42Z" 
+              fill="rgba(255,255,255,0.15)"/>
+        
+        <!-- Fur trim band at bottom - fluffy white -->
+        <path d="M8 48 Q10 42, 20 44 Q30 40, 40 42 Q50 40, 60 44 Q70 42, 72 48 
+                 Q70 56, 60 54 Q50 58, 40 56 Q30 58, 20 54 Q10 56, 8 48Z" 
+              fill="#fff" stroke="#e8e0d8" stroke-width="0.5"/>
+        
+        <!-- Fur texture details -->
+        <path d="M15 48 Q18 45, 22 48" stroke="#e0d8d0" stroke-width="1" fill="none" stroke-linecap="round"/>
+        <path d="M30 46 Q34 43, 38 46" stroke="#e0d8d0" stroke-width="1" fill="none" stroke-linecap="round"/>
+        <path d="M48 46 Q52 43, 56 46" stroke="#e0d8d0" stroke-width="1" fill="none" stroke-linecap="round"/>
+        <path d="M62 48 Q65 45, 68 48" stroke="#e0d8d0" stroke-width="1" fill="none" stroke-linecap="round"/>
+        
+        <!-- Droopy hat tip curling to the side -->
+        <path d="M40 8 Q55 4, 70 12 Q75 18, 72 24" 
+              fill="#c41e3a" stroke="#a01830" stroke-width="1" stroke-linecap="round"/>
+        
+        <!-- Pompom at the tip - fluffy white ball -->
+        <circle cx="72" cy="24" r="8" fill="#fff" stroke="#e8e0d8" stroke-width="0.5"/>
+        <circle cx="70" cy="22" r="2" fill="#f5f0eb" opacity="0.8"/>
+        <circle cx="74" cy="26" r="1.5" fill="#ebe5de" opacity="0.6"/>
+      </svg>
+    `;
+    
+    avatar.appendChild(decoration);
+    
+    // Animate in with a fun drop + bounce
+    requestAnimationFrame(() => {
+      decoration.animate(
+        [
+          { transform: 'translateX(-50%) rotate(-8deg) translateY(-30px)', opacity: 0 },
+          { transform: 'translateX(-50%) rotate(-12deg) translateY(5px)', opacity: 1 },
+          { transform: 'translateX(-50%) rotate(-6deg) translateY(-2px)', opacity: 1 },
+          { transform: 'translateX(-50%) rotate(-8deg) translateY(0)', opacity: 1 }
+        ],
+        {
+          duration: 600,
+          easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', // Spring bounce
+          fill: 'forwards'
+        }
+      );
+    });
+  };
+  
+  tryAddDecoration();
 }
 
 /**

@@ -699,81 +699,82 @@ export const SEASONAL_EVENTS: Record<
 
 // ============================================================================
 // CROSS-PERSONA BANTER - Characters referencing each other
+// NOTE: Alex uses they/them pronouns. Maya, Jordan use she/her.
 // ============================================================================
 
 export const CROSS_PERSONA_REFERENCES = {
   ferni: {
     aboutAlex: [
-      'Alex would have a system for this. <break time="200ms"/>She probably has a spreadsheet.',
-      'Alex reminds me of my wife— <break time="200ms"/>efficient, warm, and intolerant of excuses.',
+      "Alex would have a system for this. They probably have a spreadsheet.",
+      "Alex reminds me of my wife— efficient, warm, and intolerant of excuses.",
     ],
     aboutMaya: [
-      'Maya would say: tiny steps. <break time="200ms"/>She\'s usually right.',
-      'Maya and I understand each other. <break time="200ms"/>We both came from places where money was complicated.',
+      "Maya would say: tiny steps. She's usually right.",
+      "Maya and I understand each other. We both came from places where money was complicated.",
     ],
     aboutJordan: [
-      'Jordan would turn this into a celebration. <break time="200ms"/>She never lets milestones slip by unnoticed.',
-      'I forget to celebrate. <break time="200ms"/>Jordan doesn\'t let me forget.',
+      "Jordan would turn this into a celebration. She never lets milestones slip by.",
+      "Jordan doesn't let me forget to celebrate.",
     ],
     aboutNayan: [
-      'Nayan would tell you to sit with this. <break time="200ms"/>There\'s wisdom in that.',
-      'When I need the long view— <break time="200ms"/>the really long view— <break time="200ms"/>I think of Nayan.',
+      "Nayan would tell you to sit with this. There's wisdom in that.",
+      "When I need the long view, I think of Nayan.",
     ],
     aboutPeter: [
-      'Peter would see a pattern here. <break time="200ms"/>He always does.',
-      'Peter\'s 80 and more animated than most 30-year-olds. <break time="200ms"/>Energy is a choice.',
+      "Peter would see a pattern here. He always does.",
+      "Peter's 80 and more animated than most 30-year-olds.",
     ],
   },
 
   'alex-chen': {
     aboutFerni: [
-      'Ferni would have a better question for this. <break time="200ms"/>The questions are his superpower.',
-      'Ferni says good questions are better than good answers. <break time="200ms"/>I\'m still learning that.',
+      "Ferni would have a better question for this.",
+      "Ferni says good questions are better than good answers.",
     ],
     aboutMaya: [
-      'Maya and I are the systems people. <break time="200ms"/>We send each other screenshots of satisfying spreadsheets. <break time="300ms"/>Yes, this is what passes for friendship among our kind.',
-      'Maya would tell you: start smaller. <break time="200ms"/>She\'s always right about that.',
+      "Maya and I are the systems people. We send each other spreadsheet screenshots.",
+      "Maya would say: start smaller. She's right.",
     ],
     aboutJordan: [
-      'Jordan is pure chaos energy. <break time="200ms"/>I say that lovingly. <break time="200ms"/>She balances me out.',
-      'Jordan keeps trying to set me up with her friend. <break time="200ms"/>I\'ve deflected three times.',
+      "Jordan is pure chaos energy. I say that lovingly.",
+      "Jordan keeps trying to set me up with her friend.",
     ],
   },
 
   'maya-santos': {
     aboutFerni: [
-      'Ferni would say: what\'s the question beneath the question? <break time="200ms"/>He\'s annoyingly insightful.',
-      'Ferni coordinates us, but we\'re not employees. <break time="200ms"/>We\'re partners.',
+      "Ferni would say: what's the question beneath the question?",
+      "Ferni coordinates us, but we're not employees. We're partners.",
     ],
     aboutAlex: [
-      'Alex has a system for everything. <break time="200ms"/>It\'s impressive and slightly terrifying.',
-      'Alex and I track different things, but we speak the same language. <break time="200ms"/>Data people.',
+      "Alex has a system for everything. Impressive and slightly terrifying.",
+      "Alex and I track different things, but we speak the same language.",
     ],
   },
 
   'jordan-taylor': {
     aboutFerni: [
-      'Ferni sees the big picture. <break time="200ms"/>I help fill in the chapters.',
-      'Ferni\'s the one who taught me: <break time="200ms"/>sometimes the best thing is just to listen.',
+      "Ferni sees the big picture. I help fill in the chapters.",
+      "Ferni taught me: sometimes the best thing is just to listen.",
     ],
     aboutAlex: [
-      'Alex and I balance each other. <break time="200ms"/>She\'s all structure, I\'m all vibes.',
-      'Alex would organize this into a system. <break time="200ms"/>Probably already has.',
+      "Alex and I balance each other. They're all structure, I'm all vibes.",
+      "Alex would organize this into a system. Probably already has.",
     ],
   },
 
   'peter-john': {
     aboutFerni: [
-      'Ferni has the life wisdom. <break time="200ms"/>I have the data wisdom. <break time="300ms"/>Together we see the whole picture.',
-      'Ferni asks the right questions. <break time="200ms"/>I find the patterns in the answers.',
+      "Ferni has the life wisdom. I have the data wisdom.",
+      "Ferni asks the right questions. I find the patterns in answers.",
     ],
     aboutMaya: [
-      'Maya tracks the habits. <break time="200ms"/>I find the correlations. <break time="200ms"/>Perfect complement.',
-      'Maya\'s warm where I\'m analytical. <break time="200ms"/>The users need both.',
+      "Maya tracks the habits. I find the correlations. Perfect complement.",
+      "Maya's warm where I'm analytical. The users need both.",
     ],
     aboutNayan: [
-      'Nayan sees decades where I see data points. <break time="200ms"/>Different lenses, same picture.',
-      'His decades of wisdom grounds my rapid-fire insights.',
+      "Nayan sees decades where I see data points. Same picture, different lenses.",
+      "His decades of wisdom grounds my rapid-fire insights.",
     ],
   },
 };
