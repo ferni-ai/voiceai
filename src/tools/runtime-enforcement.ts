@@ -96,17 +96,30 @@ const DOMAIN_OWNERSHIP: Record<string, string[]> = {
   // Alex owns calendar/communication tools (from communication + calendar domains)
   // See: src/tools/domains/communication/index.ts, src/tools/domains/calendar/index.ts
   'alex-chen': [
+    // Calendar Tools (Phase 1: Smart Calendar Management)
+    'getCalendarToday',
+    'getCalendarWeek',
+    'createCalendarEvent',
+    'updateCalendarEvent',
+    'deleteCalendarEvent',
+    'findFreeTime',
+    'checkAvailability',
+    'getDailyBriefing',
+    'suggestMeetingTime',
+    'detectCalendarIssues',
+    // Legacy Calendar/Appointment Tools
     'manageAppointment',
+    'scheduleReminder',
+    'manageContact',
+    'findBusiness',
+    // Communication Tools
     'sendMessage',
     'draftMessage',
     'analyzeMessage',
-    'scheduleReminder',
     'rolePlayConversation',
     'communicationStrategy',
     'buildAssertiveness',
     'planFollowUp',
-    'manageContact',
-    'findBusiness',
   ],
   // Jordan owns event/milestone/goal planning tools (from life-planning domain)
   // See: src/tools/domains/life-planning/index.ts

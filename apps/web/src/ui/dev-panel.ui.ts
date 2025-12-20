@@ -1197,6 +1197,9 @@ function createPanel(): HTMLElement {
             <button class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="team" title="Meet new team member">
               ${ICONS.handshake} New Team Member
             </button>
+            <button class="dev-expression-btn dev-expression-btn--celebrate" data-celebration="winter-solstice" title="Winter Solstice - Full cinematic experience" style="background: linear-gradient(135deg, #0d1b2a, #2c3e50); border: 1px solid #4a6741;">
+              ${ICONS.sunset} Winter Solstice
+            </button>
           </div>
         </div>
         
