@@ -253,15 +253,17 @@ function createModal(): void {
 // ============================================================================
 
 async function handleNativeShare(): Promise<void> {
+  const content = getShareContent();
   if (navigator.share) {
     try {
       await navigator.share({
-        title: SHARE_CONTENT.title,
-        text: SHARE_CONTENT.message,
-        url: SHARE_CONTENT.url,
+        title: content.title,
+        text: content.message,
+        url: content.url,
       });
       log.info('Shared via native share');
-      toast.success('Shared');
+      toast.success('Shared! 🌱');
+      trackShare('native');
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
         // Fallback to copy
@@ -274,27 +276,45 @@ async function handleNativeShare(): Promise<void> {
 }
 
 async function handleCopyLink(): Promise<void> {
+  const content = getShareContent();
   try {
-    await navigator.clipboard.writeText(`${SHARE_CONTENT.shortMessage}\n\n${SHARE_CONTENT.url}`);
-    toast.success('Copied to clipboard');
+    await navigator.clipboard.writeText(`${content.shortMessage}\n\n${content.url}`);
+    toast.success('Link copied! 🌱');
     log.info('Link copied to clipboard');
+    trackShare('copy');
   } catch {
     log.warn('Could not copy to clipboard');
+    toast.error("Couldn't copy. Try again?");
   }
 }
 
 function handleEmailShare(): void {
-  const subject = encodeURIComponent(SHARE_CONTENT.emailSubject);
-  const body = encodeURIComponent(SHARE_CONTENT.emailBody);
+  const content = getShareContent();
+  const subject = encodeURIComponent(content.emailSubject);
+  const body = encodeURIComponent(content.emailBody);
   window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
   log.info('Email share opened');
+  trackShare('email');
 }
 
 function handleSMSShare(): void {
-  const body = encodeURIComponent(`${SHARE_CONTENT.shortMessage}\n\n${SHARE_CONTENT.url}`);
+  const content = getShareContent();
+  const body = encodeURIComponent(`${content.shortMessage}\n\n${content.url}`);
   // sms: works on iOS and Android
   window.open(`sms:?body=${body}`, '_blank');
   log.info('SMS share opened');
+  trackShare('sms');
+}
+
+/**
+ * Track share events for analytics and potential bonus seeds
+ */
+function trackShare(method: 'native' | 'copy' | 'email' | 'sms'): void {
+  document.dispatchEvent(
+    new CustomEvent('ferni:referral-share', {
+      detail: { method, timestamp: Date.now() },
+    })
+  );
 }
 
 // ============================================================================

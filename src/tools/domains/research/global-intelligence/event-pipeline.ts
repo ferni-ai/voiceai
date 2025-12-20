@@ -18,12 +18,17 @@ const log = getLogger();
 
 let bigquery: any = null;
 
-async function getBigQuery() {
+async function getBigQuery(): Promise<unknown> {
   if (bigquery) return bigquery;
 
   try {
-    const { BigQuery } = await import('@google-cloud/bigquery');
-    bigquery = new BigQuery({
+    // Dynamic import - BigQuery may not be installed in all environments
+    const bqModule = await import('@google-cloud/bigquery').catch(() => null);
+    if (!bqModule) {
+      log.warn('BigQuery module not available');
+      return null;
+    }
+    bigquery = new bqModule.BigQuery({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || 'johnb-2025',
     });
     log.info('BigQuery client initialized');

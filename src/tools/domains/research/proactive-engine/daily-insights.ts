@@ -437,18 +437,19 @@ async function storeInsightsForUser(userId: string, insights: DailyInsight[]): P
 
   for (const insight of insights) {
     // Convert to QuantInsight format for storage
-    const quantInsight: Omit<QuantInsight, 'id'> = {
-      date: insight.generatedAt,
-      type: 'general',
+    const quantInsight: QuantInsight = {
+      id: insight.id,
+      generatedAt: insight.generatedAt,
+      type: 'portfolio', // Default to portfolio type
       title: insight.title,
       summary: insight.message,
-      details: insight.details,
-      actionable: insight.actionable,
+      details: insight.details || '',
+      actionItems: insight.actionable ? [insight.title] : [],
       priority: insight.priority,
       acknowledged: false,
     };
 
-    await firestore.saveQuantInsight(userId, quantInsight);
+    await firestore.saveInsight(userId, quantInsight);
   }
 }
 
@@ -457,24 +458,24 @@ async function storeInsightsForUser(userId: string, insights: DailyInsight[]): P
  */
 export async function getStoredInsights(userId: string): Promise<DailyInsight[]> {
   const firestore = getQuantFirestore();
-  const quantInsights = await firestore.loadQuantInsights(userId);
+  const quantInsights = await firestore.loadRecentInsights(userId, 20);
 
   // Filter to today's unacknowledged insights
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   return quantInsights
-    .filter((i) => i.date >= today && !i.acknowledged)
-    .map((qi) => ({
+    .filter((i: QuantInsight) => new Date(i.generatedAt) >= today && !i.acknowledged)
+    .map((qi: QuantInsight) => ({
       id: qi.id,
       userId,
-      type: 'general' as InsightType,
+      type: 'goal_milestone' as InsightType,
       priority: qi.priority,
       title: qi.title,
       message: qi.summary,
       details: qi.details,
-      actionable: qi.actionable,
-      generatedAt: qi.date,
+      actionable: qi.actionItems && qi.actionItems.length > 0,
+      generatedAt: new Date(qi.generatedAt),
       delivered: false,
       acknowledged: qi.acknowledged || false,
     }));
