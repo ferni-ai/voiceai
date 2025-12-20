@@ -233,6 +233,7 @@ export class CreativeYouDashboard {
           <div class="header-left">
             <span class="eyebrow">${t('creativeYou.eyebrow')}</span>
             <h2>${t('creativeYou.title')}</h2>
+            <p class="welcome-message">${t('creativeYou.welcome')}</p>
           </div>
           <button class="close-btn" aria-label="${t('common.close')}">
             ${ICONS.close}
@@ -245,15 +246,15 @@ export class CreativeYouDashboard {
             <h3>${ICONS.lightbulb} ${t('creativeYou.todaysPicks')}</h3>
             <div class="picks-grid">
               <div class="pick-card video-pick" data-loading="true">
-                <div class="pick-loading">${t('common.loading')}</div>
+                <div class="pick-loading">${t('creativeYou.loadingPicks')}</div>
               </div>
               <div class="pick-card podcast-pick" data-loading="true">
-                <div class="pick-loading">${t('common.loading')}</div>
+                <div class="pick-loading">${t('creativeYou.loadingPicks')}</div>
               </div>
             </div>
           </section>
 
-          <!-- Creative DNA Section -->
+          <!-- What You're Into Section -->
           <section class="dashboard-section creative-dna-section">
             <h3>${ICONS.brain} ${t('creativeYou.yourDNA')}</h3>
             <div class="dna-card" data-loading="true">
@@ -261,7 +262,7 @@ export class CreativeYouDashboard {
             </div>
           </section>
 
-          <!-- Learning Tracks Section -->
+          <!-- Paths Worth Exploring Section -->
           <section class="dashboard-section learning-tracks-section">
             <h3>${ICONS.book} ${t('creativeYou.learningTracks')}</h3>
             <div class="tracks-list" data-loading="true">
@@ -403,9 +404,21 @@ export class CreativeYouDashboard {
 
   private renderVideoPick(): void {
     const container = this.container?.querySelector('.video-pick');
-    if (!container || !this.dailyVideo) return;
+    if (!container) return;
 
     container.setAttribute('data-loading', 'false');
+
+    // Empty state - warm copy
+    if (!this.dailyVideo) {
+      container.innerHTML = `
+        <div class="empty-pick">
+          <div class="empty-icon">${ICONS.video}</div>
+          <p>${t('creativeYou.noPicks')}</p>
+        </div>
+      `;
+      return;
+    }
+
     const video = this.dailyVideo.video;
     const moodColor = MOOD_COLORS[this.dailyVideo.mood] || MOOD_COLORS.learn;
 
@@ -432,9 +445,21 @@ export class CreativeYouDashboard {
 
   private renderPodcastPick(): void {
     const container = this.container?.querySelector('.podcast-pick');
-    if (!container || !this.dailyPodcast) return;
+    if (!container) return;
 
     container.setAttribute('data-loading', 'false');
+
+    // Empty state - warm copy
+    if (!this.dailyPodcast) {
+      container.innerHTML = `
+        <div class="empty-pick">
+          <div class="empty-icon">${ICONS.headphones}</div>
+          <p>${t('creativeYou.noPicks')}</p>
+        </div>
+      `;
+      return;
+    }
+
     const episode = this.dailyPodcast.episode;
     const moodColor = MOOD_COLORS[this.dailyPodcast.mood] || MOOD_COLORS.learn;
 
@@ -1191,6 +1216,13 @@ export class CreativeYouDashboard {
         color: var(--color-teal, #3a6b73);
         margin-bottom: 4px;
         display: block;
+      }
+
+      .creative-dashboard-header .welcome-message {
+        font-size: 14px;
+        color: var(--color-text-secondary, #5C5248);
+        margin: 8px 0 0;
+        font-weight: 400;
       }
 
       .creative-dashboard-header h2 {

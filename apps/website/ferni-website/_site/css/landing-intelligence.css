@@ -1550,3 +1550,112 @@
     transform: none !important;
   }
 }
+
+/* ============================================================================
+   DARK MODE - High Contrast for System Dark Theme
+   ============================================================================ */
+
+@media (prefers-color-scheme: dark) {
+  /* Moment Cards - "Second Chances", "Connection", etc. */
+  .moment-card {
+    background: var(--color-ferni-cinematic-surface, #4a4038);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+  
+  .moment-card:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  }
+  
+  .moment-card__title {
+    color: var(--color-ferni-cinematic-text, #ffffff);
+  }
+  
+  .moment-card__superpower {
+    color: var(--color-highlight, #C4A265);
+  }
+  
+  .moment-card__description {
+    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+  }
+  
+  .moment-card__voice {
+    background: var(--color-ferni-cinematic-deep, #3a332e);
+    color: var(--color-ferni-cinematic-text, #ffffff);
+    border-left-color: var(--color-highlight, #C4A265);
+  }
+  
+  /* Moment card icon backgrounds - brighten for dark mode */
+  .moment-card--second-chances .moment-card__icon {
+    background: rgba(74, 103, 65, 0.25);
+  }
+  
+  .moment-card--connection .moment-card__icon {
+    background: rgba(166, 122, 106, 0.25);
+  }
+  
+  .moment-card--conversations .moment-card__icon {
+    background: rgba(90, 107, 138, 0.25);
+  }
+  
+  .moment-card--transitions .moment-card__icon {
+    background: rgba(58, 107, 115, 0.25);
+  }
+  
+  .moment-card--growth .moment-card__icon {
+    background: rgba(184, 149, 106, 0.25);
+  }
+  
+  /* Voice Sample inline */
+  .voice-sample-inline {
+    background: rgba(74, 103, 65, 0.2);
+    color: var(--color-highlight, #C4A265);
+  }
+  
+  .voice-sample-inline:hover {
+    background: rgba(74, 103, 65, 0.35);
+  }
+  
+  /* Superpowers section */
+  .superpowers__demo {
+    background: var(--color-ferni-cinematic-surface, #4a4038);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .superpowers__demo-title {
+    color: var(--color-ferni-cinematic-text, #ffffff);
+  }
+  
+  .superpowers__demo-description {
+    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+  }
+  
+  /* Journey section */
+  .journey__milestone-title {
+    color: var(--color-ferni-cinematic-text, #ffffff);
+  }
+  
+  .journey__milestone-description {
+    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+  }
+  
+  /* Memory demo */
+  .memory-demo__card {
+    background: var(--color-ferni-cinematic-surface, #4a4038);
+  }
+  
+  .memory-demo__text {
+    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+  }
+  
+  .memory-demo__insights {
+    background: var(--color-ferni-cinematic-deep, #3a332e);
+  }
+  
+  .memory-demo__insights-title {
+    color: var(--color-ferni-cinematic-text, #ffffff);
+  }
+  
+  .memory-demo__insights-list li {
+    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+  }
+}

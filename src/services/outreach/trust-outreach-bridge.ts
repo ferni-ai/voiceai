@@ -308,32 +308,36 @@ async function processUnreflectedGrowth(
 ): Promise<void> {
   const unreflected = getUnreflectedGrowth(userId);
 
-  for (const growth of unreflected) {
-    const reflection = generateGrowthReflection(userId, growth);
-    if (!reflection) continue;
+  // If there are unreflected growth patterns, try to generate a reflection
+  if (unreflected.length === 0) return;
 
-    const published = await publishOutreachTrigger({
-      userId,
-      type: 'growth_reflection' as OutreachTriggerType,
-      priority: 'medium',
-      reason: `Growth reflection: ${growth.type}`,
-      personaId: 'ferni',
-      context: {
-        metadata: {
-          growthId: growth.id,
-          growthType: growth.type,
-          beforePattern: growth.before.pattern,
-          reflection: reflection.reflection,
-          timing: reflection.timing,
-          ssml: reflection.ssml,
-        },
+  // generateGrowthReflection picks the best unreflected pattern internally
+  const reflection = generateGrowthReflection(userId);
+  if (!reflection) return;
+
+  const growth = reflection.pattern; // The pattern is embedded in the reflection
+
+  const published = await publishOutreachTrigger({
+    userId,
+    type: 'growth_reflection' as OutreachTriggerType,
+    priority: 'medium',
+    reason: `Growth reflection: ${growth.type}`,
+    personaId: 'ferni',
+    context: {
+      metadata: {
+        growthId: growth.id,
+        growthType: growth.type,
+        beforePattern: growth.before.pattern,
+        reflection: reflection.reflection,
+        timing: reflection.timing,
+        ssml: reflection.ssml,
       },
-    });
+    },
+  });
 
-    if (published.success) {
-      result.triggersCreated++;
-      result.triggerTypes.push('growth_reflection');
-    }
+  if (published.success) {
+    result.triggersCreated++;
+    result.triggerTypes.push('growth_reflection');
   }
 }
 
@@ -348,8 +352,8 @@ async function processOverdueIntentions(
   const overdue = getOverdueIntentions(userId);
 
   for (const intention of overdue) {
-    const followUp = generateIntentionFollowUp(userId, intention);
-    if (!followUp) continue;
+    // generateIntentionFollowUp just takes the intention
+    const followUp = generateIntentionFollowUp(intention);
 
     // Check if this intention is related to a boundary
     const boundaries = getActiveBoundaries(userId);
