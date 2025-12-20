@@ -1647,7 +1647,37 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
     }
   }
 
-  // 15. Conversation dynamics (extracted to injection-builders.ts)
+  // 15. Viral Growth - Referral prompt (very conservative)
+  // Only injects when conversation naturally leads to sharing
+  try {
+    const relationshipStage =
+      (services.userProfile?.relationshipStage as 'new' | 'building' | 'established' | 'deep') ||
+      'building';
+    const userMood = emotionalState.dominant?.category?.includes('positive')
+      ? 'positive'
+      : emotionalState.dominant?.category?.includes('negative')
+        ? 'struggling'
+        : 'neutral';
+
+    const referralResult = await buildReferralPromptInjection({
+      userId: services.userId || 'unknown',
+      personaId: persona.id,
+      turnCount: userData.turnCount || 1,
+      relationshipStage,
+      userMood: userMood as 'positive' | 'neutral' | 'struggling',
+      recentTopics: analysisResult.analysis?.topics,
+      userText,
+    });
+
+    if (referralResult.shouldInject && referralResult.injection) {
+      injections.push(referralResult.injection);
+      diag.info('🌱 Referral prompt injected (natural trigger detected)');
+    }
+  } catch (error) {
+    diag.warn({ error: String(error) }, 'Referral prompt injection failed (non-blocking)');
+  }
+
+  // 16. Conversation dynamics (extracted to injection-builders.ts)
   // Map to the injection builder's expected type (which has stricter level typing)
   const dynamicsForBuilder: InjectionDynamicsResult = {
     narrativeArc: conversationDynamics.narrativeArc,
