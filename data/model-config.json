@@ -13,7 +13,11 @@
       "awareness",
       "simple-utilities",
       "information",
-      "handoff"
+      "handoff",
+      "telephony",
+      "communication",
+      "referral",
+      "calendar"
     ],
     "excludedTools": [],
     "includedTools": [],
