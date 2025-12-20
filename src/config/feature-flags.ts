@@ -207,6 +207,22 @@ export interface FeatureFlags {
     /** Actually deliver outreach messages */
     delivery: boolean;
   };
+
+  /**
+   * Easter eggs and special moments
+   */
+  easterEggs: {
+    /** Master switch for all easter eggs */
+    enabled: boolean;
+    /** Holiday greetings (Christmas, New Year, etc.) */
+    holidayGreetings: boolean;
+    /** Seasonal messages */
+    seasonalMessages: boolean;
+    /** Achievement celebrations */
+    achievements: boolean;
+    /** Random fun moments */
+    randomMoments: boolean;
+  };
 }
 
 // ============================================================================
@@ -292,6 +308,13 @@ const DEFAULT_FLAGS: FeatureFlags = {
     triggerProcessing: false, // Disabled - no automatic trigger processing
     delivery: true, // Enabled - actually make calls when user requests
   },
+  easterEggs: {
+    enabled: true, // Master switch for easter eggs
+    holidayGreetings: false, // DISABLED - Holiday greetings are too aggressive right now
+    seasonalMessages: true, // Seasonal awareness
+    achievements: true, // Milestone celebrations
+    randomMoments: true, // Fun random moments
+  },
 };
 
 // ============================================================================
@@ -372,6 +395,13 @@ const ENV_MAPPINGS: Record<string, string> = {
   OUTREACH_SYSTEM_INIT: 'outreach.systemInitialization',
   OUTREACH_TRIGGER_PROCESSING: 'outreach.triggerProcessing',
   OUTREACH_DELIVERY: 'outreach.delivery',
+
+  // Easter Eggs
+  EASTER_EGGS_ENABLED: 'easterEggs.enabled',
+  EASTER_EGGS_HOLIDAYS: 'easterEggs.holidayGreetings',
+  EASTER_EGGS_SEASONAL: 'easterEggs.seasonalMessages',
+  EASTER_EGGS_ACHIEVEMENTS: 'easterEggs.achievements',
+  EASTER_EGGS_RANDOM: 'easterEggs.randomMoments',
 };
 
 // ============================================================================
@@ -792,4 +822,36 @@ export function isOutreachTriggerCreationEnabled(): boolean {
 export function isOutreachSystemInitEnabled(): boolean {
   const flags = getFeatureFlags();
   return flags.outreach.enabled && flags.outreach.systemInitialization;
+}
+
+// ============================================================================
+// EASTER EGG HELPERS
+// ============================================================================
+
+export type EasterEggFeature = 'holidayGreetings' | 'seasonalMessages' | 'achievements' | 'randomMoments';
+
+/**
+ * Check if easter eggs are enabled
+ */
+export function isEasterEggsEnabled(): boolean {
+  const flags = getFeatureFlags();
+  return flags.easterEggs.enabled;
+}
+
+/**
+ * Check if a specific easter egg feature is enabled
+ */
+export function isEasterEggFeatureEnabled(feature: EasterEggFeature): boolean {
+  const flags = getFeatureFlags();
+  if (!flags.easterEggs.enabled) return false;
+  return flags.easterEggs[feature] === true;
+}
+
+/**
+ * Check if holiday greetings are enabled
+ * Used by easter-eggs.ts
+ */
+export function isHolidayGreetingsEnabled(): boolean {
+  const flags = getFeatureFlags();
+  return flags.easterEggs.enabled && flags.easterEggs.holidayGreetings;
 }

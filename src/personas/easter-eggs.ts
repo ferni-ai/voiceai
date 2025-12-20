@@ -12,6 +12,7 @@
  */
 
 import { getCanonicalPersonaId } from './voice-registry.js';
+import { isHolidayGreetingsEnabled, isEasterEggFeatureEnabled } from '../config/feature-flags.js';
 
 // ============================================================================
 // TYPES
@@ -671,12 +672,14 @@ export function checkForEasterEgg(
     return keywordResult;
   }
 
-  // 2. Check holidays (once per session)
-  const holidayResult = getHolidayEasterEgg();
-  if (holidayResult) {
-    // Mark that we've given the holiday greeting
-    holidayGreetingGivenThisSession = true;
-    return holidayResult;
+  // 2. Check holidays (once per session) - controlled by feature flag
+  if (isHolidayGreetingsEnabled()) {
+    const holidayResult = getHolidayEasterEgg();
+    if (holidayResult) {
+      // Mark that we've given the holiday greeting
+      holidayGreetingGivenThisSession = true;
+      return holidayResult;
+    }
   }
 
   // 3. Check milestones

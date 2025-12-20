@@ -22,7 +22,11 @@ export async function withTimeout<T>(
     promise,
     new Promise<null>((resolve) => {
       setTimeout(() => {
-        getLogger().warn({ sessionId, operation: operationName, timeoutMs }, 'Operation timed out');
+        // Info level since timeout is expected behavior with graceful fallback
+        getLogger().info(
+          { sessionId, operation: operationName, timeoutMs },
+          'Operation timed out, using fallback'
+        );
         resolve(null);
       }, timeoutMs);
     }),
