@@ -71,6 +71,9 @@ import {
 import { processTranscriptForPatterns } from '../../intelligence/coaching-patterns.js';
 import { recordVoiceTurn, initializeVoiceTracking } from '../../intelligence/voice-signals.js';
 
+// Viral Growth - Natural referral prompts (very conservative)
+import { buildReferralPromptInjection } from '../../intelligence/context-builders/referral-prompt.js';
+
 // Conversation engines (singletons)
 import {
   getConversationHumanizer,

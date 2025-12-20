@@ -9,7 +9,7 @@ import { createOAuthStateManager } from '../../../utils/ddos-protection.js';
 import * as googleCalendarService from '../../token/oauth/google-calendar.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
-  startWatchChannel,
+  createWatchChannel,
   stopAllUserChannels as stopAllUserWatchChannels,
 } from '../../../services/calendar/webhooks/google-webhook.js';
 
@@ -147,7 +147,7 @@ export async function handleGoogleCalendarRoutes(
       // Set up webhook watch channel for real-time sync
       if (userId) {
         try {
-          const watchChannel = await startWatchChannel(userId, 'primary');
+          const watchChannel = await createWatchChannel(userId, 'primary');
           if (watchChannel) {
             log.info({ userId, channelId: watchChannel.id }, '📅 Google Calendar webhook watch channel created');
           } else {
