@@ -73,6 +73,8 @@ vi.mock('../services/financial-store.js', () => ({
       period: 'monthly',
     })),
     getStressTriggers: vi.fn(() => []),
+    getRecentSpendingTriggers: vi.fn(() => []),
+    getRecentStressTriggers: vi.fn(() => 0),
   })),
 }));
 
