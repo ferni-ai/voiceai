@@ -106,51 +106,55 @@ function detectLengthSignals(
 /**
  * Determine ideal response length based on signals
  *
- * Enhanced with randomization to avoid monotonous same-length responses
+ * PHILOSOPHY: Ferni should be warm, curious, and ENGAGING.
+ * Being too brief makes him feel cold and disinterested.
+ * Only go minimal when truly appropriate (intense venting, clear acknowledgment needs).
+ * Default to being present and substantive.
  */
 function determineResponseLength(signals: LengthSignals): ResponseLength {
-  // When they're venting - be BRIEF. Hold space, don't lecture.
-  if (signals.isVenting) {
-    return 'minimal';
-  }
-
-  // When they're processing - brief. Let them think.
-  if (signals.isProcessing) {
-    return 'brief';
-  }
-
-  // When they're excited sharing - brief encouragements, let them have the floor
-  if (signals.isExcitedSharing && signals.userMessageLength !== 'short') {
-    return 'brief';
-  }
-
-  // When they just need acknowledgment - just acknowledge!
-  if (signals.needsAcknowledgment) {
-    return 'minimal';
-  }
-
-  // When they just shared something big - pause, acknowledge briefly first
-  if (signals.justSharedSomethingBig) {
-    return 'brief';
-  }
-
-  // When asking a deep question - okay to elaborate
+  // When asking a deep question - elaborate! Show your curiosity and depth.
   if (signals.askingDeepQuestion) {
     return 'elaborate';
   }
 
-  // DYNAMIC LENGTH VARIATION
-  // Even when no special signals, vary response length to feel more human
-  // 25% chance of going brief, 10% chance of minimal for variety
-  const randomValue = Math.random();
-  if (randomValue < 0.1) {
-    return 'minimal'; // Sometimes just "Yeah." or "Exactly." feels right
-  }
-  if (randomValue < 0.3) {
-    return 'brief'; // Sometimes shorter is better
+  // When they're venting with HIGH intensity - hold space briefly, then engage
+  // Changed: Only go brief (not minimal) - Ferni should still be present
+  if (signals.isVenting) {
+    return 'brief';
   }
 
-  // Default to normal
+  // When they're processing - be present but give them room
+  if (signals.isProcessing) {
+    return 'brief';
+  }
+
+  // When they're excited sharing long messages - let them shine, but celebrate!
+  // Changed: Only brief if their message is actually long
+  if (signals.isExcitedSharing && signals.userMessageLength === 'long') {
+    return 'brief';
+  }
+
+  // When they just shared something big - acknowledge deeply, then explore
+  // Changed: Go normal, not brief - big shares deserve full presence
+  if (signals.justSharedSomethingBig) {
+    return 'normal';
+  }
+
+  // When they just need acknowledgment - brief is fine, but not minimal
+  // Changed: brief instead of minimal - Ferni should still engage
+  if (signals.needsAcknowledgment) {
+    return 'brief';
+  }
+
+  // REDUCED RANDOM VARIATION
+  // Ferni's warmth and engagement are core to who he is.
+  // Only occasionally go brief (10%), never randomly go minimal.
+  const randomValue = Math.random();
+  if (randomValue < 0.1) {
+    return 'brief'; // Sometimes shorter is appropriate
+  }
+
+  // Default to normal - Ferni should be engaging, curious, present
   return 'normal';
 }
 
@@ -167,38 +171,35 @@ const LENGTH_GUIDANCE: Record<
   }
 > = {
   minimal: {
-    description: 'Just a few words. Hold space. Less is more.',
+    description: 'Brief acknowledgment, then a curious follow-up. Still be present.',
     examples: [
-      '"Yeah..."',
-      '"Mmm."',
-      '"I hear you."',
-      '"That\'s a lot."',
-      '"Go on..."',
-      '"I\'m here."',
-    ],
-    maxSentences: '1-2 sentences max, or even just a word/sound',
-  },
-
-  brief: {
-    description: 'A sentence or two. Acknowledge, then give them room.',
-    examples: [
-      '"That makes sense. What else is on your mind?"',
-      '"I can see why that would be hard."',
-      '"What\'s that like for you?"',
+      '"That\'s a lot. What\'s weighing on you most?"',
+      '"I hear you. Go on..."',
+      '"That landed. Tell me more."',
     ],
     maxSentences: '2-3 sentences',
   },
 
+  brief: {
+    description: 'Acknowledge warmly, then invite them to continue or ask a curious question.',
+    examples: [
+      '"That makes sense. What else is going on?"',
+      '"I can see why that would be hard. What happened next?"',
+      '"What\'s that like for you?"',
+    ],
+    maxSentences: '3-4 sentences',
+  },
+
   normal: {
-    description: 'A paragraph. Balanced engagement.',
+    description: 'Engaged presence. Acknowledge, explore, be curious. This is your default.',
     examples: [],
-    maxSentences: '4-6 sentences',
+    maxSentences: '4-7 sentences',
   },
 
   elaborate: {
-    description: 'Can go deeper if needed, but stay focused.',
+    description: 'Go deep when they want depth. Explore, share, connect.',
     examples: [],
-    maxSentences: '6-10 sentences, but only if truly needed',
+    maxSentences: '7-12 sentences when the conversation calls for it',
   },
 };
 
