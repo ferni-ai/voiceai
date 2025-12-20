@@ -313,12 +313,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ferni.ai/privacy/</loc>
-    <lastmod>12/18/2025</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://ferni.ai/audio/README/</loc>
     <lastmod>12/18/2025</lastmod>
     <changefreq>monthly</changefreq>
@@ -355,12 +349,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ferni.ai/terms/</loc>
-    <lastmod>12/18/2025</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://ferni.ai/developers/api/</loc>
     <lastmod>12/18/2025</lastmod>
     <changefreq>monthly</changefreq>
@@ -386,6 +374,18 @@
   </url>
   <url>
     <loc>https://ferni.ai/preview/pixar-polish/</loc>
+    <lastmod>12/20/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/terms/</loc>
+    <lastmod>12/20/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/privacy/</loc>
     <lastmod>12/20/2025</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>

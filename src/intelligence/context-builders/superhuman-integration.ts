@@ -1,0 +1,497 @@
+/**
+ * Superhuman Integration for Context Builders
+ *
+ * Bridges the 10 superhuman services with persona context builders.
+ * Each persona can selectively use superhuman capabilities relevant to their domain.
+ *
+ * SUPERHUMAN CAPABILITIES:
+ * 1. Commitment Keeper - Tracks promises, intentions, decisions
+ * 2. Predictive Coaching - Anticipates struggles from patterns
+ * 3. Life Narrative - Builds coherent story of user's journey
+ * 4. Values Alignment - Tracks stated vs demonstrated values
+ * 5. Emotional First Aid - Crisis protocols and grounding
+ * 6. Relationship Network - Maps user's relationship ecosystem
+ * 7. Capacity Guardian - Monitors energy and burnout risk
+ * 8. Dream Keeper - Guards long-term aspirations
+ * 9. Relationship Milestones - Celebrates Ferni journey milestones
+ * 10. Seasonal Awareness - Connects patterns to seasons/cycles
+ *
+ * @module intelligence/context-builders/superhuman-integration
+ */
+
+import { createLogger } from '../../utils/safe-logger.js';
+import type { SuperhumanCapabilities } from './shared-types.js';
+
+const log = createLogger({ module: 'context:superhuman-integration' });
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export type PersonaSuperhuman =
+  | 'ferni'
+  | 'peter'
+  | 'maya'
+  | 'jordan'
+  | 'alex'
+  | 'nayan';
+
+interface SuperhumanSelectors {
+  /** Which capabilities this persona should use */
+  capabilities: (keyof SuperhumanCapabilities)[];
+  /** Priority order (first = most important) */
+  priorityOrder: (keyof SuperhumanCapabilities)[];
+  /** Max tokens to inject (to avoid prompt bloat) */
+  maxTokens: number;
+}
+
+// ============================================================================
+// PERSONA CAPABILITY MAPPINGS
+// ============================================================================
+
+const PERSONA_SUPERHUMAN_MAP: Record<PersonaSuperhuman, SuperhumanSelectors> = {
+  ferni: {
+    // Ferni uses ALL capabilities as the coordinator
+    capabilities: [
+      'crisis',
+      'commitments',
+      'predictions',
+      'narrative',
+      'values',
+      'capacity',
+      'dreams',
+      'network',
+      'milestones',
+      'seasonal',
+    ],
+    priorityOrder: ['crisis', 'commitments', 'capacity', 'predictions', 'milestones'],
+    maxTokens: 800,
+  },
+  peter: {
+    // Peter focuses on patterns, predictions, and values (analytical)
+    capabilities: ['predictions', 'values', 'commitments', 'capacity', 'seasonal'],
+    priorityOrder: ['predictions', 'values', 'commitments'],
+    maxTokens: 500,
+  },
+  maya: {
+    // Maya focuses on habits, capacity, commitments, predictions
+    capabilities: ['commitments', 'predictions', 'capacity', 'seasonal', 'values'],
+    priorityOrder: ['commitments', 'capacity', 'predictions'],
+    maxTokens: 500,
+  },
+  jordan: {
+    // Jordan focuses on dreams, milestones, narrative, seasonal
+    capabilities: ['dreams', 'milestones', 'narrative', 'seasonal', 'commitments'],
+    priorityOrder: ['dreams', 'milestones', 'seasonal'],
+    maxTokens: 500,
+  },
+  alex: {
+    // Alex focuses on network, commitments, capacity
+    capabilities: ['network', 'commitments', 'capacity', 'seasonal'],
+    priorityOrder: ['network', 'commitments', 'capacity'],
+    maxTokens: 400,
+  },
+  nayan: {
+    // Nayan focuses on narrative, values, dreams, seasonal (wisdom)
+    capabilities: ['narrative', 'values', 'dreams', 'seasonal', 'milestones'],
+    priorityOrder: ['narrative', 'values', 'dreams'],
+    maxTokens: 600,
+  },
+};
+
+// ============================================================================
+// CACHING
+// ============================================================================
+
+interface CachedSuperhuman {
+  context: SuperhumanCapabilities;
+  timestamp: number;
+  userId: string;
+}
+
+const cache = new Map<string, CachedSuperhuman>();
+const CACHE_TTL_MS = 60000; // 1 minute cache
+
+function getCacheKey(userId: string): string {
+  return `superhuman:${userId}`;
+}
+
+function getCachedContext(userId: string): SuperhumanCapabilities | null {
+  const cached = cache.get(getCacheKey(userId));
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return cached.context;
+  }
+  return null;
+}
+
+function setCachedContext(userId: string, context: SuperhumanCapabilities): void {
+  cache.set(getCacheKey(userId), {
+    context,
+    timestamp: Date.now(),
+    userId,
+  });
+}
+
+// ============================================================================
+// MAIN INTEGRATION FUNCTION
+// ============================================================================
+
+/**
+ * Get superhuman context for a specific persona.
+ * Uses lazy loading to avoid importing heavy modules unless needed.
+ * Includes performance tracking for monitoring.
+ */
+export async function getSuperhuman(
+  userId: string,
+  persona: PersonaSuperhuman,
+  options?: {
+    forceRefresh?: boolean;
+    crisisSignal?: string;
+  }
+): Promise<string> {
+  const startTime = Date.now();
+
+  // Check cache first
+  if (!options?.forceRefresh) {
+    const cached = getCachedContext(userId);
+    if (cached) {
+      const duration = Date.now() - startTime;
+      recordPerformance({
+        builderName: 'getSuperhuman',
+        durationMs: duration,
+        userId,
+        persona,
+        timestamp: Date.now(),
+        cacheHit: true,
+      });
+      log.debug({ persona, userId, cached: true, durationMs: duration }, 'Using cached superhuman context');
+      return formatForPersona(cached, persona);
+    }
+  }
+
+  try {
+    // Lazy import to avoid circular dependencies and reduce cold start
+    const {
+      buildSuperhumanContext,
+    } = await import('../../services/superhuman/index.js');
+
+    const context = await buildSuperhumanContext(userId, {
+      crisisSignal: options?.crisisSignal
+        ? { type: 'text', signal: options.crisisSignal }
+        : undefined,
+    });
+
+    // Cache the full context
+    setCachedContext(userId, context);
+
+    const duration = Date.now() - startTime;
+    recordPerformance({
+      builderName: 'getSuperhuman',
+      durationMs: duration,
+      userId,
+      persona,
+      timestamp: Date.now(),
+      cacheHit: false,
+    });
+    log.debug({ persona, userId, durationMs: duration }, 'Built superhuman context');
+
+    // Format for the specific persona
+    return formatForPersona(context, persona);
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    recordPerformance({
+      builderName: 'getSuperhuman',
+      durationMs: duration,
+      userId,
+      persona,
+      timestamp: Date.now(),
+      cacheHit: false,
+    });
+    log.warn({ error, persona, userId, durationMs: duration }, 'Failed to build superhuman context');
+    return '';
+  }
+}
+
+
+/**
+ * Format superhuman context for a specific persona.
+ * Filters to only relevant capabilities and respects token limits.
+ */
+function formatForPersona(
+  context: SuperhumanCapabilities,
+  persona: PersonaSuperhuman
+): string {
+  const config = PERSONA_SUPERHUMAN_MAP[persona];
+  if (!config) {
+    return '';
+  }
+
+  const sections: string[] = [];
+  let totalLength = 0;
+
+  // Crisis always takes priority if present
+  if (context.crisis && config.capabilities.includes('crisis')) {
+    sections.push(context.crisis);
+    totalLength += context.crisis.length;
+  }
+
+  // Add capabilities in priority order
+  for (const capability of config.priorityOrder) {
+    if (totalLength >= config.maxTokens) break;
+    if (!config.capabilities.includes(capability)) continue;
+
+    const content = context[capability];
+    if (content && content.length > 0) {
+      sections.push(content);
+      totalLength += content.length;
+    }
+  }
+
+  if (sections.length === 0) {
+    return '';
+  }
+
+  return `[SUPERHUMAN INSIGHTS - ${persona.toUpperCase()}]\n${sections.join('\n\n')}`;
+}
+
+// ============================================================================
+// PERSONA-SPECIFIC HELPERS
+// ============================================================================
+
+/**
+ * Get commitment-related superhuman context (useful for Maya, Peter)
+ */
+export async function getCommitmentContext(userId: string): Promise<string> {
+  try {
+    const { buildCommitmentContext } = await import(
+      '../../services/superhuman/commitment-keeper.js'
+    );
+    return await buildCommitmentContext(userId);
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Get predictive coaching context (useful for Peter, Maya)
+ */
+export async function getPredictiveContext(userId: string): Promise<string> {
+  try {
+    const { buildPredictiveContextString } = await import(
+      '../../services/superhuman/predictive-coaching.js'
+    );
+    return await buildPredictiveContextString(userId);
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Get life narrative context (useful for Nayan, Jordan)
+ */
+export async function getNarrativeContext(userId: string): Promise<string> {
+  try {
+    const { buildNarrativeContextString } = await import(
+      '../../services/superhuman/life-narrative.js'
+    );
+    return await buildNarrativeContextString(userId);
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Get values alignment context (useful for Nayan, Peter)
+ */
+export async function getValuesContext(userId: string): Promise<string> {
+  try {
+    const { buildValuesContext } = await import(
+      '../../services/superhuman/values-alignment.js'
+    );
+    return await buildValuesContext(userId);
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Get capacity/burnout context (useful for Maya, Alex)
+ */
+export async function getCapacityContext(userId: string): Promise<string> {
+  try {
+    const { buildCapacityContext } = await import(
+      '../../services/superhuman/capacity-guardian.js'
+    );
+    return await buildCapacityContext(userId);
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Get dream keeper context (useful for Jordan, Nayan)
+ */
+export async function getDreamContext(userId: string): Promise<string> {
+  try {
+    const { buildDreamContext } = await import('../../services/superhuman/dream-keeper.js');
+    return await buildDreamContext(userId);
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Get relationship network context (useful for Alex)
+ */
+export async function getNetworkContext(userId: string): Promise<string> {
+  try {
+    const { buildNetworkContext } = await import(
+      '../../services/superhuman/relationship-network.js'
+    );
+    return await buildNetworkContext(userId);
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Get seasonal awareness context (useful for all)
+ */
+export async function getSeasonalContext(userId: string): Promise<string> {
+  try {
+    const { buildSeasonalContext } = await import(
+      '../../services/superhuman/seasonal-awareness.js'
+    );
+    return await buildSeasonalContext(userId);
+  } catch {
+    return '';
+  }
+}
+
+// ============================================================================
+// CACHE MANAGEMENT
+// ============================================================================
+
+/**
+ * Clear cached superhuman context for a user
+ */
+export function clearSuperhumanCache(userId: string): void {
+  cache.delete(getCacheKey(userId));
+}
+
+/**
+ * Clear all superhuman cache
+ */
+export function clearAllSuperhumanCache(): void {
+  cache.clear();
+}
+
+// ============================================================================
+// PERFORMANCE TRACKING
+// ============================================================================
+
+interface PerformanceEntry {
+  builderName: string;
+  durationMs: number;
+  userId: string;
+  persona: PersonaSuperhuman;
+  timestamp: number;
+  cacheHit: boolean;
+}
+
+const performanceLog: PerformanceEntry[] = [];
+const MAX_PERFORMANCE_ENTRIES = 100;
+
+/**
+ * Record a performance entry
+ */
+function recordPerformance(entry: PerformanceEntry): void {
+  performanceLog.push(entry);
+  
+  // Keep only last N entries
+  if (performanceLog.length > MAX_PERFORMANCE_ENTRIES) {
+    performanceLog.shift();
+  }
+
+  // Log slow operations
+  if (entry.durationMs > 200) {
+    log.warn(
+      { ...entry },
+      `Slow superhuman context build: ${entry.durationMs}ms`
+    );
+  }
+}
+
+/**
+ * Get performance statistics
+ */
+export function getPerformanceStats(): {
+  totalCalls: number;
+  averageDurationMs: number;
+  cacheHitRate: number;
+  slowestCall: PerformanceEntry | null;
+  recentCalls: PerformanceEntry[];
+} {
+  if (performanceLog.length === 0) {
+    return {
+      totalCalls: 0,
+      averageDurationMs: 0,
+      cacheHitRate: 0,
+      slowestCall: null,
+      recentCalls: [],
+    };
+  }
+
+  const totalCalls = performanceLog.length;
+  const totalDuration = performanceLog.reduce((sum, e) => sum + e.durationMs, 0);
+  const cacheHits = performanceLog.filter((e) => e.cacheHit).length;
+  const slowest = performanceLog.reduce(
+    (max, e) => (e.durationMs > (max?.durationMs || 0) ? e : max),
+    null as PerformanceEntry | null
+  );
+
+  return {
+    totalCalls,
+    averageDurationMs: Math.round(totalDuration / totalCalls),
+    cacheHitRate: Math.round((cacheHits / totalCalls) * 100) / 100,
+    slowestCall: slowest,
+    recentCalls: performanceLog.slice(-10),
+  };
+}
+
+/**
+ * Clear performance log
+ */
+export function clearPerformanceLog(): void {
+  performanceLog.length = 0;
+}
+
+/**
+ * Wrap a context builder with performance tracking
+ */
+export function withPerformanceTracking<T>(
+  builderName: string,
+  fn: () => Promise<T>,
+  meta: { userId: string; persona: PersonaSuperhuman; cacheHit?: boolean }
+): Promise<T> {
+  const startTime = Date.now();
+  
+  return fn().finally(() => {
+    const duration = Date.now() - startTime;
+    recordPerformance({
+      builderName,
+      durationMs: duration,
+      userId: meta.userId,
+      persona: meta.persona,
+      timestamp: Date.now(),
+      cacheHit: meta.cacheHit ?? false,
+    });
+  });
+}
+
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
+export { PERSONA_SUPERHUMAN_MAP };
+

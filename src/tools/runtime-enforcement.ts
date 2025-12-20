@@ -114,6 +114,14 @@ const DOMAIN_OWNERSHIP: Record<string, string[]> = {
     'triageInbox',
     'getEmailThread',
     'checkEmailFrom',
+    // Contact Relationship Tools (Phase 3)
+    'getContactInsights',
+    'getContactsNeedingAttention',
+    'getContactInfo',
+    'saveContact',
+    'recordContactInteraction',
+    'setContactFollowUp',
+    'completeContactFollowUp',
     // Legacy Calendar/Appointment Tools
     'manageAppointment',
     'scheduleReminder',

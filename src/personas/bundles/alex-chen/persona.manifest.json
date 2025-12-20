@@ -56,6 +56,15 @@
         "getEmailThread",
         "checkEmailFrom"
       ],
+      "contacts": [
+        "getContactInsights",
+        "getContactsNeedingAttention",
+        "getContactInfo",
+        "saveContact",
+        "recordContactInteraction",
+        "setContactFollowUp",
+        "completeContactFollowUp"
+      ],
       "handoffs": [
         "handoffToFerni",
         "handoffToPeter",

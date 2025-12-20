@@ -73,6 +73,7 @@ import { getProductivityStore } from '../../services/productivity-store.js';
 import { getGamificationStore } from '../../services/gamification-store.js';
 import { getMemoryOrchestrator } from '../../memory/orchestrator.js';
 import { detectProactiveTriggers, type ProactiveTrigger } from '../../tools/proactive-coaching.js';
+import { getSuperhuman } from './superhuman-integration.js';
 
 const log = createLogger({ module: 'context:peter-research-insights' });
 
@@ -1199,8 +1200,17 @@ async function buildPeterResearchInsightsContext(
     // Build comprehensive briefing
     const briefing = await buildInsightBriefing(userId, isHandoff);
 
+    // Get superhuman context (predictions, values, commitments)
+    const superhumanContext = await getSuperhuman(userId, 'peter');
+
     // Format for injection
     const briefingLines = formatBriefingForInjection(briefing, handoffBriefing, turnCount);
+    
+    // Add superhuman context if available
+    if (superhumanContext) {
+      briefingLines.push('\n' + superhumanContext);
+    }
+    
     const briefingContent = briefingLines.join('\n');
 
     // Determine injection priority based on context

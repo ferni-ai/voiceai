@@ -29,6 +29,10 @@ import { createCommunicationTools } from '../../communication.js';
 import { proactiveOutreachTools } from '../../proactive-outreach.js';
 // Gmail tools for Alex
 import { getAlexGmailToolDefinitions } from './alex-gmail-tools.js';
+// Contact relationship tools for Alex
+import { getAlexContactToolDefinitions } from './alex-contact-tools.js';
+// Message validation tools for Alex ("Sleep on it")
+import { getAlexMessageValidationToolDefinitions } from './alex-message-validation-tools.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
@@ -341,6 +345,8 @@ const communicationTools: ToolDefinition[] = [
   ...getProactiveOutreachToolDefinitions(),
   ...getCoachingToolDefinitions(),
   ...getAlexGmailToolDefinitions(),
+  ...getAlexContactToolDefinitions(),
+  ...getAlexMessageValidationToolDefinitions(),
 ];
 
 // ============================================================================
@@ -357,6 +363,8 @@ export {
   getCommunicationToolDefinitions,
   getProactiveOutreachToolDefinitions,
   getAlexGmailToolDefinitions,
+  getAlexContactToolDefinitions,
+  getAlexMessageValidationToolDefinitions,
 };
 
 // Re-export legacy tool creators for direct use by persona agents

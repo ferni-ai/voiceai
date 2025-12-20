@@ -3,6 +3,30 @@
  *
  * > "Progress isn't linear. Setbacks are data, not failure."
  *
+ * ============================================================================
+ * DISTINCTION FROM maya-habit-insights.ts:
+ * ============================================================================
+ *
+ * This builder (`maya-coaching-insights`) focuses on:
+ * - CROSS-TEAM INTEGRATION: Data from Peter, Jordan, Alex, Nayan
+ * - COMPUTED METRICS: Consistency Index, Cascade Potential, Momentum, etc.
+ * - PROACTIVE TRIGGERS: Celebration, support, challenge opportunities
+ * - FOUR TENDENCIES: Coaching approach based on user type
+ * - SUPERHUMAN SERVICES: Commitments, capacity, predictions
+ *
+ * The other builder (`maya-habit-insights`) focuses on:
+ * - HABIT-SPECIFIC data: streaks, completions, patterns
+ * - PATTERN SURFACING: Weekly patterns, time-of-day insights
+ * - STREAK PROTECTION: Risk alerts, milestone celebrations
+ * - PREDICTIVE CARE: Anticipating struggle periods
+ *
+ * WHEN THEY ACTIVATE:
+ * - `maya-coaching-insights`: Category PERSONA, runs on first turn/handoffs
+ * - `maya-habit-insights`: Category COACHING, runs during habit discussions
+ *
+ * Both can run simultaneously - they provide complementary insights.
+ * ============================================================================
+ *
  * This builder loads Maya with DEEP coaching intelligence when:
  * 1. A user transfers TO Maya from another persona
  * 2. A user starts talking directly with Maya
@@ -56,6 +80,7 @@ import { getHandoffContext } from '../../tools/handoff/executor.js';
 import { getProductivityStore } from '../../services/productivity-store.js';
 import { getFinancialStore } from '../../services/financial-store.js';
 import { getGamificationStore } from '../../services/gamification-store.js';
+import { getSuperhuman } from './superhuman-integration.js';
 
 const log = createLogger({ module: 'context:maya-coaching-insights' });
 
@@ -1060,6 +1085,13 @@ async function buildMayaCoachingInsightsContext(
   try {
     const briefing = await buildMayaBriefing(userId);
     const briefingLines = formatMayaBriefing(briefing, handoffBriefing, turnCount);
+    
+    // Get superhuman context (commitments, capacity, predictions)
+    const superhumanContext = await getSuperhuman(userId, 'maya');
+    if (superhumanContext) {
+      briefingLines.push('\n' + superhumanContext);
+    }
+    
     const content = briefingLines.join('\n');
 
     if (isHandoff) {

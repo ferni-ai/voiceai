@@ -1,0 +1,292 @@
+{% extends "layouts/base.njk" %}
+
+{% block head %}
+<link rel="stylesheet" href="/css/legal-premium.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "{{ title }}",
+  "description": "{{ description }}",
+  "dateModified": "{{ lastUpdated }}",
+  "publisher": {
+    "@type": "Organization",
+    "name": "Ferni",
+    "url": "https://ferni.ai"
+  }
+}
+</script>
+{% endblock %}
+
+{% block content %}
+{# ========== READING PROGRESS BAR ========== #}
+<div class="legal-progress" aria-hidden="true">
+  <div class="legal-progress__bar"></div>
+</div>
+
+{# ========== HERO SECTION ========== #}
+<section class="legal-hero">
+  <div class="legal-hero__bg">
+    <div class="legal-hero__gradient"></div>
+    <div class="legal-hero__pattern"></div>
+  </div>
+  
+  <div class="legal-hero__content">
+    <a href="/" class="legal-back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      <span>Back to Ferni</span>
+    </a>
+    
+    <div class="legal-hero__badge">
+      {% if pageIcon %}
+      <span class="legal-hero__icon">{{ pageIcon | safe }}</span>
+      {% endif %}
+      <span class="legal-hero__label">{{ pageType or 'Legal' }}</span>
+    </div>
+    
+    <h1 class="legal-hero__title">{{ title }}</h1>
+    
+    {% if subtitle %}
+    <p class="legal-hero__subtitle">{{ subtitle }}</p>
+    {% endif %}
+    
+    <div class="legal-hero__meta">
+      {% if lastUpdated %}
+      <span class="legal-hero__date">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        Last updated {{ lastUpdated }}
+      </span>
+      {% endif %}
+      {% if readTime %}
+      <span class="legal-hero__read-time">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+        </svg>
+        {{ readTime }} min read
+      </span>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{# ========== MAIN CONTENT ========== #}
+<main class="legal-main">
+  <div class="legal-container">
+    {# Table of Contents #}
+    {% if toc %}
+    <aside class="legal-toc" aria-label="Table of contents">
+      <div class="legal-toc__header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+          <line x1="8" y1="6" x2="21" y2="6"/>
+          <line x1="8" y1="12" x2="21" y2="12"/>
+          <line x1="8" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="3.01" y2="6"/>
+          <line x1="3" y1="12" x2="3.01" y2="12"/>
+          <line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+        <span>On this page</span>
+      </div>
+      <nav class="legal-toc__nav">
+        {% for item in toc %}
+        <a href="#{{ item.id }}" class="legal-toc__link">{{ item.title }}</a>
+        {% endfor %}
+      </nav>
+    </aside>
+    {% endif %}
+    
+    {# Main Content #}
+    <article class="legal-content">
+      {# Trust Signals #}
+      <div class="legal-trust">
+        <div class="legal-trust__item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <polyline points="9 12 11 14 15 10"/>
+          </svg>
+          <span>Your data is protected</span>
+        </div>
+        <div class="legal-trust__item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <span>Encrypted end-to-end</span>
+        </div>
+        <div class="legal-trust__item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+          </svg>
+          <span>Human-first approach</span>
+        </div>
+      </div>
+      
+      {# Article Content #}
+      <div class="legal-article">
+        {{ content | safe }}
+      </div>
+      
+      {# Contact CTA #}
+      <div class="legal-contact">
+        <div class="legal-contact__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="32" height="32">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        <div class="legal-contact__content">
+          <h3>Questions? We're here.</h3>
+          <p>We believe in making things simple. If anything here is unclear, just ask.</p>
+        </div>
+        <div class="legal-contact__actions">
+          <a href="mailto:{{ contactEmail or 'hello@ferni.ai' }}" class="legal-contact__btn legal-contact__btn--primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            Email us
+          </a>
+          <a href="tel:+14844813081" class="legal-contact__btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            Call us
+          </a>
+        </div>
+      </div>
+    </article>
+  </div>
+</main>
+
+{# ========== BACK TO TOP ========== #}
+<button class="legal-top" aria-label="Back to top" hidden>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+    <path d="M18 15l-6-6-6 6"/>
+  </svg>
+</button>
+
+{# ========== FOOTER NAV ========== #}
+<nav class="legal-footer-nav">
+  <div class="legal-footer-nav__inner">
+    {% if prevPage %}
+    <a href="{{ prevPage.url }}" class="legal-footer-nav__link legal-footer-nav__link--prev">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+        <path d="M19 12H5M12 19l-7-7 7-7"/>
+      </svg>
+      <div>
+        <span class="legal-footer-nav__label">Previous</span>
+        <span class="legal-footer-nav__title">{{ prevPage.title }}</span>
+      </div>
+    </a>
+    {% else %}
+    <div></div>
+    {% endif %}
+    
+    {% if nextPage %}
+    <a href="{{ nextPage.url }}" class="legal-footer-nav__link legal-footer-nav__link--next">
+      <div>
+        <span class="legal-footer-nav__label">Next</span>
+        <span class="legal-footer-nav__title">{{ nextPage.title }}</span>
+      </div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+        <path d="M5 12h14M12 5l7 7-7 7"/>
+      </svg>
+    </a>
+    {% endif %}
+  </div>
+</nav>
+
+{# ========== SCRIPTS ========== #}
+<script>
+// Reading Progress Bar
+const progressBar = document.querySelector('.legal-progress__bar');
+const article = document.querySelector('.legal-article');
+
+function updateProgress() {
+  if (!article || !progressBar) return;
+  
+  const articleTop = article.offsetTop;
+  const articleHeight = article.offsetHeight;
+  const windowHeight = window.innerHeight;
+  const scrollY = window.scrollY;
+  
+  const start = articleTop - windowHeight;
+  const end = articleTop + articleHeight - windowHeight;
+  const progress = Math.min(Math.max((scrollY - start) / (end - start), 0), 1);
+  
+  progressBar.style.transform = `scaleX(${progress})`;
+}
+
+// TOC Active State
+const tocLinks = document.querySelectorAll('.legal-toc__link');
+const sections = document.querySelectorAll('.legal-article h2[id]');
+
+function updateTocActive() {
+  let currentSection = '';
+  
+  sections.forEach(section => {
+    const rect = section.getBoundingClientRect();
+    if (rect.top <= 150) {
+      currentSection = section.id;
+    }
+  });
+  
+  tocLinks.forEach(link => {
+    link.classList.toggle('active', link.getAttribute('href') === `#${currentSection}`);
+  });
+}
+
+// Back to Top Button
+const topBtn = document.querySelector('.legal-top');
+
+function updateTopBtn() {
+  if (!topBtn) return;
+  topBtn.hidden = window.scrollY < 500;
+}
+
+topBtn?.addEventListener('click', () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// Smooth scroll for TOC links
+tocLinks.forEach(link => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    const target = document.querySelector(link.getAttribute('href'));
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
+});
+
+// Scroll Reveal Animation
+const revealElements = document.querySelectorAll('.legal-article section, .legal-trust, .legal-contact');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('revealed');
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+revealElements.forEach(el => observer.observe(el));
+
+// Event Listeners
+window.addEventListener('scroll', () => {
+  updateProgress();
+  updateTocActive();
+  updateTopBtn();
+}, { passive: true });
+
+// Initial state
+updateProgress();
+updateTocActive();
+updateTopBtn();
+</script>
+{% endblock %}
+

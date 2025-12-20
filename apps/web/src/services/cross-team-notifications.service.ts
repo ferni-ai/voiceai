@@ -48,6 +48,18 @@ let notificationCount: number = 0;
 let sessionStartTime: number = Date.now();
 let isEnabled: boolean = true;
 let wsConnection: WebSocket | null = null;
+let reconnectAttempts: number = 0;
+let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+let currentUserId: string | null = null;
+
+// Exponential backoff configuration
+const RECONNECT_CONFIG = {
+  initialDelayMs: 1000,     // 1 second
+  maxDelayMs: 60000,        // 1 minute max
+  multiplier: 2,            // Double each time
+  maxAttempts: 10,          // Give up after 10 attempts
+  jitterMs: 500,            // Random jitter to prevent thundering herd
+};
 
 const DEFAULT_THRESHOLDS: NotificationThresholds = {
   cooldownMs: 60000, // 1 minute between notifications
@@ -215,16 +227,68 @@ export function showBestInsight(insights: CrossTeamInsight[]): boolean {
 }
 
 // ============================================================================
-// WEBSOCKET CONNECTION
+// WEBSOCKET CONNECTION WITH EXPONENTIAL BACKOFF
 // ============================================================================
+
+/**
+ * Calculate reconnection delay with exponential backoff and jitter
+ */
+function getReconnectDelay(): number {
+  const baseDelay = Math.min(
+    RECONNECT_CONFIG.initialDelayMs * Math.pow(RECONNECT_CONFIG.multiplier, reconnectAttempts),
+    RECONNECT_CONFIG.maxDelayMs
+  );
+  
+  // Add random jitter to prevent thundering herd
+  const jitter = Math.random() * RECONNECT_CONFIG.jitterMs;
+  return baseDelay + jitter;
+}
+
+/**
+ * Schedule a reconnection attempt
+ */
+function scheduleReconnect(userId: string): void {
+  // Clear any existing timeout
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout);
+    reconnectTimeout = null;
+  }
+
+  // Check if we should give up
+  if (reconnectAttempts >= RECONNECT_CONFIG.maxAttempts) {
+    log.warn('Max reconnection attempts reached, falling back to polling');
+    startInsightsPolling(userId);
+    return;
+  }
+
+  const delay = getReconnectDelay();
+  reconnectAttempts++;
+  
+  log.info(`Scheduling reconnect attempt ${reconnectAttempts}/${RECONNECT_CONFIG.maxAttempts} in ${Math.round(delay)}ms`);
+  
+  reconnectTimeout = setTimeout(() => {
+    if (isEnabled && currentUserId) {
+      connectToInsightsStream(currentUserId);
+    }
+  }, delay);
+}
 
 /**
  * Connect to the insights WebSocket for real-time updates
  */
 export function connectToInsightsStream(userId: string): void {
+  // Store userId for reconnection
+  currentUserId = userId;
+
   if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
     log.debug('Already connected to insights stream');
     return;
+  }
+
+  // Clear any pending reconnect
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout);
+    reconnectTimeout = null;
   }
 
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -235,6 +299,11 @@ export function connectToInsightsStream(userId: string): void {
 
     wsConnection.onopen = () => {
       log.info('Connected to insights WebSocket');
+      // Reset reconnection state on successful connection
+      reconnectAttempts = 0;
+      
+      // Stop polling if it was active (we have WebSocket now)
+      stopInsightsPolling();
     };
 
     wsConnection.onmessage = (event) => {
@@ -267,19 +336,21 @@ export function connectToInsightsStream(userId: string): void {
       log.warn('WebSocket error:', error);
     };
 
-    wsConnection.onclose = () => {
-      log.info('Disconnected from insights WebSocket');
+    wsConnection.onclose = (event) => {
+      log.info(`Disconnected from insights WebSocket (code: ${event.code}, reason: ${event.reason || 'none'})`);
       wsConnection = null;
       
-      // Reconnect after delay
-      setTimeout(() => {
-        if (isEnabled) {
-          connectToInsightsStream(userId);
-        }
-      }, 5000);
+      // Schedule reconnection with exponential backoff
+      if (isEnabled && currentUserId) {
+        scheduleReconnect(currentUserId);
+      }
     };
   } catch (err) {
     log.error('Failed to connect to insights WebSocket:', err);
+    // Schedule reconnection even on initial failure
+    if (isEnabled && userId) {
+      scheduleReconnect(userId);
+    }
   }
 }
 
@@ -287,6 +358,16 @@ export function connectToInsightsStream(userId: string): void {
  * Disconnect from the insights WebSocket
  */
 export function disconnectFromInsightsStream(): void {
+  // Clear any pending reconnect
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout);
+    reconnectTimeout = null;
+  }
+  
+  // Reset reconnection state
+  reconnectAttempts = 0;
+  currentUserId = null;
+  
   if (wsConnection) {
     wsConnection.close();
     wsConnection = null;
@@ -390,6 +471,8 @@ export function getState(): {
   sessionDurationMs: number;
   lastNotificationAgo: number;
   wsConnected: boolean;
+  reconnectAttempts: number;
+  reconnectPending: boolean;
 } {
   return {
     isEnabled,
@@ -397,6 +480,8 @@ export function getState(): {
     sessionDurationMs: Date.now() - sessionStartTime,
     lastNotificationAgo: lastNotificationTime ? Date.now() - lastNotificationTime : -1,
     wsConnected: wsConnection?.readyState === WebSocket.OPEN,
+    reconnectAttempts,
+    reconnectPending: reconnectTimeout !== null,
   };
 }
 

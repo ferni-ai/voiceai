@@ -1,28 +1,46 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
-  <!-- Open Graph Image -->
+  <!-- Open Graph Image - Three Stones -->
   <defs>
-    <linearGradient id="ogOrbGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#3d5a35"/>
-      <stop offset="40%" stop-color="#4a6741"/>
-      <stop offset="100%" stop-color="#5a7a4d"/>
-    </linearGradient>
+    <radialGradient id="stoneGradOG" cx="40%" cy="40%">
+      <stop offset="0%" stop-color="#5a8060"/>
+      <stop offset="70%" stop-color="#4a6741"/>
+      <stop offset="100%" stop-color="#3d5a35"/>
+    </radialGradient>
+    <filter id="glowFilterOG" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <radialGradient id="catchlightGradOG" cx="30%" cy="30%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
   </defs>
 
+  <!-- Background -->
   <rect width="1200" height="630" fill="#F5F1E8"/>
 
-  <!-- Orb Logo -->
+  <!-- Three Stones Logo -->
   <g transform="translate(600, 250)">
-    <circle cx="0" cy="0" r="100" fill="url(#ogOrbGradient)"/>
-    <!-- Waveform bars -->
-    <rect x="-36" y="-12" width="4" height="24" rx="2" fill="rgba(255,255,255,0.95)"/>
-    <rect x="-27" y="-18" width="4" height="36" rx="2" fill="rgba(255,255,255,0.95)"/>
-    <rect x="-18" y="-24" width="4" height="48" rx="2" fill="rgba(255,255,255,0.95)"/>
-    <rect x="-9" y="-28" width="4" height="56" rx="2" fill="rgba(255,255,255,0.95)"/>
-    <rect x="0" y="-32" width="4" height="64" rx="2" fill="rgba(255,255,255,0.95)"/>
-    <rect x="9" y="-28" width="4" height="56" rx="2" fill="rgba(255,255,255,0.95)"/>
-    <rect x="18" y="-24" width="4" height="48" rx="2" fill="rgba(255,255,255,0.95)"/>
-    <rect x="27" y="-18" width="4" height="36" rx="2" fill="rgba(255,255,255,0.95)"/>
-    <rect x="36" y="-12" width="4" height="24" rx="2" fill="rgba(255,255,255,0.95)"/>
+    <!-- Outer glow ring -->
+    <circle cx="0" cy="0" r="110" fill="none" stroke="#4a6741" stroke-width="2" opacity="0.25"/>
+    
+    <!-- Outer Stone: Body -->
+    <circle cx="0" cy="0" r="100" fill="url(#stoneGradOG)" filter="url(#glowFilterOG)"/>
+    
+    <!-- Middle Stone: Eye White -->
+    <circle cx="0" cy="0" r="41" fill="white"/>
+    
+    <!-- Iris -->
+    <circle cx="0" cy="0" r="27" fill="#5a8060"/>
+    
+    <!-- Inner Stone: Pupil -->
+    <circle cx="0" cy="0" r="13" fill="#2c2520"/>
+    
+    <!-- Catchlight (life spark) -->
+    <circle cx="-8" cy="-8" r="5.5" fill="url(#catchlightGradOG)"/>
+    
+    <!-- Secondary catchlight -->
+    <circle cx="7" cy="5" r="2" fill="white" opacity="0.4"/>
   </g>
 
   <!-- Text -->

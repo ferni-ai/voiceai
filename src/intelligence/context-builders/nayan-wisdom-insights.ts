@@ -58,6 +58,7 @@ import { getHandoffContext } from '../../tools/handoff/executor.js';
 import { getFinancialStore } from '../../services/financial-store.js';
 import { getProductivityStore } from '../../services/productivity-store.js';
 import { getGamificationStore } from '../../services/gamification-store.js';
+import { getSuperhuman } from './superhuman-integration.js';
 
 const log = createLogger({ module: 'context:nayan-wisdom-insights' });
 
@@ -1278,6 +1279,13 @@ async function buildNayanWisdomInsightsContext(
   try {
     const briefing = await buildNayanBriefing(userId);
     const briefingLines = formatNayanBriefing(briefing, handoffBriefing, turnCount);
+    
+    // Get superhuman context (narrative, values, dreams, seasonal)
+    const superhumanContext = await getSuperhuman(userId, 'nayan');
+    if (superhumanContext) {
+      briefingLines.push('\n' + superhumanContext);
+    }
+    
     const content = briefingLines.join('\n');
 
     if (isHandoff) {

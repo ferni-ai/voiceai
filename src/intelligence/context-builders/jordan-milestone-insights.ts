@@ -80,6 +80,7 @@ import { getHandoffContext } from '../../tools/handoff/executor.js';
 import { getFinancialStore } from '../../services/financial-store.js';
 import { getProductivityStore } from '../../services/productivity-store.js';
 import { getGamificationStore } from '../../services/gamification-store.js';
+import { getSuperhuman } from './superhuman-integration.js';
 import { getMemoryOrchestrator } from '../../memory/orchestrator.js';
 
 const log = createLogger({ module: 'context:jordan-milestone-insights' });
@@ -1365,6 +1366,13 @@ async function buildJordanMilestoneInsightsContext(
   try {
     const briefing = await buildJordanBriefing(userId);
     const briefingLines = formatJordanBriefing(briefing, handoffBriefing, turnCount);
+    
+    // Get superhuman context (dreams, milestones, narrative, seasonal)
+    const superhumanContext = await getSuperhuman(userId, 'jordan');
+    if (superhumanContext) {
+      briefingLines.push('\n' + superhumanContext);
+    }
+    
     const content = briefingLines.join('\n');
 
     if (isHandoff) {

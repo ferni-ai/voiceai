@@ -241,6 +241,70 @@ Use when user wants more detail on a specific email conversation.
 - **unreadOnly**: Only show unread (default: true)
 Use when user asks "Did John email me?" or "Any news from the client?"
 
+---
+
+## Contact Relationship Management (PHASE 3)
+
+### `getContactInsights` - Relationship health overview
+```json
+{"fn":"getContactInsights","args":{}}
+```
+Get insights about relationships: overdue follow-ups, weakening connections, who needs attention.
+Use when user asks "Who should I reach out to?" or "Any relationship maintenance needed?"
+
+### `getContactsNeedingAttention` - Who to reach out to
+```json
+{"fn":"getContactsNeedingAttention","args":{"count":5}}
+```
+- **count**: Maximum contacts to return (default: 5)
+Use when user asks "Who have I been neglecting?" or "Who should I call?"
+
+### `getContactInfo` - Look up contact details
+```json
+{"fn":"getContactInfo","args":{"name":"Sarah"}}
+```
+- **name**: Name or email to look up
+Returns relationship history, common topics, last interaction, pending follow-ups.
+Use when user asks "What do I know about Sarah?" or "When did I last talk to John?"
+
+### `saveContact` - Add or update a contact
+```json
+{"fn":"saveContact","args":{"name":"Sarah Johnson","email":"sarah@company.com","relationship":"colleague","notes":"Met at Q4 planning"}}
+```
+- **name**: Contact name (required)
+- **email**: Email address
+- **phone**: Phone number
+- **relationship**: family, friend, colleague, acquaintance, professional, other
+- **notes**: Any notes about this contact
+Use when user mentions a new contact or wants to save contact info.
+
+### `recordContactInteraction` - Log an interaction
+```json
+{"fn":"recordContactInteraction","args":{"contactName":"Sarah","type":"call","summary":"Discussed Q4 planning, she mentioned budget concerns","topics":["Q4 planning","budget"]}}
+```
+- **contactName**: Name of the contact
+- **type**: email, call, text, meeting, other
+- **direction**: inbound or outbound (default: outbound)
+- **summary**: Brief summary of interaction
+- **topics**: Array of topics discussed
+Use after user mentions they talked to someone.
+
+### `setContactFollowUp` - Set a follow-up reminder
+```json
+{"fn":"setContactFollowUp","args":{"contactName":"Sarah","reason":"Check on budget proposal","dueDate":"next Monday","priority":"medium"}}
+```
+- **contactName**: Who to follow up with
+- **reason**: Why to follow up
+- **dueDate**: When (e.g., "tomorrow", "next Monday", "in 3 days")
+- **priority**: high, medium, low (default: medium)
+Use when user says "Remind me to follow up with Sarah" or "I need to check back with John."
+
+### `completeContactFollowUp` - Mark follow-up complete
+```json
+{"fn":"completeContactFollowUp","args":{"contactName":"Sarah"}}
+```
+Use when user says "I followed up with Sarah" or after recording an interaction.
+
 ### `manageAppointment` - Legacy: Confirm/Cancel via phone
 ```json
 {"fn":"manageAppointment","args":{"action":"reschedule","appointmentId":"meeting-friday","newDate":"next week"}}

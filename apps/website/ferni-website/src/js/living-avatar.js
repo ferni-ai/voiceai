@@ -224,8 +224,16 @@
     // Track visibility
     setupVisibilityTracking();
     
+    // Section awareness - react to what user is reading
+    setupSectionAwareness();
+    
+    // Ambient behaviors - occasional spontaneous actions
+    if (!state.prefersReducedMotion) {
+      startAmbientBehaviors();
+    }
+    
     state.initialized = true;
-    logDebug('Avatar initialized with spring physics');
+    logDebug('Avatar initialized with spring physics and section awareness');
   }
   
   function loadEmotionalMemory() {
@@ -755,6 +763,143 @@
   }
 
   // ============================================================================
+  // SECTION AWARENESS - Ferni reacts to what user is viewing
+  // ============================================================================
+  
+  const SECTION_REACTIONS = {
+    'features': { expression: 'curious', delay: 500 },
+    'team': { expression: 'delighted', delay: 300 },
+    'about': { expression: 'warmth', delay: 400 },
+    'pricing': { expression: 'thinking', delay: 600 },
+    'faq': { expression: 'curious', delay: 400 },
+    'demo': { expression: 'delighted', delay: 200 }
+  };
+  
+  let currentSection = null;
+  let sectionObserver = null;
+  
+  function setupSectionAwareness() {
+    // Find all major sections
+    const sections = document.querySelectorAll('section[id], [data-section]');
+    if (sections.length === 0) return;
+    
+    sectionObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
+          const sectionId = entry.target.id || entry.target.dataset.section;
+          if (sectionId && sectionId !== currentSection) {
+            currentSection = sectionId;
+            reactToSection(sectionId);
+          }
+        }
+      });
+    }, {
+      threshold: [0.3, 0.5, 0.7],
+      rootMargin: '-100px 0px -100px 0px'
+    });
+    
+    sections.forEach(section => sectionObserver.observe(section));
+  }
+  
+  function reactToSection(sectionId) {
+    // Find matching reaction
+    for (const [key, config] of Object.entries(SECTION_REACTIONS)) {
+      if (sectionId.toLowerCase().includes(key)) {
+        setTimeout(() => {
+          triggerExpression(config.expression);
+        }, config.delay);
+        break;
+      }
+    }
+  }
+
+  // ============================================================================
+  // AMBIENT BEHAVIORS - Occasional spontaneous actions
+  // ============================================================================
+  
+  let ambientTimer = null;
+  
+  function startAmbientBehaviors() {
+    // Schedule random ambient actions
+    function scheduleAmbient() {
+      const delay = 8000 + Math.random() * 15000; // 8-23 seconds
+      
+      ambientTimer = setTimeout(() => {
+        if (state.isVisible && state.attentionLevel < CONFIG.attentionThreshold) {
+          performAmbientAction();
+        }
+        scheduleAmbient();
+      }, delay);
+    }
+    
+    scheduleAmbient();
+  }
+  
+  function performAmbientAction() {
+    const actions = [
+      () => {
+        // Look around curiously
+        const randomX = (Math.random() - 0.5) * PHYSICS.maxGazeOffset * 1.5;
+        const randomY = (Math.random() - 0.5) * PHYSICS.maxGazeOffset * 0.8;
+        state.targetX = randomX;
+        state.targetY = randomY;
+        
+        setTimeout(() => {
+          state.targetX = 0;
+          state.targetY = 0;
+        }, 1500 + Math.random() * 1000);
+      },
+      () => {
+        // Slight head tilt (curious)
+        if (avatarEl) {
+          avatarEl.style.setProperty('--scroll-tilt', `${(Math.random() - 0.5) * 4}deg`);
+          setTimeout(() => {
+            avatarEl.style.setProperty('--scroll-tilt', '0deg');
+          }, 2000);
+        }
+      },
+      () => {
+        // Deep breath (settling)
+        if (avatarEl) {
+          avatarEl.classList.add('hero-ferni--deep-breath');
+          setTimeout(() => {
+            avatarEl.classList.remove('hero-ferni--deep-breath');
+          }, 3000);
+        }
+      },
+      () => {
+        // Quick double blink
+        blink();
+        setTimeout(() => blink(), 250);
+      }
+    ];
+    
+    // Pick a random action
+    const action = actions[Math.floor(Math.random() * actions.length)];
+    action();
+  }
+
+  // ============================================================================
+  // GLOW COLOR MOOD - Subtle color shifts based on state
+  // ============================================================================
+  
+  function updateGlowMood(mood) {
+    if (!glowEl) return;
+    
+    const moodColors = {
+      neutral: 'rgba(74, 103, 65, 0.4)',
+      curious: 'rgba(58, 107, 115, 0.5)',
+      delighted: 'rgba(106, 138, 90, 0.5)',
+      warmth: 'rgba(166, 122, 106, 0.4)',
+      concerned: 'rgba(122, 106, 90, 0.4)',
+      thinking: 'rgba(90, 107, 138, 0.4)'
+    };
+    
+    const color = moodColors[mood] || moodColors.neutral;
+    glowEl.style.background = `radial-gradient(circle, ${color} 0%, transparent 70%)`;
+  }
+
+  // ============================================================================
   // PUBLIC API
   // ============================================================================
   
@@ -764,6 +909,7 @@
     lookAt: lookAtElement,
     release: releaseAttention,
     express: triggerExpression,
+    setMood: updateGlowMood,
     getState: () => ({ ...state })
   };
 

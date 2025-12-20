@@ -53,6 +53,7 @@ import { getHandoffContext } from '../../tools/handoff/executor.js';
 import { getFinancialStore } from '../../services/financial-store.js';
 import { getProductivityStore } from '../../services/productivity-store.js';
 import { getGamificationStore } from '../../services/gamification-store.js';
+import { getSuperhuman } from './superhuman-integration.js';
 
 const log = createLogger({ module: 'context:alex-communication-insights' });
 
@@ -1061,6 +1062,13 @@ async function buildAlexCommunicationInsightsContext(
   try {
     const briefing = await buildCommunicationBriefing(userId, handoffContext);
     const formattedSections = formatBriefingForInjection(briefing, handoffContext, turnCount);
+    
+    // Get superhuman context (network, commitments, capacity)
+    const superhumanContext = await getSuperhuman(userId, 'alex');
+    if (superhumanContext) {
+      formattedSections.push('\n' + superhumanContext);
+    }
+    
     const content = formattedSections.join('\n');
 
     if (isHandoff) {

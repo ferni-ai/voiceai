@@ -394,6 +394,120 @@ body:not(.at-top) .scroll-progress__current {
   transform: translateY(0) rotateX(0);
 }
 
+/* Character-by-character reveal - for hero headlines */
+.reveal-char {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(100%) rotateX(-80deg);
+  transition: 
+    opacity 0.3s var(--ease-cinematic),
+    transform 0.4s var(--ease-spring);
+  transform-origin: bottom center;
+}
+
+.reveal-char.is-revealed {
+  opacity: 1;
+  transform: translateY(0) rotateX(0);
+}
+
+/* Staggered character timing */
+.reveal-char:nth-child(1) { transition-delay: 0ms; }
+.reveal-char:nth-child(2) { transition-delay: 25ms; }
+.reveal-char:nth-child(3) { transition-delay: 50ms; }
+.reveal-char:nth-child(4) { transition-delay: 75ms; }
+.reveal-char:nth-child(5) { transition-delay: 100ms; }
+.reveal-char:nth-child(6) { transition-delay: 125ms; }
+.reveal-char:nth-child(7) { transition-delay: 150ms; }
+.reveal-char:nth-child(8) { transition-delay: 175ms; }
+.reveal-char:nth-child(9) { transition-delay: 200ms; }
+.reveal-char:nth-child(10) { transition-delay: 225ms; }
+.reveal-char:nth-child(n+11) { transition-delay: 250ms; }
+
+/* Accent text glow on reveal */
+.reveal-accent {
+  display: inline-block;
+  opacity: 0;
+  transform: scale(0.9);
+  filter: blur(4px);
+  transition: 
+    opacity 0.6s var(--ease-cinematic),
+    transform 0.6s var(--ease-spring),
+    filter 0.4s ease;
+}
+
+.reveal-accent.is-revealed {
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0);
+}
+
+/* Emphasis glow effect for revealed accent */
+.reveal-accent.is-revealed::after {
+  content: '';
+  position: absolute;
+  inset: -4px -8px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(74, 103, 65, 0.15) 50%,
+    transparent 100%
+  );
+  border-radius: 4px;
+  animation: accent-glow 2s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes accent-glow {
+  0% {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  30% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
+/* Line reveal - for horizontal rules and dividers */
+.reveal-line {
+  display: block;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--color-ferni, #4a6741) 50%,
+    transparent 100%
+  );
+  transform: scaleX(0);
+  transition: transform 0.8s var(--ease-cinematic);
+}
+
+.reveal-line.is-revealed {
+  transform: scaleX(1);
+}
+
+/* Number counter reveal */
+.reveal-number {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(30px) scale(0.8);
+  filter: blur(2px);
+  transition: 
+    opacity 0.4s var(--ease-cinematic),
+    transform 0.5s var(--ease-spring),
+    filter 0.3s ease;
+}
+
+.reveal-number.is-revealed {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+}
+
 /* ============================================================================
    PARALLAX ELEMENTS
    ============================================================================ */
