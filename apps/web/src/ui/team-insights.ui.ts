@@ -154,6 +154,23 @@ const WS_MAX_RECONNECT_ATTEMPTS = 5;
 const WS_RECONNECT_DELAY_MS = 3000;
 let wsReconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 
+/**
+ * Check if WebSocket connections are supported for our backend.
+ * Firebase Hosting can't proxy WebSocket connections to Cloud Run,
+ * so we skip WebSocket entirely in production and use polling.
+ */
+function isWebSocketSupported(): boolean {
+  // WebSocket isn't supported in browser
+  if (!('WebSocket' in window)) return false;
+
+  // In development (localhost), WebSocket works via Vite proxy
+  if (window.location.hostname === 'localhost') return true;
+
+  // Firebase Hosting can't proxy WebSockets - use polling instead
+  // This includes: app.ferni.ai, ferni-prod.web.app, etc.
+  return false;
+}
+
 function getWebSocketUrl(): string {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const host = window.location.host;
@@ -957,9 +974,12 @@ export function initTeamInsightsUI(): void {
   });
 
   // Try WebSocket first for real-time updates, fall back to polling
-  if ('WebSocket' in window) {
+  // Note: WebSocket only works in development (via Vite proxy)
+  // Firebase Hosting can't proxy WebSockets, so production uses polling
+  if (isWebSocketSupported()) {
     connectWebSocket();
   } else {
+    log.debug('WebSocket not supported in this environment, using polling');
     startPolling();
   }
 
