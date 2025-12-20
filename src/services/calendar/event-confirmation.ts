@@ -182,8 +182,8 @@ export async function parseEventRequest(
     pending.conflicts = conflicts;
 
     // Find alternative times
-    const freeSlots = await findFreeTimeSlots(userId, pending.proposedStart, 3, duration);
-    pending.suggestions = freeSlots.map(slot => slot.start);
+    const freeSlots = await findFreeTimeSlots(userId, pending.proposedStart!, { minDurationMinutes: duration });
+    pending.suggestions = freeSlots.slice(0, 3).map(slot => slot.start);
 
     pendingEvents.set(pending.id, pending);
 
@@ -196,7 +196,7 @@ export async function parseEventRequest(
       success: true,
       pendingEvent: pending,
       hasConflict: true,
-      conflictDescription: `You have "${conflictEvent?.summary || 'an event'}" at ${conflictTime}`,
+      conflictDescription: `You have "${conflictEvent?.title || 'an event'}" at ${conflictTime}`,
       suggestedAlternatives: pending.suggestions,
       clarificationPrompt: buildConflictPrompt(pending, conflicts),
     };
@@ -275,8 +275,8 @@ export async function clarifyEventTime(
     pending.status = 'conflict';
     pending.conflicts = conflicts;
 
-    const freeSlots = await findFreeTimeSlots(pending.userId, pending.proposedStart, 3, pending.duration);
-    pending.suggestions = freeSlots.map(slot => slot.start);
+    const freeSlots = await findFreeTimeSlots(pending.userId, pending.proposedStart!, { minDurationMinutes: pending.duration });
+    pending.suggestions = freeSlots.slice(0, 3).map(slot => slot.start);
 
     pendingEvents.set(pending.id, pending);
 
@@ -284,7 +284,7 @@ export async function clarifyEventTime(
       success: true,
       pendingEvent: pending,
       hasConflict: true,
-      conflictDescription: `That time conflicts with "${conflicts[0]?.summary || 'another event'}"`,
+      conflictDescription: `That time conflicts with "${conflicts[0]?.title || 'another event'}"`,
       suggestedAlternatives: pending.suggestions,
       clarificationPrompt: buildConflictPrompt(pending, conflicts),
     };
@@ -333,7 +333,7 @@ export async function confirmEvent(pendingId: string): Promise<ConfirmEventResul
 
   try {
     const eventInput: CreateEventInput = {
-      summary: pending.title,
+      title: pending.title,
       startTime: pending.proposedStart,
       endTime: pending.proposedEnd,
       location: pending.location,
@@ -476,7 +476,7 @@ function buildConflictPrompt(pending: PendingEvent, conflicts: CalendarEvent[]):
     ? new Date(conflictEvent.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
     : 'that time';
 
-  let prompt = `That time conflicts with "${conflictEvent?.summary || 'another event'}" at ${conflictTime}. `;
+  let prompt = `That time conflicts with "${conflictEvent?.title || 'another event'}" at ${conflictTime}. `;
 
   if (pending.suggestions && pending.suggestions.length > 0) {
     const alternatives = pending.suggestions.slice(0, 2).map(d =>

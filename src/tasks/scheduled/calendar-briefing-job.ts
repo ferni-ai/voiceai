@@ -11,17 +11,43 @@
  * - Respects user quiet hours
  */
 
-import { getLogger } from '../../utils/safe-logger.js';
-import { sendPushNotification } from '../../services/push-notifications.js';
+import { createLogger } from '../../utils/safe-logger.js';
 import {
   isConnected,
   getDayOverview,
 } from '../../services/calendar/calendar-service.js';
-import { generateDailyBriefing } from '../../services/calendar/calendar-intelligence.js';
-import { getAllUserIdsWithCalendar } from '../../services/google-calendar-oauth.js';
-import { canSendOutreach, getUserTimezone } from '../../services/outreach-intelligence.js';
+import { generateDailyBriefing, type DailyBriefing } from '../../services/calendar/calendar-intelligence.js';
+import { canSendOutreach } from '../../services/outreach-intelligence.js';
 
-const log = getLogger();
+const log = createLogger({ module: 'CalendarBriefingJob' });
+
+// Placeholder for push notification - to be wired up
+async function sendPushNotification(
+  userId: string,
+  payload: {
+    title: string;
+    body: string;
+    type: string;
+    personaId?: string;
+    data?: Record<string, unknown>;
+  }
+): Promise<void> {
+  log.info({ userId, title: payload.title }, 'Would send push notification');
+  // TODO: Wire up to actual push notification service
+}
+
+// Placeholder for getting users with calendar - to be wired up
+async function getAllUserIdsWithCalendar(): Promise<string[]> {
+  // TODO: Query Firestore for users with calendar tokens
+  log.debug('Getting users with calendar');
+  return [];
+}
+
+// Get user timezone from preferences or default
+async function getUserTimezone(userId: string): Promise<string> {
+  // TODO: Get from user preferences
+  return 'America/New_York';
+}
 
 // ============================================================================
 // CONFIGURATION
@@ -180,18 +206,14 @@ function formatBriefingTitle(meetingCount: number): string {
 /**
  * Format briefing body from intelligence output
  */
-function formatBriefingBody(briefing: {
-  summary: string;
-  highlights: string[];
-  alerts: string[];
-}): string {
+function formatBriefingBody(briefing: DailyBriefing): string {
   // Keep it short for push notification
   if (briefing.alerts.length > 0) {
-    return briefing.alerts[0]; // Most important alert
+    return briefing.alerts[0].message; // Most important alert
   }
 
-  if (briefing.highlights.length > 0) {
-    return briefing.highlights[0]; // First highlight
+  if (briefing.suggestions.length > 0) {
+    return briefing.suggestions[0]; // First suggestion
   }
 
   return briefing.summary;

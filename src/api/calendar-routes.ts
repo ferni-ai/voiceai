@@ -323,7 +323,7 @@ async function handleAlerts(
 function formatEventForApi(event: CalendarEvent): Record<string, unknown> {
   return {
     id: event.id,
-    title: event.summary || 'Untitled',
+    title: event.title || 'Untitled',
     startTime: event.startTime instanceof Date ? event.startTime.toISOString() : event.startTime,
     endTime: event.endTime instanceof Date ? event.endTime.toISOString() : event.endTime,
     location: event.location || null,

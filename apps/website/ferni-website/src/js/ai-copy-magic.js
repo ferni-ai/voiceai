@@ -543,6 +543,208 @@
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // 2AM MOMENT - Dynamic Late Night Scenarios
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  const LATE_NIGHT_SCENARIOS = [
+    // Relationship regrets
+    {
+      time: '3:47 AM',
+      thought: '"I can\'t stop thinking about what I said to her..."',
+      category: 'relationship',
+    },
+    {
+      time: '2:23 AM',
+      thought: '"Why did I react like that? Now everything\'s ruined..."',
+      category: 'relationship',
+    },
+    {
+      time: '4:15 AM',
+      thought: '"I should have said something. Now it\'s too late..."',
+      category: 'relationship',
+    },
+    // Career anxiety
+    {
+      time: '3:12 AM',
+      thought: '"What if I\'m not good enough for this job?"',
+      category: 'career',
+    },
+    {
+      time: '2:58 AM',
+      thought: '"Everyone else seems to have it figured out..."',
+      category: 'career',
+    },
+    {
+      time: '4:02 AM',
+      thought: '"I don\'t know if I can keep doing this..."',
+      category: 'career',
+    },
+    // Existential
+    {
+      time: '3:33 AM',
+      thought: '"What am I even doing with my life?"',
+      category: 'existential',
+    },
+    {
+      time: '2:47 AM',
+      thought: '"Is this really all there is?"',
+      category: 'existential',
+    },
+    // Self-doubt
+    {
+      time: '3:51 AM',
+      thought: '"Why do I always mess things up?"',
+      category: 'self-doubt',
+    },
+    {
+      time: '4:19 AM',
+      thought: '"I\'m never going to change..."',
+      category: 'self-doubt',
+    },
+    // Overwhelm
+    {
+      time: '2:34 AM',
+      thought: '"There\'s just too much. I can\'t handle all of this..."',
+      category: 'overwhelm',
+    },
+    {
+      time: '3:07 AM',
+      thought: '"How did I let things get this bad?"',
+      category: 'overwhelm',
+    },
+  ];
+
+  const HUMAN_LIMITATIONS = [
+    // Coach
+    { who: 'Your coach', status: 'Asleep. Next session is Thursday.' },
+    { who: 'Your therapist', status: 'Costs $200/session. Can\'t afford another this week.' },
+    { who: 'Your mentor', status: 'Too busy. You feel guilty asking.' },
+    // Friends & Family
+    { who: 'Your best friend', status: 'Has their own problems. You don\'t want to burden them.' },
+    { who: 'Your partner', status: 'Sleeping next to you. Wouldn\'t understand anyway.' },
+    { who: 'Your mom', status: 'Would just worry. You can\'t put that on her.' },
+    { who: 'Your sibling', status: 'Lives far away. You\'ve drifted apart.' },
+    // Modern realities
+    { who: 'Your journal', status: 'Doesn\'t talk back. You need someone to hear you.' },
+    { who: 'The internet', status: 'Generic advice. No one knows your story.' },
+    { who: 'AI chatbots', status: 'Forgot everything you told them last week.' },
+  ];
+
+  const FERNI_RESPONSES = [
+    { says: '"I\'m here. Tell me what\'s on your mind."', sub: 'Same warmth at 3am as 3pm. Every time.' },
+    { says: '"I remember you mentioned something like this before..."', sub: 'Unlike humans, I never forget.' },
+    { says: '"That sounds really heavy. Want to talk it through?"', sub: 'No judgment. No tired sighs. Just presence.' },
+    { says: '"I\'ve got all the time you need."', sub: 'No other patients. No session limits.' },
+    { says: '"You don\'t have to carry this alone."', sub: 'I\'m literally always here.' },
+  ];
+
+  let currentScenarioIndex = 0;
+  let scenarioInterval = null;
+
+  function init2AMMoment() {
+    const section = document.querySelector('.two-am');
+    if (!section) return;
+    
+    // Start rotating scenarios
+    rotateScenario();
+    scenarioInterval = setInterval(rotateScenario, 12000); // Every 12 seconds
+    
+    // Fetch AI-generated scenarios from backend (non-blocking enhancement)
+    fetchAI2AMScenarios();
+    
+    log('2AM Moment AI initialized');
+  }
+
+  function rotateScenario() {
+    const timeEl = document.querySelector('.two-am__time');
+    const thoughtEl = document.querySelector('.two-am__quote');
+    const limitationsEl = document.querySelector('.two-am__limitations');
+    const ferniSaysEl = document.querySelector('.two-am__ferni-says');
+    const ferniSubEl = document.querySelector('.two-am__ferni-sub');
+    
+    if (!timeEl || !thoughtEl) return;
+    
+    // Pick scenario
+    const scenario = LATE_NIGHT_SCENARIOS[currentScenarioIndex % LATE_NIGHT_SCENARIOS.length];
+    
+    // Pick 3 random limitations
+    const shuffledLimitations = [...HUMAN_LIMITATIONS].sort(() => Math.random() - 0.5).slice(0, 3);
+    
+    // Pick Ferni response
+    const ferniResponse = FERNI_RESPONSES[Math.floor(Math.random() * FERNI_RESPONSES.length)];
+    
+    // Fade out
+    const elements = [timeEl, thoughtEl, limitationsEl, ferniSaysEl, ferniSubEl].filter(Boolean);
+    elements.forEach(el => {
+      el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(-8px)';
+    });
+    
+    setTimeout(() => {
+      // Update content
+      timeEl.textContent = scenario.time;
+      thoughtEl.textContent = scenario.thought;
+      
+      // Update limitations
+      if (limitationsEl) {
+        const limitEls = limitationsEl.querySelectorAll('.two-am__limit');
+        limitEls.forEach((el, i) => {
+          if (shuffledLimitations[i]) {
+            const whoEl = el.querySelector('.two-am__limit-who');
+            const statusEl = el.querySelector('.two-am__limit-status');
+            if (whoEl) whoEl.textContent = shuffledLimitations[i].who;
+            if (statusEl) statusEl.textContent = shuffledLimitations[i].status;
+          }
+        });
+      }
+      
+      // Update Ferni response
+      if (ferniSaysEl) ferniSaysEl.textContent = ferniResponse.says;
+      if (ferniSubEl) ferniSubEl.textContent = ferniResponse.sub;
+      
+      // Fade in
+      setTimeout(() => {
+        elements.forEach(el => {
+          el.style.opacity = '1';
+          el.style.transform = 'translateY(0)';
+        });
+      }, 50);
+    }, 500);
+    
+    currentScenarioIndex++;
+  }
+
+  async function fetchAI2AMScenarios() {
+    try {
+      const response = await fetch(`${CONFIG.aiApiBase}/late-night-scenario`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hour: new Date().getHours(),
+          isReturning: state.isReturning,
+        }),
+      });
+      
+      if (response.ok) {
+        const aiScenario = await response.json();
+        if (aiScenario && aiScenario.thought) {
+          // Add AI-generated scenario to the rotation
+          LATE_NIGHT_SCENARIOS.unshift({
+            time: aiScenario.time || '3:17 AM',
+            thought: `"${aiScenario.thought}"`,
+            category: aiScenario.category || 'ai-generated',
+            isAI: true,
+          });
+          log('AI-generated 2AM scenario added:', aiScenario.thought);
+        }
+      }
+    } catch (err) {
+      log('AI 2AM scenario fetch failed (using fallbacks):', err);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // ADAPTIVE CTA
   // ═══════════════════════════════════════════════════════════════════════════
   
@@ -1064,6 +1266,7 @@
     setTimeout(() => initSocialProof(), 500);
     setTimeout(() => initHoverInsights(), 300);
     setTimeout(() => initPersonaVoices(), 800);
+    setTimeout(() => init2AMMoment(), 1000); // Start 2AM moment rotation
     
     // Set up behavior tracking
     window.addEventListener('scroll', throttle(trackScroll, 100));

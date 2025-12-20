@@ -42,6 +42,25 @@ import {
   detectCalendarAlerts,
   analyzeCalendarPatterns,
 } from '../../../services/calendar/calendar-intelligence.js';
+import {
+  parseNaturalDate,
+  suggestClarification,
+  isValidForScheduling,
+  suggestTimes,
+} from '../../../services/calendar/natural-date-parser.js';
+import {
+  parseEventRequest,
+  clarifyEventTime,
+  confirmEvent,
+  cancelPendingEvent,
+  getPendingEvent,
+} from '../../../services/calendar/event-confirmation.js';
+import {
+  getUpcomingBriefings,
+  getPostMeetingFollowUps,
+  analyzeConflicts,
+  findBestTimeFor,
+} from '../../../services/calendar/proactive-calendar.js';
 
 const log = getLogger();
 
@@ -659,10 +678,289 @@ const detectCalendarIssuesDef: ToolDefinition = {
 };
 
 // ============================================================================
+// NATURAL LANGUAGE SCHEDULING
+// ============================================================================
+
+const scheduleEventNaturalDef: ToolDefinition = {
+  id: 'scheduleEventNatural',
+  name: 'Schedule Event (Natural Language)',
+  description: 'Schedule an event using natural language like "tomorrow at 3pm" or "next Tuesday morning"',
+  domain: 'calendar',
+  tags: ['calendar', 'schedule', 'natural', 'voice'],
+
+  create: (ctx: ToolContext) =>
+    llm.tool({
+      description:
+        'Schedule an event using natural language time expressions. Use when user says things like "schedule a meeting tomorrow at 3" or "add dentist appointment next Tuesday". Returns confirmation or asks for clarification.',
+      parameters: z.object({
+        request: z.string().describe('The full scheduling request in natural language'),
+        duration: z.number().optional().describe('Duration in minutes (default 60)'),
+      }),
+      execute: async (params) => {
+        const userId = ctx.userId;
+        if (!userId) {
+          return 'I need to know who you are to schedule events.';
+        }
+
+        const connected = await isConnected(userId);
+        if (!connected) {
+          return "Your calendar isn't connected yet. Would you like me to help you set that up?";
+        }
+
+        const result = await parseEventRequest(userId, params.request, params.duration);
+
+        if (!result.success) {
+          return result.clarificationPrompt || "I couldn't understand that. Could you try again?";
+        }
+
+        if (result.needsClarification) {
+          // Store pending ID for follow-up
+          log.info({ userId, pendingId: result.pendingEvent?.id }, 'Event needs clarification');
+          return result.clarificationPrompt || 'Could you clarify the details?';
+        }
+
+        if (result.hasConflict) {
+          log.info({ userId, conflict: result.conflictDescription }, 'Event has conflict');
+          return result.clarificationPrompt || 'That time has a conflict. When else would work?';
+        }
+
+        if (result.readyToConfirm) {
+          return result.confirmationPrompt || 'Ready to schedule. Should I go ahead?';
+        }
+
+        return 'Something went wrong. Could you try again?';
+      },
+    }),
+};
+
+// ============================================================================
+// PRE-MEETING BRIEFING
+// ============================================================================
+
+const getPreMeetingBriefingDef: ToolDefinition = {
+  id: 'getPreMeetingBriefing',
+  name: 'Get Pre-Meeting Briefing',
+  description: 'Get preparation tips and context for upcoming meetings',
+  domain: 'calendar',
+  tags: ['calendar', 'meeting', 'briefing', 'prep'],
+
+  create: (ctx: ToolContext) =>
+    llm.tool({
+      description:
+        'Get briefings for upcoming meetings including prep tips and context. Use when user asks "What should I know before my next meeting?" or is about to join a meeting.',
+      parameters: z.object({
+        windowMinutes: z.number().optional().describe('How far ahead to look (default 60 minutes)'),
+      }),
+      execute: async (params) => {
+        const userId = ctx.userId;
+        if (!userId) {
+          return 'I need to know who you are to get your briefings.';
+        }
+
+        const connected = await isConnected(userId);
+        if (!connected) {
+          return "Your calendar isn't connected. Connect it so I can help you prepare for meetings.";
+        }
+
+        const briefings = await getUpcomingBriefings(userId, params.windowMinutes || 60);
+
+        if (briefings.length === 0) {
+          return "No meetings coming up in the next hour. You're all clear.";
+        }
+
+        const briefing = briefings[0]; // Focus on the most imminent
+        let response = briefing.briefing.summary + '\n\n';
+
+        if (briefing.briefing.prepTips.length > 0) {
+          response += 'Quick tips:\n';
+          response += briefing.briefing.prepTips.map((tip) => `- ${tip}`).join('\n');
+        }
+
+        if (briefings.length > 1) {
+          response += `\n\nYou also have ${briefings.length - 1} more meeting${briefings.length > 2 ? 's' : ''} coming up.`;
+        }
+
+        log.info({ userId, briefingCount: briefings.length }, 'Delivered pre-meeting briefing');
+        return response;
+      },
+    }),
+};
+
+// ============================================================================
+// POST-MEETING FOLLOW-UP
+// ============================================================================
+
+const getPostMeetingFollowUpDef: ToolDefinition = {
+  id: 'getPostMeetingFollowUp',
+  name: 'Get Post-Meeting Follow-Up',
+  description: 'Prompt for action items and notes after a meeting',
+  domain: 'calendar',
+  tags: ['calendar', 'meeting', 'follow-up', 'actions'],
+
+  create: (ctx: ToolContext) =>
+    llm.tool({
+      description:
+        'Get follow-up prompts after a recent meeting to capture action items. Use when user just finished a meeting or says "my meeting just ended".',
+      parameters: z.object({
+        windowMinutes: z.number().optional().describe('How far back to look for ended meetings (default 30)'),
+      }),
+      execute: async (params) => {
+        const userId = ctx.userId;
+        if (!userId) {
+          return 'I need to know who you are to help with follow-ups.';
+        }
+
+        const connected = await isConnected(userId);
+        if (!connected) {
+          return "Your calendar isn't connected. I can't see your meetings.";
+        }
+
+        const followUps = await getPostMeetingFollowUps(userId, params.windowMinutes || 30);
+
+        if (followUps.length === 0) {
+          return "I don't see any meetings that just ended. Did you have one I should know about?";
+        }
+
+        const followUp = followUps[0]; // Most recent
+        let response = `How did "${followUp.eventTitle}" go?\n\n`;
+
+        if (followUp.prompts.length > 0) {
+          response += followUp.prompts.join('\n');
+        }
+
+        if (followUp.suggestedActions.length > 0) {
+          response += '\n\nYou might want to:\n';
+          response += followUp.suggestedActions.map((a) => `- ${a}`).join('\n');
+        }
+
+        log.info({ userId, eventTitle: followUp.eventTitle }, 'Delivered post-meeting follow-up');
+        return response;
+      },
+    }),
+};
+
+// ============================================================================
+// CONFLICT CHECK
+// ============================================================================
+
+const checkConflictsDef: ToolDefinition = {
+  id: 'checkConflicts',
+  name: 'Check for Conflicts',
+  description: 'Check if a proposed time conflicts with existing events',
+  domain: 'calendar',
+  tags: ['calendar', 'conflict', 'availability'],
+
+  create: (ctx: ToolContext) =>
+    llm.tool({
+      description:
+        'Check if a proposed time conflicts with existing events and get alternatives. Use when user proposes a time and you want to verify availability.',
+      parameters: z.object({
+        time: z.string().describe('The proposed time in natural language (e.g., "tomorrow at 3pm")'),
+        duration: z.number().optional().describe('Duration in minutes (default 60)'),
+        eventTitle: z.string().optional().describe('What the event is for'),
+      }),
+      execute: async (params) => {
+        const userId = ctx.userId;
+        if (!userId) {
+          return 'I need to know who you are to check your calendar.';
+        }
+
+        const connected = await isConnected(userId);
+        if (!connected) {
+          return "Your calendar isn't connected. I can't check for conflicts.";
+        }
+
+        // Parse the natural language time
+        const parsed = parseNaturalDate(params.time);
+        if (!parsed) {
+          return `I couldn't understand "${params.time}". Could you try something like "tomorrow at 2pm"?`;
+        }
+
+        const duration = params.duration || 60;
+        const endTime = new Date(parsed.date.getTime() + duration * 60 * 1000);
+
+        const analysis = await analyzeConflicts(userId, parsed.date, endTime, params.eventTitle);
+
+        if (!analysis.hasConflict) {
+          const time = parsed.date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          return `${time} looks good. No conflicts there.`;
+        }
+
+        let response = analysis.description + '. ';
+
+        if (analysis.suggestions.length > 0) {
+          response += 'Here are some alternatives: ';
+          response += analysis.suggestions.map((s) => s.description).slice(0, 3).join(', ');
+        }
+
+        log.info({ userId, hasConflict: true }, 'Checked for conflicts');
+        return response;
+      },
+    }),
+};
+
+// ============================================================================
+// FIND BEST TIME
+// ============================================================================
+
+const findBestTimeDef: ToolDefinition = {
+  id: 'findBestTime',
+  name: 'Find Best Time',
+  description: 'Find the optimal time for a new event based on preferences',
+  domain: 'calendar',
+  tags: ['calendar', 'schedule', 'suggest', 'optimal'],
+
+  create: (ctx: ToolContext) =>
+    llm.tool({
+      description:
+        'Find the best time for a new event based on user preferences and patterns. Use when user asks "when should I schedule this?" or needs help finding a good time.',
+      parameters: z.object({
+        duration: z.number().describe('Duration in minutes'),
+        preferMorning: z.boolean().optional().describe('Prefer morning slots'),
+        preferAfternoon: z.boolean().optional().describe('Prefer afternoon slots'),
+      }),
+      execute: async (params) => {
+        const userId = ctx.userId;
+        if (!userId) {
+          return 'I need to know who you are to find times for you.';
+        }
+
+        const connected = await isConnected(userId);
+        if (!connected) {
+          return "Your calendar isn't connected. Connect it so I can find the best times.";
+        }
+
+        const suggestions = await findBestTimeFor(userId, params.duration, {
+          preferMorning: params.preferMorning,
+          preferAfternoon: params.preferAfternoon,
+        });
+
+        if (suggestions.length === 0) {
+          return "I couldn't find any good times in the next few days. Your calendar looks pretty full.";
+        }
+
+        let response = 'Here are the best times I found:\n';
+
+        for (const suggestion of suggestions.slice(0, 3)) {
+          const time = suggestion.time.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          const date = suggestion.time.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+          response += `- ${date} at ${time} (${suggestion.reasoning})\n`;
+        }
+
+        response += '\nWould any of these work for you?';
+
+        log.info({ userId, suggestionCount: suggestions.length }, 'Found best times');
+        return response;
+      },
+    }),
+};
+
+// ============================================================================
 // EXPORTS
 // ============================================================================
 
 export const alexCalendarTools: ToolDefinition[] = [
+  // Core calendar tools
   getCalendarTodayDef,
   getCalendarWeekDef,
   createCalendarEventDef,
@@ -673,6 +971,12 @@ export const alexCalendarTools: ToolDefinition[] = [
   getDailyBriefingDef,
   suggestMeetingTimeDef,
   detectCalendarIssuesDef,
+  // New enhanced tools
+  scheduleEventNaturalDef,
+  getPreMeetingBriefingDef,
+  getPostMeetingFollowUpDef,
+  checkConflictsDef,
+  findBestTimeDef,
 ];
 
 export default alexCalendarTools;

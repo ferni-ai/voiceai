@@ -711,6 +711,56 @@ export async function handleLandingIntelligenceRoutes(
     }
 
     // ============================================================================
+    // POST /api/landing/ai/late-night-scenario - AI-generated 2AM moment
+    // ============================================================================
+    if (pathname === '/api/landing/ai/late-night-scenario' && method === 'POST') {
+      const body = await parseBody<{
+        hour?: number;
+        isReturning?: boolean;
+      }>(req);
+
+      const hour = body.hour ?? new Date().getHours();
+      const isReturning = body.isReturning ?? false;
+      
+      // Generate an AI late-night scenario
+      const prompt = `Generate a single intrusive thought that someone might have at 3am when they can't sleep.
+      
+      Make it:
+      - Deeply relatable and emotionally raw
+      - Something that would resonate with anyone who's been awake at 3am
+      - Not too dark or triggering - more anxious/ruminative than depressive
+      - First person, in quotes, like an inner monologue
+      
+      Categories (pick one): relationship regret, career anxiety, self-doubt, existential wondering, past mistakes, future fears
+      
+      Return ONLY a JSON object like:
+      {"thought": "the intrusive thought without quotes", "time": "3:XX AM", "category": "category-name"}`;
+      
+      try {
+        const text = await generateText(prompt);
+        // Try to parse JSON from the response
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const scenario = JSON.parse(jsonMatch[0]);
+          sendJSON(res, scenario);
+          return true;
+        }
+      } catch (err) {
+        log.warn('AI late-night scenario generation failed', { error: String(err) });
+      }
+      
+      // Fallback scenarios
+      const fallbacks = [
+        { thought: "What if they never forgive me?", time: "3:27 AM", category: "relationship" },
+        { thought: "Am I wasting my potential?", time: "2:54 AM", category: "existential" },
+        { thought: "Why can't I just be normal?", time: "4:11 AM", category: "self-doubt" },
+        { thought: "What if I made the wrong choice?", time: "3:38 AM", category: "decisions" },
+      ];
+      sendJSON(res, fallbacks[Math.floor(Math.random() * fallbacks.length)]);
+      return true;
+    }
+
+    // ============================================================================
     // POST /api/landing/ai/hover-preview - Generate hover preview text
     // ============================================================================
     if (pathname === '/api/landing/ai/hover-preview' && method === 'POST') {
