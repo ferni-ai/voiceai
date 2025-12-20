@@ -16,7 +16,8 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { ConversationState } from '../../intelligence/conversation-state.js';
 import type { TopicExtractionResult } from '../../intelligence/topic-tracker.js';
 import { createIntelligentCurator, type IntelligentRecommendation } from './intelligent-curator.js';
-import { getCreativeDNA, updateCreativeDNA } from './creative-dna.js';
+import { getCreativeDNA } from './creative-dna.js';
+import { getCreativeYouPersistence } from './persistence.js';
 
 const log = getLogger();
 
@@ -46,37 +47,40 @@ export interface ContentSuggestion {
 // USER TOPIC HISTORY
 // ============================================================================
 
-// Store topic history per user for cross-conversation recommendations
-const userTopicHistory = new Map<
+// In-memory cache for topic history (syncs to Firestore)
+const userTopicCache = new Map<
   string,
   {
     topics: Array<{ topic: string; timestamp: Date; count: number }>;
     lastUpdated: Date;
+    pendingSync: boolean;
   }
 >();
 
 /**
- * Record topics from a conversation
+ * Record topics from a conversation (persists to Firestore)
  */
 export function recordConversationTopics(
   userId: string,
   topics: string[],
   sessionId: string
 ): void {
-  const existing = userTopicHistory.get(userId) || {
+  // Update in-memory cache immediately (for fast access)
+  const cached = userTopicCache.get(userId) || {
     topics: [],
     lastUpdated: new Date(),
+    pendingSync: false,
   };
 
   for (const topic of topics) {
-    const existingTopic = existing.topics.find(
+    const existingTopic = cached.topics.find(
       (t) => t.topic.toLowerCase() === topic.toLowerCase()
     );
     if (existingTopic) {
       existingTopic.count++;
       existingTopic.timestamp = new Date();
     } else {
-      existing.topics.push({
+      cached.topics.push({
         topic,
         timestamp: new Date(),
         count: 1,
@@ -85,48 +89,77 @@ export function recordConversationTopics(
   }
 
   // Sort by recency and frequency
-  existing.topics.sort((a, b) => {
-    // Weight by both recency and frequency
+  cached.topics.sort((a, b) => {
     const aScore = a.count * 0.3 + (Date.now() - a.timestamp.getTime()) / -100000000;
     const bScore = b.count * 0.3 + (Date.now() - b.timestamp.getTime()) / -100000000;
     return bScore - aScore;
   });
 
   // Keep top 50 topics
-  existing.topics = existing.topics.slice(0, 50);
-  existing.lastUpdated = new Date();
+  cached.topics = cached.topics.slice(0, 50);
+  cached.lastUpdated = new Date();
 
-  userTopicHistory.set(userId, existing);
+  userTopicCache.set(userId, cached);
 
   log.debug(
     {
       userId,
       sessionId,
       newTopics: topics,
-      totalTopics: existing.topics.length,
+      totalTopics: cached.topics.length,
     },
     '📚 Recorded conversation topics'
   );
+
+  // Fire-and-forget Firestore persistence
+  void (async () => {
+    try {
+      const persistence = getCreativeYouPersistence();
+      await persistence.saveTopicHistory(userId, topics, sessionId);
+    } catch (error) {
+      log.debug({ error: String(error) }, 'Topic history persistence failed (non-critical)');
+    }
+  })();
 }
 
 /**
  * Get user's top topics for content recommendations
+ * Uses cache first, then Firestore
  */
-export function getUserTopTopics(userId: string, count: number = 10): string[] {
-  const history = userTopicHistory.get(userId);
-  if (!history) return [];
+export async function getUserTopTopics(userId: string, count: number = 10): Promise<string[]> {
+  // Check cache first
+  const cached = userTopicCache.get(userId);
+  if (cached && cached.topics.length > 0) {
+    return cached.topics.slice(0, count).map((t) => t.topic);
+  }
 
-  return history.topics.slice(0, count).map((t) => t.topic);
+  // Load from Firestore
+  try {
+    const persistence = getCreativeYouPersistence();
+    return await persistence.getTopTopics(userId, count);
+  } catch (error) {
+    log.debug({ error: String(error) }, 'Failed to load topics from Firestore');
+    return [];
+  }
+}
+
+/**
+ * Get user's top topics synchronously (cache only - for fast access)
+ */
+export function getUserTopTopicsSync(userId: string, count: number = 10): string[] {
+  const cached = userTopicCache.get(userId);
+  if (!cached) return [];
+  return cached.topics.slice(0, count).map((t) => t.topic);
 }
 
 /**
  * Get topic frequency for a user
  */
 export function getTopicFrequency(userId: string, topic: string): number {
-  const history = userTopicHistory.get(userId);
-  if (!history) return 0;
+  const cached = userTopicCache.get(userId);
+  if (!cached) return 0;
 
-  const found = history.topics.find((t) => t.topic.toLowerCase() === topic.toLowerCase());
+  const found = cached.topics.find((t) => t.topic.toLowerCase() === topic.toLowerCase());
   return found?.count || 0;
 }
 
@@ -183,7 +216,7 @@ export async function shouldSuggestContent(
 
   // 4. Check if we have accumulated enough topics for a suggestion
   if (topicsDiscussed.length >= 3) {
-    const userTopics = getUserTopTopics(userId, 5);
+    const userTopics = getUserTopTopicsSync(userId, 5);
     const curator = createIntelligentCurator(userId, {
       recentTopics: [...topicsDiscussed, ...userTopics],
     });
@@ -269,7 +302,7 @@ export async function getPersonalizedCreativeYouContent(
   personalizedTrackAvailable: boolean;
   topTopics: string[];
 }> {
-  const topTopics = getUserTopTopics(userId, 5);
+  const topTopics = await getUserTopTopics(userId, 5);
   const dna = getCreativeDNA(userId);
 
   const curator = createIntelligentCurator(userId, {
@@ -294,6 +327,6 @@ export async function getPersonalizedCreativeYouContent(
 // ============================================================================
 
 export {
-  userTopicHistory, // For testing
+  userTopicCache as userTopicHistory, // For testing (renamed for backward compat)
 };
 

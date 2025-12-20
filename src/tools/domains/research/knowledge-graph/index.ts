@@ -1,13 +1,9 @@
 /**
  * Knowledge Graph Module
  *
- * Peter's interconnected web of financial concepts and explanations.
- *
- * @module tools/domains/research/knowledge-graph
+ * Peter's financial concept graph for connected learning.
  */
 
-export * from './types.js';
-export * from './graph-service.js';
-export { KnowledgeGraph } from './graph-service.js';
-export { SEED_NODES, SEED_EDGES, seedKnowledgeGraph } from './seed-data.js';
-
+export { KnowledgeGraphService, getKnowledgeGraph, initializeKnowledgeGraph } from './graph-service.js';
+export { getFinancialSeedNodes, getFinancialSeedEdges } from './seed-data.js';
+export type { KnowledgeNode, KnowledgeEdge, NodeType, EdgeType } from './types.js';

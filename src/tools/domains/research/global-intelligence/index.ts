@@ -1,17 +1,19 @@
 /**
- * Peter's Global Intelligence Module
+ * Global Intelligence Module
  *
- * Aggregates learning across ALL users to provide superhuman insights.
- *
- * @module tools/domains/research/global-intelligence
+ * Anonymized aggregate insights across users.
  */
 
-export * from './types.js';
-export * from './big-brain.js';
-export * from './event-pipeline.js';
-export * from './peer-benchmarks.js';
-
-export { BigBrain } from './big-brain.js';
-export { EventPipeline } from './event-pipeline.js';
 export { PeerBenchmarks } from './peer-benchmarks.js';
-
+export { EventPipeline } from './event-pipeline.js';
+export type { AnonymizedEvent } from './event-pipeline.js';
+export type {
+  PeerBenchmark,
+  BehavioralPattern,
+  SuccessPattern,
+  QuestionCluster,
+  ResearchEntry,
+  CompanyKnowledge,
+  MarketWisdom,
+  AnonymizedEvent as AnonymizedEventType,
+} from './types.js';

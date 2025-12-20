@@ -1,11 +1,15 @@
 /**
- * Proactive Insights Engine
+ * Proactive Engine Module
  *
- * Automatically generates and delivers insights to users.
- *
- * @module tools/domains/research/proactive-engine
+ * Peter's daily insights and proactive outreach.
  */
 
-export * from './daily-insights.js';
-export { DailyInsights } from './daily-insights.js';
+export {
+  generatePortfolioInsight,
+  generateBehavioralInsight,
+  generateFIREInsight,
+  generateEconomicInsight,
+  formatDailyBriefing,
+} from './daily-insights.js';
 
+export type { QuantInsight } from './daily-insights.js';

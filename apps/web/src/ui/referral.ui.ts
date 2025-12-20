@@ -175,7 +175,7 @@ function createModal(): void {
 
       <!-- Seeds Bonus Banner -->
       <div class="referral-bonus">
-        <span class="referral-bonus-icon">🌱</span>
+        <span class="referral-bonus-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg></span>
         <div class="referral-bonus-text">
           <strong>You'll both get ${REFERRAL_SIGNUP_REWARD} seeds</strong>
           <span>when they join!</span>
@@ -262,7 +262,7 @@ async function handleNativeShare(): Promise<void> {
         url: content.url,
       });
       log.info('Shared via native share');
-      toast.success('Shared! 🌱');
+      toast.success('Shared!');
       trackShare('native');
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
@@ -279,7 +279,7 @@ async function handleCopyLink(): Promise<void> {
   const content = getShareContent();
   try {
     await navigator.clipboard.writeText(`${content.shortMessage}\n\n${content.url}`);
-    toast.success('Link copied! 🌱');
+    toast.success('Link copied!');
     log.info('Link copied to clipboard');
     trackShare('copy');
   } catch {
@@ -553,7 +553,15 @@ function injectStyles(): void {
     }
 
     .referral-bonus-icon {
-      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--persona-primary, #4a6741);
+    }
+    
+    .referral-bonus-icon svg {
+      width: 24px;
+      height: 24px;
     }
 
     .referral-bonus-text {

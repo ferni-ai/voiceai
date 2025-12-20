@@ -192,6 +192,49 @@ const IMAGE_PROMPTS = {
     folder: 'social',
     filename: 'instagram-quote-template.jpg',
   },
+
+  // ===== FOUNDERS FUND - Stripe Product Images =====
+  'founders-member': {
+    prompt: `A warm, minimalist illustration of two hands gently cupping a small glowing seedling, soft sage green (#4a6741) and warm cream (#F5F1E8) color palette, zen garden aesthetic, soft natural lighting, gentle bokeh background, no text, centered composition, clean and modern, feeling of nurturing and community, premium 3D render style`,
+    aspectRatio: '1:1',
+    folder: 'founders',
+    filename: 'founding-member.png',
+  },
+
+  'founders-patron': {
+    prompt: `A serene minimalist illustration of a majestic tree with golden leaves sheltering smaller seedlings beneath, warm sunset tones of coral (#c4856a) and sage green (#4a6741) on cream background (#F5F1E8), zen garden aesthetic, soft diffused light, sense of protection and growth, no text, centered, peaceful and grounded, premium 3D render style`,
+    aspectRatio: '1:1',
+    folder: 'founders',
+    filename: 'founding-patron.png',
+  },
+
+  'seed-plant': {
+    prompt: `A tiny seed sprouting from rich brown earth, single delicate green shoot reaching toward soft light, minimalist zen illustration, sage green (#4a6741) and cedar brown (#9a7b5a) on warm cream (#F5F1E8), simple and hopeful, soft watercolor texture, no text, square format, feeling of new beginnings, premium quality`,
+    aspectRatio: '1:1',
+    folder: 'founders',
+    filename: 'seed-plant-5.png',
+  },
+
+  'seed-sponsor': {
+    prompt: `Two abstract human silhouettes facing each other with a gentle warm glow between them, suggesting connection and conversation, soft ocean teal (#3a6b73) and warm cream (#F5F1E8), minimalist zen style, subtle heart or connection symbol, peaceful and intimate, no text, centered composition, premium 3D render`,
+    aspectRatio: '1:1',
+    folder: 'founders',
+    filename: 'seed-sponsor-10.png',
+  },
+
+  'seed-help': {
+    prompt: `A gentle hand reaching down to help another hand up, warm terracotta (#a67a6a) and sage green (#4a6741) on cream background (#F5F1E8), minimalist illustration style, soft natural lighting, zen aesthetic, feeling of support and community, no text, centered, hopeful and grounded, premium quality`,
+    aspectRatio: '1:1',
+    folder: 'founders',
+    filename: 'seed-help-25.png',
+  },
+
+  'seed-mission': {
+    prompt: `A circle of small glowing figures holding hands around a central warm light, viewed from above, sage green (#4a6741) coral (#c4856a) and warm cream (#F5F1E8), zen minimalist style, sense of unity and shared purpose, soft ethereal glow, no text, feeling of collective warmth and belonging, premium 3D render`,
+    aspectRatio: '1:1',
+    folder: 'founders',
+    filename: 'seed-mission-50.png',
+  },
 };
 
 // ============================================================================
@@ -529,7 +572,8 @@ async function main() {
       avatars: 'avatar-',
       hero: 'hero-',
       testimonials: 'testimonial-',
-      social: 'og-',
+      social: 'social-',
+      founders: 'founders-,seed-', // Founders Fund product images
       images: null, // all
     };
 

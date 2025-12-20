@@ -360,7 +360,8 @@
       "wisdom",
       "simple-utilities",
       "quiet-growth",
-      "reflection-games"
+      "reflection-games",
+      "life-thesis"
     ],
     "required": [
       "handoffToAlex",
@@ -369,7 +370,19 @@
       "handoffToNayan",
       "handoffToPeter"
     ],
-    "optional": ["searchWeb", "getWeather", "getNews"],
+    "optional": [
+      "searchWeb",
+      "getWeather",
+      "getNews",
+      "saveCareerThesis",
+      "saveRelationshipThesis",
+      "saveDecisionThesis",
+      "saveBoundaryThesis",
+      "saveCommitmentThesis",
+      "remindThesis",
+      "getTheses",
+      "reviewThesis"
+    ],
     "forbidden": ["dayTrade", "analyzeStock", "makeInvestment", "createHabit", "logHabitCompletion"]
   },
 

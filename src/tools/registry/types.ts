@@ -74,7 +74,8 @@ export type ToolDomain =
   | 'habit-persistence' // Habit tracking persistence and behavioral insights
   | 'milestone-mastery' // Milestone tracking and achievement recognition
   | 'developer' // Developer tools: CLI commands, file editing, bash
-  | 'behavior'; // Behavior control: modes, pacing, processing, presence
+  | 'behavior' // Behavior control: modes, pacing, processing, presence
+  | 'life-thesis'; // Life thesis: capturing and recalling "why" across all life domains
 
 /**
  * All available tool domains
@@ -130,6 +131,7 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'pattern-mastery',
   'timeless-perspective',
   'workflow-mastery',
+  'life-thesis',
   'habit-persistence',
   'milestone-mastery',
   'developer',
@@ -211,6 +213,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   'milestone-mastery': 'lifestyle', // Achievement tracking
   developer: 'productivity', // Developer tools for coding and CLI
   behavior: 'core', // Behavior control - core to how Ferni speaks
+  'life-thesis': 'lifestyle', // Life thesis - cross-persona motivation capture
 };
 
 // ============================================================================

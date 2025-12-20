@@ -485,7 +485,9 @@ function formatUserStateSection(userState: CommunicationBriefing['userState']): 
   return lines;
 }
 
-function formatPrioritiesSection(priorities: CommunicationBriefing['upcomingPriorities']): string[] {
+function formatPrioritiesSection(
+  priorities: CommunicationBriefing['upcomingPriorities']
+): string[] {
   if (priorities.length === 0) return [];
   const urgencyEmoji: Record<string, string> = { critical: '🚨', high: '⚠️' };
   return [
@@ -517,10 +519,18 @@ function formatBriefingForInjection(briefing: CommunicationBriefing): string[] {
     ...formatPrioritiesSection(briefing.upcomingPriorities),
     ...formatCommunicationContextSection(briefing.communicationContext),
     ...(briefing.coachingOpportunities.length > 0
-      ? ['\n--- COACHING OPPORTUNITIES ---', ...briefing.coachingOpportunities.slice(0, 4).map((o) => `• ${o}`)]
+      ? [
+          '\n--- COACHING OPPORTUNITIES ---',
+          ...briefing.coachingOpportunities.slice(0, 4).map((o) => `• ${o}`),
+        ]
       : []),
     ...(briefing.teamInsights.length > 0
-      ? ['\n--- TEAM INSIGHTS ---', ...briefing.teamInsights.filter((i) => i.relevance === 'direct').map((i) => `• [${i.from}] ${i.insight}`)]
+      ? [
+          '\n--- TEAM INSIGHTS ---',
+          ...briefing.teamInsights
+            .filter((i) => i.relevance === 'direct')
+            .map((i) => `• [${i.from}] ${i.insight}`),
+        ]
       : []),
     ...(briefing.actionItems.length > 0
       ? ['\n--- SUGGESTED ACTIONS ---', ...briefing.actionItems.map((a) => `→ ${a}`)]

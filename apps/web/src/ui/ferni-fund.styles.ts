@@ -178,16 +178,47 @@ export const ferniFundStyles = `
   letter-spacing: 0.05em;
 }
 
-/* Amount Selection */
-.ferni-fund-amounts {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+/* Section Labels */
+.ferni-fund-section-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-3, 12px);
+}
+
+/* Divider */
+.ferni-fund-divider {
+  display: flex;
+  align-items: center;
+  margin: var(--space-5, 20px) 0;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.ferni-fund-divider::before,
+.ferni-fund-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.ferni-fund-divider span {
+  padding: 0 var(--space-3, 12px);
+}
+
+/* Amount Selection - Vertical Layout */
+.ferni-fund-amounts--vertical {
+  display: flex;
+  flex-direction: column;
   gap: var(--space-3, 12px);
   margin-bottom: var(--space-4, 16px);
 }
 
 .ferni-fund-amount-btn {
-  padding: var(--space-4, 16px) var(--space-2, 8px);
+  padding: var(--space-4, 16px);
   border: 2px solid var(--color-border);
   border-radius: var(--radius-lg, 12px);
   background: transparent;
@@ -197,9 +228,11 @@ export const ferniFundStyles = `
   color: var(--color-text-primary);
   transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 4px;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  text-align: left;
 }
 
 .ferni-fund-amount-btn:hover {
@@ -213,14 +246,104 @@ export const ferniFundStyles = `
   color: white;
 }
 
-.ferni-fund-amount-btn .impact {
-  font-size: 0.7rem;
-  font-weight: 400;
-  opacity: 0.8;
+.ferni-fund-amount-btn .tier-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.ferni-fund-amount-btn.selected .impact {
-  opacity: 1;
+.ferni-fund-amount-btn .tier-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.ferni-fund-amount-btn .tier-desc {
+  font-size: 0.8rem;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.ferni-fund-amount-btn .tier-price {
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ferni-fund-amount-btn.selected .tier-desc {
+  opacity: 0.9;
+}
+
+/* Monthly Options */
+.ferni-fund-monthly-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+  margin-bottom: var(--space-4, 16px);
+}
+
+.ferni-fund-monthly-btn {
+  padding: var(--space-4, 16px);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg, 12px);
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: var(--color-text-primary);
+  transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  text-align: left;
+}
+
+.ferni-fund-monthly-btn:hover {
+  border-color: var(--persona-primary, #4a6741);
+  background: var(--color-bg-tertiary);
+}
+
+.ferni-fund-monthly-btn.selected {
+  border-color: var(--persona-primary, #4a6741);
+  background: linear-gradient(135deg, var(--persona-primary, #4a6741), var(--persona-secondary, #3d5a35));
+  color: white;
+}
+
+.ferni-fund-monthly-btn .tier-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ferni-fund-monthly-btn .tier-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.ferni-fund-monthly-btn .tier-desc {
+  font-size: 0.8rem;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.ferni-fund-monthly-btn .tier-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-full, 100px);
+  color: var(--persona-primary, #4a6741);
+}
+
+.ferni-fund-monthly-btn.selected .tier-badge {
+  background: rgba(255,255,255,0.2);
+  color: white;
+}
+
+.ferni-fund-monthly-btn.selected .tier-desc {
+  opacity: 0.9;
 }
 
 .ferni-fund-custom-input {

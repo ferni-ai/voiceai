@@ -1,494 +1,345 @@
 /**
- * Daily Proactive Insights Engine
+ * Daily Insights Generator
  *
- * Generates personalized daily insights for each user.
- * Run via Cloud Scheduler to populate insights before users log in.
- *
- * @module tools/domains/research/proactive-engine/daily-insights
+ * Proactive insights for Peter's daily briefings.
  */
 
 import { getLogger } from '../../../../utils/safe-logger.js';
-import { UserDataService } from '../user-data/index.js';
-import { BigBrain } from '../global-intelligence/big-brain.js';
-import { PeerBenchmarks } from '../global-intelligence/peer-benchmarks.js';
-import { getQuantFirestore } from '../quant-firestore.js';
-import { getCompanyFundamentals, getEconomicIndicator } from '../external-apis.js';
-import type { QuantInsight } from '../quant-firestore.js';
-import type { FinancialGoal, InvestmentThesis } from '../user-data/types.js';
 
 const log = getLogger();
 
-// ============================================================================
-// INSIGHT TYPES
-// ============================================================================
-
-export type InsightType =
-  | 'goal_milestone'
-  | 'goal_on_track'
-  | 'goal_off_track'
-  | 'thesis_check'
-  | 'behavioral_pattern'
-  | 'peer_update'
-  | 'market_opportunity'
-  | 'learning_suggestion'
-  | 'anniversary'
-  | 'economic_alert'
-  | 'portfolio_rebalance'
-  | 'life_event_followup';
-
-export interface DailyInsight {
-  id: string;
-  userId: string;
-  type: InsightType;
+/**
+ * Insight structure.
+ */
+export interface QuantInsight {
+  type: 'portfolio' | 'behavioral' | 'fire' | 'general';
   priority: 'high' | 'medium' | 'low';
-  title: string;
   message: string;
-  details?: string;
+  sentiment: 'positive' | 'neutral' | 'negative';
   actionable: boolean;
-  action?: {
-    type: string;
-    parameters: Record<string, unknown>;
-  };
-  expiresAt?: Date;
-  generatedAt: Date;
-  delivered: boolean;
-  deliveredAt?: Date;
-  acknowledged: boolean;
-  acknowledgedAt?: Date;
+  details?: string;
+  date: Date;
 }
 
-// ============================================================================
-// INSIGHT GENERATORS
-// ============================================================================
+/**
+ * Generate portfolio insight.
+ */
+export function generatePortfolioInsight(portfolio: {
+  holdings: Array<{ symbol: string; value: number; sector: string }>;
+  totalValue: number;
+}): QuantInsight {
+  const now = new Date();
+
+  if (!portfolio.holdings || portfolio.holdings.length === 0) {
+    return {
+      type: 'portfolio',
+      priority: 'medium',
+      message: 'Ready to start investing? I can help you build a diversified portfolio.',
+      sentiment: 'neutral',
+      actionable: true,
+      date: now,
+    };
+  }
+
+  // Calculate sector concentration
+  const sectorValues: Record<string, number> = {};
+  for (const holding of portfolio.holdings) {
+    sectorValues[holding.sector] = (sectorValues[holding.sector] || 0) + holding.value;
+  }
+
+  const totalValue = portfolio.totalValue || Object.values(sectorValues).reduce((a, b) => a + b, 0);
+  const sectorPercentages = Object.entries(sectorValues)
+    .map(([sector, value]) => ({
+      sector,
+      percentage: (value / totalValue) * 100,
+    }))
+    .sort((a, b) => b.percentage - a.percentage);
+
+  const topSector = sectorPercentages[0];
+
+  if (topSector && topSector.percentage > 60) {
+    return {
+      type: 'portfolio',
+      priority: 'high',
+      message: `Your ${topSector.sector.toLowerCase()} allocation is at ${Math.round(topSector.percentage)}%. Consider diversifying.`,
+      sentiment: 'negative',
+      actionable: true,
+      details: 'Concentration in a single sector increases risk. Index funds can help diversify.',
+      date: now,
+    };
+  }
+
+  if (topSector && topSector.percentage > 40) {
+    return {
+      type: 'portfolio',
+      priority: 'medium',
+      message: `${topSector.sector} makes up ${Math.round(topSector.percentage)}% of your portfolio. Worth monitoring.`,
+      sentiment: 'neutral',
+      actionable: false,
+      date: now,
+    };
+  }
+
+  return {
+    type: 'portfolio',
+    priority: 'low',
+    message: 'Your portfolio is well-diversified across sectors.',
+    sentiment: 'positive',
+    actionable: false,
+    date: now,
+  };
+}
 
 /**
- * Generate goal-related insights
+ * Generate behavioral insight.
  */
-async function generateGoalInsights(userId: string): Promise<DailyInsight[]> {
-  const insights: DailyInsight[] = [];
-  const goals = await UserDataService.loadFinancialGoals(userId);
+export function generateBehavioralInsight(behavior: {
+  checksThisWeek: number;
+  averageChecks: number;
+  panicSells: number;
+  timingAttempts: number;
+  impulsePurchases: number;
+  behavioralScore?: number;
+}): QuantInsight {
+  const now = new Date();
 
-  for (const goal of goals) {
-    // Check for milestone approach
-    const nextMilestone = goal.milestones.find(
-      (m) => !m.celebratedAt && m.percentage > goal.progress.percentage
-    );
+  // Check for panic selling pattern
+  if (behavior.panicSells > 0) {
+    return {
+      type: 'behavioral',
+      priority: 'high',
+      message: 'I noticed some reactive selling recently. Let\'s talk about your thesis for those positions.',
+      sentiment: 'negative',
+      actionable: true,
+      details: 'Panic selling often leads to regret. Historical data shows most recover within 18 months.',
+      date: now,
+    };
+  }
 
-    if (nextMilestone && goal.progress.percentage >= nextMilestone.percentage - 5) {
-      insights.push({
-        id: `insight_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-        userId,
-        type: 'goal_milestone',
-        priority: 'high',
-        title: `Almost at ${nextMilestone.percentage}%! 🎯`,
-        message: `You're just ${(nextMilestone.percentage - goal.progress.percentage).toFixed(1)}% away from the ${nextMilestone.percentage}% milestone on "${goal.name}"!`,
+  // Check for timing attempts
+  if (behavior.timingAttempts > 2) {
+    return {
+      type: 'behavioral',
+      priority: 'high',
+      message: 'Multiple timing attempts detected. Time in market beats timing the market.',
+      sentiment: 'negative',
+      actionable: true,
+      date: now,
+    };
+  }
+
+  // Check for over-monitoring
+  if (behavior.checksThisWeek > behavior.averageChecks * 2) {
+    return {
+      type: 'behavioral',
+      priority: 'medium',
+      message: `You've been checking more than usual this week. Everything okay?`,
+      sentiment: 'neutral',
+      actionable: false,
+      date: now,
+    };
+  }
+
+  // Good behavior
+  if (behavior.behavioralScore && behavior.behavioralScore > 80) {
+    return {
+      type: 'behavioral',
+      priority: 'low',
+      message: 'Your investing discipline is excellent. Keep staying the course!',
+      sentiment: 'positive',
+      actionable: false,
+      date: now,
+    };
+  }
+
+  return {
+    type: 'behavioral',
+    priority: 'low',
+    message: 'Your investing behavior looks healthy.',
+    sentiment: 'positive',
+    actionable: false,
+    date: now,
+  };
+}
+
+/**
+ * Generate FIRE progress insight.
+ */
+export function generateFIREInsight(fire: {
+  currentProgress: number;
+  previousProgress: number;
+  monthlyContribution: number;
+  targetNumber: number;
+  currentNetWorth: number;
+  projectedAge: number;
+}): QuantInsight {
+  const now = new Date();
+  const progressDelta = fire.currentProgress - fire.previousProgress;
+
+  // Milestone proximity check
+  const milestones = [10, 25, 50, 75, 100];
+  for (const milestone of milestones) {
+    if (fire.currentProgress >= milestone - 2 && fire.currentProgress < milestone) {
+      return {
+        type: 'fire',
+        priority: 'medium',
+        message: `You're approaching ${milestone}% of your FIRE goal! Just ${(milestone - fire.currentProgress).toFixed(1)}% to go.`,
+        sentiment: 'positive',
         actionable: false,
-        generatedAt: new Date(),
-        delivered: false,
-        acknowledged: false,
-      });
+        date: now,
+      };
     }
+    if (fire.previousProgress < milestone && fire.currentProgress >= milestone) {
+      return {
+        type: 'fire',
+        priority: 'high',
+        message: `Congratulations! You've hit ${milestone}% of your FIRE goal! 🎉`,
+        sentiment: 'positive',
+        actionable: false,
+        date: now,
+      };
+    }
+  }
 
-    // Check if off track
-    if (goal.target.date && !goal.progress.onTrack) {
-      const daysRemaining = Math.ceil(
-        (goal.target.date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-      );
+  // Good progress
+  if (progressDelta >= 1) {
+    return {
+      type: 'fire',
+      priority: 'low',
+      message: `Great progress! You've moved ${progressDelta.toFixed(1)}% closer to FIRE.`,
+      sentiment: 'positive',
+      actionable: false,
+      date: now,
+    };
+  }
 
-      if (daysRemaining > 0) {
-        const remainingAmount = goal.target.amount - goal.current.amount;
-        const monthlyNeeded = remainingAmount / (daysRemaining / 30);
+  // Early stage encouragement
+  if (fire.currentProgress < 10) {
+    return {
+      type: 'fire',
+      priority: 'low',
+      message: `You're ${fire.currentProgress.toFixed(0)}% of the way to FIRE. The early phase is the hardest - you're building the foundation!`,
+      sentiment: 'neutral',
+      actionable: false,
+      date: now,
+    };
+  }
 
-        insights.push({
-          id: `insight_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-          userId,
-          type: 'goal_off_track',
-          priority: 'medium',
-          title: `Let's catch up on "${goal.name}"`,
-          message: `You need $${monthlyNeeded.toFixed(0)}/month to hit your ${goal.target.date.toLocaleDateString()} target. Want to review options?`,
-          actionable: true,
-          action: {
-            type: 'review_goal',
-            parameters: { goalId: goal.id },
-          },
-          generatedAt: new Date(),
-          delivered: false,
-          acknowledged: false,
-        });
+  return {
+    type: 'fire',
+    priority: 'low',
+    message: `You're at ${fire.currentProgress.toFixed(0)}% of your FIRE goal. On track for age ${fire.projectedAge}.`,
+    sentiment: 'neutral',
+    actionable: false,
+    date: now,
+  };
+}
+
+/**
+ * Generate economic indicator insight.
+ */
+export function generateEconomicInsight(economic: {
+  indicator: 'CPI' | 'FED_FUNDS' | 'UNEMPLOYMENT' | 'GDP';
+  currentValue: number;
+  previousValue: number;
+  historicalAverage: number;
+  trend: 'rising' | 'falling' | 'stable';
+}): QuantInsight {
+  const now = new Date();
+  const { indicator, currentValue, previousValue, historicalAverage, trend } = economic;
+
+  if (indicator === 'CPI') {
+    const direction = currentValue > previousValue ? 'up' : 'down';
+    return {
+      type: 'general',
+      priority: currentValue > 4 ? 'medium' : 'low',
+      message: `Inflation is at ${currentValue}% (${direction} from ${previousValue}%). Historical average: ${historicalAverage}%.`,
+      sentiment: currentValue > historicalAverage ? 'negative' : 'positive',
+      actionable: false,
+      date: now,
+    };
+  }
+
+  if (indicator === 'FED_FUNDS') {
+    return {
+      type: 'general',
+      priority: trend === 'rising' ? 'medium' : 'low',
+      message: `Fed rate at ${currentValue}% (${trend}). This affects borrowing costs and bond yields.`,
+      sentiment: 'neutral',
+      actionable: false,
+      date: now,
+    };
+  }
+
+  if (indicator === 'UNEMPLOYMENT') {
+    return {
+      type: 'general',
+      priority: 'low',
+      message: `Unemployment at ${currentValue}% (${trend}). Historical average: ${historicalAverage}%.`,
+      sentiment: currentValue < historicalAverage ? 'positive' : 'negative',
+      actionable: false,
+      date: now,
+    };
+  }
+
+  return {
+    type: 'general',
+    priority: 'low',
+    message: `${indicator}: ${currentValue} (${trend}).`,
+    sentiment: 'neutral',
+    actionable: false,
+    date: now,
+  };
+}
+
+/**
+ * Format insights into a speech-friendly daily briefing.
+ */
+export function formatDailyBriefing(insights: QuantInsight[], userName: string): string {
+  if (insights.length === 0) {
+    return `Good morning, ${userName}! Everything's looking good. Your portfolio and habits are on track. Let me know if you'd like to dive into anything specific today.`;
+  }
+
+  // Sort by priority
+  const priorityOrder = { high: 3, medium: 2, low: 1 };
+  const sorted = [...insights].sort(
+    (a, b) => priorityOrder[b.priority] - priorityOrder[a.priority]
+  );
+
+  const parts: string[] = [];
+  parts.push(`Good morning, ${userName}! Here's your financial update.`);
+
+  // Add high priority items first
+  const highPriority = sorted.filter((i) => i.priority === 'high');
+  if (highPriority.length > 0) {
+    parts.push('First, some important items:');
+    for (const insight of highPriority) {
+      parts.push(insight.message);
+      if (insight.details) {
+        parts.push(insight.details);
       }
     }
   }
 
-  return insights;
-}
-
-/**
- * Generate thesis-related insights
- */
-async function generateThesisInsights(userId: string): Promise<DailyInsight[]> {
-  const insights: DailyInsight[] = [];
-  const theses = await UserDataService.loadAllTheses(userId);
-
-  for (const thesis of theses) {
-    // Check if thesis is stale (not reviewed in 90+ days)
-    const daysSinceReview = Math.floor(
-      (Date.now() - thesis.lastReviewed.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    if (daysSinceReview >= 90) {
-      insights.push({
-        id: `insight_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-        userId,
-        type: 'thesis_check',
-        priority: 'medium',
-        title: `Time to review ${thesis.symbol}`,
-        message: `It's been ${daysSinceReview} days since you reviewed your ${thesis.symbol} thesis. Your original reasoning: "${thesis.thesis.slice(0, 100)}..."`,
-        actionable: true,
-        action: {
-          type: 'review_thesis',
-          parameters: { symbol: thesis.symbol },
-        },
-        generatedAt: new Date(),
-        delivered: false,
-        acknowledged: false,
-      });
-    }
-
-    // Check if price target hit (would need price data)
-    // This is a placeholder - in production would check real prices
-    if (thesis.exitCriteria.priceTarget) {
-      const fundamentals = await getCompanyFundamentals(thesis.symbol);
-      // Note: fundamentals doesn't include current price in our mock
-      // In production, you'd check actual price vs target
+  // Add medium priority
+  const mediumPriority = sorted.filter((i) => i.priority === 'medium');
+  if (mediumPriority.length > 0) {
+    parts.push("Also worth noting:");
+    for (const insight of mediumPriority) {
+      parts.push(insight.message);
     }
   }
 
-  return insights;
-}
-
-/**
- * Generate behavioral insights
- */
-async function generateBehavioralInsights(userId: string): Promise<DailyInsight[]> {
-  const insights: DailyInsight[] = [];
-  const firestore = getQuantFirestore();
-  const behavioral = await firestore.loadBehavioralTracking(userId);
-
-  if (!behavioral) {
-    return insights;
-  }
-
-  // Check for recent panic sells (within last 7 days)
-  const recentPanicSells = behavioral.panicSells?.filter(
-    (e: { date: Date }) => Date.now() - new Date(e.date).getTime() < 7 * 24 * 60 * 60 * 1000
-  ) || [];
-
-  if (recentPanicSells.length > 0) {
-    insights.push({
-      id: `insight_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      userId,
-      type: 'behavioral_pattern',
-      priority: 'high',
-      title: "Let's talk about this week",
-      message: `I noticed some stress-driven decisions this week. Remember: you've weathered storms before. Want to review your investment theses together?`,
-      actionable: true,
-      action: {
-        type: 'review_crisis_history',
-        parameters: {},
-      },
-      generatedAt: new Date(),
-      delivered: false,
-      acknowledged: false,
-    });
-  }
-
-  // Check emotional control score
-  if (behavioral.currentEmotionalControlScore < 50) {
-    insights.push({
-      id: `insight_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      userId,
-      type: 'behavioral_pattern',
-      priority: 'medium',
-      title: 'Building emotional discipline',
-      message: `Your emotional control score is at ${behavioral.currentEmotionalControlScore}. Let's work on building resilience for market volatility.`,
-      actionable: true,
-      action: {
-        type: 'behavioral_coaching',
-        parameters: {},
-      },
-      generatedAt: new Date(),
-      delivered: false,
-      acknowledged: false,
-    });
-  }
-
-  return insights;
-}
-
-/**
- * Generate peer comparison insights
- */
-async function generatePeerInsights(userId: string): Promise<DailyInsight[]> {
-  const insights: DailyInsight[] = [];
-  const firestore = getQuantFirestore();
-
-  const profile = await firestore.loadFinancialProfile(userId);
-  if (!profile) return insights;
-
-  // Get peer comparison
-  const savingsRate =
-    profile.monthlyIncome > 0
-      ? ((profile.monthlyIncome - profile.monthlyExpenses) / profile.monthlyIncome) * 100
-      : 0;
-
-  const comparison = PeerBenchmarks.getPeerComparison({
-    age: profile.currentAge || 35,
-    annualIncome: profile.monthlyIncome * 12,
-    savingsRate,
-    netWorth: 0, // Would need to calculate
-    behavioralScore: 70,
-    fireProgress: 0,
-    hasEmergencyFund: true,
-    hasAutomatedSavings: false,
-    tracksbudget: false,
-    hasIndexFunds: true,
-  });
-
-  // Generate insight if user moved to higher percentile
-  if (comparison.percentiles.savingsRate >= 75) {
-    insights.push({
-      id: `insight_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      userId,
-      type: 'peer_update',
-      priority: 'low',
-      title: 'Top 25%! 🌟',
-      message: `Your ${savingsRate.toFixed(1)}% savings rate puts you in the top ${100 - comparison.percentiles.savingsRate}% of people your age. Keep it up!`,
-      actionable: false,
-      generatedAt: new Date(),
-      delivered: false,
-      acknowledged: false,
-    });
-  }
-
-  return insights;
-}
-
-/**
- * Generate economic alert insights
- */
-async function generateEconomicInsights(userId: string): Promise<DailyInsight[]> {
-  const insights: DailyInsight[] = [];
-
-  // Check for significant economic changes
-  const fedRate = await getEconomicIndicator('fed_rate');
-  const unemployment = await getEconomicIndicator('unemployment');
-
-  if (fedRate && fedRate.change && Math.abs(fedRate.change) >= 0.25) {
-    const direction = fedRate.change > 0 ? 'raised' : 'lowered';
-    insights.push({
-      id: `insight_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      userId,
-      type: 'economic_alert',
-      priority: fedRate.change > 0.5 ? 'high' : 'medium',
-      title: `Fed ${direction} rates`,
-      message: `The Federal Reserve ${direction} rates by ${Math.abs(fedRate.change).toFixed(2)}% to ${fedRate.value.toFixed(2)}%. This affects mortgage rates, bonds, and savings yields.`,
-      actionable: false,
-      generatedAt: new Date(),
-      delivered: false,
-      acknowledged: false,
-    });
-  }
-
-  return insights;
-}
-
-/**
- * Generate learning suggestion insights
- */
-async function generateLearningInsights(userId: string): Promise<DailyInsight[]> {
-  const insights: DailyInsight[] = [];
-
-  const nextTopic = await UserDataService.getNextLearningTopic(userId);
-  if (nextTopic) {
-    insights.push({
-      id: `insight_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      userId,
-      type: 'learning_suggestion',
-      priority: 'low',
-      title: `Ready to learn: ${nextTopic}`,
-      message: `Based on your questions, I think you'd benefit from learning about ${nextTopic}. Want me to explain?`,
-      actionable: true,
-      action: {
-        type: 'explain_concept',
-        parameters: { topic: nextTopic },
-      },
-      generatedAt: new Date(),
-      delivered: false,
-      acknowledged: false,
-    });
-  }
-
-  return insights;
-}
-
-/**
- * Generate anniversary insights
- */
-async function generateAnniversaryInsights(userId: string): Promise<DailyInsight[]> {
-  const insights: DailyInsight[] = [];
-
-  // Check for investment anniversaries, FIRE journey milestones, etc.
-  const theses = await UserDataService.loadAllTheses(userId);
-
-  for (const thesis of theses) {
-    const daysSincePurchase = Math.floor(
-      (Date.now() - thesis.purchaseDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    // 1 year anniversary
-    if (daysSincePurchase >= 365 && daysSincePurchase < 366) {
-      insights.push({
-        id: `insight_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-        userId,
-        type: 'anniversary',
-        priority: 'low',
-        title: `1 Year with ${thesis.symbol}! 🎂`,
-        message: `It's been exactly one year since you invested in ${thesis.symbol}. Your original thesis: "${thesis.thesis.slice(0, 80)}..." - still holding true?`,
-        actionable: true,
-        action: {
-          type: 'review_thesis',
-          parameters: { symbol: thesis.symbol },
-        },
-        generatedAt: new Date(),
-        delivered: false,
-        acknowledged: false,
-      });
+  // Add positive low priority as encouragement
+  const positiveLow = sorted.filter((i) => i.priority === 'low' && i.sentiment === 'positive');
+  if (positiveLow.length > 0) {
+    parts.push('And some good news:');
+    for (const insight of positiveLow) {
+      parts.push(insight.message);
     }
   }
 
-  return insights;
+  parts.push("Let me know if you'd like to discuss any of this in more detail.");
+
+  return parts.join(' ');
 }
-
-// ============================================================================
-// MAIN GENERATION FUNCTION
-// ============================================================================
-
-/**
- * Generate all daily insights for a user
- */
-export async function generateDailyInsightsForUser(userId: string): Promise<DailyInsight[]> {
-  log.info({ userId }, 'Generating daily insights');
-
-  const allInsights: DailyInsight[] = [];
-
-  try {
-    const [
-      goalInsights,
-      thesisInsights,
-      behavioralInsights,
-      peerInsights,
-      economicInsights,
-      learningInsights,
-      anniversaryInsights,
-    ] = await Promise.all([
-      generateGoalInsights(userId),
-      generateThesisInsights(userId),
-      generateBehavioralInsights(userId),
-      generatePeerInsights(userId),
-      generateEconomicInsights(userId),
-      generateLearningInsights(userId),
-      generateAnniversaryInsights(userId),
-    ]);
-
-    allInsights.push(
-      ...goalInsights,
-      ...thesisInsights,
-      ...behavioralInsights,
-      ...peerInsights,
-      ...economicInsights,
-      ...learningInsights,
-      ...anniversaryInsights
-    );
-
-    // Sort by priority
-    const priorityOrder = { high: 0, medium: 1, low: 2 };
-    allInsights.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
-
-    // Limit to top 5 insights per day
-    const topInsights = allInsights.slice(0, 5);
-
-    // Store insights (would save to Firestore in production)
-    await storeInsightsForUser(userId, topInsights);
-
-    log.info({ userId, totalGenerated: allInsights.length, stored: topInsights.length }, 'Daily insights generated');
-
-    return topInsights;
-  } catch (error) {
-    log.error({ error: String(error), userId }, 'Failed to generate daily insights');
-    return [];
-  }
-}
-
-/**
- * Store insights for later delivery
- */
-async function storeInsightsForUser(userId: string, insights: DailyInsight[]): Promise<void> {
-  const firestore = getQuantFirestore();
-
-  for (const insight of insights) {
-    // Convert to QuantInsight format for storage
-    const quantInsight: QuantInsight = {
-      id: insight.id,
-      date: insight.generatedAt,
-      type: 'portfolio', // Default to portfolio type
-      title: insight.title,
-      summary: insight.message,
-      details: insight.details || '',
-      actionable: insight.actionable,
-      priority: insight.priority,
-      acknowledged: false,
-    };
-
-    await firestore.saveInsight(userId, quantInsight);
-  }
-}
-
-/**
- * Get stored insights for a user
- */
-export async function getStoredInsights(userId: string): Promise<DailyInsight[]> {
-  const firestore = getQuantFirestore();
-  const quantInsights = await firestore.loadRecentInsights(userId, 20);
-
-  // Filter to today's unacknowledged insights
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  return quantInsights
-    .filter((i: QuantInsight) => new Date(i.date) >= today && !i.acknowledged)
-    .map((qi: QuantInsight) => ({
-      id: qi.id,
-      userId,
-      type: 'goal_milestone' as InsightType,
-      priority: qi.priority,
-      title: qi.title,
-      message: qi.summary,
-      details: qi.details,
-      actionable: qi.actionable,
-      generatedAt: new Date(qi.date),
-      delivered: false,
-      acknowledged: qi.acknowledged || false,
-    }));
-}
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export const DailyInsights = {
-  generateDailyInsightsForUser,
-  getStoredInsights,
-};
-
-export default DailyInsights;
-

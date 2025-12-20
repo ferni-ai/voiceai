@@ -1924,7 +1924,7 @@ class VoiceAIApp {
         log.info({ bonus: referralResult.bonusAwarded }, 'Referral bonus applied');
         // Show toast after a short delay so it doesn't conflict with conversation end UI
         setTimeout(() => {
-          toast.success(`+${referralResult.bonusAwarded} seeds from your friend! 🌱`);
+          toast.success(`+${referralResult.bonusAwarded} seeds from your friend!`);
         }, 1500);
       }
     }

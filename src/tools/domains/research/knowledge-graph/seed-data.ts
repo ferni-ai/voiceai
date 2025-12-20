@@ -1,540 +1,1962 @@
 /**
  * Knowledge Graph Seed Data
  *
- * Initial financial concepts to populate Peter's knowledge graph.
- * These are the foundational concepts that Peter starts with.
- *
- * @module tools/domains/research/knowledge-graph/seed-data
+ * 50+ core financial concepts for Peter's Big Brain.
+ * These form the foundation of Peter's financial knowledge.
  */
 
 import type { KnowledgeNode, KnowledgeEdge } from './types.js';
 
-// ============================================================================
-// FOUNDATIONAL CONCEPTS
-// ============================================================================
+/**
+ * Core financial concepts organized by domain.
+ */
+export function getFinancialSeedNodes(): KnowledgeNode[] {
+  const now = new Date();
 
-export const SEED_NODES: KnowledgeNode[] = [
-  // ========== Core Concepts ==========
-  {
-    id: 'compound_interest',
-    type: 'concept',
-    name: 'Compound Interest',
-    aliases: ['compounding', 'compound growth', 'interest on interest'],
-    content: {
-      definition: 'Interest calculated on the initial principal and also on the accumulated interest of previous periods.',
-      simpleExplanation: "Your money makes money, and then that money makes more money. It's like a snowball rolling downhill - it gets bigger and faster over time.",
-      technicalExplanation: 'A = P(1 + r/n)^(nt) where P = principal, r = annual rate, n = compounding frequency, t = time in years. The exponential nature means early contributions have disproportionate impact.',
-      whyItMatters: "Einstein supposedly called it the 8th wonder of the world. It's why starting early matters more than starting big.",
+  return [
+    // ===========================================
+    // BASICS - Foundation concepts
+    // ===========================================
+    {
+      id: 'compound_interest',
+      type: 'concept',
+      name: 'Compound Interest',
+      aliases: ['compounding', 'compound growth', 'interest on interest'],
+      definition:
+        'Interest calculated on both the initial principal and accumulated interest from previous periods.',
+      context: {
+        domain: 'basics',
+        subdomains: ['growth', 'returns'],
+        difficulty: 'beginner',
+      },
+      examples: [
+        '$10,000 at 7% for 30 years = $76,123',
+        'Einstein called it the 8th wonder of the world',
+        'The Rule of 72: years to double = 72 / interest rate',
+      ],
+      commonMisunderstandings: [
+        'Confusing simple vs compound interest',
+        'Underestimating the time factor',
+        "Thinking you need to start with a lot - you don't",
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Mathematics', 'Investopedia'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.95,
+      },
+      createdAt: now,
+      updatedAt: now,
     },
-    analogies: [
-      {
-        id: 'ci_snowball',
-        type: 'everyday',
-        text: "Imagine a snowball rolling down a hill. At first it's small and slow. But as it picks up snow, it gets bigger and rolls faster, picking up even MORE snow. Your money works the same way.",
-        effectiveFor: { experienceLevels: ['beginner'] },
-        effectiveness: { timesUsed: 0, successRate: 0.85 },
+    {
+      id: 'inflation',
+      type: 'concept',
+      name: 'Inflation',
+      aliases: ['price inflation', 'cost of living increase', 'purchasing power loss'],
+      definition:
+        'The rate at which the general level of prices for goods and services rises, eroding purchasing power.',
+      context: {
+        domain: 'basics',
+        subdomains: ['economics', 'purchasing power'],
+        difficulty: 'beginner',
       },
-      {
-        id: 'ci_tree',
-        type: 'gardening',
-        text: "Plant a seed today, and it becomes a tree that drops more seeds, which become more trees. In 30 years, you have a forest from one seed.",
-        effectiveFor: { experienceLevels: ['beginner', 'intermediate'] },
-        effectiveness: { timesUsed: 0, successRate: 0.80 },
+      examples: [
+        'Historical average ~2-3% per year in the US',
+        '$100 today = ~$55 purchasing power in 30 years at 2% inflation',
+        'Why cash savings lose value over time',
+      ],
+      commonMisunderstandings: [
+        'Thinking 0% inflation is ideal (mild inflation is healthy)',
+        'Confusing inflation with cost of individual items',
+        'Not accounting for inflation in retirement planning',
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Federal Reserve', 'BLS'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.9,
       },
-    ],
-    misconceptions: [
-      {
-        belief: 'I should wait until I have more money to start investing',
-        reality: 'Time in the market beats timing the market. $100/month starting at 25 beats $500/month starting at 35.',
-        whyCommon: "People underestimate exponential growth and overestimate the amount needed to start.",
-        frequency: 0.7,
-        correction: 'Show the math: $100/month at 25 vs $500/month at 35, both to age 65.',
-      },
-    ],
-    typicalQuestions: [
-      'How does compound interest work?',
-      'Why should I start investing early?',
-      'How much difference does starting early make?',
-    ],
-    difficulty: 'beginner',
-    prerequisites: [],
-    stats: { timesExplained: 0, comprehensionRate: 0.8, bestExplanationStyle: 'analogy' },
-    category: 'fundamentals',
-    tags: ['core', 'growth', 'time-value'],
-    lastUpdated: new Date(),
-  },
-
-  {
-    id: 'dollar_cost_averaging',
-    type: 'strategy',
-    name: 'Dollar Cost Averaging',
-    aliases: ['DCA', 'periodic investing', 'systematic investing'],
-    content: {
-      definition: 'An investment strategy where you invest a fixed amount at regular intervals regardless of market conditions.',
-      simpleExplanation: "Invest the same amount every month, no matter what. When prices are low, you buy more shares. When prices are high, you buy fewer. Over time, you average out.",
-      technicalExplanation: "DCA reduces sequence-of-returns risk and removes emotional decision-making. Studies show it slightly underperforms lump-sum investing in rising markets but provides psychological benefits and reduces regret.",
-      whyItMatters: "It takes emotion out of investing. You don't have to guess when to buy - you just keep buying consistently.",
+      createdAt: now,
+      updatedAt: now,
     },
-    analogies: [
-      {
-        id: 'dca_groceries',
-        type: 'everyday',
-        text: "You need to buy gas for your car regularly. Sometimes gas is expensive, sometimes it's cheap. But you still need to drive. Over time, you pay an average price. Same with investing.",
-        effectiveFor: { experienceLevels: ['beginner'] },
-        effectiveness: { timesUsed: 0, successRate: 0.82 },
+    {
+      id: 'emergency_fund',
+      type: 'concept',
+      name: 'Emergency Fund',
+      aliases: ['rainy day fund', 'safety net', 'cash reserve'],
+      definition:
+        '3-6 months of essential expenses kept in easily accessible savings for unexpected events.',
+      context: {
+        domain: 'basics',
+        subdomains: ['savings', 'risk management'],
+        difficulty: 'beginner',
       },
-    ],
-    misconceptions: [
-      {
-        belief: "I should wait for a market dip to invest",
-        reality: "Time in the market beats timing the market. Missing just the 10 best days over 20 years cuts returns nearly in half.",
-        whyCommon: "It feels smart to buy low. But no one knows when 'low' is.",
-        frequency: 0.8,
-        correction: "Show historical data on missing best days.",
+      examples: [
+        'Job loss protection',
+        'Medical emergency coverage',
+        'Car or home repairs',
+        'Keep in high-yield savings account',
+      ],
+      commonMisunderstandings: [
+        "Investing the emergency fund (it's not for growth)",
+        'Only needing 1-2 months',
+        'Using credit cards instead (dangerous)',
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Dave Ramsey', 'Financial Planning Association'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.92,
       },
-    ],
-    typicalQuestions: [
-      'When should I invest?',
-      'Should I wait for the market to drop?',
-      'How often should I invest?',
-    ],
-    difficulty: 'beginner',
-    prerequisites: ['compound_interest'],
-    stats: { timesExplained: 0, comprehensionRate: 0.85, bestExplanationStyle: 'simple' },
-    category: 'strategies',
-    tags: ['core', 'psychology', 'automation'],
-    lastUpdated: new Date(),
-  },
-
-  {
-    id: 'index_fund',
-    type: 'product',
-    name: 'Index Fund',
-    aliases: ['index investing', 'passive investing', 'market fund'],
-    content: {
-      definition: 'A mutual fund or ETF designed to track a market index like the S&P 500, providing broad market exposure at low cost.',
-      simpleExplanation: "Instead of picking individual stocks (which rarely works), you buy a little piece of ALL the stocks. When the market goes up, you go up. Simple, cheap, and historically beats most professionals.",
-      technicalExplanation: "Index funds track benchmarks like the S&P 500 (500 largest US companies), total market (3,000+ stocks), or international indices. Expense ratios of 0.03-0.10% vs 0.5-1.5% for active funds. 80-90% of active managers underperform over 15+ years after fees.",
-      whyItMatters: "Warren Buffett recommends them. Jack Bogle invented them. They're how most millionaires actually build wealth.",
+      createdAt: now,
+      updatedAt: now,
     },
-    analogies: [
-      {
-        id: 'index_buffet',
-        type: 'everyday',
-        text: "Instead of trying to pick the best dish at a buffet, you take a small portion of everything. You don't need to guess which one will be the best - you get the average of all of them.",
-        effectiveFor: { experienceLevels: ['beginner'] },
-        effectiveness: { timesUsed: 0, successRate: 0.88 },
+    {
+      id: 'budgeting',
+      type: 'concept',
+      name: 'Budgeting',
+      aliases: ['spending plan', 'money management', 'expense tracking'],
+      definition: 'Creating a plan for how to allocate income across expenses, savings, and investments.',
+      context: {
+        domain: 'basics',
+        subdomains: ['planning', 'cash flow'],
+        difficulty: 'beginner',
       },
-    ],
-    misconceptions: [
-      {
-        belief: "I can beat the market by picking the right stocks",
-        reality: "Over 15-20 years, 80-90% of professional stock pickers fail to beat a simple index fund, even before their fees.",
-        whyCommon: "Survivorship bias - we hear about winners, not the majority who lost.",
-        frequency: 0.65,
-        correction: "Show SPIVA data on active manager underperformance.",
+      examples: [
+        '50/30/20 rule: 50% needs, 30% wants, 20% savings',
+        'Zero-based budgeting',
+        'Pay yourself first approach',
+      ],
+      commonMisunderstandings: [
+        'Budgeting means deprivation',
+        'High earners dont need budgets',
+        'One-time setup vs ongoing process',
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['YNAB', 'Financial Planning Standards'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.88,
       },
-    ],
-    typicalQuestions: [
-      'What should I invest in?',
-      'Are index funds good?',
-      'Should I pick individual stocks?',
-    ],
-    difficulty: 'beginner',
-    prerequisites: [],
-    stats: { timesExplained: 0, comprehensionRate: 0.9, bestExplanationStyle: 'analogy' },
-    category: 'products',
-    tags: ['core', 'passive', 'diversification'],
-    lastUpdated: new Date(),
-  },
-
-  {
-    id: 'emergency_fund',
-    type: 'concept',
-    name: 'Emergency Fund',
-    aliases: ['rainy day fund', 'emergency savings', 'cash cushion'],
-    content: {
-      definition: '3-6 months of essential expenses kept in a highly liquid, low-risk account to cover unexpected costs or income loss.',
-      simpleExplanation: "Before you invest a single dollar, save 3-6 months of expenses in cash. This is your 'sleep at night' money. It prevents you from selling investments at the worst time.",
-      technicalExplanation: "High-yield savings (4-5% currently), money market funds, or I-bonds for inflation protection. Size depends on job stability, income sources, and dependents. Some argue 12 months for entrepreneurs or single-income households.",
-      whyItMatters: "Without this, any emergency forces you to sell investments at potentially the worst time, or go into debt. It's the foundation everything else sits on.",
+      createdAt: now,
+      updatedAt: now,
     },
-    analogies: [
-      {
-        id: 'ef_foundation',
-        type: 'building',
-        text: "You wouldn't build a house without a foundation. Your emergency fund IS your financial foundation. Everything else - investing, retirement - sits on top of it.",
-        effectiveFor: { experienceLevels: ['beginner', 'intermediate'] },
-        effectiveness: { timesUsed: 0, successRate: 0.90 },
+    {
+      id: 'savings_rate',
+      type: 'metric',
+      name: 'Savings Rate',
+      aliases: ['saving percentage', 'how much to save'],
+      definition: 'Percentage of gross or net income saved or invested each period.',
+      context: {
+        domain: 'basics',
+        subdomains: ['savings', 'FIRE'],
+        difficulty: 'beginner',
       },
-    ],
-    misconceptions: [
-      {
-        belief: "I should invest my emergency fund for better returns",
-        reality: "The purpose of an emergency fund is security, not growth. Invested emergency funds can lose 30% right when you need them most.",
-        whyCommon: "Opportunity cost anxiety - seeing 'wasted' growth potential.",
-        frequency: 0.5,
-        correction: "Ask: what if you lose your job during a market crash?",
+      examples: ['15% is a common minimum recommendation', 'FIRE seekers often save 50%+'],
+      relatedMetrics: ['Net worth growth', 'Years to FIRE'],
+      ranges: {
+        low: 5,
+        typical: 15,
+        high: 30,
+        extreme: 50,
       },
-    ],
-    typicalQuestions: [
-      'How much should I save before investing?',
-      'Where should I keep my emergency fund?',
-      'Do I need 6 months of expenses?',
-    ],
-    difficulty: 'beginner',
-    prerequisites: [],
-    stats: { timesExplained: 0, comprehensionRate: 0.92, bestExplanationStyle: 'simple' },
-    category: 'fundamentals',
-    tags: ['core', 'safety', 'foundation'],
-    lastUpdated: new Date(),
-  },
-
-  {
-    id: 'asset_allocation',
-    type: 'concept',
-    name: 'Asset Allocation',
-    aliases: ['portfolio allocation', 'investment mix', 'asset mix'],
-    content: {
-      definition: 'The strategy of dividing investments among different asset classes (stocks, bonds, cash) to balance risk and return.',
-      simpleExplanation: "Don't put all your eggs in one basket. How much you put in stocks vs bonds depends on how long until you need the money and how much volatility you can stomach.",
-      technicalExplanation: "Modern Portfolio Theory suggests diversification can optimize risk-adjusted returns. Common rule of thumb: (110 - age)% in stocks. Target-date funds automate this 'glide path' from aggressive to conservative as you approach retirement.",
-      whyItMatters: "Your allocation determines 90% of your portfolio's behavior. The specific stocks/funds matter less than this big-picture decision.",
+      metadata: {
+        confidence: 1.0,
+        sources: ['Financial Independence literature'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.91,
+      },
+      createdAt: now,
+      updatedAt: now,
     },
-    analogies: [
-      {
-        id: 'aa_sports',
-        type: 'sports',
-        text: "A football team needs offense AND defense. Young? Play aggressive offense (stocks). Near retirement? Focus on defense (bonds). The balance shifts as your game situation changes.",
-        effectiveFor: { experienceLevels: ['beginner', 'intermediate'] },
-        effectiveness: { timesUsed: 0, successRate: 0.78 },
+    {
+      id: 'net_worth',
+      type: 'metric',
+      name: 'Net Worth',
+      aliases: ['wealth', 'total assets minus liabilities'],
+      definition: 'Total assets minus total liabilities - the clearest measure of financial health.',
+      context: {
+        domain: 'basics',
+        subdomains: ['wealth measurement', 'tracking'],
+        difficulty: 'beginner',
       },
-    ],
-    misconceptions: [
-      {
-        belief: "I should be 100% in stocks for maximum returns",
-        reality: "100% stocks maximizes expected returns but also maximizes volatility and risk of sequence-of-returns failure. Most people can't stomach a 50% drop.",
-        whyCommon: "Looking at long-term averages without experiencing real drawdowns.",
-        frequency: 0.4,
-        correction: "Ask: how would you feel if your portfolio dropped 50%?",
+      examples: [
+        'Assets: home, investments, cash, retirement accounts',
+        'Liabilities: mortgage, student loans, credit card debt',
+        'Track monthly or quarterly',
+      ],
+      relatedMetrics: ['Asset allocation', 'Debt-to-income'],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Financial Planning Standards'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.93,
       },
-    ],
-    typicalQuestions: [
-      'How much should I have in stocks vs bonds?',
-      'What allocation is right for my age?',
-      'Should I change my allocation over time?',
-    ],
-    difficulty: 'intermediate',
-    prerequisites: ['index_fund'],
-    stats: { timesExplained: 0, comprehensionRate: 0.75, bestExplanationStyle: 'analogy' },
-    category: 'strategies',
-    tags: ['core', 'risk', 'diversification'],
-    lastUpdated: new Date(),
-  },
-
-  // ========== Advanced Concepts ==========
-  {
-    id: 'tax_loss_harvesting',
-    type: 'strategy',
-    name: 'Tax Loss Harvesting',
-    aliases: ['TLH', 'harvesting losses', 'tax-loss selling'],
-    content: {
-      definition: 'Selling investments at a loss to offset capital gains taxes, then immediately buying a similar (but not identical) investment to maintain market exposure.',
-      simpleExplanation: "Some of your investments went down? Sell them to get a tax deduction, then immediately buy something similar. You stay invested but save on taxes.",
-      technicalExplanation: "Losses offset gains dollar-for-dollar. Excess losses up to $3K/year can offset ordinary income. Watch wash sale rule (no repurchase of 'substantially identical' security within 30 days). Most beneficial in high-income years.",
-      whyItMatters: "Free money. You can save thousands in taxes while staying fully invested. It's especially valuable in years with high income.",
+      createdAt: now,
+      updatedAt: now,
     },
-    analogies: [
-      {
-        id: 'tlh_coupon',
-        type: 'everyday',
-        text: "It's like having a coupon that turns a temporary loss into a permanent tax savings. You're not really losing - you're getting a discount on your tax bill.",
-        effectiveFor: { experienceLevels: ['intermediate'] },
-        effectiveness: { timesUsed: 0, successRate: 0.72 },
-      },
-    ],
-    misconceptions: [
-      {
-        belief: "Selling at a loss means I lost money",
-        reality: "You still own the same amount of market exposure. The 'loss' is just on paper - you're swapping assets, not exiting the market.",
-        whyCommon: "Loss aversion makes selling losers psychologically painful.",
-        frequency: 0.55,
-        correction: "Walk through exact mechanics showing position is maintained.",
-      },
-    ],
-    typicalQuestions: [
-      'What is tax loss harvesting?',
-      'How do I harvest tax losses?',
-      'Is tax loss harvesting worth it?',
-    ],
-    difficulty: 'advanced',
-    prerequisites: ['index_fund', 'asset_allocation'],
-    stats: { timesExplained: 0, comprehensionRate: 0.65, bestExplanationStyle: 'simple' },
-    category: 'strategies',
-    tags: ['taxes', 'optimization', 'advanced'],
-    lastUpdated: new Date(),
-  },
 
-  {
-    id: 'fire',
-    type: 'concept',
-    name: 'FIRE',
-    aliases: ['financial independence', 'early retirement', 'FI'],
-    content: {
-      definition: 'Financial Independence, Retire Early - achieving enough passive income/wealth to cover expenses indefinitely without traditional employment.',
-      simpleExplanation: "Save and invest aggressively (50%+ of income) so you can live off your investments. The 4% rule says you can withdraw 4% of your portfolio yearly forever.",
-      technicalExplanation: "FIRE number = Annual expenses × 25 (based on 4% SWR from Trinity Study). Variants: LeanFIRE (<$40K/year), FatFIRE (>$100K/year), CoastFIRE (stop contributing, let compound), BaristaFIRE (part-time work covers expenses). Sequence of returns risk is the main threat.",
-      whyItMatters: "Work becomes optional. You can pursue passion projects, spend time with family, or just have the security of not NEEDING a paycheck.",
+    // ===========================================
+    // INVESTING - Core investment concepts
+    // ===========================================
+    {
+      id: 'index_funds',
+      type: 'concept',
+      name: 'Index Funds',
+      aliases: ['passive investing', 'index investing', 'market-cap weighted funds'],
+      definition:
+        'Funds that track a market index like the S&P 500, offering broad diversification at low cost.',
+      context: {
+        domain: 'investing',
+        subdomains: ['passive investing', 'diversification'],
+        difficulty: 'beginner',
+      },
+      examples: [
+        'VTI - Total US Stock Market',
+        'VXUS - Total International Stock',
+        'SPY - S&P 500',
+        'BND - Total Bond Market',
+      ],
+      commonMisunderstandings: [
+        'Index funds are boring (boring is good!)',
+        'You need to pick stocks to beat the market',
+        'All index funds are the same',
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Vanguard', 'John Bogle'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.96,
+      },
+      createdAt: now,
+      updatedAt: now,
     },
-    analogies: [],
-    misconceptions: [
-      {
-        belief: "FIRE means never working again",
-        reality: "Many FIRE'd people still work - they just choose WHAT and WHEN. It's about options, not idleness.",
-        whyCommon: "The 'Retire Early' part is misleading.",
-        frequency: 0.6,
-        correction: "Reframe as 'work becomes optional' not 'stop working'.",
+    {
+      id: 'diversification',
+      type: 'concept',
+      name: 'Diversification',
+      aliases: ['not putting all eggs in one basket', 'spreading risk'],
+      definition: 'Spreading investments across different assets to reduce risk from any single investment.',
+      context: {
+        domain: 'investing',
+        subdomains: ['risk management', 'portfolio construction'],
+        difficulty: 'beginner',
       },
-      {
-        belief: "The 4% rule is guaranteed",
-        reality: "It's based on historical data. Future returns may differ. Many FIRE practitioners use 3.5% or maintain flexibility.",
-        whyCommon: "Rules of thumb get oversimplified.",
-        frequency: 0.5,
-        correction: "Explain the Trinity Study and its limitations.",
+      examples: [
+        'Across asset classes: stocks, bonds, real estate',
+        'Across geographies: US, international, emerging',
+        'Across sectors: tech, healthcare, finance',
+        'Across time: dollar cost averaging',
+      ],
+      commonMisunderstandings: [
+        'Owning 20 tech stocks is diversified',
+        'More holdings always = more diversified',
+        'Diversification eliminates all risk',
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Modern Portfolio Theory', 'Markowitz'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.94,
       },
-    ],
-    typicalQuestions: [
-      'What is FIRE?',
-      'How do I calculate my FIRE number?',
-      'What is the 4% rule?',
-    ],
-    difficulty: 'intermediate',
-    prerequisites: ['compound_interest', 'index_fund'],
-    stats: { timesExplained: 0, comprehensionRate: 0.78, bestExplanationStyle: 'simple' },
-    category: 'strategies',
-    tags: ['goals', 'retirement', 'independence'],
-    lastUpdated: new Date(),
-  },
-
-  // ========== Behavioral Concepts ==========
-  {
-    id: 'loss_aversion',
-    type: 'concept',
-    name: 'Loss Aversion',
-    aliases: ['fear of loss', 'loss bias'],
-    content: {
-      definition: 'The psychological tendency for people to prefer avoiding losses over acquiring equivalent gains - losses hurt about 2x more than gains feel good.',
-      simpleExplanation: "Losing $100 hurts more than finding $100 feels good. This is why market drops feel so painful - and why people panic sell at the worst time.",
-      technicalExplanation: "From Kahneman & Tversky's Prospect Theory. Loss aversion coefficient typically 1.5-2.5x. Explains disposition effect (selling winners too early, holding losers too long), panic selling, and excessive cash holdings.",
-      whyItMatters: "Understanding this bias helps you override it. When the market drops 20% and you want to sell everything, remember: your brain is tricking you.",
+      createdAt: now,
+      updatedAt: now,
     },
-    analogies: [
-      {
-        id: 'la_weight',
-        type: 'medical',
-        text: "Imagine a scale where bad things weigh twice as much as good things. A $100 loss weighs 200 pounds emotionally, while a $100 gain only weighs 100. That's why downturns feel so devastating.",
-        effectiveFor: { experienceLevels: ['beginner', 'intermediate'] },
-        effectiveness: { timesUsed: 0, successRate: 0.75 },
+    {
+      id: 'dollar_cost_averaging',
+      type: 'concept',
+      name: 'Dollar Cost Averaging',
+      aliases: ['DCA', 'systematic investing', 'regular investing'],
+      definition: 'Investing a fixed amount at regular intervals regardless of market conditions.',
+      context: {
+        domain: 'investing',
+        subdomains: ['strategy', 'behavioral finance'],
+        difficulty: 'beginner',
       },
-    ],
-    misconceptions: [
-      {
-        belief: "I should sell when the market drops to prevent further losses",
-        reality: "This locks in losses. Every major recovery has come after drops. Selling low and buying high is the opposite of successful investing.",
-        whyCommon: "Loss aversion makes any further loss feel unbearable.",
-        frequency: 0.7,
-        correction: "Show historical recoveries after every major drop.",
+      examples: [
+        '$500/month into index funds',
+        '401(k) contributions from each paycheck',
+        'Buying more shares when prices are low, fewer when high',
+      ],
+      commonMisunderstandings: [
+        'DCA beats lump sum investing (statistically, lump sum wins ~66% of time)',
+        'You need to time the market',
+        'DCA guarantees profits',
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Vanguard Research', 'Academic Studies'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.91,
       },
-    ],
-    typicalQuestions: [
-      'Why do I want to sell when the market drops?',
-      'How do I stay calm during market crashes?',
-      'Why does losing money feel so bad?',
-    ],
-    difficulty: 'intermediate',
-    prerequisites: [],
-    stats: { timesExplained: 0, comprehensionRate: 0.70, bestExplanationStyle: 'analogy' },
-    category: 'psychology',
-    tags: ['behavioral', 'bias', 'emotions'],
-    lastUpdated: new Date(),
-  },
-
-  {
-    id: 'recency_bias',
-    type: 'concept',
-    name: 'Recency Bias',
-    aliases: ['recency effect', 'recent trend bias'],
-    content: {
-      definition: 'The tendency to give too much weight to recent events while ignoring longer-term history.',
-      simpleExplanation: "If the market has gone up for 5 years, you think it will keep going up. If it's gone down for 6 months, you think it will keep going down. Neither is based on reality.",
-      technicalExplanation: "A form of availability heuristic - recent information is more 'available' to recall. Leads to performance chasing (buying last year's winners), panic selling during corrections, and excessive optimism near peaks.",
-      whyItMatters: "This is why people buy high and sell low. They extrapolate recent trends into the future, ignoring mean reversion.",
+      createdAt: now,
+      updatedAt: now,
     },
-    analogies: [
-      {
-        id: 'rb_weather',
-        type: 'everyday',
-        text: "If it's been sunny for a week, you might forget umbrellas exist. If it's rained for 3 days, you might think sun will never return. Markets work the same way - recent weather feels like forever.",
-        effectiveFor: { experienceLevels: ['beginner'] },
-        effectiveness: { timesUsed: 0, successRate: 0.82 },
+    {
+      id: 'asset_allocation',
+      type: 'concept',
+      name: 'Asset Allocation',
+      aliases: ['portfolio mix', 'stocks/bonds split', 'investment mix'],
+      definition: 'The strategic division of investments across asset classes based on goals and risk tolerance.',
+      context: {
+        domain: 'investing',
+        subdomains: ['portfolio construction', 'risk management'],
+        difficulty: 'intermediate',
       },
-    ],
-    misconceptions: [
-      {
-        belief: "Past performance indicates future results",
-        reality: "Last year's best fund is rarely this year's best. Performance chasing is one of the biggest return killers.",
-        whyCommon: "Recent winners are heavily marketed and easy to remember.",
-        frequency: 0.75,
-        correction: "Show data on performance persistence (or lack thereof).",
+      examples: [
+        '60/40 stocks/bonds - classic balanced',
+        '90/10 for young investors',
+        'Age in bonds rule (conservative)',
+        'Target date funds automate this',
+      ],
+      commonMisunderstandings: [
+        "One size fits all (it doesn't)",
+        'Never needs adjusting (rebalance annually)',
+        "More stocks always = more wealth (sequence of returns risk)",
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Financial Planning Standards', 'Vanguard'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.93,
       },
-    ],
-    typicalQuestions: [
-      'Should I invest in what went up last year?',
-      'Will this trend continue?',
-      'Is the market going to crash?',
-    ],
-    difficulty: 'intermediate',
-    prerequisites: [],
-    stats: { timesExplained: 0, comprehensionRate: 0.72, bestExplanationStyle: 'analogy' },
-    category: 'psychology',
-    tags: ['behavioral', 'bias', 'trends'],
-    lastUpdated: new Date(),
-  },
-];
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'expense_ratio',
+      type: 'metric',
+      name: 'Expense Ratio',
+      aliases: ['fund fees', 'management fee', 'TER'],
+      definition: 'Annual fee charged by funds as a percentage of assets, directly reducing returns.',
+      context: {
+        domain: 'investing',
+        subdomains: ['costs', 'fund selection'],
+        difficulty: 'beginner',
+      },
+      examples: [
+        'VTI: 0.03% (excellent)',
+        'Average active fund: 0.50-1.00%',
+        '1% fee = 28% less wealth over 30 years',
+      ],
+      relatedMetrics: ['Total return', 'Net return'],
+      ranges: {
+        low: 0.03,
+        typical: 0.2,
+        high: 0.75,
+        extreme: 1.5,
+      },
+      metadata: {
+        confidence: 1.0,
+        sources: ['John Bogle', 'Morningstar'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.95,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'rebalancing',
+      type: 'concept',
+      name: 'Rebalancing',
+      aliases: ['portfolio rebalancing', 'allocation adjustment'],
+      definition: 'Periodically adjusting portfolio back to target allocation as assets grow at different rates.',
+      context: {
+        domain: 'investing',
+        subdomains: ['portfolio management', 'risk control'],
+        difficulty: 'intermediate',
+      },
+      examples: [
+        'Annually or when allocation drifts 5%+',
+        'Selling winners, buying laggards',
+        'Tax-loss harvesting opportunity',
+      ],
+      commonMisunderstandings: [
+        'Rebalancing too frequently (trading costs)',
+        'Never rebalancing (drift increases risk)',
+        'Emotional difficulty selling winners',
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Vanguard Research'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.88,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'tax_advantaged_accounts',
+      type: 'concept',
+      name: 'Tax-Advantaged Accounts',
+      aliases: ['retirement accounts', '401k', 'IRA', 'tax-deferred'],
+      definition: 'Investment accounts with special tax benefits for retirement or specific goals.',
+      context: {
+        domain: 'investing',
+        subdomains: ['tax planning', 'retirement'],
+        difficulty: 'beginner',
+      },
+      examples: [
+        '401(k) - employer-sponsored, pre-tax or Roth',
+        'Traditional IRA - pre-tax contributions',
+        'Roth IRA - tax-free growth and withdrawals',
+        'HSA - triple tax advantage',
+      ],
+      commonMisunderstandings: [
+        'Roth vs Traditional always has a clear winner',
+        'Missing employer match (free money!)',
+        "Can't invest in same things as taxable",
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['IRS', 'Vanguard'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.94,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'risk_tolerance',
+      type: 'concept',
+      name: 'Risk Tolerance',
+      aliases: ['risk capacity', 'risk appetite', 'investment temperament'],
+      definition: 'Your ability and willingness to accept investment volatility and potential losses.',
+      context: {
+        domain: 'investing',
+        subdomains: ['behavioral finance', 'portfolio construction'],
+        difficulty: 'beginner',
+      },
+      examples: [
+        'Can you sleep during a 30% drawdown?',
+        'Time horizon affects risk capacity',
+        'Emotional vs financial risk tolerance',
+      ],
+      commonMisunderstandings: [
+        'Overestimating tolerance before a crash',
+        'Confusing risk tolerance with risk capacity',
+        "Risk tolerance doesn't change (it does with life events)",
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Behavioral Finance Research'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.87,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'market_timing',
+      type: 'concept',
+      name: 'Market Timing',
+      aliases: ['timing the market', 'buying the dip', 'selling at the top'],
+      definition: 'Attempting to predict market movements to buy low and sell high. Usually fails.',
+      context: {
+        domain: 'investing',
+        subdomains: ['strategy', 'behavioral finance'],
+        difficulty: 'intermediate',
+      },
+      examples: [
+        'Missing best 10 days in 20 years cuts returns by 50%',
+        'Time in market beats timing the market',
+        "Even experts can't consistently time",
+      ],
+      commonMisunderstandings: [
+        "It's obvious when to buy/sell",
+        'Sitting in cash during uncertainty helps',
+        'Technical analysis enables timing',
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Academic Research', 'Vanguard', 'JP Morgan'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.91,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
 
-// ============================================================================
-// EDGES (RELATIONSHIPS)
-// ============================================================================
+    // ===========================================
+    // VALUATION - Understanding stock value
+    // ===========================================
+    {
+      id: 'pe_ratio',
+      type: 'metric',
+      name: 'Price-to-Earnings Ratio',
+      aliases: ['P/E', 'PE ratio', 'earnings multiple'],
+      definition: 'Stock price divided by earnings per share - measures how much you pay per dollar of earnings.',
+      context: {
+        domain: 'valuation',
+        subdomains: ['fundamentals', 'stock analysis'],
+        difficulty: 'beginner',
+      },
+      examples: [
+        'S&P 500 historical average: ~15-18',
+        'Growth stocks: often 25-50+',
+        'Value stocks: often 10-15',
+      ],
+      relatedMetrics: ['Forward P/E', 'PEG ratio', 'Trailing P/E'],
+      ranges: {
+        low: 10,
+        typical: 18,
+        high: 30,
+        extreme: 50,
+      },
+      metadata: {
+        confidence: 1.0,
+        sources: ['Benjamin Graham', 'Investopedia'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.89,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'peg_ratio',
+      type: 'metric',
+      name: 'PEG Ratio',
+      aliases: ['price-earnings-growth', 'growth-adjusted P/E'],
+      definition: 'P/E ratio divided by earnings growth rate - adjusts valuation for growth.',
+      context: {
+        domain: 'valuation',
+        subdomains: ['growth investing', 'fundamentals'],
+        difficulty: 'intermediate',
+      },
+      examples: ['PEG of 1.0 = fairly valued for growth', 'PEG < 1 = potentially undervalued'],
+      relatedMetrics: ['P/E ratio', 'Earnings growth'],
+      ranges: {
+        low: 0.5,
+        typical: 1.0,
+        high: 2.0,
+        extreme: 3.0,
+      },
+      metadata: {
+        confidence: 0.9,
+        sources: ['Peter Lynch', 'One Up on Wall Street'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.82,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'dividend_yield',
+      type: 'metric',
+      name: 'Dividend Yield',
+      aliases: ['yield', 'dividend percentage'],
+      definition: 'Annual dividend per share divided by stock price - income generated per dollar invested.',
+      context: {
+        domain: 'valuation',
+        subdomains: ['income investing', 'dividends'],
+        difficulty: 'beginner',
+      },
+      examples: ['S&P 500 average: ~1.5-2%', 'REITs: often 4-8%', 'Dividend aristocrats: stable, growing'],
+      relatedMetrics: ['Payout ratio', 'Dividend growth rate'],
+      ranges: {
+        low: 0.5,
+        typical: 2.0,
+        high: 5.0,
+        extreme: 10.0,
+      },
+      metadata: {
+        confidence: 1.0,
+        sources: ['Dividend investing literature'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.86,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'market_cap',
+      type: 'metric',
+      name: 'Market Capitalization',
+      aliases: ['market cap', 'company size', 'valuation'],
+      definition: 'Total value of all outstanding shares - stock price × shares outstanding.',
+      context: {
+        domain: 'valuation',
+        subdomains: ['classification', 'size'],
+        difficulty: 'beginner',
+      },
+      examples: [
+        'Large cap: $10B+',
+        'Mid cap: $2B-$10B',
+        'Small cap: $300M-$2B',
+        'Mega cap: $200B+',
+      ],
+      relatedMetrics: ['Enterprise value', 'Float'],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Standard financial definitions'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.85,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'book_value',
+      type: 'metric',
+      name: 'Book Value',
+      aliases: ['net asset value', 'shareholders equity per share'],
+      definition: 'Assets minus liabilities divided by shares - theoretical liquidation value.',
+      context: {
+        domain: 'valuation',
+        subdomains: ['value investing', 'fundamentals'],
+        difficulty: 'intermediate',
+      },
+      examples: [
+        'Price-to-book < 1 = trading below asset value',
+        'Banks often valued on P/B',
+        'Less relevant for asset-light tech companies',
+      ],
+      relatedMetrics: ['P/B ratio', 'Tangible book value'],
+      metadata: {
+        confidence: 0.9,
+        sources: ['Benjamin Graham', 'Value investing'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.78,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
 
-export const SEED_EDGES: KnowledgeEdge[] = [
-  // Compound interest relationships
-  {
-    id: 'edge_ci_dca',
-    from: 'compound_interest',
-    to: 'dollar_cost_averaging',
-    relationship: 'leads_to',
-    strength: 0.8,
-    bidirectional: false,
-    description: 'Understanding compounding leads to appreciating DCA',
-  },
-  {
-    id: 'edge_ci_fire',
-    from: 'compound_interest',
-    to: 'fire',
-    relationship: 'prerequisite',
-    strength: 0.9,
-    bidirectional: false,
-    description: 'Compounding is essential to FIRE math',
-  },
+    // ===========================================
+    // BEHAVIOR - Psychology of investing
+    // ===========================================
+    {
+      id: 'loss_aversion',
+      type: 'concept',
+      name: 'Loss Aversion',
+      aliases: ['fear of loss', 'loss hurts more than gains feel good'],
+      definition: 'Psychological tendency where losses feel about 2x as painful as equivalent gains feel good.',
+      context: {
+        domain: 'behavior',
+        subdomains: ['behavioral finance', 'psychology'],
+        difficulty: 'intermediate',
+      },
+      examples: [
+        'Holding losers too long hoping to break even',
+        'Selling winners too early to lock in gains',
+        'Avoiding stocks entirely after a loss',
+      ],
+      commonMisunderstandings: [
+        'Thinking you are immune',
+        "Believing it's irrational (it's evolutionarily rational)",
+        'Not recognizing it in real-time',
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Kahneman & Tversky', 'Prospect Theory'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.88,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'recency_bias',
+      type: 'concept',
+      name: 'Recency Bias',
+      aliases: ['recency effect', 'recent performance bias'],
+      definition: 'Tendency to weigh recent events more heavily than historical data when making decisions.',
+      context: {
+        domain: 'behavior',
+        subdomains: ['behavioral finance', 'cognitive bias'],
+        difficulty: 'intermediate',
+      },
+      examples: [
+        'Expecting recent winners to keep winning',
+        'Panic selling after recent losses',
+        "This time it's different thinking",
+      ],
+      commonMisunderstandings: [
+        'Recent trends always continue',
+        'Past crashes predict future timing',
+        'Being aware eliminates the bias',
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Behavioral Finance Research'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.85,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'confirmation_bias',
+      type: 'concept',
+      name: 'Confirmation Bias',
+      aliases: ['seeking confirming evidence', 'cherry-picking data'],
+      definition: "Tendency to search for, interpret, and remember information that confirms one's preexisting beliefs.",
+      context: {
+        domain: 'behavior',
+        subdomains: ['behavioral finance', 'cognitive bias'],
+        difficulty: 'intermediate',
+      },
+      examples: [
+        'Only reading bullish articles on stocks you own',
+        'Dismissing bearish arguments',
+        'Remembering successful predictions, forgetting failures',
+      ],
+      commonMisunderstandings: [
+        "Being objective means you don't have this bias",
+        'More research eliminates it',
+        "It only affects other people",
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Cognitive Psychology', 'Behavioral Finance'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.86,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'herd_behavior',
+      type: 'concept',
+      name: 'Herd Behavior',
+      aliases: ['following the crowd', 'FOMO investing', 'social proof'],
+      definition: "Tendency to follow what others are doing, assuming they must know something you don't.",
+      context: {
+        domain: 'behavior',
+        subdomains: ['behavioral finance', 'market psychology'],
+        difficulty: 'beginner',
+      },
+      examples: [
+        'Buying Bitcoin at $60k because everyone is',
+        'Selling during panics because everyone is',
+        'Meme stock mania',
+      ],
+      commonMisunderstandings: [
+        'Crowds are usually right',
+        'Following experts is different (often same bias)',
+        "Contrarianism always wins (it doesn't)",
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Behavioral Finance', 'Market History'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.89,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'anchoring',
+      type: 'concept',
+      name: 'Anchoring',
+      aliases: ['price anchoring', 'reference point bias'],
+      definition:
+        'Relying too heavily on one piece of information (the anchor) when making decisions.',
+      context: {
+        domain: 'behavior',
+        subdomains: ['behavioral finance', 'cognitive bias'],
+        difficulty: 'intermediate',
+      },
+      examples: [
+        'Refusing to sell below purchase price',
+        'Waiting for stock to return to all-time high',
+        "It was $100 so $80 must be cheap (maybe it's worth $50)",
+      ],
+      commonMisunderstandings: [
+        'Purchase price matters to the market (it doesnt)',
+        "It's rational to wait to break even",
+        'The anchor is meaningful information',
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Kahneman & Tversky'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.84,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'overconfidence',
+      type: 'concept',
+      name: 'Overconfidence Bias',
+      aliases: ['illusion of control', 'dunning-kruger effect in investing'],
+      definition:
+        "Tendency to overestimate one's own abilities to predict markets or pick winning investments.",
+      context: {
+        domain: 'behavior',
+        subdomains: ['behavioral finance', 'cognitive bias'],
+        difficulty: 'intermediate',
+      },
+      examples: [
+        'Day trading with no edge',
+        'Concentrating portfolio in few stocks',
+        'Ignoring base rates of active manager success',
+      ],
+      commonMisunderstandings: [
+        'Intelligence correlates with investing success',
+        'More effort = better returns',
+        'Past success proves skill (could be luck)',
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Behavioral Finance Research', 'Trading Studies'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.87,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
 
-  // Index fund relationships
-  {
-    id: 'edge_if_aa',
-    from: 'index_fund',
-    to: 'asset_allocation',
-    relationship: 'prerequisite',
-    strength: 0.7,
-    bidirectional: false,
-  },
-  {
-    id: 'edge_if_dca',
-    from: 'index_fund',
-    to: 'dollar_cost_averaging',
-    relationship: 'related',
-    strength: 0.8,
-    bidirectional: true,
-    description: 'DCA often uses index funds',
-  },
-  {
-    id: 'edge_if_tlh',
-    from: 'index_fund',
-    to: 'tax_loss_harvesting',
-    relationship: 'prerequisite',
-    strength: 0.6,
-    bidirectional: false,
-  },
+    // ===========================================
+    // FIRE - Financial Independence
+    // ===========================================
+    {
+      id: 'fire_number',
+      type: 'concept',
+      name: 'FIRE Number',
+      aliases: ['financial independence number', 'retirement number', 'FI number'],
+      definition: 'The amount of invested assets needed to live indefinitely off investment returns.',
+      context: {
+        domain: 'fire',
+        subdomains: ['financial independence', 'retirement planning'],
+        difficulty: 'intermediate',
+      },
+      examples: [
+        'Annual expenses × 25 (4% rule)',
+        '$50k expenses = $1.25M FIRE number',
+        'Lean FIRE, Fat FIRE, Barista FIRE variants',
+      ],
+      commonMisunderstandings: [
+        'One number fits everyone',
+        'The number never needs adjusting',
+        'Reaching the number means no more money worries',
+      ],
+      metadata: {
+        confidence: 0.95,
+        sources: ['Trinity Study', 'FIRE movement literature'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.92,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'four_percent_rule',
+      type: 'concept',
+      name: 'The 4% Rule',
+      aliases: ['safe withdrawal rate', 'SWR', 'Trinity Study'],
+      definition:
+        'Guideline that you can withdraw 4% of portfolio annually (inflation-adjusted) with low risk of running out over 30 years.',
+      context: {
+        domain: 'fire',
+        subdomains: ['withdrawal strategies', 'retirement planning'],
+        difficulty: 'intermediate',
+      },
+      examples: [
+        '$1M portfolio = $40k/year withdrawal',
+        'Based on historical US market returns',
+        'Some use 3.5% for extra safety',
+      ],
+      commonMisunderstandings: [
+        "It's a guarantee (it's a guideline based on history)",
+        'Works identically in all markets',
+        'Never needs adjustment',
+      ],
+      metadata: {
+        confidence: 0.9,
+        sources: ['Trinity Study', 'William Bengen'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.91,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'sequence_of_returns_risk',
+      type: 'concept',
+      name: 'Sequence of Returns Risk',
+      aliases: ['SORR', 'retirement timing risk', 'sequence risk'],
+      definition:
+        'Risk that poor market returns early in retirement permanently damage portfolio despite same average returns.',
+      context: {
+        domain: 'fire',
+        subdomains: ['retirement risk', 'withdrawal planning'],
+        difficulty: 'advanced',
+      },
+      examples: [
+        'Same 7% average: 10% → 4% vs 4% → 10% = vastly different outcomes',
+        'Why bond tent/glide path matters',
+        '2000 retirees vs 2010 retirees',
+      ],
+      commonMisunderstandings: [
+        'Average returns are what matter',
+        "The market always recovers so it doesn't matter",
+        'Only affects stock-heavy portfolios',
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Retirement Research', 'Michael Kitces'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.85,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'coast_fire',
+      type: 'concept',
+      name: 'Coast FIRE',
+      aliases: ['coast financial independence', 'compound coasting'],
+      definition:
+        "Having enough invested that you no longer need to save more - compounding will get you to full FIRE.",
+      context: {
+        domain: 'fire',
+        subdomains: ['financial independence variants', 'milestones'],
+        difficulty: 'intermediate',
+      },
+      examples: [
+        '$300k at 30 → $2.4M at 60 (7% real returns)',
+        'Work covers expenses only, no saving required',
+        'Can take lower-paying passion job',
+      ],
+      commonMisunderstandings: [
+        'Reached Coast = can stop working entirely',
+        'Market will definitely cooperate',
+        'No need for any buffer',
+      ],
+      metadata: {
+        confidence: 0.9,
+        sources: ['FIRE community', 'Financial Independence forums'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.82,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
 
-  // Emergency fund relationships
-  {
-    id: 'edge_ef_ci',
-    from: 'emergency_fund',
-    to: 'compound_interest',
-    relationship: 'prerequisite',
-    strength: 0.5,
-    bidirectional: false,
-    description: 'EF comes before investing for compounding',
-  },
+    // ===========================================
+    // RISK - Understanding investment risk
+    // ===========================================
+    {
+      id: 'beta',
+      type: 'metric',
+      name: 'Beta',
+      aliases: ['market beta', 'systematic risk measure'],
+      definition: "Measure of a stock's volatility relative to the overall market. Beta 1 = moves with market.",
+      context: {
+        domain: 'risk',
+        subdomains: ['volatility', 'portfolio analysis'],
+        difficulty: 'intermediate',
+      },
+      examples: [
+        'Beta 1.0 = matches market volatility',
+        'Beta 1.5 = 50% more volatile than market',
+        'Beta 0.5 = half the market volatility',
+        'Utilities often < 1, Tech often > 1',
+      ],
+      relatedMetrics: ['Alpha', 'Standard deviation', 'Sharpe ratio'],
+      ranges: {
+        low: 0.5,
+        typical: 1.0,
+        high: 1.5,
+        extreme: 2.5,
+      },
+      metadata: {
+        confidence: 1.0,
+        sources: ['CAPM', 'Modern Portfolio Theory'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.83,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'sharpe_ratio',
+      type: 'metric',
+      name: 'Sharpe Ratio',
+      aliases: ['risk-adjusted return', 'return per unit of risk'],
+      definition:
+        'Return above risk-free rate divided by volatility - measures return per unit of risk taken.',
+      context: {
+        domain: 'risk',
+        subdomains: ['portfolio analysis', 'risk-adjusted returns'],
+        difficulty: 'advanced',
+      },
+      examples: ['Sharpe > 1 is good', 'S&P 500 historical: ~0.5-0.9', 'Comparing fund performance'],
+      relatedMetrics: ['Sortino ratio', 'Standard deviation', 'Alpha'],
+      ranges: {
+        low: 0.3,
+        typical: 0.6,
+        high: 1.0,
+        extreme: 2.0,
+      },
+      metadata: {
+        confidence: 1.0,
+        sources: ['William Sharpe', 'Portfolio Theory'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.79,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'max_drawdown',
+      type: 'metric',
+      name: 'Maximum Drawdown',
+      aliases: ['max DD', 'peak-to-trough decline', 'worst loss'],
+      definition: 'The largest percentage drop from a peak to a trough before a new peak.',
+      context: {
+        domain: 'risk',
+        subdomains: ['volatility', 'risk assessment'],
+        difficulty: 'intermediate',
+      },
+      examples: [
+        'S&P 500 in 2008: ~57% drawdown',
+        'Your stomach matters more than your brain',
+        'How much can you tolerate?',
+      ],
+      relatedMetrics: ['Recovery time', 'Beta', 'Standard deviation'],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Risk analysis standards'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.88,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'volatility',
+      type: 'concept',
+      name: 'Volatility',
+      aliases: ['vol', 'price variation', 'standard deviation'],
+      definition: 'Measure of how much and how quickly prices change - the ups AND downs.',
+      context: {
+        domain: 'risk',
+        subdomains: ['risk measurement', 'market behavior'],
+        difficulty: 'beginner',
+      },
+      examples: [
+        'VIX measures expected S&P 500 volatility',
+        'Crypto: very high volatility',
+        'Bonds: lower volatility',
+        'Volatility ≠ risk (but often correlated)',
+      ],
+      commonMisunderstandings: [
+        'Volatility is always bad',
+        'Low volatility = safe',
+        'Can be predicted accurately',
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Finance theory'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.86,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
 
-  // Asset allocation relationships
-  {
-    id: 'edge_aa_fire',
-    from: 'asset_allocation',
-    to: 'fire',
-    relationship: 'related',
-    strength: 0.7,
-    bidirectional: true,
-  },
-  {
-    id: 'edge_aa_tlh',
-    from: 'asset_allocation',
-    to: 'tax_loss_harvesting',
-    relationship: 'prerequisite',
-    strength: 0.6,
-    bidirectional: false,
-  },
+    // ===========================================
+    // PRINCIPLES - Timeless investment wisdom
+    // ===========================================
+    {
+      id: 'cost_matters',
+      type: 'principle',
+      name: "Bogle's Cost Matters Hypothesis",
+      aliases: ['costs matter', 'expense ratios matter', "you get what you don't pay for"],
+      definition:
+        "In investing, gross returns minus costs equals net returns. Lower costs = higher returns.",
+      source: 'John Bogle',
+      context: {
+        domain: 'principles',
+        subdomains: ['costs', 'fund selection'],
+        difficulty: 'beginner',
+      },
+      examples: [
+        '1% annual fee = 28% less wealth over 30 years',
+        "Active funds' higher fees rarely overcome with returns",
+        'Index funds won by not losing',
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['John Bogle', "The Little Book of Common Sense Investing"],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.96,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'stay_the_course',
+      type: 'principle',
+      name: 'Stay the Course',
+      aliases: ['dont panic', 'long-term focus', 'discipline'],
+      definition:
+        'Maintain your investment strategy through market cycles without emotional reaction.',
+      source: 'John Bogle',
+      context: {
+        domain: 'principles',
+        subdomains: ['discipline', 'behavioral finance'],
+        difficulty: 'beginner',
+      },
+      examples: [
+        '2008-2009: Those who stayed recovered by 2013',
+        '2020 March: 30% drop recovered in months',
+        "Markets reward patience, punish panic",
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['John Bogle', 'Vanguard'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.94,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'mean_reversion',
+      type: 'principle',
+      name: 'Mean Reversion',
+      aliases: ['regression to the mean', 'what goes up must come down'],
+      definition:
+        'Tendency for extreme performance (good or bad) to move back toward average over time.',
+      source: 'Statistical observation',
+      context: {
+        domain: 'principles',
+        subdomains: ['market behavior', 'expectations'],
+        difficulty: 'intermediate',
+      },
+      examples: [
+        'Hot sectors eventually cool',
+        'Beaten-down sectors often recover',
+        "Past performance doesn't predict future returns",
+      ],
+      metadata: {
+        confidence: 0.9,
+        sources: ['Academic research', 'Market history'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.82,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'margin_of_safety',
+      type: 'principle',
+      name: 'Margin of Safety',
+      aliases: ['safety margin', 'conservative valuation'],
+      definition:
+        'Only investing when the price is significantly below estimated intrinsic value.',
+      source: 'Benjamin Graham',
+      context: {
+        domain: 'principles',
+        subdomains: ['value investing', 'risk management'],
+        difficulty: 'advanced',
+      },
+      examples: [
+        'If fair value is $100, only buy at $70',
+        'Buffer for estimation errors',
+        'Central concept in value investing',
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Benjamin Graham', 'The Intelligent Investor'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.85,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'mr_market',
+      type: 'concept',
+      name: 'Mr. Market',
+      aliases: ['market as counterparty', 'market irrationality'],
+      definition:
+        "Graham's allegory - the market is like an emotional neighbor offering to buy/sell daily at different prices.",
+      context: {
+        domain: 'principles',
+        subdomains: ['value investing', 'market psychology'],
+        difficulty: 'intermediate',
+      },
+      examples: [
+        "Mr. Market offers high prices when euphoric, low when depressed",
+        "You don't have to trade - you can ignore him",
+        "His mood doesn't change the business value",
+      ],
+      commonMisunderstandings: [
+        "Mr. Market is always wrong (sometimes he's right)",
+        "It's easy to ignore Mr. Market",
+        'This only applied in the 1930s',
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Benjamin Graham', 'The Intelligent Investor'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.88,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
 
-  // Behavioral relationships
-  {
-    id: 'edge_la_rb',
-    from: 'loss_aversion',
-    to: 'recency_bias',
-    relationship: 'related',
-    strength: 0.7,
-    bidirectional: true,
-    description: 'Both are behavioral biases that affect investing',
-  },
-  {
-    id: 'edge_dca_la',
-    from: 'dollar_cost_averaging',
-    to: 'loss_aversion',
-    relationship: 'applies_to',
-    strength: 0.8,
-    bidirectional: false,
-    description: 'DCA helps counter loss aversion',
-  },
-  {
-    id: 'edge_if_la',
-    from: 'index_fund',
-    to: 'loss_aversion',
-    relationship: 'applies_to',
-    strength: 0.6,
-    bidirectional: false,
-    description: 'Index funds simplify decisions, reducing emotional bias',
-  },
-];
+    // ===========================================
+    // TAX - Tax considerations
+    // ===========================================
+    {
+      id: 'capital_gains',
+      type: 'concept',
+      name: 'Capital Gains',
+      aliases: ['cap gains', 'investment profit'],
+      definition: 'Profit from selling an investment for more than you paid.',
+      context: {
+        domain: 'tax',
+        subdomains: ['taxation', 'selling'],
+        difficulty: 'beginner',
+      },
+      examples: [
+        'Short-term (<1 year): taxed as income',
+        'Long-term (>1 year): 0%, 15%, or 20%',
+        'Step-up basis at death',
+      ],
+      commonMisunderstandings: [
+        'All gains taxed the same',
+        'You owe taxes before selling (unrealized)',
+        'Harvesting losses erases gains forever',
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['IRS', 'Tax planning guides'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.87,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'tax_loss_harvesting',
+      type: 'concept',
+      name: 'Tax-Loss Harvesting',
+      aliases: ['TLH', 'harvesting losses', 'tax-loss selling'],
+      definition:
+        'Selling investments at a loss to offset gains and reduce tax bill, then reinvesting.',
+      context: {
+        domain: 'tax',
+        subdomains: ['tax optimization', 'portfolio management'],
+        difficulty: 'intermediate',
+      },
+      examples: [
+        'Sell VTI at loss, buy VOO (similar but not identical)',
+        '$3,000 loss deduction against income',
+        'Carry forward unused losses',
+      ],
+      commonMisunderstandings: [
+        'Wash sale rule allows immediate repurchase (30-day wait)',
+        'The loss is real (no, just tax timing)',
+        'Always worth doing (transaction costs, complexity)',
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['IRS', 'Tax planning'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.84,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
 
-// ============================================================================
-// SEED FUNCTION
-// ============================================================================
+    // ===========================================
+    // DEBT - Debt concepts
+    // ===========================================
+    {
+      id: 'good_vs_bad_debt',
+      type: 'concept',
+      name: 'Good vs Bad Debt',
+      aliases: ['productive debt', 'consumer debt'],
+      definition:
+        'Debt used for appreciating assets or income generation vs debt for depreciating assets or consumption.',
+      context: {
+        domain: 'debt',
+        subdomains: ['leverage', 'financial planning'],
+        difficulty: 'beginner',
+      },
+      examples: [
+        'Good: Low-rate mortgage, student loans (sometimes)',
+        'Bad: High-rate credit cards, car loans',
+        'Gray area: Business debt, investment margin',
+      ],
+      commonMisunderstandings: [
+        'All debt is bad',
+        'All mortgages are good debt',
+        'Student loans are always worth it',
+      ],
+      metadata: {
+        confidence: 0.9,
+        sources: ['Financial planning', 'Robert Kiyosaki'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.86,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'debt_to_income',
+      type: 'metric',
+      name: 'Debt-to-Income Ratio',
+      aliases: ['DTI', 'debt ratio'],
+      definition: 'Monthly debt payments divided by gross monthly income.',
+      context: {
+        domain: 'debt',
+        subdomains: ['creditworthiness', 'borrowing capacity'],
+        difficulty: 'beginner',
+      },
+      examples: ['<36% generally considered healthy', 'Lenders use for mortgage approval', '43% often max for mortgages'],
+      relatedMetrics: ['Credit utilization', 'FICO score'],
+      ranges: {
+        low: 20,
+        typical: 36,
+        high: 43,
+        extreme: 50,
+      },
+      metadata: {
+        confidence: 1.0,
+        sources: ['Lending standards', 'CFPB'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.84,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
 
-import { KnowledgeGraph } from './graph-service.js';
+    // ===========================================
+    // ECONOMICS - Macro concepts
+    // ===========================================
+    {
+      id: 'interest_rates',
+      type: 'concept',
+      name: 'Interest Rates',
+      aliases: ['fed funds rate', 'prime rate', 'rates'],
+      definition: 'The cost of borrowing money, set by central banks and markets.',
+      context: {
+        domain: 'economics',
+        subdomains: ['monetary policy', 'macro'],
+        difficulty: 'beginner',
+      },
+      examples: [
+        'Fed raises rates to fight inflation',
+        'Lower rates encourage borrowing/spending',
+        'Impacts bond prices inversely',
+      ],
+      commonMisunderstandings: [
+        'Higher rates always bad for stocks',
+        'Fed controls all rates directly',
+        'Rates move smoothly (often in cycles)',
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['Federal Reserve', 'Economics'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.88,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'recession',
+      type: 'concept',
+      name: 'Recession',
+      aliases: ['economic downturn', 'economic contraction'],
+      definition: 'Significant decline in economic activity lasting more than a few months.',
+      context: {
+        domain: 'economics',
+        subdomains: ['business cycle', 'macro'],
+        difficulty: 'beginner',
+      },
+      examples: [
+        'Technical: 2 quarters negative GDP',
+        'Average bear market: -35%, 14 months',
+        'Historically, great buying opportunities',
+      ],
+      commonMisunderstandings: [
+        'Recessions destroy wealth permanently',
+        "You can predict them accurately",
+        "Getting out before and back in after is easy",
+      ],
+      metadata: {
+        confidence: 1.0,
+        sources: ['NBER', 'Economic history'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.87,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'gdp',
+      type: 'metric',
+      name: 'GDP (Gross Domestic Product)',
+      aliases: ['economic output', 'national income'],
+      definition: 'Total value of goods and services produced by a country in a period.',
+      context: {
+        domain: 'economics',
+        subdomains: ['macro indicators', 'growth'],
+        difficulty: 'beginner',
+      },
+      examples: [
+        'US GDP: ~$25 trillion',
+        '2-3% real growth is healthy',
+        'Leading indicator of economic health',
+      ],
+      relatedMetrics: ['GDP growth rate', 'GDP per capita'],
+      metadata: {
+        confidence: 1.0,
+        sources: ['BEA', 'Economics'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.82,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
 
-export async function seedKnowledgeGraph(): Promise<{ nodes: number; edges: number }> {
-  let nodesAdded = 0;
-  let edgesAdded = 0;
-
-  // Add nodes
-  for (const node of SEED_NODES) {
-    await KnowledgeGraph.saveNode(node);
-    nodesAdded++;
-  }
-
-  // Add edges
-  for (const edge of SEED_EDGES) {
-    await KnowledgeGraph.addEdge(edge);
-    edgesAdded++;
-  }
-
-  return { nodes: nodesAdded, edges: edgesAdded };
+    // ===========================================
+    // TECHNICAL - For those who ask
+    // ===========================================
+    {
+      id: 'moving_average',
+      type: 'metric',
+      name: 'Moving Average',
+      aliases: ['MA', 'SMA', 'EMA'],
+      definition: 'Average price over a period, recalculated as new data arrives.',
+      context: {
+        domain: 'technical',
+        subdomains: ['technical analysis', 'trading'],
+        difficulty: 'intermediate',
+      },
+      examples: [
+        '50-day and 200-day are common',
+        'Golden cross: 50 crosses above 200',
+        'Death cross: 50 crosses below 200',
+      ],
+      relatedMetrics: ['RSI', 'MACD', 'Bollinger Bands'],
+      metadata: {
+        confidence: 0.8,
+        sources: ['Technical analysis'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.7,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'rsi',
+      type: 'metric',
+      name: 'RSI (Relative Strength Index)',
+      aliases: ['relative strength'],
+      definition: 'Momentum indicator measuring speed/magnitude of price changes (0-100 scale).',
+      context: {
+        domain: 'technical',
+        subdomains: ['technical analysis', 'momentum'],
+        difficulty: 'intermediate',
+      },
+      examples: ['RSI > 70: potentially overbought', 'RSI < 30: potentially oversold', 'Used for timing, not valuation'],
+      relatedMetrics: ['MACD', 'Moving average'],
+      ranges: {
+        low: 30,
+        typical: 50,
+        high: 70,
+        extreme: 90,
+      },
+      metadata: {
+        confidence: 0.7,
+        sources: ['Technical analysis'],
+        lastVerified: now,
+        timesReferenced: 0,
+        helpfulnessScore: 0.65,
+      },
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
 }
 
+/**
+ * Relationships between financial concepts.
+ */
+export function getFinancialSeedEdges(): KnowledgeEdge[] {
+  const now = new Date();
+
+  return [
+    // BASICS relationships
+    {
+      id: 'edge_compound_inflation',
+      from: 'compound_interest',
+      to: 'inflation',
+      type: 'relates_to',
+      strength: 0.8,
+      description: 'Compound interest must outpace inflation for real growth',
+      bidirectional: true,
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_budget_savings',
+      from: 'budgeting',
+      to: 'savings_rate',
+      type: 'causes',
+      strength: 0.9,
+      description: 'Good budgeting enables higher savings rate',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_savings_emergency',
+      from: 'savings_rate',
+      to: 'emergency_fund',
+      type: 'causes',
+      strength: 0.8,
+      description: 'Savings enables emergency fund',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_savings_networth',
+      from: 'savings_rate',
+      to: 'net_worth',
+      type: 'causes',
+      strength: 0.95,
+      description: 'Savings rate is primary driver of net worth',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_emergency_investing',
+      from: 'emergency_fund',
+      to: 'index_funds',
+      type: 'prerequisite',
+      strength: 0.9,
+      description: 'Build emergency fund before investing',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+
+    // INVESTING relationships
+    {
+      id: 'edge_index_diversification',
+      from: 'index_funds',
+      to: 'diversification',
+      type: 'exemplifies',
+      strength: 0.95,
+      description: 'Index funds are the simplest way to diversify',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_index_expense',
+      from: 'index_funds',
+      to: 'expense_ratio',
+      type: 'relates_to',
+      strength: 0.9,
+      description: 'Index funds have low expense ratios',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_index_cost_matters',
+      from: 'index_funds',
+      to: 'cost_matters',
+      type: 'exemplifies',
+      strength: 0.95,
+      description: 'Index funds embody the cost matters principle',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_dca_timing',
+      from: 'dollar_cost_averaging',
+      to: 'market_timing',
+      type: 'contradicts',
+      strength: 0.85,
+      description: 'DCA is the antidote to market timing urges',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_allocation_rebalancing',
+      from: 'asset_allocation',
+      to: 'rebalancing',
+      type: 'relates_to',
+      strength: 0.9,
+      description: 'Rebalancing maintains target allocation',
+      bidirectional: true,
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_allocation_risk',
+      from: 'asset_allocation',
+      to: 'risk_tolerance',
+      type: 'relates_to',
+      strength: 0.95,
+      description: 'Allocation should match risk tolerance',
+      bidirectional: true,
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_diversification_risk',
+      from: 'diversification',
+      to: 'volatility',
+      type: 'causes',
+      strength: 0.85,
+      description: 'Diversification reduces portfolio volatility',
+      context: 'Reduces but doesnt eliminate',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+
+    // VALUATION relationships
+    {
+      id: 'edge_pe_peg',
+      from: 'pe_ratio',
+      to: 'peg_ratio',
+      type: 'derived_from',
+      strength: 0.95,
+      description: 'PEG is P/E divided by growth rate',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_pe_marketcap',
+      from: 'pe_ratio',
+      to: 'market_cap',
+      type: 'relates_to',
+      strength: 0.7,
+      description: 'Both are valuation metrics',
+      bidirectional: true,
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_pe_margin_safety',
+      from: 'pe_ratio',
+      to: 'margin_of_safety',
+      type: 'relates_to',
+      strength: 0.8,
+      description: 'Low P/E can indicate margin of safety',
+      metadata: { createdAt: now, confidence: 0.9 },
+    },
+
+    // BEHAVIOR relationships
+    {
+      id: 'edge_loss_panic',
+      from: 'loss_aversion',
+      to: 'market_timing',
+      type: 'causes',
+      strength: 0.85,
+      description: 'Loss aversion drives panic selling and market timing',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_herd_timing',
+      from: 'herd_behavior',
+      to: 'market_timing',
+      type: 'causes',
+      strength: 0.8,
+      description: 'Herd behavior drives poor timing decisions',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_recency_herd',
+      from: 'recency_bias',
+      to: 'herd_behavior',
+      type: 'relates_to',
+      strength: 0.8,
+      description: 'Recent trends drive herd behavior',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_overconfidence_timing',
+      from: 'overconfidence',
+      to: 'market_timing',
+      type: 'causes',
+      strength: 0.85,
+      description: 'Overconfidence leads to timing attempts',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_stay_loss',
+      from: 'stay_the_course',
+      to: 'loss_aversion',
+      type: 'contradicts',
+      strength: 0.9,
+      description: 'Discipline overcomes loss aversion',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+
+    // FIRE relationships
+    {
+      id: 'edge_fire_savings',
+      from: 'fire_number',
+      to: 'savings_rate',
+      type: 'relates_to',
+      strength: 0.95,
+      description: 'Higher savings rate = faster to FIRE number',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_fire_4pct',
+      from: 'fire_number',
+      to: 'four_percent_rule',
+      type: 'derived_from',
+      strength: 0.95,
+      description: 'FIRE number is calculated using 4% rule (25x expenses)',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_4pct_sorr',
+      from: 'four_percent_rule',
+      to: 'sequence_of_returns_risk',
+      type: 'relates_to',
+      strength: 0.9,
+      description: '4% rule assumes manageable sequence risk',
+      metadata: { createdAt: now, confidence: 0.95 },
+    },
+    {
+      id: 'edge_coast_compound',
+      from: 'coast_fire',
+      to: 'compound_interest',
+      type: 'derived_from',
+      strength: 0.95,
+      description: 'Coast FIRE relies entirely on compounding',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_fire_networth',
+      from: 'fire_number',
+      to: 'net_worth',
+      type: 'relates_to',
+      strength: 0.9,
+      description: 'Net worth tracks progress toward FIRE number',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+
+    // RISK relationships
+    {
+      id: 'edge_beta_volatility',
+      from: 'beta',
+      to: 'volatility',
+      type: 'measures',
+      strength: 0.9,
+      description: 'Beta measures relative volatility to market',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_sharpe_volatility',
+      from: 'sharpe_ratio',
+      to: 'volatility',
+      type: 'derived_from',
+      strength: 0.9,
+      description: 'Sharpe uses volatility as denominator',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_drawdown_volatility',
+      from: 'max_drawdown',
+      to: 'volatility',
+      type: 'relates_to',
+      strength: 0.85,
+      description: 'Higher volatility leads to larger drawdowns',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_drawdown_loss_aversion',
+      from: 'max_drawdown',
+      to: 'loss_aversion',
+      type: 'relates_to',
+      strength: 0.9,
+      description: 'Drawdowns trigger loss aversion',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+
+    // PRINCIPLE relationships
+    {
+      id: 'edge_mrmarket_loss',
+      from: 'mr_market',
+      to: 'loss_aversion',
+      type: 'relates_to',
+      strength: 0.8,
+      description: 'Mr. Market offers to buy when you feel loss aversion',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_mrmarket_herd',
+      from: 'mr_market',
+      to: 'herd_behavior',
+      type: 'relates_to',
+      strength: 0.85,
+      description: 'Mr. Market embodies herd sentiment',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_mean_timing',
+      from: 'mean_reversion',
+      to: 'market_timing',
+      type: 'relates_to',
+      strength: 0.75,
+      description: 'Mean reversion is why timing is tempting but hard',
+      metadata: { createdAt: now, confidence: 0.9 },
+    },
+    {
+      id: 'edge_stay_index',
+      from: 'stay_the_course',
+      to: 'index_funds',
+      type: 'relates_to',
+      strength: 0.85,
+      description: 'Index funds make staying the course easier',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+
+    // TAX relationships
+    {
+      id: 'edge_tax_account_gains',
+      from: 'tax_advantaged_accounts',
+      to: 'capital_gains',
+      type: 'relates_to',
+      strength: 0.9,
+      description: 'Tax-advantaged accounts defer or avoid capital gains',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_tlh_gains',
+      from: 'tax_loss_harvesting',
+      to: 'capital_gains',
+      type: 'relates_to',
+      strength: 0.95,
+      description: 'TLH offsets capital gains',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_tlh_rebalancing',
+      from: 'tax_loss_harvesting',
+      to: 'rebalancing',
+      type: 'relates_to',
+      strength: 0.7,
+      description: 'TLH can be done during rebalancing',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+
+    // ECONOMICS relationships
+    {
+      id: 'edge_rates_inflation',
+      from: 'interest_rates',
+      to: 'inflation',
+      type: 'relates_to',
+      strength: 0.95,
+      description: 'Fed adjusts rates to control inflation',
+      bidirectional: true,
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_recession_gdp',
+      from: 'recession',
+      to: 'gdp',
+      type: 'relates_to',
+      strength: 0.95,
+      description: 'Recession = declining GDP',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_recession_drawdown',
+      from: 'recession',
+      to: 'max_drawdown',
+      type: 'causes',
+      strength: 0.85,
+      description: 'Recessions typically cause market drawdowns',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_recession_sorr',
+      from: 'recession',
+      to: 'sequence_of_returns_risk',
+      type: 'relates_to',
+      strength: 0.9,
+      description: 'Recessions early in retirement = sequence risk',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+
+    // Portfolio composition (part_of relationships)
+    {
+      id: 'edge_index_portfolio',
+      from: 'index_funds',
+      to: 'asset_allocation',
+      type: 'part_of',
+      strength: 0.9,
+      description: 'Index funds are a component of asset allocation',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+    {
+      id: 'edge_beta_risk',
+      from: 'beta',
+      to: 'asset_allocation',
+      type: 'part_of',
+      strength: 0.8,
+      description: 'Beta is part of risk assessment in allocation',
+      metadata: { createdAt: now, confidence: 1.0 },
+    },
+
+    // TECHNICAL relationships (less emphasized)
+    {
+      id: 'edge_ma_rsi',
+      from: 'moving_average',
+      to: 'rsi',
+      type: 'relates_to',
+      strength: 0.7,
+      description: 'Both are technical indicators',
+      bidirectional: true,
+      metadata: { createdAt: now, confidence: 0.8 },
+    },
+    {
+      id: 'edge_technical_timing',
+      from: 'rsi',
+      to: 'market_timing',
+      type: 'relates_to',
+      strength: 0.6,
+      description: 'Technical indicators are used for timing (but reliability is questionable)',
+      metadata: { createdAt: now, confidence: 0.7 },
+    },
+  ];
+}

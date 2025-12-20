@@ -302,8 +302,8 @@ async function handleSendGift(): Promise<void> {
 
     if (result.success) {
       const tier = GIFT_TIERS.find(t => t.amount === selectedAmount);
-      soundUI.play('celebration');
-      toast.success(`Sent ${selectedAmount} seeds! They'll get ${tier?.receive || selectedAmount} 🌱`);
+      soundUI.play('celebrate');
+      toast.success(`Sent ${selectedAmount} seeds! They'll get ${tier?.receive || selectedAmount}`);
       
       // Dispatch event for balance update
       document.dispatchEvent(new CustomEvent('ferni:seeds-spent', {

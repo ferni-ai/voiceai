@@ -116,6 +116,40 @@ const SEED_REWARDS: Record<string, SeedReward> = {
     amount: 100,
     description: 'Friend signed up with your code',
   },
+
+  // Seed Fund Contributions (bonus seeds for supporters!)
+  seedContribution5: {
+    type: 'contribution',
+    amount: 10, // $5 = 10 bonus seeds (2x!)
+    description: 'Planted a seed 🌱',
+  },
+  seedContribution10: {
+    type: 'contribution',
+    amount: 25, // $10 = 25 bonus seeds (2.5x!)
+    description: 'Sponsored a conversation 💚',
+  },
+  seedContribution25: {
+    type: 'contribution',
+    amount: 75, // $25 = 75 bonus seeds (3x!)
+    description: 'Helped someone get started 🌿',
+  },
+  seedContribution50: {
+    type: 'contribution',
+    amount: 200, // $50 = 200 bonus seeds (4x!)
+    description: 'Supported the mission 🌳',
+  },
+
+  // Monthly Supporter Bonuses
+  foundingMemberBonus: {
+    type: 'subscription',
+    amount: 50, // Monthly seed bonus for $10/mo subscribers
+    description: 'Monthly Founding Member bonus',
+  },
+  foundingPatronBonus: {
+    type: 'subscription',
+    amount: 150, // Monthly seed bonus for $20/mo subscribers
+    description: 'Monthly Founding Patron bonus',
+  },
 };
 
 // Streak milestones that award bonuses
@@ -342,6 +376,49 @@ export function recordReferral(referralCode: string): void {
 }
 
 // ============================================================================
+// SEED FUND CONTRIBUTIONS (Supporter Bonuses)
+// ============================================================================
+
+/**
+ * Award bonus seeds for a one-time contribution
+ * Called after successful Stripe payment
+ */
+export function recordContribution(amountCents: number): void {
+  let reward: SeedReward | undefined;
+
+  // Map contribution amount to seed bonus
+  if (amountCents >= 5000) {
+    reward = SEED_REWARDS.seedContribution50;
+  } else if (amountCents >= 2500) {
+    reward = SEED_REWARDS.seedContribution25;
+  } else if (amountCents >= 1000) {
+    reward = SEED_REWARDS.seedContribution10;
+  } else if (amountCents >= 500) {
+    reward = SEED_REWARDS.seedContribution5;
+  }
+
+  if (reward) {
+    awardSeeds(reward);
+    log.info({ amountCents, seedBonus: reward.amount }, 'Contribution seed bonus awarded');
+  }
+}
+
+/**
+ * Award monthly seed bonus for subscribers
+ * Called when subscription payment succeeds
+ */
+export function recordMonthlySubscriptionBonus(tier: 'founding-member' | 'founding-patron'): void {
+  const reward = tier === 'founding-patron' 
+    ? SEED_REWARDS.foundingPatronBonus 
+    : SEED_REWARDS.foundingMemberBonus;
+
+  if (reward) {
+    awardSeeds(reward);
+    log.info({ tier, seedBonus: reward.amount }, 'Monthly subscription seed bonus awarded');
+  }
+}
+
+// ============================================================================
 // GETTERS
 // ============================================================================
 
@@ -463,6 +540,18 @@ export function initSeedsEconomy(): void {
     recordReferral(code);
   }) as EventListener);
 
+  // Listen for contribution events (Seed Fund payments)
+  document.addEventListener('ferni:contribution-success', ((e: CustomEvent) => {
+    const { amountCents } = e.detail as { amountCents: number };
+    recordContribution(amountCents);
+  }) as EventListener);
+
+  // Listen for subscription payment events
+  document.addEventListener('ferni:subscription-paid', ((e: CustomEvent) => {
+    const { tier } = e.detail as { tier: 'founding-member' | 'founding-patron' };
+    recordMonthlySubscriptionBonus(tier);
+  }) as EventListener);
+
   log.info(
     {
       balance: getBalance(),
@@ -484,6 +573,8 @@ export const seedsEconomy = {
   checkConversationMilestone,
   recordGoalAchieved,
   recordReferral,
+  recordContribution,
+  recordMonthlySubscriptionBonus,
   getBalance,
   getCurrentStreak,
   getTotalEarned,

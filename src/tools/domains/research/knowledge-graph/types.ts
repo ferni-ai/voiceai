@@ -1,204 +1,76 @@
 /**
  * Knowledge Graph Types
  *
- * Defines the structure of Peter's financial knowledge graph.
- * This maps concepts, their relationships, and optimal explanations.
- *
- * @module tools/domains/research/knowledge-graph/types
+ * Types for Peter's interconnected financial knowledge.
  */
 
-// ============================================================================
-// KNOWLEDGE NODES
-// ============================================================================
+/**
+ * Node types in the knowledge graph.
+ */
+export type NodeType = 'concept' | 'metric' | 'principle' | 'strategy' | 'product' | 'person';
 
-export type NodeType = 'concept' | 'strategy' | 'metric' | 'event' | 'person' | 'product' | 'rule';
-export type DifficultyLevel = 'beginner' | 'intermediate' | 'advanced';
-export type ExplanationStyle = 'simple' | 'technical' | 'analogy' | 'story' | 'data';
+/**
+ * Edge types between nodes.
+ */
+export type EdgeType =
+  | 'prerequisite' // Must understand A before B
+  | 'relates_to' // General relationship
+  | 'contradicts' // Opposing views
+  | 'exemplifies' // A is an example of B
+  | 'part_of' // A is a component of B
+  | 'derived_from' // A is calculated from B
+  | 'causes' // A leads to B
+  | 'measures'; // A is a measurement of B
 
+/**
+ * Knowledge node in the graph.
+ */
 export interface KnowledgeNode {
   id: string;
   type: NodeType;
   name: string;
-  aliases: string[];               // Other ways to refer to this
-  
-  // Core content
-  content: {
-    definition: string;            // Formal definition
-    simpleExplanation: string;     // ELI5 version
-    technicalExplanation: string;  // Expert version
-    whyItMatters: string;          // Why should user care?
+  aliases?: string[];
+  definition: string;
+  context: {
+    domain: string;
+    subdomains: string[];
+    difficulty: 'beginner' | 'intermediate' | 'advanced';
   };
-  
-  // Analogies that work
-  analogies: Analogy[];
-  
-  // Common misconceptions
-  misconceptions: Misconception[];
-  
-  // Related questions
-  typicalQuestions: string[];
-  
-  // Learning metadata
-  difficulty: DifficultyLevel;
-  prerequisites: string[];         // Node IDs that should be understood first
-  
-  // Effectiveness tracking
-  stats: {
-    timesExplained: number;
-    comprehensionRate: number;     // 0-1, based on follow-up behavior
-    bestExplanationStyle: ExplanationStyle;
-    bestAnalogy?: string;
+  examples?: string[];
+  commonMisunderstandings?: string[];
+  source?: string; // For principles
+  relatedMetrics?: string[]; // For metrics
+  ranges?: {
+    low: number;
+    typical: number;
+    high: number;
+    extreme: number;
   };
-  
-  // Metadata
-  category: string;
-  tags: string[];
-  lastUpdated: Date;
+  metadata: {
+    confidence: number;
+    sources: string[];
+    lastVerified: Date;
+    timesReferenced: number;
+    helpfulnessScore: number;
+  };
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export interface Analogy {
-  id: string;
-  type: 'sports' | 'cooking' | 'building' | 'gardening' | 'travel' | 'everyday' | 'tech' | 'medical';
-  text: string;
-  
-  // Who it works for
-  effectiveFor: {
-    experienceLevels: DifficultyLevel[];
-    ageGroups?: string[];
-  };
-  
-  // Effectiveness
-  effectiveness: {
-    timesUsed: number;
-    successRate: number;           // Did they understand after?
-  };
-}
-
-export interface Misconception {
-  belief: string;                  // What people wrongly believe
-  reality: string;                 // The truth
-  whyCommon: string;               // Why this misconception exists
-  frequency: number;               // How often we see this (0-1)
-  correction: string;              // Best way to correct it
-}
-
-// ============================================================================
-// KNOWLEDGE EDGES
-// ============================================================================
-
-export type RelationshipType = 
-  | 'prerequisite'    // Must understand A before B
-  | 'related'         // A and B are related concepts
-  | 'opposite'        // A is the opposite of B
-  | 'example_of'      // A is an example of B
-  | 'part_of'         // A is part of B
-  | 'leads_to'        // Understanding A leads to understanding B
-  | 'applies_to'      // A applies to B (strategy to situation)
-  | 'contrasts_with'; // A contrasts with B
-
+/**
+ * Edge connecting two nodes.
+ */
 export interface KnowledgeEdge {
   id: string;
-  from: string;                    // Node ID
-  to: string;                      // Node ID
-  relationship: RelationshipType;
-  strength: number;                // 0-1, how strong is this relationship?
-  bidirectional: boolean;          // Does the relationship go both ways?
-  description?: string;            // Optional description
-}
-
-// ============================================================================
-// LEARNING PATHS
-// ============================================================================
-
-export interface LearningPath {
-  id: string;
-  name: string;
-  description: string;
-  targetAudience: string;
-  
-  // Path structure
-  steps: LearningStep[];
-  
-  // Estimated time
-  estimatedMinutes: number;
-  
-  // Goal
-  outcomes: string[];              // What will they understand?
-  
-  // Tracking
-  stats: {
-    timesStarted: number;
-    completionRate: number;
-    averageRating: number;
+  from: string;
+  to: string;
+  type: EdgeType;
+  strength: number; // 0-1
+  description?: string;
+  context?: string;
+  bidirectional?: boolean;
+  metadata: {
+    createdAt: Date;
+    confidence: number;
   };
 }
-
-export interface LearningStep {
-  order: number;
-  nodeId: string;                  // Knowledge node to learn
-  focusPoints: string[];           // What to emphasize
-  exercises?: string[];            // Optional exercises/questions
-  estimatedMinutes: number;
-  checkpointQuestion?: string;     // Question to verify understanding
-}
-
-// ============================================================================
-// EXPLANATION TEMPLATES
-// ============================================================================
-
-export interface ExplanationTemplate {
-  id: string;
-  conceptId: string;               // Which concept this explains
-  style: ExplanationStyle;
-  
-  // The explanation
-  template: {
-    opening: string;               // How to start
-    core: string;                  // Main explanation
-    example: string;               // Concrete example
-    closing: string;               // How to wrap up
-    callToAction?: string;         // What they should do next
-  };
-  
-  // Variants for different audiences
-  variants: {
-    beginner?: string;
-    intermediate?: string;
-    advanced?: string;
-  };
-  
-  // Effectiveness
-  effectiveness: {
-    timesUsed: number;
-    comprehensionRate: number;
-    averageFollowUpQuestions: number;
-    userSatisfaction: number;
-  };
-}
-
-// ============================================================================
-// GRAPH OPERATIONS
-// ============================================================================
-
-export interface GraphQuery {
-  startNode?: string;
-  targetNode?: string;
-  relationshipTypes?: RelationshipType[];
-  maxDepth?: number;
-  includePrerequisites?: boolean;
-}
-
-export interface PathResult {
-  path: string[];                  // Node IDs in order
-  totalDistance: number;
-  relationships: RelationshipType[];
-}
-
-export interface RecommendedConcept {
-  nodeId: string;
-  name: string;
-  reason: string;
-  relevanceScore: number;
-  prerequisitesMet: boolean;
-}
-

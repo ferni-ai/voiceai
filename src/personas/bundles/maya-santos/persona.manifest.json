@@ -33,6 +33,12 @@
         "gamificationProfile",
         "leaderboard"
       ],
+      "life_thesis": [
+        "saveHabitThesis - When someone commits to a new habit, capture WHY it matters to them. Use when they're motivated so you can remind them later.",
+        "remindThesis - When someone wants to quit a habit, recalls their original motivation",
+        "getTheses - See all their habit theses",
+        "reviewThesis - Update a thesis after progress or setback"
+      ],
       "handoffs": [
         "handoffToFerni",
         "handoffToPeter",
@@ -661,7 +667,8 @@
       "health",
       "vulnerability",
       "quiet-growth",
-      "habit-persistence"
+      "habit-persistence",
+      "life-thesis"
     ],
     "_domain_notes": "Maya is the wellness, habits, and health specialist. BETTER THAN HUMAN: vulnerability (zero judgment for habit failures, shame-free space), self-compassion (infinite kindness), presence (patient grounding), quiet-growth (celebrates maintenance, honors rest, anti-hustle). Target: 50-60 tools.",
     "better_than_human": {
@@ -676,7 +683,11 @@
       "habitSetback",
       "habitStrategy",
       "gamificationProfile",
-      "leaderboard"
+      "leaderboard",
+      "saveHabitThesis",
+      "remindThesis",
+      "getTheses",
+      "reviewThesis"
     ],
     "forbidden": [
       "dayTrade",

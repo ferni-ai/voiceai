@@ -63,7 +63,9 @@ interface CoordinatorBriefing {
 // ============================================================================
 
 // Helper: Group insights by source
-function groupInsightsBySource(insights: CrossPersonaInsight[]): Map<string, CrossPersonaInsight[]> {
+function groupInsightsBySource(
+  insights: CrossPersonaInsight[]
+): Map<string, CrossPersonaInsight[]> {
   const bySource = new Map<string, CrossPersonaInsight[]>();
   for (const insight of insights) {
     const arr = bySource.get(insight.source) || [];
@@ -135,13 +137,17 @@ function analyzeTeamStatusForHandoffs(teamStatus: TeamStatusSummary): HandoffSug
     });
   }
 
-  if (teamStatus.financialHealth.budgetUsedPercent > 90 || !teamStatus.financialHealth.savingsOnTrack) {
+  if (
+    teamStatus.financialHealth.budgetUsedPercent > 90 ||
+    !teamStatus.financialHealth.savingsOnTrack
+  ) {
     suggestions.push({
       targetPersona: 'peter',
       reason: 'Budget showing signs of stress',
       trigger: 'Financial health indicators showing concern',
       urgency: 'normal',
-      suggestedPhrase: 'Your budget is showing some patterns Peter might want to look at. Want to dig into that?',
+      suggestedPhrase:
+        'Your budget is showing some patterns Peter might want to look at. Want to dig into that?',
     });
   }
 
@@ -151,7 +157,8 @@ function analyzeTeamStatusForHandoffs(teamStatus: TeamStatusSummary): HandoffSug
       reason: `${teamStatus.goalStatus.nearingCompletion} goals almost complete`,
       trigger: 'Goals approaching finish line',
       urgency: 'low',
-      suggestedPhrase: "By the way, you've got goals that are almost done! Jordan would love to help plan a celebration.",
+      suggestedPhrase:
+        "By the way, you've got goals that are almost done! Jordan would love to help plan a celebration.",
     });
   }
 

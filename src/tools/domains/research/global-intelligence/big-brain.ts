@@ -235,13 +235,10 @@ export async function storeCompanyKnowledge(company: CompanyKnowledge): Promise<
 
     await docRef.set({
       ...company,
-      history: {
-        ...company.history,
-        significantEvents: company.history.significantEvents.map((e) => ({
-          ...e,
-          date: e.date.toISOString(),
-        })),
-      },
+      history: company.history?.map((e) => ({
+        ...e,
+        date: e.date instanceof Date ? e.date.toISOString() : e.date,
+      })) || [],
       lastUpdated: new Date().toISOString(),
     }, { merge: true });
 
@@ -265,14 +262,13 @@ export async function getCompanyKnowledge(symbol: string): Promise<CompanyKnowle
     const data = doc.data()!;
     return {
       ...data,
-      history: {
-        ...data.history,
-        significantEvents: (data.history?.significantEvents || []).map((e: Record<string, unknown>) => ({
-          ...e,
-          date: new Date(e.date as string),
-        })),
-      },
-      lastUpdated: new Date(data.lastUpdated),
+      history: (data.history as Array<Record<string, unknown>> || []).map((e) => ({
+        date: new Date(e.date as string),
+        event: e.event as string,
+        significance: e.significance as string,
+      })),
+      lastResearchDate: data.lastResearchDate ? new Date(data.lastResearchDate as string) : new Date(),
+      updatedAt: data.updatedAt ? new Date(data.updatedAt as string) : new Date(),
     } as CompanyKnowledge;
   } catch (error) {
     log.error({ error: String(error), symbol }, 'Failed to get company knowledge');
@@ -371,8 +367,13 @@ export async function getSectorKnowledge(sectorId: string): Promise<SectorKnowle
 
     const data = doc.data()!;
     return {
-      ...data,
-      lastUpdated: new Date(data.lastUpdated),
+      sectorId: data.sectorId as string,
+      sectorName: data.sectorName as string,
+      etfs: data.etfs as string[] || [],
+      metrics: data.metrics as SectorKnowledge['metrics'],
+      insights: data.insights as SectorKnowledge['insights'],
+      correlations: data.correlations as SectorKnowledge['correlations'] || [],
+      updatedAt: data.updatedAt ? new Date(data.updatedAt as string) : new Date(),
     } as SectorKnowledge;
   } catch (error) {
     log.error({ error: String(error), sectorId }, 'Failed to get sector knowledge');
@@ -388,10 +389,18 @@ export async function getAllSectors(): Promise<SectorKnowledge[]> {
     const firestore = await getFirestore();
     const snapshot = await firestore.collection(COLLECTIONS.SECTORS).get();
 
-    return snapshot.docs.map((doc) => ({
-      ...doc.data(),
-      lastUpdated: new Date(doc.data().lastUpdated),
-    } as SectorKnowledge));
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        sectorId: data.sectorId as string,
+        sectorName: data.sectorName as string,
+        etfs: data.etfs as string[] || [],
+        metrics: data.metrics as SectorKnowledge['metrics'],
+        insights: data.insights as SectorKnowledge['insights'],
+        correlations: data.correlations as SectorKnowledge['correlations'] || [],
+        updatedAt: data.updatedAt ? new Date(data.updatedAt as string) : new Date(),
+      } as SectorKnowledge;
+    });
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to get all sectors');
     return [];
@@ -567,11 +576,13 @@ export async function learnFromResearch(params: {
     quality: {
       confidenceScore: params.confidence,
       timeSensitive: params.type === 'market_pattern' || params.type === 'economic_insight',
+      verifiedAt: new Date(),
       expiresAt: params.type === 'market_pattern' ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : undefined,
     },
     usage: {
       timesUsed: 0,
       helpfulnessScore: 0.5,
+      lastUsed: new Date(),
     },
     createdAt: new Date(),
     updatedAt: new Date(),

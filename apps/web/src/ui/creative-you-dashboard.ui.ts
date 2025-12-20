@@ -64,6 +64,15 @@ interface LearningTrack {
   episodes: Array<{ id: string; title: string }>;
 }
 
+interface IntelligentRecommendation {
+  content: VideoRecommendation | PodcastRecommendation;
+  contentType: 'video' | 'podcast';
+  relevanceScore: number;
+  personalizedReason: string;
+  connectionToConversations: string | null;
+  suggestedTiming: 'now' | 'later' | 'weekend';
+}
+
 // ============================================================================
 // CONSTANTS
 // ============================================================================
@@ -108,9 +117,19 @@ export class CreativeYouDashboard {
   private dailyPodcast: PodcastRecommendation | null = null;
   private creativeDNA: CreativeDNA | null = null;
   private learningTracks: LearningTrack[] = [];
+  private userTopics: string[] = []; // Topics from conversations
+  private personalizedTrackAvailable = false;
 
-  constructor(userId: string) {
+  constructor(userId: string, options?: { topics?: string[] }) {
     this.userId = userId;
+    this.userTopics = options?.topics || [];
+  }
+
+  /**
+   * Update user topics (call when new topics are learned from conversation)
+   */
+  setUserTopics(topics: string[]): void {
+    this.userTopics = topics;
   }
 
   /**
@@ -257,25 +276,19 @@ export class CreativeYouDashboard {
     const baseUrl = window.location.origin;
 
     try {
-      // Load all data in parallel
-      const [videoRes, podcastRes, dnaRes, tracksRes] = await Promise.all([
-        fetch(`${baseUrl}/api/creative/videos/daily?userId=${this.userId}`),
-        fetch(`${baseUrl}/api/creative/podcasts/daily?userId=${this.userId}`),
+      // If we have user topics, use the intelligent endpoint for personalized recommendations
+      if (this.userTopics.length > 0) {
+        await this.loadIntelligentRecommendations(baseUrl);
+      } else {
+        // Fall back to daily picks
+        await this.loadDailyPicks(baseUrl);
+      }
+
+      // Load DNA and tracks in parallel
+      const [dnaRes, tracksRes] = await Promise.all([
         fetch(`${baseUrl}/api/creative/dna?userId=${this.userId}`),
         fetch(`${baseUrl}/api/creative/tracks`),
       ]);
-
-      if (videoRes.ok) {
-        const data = await videoRes.json();
-        this.dailyVideo = data.dailyPick;
-        this.renderVideoPick();
-      }
-
-      if (podcastRes.ok) {
-        const data = await podcastRes.json();
-        this.dailyPodcast = data.dailyPick;
-        this.renderPodcastPick();
-      }
 
       if (dnaRes.ok) {
         const data = await dnaRes.json();
@@ -290,6 +303,100 @@ export class CreativeYouDashboard {
       }
     } catch (error) {
       log.error('Failed to load Creative You data:', error);
+    }
+  }
+
+  /**
+   * Load intelligent recommendations based on user's conversation topics
+   */
+  private async loadIntelligentRecommendations(baseUrl: string): Promise<void> {
+    const topicsParam = encodeURIComponent(this.userTopics.join(','));
+    const url = `${baseUrl}/api/creative/intelligent?userId=${this.userId}&topics=${topicsParam}&count=4`;
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        log.warn('Intelligent recommendations failed, falling back to daily picks');
+        await this.loadDailyPicks(baseUrl);
+        return;
+      }
+
+      const data = await res.json();
+      const recommendations = data.recommendations || [];
+
+      // Find first video and podcast recommendation
+      const videoRec = recommendations.find((r: IntelligentRecommendation) => r.contentType === 'video');
+      const podcastRec = recommendations.find((r: IntelligentRecommendation) => r.contentType === 'podcast');
+
+      if (videoRec) {
+        this.dailyVideo = {
+          ...videoRec.content,
+          // Override reason with personalized reason
+          reason: videoRec.personalizedReason || videoRec.content.reason,
+        };
+        this.renderVideoPick();
+      }
+
+      if (podcastRec) {
+        this.dailyPodcast = {
+          ...podcastRec.content,
+          reason: podcastRec.personalizedReason || podcastRec.content.reason,
+        };
+        this.renderPodcastPick();
+      }
+
+      // If we didn't get both, load the missing ones from daily picks
+      if (!videoRec || !podcastRec) {
+        await this.loadDailyPicks(baseUrl, !videoRec, !podcastRec);
+      }
+
+      log.debug('Loaded intelligent recommendations', {
+        topics: this.userTopics,
+        videoFound: !!videoRec,
+        podcastFound: !!podcastRec,
+      });
+    } catch (error) {
+      log.error('Failed to load intelligent recommendations:', error);
+      await this.loadDailyPicks(baseUrl);
+    }
+  }
+
+  /**
+   * Load daily picks (fallback or supplement)
+   */
+  private async loadDailyPicks(
+    baseUrl: string,
+    loadVideo = true,
+    loadPodcast = true
+  ): Promise<void> {
+    const requests: Promise<Response>[] = [];
+
+    if (loadVideo) {
+      requests.push(fetch(`${baseUrl}/api/creative/videos/daily?userId=${this.userId}`));
+    }
+    if (loadPodcast) {
+      requests.push(fetch(`${baseUrl}/api/creative/podcasts/daily?userId=${this.userId}`));
+    }
+
+    const responses = await Promise.all(requests);
+    let idx = 0;
+
+    if (loadVideo && responses[idx]) {
+      const videoRes = responses[idx++];
+      if (videoRes.ok) {
+        const data = await videoRes.json();
+        this.dailyVideo = data.dailyPick;
+        this.renderVideoPick();
+      }
+    }
+
+    if (loadPodcast && responses[idx]) {
+      const podcastRes = responses[idx];
+      if (podcastRes.ok) {
+        const data = await podcastRes.json();
+        this.dailyPodcast = data.dailyPick;
+        this.renderPodcastPick();
+      }
     }
   }
 
@@ -1032,16 +1139,29 @@ export class CreativeYouDashboard {
 
 let instance: CreativeYouDashboard | null = null;
 
-export function getCreativeYouDashboard(userId: string): CreativeYouDashboard {
+export function getCreativeYouDashboard(
+  userId: string,
+  options?: { topics?: string[] }
+): CreativeYouDashboard {
   if (!instance || (instance as CreativeYouDashboard & { userId: string }).userId !== userId) {
-    instance = new CreativeYouDashboard(userId);
+    instance = new CreativeYouDashboard(userId, options);
+  } else if (options?.topics) {
+    // Update topics on existing instance
+    instance.setUserTopics(options.topics);
   }
   return instance;
 }
 
-export function openCreativeYouDashboard(userId: string): void {
-  const dashboard = getCreativeYouDashboard(userId);
+export function openCreativeYouDashboard(userId: string, options?: { topics?: string[] }): void {
+  const dashboard = getCreativeYouDashboard(userId, options);
   dashboard.initialize().then(() => dashboard.open());
+}
+
+/**
+ * Open Creative You with topics from recent conversation
+ */
+export function openCreativeYouWithTopics(userId: string, topics: string[]): void {
+  openCreativeYouDashboard(userId, { topics });
 }
 
 export function initCreativeYouDashboard(): void {

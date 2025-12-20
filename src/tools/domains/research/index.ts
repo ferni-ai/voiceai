@@ -22,6 +22,9 @@ import { createResearchTools } from './research-tools.js';
 import { createInsightsAnalysisTools } from './insights-analysis.js';
 import { createMarketDataTools } from '../finance/market-data.js';
 import { createQuantTools, createPersistentQuantTools } from './quant-tools.js';
+import { superhumanTools } from './superhuman-tools/index.js';
+import { getKnowledgeGraph, initializeKnowledgeGraph } from './knowledge-graph/index.js';
+import { PeerBenchmarks } from './global-intelligence/peer-benchmarks.js';
 
 // ============================================================================
 // LEGACY TOOL WRAPPER
@@ -260,6 +263,188 @@ function getPersistentQuantToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
+// SUPERHUMAN TOOLS (Peter's Big Brain Powers!)
+// ============================================================================
+
+function getSuperhumanToolDefinitions(): ToolDefinition[] {
+  return [
+    // Investment Thesis Memory
+    wrapLegacyTool(
+      'saveInvestmentThesis',
+      'Save Investment Thesis',
+      "Save why you bought a stock. I'll remind you of this when the market gets volatile - your future self will thank you.",
+      superhumanTools.saveInvestmentThesis,
+      { tags: ['superhuman', 'thesis', 'memory', 'behavioral'] }
+    ),
+    wrapLegacyTool(
+      'remindThesis',
+      'Remind Investment Thesis',
+      "Recall why you bought a stock. Essential during market drops when emotions run high. I'll show you your original thinking.",
+      superhumanTools.remindThesis,
+      { tags: ['superhuman', 'thesis', 'memory', 'behavioral'] }
+    ),
+
+    // Goal Tracking
+    wrapLegacyTool(
+      'createFinancialGoal',
+      'Create Financial Goal',
+      "Create a financial goal (emergency fund, retirement, purchase, etc). I'll track progress and celebrate milestones with you!",
+      superhumanTools.createFinancialGoal,
+      { tags: ['superhuman', 'goals', 'tracking', 'milestones'] }
+    ),
+    wrapLegacyTool(
+      'updateGoalProgress',
+      'Update Goal Progress',
+      "Update your progress on a financial goal. I'll celebrate when you hit milestones!",
+      superhumanTools.updateGoalProgress,
+      { tags: ['superhuman', 'goals', 'tracking', 'milestones'] }
+    ),
+
+    // Behavioral Prediction
+    wrapLegacyTool(
+      'predictBehavior',
+      'Predict Market Behavior',
+      "Predict how you might react to market events based on your history and patterns from similar investors. Forewarned is forearmed.",
+      superhumanTools.predictBehavior,
+      { tags: ['superhuman', 'behavior', 'prediction', 'coaching'] }
+    ),
+
+    // Life Events
+    wrapLegacyTool(
+      'recordLifeEvent',
+      'Record Life Event',
+      "Record a significant life event (job change, new baby, inheritance, etc). I'll adjust my advice based on your changing circumstances.",
+      superhumanTools.recordLifeEvent,
+      { tags: ['superhuman', 'life-event', 'context', 'personalization'] }
+    ),
+
+    // Knowledge Learning
+    wrapLegacyTool(
+      'getNextLesson',
+      'Get Next Lesson',
+      "Find out what financial topic you should learn next based on your goals and knowledge gaps. Personalized curriculum.",
+      superhumanTools.getNextLesson,
+      { tags: ['superhuman', 'learning', 'education', 'personalization'] }
+    ),
+  ];
+}
+
+// ============================================================================
+// KNOWLEDGE GRAPH TOOLS (Peter's Financial Brain)
+// ============================================================================
+
+function getKnowledgeGraphToolDefinitions(): ToolDefinition[] {
+  return [
+    {
+      id: 'explainConcept',
+      name: 'Explain Financial Concept',
+      description: 'Explain any financial concept with examples and connections to related concepts. Perfect for learning.',
+      domain: 'research',
+      tags: ['knowledge', 'education', 'concepts'],
+      create: (_ctx: ToolContext) => {
+        return {
+          description: 'Explain any financial concept with examples and connections',
+          parameters: { type: 'object', properties: { concept: { type: 'string', description: 'The concept to explain' } } },
+          execute: async ({ concept }: { concept: string }) => {
+            const graph = getKnowledgeGraph();
+            if (graph.getAllNodes().length === 0) {
+              await initializeKnowledgeGraph();
+            }
+
+            const nodes = graph.searchNodes(concept);
+            if (nodes.length === 0) {
+              return `I don't have "${concept}" in my knowledge graph yet. Would you like me to research it?`;
+            }
+
+            const node = nodes[0];
+            const related = graph.getRelatedNodes(node.id).slice(0, 3);
+
+            const lines = [
+              `📚 **${node.name}**`,
+              '',
+              `📖 ${node.definition}`,
+              '',
+            ];
+
+            if (node.examples && node.examples.length > 0) {
+              lines.push('**Examples:**');
+              for (const ex of node.examples.slice(0, 2)) {
+                lines.push(`  • ${ex}`);
+              }
+              lines.push('');
+            }
+
+            if (node.commonMisunderstandings && node.commonMisunderstandings.length > 0) {
+              lines.push('**Common Misunderstandings:**');
+              for (const m of node.commonMisunderstandings.slice(0, 2)) {
+                lines.push(`  ⚠️ ${m}`);
+              }
+              lines.push('');
+            }
+
+            if (related.length > 0) {
+              lines.push('**Related Concepts:**');
+              for (const r of related) {
+                lines.push(`  → ${r.name}`);
+              }
+            }
+
+            return lines.join('\n');
+          },
+        };
+      },
+    },
+    {
+      id: 'getLearningPath',
+      name: 'Get Learning Path',
+      description: 'Get a personalized learning path from basics to advanced topics based on what you already know.',
+      domain: 'research',
+      tags: ['knowledge', 'education', 'learning-path'],
+      create: (_ctx: ToolContext) => {
+        return {
+          description: 'Get a learning path from basics to advanced',
+          parameters: {
+            type: 'object',
+            properties: {
+              targetConcept: { type: 'string', description: 'What you want to understand' },
+              currentLevel: { type: 'string', enum: ['beginner', 'intermediate', 'advanced'], description: 'Your current level' },
+            },
+          },
+          execute: async ({ targetConcept, currentLevel }: { targetConcept: string; currentLevel: 'beginner' | 'intermediate' | 'advanced' }) => {
+            const graph = getKnowledgeGraph();
+            if (graph.getAllNodes().length === 0) {
+              await initializeKnowledgeGraph();
+            }
+
+            const targetNodes = graph.searchNodes(targetConcept);
+            if (targetNodes.length === 0) {
+              return `I couldn't find "${targetConcept}" in my knowledge graph.`;
+            }
+
+            const target = targetNodes[0];
+            const recommendations = graph.getRecommendations([], currentLevel);
+
+            const lines = [
+              `📚 **Learning Path to: ${target.name}**`,
+              '',
+              `Current Level: ${currentLevel}`,
+              '',
+              '**Recommended Topics:**',
+            ];
+
+            for (const rec of recommendations.slice(0, 5)) {
+              lines.push(`  ${rec.context.difficulty === 'beginner' ? '🌱' : rec.context.difficulty === 'intermediate' ? '📈' : '🎓'} ${rec.name}`);
+            }
+
+            return lines.join('\n');
+          },
+        };
+      },
+    },
+  ];
+}
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
@@ -269,6 +454,8 @@ const researchTools: ToolDefinition[] = [
   ...getInsightsToolDefinitions(),
   ...getQuantToolDefinitions(),
   ...getPersistentQuantToolDefinitions(),
+  ...getSuperhumanToolDefinitions(),
+  ...getKnowledgeGraphToolDefinitions(),
 ];
 
 // ============================================================================
@@ -286,6 +473,8 @@ export {
   getInsightsToolDefinitions,
   getQuantToolDefinitions,
   getPersistentQuantToolDefinitions,
+  getSuperhumanToolDefinitions,
+  getKnowledgeGraphToolDefinitions,
 };
 
 export default getToolDefinitions;

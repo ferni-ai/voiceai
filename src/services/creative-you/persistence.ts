@@ -63,6 +63,20 @@ interface DocumentSnapshot {
 // PERSISTENCE CLASS
 // ============================================================================
 
+// Topic history type for persistence
+interface TopicHistoryRecord {
+  topic: string;
+  count: number;
+  lastSeen: Date;
+  sessions: string[]; // Session IDs where topic was discussed
+}
+
+interface UserTopicHistory {
+  userId: string;
+  topics: TopicHistoryRecord[];
+  lastUpdated: Date;
+}
+
 class CreativeYouPersistence {
   private db: Firestore | null = null;
   private initialized = false;
@@ -72,11 +86,13 @@ class CreativeYouPersistence {
   private memoryDNA = new Map<string, CreativeDNA>();
   private memoryInsights = new Map<string, CreativeInsight[]>();
   private memoryWatchHistory = new Map<string, WatchRecord[]>();
+  private memoryTopicHistory = new Map<string, UserTopicHistory>();
 
   // Collection names
   private readonly COLLECTION_CREATIVE_DNA = 'creative_dna';
   private readonly COLLECTION_INSIGHTS = 'creative_insights';
   private readonly COLLECTION_WATCH_HISTORY = 'watch_history';
+  private readonly COLLECTION_TOPIC_HISTORY = 'topic_history';
 
   /**
    * Initialize Firestore connection (lazy)
@@ -358,6 +374,125 @@ class CreativeYouPersistence {
       .filter((r) => r.completedAt)
       .sort((a, b) => new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime())
       .slice(0, limit);
+  }
+
+  // ========================================
+  // TOPIC HISTORY (for content personalization)
+  // ========================================
+
+  /**
+   * Save topic history for a user
+   */
+  async saveTopicHistory(
+    userId: string,
+    topics: string[],
+    sessionId: string
+  ): Promise<void> {
+    await this.ensureInitialized();
+
+    // Load existing history
+    const existing = await this.loadTopicHistory(userId);
+    const now = new Date();
+
+    // Update topic counts
+    for (const topic of topics) {
+      const existingTopic = existing.topics.find(
+        (t) => t.topic.toLowerCase() === topic.toLowerCase()
+      );
+      if (existingTopic) {
+        existingTopic.count++;
+        existingTopic.lastSeen = now;
+        if (!existingTopic.sessions.includes(sessionId)) {
+          existingTopic.sessions.push(sessionId);
+        }
+      } else {
+        existing.topics.push({
+          topic,
+          count: 1,
+          lastSeen: now,
+          sessions: [sessionId],
+        });
+      }
+    }
+
+    // Sort by recency and frequency
+    existing.topics.sort((a, b) => {
+      // Weight by both recency and frequency
+      const aScore = a.count * 0.3 + (now.getTime() - a.lastSeen.getTime()) / -100000000;
+      const bScore = b.count * 0.3 + (now.getTime() - b.lastSeen.getTime()) / -100000000;
+      return bScore - aScore;
+    });
+
+    // Keep top 50 topics
+    existing.topics = existing.topics.slice(0, 50);
+    existing.lastUpdated = now;
+
+    // Persist
+    if (this.db) {
+      try {
+        const data = removeUndefined({
+          userId,
+          topics: existing.topics.map((t) => ({
+            ...t,
+            lastSeen: t.lastSeen.toISOString(),
+          })),
+          lastUpdated: now.toISOString(),
+        });
+        await this.db.collection(this.COLLECTION_TOPIC_HISTORY).doc(userId).set(data);
+        log.debug({ userId, topicCount: topics.length }, '📚 Topic history saved');
+      } catch (error) {
+        log.error({ error: String(error) }, 'Failed to save topic history');
+        // Fallback to memory
+        this.memoryTopicHistory.set(userId, existing);
+      }
+    } else {
+      this.memoryTopicHistory.set(userId, existing);
+    }
+  }
+
+  /**
+   * Load topic history for a user
+   */
+  async loadTopicHistory(userId: string): Promise<UserTopicHistory> {
+    await this.ensureInitialized();
+
+    if (this.db) {
+      try {
+        const doc = await this.db.collection(this.COLLECTION_TOPIC_HISTORY).doc(userId).get();
+        if (doc.exists) {
+          const data = doc.data() as Record<string, unknown>;
+          return {
+            userId,
+            topics: ((data.topics as Array<Record<string, unknown>>) || []).map((t) => ({
+              topic: t.topic as string,
+              count: t.count as number,
+              lastSeen: new Date(t.lastSeen as string),
+              sessions: (t.sessions as string[]) || [],
+            })),
+            lastUpdated: data.lastUpdated ? new Date(data.lastUpdated as string) : new Date(),
+          };
+        }
+      } catch (error) {
+        log.error({ error: String(error), userId }, 'Failed to load topic history');
+      }
+    }
+
+    // Fallback to memory or return empty
+    return (
+      this.memoryTopicHistory.get(userId) || {
+        userId,
+        topics: [],
+        lastUpdated: new Date(),
+      }
+    );
+  }
+
+  /**
+   * Get top topics for a user (for recommendations)
+   */
+  async getTopTopics(userId: string, count: number = 10): Promise<string[]> {
+    const history = await this.loadTopicHistory(userId);
+    return history.topics.slice(0, count).map((t) => t.topic);
   }
 }
 

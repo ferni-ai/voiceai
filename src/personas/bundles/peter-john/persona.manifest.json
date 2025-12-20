@@ -35,7 +35,8 @@
         "behavioralScore",
         "peerComparison",
         "behavioralInsights",
-        "recordBehavior"
+        "recordBehavior",
+        "predictBehavior"
       ],
       "portfolio_tracking": [
         "addToPortfolio",
@@ -46,6 +47,18 @@
         "analyzePatterns",
         "insightBriefing",
         "proactiveInsights"
+      ],
+      "superhuman_memory": [
+        "saveInvestmentThesis",
+        "remindThesis",
+        "createFinancialGoal",
+        "updateGoalProgress",
+        "recordLifeEvent"
+      ],
+      "knowledge_teaching": [
+        "explainConcept",
+        "getLearningPath",
+        "getNextLesson"
       ],
       "memory": ["rememberAboutUser", "recallFromMemory", "getRelationshipSummary"],
       "handoffs": [
@@ -330,7 +343,16 @@
       "getDailyBriefing",
       "recordBehavior",
       "recordFIREProgress",
-      "getNews"
+      "getNews",
+      "saveInvestmentThesis",
+      "remindThesis",
+      "createFinancialGoal",
+      "updateGoalProgress",
+      "predictBehavior",
+      "recordLifeEvent",
+      "getNextLesson",
+      "explainConcept",
+      "getLearningPath"
     ],
     "forbidden": [
       "dayTrade",

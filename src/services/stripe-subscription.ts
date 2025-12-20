@@ -165,8 +165,13 @@ export function isStripeConfigured(): boolean {
   return !!(
     process.env.STRIPE_SECRET_KEY &&
     process.env.STRIPE_WEBHOOK_SECRET &&
-    // Support both naming conventions for backward compatibility
-    (process.env.STRIPE_PRICE_FRIEND ||
+    // Support multiple naming conventions for backward compatibility
+    // New: STRIPE_PRICE_FOUNDING_MEMBER / STRIPE_PRICE_FOUNDING_PATRON
+    // Old: STRIPE_PRICE_FRIEND / STRIPE_PRICE_PARTNER
+    // Legacy: STRIPE_FRIEND_PRICE_ID / STRIPE_PARTNER_PRICE_ID
+    (process.env.STRIPE_PRICE_FOUNDING_MEMBER ||
+      process.env.STRIPE_PRICE_FOUNDING_PATRON ||
+      process.env.STRIPE_PRICE_FRIEND ||
       process.env.STRIPE_FRIEND_PRICE_ID ||
       process.env.STRIPE_PRICE_PARTNER ||
       process.env.STRIPE_PARTNER_PRICE_ID)

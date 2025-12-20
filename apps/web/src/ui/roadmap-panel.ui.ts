@@ -97,6 +97,9 @@ const ICONS: Record<string, string> = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
   vote:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m9 12 2 2 4-4"/><path d="M5 7c0-1.1.9-2 2-2h10a2 2 0 0 1 2 2v12H5V7Z"/><path d="M22 19H2"/></svg>',
+  // Conversation - Speech bubble (for seeds earned)
+  conversation:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
 };
 
 // ============================================================================
@@ -911,7 +914,7 @@ class RoadmapPanelUI {
       </h4>
       <ul class="roadmap-panel__seeds-tooltip-list">
         <li>
-          <span class="roadmap-panel__seeds-tooltip-icon">💬</span>
+          <span class="roadmap-panel__seeds-tooltip-icon">${ICONS.conversation}</span>
           <span>${t('roadmap.howSeedsWork.conversation') || 'Have a conversation: +1 seed'}</span>
         </li>
         <li>

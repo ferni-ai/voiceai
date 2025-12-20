@@ -158,8 +158,8 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
     priceInCents: 1000, // $10/month (round number feels like "chipping in")
     annualPriceInCents: 10000, // $100/year = $8.33/month (2 months free!)
     annualSavingsPerMonth: 167, // Save $1.67/month ($20/year)
-    stripePriceId: process.env.STRIPE_PRICE_FRIEND || process.env.STRIPE_FRIEND_PRICE_ID || null,
-    stripeAnnualPriceId: process.env.STRIPE_PRICE_FRIEND_ANNUAL || null,
+    stripePriceId: process.env.STRIPE_PRICE_FOUNDING_MEMBER || process.env.STRIPE_PRICE_FRIEND || process.env.STRIPE_FRIEND_PRICE_ID || null,
+    stripeAnnualPriceId: process.env.STRIPE_PRICE_FOUNDING_MEMBER_ANNUAL || process.env.STRIPE_PRICE_FRIEND_ANNUAL || null,
   },
   partner: {
     name: 'Founding Patron',
@@ -177,8 +177,8 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
     priceInCents: 2000, // $20/month (round number)
     annualPriceInCents: 20000, // $200/year = $16.67/month (2 months free!)
     annualSavingsPerMonth: 333, // Save $3.33/month ($40/year)
-    stripePriceId: process.env.STRIPE_PRICE_PARTNER || process.env.STRIPE_PARTNER_PRICE_ID || null,
-    stripeAnnualPriceId: process.env.STRIPE_PRICE_PARTNER_ANNUAL || null,
+    stripePriceId: process.env.STRIPE_PRICE_FOUNDING_PATRON || process.env.STRIPE_PRICE_PARTNER || process.env.STRIPE_PARTNER_PRICE_ID || null,
+    stripeAnnualPriceId: process.env.STRIPE_PRICE_FOUNDING_PATRON_ANNUAL || process.env.STRIPE_PRICE_PARTNER_ANNUAL || null,
   },
 };
 

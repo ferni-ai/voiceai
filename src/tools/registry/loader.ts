@@ -424,6 +424,12 @@ export async function autoRegisterAllDomains(): Promise<void> {
       name: 'behavior' as ToolDomain,
       loader: () => import('../domains/behavior/index.js').then((m) => m.getToolDefinitions()),
     },
+
+    // === LIFE THESIS DOMAIN (Cross-persona "why" capturing) ===
+    {
+      name: 'life-thesis' as ToolDomain,
+      loader: () => import('../domains/life-thesis/index.js').then((m) => m.getToolDefinitions()),
+    },
   ];
 
   for (const { name, loader } of domains) {

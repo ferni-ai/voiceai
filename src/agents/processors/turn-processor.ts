@@ -1845,6 +1845,24 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
     }
   })();
 
+  // Fire-and-forget Creative You topic recording (for content personalization)
+  const userIdForCreativeYou = services.userId;
+  if (userIdForCreativeYou && analysisResult.analysis.topics?.detected?.length > 0) {
+    void (async () => {
+      try {
+        const { recordConversationTopics } =
+          await import('../../services/creative-you/conversation-integration.js');
+        recordConversationTopics(
+          userIdForCreativeYou,
+          analysisResult.analysis.topics.detected,
+          services.sessionId
+        );
+      } catch {
+        // Non-fatal - Creative You topic recording is optional
+      }
+    })();
+  }
+
   // 4. Build emotional state (synchronous - depends on analysis)
   const emotionTimer = createTimer();
   const emotionalState = buildEmotionalState(ctx, analysisResult);

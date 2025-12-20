@@ -311,15 +311,15 @@ export const COSMETICS_CATALOG: CosmeticItem[] = [
 ];
 
 // ============================================================================
-// STATE
+// CONSTANTS
 // ============================================================================
-
-let userCosmetics: UserCosmetics = createDefaultCosmetics();
-let currentTier: SubscriptionTier = 'free';
-const cosmeticsListeners = new Set<(cosmetics: UserCosmetics) => void>();
 
 /** Starter seeds for new users - "Seeds to get you growing" */
 const STARTER_SEEDS = 25;
+
+// ============================================================================
+// STATE
+// ============================================================================
 
 function createDefaultCosmetics(): UserCosmetics {
   return {
@@ -334,6 +334,10 @@ function createDefaultCosmetics(): UserCosmetics {
     seedBalance: STARTER_SEEDS, // New users start with seeds to explore
   };
 }
+
+let userCosmetics: UserCosmetics = createDefaultCosmetics();
+let currentTier: SubscriptionTier = 'free';
+const cosmeticsListeners = new Set<(cosmetics: UserCosmetics) => void>();
 
 // ============================================================================
 // CORE FUNCTIONS

@@ -313,7 +313,7 @@ export async function handleSeedsRoutes(
             lastConversationDate: today,
             createdAt: admin.firestore.Timestamp.now(),
           });
-        } else {
+        } else if (data) {
           // Update streak
           const yesterday = new Date();
           yesterday.setDate(yesterday.getDate() - 1);
