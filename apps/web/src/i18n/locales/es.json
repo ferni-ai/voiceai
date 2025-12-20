@@ -57,6 +57,7 @@
       "whatILearned": "Lo Que He Aprendido",
       "memoryBrowser": "Nuestros Recuerdos",
       "wellbeingDashboard": "Tu Bienestar",
+      "teamInsights": "Ideas del equipo",
       "conversationHistory": "Conversaciones Pasadas",
       "videoSessions": "Video Chat",
       "groupCoaching": "Sesiones Grupales",
@@ -216,17 +217,23 @@
     }
   },
   "subscription": {
-    "free": "Gratis",
-    "friend": "Amigo",
-    "partner": "Socio",
-    "upgrade": "Mejorar",
-    "currentPlan": "Plan Actual",
-    "planDetails": "Detalles del Plan",
-    "features": "Características",
+    "free": "Comunidad",
+    "friend": "Miembro Fundador",
+    "partner": "Patrón Fundador",
+    "upgrade": "Apoyar a Ferni",
+    "chipIn": "Contribuir",
+    "currentPlan": "Estás Aquí",
+    "planDetails": "Tu Apoyo",
+    "features": "Beneficios",
     "unlimitedConversations": "Conversaciones ilimitadas",
-    "allTeamMembers": "Todos los miembros del equipo",
+    "allTeamMembers": "Acceso completo al equipo",
     "prioritySupport": "Soporte prioritario",
-    "advancedInsights": "Perspectivas avanzadas"
+    "advancedInsights": "Acceso anticipado a funciones",
+    "helpBuild": "Ayúdanos a Construir Esto",
+    "foundersSubtitle": "Ferni es gratis para siempre. Si crees en lo que estamos construyendo, contribuye.",
+    "thankYouPerks": "Como agradecimiento, desbloquearemos algunos beneficios.",
+    "notReady": "¿No estás listo? Está bien.",
+    "freeForever": "Gratis para siempre"
   },
   "team": {
     "meetTheTeam": "Conoce al Equipo",
@@ -597,6 +604,7 @@
     "submitNewItem": "Enviar nuevo elemento",
     "openDailyPractice": "Abrir práctica diaria",
     "openPredictions": "Abrir predicciones",
+    "openTeamInsights": "Abrir ideas del equipo",
     "shareJourney": "Compartir tu viaje",
     "forgetThis": "Olvidar esto",
     "cancelInstallation": "Cancelar instalación",
@@ -650,6 +658,7 @@
     "sharedSong": "Una canción que compartimos",
     "dailyPractice": "Práctica diaria",
     "predictions": "Predicciones",
+    "teamInsights": "Ideas del equipo",
     "runScenario": "Ejecutar escenario"
   }
 }

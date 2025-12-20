@@ -1,14 +1,14 @@
 /**
  * Subscription Badge UI - Subtle status indicator
  *
- * Philosophy: Status should be informative, not intrusive.
- * Shows tier and usage for free users in a warm, unobtrusive way.
+ * Philosophy: Founders Fund - Ferni is free forever.
+ * Status is informative and welcoming, never guilting or gatekeeping.
  *
  * Design: Small pill badge that appears near the header
  * - Trial: Shows time remaining (e.g., "5:32 left")
- * - Free tier: Shows conversations remaining
- * - Paid tier: Shows tier name
- * - Clicking opens upgrade modal
+ * - Community (free): Shows "Community" - warm, not limiting
+ * - Founding Member/Patron: Shows gratitude, not privilege
+ * - Clicking opens Founders Fund modal
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
@@ -341,36 +341,36 @@ function updateBadgeDisplay(status: SubscriptionStatus | null): void {
   badgeElement.classList.remove('subscription-badge--hidden');
 
   if (status.tier === 'free') {
-    // Show conversations remaining - check both possible locations
-    const remaining = status.usage?.conversationsRemaining ?? status.conversationsRemaining ?? 5;
-    const isLow = remaining <= 2;
-
+    // Founders Fund philosophy: Ferni is FREE FOREVER
+    // Don't show "conversations remaining" - that contradicts our message
+    // Instead, show a warm invitation to support if they want to
     badgeElement.innerHTML = `
       <span class="subscription-badge__icon">${ICONS.sparkle}</span>
-      <span class="subscription-badge__text">${remaining} left</span>
+      <span class="subscription-badge__text">Community</span>
     `;
-    badgeElement.classList.toggle('subscription-badge--low', isLow);
+    badgeElement.classList.remove('subscription-badge--low');
     badgeElement.classList.remove('subscription-badge--premium');
     badgeElement.setAttribute(
       'aria-label',
-      `${remaining} conversation${remaining !== 1 ? 's' : ''} remaining this month. Click to upgrade.`
+      'Community member. Want to help us grow? Click to learn more.'
     );
   } else {
-    // Show tier name for paid users
-    const tierNames: Record<string, string> = {
-      friend: 'Life Coach',
-      partner: 'Partner',
+    // Show tier name for Founders with gratitude
+    const tierDisplay: Record<string, { short: string; full: string }> = {
+      friend: { short: 'Founder', full: 'Founding Member' },
+      partner: { short: 'Patron', full: 'Founding Patron' },
     };
+    const display = tierDisplay[status.tier] || { short: status.tier, full: status.tier };
 
     badgeElement.innerHTML = `
-      <span class="subscription-badge__icon">${ICONS.infinity}</span>
-      <span class="subscription-badge__text">${tierNames[status.tier] || status.tier}</span>
+      <span class="subscription-badge__icon">${ICONS.sparkle}</span>
+      <span class="subscription-badge__text">${display.short}</span>
     `;
     badgeElement.classList.remove('subscription-badge--low');
     badgeElement.classList.add('subscription-badge--premium');
     badgeElement.setAttribute(
       'aria-label',
-      `${tierNames[status.tier] || status.tier} plan. Click to manage.`
+      `${display.full}. Thank you for believing in us! Click to manage.`
     );
   }
 

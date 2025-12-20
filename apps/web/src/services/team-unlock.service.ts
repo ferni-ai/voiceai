@@ -282,7 +282,7 @@ function getMemberUnlockStatus(
         unlocked: false,
         progress: calculateProgress(metrics, threshold),
         lockReason: "The sage speaks only to those who've proven their commitment.",
-        unlockHint: 'Reach deep partnership or upgrade to Partner tier.',
+        unlockHint: 'Reach deep partnership or become a Founding Patron.',
       };
     }
     return { unlocked: true, progress: 1 };

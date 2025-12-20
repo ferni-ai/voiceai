@@ -104,37 +104,37 @@ export async function getCompanyFundamentals(symbol: string): Promise<CompanyFun
           throw new Error(`HTTP ${response.status}`);
         }
 
-        const data = await response.json();
+        const data = (await response.json()) as Record<string, string | undefined>;
         
         if (data.Note || data['Error Message']) {
-          log.warn({ symbol, note: data.Note || data['Error Message'] }, 'Alpha Vantage API limit or error');
+          log.warn({ symbol, note: data.Note ?? data['Error Message'] }, 'Alpha Vantage API limit or error');
           return getMockFundamentals(symbol);
         }
 
         return {
-          symbol: data.Symbol,
-          name: data.Name,
-          sector: data.Sector,
-          industry: data.Industry,
-          marketCap: parseFloat(data.MarketCapitalization) || 0,
-          peRatio: parseFloat(data.PERatio) || 0,
-          pegRatio: parseFloat(data.PEGRatio) || 0,
-          bookValue: parseFloat(data.BookValue) || 0,
-          dividendYield: parseFloat(data.DividendYield) || 0,
-          eps: parseFloat(data.EPS) || 0,
-          revenuePerShare: parseFloat(data.RevenuePerShareTTM) || 0,
-          profitMargin: parseFloat(data.ProfitMargin) || 0,
-          operatingMargin: parseFloat(data.OperatingMarginTTM) || 0,
-          returnOnEquity: parseFloat(data.ReturnOnEquityTTM) || 0,
-          beta: parseFloat(data.Beta) || 1,
-          fiftyTwoWeekHigh: parseFloat(data['52WeekHigh']) || 0,
-          fiftyTwoWeekLow: parseFloat(data['52WeekLow']) || 0,
-          analystTargetPrice: parseFloat(data.AnalystTargetPrice) || 0,
-          forwardPE: parseFloat(data.ForwardPE) || 0,
-          priceToBook: parseFloat(data.PriceToBookRatio) || 0,
-          priceToSales: parseFloat(data.PriceToSalesRatioTTM) || 0,
-          evToRevenue: parseFloat(data.EVToRevenue) || 0,
-          evToEbitda: parseFloat(data.EVToEBITDA) || 0,
+          symbol: data.Symbol ?? symbol,
+          name: data.Name ?? 'Unknown',
+          sector: data.Sector ?? 'Unknown',
+          industry: data.Industry ?? 'Unknown',
+          marketCap: parseFloat(data.MarketCapitalization ?? '0') || 0,
+          peRatio: parseFloat(data.PERatio ?? '0') || 0,
+          pegRatio: parseFloat(data.PEGRatio ?? '0') || 0,
+          bookValue: parseFloat(data.BookValue ?? '0') || 0,
+          dividendYield: parseFloat(data.DividendYield ?? '0') || 0,
+          eps: parseFloat(data.EPS ?? '0') || 0,
+          revenuePerShare: parseFloat(data.RevenuePerShareTTM ?? '0') || 0,
+          profitMargin: parseFloat(data.ProfitMargin ?? '0') || 0,
+          operatingMargin: parseFloat(data.OperatingMarginTTM ?? '0') || 0,
+          returnOnEquity: parseFloat(data.ReturnOnEquityTTM ?? '0') || 0,
+          beta: parseFloat(data.Beta ?? '1') || 1,
+          fiftyTwoWeekHigh: parseFloat(data['52WeekHigh'] ?? '0') || 0,
+          fiftyTwoWeekLow: parseFloat(data['52WeekLow'] ?? '0') || 0,
+          analystTargetPrice: parseFloat(data.AnalystTargetPrice ?? '0') || 0,
+          forwardPE: parseFloat(data.ForwardPE ?? '0') || 0,
+          priceToBook: parseFloat(data.PriceToBookRatio ?? '0') || 0,
+          priceToSales: parseFloat(data.PriceToSalesRatioTTM ?? '0') || 0,
+          evToRevenue: parseFloat(data.EVToRevenue ?? '0') || 0,
+          evToEbitda: parseFloat(data.EVToEBITDA ?? '0') || 0,
           lastUpdated: new Date(),
         };
       } catch (error) {

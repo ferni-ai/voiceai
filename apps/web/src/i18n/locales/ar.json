@@ -57,6 +57,7 @@
       "whatILearned": "ما تعلمته",
       "memoryBrowser": "ذكرياتنا",
       "wellbeingDashboard": "صحتك",
+      "teamInsights": "رؤى الفريق",
       "conversationHistory": "المحادثات السابقة",
       "videoSessions": "دردشة فيديو",
       "groupCoaching": "جلسات جماعية",
@@ -216,17 +217,23 @@
     }
   },
   "subscription": {
-    "free": "مجاني",
-    "friend": "صديق",
-    "partner": "شريك",
-    "upgrade": "ترقية",
-    "currentPlan": "الخطة الحالية",
-    "planDetails": "تفاصيل الخطة",
-    "features": "الميزات",
+    "free": "المجتمع",
+    "friend": "عضو مؤسس",
+    "partner": "راعٍ مؤسس",
+    "upgrade": "ادعم Ferni",
+    "chipIn": "ساهم",
+    "currentPlan": "أنت هنا",
+    "planDetails": "دعمك",
+    "features": "المزايا",
     "unlimitedConversations": "محادثات غير محدودة",
-    "allTeamMembers": "جميع أعضاء الفريق",
+    "allTeamMembers": "وصول كامل للفريق",
     "prioritySupport": "دعم ذو أولوية",
-    "advancedInsights": "رؤى متقدمة"
+    "advancedInsights": "وصول مبكر للميزات الجديدة",
+    "helpBuild": "ساعدنا في البناء",
+    "foundersSubtitle": "Ferni مجاني للأبد. إذا كنت تؤمن بما نبنيه، ساهم معنا.",
+    "thankYouPerks": "كشكر لك، سنفتح بعض المزايا.",
+    "notReady": "لست مستعداً؟ لا بأس.",
+    "freeForever": "مجاني للأبد"
   },
   "team": {
     "meetTheTeam": "تعرف على الفريق",
@@ -597,6 +604,7 @@
     "submitNewItem": "إرسال عنصر جديد",
     "openDailyPractice": "فتح التمرين اليومي",
     "openPredictions": "فتح التوقعات",
+    "openTeamInsights": "فتح رؤى الفريق",
     "shareJourney": "مشاركة رحلتك",
     "forgetThis": "نسيان هذا",
     "cancelInstallation": "إلغاء التثبيت",
@@ -650,6 +658,7 @@
     "sharedSong": "أغنية نتشاركها",
     "dailyPractice": "التمرين اليومي",
     "predictions": "التوقعات",
+    "teamInsights": "رؤى الفريق",
     "runScenario": "تشغيل السيناريو"
   }
 }

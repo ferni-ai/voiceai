@@ -122,6 +122,8 @@ import { initCelebrationService } from './services/celebration.service.js';
 import { disposeFerniEQ, initFerniEQ } from './ui/better-than-human.ui.js';
 // Proactive Outreach UI - "Thinking of You" notifications
 import { disposeProactiveOutreachUI as disposeProactiveOutreach, initProactiveOutreachUI } from './ui/proactive-outreach.ui.js';
+// Team Insights UI - Cross-persona intelligence panel
+import { disposeTeamInsightsUI, initTeamInsightsUI, teamInsightsUI } from './ui/team-insights.ui.js';
 // Avatar Soul - Pixar-quality "Better Than Human" visual animation system
 import { avatarSoul, disposeAvatarSoul, initAvatarSoul } from './ui/avatar-soul.ui.js';
 // Avatar Lamp - Luxo Jr. level body language animation
@@ -1095,6 +1097,10 @@ class VoiceAIApp {
       initProactiveOutreachUI();
       // Shows outreach notifications when backend sends thinking_of_you moments
 
+      // 💡 Team Insights UI - Cross-persona intelligence panel
+      initTeamInsightsUI();
+      // Shows insights from the whole team (Peter, Maya, Jordan, etc.)
+
       // Set up gentle check-in handler for significant concern detection
       document.addEventListener('ferni:gentle-checkin', ((e: CustomEvent) => {
         const { level, triggers } = e.detail || {};
@@ -1237,6 +1243,7 @@ class VoiceAIApp {
       initEngagementTriggerUI({
         onEngagementClick: () => getEngagementUI().toggle(),
         onPredictionsClick: () => getPredictionsUI().toggle(),
+        onInsightsClick: () => teamInsightsUI.toggle(),
       })
     );
 
@@ -1433,6 +1440,7 @@ class VoiceAIApp {
         onHouseholdClick: () => void showHouseholdManager(),
         onConversationMemoryClick: () => void showConversationMemory(),
         onWellbeingClick: () => void showWellbeingDashboard(),
+        onTeamInsightsClick: () => teamInsightsUI.toggle(),
         onSupportFerniClick: () => void supportFerniUI.open(),
         onPersonalizeClick: () => personalizeUI.open(),
         onYourJourneyClick: () => journeyUI.open(),
@@ -2522,6 +2530,7 @@ class VoiceAIApp {
     disposeLogoExpressions();
     disposeFerniEQ();
     disposeProactiveOutreach();
+    disposeTeamInsightsUI();
     disposeAvatarSoul();
     disposeAvatarLamp();
     disposeAmbientLife();

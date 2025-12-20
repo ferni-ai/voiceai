@@ -57,6 +57,7 @@
       "whatILearned": "내가 배운 것",
       "memoryBrowser": "우리의 추억",
       "wellbeingDashboard": "당신의 건강",
+      "teamInsights": "팀 인사이트",
       "conversationHistory": "지난 대화",
       "videoSessions": "영상 채팅",
       "groupCoaching": "그룹 세션",
@@ -216,17 +217,23 @@
     }
   },
   "subscription": {
-    "free": "무료",
-    "friend": "친구",
-    "partner": "파트너",
-    "upgrade": "업그레이드",
-    "currentPlan": "현재 플랜",
-    "planDetails": "플랜 상세",
-    "features": "기능",
+    "free": "커뮤니티",
+    "friend": "창립 멤버",
+    "partner": "창립 후원자",
+    "upgrade": "Ferni 지원하기",
+    "chipIn": "참여하기",
+    "currentPlan": "현재 상태",
+    "planDetails": "지원 정보",
+    "features": "혜택",
     "unlimitedConversations": "무제한 대화",
-    "allTeamMembers": "모든 팀 멤버",
+    "allTeamMembers": "전체 팀 접근",
     "prioritySupport": "우선 지원",
-    "advancedInsights": "고급 인사이트"
+    "advancedInsights": "새 기능 조기 접근",
+    "helpBuild": "함께 만들어요",
+    "foundersSubtitle": "Ferni는 영원히 무료입니다. 우리가 만드는 것을 믿으신다면 참여해주세요.",
+    "thankYouPerks": "감사의 표시로 몇 가지 혜택을 드립니다.",
+    "notReady": "준비가 안 됐나요? 괜찮아요.",
+    "freeForever": "영원히 무료"
   },
   "team": {
     "meetTheTeam": "팀 소개",
@@ -597,6 +604,7 @@
     "submitNewItem": "새 항목 제출",
     "openDailyPractice": "일일 연습 열기",
     "openPredictions": "예측 열기",
+    "openTeamInsights": "팀 인사이트 열기",
     "shareJourney": "여정 공유",
     "forgetThis": "이것을 잊기",
     "cancelInstallation": "설치 취소",
@@ -650,6 +658,7 @@
     "sharedSong": "우리가 함께하는 노래",
     "dailyPractice": "일일 연습",
     "predictions": "예측",
+    "teamInsights": "팀 인사이트",
     "runScenario": "시나리오 실행"
   }
 }

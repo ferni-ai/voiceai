@@ -1,12 +1,13 @@
 /**
- * Manage Subscription UI
+ * Manage Subscription UI - Founders Fund Support Management
  *
- * A modal for viewing and managing subscription status.
- * Handles both Stripe and Apple subscriptions with appropriate actions:
+ * A modal for viewing and managing support status.
+ * Handles both Stripe and Apple payments with appropriate actions:
  * - Stripe: Opens billing portal
  * - Apple: Shows cancellation instructions (can't cancel in-app)
  *
- * Philosophy: Make it easy to understand and manage, never hide the exit.
+ * Philosophy: "Chip in, not subscribe" - Make it easy to understand
+ * and manage support. Never hide the exit. Thank founders warmly.
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';

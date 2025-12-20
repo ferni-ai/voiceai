@@ -57,6 +57,7 @@
       "whatILearned": "What I've Learnt",
       "memoryBrowser": "Our Memories",
       "wellbeingDashboard": "Your Wellbeing",
+      "teamInsights": "Team Insights",
       "conversationHistory": "Past Conversations",
       "videoSessions": "Video Chat",
       "groupCoaching": "Group Sessions",
@@ -216,17 +217,23 @@
     }
   },
   "subscription": {
-    "free": "Free",
-    "friend": "Friend",
-    "partner": "Partner",
-    "upgrade": "Upgrade",
-    "currentPlan": "Current Plan",
-    "planDetails": "Plan Details",
-    "features": "Features",
+    "free": "Community",
+    "friend": "Founding Member",
+    "partner": "Founding Patron",
+    "upgrade": "Support Ferni",
+    "chipIn": "Chip In",
+    "currentPlan": "You're Here",
+    "planDetails": "Your Support",
+    "features": "Perks",
     "unlimitedConversations": "Unlimited conversations",
-    "allTeamMembers": "All team members",
+    "allTeamMembers": "Full team access",
     "prioritySupport": "Priority support",
-    "advancedInsights": "Advanced insights"
+    "advancedInsights": "Early access to features",
+    "helpBuild": "Help Us Build This",
+    "foundersSubtitle": "Ferni is free forever. If you believe in what we're building, chip in.",
+    "thankYouPerks": "As a thank you, we'll unlock some perks.",
+    "notReady": "Not ready? That's totally fine.",
+    "freeForever": "Free forever"
   },
   "team": {
     "meetTheTeam": "Meet the Team",
@@ -597,6 +604,7 @@
     "submitNewItem": "Submit new item",
     "openDailyPractice": "Open daily practice",
     "openPredictions": "Open predictions",
+    "openTeamInsights": "Open team insights",
     "shareJourney": "Share your journey",
     "forgetThis": "Forget this",
     "cancelInstallation": "Cancel installation",
@@ -650,6 +658,7 @@
     "sharedSong": "A song we share",
     "dailyPractice": "Daily Practice",
     "predictions": "Predictions",
+    "teamInsights": "Team Insights",
     "runScenario": "Run scenario"
   }
 }

@@ -318,6 +318,9 @@ let userCosmetics: UserCosmetics = createDefaultCosmetics();
 let currentTier: SubscriptionTier = 'free';
 const cosmeticsListeners = new Set<(cosmetics: UserCosmetics) => void>();
 
+/** Starter seeds for new users - "Seeds to get you growing" */
+const STARTER_SEEDS = 25;
+
 function createDefaultCosmetics(): UserCosmetics {
   return {
     ownedItems: ['skin-default', 'theme-default', 'voice-default'],
@@ -328,7 +331,7 @@ function createDefaultCosmetics(): UserCosmetics {
       'sound-pack': null,
       emote: null,
     },
-    seedBalance: 0,
+    seedBalance: STARTER_SEEDS, // New users start with seeds to explore
   };
 }
 

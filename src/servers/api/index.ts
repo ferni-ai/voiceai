@@ -98,6 +98,12 @@ import { handleLandingOptimizationRoutes } from '../../api/landing-optimization-
 import { handleCameoAnalyticsRoutes } from '../../api/cameo-analytics-routes.js';
 import { handleGardenRoutes } from '../../api/garden-routes.js';
 import { handleRoadmapRoutes } from '../../api/roadmap-routes.js';
+
+// WebSocket for real-time insights
+import {
+  initInsightsWebSocket,
+  shutdownInsightsWebSocket,
+} from '../../services/insights-websocket.js';
 import { handleMarketplaceRoutes } from '../../api/marketplace-routes.js';
 import { handleShareRoutes } from '../../api/routes/share-routes.js';
 import { handleChallengeRoutes } from '../../api/routes/challenge-routes.js';
@@ -669,6 +675,10 @@ const server = http.createServer(async (req, res) => {
 // Harden server with DDoS protection
 hardenServer(server);
 
+// Initialize WebSocket server for real-time insights
+initInsightsWebSocket(server);
+log.info('Insights WebSocket server initialized on /ws/insights');
+
 // Register DDoS alerting to Slack
 registerDDoSAlertCallback(async (details) => {
   await notifyDDoSAlert(details);
@@ -707,6 +717,9 @@ async function gracefulShutdown(): Promise<void> {
 
   // Stop DDoS monitoring
   stopDDoSMonitoring();
+
+  // Shutdown WebSocket servers first
+  shutdownInsightsWebSocket();
 
   // Shutdown all services in parallel
   try {

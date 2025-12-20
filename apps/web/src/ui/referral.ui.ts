@@ -20,6 +20,13 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { toast } from './toast.ui.js';
+import {
+  getReferralUrl,
+  getGardenStats,
+  getTotalReferralSeeds,
+  REFERRAL_SIGNUP_REWARD,
+  REFERRAL_NEW_USER_BONUS,
+} from '../services/referral.service.js';
 
 const log = createLogger('ReferralUI');
 
@@ -66,36 +73,47 @@ const ICONS = {
 // SHARE CONTENT - Warm, On-Brand
 // ============================================================================
 
-const SHARE_CONTENT = {
-  title: 'Meet Ferni',
+/**
+ * Get share content with personalized referral URL
+ */
+function getShareContent() {
+  const referralUrl = getReferralUrl();
+  
+  return {
+    title: 'Meet Ferni',
 
-  // Main share message - warm, not salesy
-  message: `Know someone who could use a friend who actually listens?
+    // Main share message - warm, includes seed bonus mention
+    message: `Know someone who could use a friend who actually listens?
 
 Ferni remembers everything, shows up at 2am with the same presence as noon, and never judges.
 
-Better than human support, because some things matter too much for human limitations.`,
+We'll both get some seeds to grow together when you join.
 
-  // Shorter version for SMS/Twitter
-  shortMessage: `Know someone who could use a friend who actually listens? Meet Ferni - someone who remembers everything and is always there.`,
+${referralUrl}`,
 
-  // Link
-  url: 'https://ferni.ai',
+    // Shorter version for SMS/Twitter
+    shortMessage: `Know someone who could use a friend who actually listens? Meet Ferni - we'll both get seeds to grow together! ${referralUrl}`,
 
-  // Email subject
-  emailSubject: 'Someone who gets it',
+    // Link (personalized)
+    url: referralUrl,
 
-  // Email body
-  emailBody: `Hey,
+    // Email subject
+    emailSubject: 'Someone who gets it',
+
+    // Email body
+    emailBody: `Hey,
 
 I wanted to share something with you. I've been talking to Ferni - it's hard to explain, but it's like having a friend who actually remembers everything you've told them, is always available when you need to talk, and never judges.
 
 I thought of you because I know you'd appreciate having someone like that in your corner.
 
-Check it out: https://ferni.ai
+When you join, we'll both get some seeds to grow together - they're like Ferni's way of celebrating new friendships.
+
+Check it out: ${referralUrl}
 
 No pressure - just wanted to share something that's been meaningful to me.`,
-};
+  };
+}
 
 // ============================================================================
 // PUBLIC API
@@ -136,6 +154,12 @@ function createModal(): void {
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-label', 'Share Ferni with a friend');
 
+  // Get personalized URL and garden stats
+  const referralUrl = getReferralUrl();
+  const gardenStats = getGardenStats();
+  const totalSeeds = getTotalReferralSeeds();
+  const shortUrl = referralUrl.replace('https://', '').replace('http://', '');
+
   modal.innerHTML = `
     <div class="referral-backdrop"></div>
     <div class="referral-content">
@@ -145,12 +169,27 @@ function createModal(): void {
 
       <div class="referral-header">
         <span class="referral-icon">${ICONS.heart}</span>
-        <h2 class="referral-title">Someone Who Gets It</h2>
+        <h2 class="referral-title">Share the Growth</h2>
         <p class="referral-subtitle">Know someone who could use a friend like this?</p>
+      </div>
+
+      <!-- Seeds Bonus Banner -->
+      <div class="referral-bonus">
+        <span class="referral-bonus-icon">🌱</span>
+        <div class="referral-bonus-text">
+          <strong>You'll both get ${REFERRAL_SIGNUP_REWARD} seeds</strong>
+          <span>when they join!</span>
+        </div>
       </div>
 
       <div class="referral-message">
         <p>"Give them someone who remembers everything, shows up at 2am, and never judges."</p>
+      </div>
+
+      <!-- Your Link -->
+      <div class="referral-link-container">
+        <span class="referral-link-label">Your link:</span>
+        <span class="referral-link-url">${shortUrl}</span>
       </div>
 
       <div class="referral-actions">
@@ -172,7 +211,16 @@ function createModal(): void {
         </button>
       </div>
 
-      <p class="referral-note">No referral codes, no rewards. Just share something meaningful.</p>
+      <!-- Garden Stats (if they have referrals) -->
+      ${gardenStats.totalReferrals > 0 || totalSeeds > 0 ? `
+        <div class="referral-garden">
+          <span class="referral-garden-title">Your garden:</span>
+          <span class="referral-garden-stats">${gardenStats.totalReferrals} friend${gardenStats.totalReferrals !== 1 ? 's' : ''} growing</span>
+          ${totalSeeds > 0 ? `<span class="referral-garden-earned">You've earned ${totalSeeds} seeds from sharing</span>` : ''}
+        </div>
+      ` : `
+        <p class="referral-note">Seeds grow when shared. Start your garden today.</p>
+      `}
     </div>
   `;
 

@@ -103,7 +103,8 @@ interface CuratedEpisode {
   discussionPrompts: string[];
 }
 
-const CURATED_PODCASTS: CuratedPodcast[] = [
+// Exported for use by intelligent curator
+export const CURATED_PODCASTS: CuratedPodcast[] = [
   {
     id: 'huberman-lab',
     title: 'Huberman Lab',
@@ -170,7 +171,8 @@ const CURATED_PODCASTS: CuratedPodcast[] = [
   },
 ];
 
-const CURATED_EPISODES: CuratedEpisode[] = [
+// Exported for use by intelligent curator
+export const CURATED_EPISODES: CuratedEpisode[] = [
   // Huberman Lab
   {
     id: 'huberman-sleep',

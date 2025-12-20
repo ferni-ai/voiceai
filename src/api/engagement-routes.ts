@@ -42,6 +42,7 @@ import { handleRelationshipRoutes } from './routes/relationship.js';
 import { handleRitualsRoutes } from './routes/rituals.js';
 import { handleSkyCheckRoutes } from './routes/sky-check.js';
 import { handleTeamRoutes } from './routes/team.js';
+import { handleTeamInsightsRoutes } from './routes/team-insights.js';
 import { handleVideoSessionRoutes } from './routes/video-sessions.js';
 import { handleWearableRoutes } from './routes/wearable.js';
 
@@ -61,6 +62,7 @@ const ENGAGEMENT_ROUTE_PREFIXES = [
   '/api/video',
   '/api/wearable',
   '/api/group',
+  '/api/team-insights',
 ];
 
 /**
@@ -188,6 +190,11 @@ export async function handleEngagementRoutes(
 
   // Group Coaching (Multi-participant sessions)
   if (await handleGroupCoachingRoutes(req, res, pathname, parsedUrl)) {
+    return true;
+  }
+
+  // Team Insights (Cross-persona intelligence)
+  if (await handleTeamInsightsRoutes(req, res, pathname)) {
     return true;
   }
 

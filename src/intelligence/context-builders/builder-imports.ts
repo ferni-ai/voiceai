@@ -50,6 +50,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'persona-mood': () => import('./persona-mood.js'),
   'human-personality': () => import('./human-personality.js'),
   'ferni-personality': () => import('./ferni-personality.js'), // Ferni-specific: dynamic expressions, pushbacks, passions
+  'ferni-coordinator-intelligence': () => import('./ferni-coordinator-intelligence.js'), // Ferni: smart handoff suggestions
   'peter-research-insights': () => import('./peter-research-insights.js'), // Peter-specific: deep research briefings
   'maya-habit-insights': () => import('./maya-habit-insights.js'), // Maya-specific: habit patterns and predictive care
   'maya-coaching-insights': () => import('./maya-coaching-insights.js'), // Maya: cross-team coaching insights

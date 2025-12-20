@@ -57,6 +57,7 @@
       "whatILearned": "Was ich gelernt habe",
       "memoryBrowser": "Unsere Erinnerungen",
       "wellbeingDashboard": "Ihr Wohlbefinden",
+      "teamInsights": "Team-Einblicke",
       "conversationHistory": "Vergangene Gespräche",
       "videoSessions": "Video-Chat",
       "groupCoaching": "Gruppensitzungen",
@@ -216,17 +217,23 @@
     }
   },
   "subscription": {
-    "free": "Kostenlos",
-    "friend": "Freund",
-    "partner": "Partner",
-    "upgrade": "Upgrade",
-    "currentPlan": "Aktueller Plan",
-    "planDetails": "Plan-Details",
-    "features": "Funktionen",
+    "free": "Community",
+    "friend": "Gründungsmitglied",
+    "partner": "Gründungspatron",
+    "upgrade": "Ferni Unterstützen",
+    "chipIn": "Beitragen",
+    "currentPlan": "Du Bist Hier",
+    "planDetails": "Deine Unterstützung",
+    "features": "Vorteile",
     "unlimitedConversations": "Unbegrenzte Gespräche",
-    "allTeamMembers": "Alle Teammitglieder",
+    "allTeamMembers": "Voller Teamzugang",
     "prioritySupport": "Prioritäts-Support",
-    "advancedInsights": "Erweiterte Einblicke"
+    "advancedInsights": "Früher Zugang zu Funktionen",
+    "helpBuild": "Hilf Uns Das Aufzubauen",
+    "foundersSubtitle": "Ferni ist für immer kostenlos. Wenn du an das glaubst, was wir aufbauen, trag bei.",
+    "thankYouPerks": "Als Dankeschön schalten wir einige Vorteile frei.",
+    "notReady": "Nicht bereit? Das ist völlig in Ordnung.",
+    "freeForever": "Für immer kostenlos"
   },
   "team": {
     "meetTheTeam": "Das Team kennenlernen",
@@ -597,6 +604,7 @@
     "submitNewItem": "Neues Element einreichen",
     "openDailyPractice": "Tägliche Übung öffnen",
     "openPredictions": "Vorhersagen öffnen",
+    "openTeamInsights": "Team-Einblicke öffnen",
     "shareJourney": "Deine Reise teilen",
     "forgetThis": "Dies vergessen",
     "cancelInstallation": "Installation abbrechen",
@@ -650,6 +658,7 @@
     "sharedSong": "Ein Lied, das wir teilen",
     "dailyPractice": "Tägliche Übung",
     "predictions": "Vorhersagen",
+    "teamInsights": "Team-Einblicke",
     "runScenario": "Szenario ausführen"
   }
 }

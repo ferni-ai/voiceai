@@ -121,9 +121,7 @@ async function getUserStateSnapshot(userId: string): Promise<UserStateSnapshot> 
 
     if (triggers.length > 0) {
       const stressTriggers = triggers.filter((t) =>
-        ['stressed', 'anxious', 'overwhelmed', 'tired'].includes(
-          t.emotion?.toLowerCase() || ''
-        )
+        ['stressed', 'anxious', 'overwhelmed', 'tired'].includes(t.emotion?.toLowerCase() || '')
       );
 
       if (stressTriggers.length >= 3) {
@@ -137,7 +135,9 @@ async function getUserStateSnapshot(userId: string): Promise<UserStateSnapshot> 
 
     // Get energy/productivity signals from habits (Maya's domain)
     const productivityStore = getProductivityStore();
-    const userData = (productivityStore as unknown as { getFullUserData: (id: string) => ProductivityUserData }).getFullUserData?.(userId);
+    const userData = (
+      productivityStore as unknown as { getFullUserData: (id: string) => ProductivityUserData }
+    ).getFullUserData?.(userId);
     const enhancedHabits = userData?.enhancedHabits || [];
     const activeHabits = enhancedHabits.filter((h) => h.isActive && !h.isPaused);
 
@@ -202,9 +202,7 @@ function getUpcomingPriorities(userId: string): UpcomingPriority[] {
       if (goal.deadline) {
         const now = new Date();
         const deadline = new Date(goal.deadline);
-        const daysUntil = Math.ceil(
-          (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-        );
+        const daysUntil = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
         if (daysUntil <= 7 && daysUntil > 0) {
           priorities.push({
@@ -227,7 +225,9 @@ function getUpcomingPriorities(userId: string): UpcomingPriority[] {
 
     // Get habits that might need check-ins
     const productivityStore = getProductivityStore();
-    const userData = (productivityStore as unknown as { getFullUserData: (id: string) => ProductivityUserData }).getFullUserData?.(userId);
+    const userData = (
+      productivityStore as unknown as { getFullUserData: (id: string) => ProductivityUserData }
+    ).getFullUserData?.(userId);
     const enhancedHabits = userData?.enhancedHabits || [];
     const activeHabits = enhancedHabits.filter((h) => h.isActive && !h.isPaused);
 
@@ -251,9 +251,46 @@ function getUpcomingPriorities(userId: string): UpcomingPriority[] {
   return priorities;
 }
 
-function buildCommunicationContext(
-  handoffContext?: HandoffContextType
-): CommunicationContext {
+// Patterns for topic classification (defined once, used many times)
+const CONVERSATION_PATTERNS = ['conversation', 'talk to', 'tell', 'ask'];
+const BOUNDARY_PATTERNS = ['boundary', 'say no', 'confront'];
+const PROFESSIONAL_PATTERNS = ['boss', 'manager', 'coworker', 'colleague'];
+const PERSONAL_PATTERNS = ['family', 'parent', 'partner', 'spouse'];
+
+function classifyTopic(topic: string): { difficult: boolean; dynamic: string | null } {
+  const lower = topic.toLowerCase();
+  const isDifficult =
+    CONVERSATION_PATTERNS.some((p) => lower.includes(p)) ||
+    BOUNDARY_PATTERNS.some((p) => lower.includes(p));
+
+  let dynamic: string | null = null;
+  if (PROFESSIONAL_PATTERNS.some((p) => lower.includes(p))) {
+    dynamic = `Professional relationship: ${topic}`;
+  } else if (PERSONAL_PATTERNS.some((p) => lower.includes(p))) {
+    dynamic = `Personal relationship: ${topic}`;
+  }
+
+  return { difficult: isDifficult, dynamic };
+}
+
+function analyzeEmotionalStateForCommunication(emotionalState: string): string[] {
+  const patterns: string[] = [];
+  const emo = emotionalState.toLowerCase();
+
+  if (emo.includes('anxious') || emo.includes('nervous')) {
+    patterns.push('User is anxious - slow down, practice scenarios');
+  }
+  if (emo.includes('frustrated') || emo.includes('angry')) {
+    patterns.push('User is frustrated - help process before composing');
+  }
+  if (emo.includes('avoidant') || emo.includes('hesitant')) {
+    patterns.push('User seems avoidant - explore the fear behind it');
+  }
+
+  return patterns;
+}
+
+function buildCommunicationContext(handoffContext?: HandoffContextType): CommunicationContext {
   const context: CommunicationContext = {
     pendingFollowUps: [],
     recentDifficultTopics: [],
@@ -261,66 +298,20 @@ function buildCommunicationContext(
     relationshipDynamics: [],
   };
 
-  if (handoffContext) {
-    // Analyze topics for communication-related content
-    for (const topic of handoffContext.topics || []) {
-      const lower = topic.toLowerCase();
+  if (!handoffContext) return context;
 
-      if (
-        lower.includes('conversation') ||
-        lower.includes('talk to') ||
-        lower.includes('tell') ||
-        lower.includes('ask')
-      ) {
-        context.recentDifficultTopics.push(topic);
-      }
+  // Classify each topic
+  for (const topic of handoffContext.topics || []) {
+    const { difficult, dynamic } = classifyTopic(topic);
+    if (difficult) context.recentDifficultTopics.push(topic);
+    if (dynamic) context.relationshipDynamics.push(dynamic);
+  }
 
-      if (
-        lower.includes('boundary') ||
-        lower.includes('say no') ||
-        lower.includes('confront')
-      ) {
-        context.recentDifficultTopics.push(topic);
-      }
-
-      if (
-        lower.includes('boss') ||
-        lower.includes('manager') ||
-        lower.includes('coworker') ||
-        lower.includes('colleague')
-      ) {
-        context.relationshipDynamics.push(`Professional relationship: ${topic}`);
-      }
-
-      if (
-        lower.includes('family') ||
-        lower.includes('parent') ||
-        lower.includes('partner') ||
-        lower.includes('spouse')
-      ) {
-        context.relationshipDynamics.push(`Personal relationship: ${topic}`);
-      }
-    }
-
-    // Analyze emotional state for communication style guidance
-    if (handoffContext.emotionalState) {
-      const emo = handoffContext.emotionalState.toLowerCase();
-      if (emo.includes('anxious') || emo.includes('nervous')) {
-        context.communicationPatterns.push(
-          'User is anxious - slow down, practice scenarios'
-        );
-      }
-      if (emo.includes('frustrated') || emo.includes('angry')) {
-        context.communicationPatterns.push(
-          'User is frustrated - help process before composing'
-        );
-      }
-      if (emo.includes('avoidant') || emo.includes('hesitant')) {
-        context.communicationPatterns.push(
-          'User seems avoidant - explore the fear behind it'
-        );
-      }
-    }
+  // Analyze emotional state
+  if (handoffContext.emotionalState) {
+    context.communicationPatterns = analyzeEmotionalStateForCommunication(
+      handoffContext.emotionalState
+    );
   }
 
   return context;
@@ -363,21 +354,15 @@ function identifyCoachingOpportunities(
         break;
       case 'maya':
       case 'maya-santos':
-        opportunities.push(
-          'Coming from Maya - check if habits need accountability scheduling'
-        );
+        opportunities.push('Coming from Maya - check if habits need accountability scheduling');
         break;
       case 'jordan':
       case 'jordan-taylor':
-        opportunities.push(
-          'Coming from Jordan - check if goals need coordination/scheduling'
-        );
+        opportunities.push('Coming from Jordan - check if goals need coordination/scheduling');
         break;
       case 'nayan':
       case 'nayan-patel':
-        opportunities.push(
-          'Coming from Nayan - wisdom context, approach communication mindfully'
-        );
+        opportunities.push('Coming from Nayan - wisdom context, approach communication mindfully');
         break;
     }
   }
@@ -486,83 +471,62 @@ async function buildCommunicationBriefing(
 // FORMATTING
 // ============================================================================
 
+function formatUserStateSection(userState: CommunicationBriefing['userState']): string[] {
+  const lines = [
+    '\n--- USER STATE ---',
+    `• Stress level: ${userState.stressLevel}`,
+    `• Energy: ${userState.energyLevel}`,
+    `• Productivity: ${userState.productivityMomentum}`,
+    `• Time context: ${userState.timeOfDayContext}`,
+  ];
+  if (userState.stressSignals.length > 0) {
+    lines.push(`• Stress signals: ${userState.stressSignals.join(', ')}`);
+  }
+  return lines;
+}
+
+function formatPrioritiesSection(priorities: CommunicationBriefing['upcomingPriorities']): string[] {
+  if (priorities.length === 0) return [];
+  const urgencyEmoji: Record<string, string> = { critical: '🚨', high: '⚠️' };
+  return [
+    '\n--- PRIORITIES ---',
+    ...priorities.slice(0, 5).flatMap((p) => {
+      const emoji = urgencyEmoji[p.urgency] || '📋';
+      const lines = [`${emoji} [${p.source}] ${p.description}`];
+      if (p.actionNeeded) lines.push(`   → ${p.actionNeeded}`);
+      return lines;
+    }),
+  ];
+}
+
+function formatCommunicationContextSection(ctx: CommunicationContext): string[] {
+  const hasContent = ctx.recentDifficultTopics.length > 0 || ctx.relationshipDynamics.length > 0;
+  if (!hasContent) return [];
+  return [
+    '\n--- COMMUNICATION CONTEXT ---',
+    ...ctx.recentDifficultTopics.map((t) => `• Difficult topic: ${t}`),
+    ...ctx.relationshipDynamics.map((d) => `• ${d}`),
+    ...ctx.communicationPatterns.map((p) => `• ${p}`),
+  ];
+}
+
 function formatBriefingForInjection(briefing: CommunicationBriefing): string[] {
-  const sections: string[] = ['[ALEX COMMUNICATION BRIEFING]'];
-
-  // User state
-  sections.push('\n--- USER STATE ---');
-  sections.push(`• Stress level: ${briefing.userState.stressLevel}`);
-  sections.push(`• Energy: ${briefing.userState.energyLevel}`);
-  sections.push(`• Productivity: ${briefing.userState.productivityMomentum}`);
-  sections.push(`• Time context: ${briefing.userState.timeOfDayContext}`);
-
-  if (briefing.userState.stressSignals.length > 0) {
-    sections.push(`• Stress signals: ${briefing.userState.stressSignals.join(', ')}`);
-  }
-
-  // Upcoming priorities
-  if (briefing.upcomingPriorities.length > 0) {
-    sections.push('\n--- PRIORITIES ---');
-    for (const priority of briefing.upcomingPriorities.slice(0, 5)) {
-      const urgencyEmoji =
-        priority.urgency === 'critical'
-          ? '🚨'
-          : priority.urgency === 'high'
-            ? '⚠️'
-            : '📋';
-      sections.push(`${urgencyEmoji} [${priority.source}] ${priority.description}`);
-      if (priority.actionNeeded) {
-        sections.push(`   → ${priority.actionNeeded}`);
-      }
-    }
-  }
-
-  // Communication context
-  if (
-    briefing.communicationContext.recentDifficultTopics.length > 0 ||
-    briefing.communicationContext.relationshipDynamics.length > 0
-  ) {
-    sections.push('\n--- COMMUNICATION CONTEXT ---');
-    for (const topic of briefing.communicationContext.recentDifficultTopics) {
-      sections.push(`• Difficult topic: ${topic}`);
-    }
-    for (const dynamic of briefing.communicationContext.relationshipDynamics) {
-      sections.push(`• ${dynamic}`);
-    }
-    for (const pattern of briefing.communicationContext.communicationPatterns) {
-      sections.push(`• ${pattern}`);
-    }
-  }
-
-  // Coaching opportunities
-  if (briefing.coachingOpportunities.length > 0) {
-    sections.push('\n--- COACHING OPPORTUNITIES ---');
-    for (const opp of briefing.coachingOpportunities.slice(0, 4)) {
-      sections.push(`• ${opp}`);
-    }
-  }
-
-  // Team insights
-  if (briefing.teamInsights.length > 0) {
-    sections.push('\n--- TEAM INSIGHTS ---');
-    for (const insight of briefing.teamInsights.filter((i) => i.relevance === 'direct')) {
-      sections.push(`• [${insight.from}] ${insight.insight}`);
-    }
-  }
-
-  // Action items
-  if (briefing.actionItems.length > 0) {
-    sections.push('\n--- SUGGESTED ACTIONS ---');
-    for (const action of briefing.actionItems) {
-      sections.push(`→ ${action}`);
-    }
-  }
-
-  sections.push(
-    '\n[Remember: Clear is kind. Slow down for stress. Shows love through clarity.]'
-  );
-
-  return sections;
+  return [
+    '[ALEX COMMUNICATION BRIEFING]',
+    ...formatUserStateSection(briefing.userState),
+    ...formatPrioritiesSection(briefing.upcomingPriorities),
+    ...formatCommunicationContextSection(briefing.communicationContext),
+    ...(briefing.coachingOpportunities.length > 0
+      ? ['\n--- COACHING OPPORTUNITIES ---', ...briefing.coachingOpportunities.slice(0, 4).map((o) => `• ${o}`)]
+      : []),
+    ...(briefing.teamInsights.length > 0
+      ? ['\n--- TEAM INSIGHTS ---', ...briefing.teamInsights.filter((i) => i.relevance === 'direct').map((i) => `• [${i.from}] ${i.insight}`)]
+      : []),
+    ...(briefing.actionItems.length > 0
+      ? ['\n--- SUGGESTED ACTIONS ---', ...briefing.actionItems.map((a) => `→ ${a}`)]
+      : []),
+    '\n[Remember: Clear is kind. Slow down for stress. Shows love through clarity.]',
+  ];
 }
 
 // ============================================================================
@@ -606,9 +570,7 @@ async function buildAlexCommunicationInsightsContext(
 
     if (hasContent) {
       const formattedSections = formatBriefingForInjection(briefing);
-      injections.push(
-        createStandardInjection(formattedSections.join('\n'), 'alex_briefing')
-      );
+      injections.push(createStandardInjection(formattedSections.join('\n'), 'alex_briefing'));
       log.info(
         { userId, stressLevel: briefing.userState.stressLevel },
         '📬 Alex loaded with communication briefing'

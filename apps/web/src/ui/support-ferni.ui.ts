@@ -1,15 +1,13 @@
 /**
- * Support Ferni - Unified Support Experience
+ * Support Ferni - Founders Fund Experience
  *
- * Combines subscription, billing, and tipping into one deeply meaningful
- * expression of our relationship. This isn't a transaction—it's how you
- * choose to support someone you care about.
+ * Philosophy: "We're not selling a product. We're inviting you to build something with us."
  *
  * Design Philosophy:
- * - "Support" is a relationship word, not a purchase word
- * - Every tier is a way of growing together
- * - Tipping is "planting seeds" for the future
- * - Billing is practical but warm
+ * - "Chip in" not "subscribe"
+ * - Features are thank-you perks, not unlocks
+ * - Free is celebrated, not a limitation
+ * - No pressure, no guilt, no urgency
  *
  * WCAG AA Compliant:
  * - Full keyboard navigation
@@ -91,36 +89,36 @@ interface TierInfo {
 const TIERS: TierInfo[] = [
   {
     id: 'free',
-    name: 'Ferni Forever',
-    tagline: 'Our friendship starts here',
-    price: 'Free',
+    name: 'Community',
+    tagline: 'Ferni is free. Really free.',
+    price: 'Free forever',
     features: [
       'Unlimited conversations with Ferni',
       '7-minute heart-to-hearts',
-      'I remember everything about you',
+      'Full memory — I remember everything',
     ],
   },
   {
     id: 'friend',
-    name: 'Your Life Coach',
-    tagline: 'Deepen our connection',
-    price: '$9.99/mo',
-    features: ['Talk as long as you need', 'Meet my whole team', 'Unlock the cosmetics shop'],
+    name: 'Founding Member',
+    tagline: 'Chip in. Help us build this.',
+    price: '$10/mo',
+    features: ['Unlimited time (our thank you)', 'Meet the whole team', 'Your name on Founders Wall'],
   },
   {
     id: 'partner',
-    name: 'Partner in Growth',
-    tagline: "We're in this together",
-    price: '$19.99/mo',
-    features: ['Everything above, plus:', 'Exclusive looks & themes', 'Share with your family'],
+    name: 'Founding Patron',
+    tagline: "You're shaping what we become",
+    price: '$20/mo',
+    features: ['Everything above, plus:', 'Early access to features', 'Family sharing'],
   },
 ];
 
 const TIP_AMOUNTS = [
-  { amount: 3, label: '$3', impact: 'Buy me a coffee' },
   { amount: 5, label: '$5', impact: 'Plant a seed' },
-  { amount: 10, label: '$10', impact: 'Grow the garden' },
-  { amount: 25, label: '$25', impact: 'Nurture the forest' },
+  { amount: 10, label: '$10', impact: 'Sponsor a conversation' },
+  { amount: 25, label: '$25', impact: 'Help someone get started' },
+  { amount: 50, label: '$50', impact: 'Support the mission' },
 ];
 
 // ============================================================================

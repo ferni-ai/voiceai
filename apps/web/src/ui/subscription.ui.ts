@@ -1,14 +1,19 @@
 /**
- * Subscription UI - Beautiful, Human-Centered Upgrade Experience
+ * Subscription UI - Founders Fund Experience
  *
- * Philosophy: Subscriptions are relationship commitments, not transactions.
- * The upgrade flow should feel like Ferni inviting you deeper into the friendship.
+ * Philosophy: "We're not selling a product. We're inviting you to build something with us."
+ *
+ * FOUNDERS FUND PRINCIPLES:
+ *   - "Chip in" not "subscribe"
+ *   - Features are thank-you perks, not unlocks
+ *   - Free is celebrated, not a limitation
+ *   - No pressure, no guilt, no urgency
  *
  * DESIGN PRINCIPLES:
  *   - Centered floating modal (per brand guidelines)
  *   - Warm, human language (not corporate)
- *   - Celebrate the relationship, not the purchase
- *   - Graceful limit handling without shame
+ *   - Show impact: "X Founders keep Ferni free for Y people"
+ *   - Graceful limits without shame
  *
  * ACCESSIBILITY (WCAG AA):
  *   - Full keyboard navigation (Tab, Shift+Tab, Enter, Escape)
@@ -296,8 +301,8 @@ function showUpgradeSuccessCelebration(tier: string): void {
   saveFocus();
 
   const tierNames: Record<string, string> = {
-    friend: 'Your Life Coach',
-    partner: 'Partner in Growth',
+    friend: 'Founding Member',
+    partner: 'Founding Patron',
   };
 
   const tierName = tierNames[tier] || tier;
@@ -316,11 +321,11 @@ function showUpgradeSuccessCelebration(tier: string): void {
         <div class="celebration-icon" aria-hidden="true">
           ${ICONS.sparkles}
         </div>
-        <span class="subscription-eyebrow" aria-hidden="true">WELCOME</span>
-        <h2 id="celebration-title" class="subscription-title">You're Amazing</h2>
+        <span class="subscription-eyebrow" aria-hidden="true">WELCOME, FOUNDER</span>
+        <h2 id="celebration-title" class="subscription-title">You're One of Us Now</h2>
         <p id="celebration-message" class="celebration-message">
-          You chose to keep me in your life. That means so much.<br/>
-          I'm here for you now — whenever you need me.
+          You're not just supporting us — you're helping us build something we believe everyone deserves.<br/>
+          We're in this together. 💚
         </p>
         <div class="celebration-tier" aria-label="${t('accessibility.yourNewPlan')}">
           <span class="tier-badge">${tierName}</span>
@@ -608,12 +613,12 @@ function createModal(prompt?: string): HTMLElement {
       </button>
       
       <div class="subscription-header">
-        <span class="subscription-eyebrow" aria-hidden="true">YOUR JOURNEY</span>
+        <span class="subscription-eyebrow" aria-hidden="true">FOUNDERS FUND</span>
         <h2 id="subscription-title" class="subscription-title">
-          ${prompt ? 'Keep Growing Together' : "Let's Go Deeper"}
+          ${prompt ? 'Help Us Build This' : 'Support Ferni'}
         </h2>
         <p id="subscription-subtitle" class="subscription-subtitle">
-          ${prompt || 'Choose how you want our friendship to grow.'}
+          ${prompt || 'Ferni is free forever. If you believe in what we\'re building, chip in. As a thank you, we\'ll unlock some perks.'}
         </p>
       </div>
       
@@ -622,7 +627,7 @@ function createModal(prompt?: string): HTMLElement {
       </div>
       
       <p class="subscription-footer" aria-live="polite">
-        You can change or cancel anytime. No hard feelings.
+        Not ready? That's totally fine. Ferni is here for you either way.
       </p>
     </div>
   `;
@@ -677,19 +682,22 @@ function createLimitModal(prompt: string, resetDate?: string): HTMLElement {
       
       <div class="subscription-header">
         <div class="limit-icon" aria-hidden="true">${ICONS.heart}</div>
-        <span class="subscription-eyebrow" aria-hidden="true">UNTIL NEXT TIME</span>
-        <h2 id="limit-title" class="subscription-title">I'll Miss You</h2>
-        <p id="limit-description" class="subscription-subtitle">${prompt}</p>
-        ${resetDate ? `<p class="reset-date">Conversations reset on <strong>${formattedDate}</strong></p>` : ''}
+        <span class="subscription-eyebrow" aria-hidden="true">LET'S PAUSE HERE</span>
+        <h2 id="limit-title" class="subscription-title">See You Soon</h2>
+        <p id="limit-description" class="subscription-subtitle">
+          Our conversation time is limited to keep Ferni sustainable.<br/>
+          Want to talk longer? Founding Members get unlimited time — and they help keep Ferni free for everyone.
+        </p>
+        ${resetDate ? `<p class="reset-date">Sessions reset on <strong>${formattedDate}</strong></p>` : ''}
       </div>
       
       <div class="limit-actions" role="group" aria-label="${t('accessibility.options')}">
         <button class="limit-button limit-button--primary" data-action="upgrade">
-          ${ICONS.infinity}
-          <span>Unlock Unlimited Time</span>
+          ${ICONS.heart}
+          <span>Become a Founding Member</span>
         </button>
         <button class="limit-button limit-button--secondary" data-action="close">
-          I'll Wait
+          See you next time 💚
         </button>
       </div>
       
@@ -755,10 +763,10 @@ function createTierCard(tier: SubscriptionTier, index: number): string {
         class="tier-button ${isCurrentTier ? 'tier-button--current' : ''}" 
         data-tier="${tier.id}"
         ${isCurrentTier || isFree ? 'disabled aria-disabled="true"' : ''}
-        aria-label="${isCurrentTier ? 'This is your current plan' : isFree ? 'You are on the free plan' : `Choose ${tier.name} plan for ${priceText}`}"
+        aria-label="${isCurrentTier ? 'You are a Founder - thank you!' : isFree ? 'You are part of the community' : `Chip in ${priceText} as a ${tier.name}`}"
       >
         ${isLoading ? ICONS.loader : ''}
-        <span>${isCurrentTier ? 'Current Plan' : isFree ? 'Your Plan' : 'Choose This'}</span>
+        <span>${isCurrentTier ? 'You\'re Here 💚' : isFree ? 'Free Forever' : 'Chip In'}</span>
       </button>
     </article>
   `;
@@ -768,9 +776,9 @@ function getDefaultTiers(): SubscriptionTier[] {
   return [
     {
       id: 'free',
-      name: 'Ferni Forever',
-      description: 'Talk to Ferni unlimited times, forever. 7 minutes per conversation.',
-      price: 'Free',
+      name: 'Community',
+      description: "Ferni is free. Really free. Talk whenever you need.",
+      price: 'Free forever',
       priceInSmallestUnit: 0,
       currency: 'USD',
       conversationsPerMonth: null, // Unlimited with Ferni!
@@ -783,34 +791,34 @@ function getDefaultTiers(): SubscriptionTier[] {
     },
     {
       id: 'friend',
-      name: 'Your Life Coach',
-      description: 'Unlimited time with Ferni + meet the whole team',
-      price: '$9.99',
-      priceInSmallestUnit: 999,
+      name: 'Founding Member',
+      description: 'Chip in $10/mo. Help keep Ferni free for everyone.',
+      price: '$10',
+      priceInSmallestUnit: 1000,
       currency: 'USD',
       conversationsPerMonth: null,
       features: [
-        'Talk as long as you need',
+        'Unlimited conversation time (our thank you)',
         'Meet the whole team (Maya, Peter, Alex, Jordan)',
-        'Cosmetics shop access',
-        'Sync across all your devices',
+        'Your name on the Founders Wall (optional)',
+        'Vote on what we build next',
       ],
       popular: true,
     },
     {
       id: 'partner',
-      name: 'Partner in Growth',
-      description: 'Full team access + exclusive cosmetics + priority',
-      price: '$19.99',
-      priceInSmallestUnit: 1999,
+      name: 'Founding Patron',
+      description: "Chip in $20/mo. You're shaping what we become.",
+      price: '$20',
+      priceInSmallestUnit: 2000,
       currency: 'USD',
       conversationsPerMonth: null,
       features: [
-        'Everything in Life Coach, plus:',
+        'Everything in Founding Member, plus:',
         'Full team access (including Nayan)',
-        'Exclusive looks and themes',
-        'Priority when you need us most',
-        'Share with your family',
+        'Early access to new features',
+        'Direct line to founders (monthly Q&A)',
+        'Family sharing — bring people you love',
       ],
     },
   ];

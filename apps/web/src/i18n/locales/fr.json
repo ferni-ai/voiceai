@@ -57,6 +57,7 @@
       "whatILearned": "Ce que J'ai Appris",
       "memoryBrowser": "Nos Souvenirs",
       "wellbeingDashboard": "Votre Bien-être",
+      "teamInsights": "Perspectives de l'équipe",
       "conversationHistory": "Conversations Passées",
       "videoSessions": "Chat Vidéo",
       "groupCoaching": "Sessions de Groupe",
@@ -216,17 +217,23 @@
     }
   },
   "subscription": {
-    "free": "Gratuit",
-    "friend": "Ami",
-    "partner": "Partenaire",
-    "upgrade": "Améliorer",
-    "currentPlan": "Plan Actuel",
-    "planDetails": "Détails du Plan",
-    "features": "Fonctionnalités",
+    "free": "Communauté",
+    "friend": "Membre Fondateur",
+    "partner": "Mécène Fondateur",
+    "upgrade": "Soutenir Ferni",
+    "chipIn": "Contribuer",
+    "currentPlan": "Vous Êtes Ici",
+    "planDetails": "Votre Soutien",
+    "features": "Avantages",
     "unlimitedConversations": "Conversations illimitées",
-    "allTeamMembers": "Tous les membres de l'équipe",
+    "allTeamMembers": "Accès à toute l'équipe",
     "prioritySupport": "Support prioritaire",
-    "advancedInsights": "Perspectives avancées"
+    "advancedInsights": "Accès anticipé aux fonctionnalités",
+    "helpBuild": "Aidez-Nous à Construire",
+    "foundersSubtitle": "Ferni est gratuit pour toujours. Si vous croyez en ce que nous construisons, contribuez.",
+    "thankYouPerks": "En remerciement, nous débloquerons quelques avantages.",
+    "notReady": "Pas prêt ? C'est tout à fait normal.",
+    "freeForever": "Gratuit pour toujours"
   },
   "team": {
     "meetTheTeam": "Rencontrez l'Équipe",
@@ -597,6 +604,7 @@
     "submitNewItem": "Soumettre un nouvel élément",
     "openDailyPractice": "Ouvrir la pratique quotidienne",
     "openPredictions": "Ouvrir les prédictions",
+    "openTeamInsights": "Ouvrir les perspectives de l'équipe",
     "shareJourney": "Partager votre parcours",
     "forgetThis": "Oublier ceci",
     "cancelInstallation": "Annuler l'installation",
@@ -650,6 +658,7 @@
     "sharedSong": "Une chanson que nous partageons",
     "dailyPractice": "Pratique quotidienne",
     "predictions": "Prédictions",
+    "teamInsights": "Perspectives de l'équipe",
     "runScenario": "Exécuter le scénario"
   }
 }

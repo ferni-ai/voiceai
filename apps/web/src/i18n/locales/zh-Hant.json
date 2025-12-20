@@ -57,6 +57,7 @@
       "whatILearned": "我學到的",
       "memoryBrowser": "我們的回憶",
       "wellbeingDashboard": "您的健康",
+      "teamInsights": "團隊洞察",
       "conversationHistory": "過往對話",
       "videoSessions": "視訊聊天",
       "groupCoaching": "團體會話",
@@ -216,17 +217,23 @@
     }
   },
   "subscription": {
-    "free": "免費",
-    "friend": "朋友",
-    "partner": "夥伴",
-    "upgrade": "升級",
-    "currentPlan": "目前方案",
-    "planDetails": "方案詳情",
-    "features": "功能",
+    "free": "社群",
+    "friend": "創始會員",
+    "partner": "創始贊助人",
+    "upgrade": "支持 Ferni",
+    "chipIn": "參與支持",
+    "currentPlan": "您的位置",
+    "planDetails": "您的支持",
+    "features": "福利",
     "unlimitedConversations": "無限對話",
-    "allTeamMembers": "所有團隊成員",
+    "allTeamMembers": "完整團隊存取",
     "prioritySupport": "優先支援",
-    "advancedInsights": "進階洞察"
+    "advancedInsights": "提前體驗新功能",
+    "helpBuild": "幫助我們建構",
+    "foundersSubtitle": "Ferni 永久免費。如果您相信我們正在建構的東西，請參與支持。",
+    "thankYouPerks": "作為感謝，我們會為您解鎖一些福利。",
+    "notReady": "還沒準備好？沒關係。",
+    "freeForever": "永久免費"
   },
   "team": {
     "meetTheTeam": "認識團隊",
@@ -597,6 +604,7 @@
     "submitNewItem": "提交新項目",
     "openDailyPractice": "開啟每日練習",
     "openPredictions": "開啟預測",
+    "openTeamInsights": "開啟團隊洞察",
     "shareJourney": "分享您的旅程",
     "forgetThis": "忘記這個",
     "cancelInstallation": "取消安裝",
@@ -650,6 +658,7 @@
     "sharedSong": "我們共享的歌曲",
     "dailyPractice": "每日練習",
     "predictions": "預測",
+    "teamInsights": "團隊洞察",
     "runScenario": "執行場景"
   }
 }

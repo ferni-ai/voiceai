@@ -24,12 +24,14 @@ const { trackedTimeout, clearAll: clearAllTimeouts } = createTimeoutTracker();
 export interface EngagementTriggerCallbacks {
   onEngagementClick?: () => void;
   onPredictionsClick?: () => void;
+  onInsightsClick?: () => void;
 }
 
 export interface EngagementBadgeState {
   ritualsdue: number;
   predictionsReady: number;
   streakAtRisk: boolean;
+  insightsNew: number;
 }
 
 // ============================================================================
@@ -43,6 +45,7 @@ class EngagementTriggerUI {
     ritualsdue: 0,
     predictionsReady: 0,
     streakAtRisk: false,
+    insightsNew: 0,
   };
   private isInitialized = false;
 
@@ -89,6 +92,13 @@ class EngagementTriggerUI {
         </svg>
         <span class="engagement-trigger-btn__badge" id="predictionsBadge"></span>
       </button>
+      <button class="engagement-trigger-btn" id="insightsTriggerBtn" aria-label="${t('accessibility.openTeamInsights')}" title="${t('titles.teamInsights')}">
+        <svg class="engagement-trigger-btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>
+          <path d="M9 18h6"/><path d="M10 22h4"/>
+        </svg>
+        <span class="engagement-trigger-btn__badge" id="insightsBadge"></span>
+      </button>
     `;
 
     // Insert after controls row (before spotify button if exists)
@@ -97,6 +107,7 @@ class EngagementTriggerUI {
     // Bind click handlers
     const engagementBtn = document.getElementById('engagementTriggerBtn');
     const predictionsBtn = document.getElementById('predictionsTriggerBtn');
+    const insightsBtn = document.getElementById('insightsTriggerBtn');
 
     engagementBtn?.addEventListener('click', () => {
       this.callbacks.onEngagementClick?.();
@@ -106,6 +117,11 @@ class EngagementTriggerUI {
     predictionsBtn?.addEventListener('click', () => {
       this.callbacks.onPredictionsClick?.();
       this.animateButtonPress(predictionsBtn);
+    });
+
+    insightsBtn?.addEventListener('click', () => {
+      this.callbacks.onInsightsClick?.();
+      this.animateButtonPress(insightsBtn);
     });
   }
 
@@ -142,6 +158,7 @@ class EngagementTriggerUI {
   private renderBadges(): void {
     const engagementBadge = document.getElementById('engagementBadge');
     const predictionsBadge = document.getElementById('predictionsBadge');
+    const insightsBadge = document.getElementById('insightsBadge');
 
     if (engagementBadge) {
       const count = this.badgeState.ritualsdue;
@@ -163,6 +180,16 @@ class EngagementTriggerUI {
         predictionsBadge.classList.add('engagement-trigger-btn__badge--visible');
       } else {
         predictionsBadge.classList.remove('engagement-trigger-btn__badge--visible');
+      }
+    }
+
+    if (insightsBadge) {
+      const count = this.badgeState.insightsNew;
+      if (count > 0) {
+        insightsBadge.textContent = count.toString();
+        insightsBadge.classList.add('engagement-trigger-btn__badge--visible');
+      } else {
+        insightsBadge.classList.remove('engagement-trigger-btn__badge--visible');
       }
     }
   }
@@ -315,6 +342,10 @@ class EngagementTriggerUI {
 
       .engagement-triggers--visible .engagement-trigger-btn:nth-child(2) {
         animation-delay: 80ms;
+      }
+
+      .engagement-triggers--visible .engagement-trigger-btn:nth-child(3) {
+        animation-delay: 160ms;
       }
 
       @keyframes triggerFadeIn {

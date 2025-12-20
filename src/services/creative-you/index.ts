@@ -62,5 +62,43 @@ export {
   type CreativeProfileCardData,
 } from './creative-dna.js';
 
+// Intelligent Curator (AI-powered recommendations)
+export {
+  IntelligentContentCurator,
+  createIntelligentCurator,
+  getIntelligentRecommendations,
+  generateLearningTrackForUser,
+  type UserContext,
+  type IntelligentRecommendation,
+  type GeneratedLearningTrack,
+} from './intelligent-curator.js';
+
+// Curated Content (for direct access)
+export { CURATED_VIDEOS } from './youtube-integration.js';
+export { CURATED_PODCASTS, CURATED_EPISODES } from './podcast-discovery.js';
+
+// YouTube API (Live Content Discovery)
+export {
+  discoverVideosForTopic,
+  discoveredToRecommendation,
+  searchYouTubeVideos,
+  isYouTubeApiAvailable,
+  clearYouTubeCache,
+  TRUSTED_CHANNELS,
+  TOPIC_SEARCH_QUERIES,
+} from './youtube-api-client.js';
+
+// Conversation Integration (connects talk → content)
+export {
+  recordConversationTopics,
+  getUserTopTopics,
+  getTopicFrequency,
+  shouldSuggestContent,
+  getEndOfConversationSuggestion,
+  getPersonalizedCreativeYouContent,
+  type ConversationContentContext,
+  type ContentSuggestion,
+} from './conversation-integration.js';
+
 // Types (from types.ts)
 export * from './types.js';

@@ -382,6 +382,47 @@ export function isDailyBonusAvailable(): boolean {
 }
 
 /**
+ * Claim daily bonus manually (click-to-claim)
+ * Returns the result of the claim attempt
+ */
+export function claimDailyBonus(): { claimed: boolean; amount?: number; reason?: string } {
+  const today = getToday();
+
+  if (isSameDay(state.lastDailyClaimDate, today)) {
+    return { claimed: false, reason: 'Already claimed today' };
+  }
+
+  // Award daily seeds
+  const dailyReward = SEED_REWARDS.dailyConversation;
+  if (!dailyReward) {
+    return { claimed: false, reason: 'Daily reward not configured' };
+  }
+
+  awardSeeds(dailyReward);
+  state.lastDailyClaimDate = today;
+
+  // Update streak logic
+  if (state.lastConversationDate && isYesterday(state.lastConversationDate)) {
+    // Continue streak
+    state.currentStreak += 1;
+    log.debug({ streak: state.currentStreak }, 'Streak continued via daily claim');
+    checkStreakMilestones();
+  } else if (!isSameDay(state.lastConversationDate, today)) {
+    // Streak broken or first claim
+    if (state.currentStreak > 0) {
+      log.info({ previousStreak: state.currentStreak }, 'Streak reset');
+    }
+    state.currentStreak = 1;
+  }
+
+  state.lastConversationDate = today;
+  saveState();
+
+  log.info({ amount: dailyReward.amount }, 'Daily bonus claimed manually');
+  return { claimed: true, amount: dailyReward.amount };
+}
+
+/**
  * Get next streak milestone
  */
 export function getNextStreakMilestone(): number | null {

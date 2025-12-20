@@ -600,16 +600,18 @@ export class QuantFirestoreService {
 
       // Note: Firestore doesn't support multiple inequality filters,
       // so we filter in memory for complex queries
-      const querySnapshot = await colRef
-        .where('acknowledged', '==', false)
-        .where('actionable', '==', true)
-        .orderBy('date', 'desc')
-        .limit(20)
-        .get();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let query: any = colRef;
+      query = query.where('acknowledged', '==', false);
+      query = query.where('actionable', '==', true);
+      query = query.orderBy('date', 'desc');
+      query = query.limit(20);
+      
+      const querySnapshot = await query.get();
 
       return querySnapshot.docs
-        .map(doc => this.deserializeInsight(doc.data()!))
-        .filter(i => i.priority === 'high' || i.priority === 'medium');
+        .map((doc: { data: () => Record<string, unknown> }) => this.deserializeInsight(doc.data()))
+        .filter((i: QuantInsight) => i.priority === 'high' || i.priority === 'medium');
     } catch (error) {
       log.error({ error: String(error), userId }, 'Failed to load actionable insights');
       return [];

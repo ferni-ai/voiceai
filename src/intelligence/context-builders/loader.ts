@@ -89,6 +89,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'persona-mood',
     'human-personality', // Semantic matching, timing intelligence, callbacks
     'ferni-personality', // Ferni-specific: dynamic expressions, pushbacks, passions
+    'ferni-coordinator-intelligence', // Ferni-specific: smart handoff suggestions from cross-team insights
     'peter-research-insights', // Peter-specific: deep research briefings on entry/handoff
     'maya-coaching-insights', // Maya-specific: cross-team coaching insights on entry/handoff
     'jordan-milestone-insights', // Jordan-specific: milestone and goal insights on entry/handoff

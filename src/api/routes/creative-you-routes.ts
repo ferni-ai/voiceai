@@ -36,6 +36,15 @@ import {
   getCreativeJourneyStats,
   getCreativeProfileCardData,
 } from '../../services/creative-you/creative-dna.js';
+import {
+  getIntelligentRecommendations,
+  generateLearningTrackForUser,
+} from '../../services/creative-you/intelligent-curator.js';
+import {
+  discoverVideosForTopic,
+  searchYouTubeVideos,
+  isYouTubeApiAvailable,
+} from '../../services/creative-you/youtube-api-client.js';
 
 const log = getLogger();
 
@@ -290,6 +299,164 @@ export async function handleCreativeYouRoutes(
 
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Podcast not found' }));
+      return true;
+    }
+
+    // ========================================
+    // YOUTUBE LIVE SEARCH (Fresh Content)
+    // ========================================
+
+    // GET /api/creative/youtube/search?query=productivity&maxResults=5
+    if (pathname === '/api/creative/youtube/search' && method === 'GET') {
+      if (!isYouTubeApiAvailable()) {
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'YouTube API not configured' }));
+        return true;
+      }
+
+      const query = searchParams.get('query') || '';
+      const maxResults = parseInt(searchParams.get('maxResults') || '5');
+      const trustedOnly = searchParams.get('trustedOnly') !== 'false';
+
+      if (!query) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing query parameter' }));
+        return true;
+      }
+
+      const videos = await searchYouTubeVideos(query, {
+        maxResults,
+        trustedChannelsOnly: trustedOnly,
+      });
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ videos, source: 'youtube_api' }));
+      return true;
+    }
+
+    // GET /api/creative/youtube/discover?topic=anxiety&maxResults=5
+    if (pathname === '/api/creative/youtube/discover' && method === 'GET') {
+      if (!isYouTubeApiAvailable()) {
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'YouTube API not configured' }));
+        return true;
+      }
+
+      const topic = searchParams.get('topic') || '';
+      const maxResults = parseInt(searchParams.get('maxResults') || '5');
+      const trustedOnly = searchParams.get('trustedOnly') !== 'false';
+
+      if (!topic) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing topic parameter' }));
+        return true;
+      }
+
+      const videos = await discoverVideosForTopic(topic, {
+        maxResults,
+        trustedChannelsOnly: trustedOnly,
+        minViews: 10000,
+        durationFilter: 'medium',
+      });
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          videos,
+          topic,
+          source: 'youtube_api',
+        })
+      );
+      return true;
+    }
+
+    // GET /api/creative/youtube/status - Check if YouTube API is available
+    if (pathname === '/api/creative/youtube/status' && method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          available: isYouTubeApiAvailable(),
+          message: isYouTubeApiAvailable()
+            ? 'YouTube API is configured and ready'
+            : 'YouTube API key not configured (GOOGLE_API_KEY)',
+        })
+      );
+      return true;
+    }
+
+    // ========================================
+    // INTELLIGENT RECOMMENDATIONS (AI-Powered)
+    // ========================================
+
+    // GET /api/creative/intelligent?userId=xxx&topics=creativity,productivity&mood=learn
+    if (pathname === '/api/creative/intelligent' && method === 'GET') {
+      const userId = searchParams.get('userId') || '';
+      const topicsParam = searchParams.get('topics') || '';
+      const recentTopics = topicsParam ? topicsParam.split(',').map((t) => t.trim()) : [];
+      const mood = searchParams.get('mood') as
+        | 'learn'
+        | 'chill'
+        | 'inspire'
+        | 'reflect'
+        | undefined;
+      const count = parseInt(searchParams.get('count') || '5');
+      const preferVideos = searchParams.get('preferVideos') === 'true';
+      const preferPodcasts = searchParams.get('preferPodcasts') === 'true';
+
+      if (!userId) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing userId parameter' }));
+        return true;
+      }
+
+      const recommendations = await getIntelligentRecommendations(userId, recentTopics, {
+        count,
+        mood,
+        preferVideos,
+        preferPodcasts,
+      });
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          recommendations,
+          meta: {
+            basedOnTopics: recentTopics,
+            mood: mood || 'auto',
+            count: recommendations.length,
+          },
+        })
+      );
+      return true;
+    }
+
+    // POST /api/creative/intelligent/track - Generate personalized learning track
+    if (pathname === '/api/creative/intelligent/track' && method === 'POST') {
+      const body = await parseBody(req);
+      const userId = body.userId as string | undefined;
+      const topics = (body.topics as string[]) || [];
+
+      if (!userId || topics.length === 0) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Missing userId or topics' }));
+        return true;
+      }
+
+      const track = generateLearningTrackForUser(userId, topics);
+
+      if (!track) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(
+          JSON.stringify({
+            error: 'Could not generate track for these topics',
+            suggestion: 'Try different topics like: productivity, creativity, anxiety, relationships',
+          })
+        );
+        return true;
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ track }));
       return true;
     }
 

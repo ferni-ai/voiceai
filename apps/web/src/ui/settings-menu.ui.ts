@@ -70,6 +70,7 @@ export interface SettingsMenuUICallbacks {
   onHouseholdClick?: () => void;
   onConversationMemoryClick?: () => void;
   onWellbeingClick?: () => void;
+  onTeamInsightsClick?: () => void;
   onSupportFerniClick?: () => void;
   onPersonalizeClick?: () => void;
   onYourJourneyClick?: () => void;
@@ -128,6 +129,8 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 4.5a2.5 2.5 0 0 0-4.96-.44 2.5 2.5 0 0 0-2.96 3.08 3 3 0 0 0 .34 5.58 2.5 2.5 0 0 0 2.96 3.08A2.5 2.5 0 0 0 12 19.5Z"/><path d="M12 4.5a2.5 2.5 0 0 1 4.96-.44 2.5 2.5 0 0 1 2.96 3.08 3 3 0 0 1-.34 5.58 2.5 2.5 0 0 1-2.96 3.08A2.5 2.5 0 0 1 12 19.5Z"/><path d="M12 4.5v15"/></svg>',
   wellbeing:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
+  lightbulb:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>',
 
   // Connection & Communication
   team: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="5" cy="12" r="2"/></svg>',
@@ -601,6 +604,7 @@ class SettingsMenuUI {
             ${this.renderMenuItem('your-journey', ICONS.heart, t('menu.items.yourJourney'))}
             ${this.renderMenuItem('analytics', ICONS.analytics, t('menu.items.progressAnalytics'))}
             ${this.renderMenuItem('predictions', ICONS.target, t('menu.items.predictionAccuracy'))}
+            ${this.renderMenuItem('team-insights', ICONS.lightbulb, t('menu.items.teamInsights'))}
             ${this.renderMenuItem('cognitive', ICONS.brain, t('menu.items.whatILearned'))}
             ${this.renderMenuItem('wellbeing', ICONS.wellbeing, t('menu.items.wellbeingDashboard'))}
           `
@@ -1083,6 +1087,9 @@ class SettingsMenuUI {
         break;
       case 'wellbeing':
         this.callbacks.onWellbeingClick?.();
+        break;
+      case 'team-insights':
+        this.callbacks.onTeamInsightsClick?.();
         break;
       case 'personalize':
         this.callbacks.onPersonalizeClick?.();

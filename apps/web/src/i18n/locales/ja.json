@@ -57,6 +57,7 @@
       "whatILearned": "学んだこと",
       "memoryBrowser": "私たちの思い出",
       "wellbeingDashboard": "あなたの健康",
+      "teamInsights": "チームの洞察",
       "conversationHistory": "過去の会話",
       "videoSessions": "ビデオチャット",
       "groupCoaching": "グループセッション",
@@ -216,17 +217,23 @@
     }
   },
   "subscription": {
-    "free": "無料",
-    "friend": "フレンド",
-    "partner": "パートナー",
-    "upgrade": "アップグレード",
+    "free": "コミュニティ",
+    "friend": "創設メンバー",
+    "partner": "創設パトロン",
+    "upgrade": "Ferniをサポート",
+    "chipIn": "参加する",
     "currentPlan": "現在のプラン",
-    "planDetails": "プラン詳細",
-    "features": "機能",
+    "planDetails": "あなたのサポート",
+    "features": "特典",
     "unlimitedConversations": "無制限の会話",
-    "allTeamMembers": "全チームメンバー",
+    "allTeamMembers": "フルチームアクセス",
     "prioritySupport": "優先サポート",
-    "advancedInsights": "高度なインサイト"
+    "advancedInsights": "新機能への早期アクセス",
+    "helpBuild": "一緒に作りましょう",
+    "foundersSubtitle": "Ferniは永久に無料です。私たちの取り組みを信じてくださるなら、ご参加ください。",
+    "thankYouPerks": "感謝の気持ちとして、いくつかの特典をお届けします。",
+    "notReady": "まだ準備ができていない？大丈夫です。",
+    "freeForever": "永久に無料"
   },
   "team": {
     "meetTheTeam": "チームを紹介",
@@ -597,6 +604,7 @@
     "submitNewItem": "新しいアイテムを送信",
     "openDailyPractice": "デイリープラクティスを開く",
     "openPredictions": "予測を開く",
+    "openTeamInsights": "チームの洞察を開く",
     "shareJourney": "あなたの旅を共有",
     "forgetThis": "これを忘れる",
     "cancelInstallation": "インストールをキャンセル",
@@ -650,6 +658,7 @@
     "sharedSong": "私たちが共有する曲",
     "dailyPractice": "デイリープラクティス",
     "predictions": "予測",
+    "teamInsights": "チームの洞察",
     "runScenario": "シナリオを実行"
   }
 }

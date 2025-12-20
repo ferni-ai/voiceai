@@ -150,7 +150,8 @@ interface CuratedVideo {
 }
 
 // Pre-curated high-quality videos (no API needed for these)
-const CURATED_VIDEOS: CuratedVideo[] = [
+// Exported for use by intelligent curator
+export const CURATED_VIDEOS: CuratedVideo[] = [
   // TED Talks - Inspiration
   {
     youtubeId: 'H14bBuluwB8',

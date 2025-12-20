@@ -57,6 +57,7 @@
       "whatILearned": "מה למדתי",
       "memoryBrowser": "הזיכרונות שלנו",
       "wellbeingDashboard": "הבריאות שלך",
+      "teamInsights": "תובנות צוות",
       "conversationHistory": "שיחות קודמות",
       "videoSessions": "צ'אט וידאו",
       "groupCoaching": "פגישות קבוצתיות",
@@ -216,17 +217,23 @@
     }
   },
   "subscription": {
-    "free": "חינם",
-    "friend": "חבר",
-    "partner": "שותף",
-    "upgrade": "שדרג",
-    "currentPlan": "תוכנית נוכחית",
-    "planDetails": "פרטי תוכנית",
-    "features": "תכונות",
+    "free": "קהילה",
+    "friend": "חבר מייסד",
+    "partner": "פטרון מייסד",
+    "upgrade": "תמוך ב-Ferni",
+    "chipIn": "הצטרף",
+    "currentPlan": "אתה כאן",
+    "planDetails": "התמיכה שלך",
+    "features": "הטבות",
     "unlimitedConversations": "שיחות ללא הגבלה",
-    "allTeamMembers": "כל חברי הצוות",
+    "allTeamMembers": "גישה מלאה לצוות",
     "prioritySupport": "תמיכה בעדיפות",
-    "advancedInsights": "תובנות מתקדמות"
+    "advancedInsights": "גישה מוקדמת לתכונות חדשות",
+    "helpBuild": "עזור לנו לבנות",
+    "foundersSubtitle": "Ferni חינם לנצח. אם אתה מאמין במה שאנחנו בונים, הצטרף.",
+    "thankYouPerks": "כתודה, נפתח לך כמה הטבות.",
+    "notReady": "לא מוכן? זה בסדר גמור.",
+    "freeForever": "חינם לנצח"
   },
   "team": {
     "meetTheTeam": "הכירו את הצוות",
@@ -597,6 +604,7 @@
     "submitNewItem": "שלח פריט חדש",
     "openDailyPractice": "פתח תרגול יומי",
     "openPredictions": "פתח תחזיות",
+    "openTeamInsights": "פתח תובנות צוות",
     "shareJourney": "שתף את המסע שלך",
     "forgetThis": "שכח את זה",
     "cancelInstallation": "בטל התקנה",
@@ -650,6 +658,7 @@
     "sharedSong": "שיר שאנחנו חולקים",
     "dailyPractice": "תרגול יומי",
     "predictions": "תחזיות",
+    "teamInsights": "תובנות צוות",
     "runScenario": "הפעל תרחיש"
   }
 }

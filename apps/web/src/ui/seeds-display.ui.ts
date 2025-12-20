@@ -10,12 +10,14 @@
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { getSeedBalance } from '../services/cosmetics.service.js';
 import {
+  claimDailyBonus,
   getCurrentStreak,
   getNextStreakMilestone,
   isDailyBonusAvailable,
 } from '../services/seeds-economy.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { toast } from './toast.ui.js';
 
 const log = createLogger('SeedsDisplay');
 
@@ -393,6 +395,40 @@ export function animateSeedsAdded(amount: number): void {
 // ============================================================================
 
 /**
+ * Handle daily bonus click - claim seeds immediately
+ */
+function handleDailyBonusClick(e: Event): void {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const result = claimDailyBonus();
+  if (result.claimed) {
+    toast.success(`+${result.amount} seeds!`);
+    updateSeedsDisplay();
+
+    // Re-render the card to remove the bonus button
+    const card = document.querySelector('[data-seeds-card]');
+    if (card) {
+      card.outerHTML = renderSeedsSettingsCard();
+      // Re-attach click handler if daily bonus still available (shouldn't be)
+      bindDailyBonusHandler();
+    }
+  } else {
+    toast.info(result.reason || 'Already claimed today');
+  }
+}
+
+/**
+ * Bind click handler to daily bonus button
+ */
+function bindDailyBonusHandler(): void {
+  const dailyBonusBtn = document.querySelector('[data-daily-bonus]');
+  if (dailyBonusBtn) {
+    dailyBonusBtn.addEventListener('click', handleDailyBonusClick);
+  }
+}
+
+/**
  * Initialize seeds display listeners
  */
 export function initSeedsDisplay(): void {
@@ -410,6 +446,16 @@ export function initSeedsDisplay(): void {
   document.addEventListener('ferni:cosmetics-change', () => {
     updateSeedsDisplay();
   });
+
+  // Bind daily bonus click handler when DOM is ready
+  // Use MutationObserver to catch dynamically rendered content
+  const observer = new MutationObserver(() => {
+    bindDailyBonusHandler();
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  // Also try immediately in case already rendered
+  bindDailyBonusHandler();
 
   isInitialized = true;
   log.info('Seeds display initialized');

@@ -44,7 +44,8 @@
     "signUp": "Sign Up",
     "savePreferences": "Save Preferences",
     "savePreference": "Save Preference",
-    "choose": "Choose This",
+    "choose": "Chip In",
+    "chipIn": "Chip In",
     "refresh": "Refresh",
     "exportData": "Export Data"
   },
@@ -80,6 +81,7 @@
     "sharedSong": "A song we share",
     "dailyPractice": "Daily Practice",
     "predictions": "Predictions",
+    "teamInsights": "Team Insights",
     "runScenario": "Run scenario"
   },
 
@@ -118,6 +120,7 @@
       "whatILearned": "What I've Learned",
       "memoryBrowser": "Our Memories",
       "wellbeingDashboard": "Your Wellbeing",
+      "teamInsights": "Team Insights",
       "conversationHistory": "Past Conversations",
       "videoSessions": "Video Chat",
       "groupCoaching": "Group Sessions",
@@ -258,17 +261,26 @@
   },
 
   "subscription": {
-    "free": "Free",
-    "friend": "Friend",
-    "partner": "Partner",
-    "upgrade": "Upgrade",
-    "currentPlan": "Current Plan",
-    "planDetails": "Plan Details",
-    "features": "Features",
+    "free": "Community",
+    "friend": "Founding Member",
+    "partner": "Founding Patron",
+    "upgrade": "Support Ferni",
+    "chipIn": "Chip In",
+    "currentPlan": "You're Here",
+    "planDetails": "Your Support",
+    "features": "Perks",
     "unlimitedConversations": "Unlimited conversations",
-    "allTeamMembers": "All team members",
+    "allTeamMembers": "Full team access",
     "prioritySupport": "Priority support",
-    "advancedInsights": "Advanced insights"
+    "advancedInsights": "Early access to features",
+    "helpBuild": "Help Us Build This",
+    "foundersSubtitle": "Ferni is free forever. If you believe in what we're building, chip in.",
+    "thankYouPerks": "As a thank you, we'll unlock some perks.",
+    "notReady": "Not ready? That's totally fine.",
+    "freeForever": "Free forever",
+    "welcomeFounder": "Welcome, Founder",
+    "youreOneOfUs": "You're One of Us Now",
+    "helpingBuild": "You're helping us build something we believe everyone deserves."
   },
 
   "team": {
@@ -394,20 +406,20 @@
   },
 
   "manageSubscription": {
-    "label": "SUBSCRIPTION",
-    "title": "Manage Your Plan",
-    "expiresLabel": "Access until",
+    "label": "FOUNDERS FUND",
+    "title": "Your Support",
+    "expiresLabel": "Active until",
     "renewsLabel": "Renews",
     "billedThrough": "Billed through",
     "buttons": {
-      "upgrade": "Upgrade to Premium",
+      "upgrade": "Become a Founder",
       "restore": "Restore Purchases",
       "restoring": "Restoring...",
       "manageApple": "Manage in Settings",
       "manageStripe": "Manage Billing"
     },
     "apple": {
-      "instructionsTitle": "To cancel or change your plan:",
+      "instructionsTitle": "To change your support:",
       "step1": "Open Settings on your device",
       "step2": "Tap your name at the top",
       "step3": "Tap \"Subscriptions\"",
@@ -415,20 +427,20 @@
       "note": "Apple requires subscriptions to be managed through iOS Settings"
     },
     "stripe": {
-      "note": "Update payment method, view invoices, or cancel anytime"
+      "note": "Update payment method, view history, or change anytime"
     },
     "restore": {
       "noFound": "No purchases found",
       "failed": "Restore failed"
     },
     "status": {
-      "free": "You're on the free plan. Ferni is always here for you.",
-      "active": "Your subscription is active. Thank you for being a supporter!",
-      "canceled": "Your subscription will end soon, but you're welcome back anytime.",
-      "pastDue": "There was an issue with your payment. Please update your payment method.",
-      "default": "You're subscribed. Thank you for your support!"
+      "free": "You're part of the community. Ferni is free forever.",
+      "active": "You're a Founding Member. Thank you for helping us build this!",
+      "canceled": "Your support ends soon, but you're always welcome. Thank you for being a Founder.",
+      "pastDue": "There was an issue with your payment. Mind updating your payment method?",
+      "default": "You're a Founder. Thank you for believing in us!"
     },
-    "freeNote": "Unlock unlimited sessions, the full team, and personalization"
+    "freeNote": "Founding Members get unlimited time, full team access, and help keep Ferni free for everyone"
   },
 
   "creativeYou": {
@@ -702,6 +714,7 @@
     "submitNewItem": "Submit new item",
     "openDailyPractice": "Open daily practice",
     "openPredictions": "Open predictions",
+    "openTeamInsights": "Open team insights",
     "shareJourney": "Share your journey",
     "forgetThis": "Forget this",
     "cancelInstallation": "Cancel installation",
@@ -711,17 +724,20 @@
   },
 
   "support": {
-    "eyebrow": "GROWING TOGETHER",
+    "eyebrow": "FOUNDERS FUND",
     "title": "Support Ferni",
-    "subtitle": "Choose how our friendship grows. Every way you show up matters.",
-    "growTogether": "Ways to Deepen Our Connection",
+    "subtitle": "Ferni is free forever. If you believe in what we're building, chip in.",
+    "growTogether": "Ways to Help Us Build This",
     "plantASeed": "Plant a Seed",
-    "plantDesc": "A small gift that helps Ferni grow. No pressure—our friendship doesn't depend on it.",
+    "plantDesc": "A one-time contribution to help Ferni grow.",
     "plantButton": "Plant This Seed",
-    "thankYouSupporter": "You're amazing",
-    "yourSupport": "Your support keeps Ferni here for everyone",
+    "becomeFounder": "Become a Founder",
+    "founderDesc": "Chip in monthly. Help keep Ferni free for everyone.",
+    "founderButton": "Chip In",
+    "thankYouSupporter": "Welcome, Founder",
+    "yourSupport": "You're helping us build something everyone deserves",
     "manageBilling": "Update payment method",
-    "footer": "However you choose to support us, thank you for being here."
+    "footer": "Not ready to chip in? That's totally fine. Ferni is here for you either way."
   },
 
   "roadmap": {
