@@ -1,0 +1,530 @@
+---
+layout: layouts/base.njk
+title: "Pixar/Apple Polish Preview - Ferni"
+description: "Preview all new landing page enhancements independently"
+---
+
+<style>
+  /* Preview Page Specific Styles */
+  .preview-page {
+    font-family: var(--font-body, 'Inter', sans-serif);
+    background: var(--color-paper-cream, #F5F1E8);
+    min-height: 100vh;
+  }
+  
+  .preview-header {
+    background: linear-gradient(180deg, white 0%, var(--color-paper-cream, #F5F1E8) 100%);
+    padding: 40px 24px;
+    text-align: center;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+  }
+  
+  .preview-header h1 {
+    font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--color-text-primary, #2C2520);
+    margin: 0 0 12px;
+  }
+  
+  .preview-header p {
+    color: var(--color-text-secondary, #5C544A);
+    font-size: 18px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  .preview-nav {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+  
+  .preview-nav a {
+    padding: 10px 20px;
+    background: white;
+    border-radius: 24px;
+    color: var(--color-ferni, #4a6741);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    transition: all 0.2s ease;
+  }
+  
+  .preview-nav a:hover {
+    background: var(--color-ferni, #4a6741);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(74, 103, 65, 0.2);
+  }
+  
+  .preview-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 60px 24px;
+  }
+  
+  .preview-section h2 {
+    font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--color-text-primary, #2C2520);
+    margin: 0 0 12px;
+  }
+  
+  .preview-section > p {
+    color: var(--color-text-secondary, #5C544A);
+    margin-bottom: 32px;
+    font-size: 16px;
+  }
+  
+  .preview-card {
+    background: white;
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    margin-bottom: 24px;
+  }
+  
+  .preview-card h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 8px;
+    color: var(--color-text-primary, #2C2520);
+  }
+  
+  .preview-card > p {
+    color: var(--color-text-secondary, #5C544A);
+    margin-bottom: 20px;
+  }
+  
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  
+  .feature-item {
+    padding: 20px;
+    background: rgba(74, 103, 65, 0.05);
+    border-radius: 12px;
+  }
+  
+  .feature-item h4 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .feature-item p {
+    font-size: 14px;
+    color: var(--color-text-secondary, #5C544A);
+    margin: 0;
+  }
+  
+  .demo-area {
+    background: var(--color-paper-cream, #F5F1E8);
+    border-radius: 16px;
+    padding: 40px;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  
+  .controls button {
+    padding: 10px 20px;
+    border: 1px solid rgba(74, 103, 65, 0.2);
+    background: white;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+  }
+  
+  .controls button:hover {
+    background: var(--color-ferni, #4a6741);
+    color: white;
+    border-color: var(--color-ferni, #4a6741);
+  }
+  
+  .controls button.active {
+    background: var(--color-ferni, #4a6741);
+    color: white;
+    border-color: var(--color-ferni, #4a6741);
+  }
+  
+  .code-preview {
+    background: #2C2520;
+    color: #F5F1E8;
+    padding: 20px;
+    border-radius: 12px;
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 13px;
+    overflow-x: auto;
+    margin-top: 20px;
+  }
+  
+  .code-preview code {
+    display: block;
+    white-space: pre;
+  }
+  
+  /* Live Avatar Preview */
+  .avatar-preview {
+    width: 200px;
+    height: 200px;
+    position: relative;
+  }
+  
+  .avatar-preview .hero-ferni {
+    transform: scale(1.5);
+  }
+  
+  /* Dividers */
+  .preview-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(74, 103, 65, 0.2), transparent);
+    margin: 60px 0;
+  }
+</style>
+
+<div class="preview-page">
+  <header class="preview-header">
+    <h1>🎬 Pixar/Apple Polish</h1>
+    <p>Four new systems to bring professional, delightful, AI-infused capabilities to the Ferni landing page.</p>
+    
+    <nav class="preview-nav">
+      <a href="#living-avatar">Living Avatar</a>
+      <a href="#ai-personalization">AI Personalization</a>
+      <a href="#scroll-storytelling">Scroll Storytelling</a>
+      <a href="#demo-widget">Demo Widget</a>
+      <a href="/story-brand/">See Live Page →</a>
+    </nav>
+  </header>
+  
+  <!-- SECTION 1: Living Avatar -->
+  <section class="preview-section" id="living-avatar">
+    <h2>🌱 Living Avatar System</h2>
+    <p>Pixar-level character animation for the Ferni hero orb. It's not just an icon—it's a presence.</p>
+    
+    <div class="preview-card">
+      <h3>Live Demo</h3>
+      <p>Move your mouse around. The avatar tracks your cursor with organic lag, like a curious creature watching you.</p>
+      
+      <div class="demo-area" id="avatar-demo-area">
+        <div class="hero-ferni hero-ferni--breathing hero-ferni--living" style="transform: scale(2);">
+          <div class="hero-ferni__glow"></div>
+          <div class="hero-ferni__ring hero-ferni__ring--outer"></div>
+          <div class="hero-ferni__ring hero-ferni__ring--inner"></div>
+          <div class="hero-ferni__orb">
+            <span class="hero-ferni__text">FE</span>
+          </div>
+          <div class="hero-ferni__pulse"></div>
+        </div>
+      </div>
+      
+      <div class="controls">
+        <button onclick="FerniAvatar && FerniAvatar.blink()">Trigger Blink</button>
+        <button onclick="FerniAvatar && FerniAvatar.express('curious')">Curious Expression</button>
+        <button onclick="FerniAvatar && FerniAvatar.express('delighted')">Delighted Expression</button>
+        <button onclick="FerniAvatar && FerniAvatar.express('thinking')">Thinking Expression</button>
+        <button onclick="FerniAvatar && FerniAvatar.express('recognition')">Recognition Flash</button>
+      </div>
+    </div>
+    
+    <div class="feature-grid">
+      <div class="feature-item">
+        <h4>👁️ Mouse Tracking</h4>
+        <p>Orb follows cursor with organic lag (0.08 interpolation factor)</p>
+      </div>
+      <div class="feature-item">
+        <h4>😑 Natural Blinking</h4>
+        <p>Random intervals (2-6s) with 20% chance of double-blink</p>
+      </div>
+      <div class="feature-item">
+        <h4>😊 Micro-Expressions</h4>
+        <p>Curious, delighted, thinking, recognition—triggered contextually</p>
+      </div>
+      <div class="feature-item">
+        <h4>🎯 CTA Attention</h4>
+        <p>Ferni looks at buttons when you hover them</p>
+      </div>
+      <div class="feature-item">
+        <h4>💚 Attention Glow</h4>
+        <p>Pulse effect when looking at interactive elements</p>
+      </div>
+      <div class="feature-item">
+        <h4>🎬 Scroll Response</h4>
+        <p>Slight tilt in scroll direction (curiosity)</p>
+      </div>
+    </div>
+  </section>
+  
+  <div class="preview-divider"></div>
+  
+  <!-- SECTION 2: AI Personalization -->
+  <section class="preview-section" id="ai-personalization">
+    <h2>🧠 AI-Aware Personalization</h2>
+    <p>"Better than human" means noticing things humans forget to notice. Time-aware copy, returning visitor recognition, adaptive CTAs.</p>
+    
+    <div class="preview-card">
+      <h3>Time-Aware Copy</h3>
+      <p>The hero text changes based on when you visit. Try simulating different times:</p>
+      
+      <div class="controls" id="time-controls">
+        <button onclick="simulateTime(3)">3 AM (Late Night)</button>
+        <button onclick="simulateTime(6)">6 AM (Early Morning)</button>
+        <button onclick="simulateTime(9)">9 AM (Morning)</button>
+        <button onclick="simulateTime(13)">1 PM (Midday)</button>
+        <button onclick="simulateTime(16)">4 PM (Afternoon)</button>
+        <button onclick="simulateTime(19)">7 PM (Evening)</button>
+        <button onclick="simulateTime(22)">10 PM (Night)</button>
+      </div>
+      
+      <div class="demo-area" style="flex-direction: column; text-align: center; padding: 60px;">
+        <p id="demo-tagline" class="hero__tagline" style="font-size: 18px; color: #5C544A; margin-bottom: 16px;">Better than human.</p>
+        <h1 id="demo-headline" style="font-size: 36px; font-weight: 800; margin-bottom: 16px;">Finally, someone who <span class="hero__headline-accent" style="color: #4a6741;">gets it.</span></h1>
+        <p id="demo-subhead" style="font-size: 16px; color: #5C544A; max-width: 500px; margin: 0 auto;">Someone who remembers your whole story, hears what you're not saying, and shows up at 2am with the same presence as noon.</p>
+      </div>
+    </div>
+    
+    <div class="feature-grid">
+      <div class="feature-item">
+        <h4>🌙 Late Night (11pm-4am)</h4>
+        <p>"Still up?" - Intimate, vulnerable tone</p>
+      </div>
+      <div class="feature-item">
+        <h4>🌅 Early Morning (5-7am)</h4>
+        <p>"You're up early." - Quiet determination</p>
+      </div>
+      <div class="feature-item">
+        <h4>☀️ Morning (8-11am)</h4>
+        <p>"Good morning." - Fresh energy</p>
+      </div>
+      <div class="feature-item">
+        <h4>🔄 Returning Visitors</h4>
+        <p>"You came back." / "Hey again." / "Welcome home."</p>
+      </div>
+      <div class="feature-item">
+        <h4>📊 Scroll-Adaptive CTAs</h4>
+        <p>CTA text evolves: "See How It Works" → "Start Your Conversation"</p>
+      </div>
+      <div class="feature-item">
+        <h4>🎨 Mood Color Shifts</h4>
+        <p>Subtle warmth adjustments based on time of day</p>
+      </div>
+    </div>
+  </section>
+  
+  <div class="preview-divider"></div>
+  
+  <!-- SECTION 3: Scroll Storytelling -->
+  <section class="preview-section" id="scroll-storytelling">
+    <h2>🎬 Scroll-Driven Storytelling</h2>
+    <p>Apple-style cinematic scroll experiences. The page is a story—scrolling is reading.</p>
+    
+    <div class="preview-card">
+      <h3>Features</h3>
+      
+      <div class="feature-grid">
+        <div class="feature-item">
+          <h4>🌌 Parallax Depth</h4>
+          <p>Hero background orbs move at different speeds for depth effect</p>
+        </div>
+        <div class="feature-item">
+          <h4>📍 Progress Indicator</h4>
+          <p>Fixed sidebar showing scroll progress with section markers</p>
+        </div>
+        <div class="feature-item">
+          <h4>✨ Cinematic Reveals</h4>
+          <p>Elements fade/slide in with staggered timing (80ms between children)</p>
+        </div>
+        <div class="feature-item">
+          <h4>🔗 Sticky Story</h4>
+          <p>Sections that progress through stages as you scroll</p>
+        </div>
+        <div class="feature-item">
+          <h4>⚡ Momentum Physics</h4>
+          <p>Subtle skew based on scroll velocity</p>
+        </div>
+        <div class="feature-item">
+          <h4>↓ Scroll Indicator</h4>
+          <p>Mouse icon with animated wheel, fades after scroll</p>
+        </div>
+      </div>
+      
+      <div class="code-preview">
+        <code>// Easing functions for Pixar-quality motion
+EASING.expoOut  // Dramatic deceleration (Apple's favorite)
+EASING.spring   // Overshoot bounce (Pixar's signature)
+EASING.smooth   // Smooth in-out
+EASING.cinematic // Slow-fast-slow</code>
+      </div>
+    </div>
+  </section>
+  
+  <div class="preview-divider"></div>
+  
+  <!-- SECTION 4: Demo Widget -->
+  <section class="preview-section" id="demo-widget">
+    <h2>✨ Interactive Demo Widget</h2>
+    <p>A mini chat that shows Ferni's magic. Show, don't tell—let people feel the difference.</p>
+    
+    <div class="preview-card">
+      <h3>How It Works</h3>
+      <p>The widget appears in the bottom-right corner after 5 seconds. It "peeks" with a message after 15 seconds if you haven't opened it.</p>
+      
+      <div class="controls">
+        <button onclick="FerniDemo && FerniDemo.open()">Open Widget</button>
+        <button onclick="FerniDemo && FerniDemo.close()">Close Widget</button>
+      </div>
+      
+      <div class="feature-grid" style="margin-top: 24px;">
+        <div class="feature-item">
+          <h4>💬 Pre-Scripted Conversations</h4>
+          <p>Responses triggered by keywords like "stressed", "work", "relationship"</p>
+        </div>
+        <div class="feature-item">
+          <h4>🧠 Memory Demo</h4>
+          <p>References earlier messages to show memory capability</p>
+        </div>
+        <div class="feature-item">
+          <h4>⌨️ Typing Indicator</h4>
+          <p>Animated dots with personality</p>
+        </div>
+        <div class="feature-item">
+          <h4>🌙 Time-Aware Greeting</h4>
+          <p>Different opening based on time of day</p>
+        </div>
+        <div class="feature-item">
+          <h4>🎤 Voice Hint</h4>
+          <p>Shows phone number when clicking mic button</p>
+        </div>
+        <div class="feature-item">
+          <h4>📌 Capability Badges</h4>
+          <p>Highlights "Perfect Memory", "Deep Understanding" etc.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <div class="preview-divider"></div>
+  
+  <!-- Integration Guide -->
+  <section class="preview-section">
+    <h2>🔧 Integration</h2>
+    <p>All features are built as independent modules. Add them to your page:</p>
+    
+    <div class="code-preview">
+      <code>&lt;!-- CSS (add to &lt;head&gt;) --&gt;
+&lt;link rel="stylesheet" href="/css/living-avatar.css"&gt;
+&lt;link rel="stylesheet" href="/css/ai-personalization.css"&gt;
+&lt;link rel="stylesheet" href="/css/scroll-storytelling.css"&gt;
+&lt;link rel="stylesheet" href="/css/demo-widget.css"&gt;
+
+&lt;!-- JS (add before &lt;/body&gt;) --&gt;
+&lt;script src="/js/living-avatar.js"&gt;&lt;/script&gt;
+&lt;script src="/js/ai-personalization.js"&gt;&lt;/script&gt;
+&lt;script src="/js/scroll-storytelling.js"&gt;&lt;/script&gt;
+&lt;script src="/js/demo-widget.js"&gt;&lt;/script&gt;</code>
+    </div>
+    
+    <div style="margin-top: 40px; text-align: center;">
+      <a href="/story-brand/" style="display: inline-flex; align-items: center; gap: 8px; padding: 16px 32px; background: var(--color-ferni, #4a6741); color: white; text-decoration: none; border-radius: 32px; font-weight: 600; font-size: 16px;">
+        See All Features Live →
+      </a>
+    </div>
+  </section>
+</div>
+
+<!-- Load the new modules -->
+<link rel="stylesheet" href="/css/living-avatar.css">
+<link rel="stylesheet" href="/css/ai-personalization.css">
+<link rel="stylesheet" href="/css/scroll-storytelling.css">
+<link rel="stylesheet" href="/css/demo-widget.css">
+
+<script src="/js/living-avatar.js"></script>
+<script src="/js/ai-personalization.js"></script>
+<script src="/js/scroll-storytelling.js"></script>
+<script src="/js/demo-widget.js"></script>
+
+<script>
+  // Time simulation for demo
+  const TIME_COPY = {
+    lateNight: {
+      hours: [23, 0, 1, 2, 3, 4],
+      tagline: "Still up?",
+      subhead: "It's late. You're still thinking about something. That's okay—I'm here."
+    },
+    earlyMorning: {
+      hours: [5, 6, 7],
+      tagline: "You're up early.",
+      subhead: "The quiet hours are for people who are working on something. What's yours?"
+    },
+    morning: {
+      hours: [8, 9, 10, 11],
+      tagline: "Good morning.",
+      subhead: "A fresh day. No judgment about yesterday. Just: what do you need today?"
+    },
+    midday: {
+      hours: [12, 13, 14],
+      tagline: "Taking a moment?",
+      subhead: "The middle of the day is a good time to check in. How are you really doing?"
+    },
+    afternoon: {
+      hours: [15, 16, 17],
+      tagline: "Afternoon check-in.",
+      subhead: "The day's not over. Neither is your momentum. What's on your mind?"
+    },
+    evening: {
+      hours: [18, 19, 20],
+      tagline: "Evening.",
+      subhead: "The day's settling. Time to process what happened—or plan what's next."
+    },
+    night: {
+      hours: [21, 22],
+      tagline: "Quiet night.",
+      subhead: "The noise of the day fades. This is when the real thoughts come. I'm ready."
+    }
+  };
+  
+  function simulateTime(hour) {
+    // Find matching time block
+    let block = null;
+    for (const [name, config] of Object.entries(TIME_COPY)) {
+      if (config.hours.includes(hour)) {
+        block = config;
+        break;
+      }
+    }
+    
+    if (block) {
+      document.getElementById('demo-tagline').textContent = block.tagline;
+      document.getElementById('demo-subhead').textContent = block.subhead;
+      
+      // Update active button
+      document.querySelectorAll('#time-controls button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+    }
+  }
+</script>
+

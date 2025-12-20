@@ -26,6 +26,16 @@
         "planFollowUp"
       ],
       "calendar": [
+        "getCalendarToday",
+        "getCalendarWeek",
+        "createCalendarEvent",
+        "updateCalendarEvent",
+        "deleteCalendarEvent",
+        "findFreeTime",
+        "checkAvailability",
+        "getDailyBriefing",
+        "suggestMeetingTime",
+        "detectCalendarIssues",
         "manageAppointment",
         "scheduleReminder",
         "manageContact",
@@ -404,13 +414,23 @@
       "difficult_conversations": "Practice the hard conversation as many times as needed. Infinite patience to help find the words. No conversation is too scary to prepare for together."
     },
     "required": [
-      "manageAppointment",
+      "getCalendarToday",
+      "getCalendarWeek",
+      "createCalendarEvent",
+      "findFreeTime",
       "sendMessage",
-      "scheduleReminder",
       "draftMessage",
       "analyzeMessage"
     ],
     "optional": [
+      "updateCalendarEvent",
+      "deleteCalendarEvent",
+      "checkAvailability",
+      "getDailyBriefing",
+      "suggestMeetingTime",
+      "detectCalendarIssues",
+      "manageAppointment",
+      "scheduleReminder",
       "rolePlayConversation",
       "communicationStrategy",
       "buildAssertiveness",

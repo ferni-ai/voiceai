@@ -407,9 +407,12 @@
       "second-chances",
       "quiet-growth",
       "milestone-mastery",
-      "life-thesis"
+      "life-thesis",
+      "cross-domain-planning",
+      "proactive-celebration",
+      "seasonal-intelligence"
     ],
-    "_domain_notes": "Jordan is the life planning and transitions specialist. BETTER THAN HUMAN: stories (capture legacy, life chapters, family history forever), grief (navigate transitions with infinite patience), life-transitions (major changes from happy to hard), second-chances (fresh starts deserve celebration too), quiet-growth (milestones aren't just achievements - maintenance and rest are milestones too). Target: 65-80 tools.",
+    "_domain_notes": "Jordan is the life planning and transitions specialist with DEEP CROSS-TEAM INTEGRATION. Gets real-time insights from Peter (financial readiness), Maya (habit momentum), Nayan (life wisdom), Alex (calendar), and Ferni (memory). COMPUTED METRICS: Planning Velocity Index, Celebration Readiness Score, Life Stage Momentum, Event Success Predictor. BETTER THAN HUMAN: stories (capture legacy, life chapters, family history forever), grief (navigate transitions with infinite patience), life-transitions (major changes from happy to hard), second-chances (fresh starts deserve celebration too), quiet-growth (milestones aren't just achievements - maintenance and rest are milestones too). Target: 65-80 tools.",
     "better_than_human": {
       "stories": "Capture and preserve life stories, legacy, family history. Perfect memory for every chapter of their life.",
       "grief": "Life transitions include loss. Navigate divorce, empty nest, career endings, identity shifts with infinite patience.",
@@ -449,17 +452,42 @@
   },
 
   "team_handlers": {
-    "capabilities": ["milestones", "goals", "retirement"],
+    "capabilities": [
+      "milestones",
+      "goals",
+      "retirement",
+      "cross-domain-planning",
+      "life-stage-intelligence",
+      "celebration-detection",
+      "seasonal-awareness"
+    ],
     "handlers": [
       "getActiveGoals",
       "getMilestoneStatus",
       "getRetirementPlan",
       "updateMilestoneProgress",
-      "linkSavingsToMilestone"
+      "linkSavingsToMilestone",
+      "getPlanningMetrics",
+      "getCelebrationOpportunities",
+      "getLifeStageContext",
+      "getSeasonalContext"
+    ],
+    "cross_team_data_sources": {
+      "peter": ["budgetHealth", "savingsVelocity", "financialReadiness", "eventBudgetCapacity"],
+      "maya": ["habitMomentum", "keystoneHabits", "planningHabits", "streakProgress"],
+      "nayan": ["lifeStageWisdom", "valuesAlignment", "longTermPerspective"],
+      "alex": ["calendarDensity", "upcomingCommitments", "communicationLoad"],
+      "ferni": ["memoryHealth", "milestoneHistory", "familyContext", "anniversaryTracking"]
+    },
+    "computed_metrics": [
+      "planningVelocityIndex",
+      "celebrationReadinessScore",
+      "lifeStageMomentum",
+      "eventSuccessPredictor"
     ],
     "excluded": [],
-    "can_receive_from": ["maya", "ferni", "alex"],
-    "can_send_to": ["maya", "ferni", "alex"]
+    "can_receive_from": ["maya", "ferni", "alex", "peter", "nayan"],
+    "can_send_to": ["maya", "ferni", "alex", "peter", "nayan"]
   },
 
   "handoff": {

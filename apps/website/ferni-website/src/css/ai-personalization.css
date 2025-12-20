@@ -1,0 +1,251 @@
+/**
+ * 🧠 AI Personalization CSS
+ * Mood-based styling and time-aware visual shifts
+ */
+
+/* ============================================================================
+   AI PERSONALIZED ELEMENTS - Subtle highlight
+   ============================================================================ */
+
+.ai-personalized {
+  position: relative;
+}
+
+/* Subtle shimmer effect on personalized text */
+.ai-personalized::after {
+  content: '';
+  position: absolute;
+  inset: -2px -8px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(74, 103, 65, 0.1) 50%,
+    transparent 100%
+  );
+  border-radius: 4px;
+  opacity: 0;
+  animation: ai-shimmer 2s ease-out 0.5s forwards;
+  pointer-events: none;
+}
+
+@keyframes ai-shimmer {
+  0% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+.ai-returning-visitor {
+  animation: returning-warmth 1s ease-out;
+}
+
+@keyframes returning-warmth {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================================
+   MOOD-BASED HERO STYLES
+   ============================================================================ */
+
+.hero {
+  --hero-bg-warmth: 1;
+  --hero-glow-opacity: 0.5;
+  --hero-glow-spread: 100px;
+}
+
+/* Apply warmth filter to hero background */
+.mood-intimate .hero__bg,
+.mood-thoughtful .hero__bg {
+  filter: sepia(0.05) saturate(1.1);
+}
+
+.mood-determined .hero__bg,
+.mood-productive .hero__bg {
+  filter: saturate(0.95) contrast(1.02);
+}
+
+/* Adjust glow based on mood */
+.hero-ferni__glow {
+  opacity: var(--hero-glow-opacity);
+  filter: blur(var(--hero-glow-spread));
+  transition: opacity 1s ease, filter 1s ease;
+}
+
+/* ============================================================================
+   LATE NIGHT MODE - Special 2am vibes
+   ============================================================================ */
+
+.late-night-mode {
+  /* Slightly dim everything */
+  --brightness-modifier: 0.95;
+}
+
+.late-night-mode .hero {
+  /* Warmer, more intimate */
+  background: linear-gradient(
+    180deg,
+    hsl(35, 30%, 94%) 0%,
+    hsl(35, 25%, 91%) 100%
+  );
+}
+
+.late-night-mode .hero__tagline {
+  /* More prominent for late-night message */
+  font-size: 1.1em;
+  color: var(--color-text-secondary);
+}
+
+.late-night-mode .hero-ferni__glow {
+  /* Warmer, more inviting glow */
+  background: radial-gradient(
+    circle,
+    rgba(74, 103, 65, 0.4) 0%,
+    rgba(74, 103, 65, 0.1) 50%,
+    transparent 70%
+  );
+  animation: late-night-pulse 4s ease-in-out infinite;
+}
+
+@keyframes late-night-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.6;
+  }
+}
+
+/* Highlight the 2am section when it's actually late */
+.late-night-mode .two-am--highlighted {
+  position: relative;
+}
+
+.late-night-mode .two-am--highlighted::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(74, 103, 65, 0.05) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* ============================================================================
+   TIME-OF-DAY MOOD ACCENTS
+   ============================================================================ */
+
+/* Morning - Crisp, fresh */
+.mood-energized .hero__headline-accent {
+  background: linear-gradient(
+    135deg,
+    var(--color-ferni) 0%,
+    #5a8052 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Midday - Balanced */
+.mood-reflective .hero {
+  --hero-glow-opacity: 0.4;
+}
+
+/* Evening - Warm unwinding */
+.mood-unwinding .hero__bg-gradient {
+  background: linear-gradient(
+    180deg,
+    var(--color-paper-cream) 0%,
+    hsl(35, 35%, 90%) 100%
+  );
+}
+
+/* Night - Thoughtful depth */
+.mood-thoughtful .hero-ferni__ring {
+  opacity: 0.4;
+}
+
+/* Intimate late-night - Extra warm presence */
+.mood-intimate .hero-ferni__orb {
+  box-shadow: 
+    0 0 40px rgba(74, 103, 65, 0.3),
+    inset 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+/* ============================================================================
+   ADAPTIVE CTA STYLES
+   ============================================================================ */
+
+/* Shallow scroll - still browsing */
+.btn--secondary {
+  /* Default secondary style */
+}
+
+/* Engaged - read the content */
+.btn--primary-emphasized {
+  background: var(--color-ferni);
+  color: white;
+  box-shadow: 
+    0 4px 12px rgba(74, 103, 65, 0.3),
+    0 0 0 2px rgba(74, 103, 65, 0.1);
+  transform: scale(1.02);
+}
+
+/* Ready to convert - scrolled most of page */
+.btn--primary-urgent {
+  background: linear-gradient(
+    135deg,
+    var(--color-ferni) 0%,
+    #3d5a35 100%
+  );
+  color: white;
+  box-shadow: 
+    0 6px 20px rgba(74, 103, 65, 0.4),
+    0 0 0 3px rgba(74, 103, 65, 0.15);
+  animation: cta-pulse 2s ease-in-out infinite;
+}
+
+@keyframes cta-pulse {
+  0%, 100% {
+    box-shadow: 
+      0 6px 20px rgba(74, 103, 65, 0.4),
+      0 0 0 3px rgba(74, 103, 65, 0.15);
+  }
+  50% {
+    box-shadow: 
+      0 8px 28px rgba(74, 103, 65, 0.5),
+      0 0 0 6px rgba(74, 103, 65, 0.1);
+  }
+}
+
+/* ============================================================================
+   REDUCED MOTION
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-personalized::after,
+  .ai-returning-visitor,
+  .late-night-mode .hero-ferni__glow,
+  .btn--primary-urgent {
+    animation: none !important;
+  }
+}
+

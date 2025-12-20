@@ -456,7 +456,7 @@ export async function createEvent(
     }
 
     const created = (await response.json()) as CalendarEvent;
-    getLogger().info({ eventId: created.id, summary: event.summary }, '📅 Calendar event created');
+    getLogger().info({ eventId: created.id, summary: event.summary }, 'Calendar event created');
     return created;
   });
 }
@@ -511,7 +511,7 @@ export async function deleteEvent(
     throw new Error(`Failed to delete event: ${error}`);
   }
 
-  getLogger().info({ eventId }, '📅 Calendar event deleted');
+  getLogger().info({ eventId }, 'Calendar event deleted');
 }
 
 /**

@@ -583,6 +583,12 @@ function getContactsToolDefinitions(): ToolDefinition[] {
 }
 
 // ============================================================================
+// ALEX CALENDAR TOOLS (Smart Calendar Management)
+// ============================================================================
+
+import { alexCalendarTools } from './alex-calendar-tools.js';
+
+// ============================================================================
 // DOMAIN TOOLS COLLECTION
 // ============================================================================
 
@@ -591,6 +597,7 @@ const calendarTools: ToolDefinition[] = [
   ...getDeliveryToolDefinitions(),
   ...getPlacesToolDefinitions(),
   ...getContactsToolDefinitions(),
+  ...alexCalendarTools,
 ];
 
 // ============================================================================
@@ -607,6 +614,7 @@ export {
   getContactsToolDefinitions,
   getDeliveryToolDefinitions,
   getPlacesToolDefinitions,
+  alexCalendarTools,
 };
 
 export default getToolDefinitions;

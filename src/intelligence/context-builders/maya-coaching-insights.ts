@@ -59,7 +59,7 @@ interface MayaInsightBriefing {
   /** User's tendency type if known */
   tendencyType: string | null;
   /** Recent wins to celebrate */
-  winsToСelebrate: string[];
+  winsToCelebrate: string[];
   /** Struggles needing gentle support */
   strugglesToAddress: string[];
 }
@@ -351,17 +351,17 @@ async function buildMayaBriefing(userId: string): Promise<MayaInsightBriefing> {
   );
 
   // Identify wins to celebrate
-  const winsToСelebrate: string[] = [];
+  const winsToCelebrate: string[] = [];
   if (habitHealth.longestStreak && habitHealth.longestStreak.days >= 7) {
-    winsToСelebrate.push(
+    winsToCelebrate.push(
       `${habitHealth.longestStreak.name} - ${habitHealth.longestStreak.days} day streak!`
     );
   }
   if (habitHealth.keystoneActive) {
-    winsToСelebrate.push('Keystone habit is active and building momentum');
+    winsToCelebrate.push('Keystone habit is active and building momentum');
   }
   if (habitHealth.averageSuccessRate > 0.7) {
-    winsToСelebrate.push(
+    winsToCelebrate.push(
       `${Math.round(habitHealth.averageSuccessRate * 100)}% overall success rate`
     );
   }
@@ -377,7 +377,7 @@ async function buildMayaBriefing(userId: string): Promise<MayaInsightBriefing> {
     jordanInsights,
     coachingOpportunities,
     tendencyType: null, // Would come from user profile
-    winsToСelebrate,
+    winsToCelebrate,
     strugglesToAddress,
   };
 }
@@ -423,9 +423,9 @@ function formatMayaBriefing(
   }
 
   // Wins to celebrate
-  if (briefing.winsToСelebrate.length > 0) {
+  if (briefing.winsToCelebrate.length > 0) {
     sections.push('\n=== 🎉 CELEBRATE THESE ===');
-    briefing.winsToСelebrate.forEach((win) => sections.push(`• ${win}`));
+    briefing.winsToCelebrate.forEach((win) => sections.push(`• ${win}`));
   }
 
   // Struggles needing support

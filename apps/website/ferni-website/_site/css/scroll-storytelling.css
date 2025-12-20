@@ -1,0 +1,441 @@
+/**
+ * 🎬 Scroll Storytelling CSS
+ * Apple-style cinematic scroll experiences
+ */
+
+/* ============================================================================
+   PROGRESS INDICATOR
+   ============================================================================ */
+
+.scroll-progress {
+  position: fixed;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+/* Show after scrolling a bit */
+.scroll-progress.is-visible,
+body:not(.at-top) .scroll-progress {
+  opacity: 1;
+}
+
+.scroll-progress__track {
+  width: 3px;
+  height: 120px;
+  background: rgba(74, 103, 65, 0.15);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.scroll-progress__fill {
+  width: 100%;
+  height: 100%;
+  background: var(--color-ferni, #4a6741);
+  border-radius: 2px;
+  transform-origin: top;
+  transform: scaleY(0);
+  transition: transform 0.1s ease-out;
+}
+
+.scroll-progress__sections {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.scroll-progress__marker {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(74, 103, 65, 0.2);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.scroll-progress__marker.is-active {
+  background: var(--color-ferni, #4a6741);
+  transform: scale(1.3);
+  box-shadow: 0 0 8px rgba(74, 103, 65, 0.4);
+}
+
+.scroll-progress__marker:hover {
+  transform: scale(1.5);
+}
+
+/* Hide on mobile - takes up too much space */
+@media (max-width: 768px) {
+  .scroll-progress {
+    display: none;
+  }
+}
+
+/* ============================================================================
+   CINEMATIC REVEALS
+   ============================================================================ */
+
+.cinematic-reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: 
+    opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.cinematic-reveal.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Different reveal styles */
+.cinematic-reveal--fade {
+  transform: none;
+}
+
+.cinematic-reveal--scale {
+  transform: scale(0.95);
+}
+
+.cinematic-reveal--scale.is-revealed {
+  transform: scale(1);
+}
+
+.cinematic-reveal--left {
+  transform: translateX(-40px);
+}
+
+.cinematic-reveal--left.is-revealed {
+  transform: translateX(0);
+}
+
+.cinematic-reveal--right {
+  transform: translateX(40px);
+}
+
+.cinematic-reveal--right.is-revealed {
+  transform: translateX(0);
+}
+
+/* Staggered children */
+.reveal-child,
+[data-reveal-child] {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: 
+    opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-child.is-revealed,
+[data-reveal-child].is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger timing via CSS (fallback if JS timing fails) */
+.reveal-child:nth-child(1) { transition-delay: 0ms; }
+.reveal-child:nth-child(2) { transition-delay: 80ms; }
+.reveal-child:nth-child(3) { transition-delay: 160ms; }
+.reveal-child:nth-child(4) { transition-delay: 240ms; }
+.reveal-child:nth-child(5) { transition-delay: 320ms; }
+.reveal-child:nth-child(6) { transition-delay: 400ms; }
+.reveal-child:nth-child(7) { transition-delay: 480ms; }
+.reveal-child:nth-child(8) { transition-delay: 560ms; }
+
+/* ============================================================================
+   PARALLAX ELEMENTS
+   ============================================================================ */
+
+[data-parallax],
+.hero__bg-orb {
+  will-change: transform;
+  transition: transform 0.1s linear;
+}
+
+/* Hero content fade on scroll */
+.hero__content {
+  will-change: opacity, transform;
+  transition: opacity 0.1s linear, transform 0.1s linear;
+}
+
+/* ============================================================================
+   STICKY STORY SECTIONS
+   ============================================================================ */
+
+[data-sticky-story] {
+  position: relative;
+  min-height: 200vh; /* Room for scrolling through stages */
+}
+
+[data-sticky-story] > .sticky-content {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Story stages */
+[data-story-stage] {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: 
+    opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+[data-story-stage].is-active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+[data-story-stage].is-current {
+  /* Extra emphasis on current stage */
+}
+
+/* Progress-based transforms */
+[data-story-stage] {
+  --stage-progress: 0;
+}
+
+/* ============================================================================
+   SECTION TRANSITIONS
+   ============================================================================ */
+
+section {
+  position: relative;
+}
+
+section.is-current-section {
+  z-index: 2;
+}
+
+/* Section dividers with gradient fade */
+section::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(245, 241, 232, 0.5) 100%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+section.is-current-section::after {
+  opacity: 1;
+}
+
+/* ============================================================================
+   MOMENTUM-BASED EFFECTS
+   ============================================================================ */
+
+/* Velocity-based skew (applied via JS) */
+.momentum-skew {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Inertia on scroll stop */
+@keyframes settle-bounce {
+  0% {
+    transform: translateY(-5px);
+  }
+  50% {
+    transform: translateY(2px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.momentum-settle {
+  animation: settle-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ============================================================================
+   CINEMATIC SECTION STYLES
+   ============================================================================ */
+
+/* Full-bleed sections for drama */
+.section--cinematic {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.section--cinematic .container {
+  position: relative;
+  z-index: 2;
+}
+
+/* Overlay for depth */
+.section--cinematic::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 0%,
+    rgba(245, 241, 232, 0.3) 100%
+  );
+  pointer-events: none;
+}
+
+/* ============================================================================
+   HERO SCROLL EFFECTS
+   ============================================================================ */
+
+/* Hero parallax layers */
+.hero__bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.hero__bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(74, 103, 65, 0.1) 0%,
+    transparent 70%
+  );
+  will-change: transform;
+}
+
+.hero__bg-orb--1 {
+  width: 40vw;
+  height: 40vw;
+  top: -10%;
+  left: -10%;
+}
+
+.hero__bg-orb--2 {
+  width: 30vw;
+  height: 30vw;
+  bottom: -5%;
+  right: -5%;
+}
+
+.hero__bg-orb--3 {
+  width: 25vw;
+  height: 25vw;
+  top: 40%;
+  right: 20%;
+}
+
+/* ============================================================================
+   SCROLL INDICATOR
+   ============================================================================ */
+
+.scroll-indicator {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+  animation: scroll-indicator-bounce 2s ease-in-out infinite;
+}
+
+/* Hide after scrolling */
+body:not(.at-top) .scroll-indicator {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.scroll-indicator__mouse {
+  width: 24px;
+  height: 38px;
+  border: 2px solid var(--color-text-secondary, #5C544A);
+  border-radius: 12px;
+  position: relative;
+}
+
+.scroll-indicator__mouse::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 8px;
+  background: var(--color-text-secondary, #5C544A);
+  border-radius: 2px;
+  animation: scroll-wheel 2s ease-in-out infinite;
+}
+
+@keyframes scroll-wheel {
+  0%, 100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    opacity: 0.3;
+    transform: translateX(-50%) translateY(8px);
+  }
+}
+
+@keyframes scroll-indicator-bounce {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(8px);
+  }
+}
+
+.scroll-indicator span {
+  font-size: 12px;
+  color: var(--color-text-secondary, #5C544A);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* ============================================================================
+   REDUCED MOTION
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .cinematic-reveal,
+  .reveal-child,
+  [data-reveal-child],
+  [data-story-stage],
+  .scroll-indicator,
+  .scroll-indicator__mouse::before {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+  
+  [data-parallax],
+  .hero__bg-orb,
+  .hero__content {
+    transform: none !important;
+  }
+}
+

@@ -86,3 +86,38 @@
   color: var(--color-text-dimmed);
 }
 
+/* ============================================================================
+   DARK MODE - Footer High Contrast
+   ============================================================================ */
+@media (prefers-color-scheme: dark) {
+  .footer {
+    background: var(--color-ferni-cinematic-dark, #2c2520);
+    border-top-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .footer-brand .footer-logo {
+    color: var(--color-ferni-cinematic-text, #ffffff);
+  }
+  
+  .footer-tagline {
+    color: var(--color-ferni-cinematic-text-muted, #ddd6cc);
+  }
+  
+  .footer-col h4 {
+    color: var(--color-highlight, #C4A265);
+  }
+  
+  .footer-col a {
+    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+  }
+  
+  .footer-col a:hover {
+    color: var(--color-ferni-cinematic-text, #ffffff);
+  }
+  
+  .footer-bottom {
+    border-top-color: rgba(255, 255, 255, 0.1);
+    color: var(--color-ferni-cinematic-text-muted, #ddd6cc);
+  }
+}
+

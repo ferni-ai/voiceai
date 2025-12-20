@@ -68,6 +68,9 @@ import {
   type WeatherType,
 } from './weather-effects.ui.js';
 
+// Winter Solstice - cinematic holiday experience
+import { winterSolsticeMoment } from './winter-solstice.ui.js';
+
 // Ferni Moments - Character expressions
 import { ferniMoments, type MomentType } from './ferni-moments.ui.js';
 // Ferni Milestones - Relationship celebrations
@@ -4316,6 +4319,12 @@ function triggerCelebration(celebration: string): void {
       log.info('Team member celebration triggered');
       break;
 
+    case 'winter-solstice':
+      // 🌟 Winter Solstice - Full cinematic experience!
+      void triggerWinterSolstice();
+      log.info('Winter Solstice cinematic experience triggered');
+      break;
+
     default:
       avatarFeedback.success(`Celebration: ${celebration}`);
       log.info({ celebration }, 'Generic celebration triggered');
@@ -4334,6 +4343,28 @@ function triggerThinking(thinking: string): void {
     presenceUI.setVoiceEmotion('neutral');
     log.info('Stopped thinking mode (with insight)');
   }
+}
+
+// ============================================================================
+// 🌟 WINTER SOLSTICE - Cinematic Holiday Experience
+// ============================================================================
+
+/**
+ * Trigger the Winter Solstice cinematic experience.
+ * This is a Pixar-quality full-screen visual journey.
+ */
+async function triggerWinterSolstice(): Promise<void> {
+  // Simulate user context for the experience
+  const mockContext = {
+    userName: 'Developer',
+    conversationsThisYear: 42,
+    daysSinceFirstChat: 180,
+    relationshipStage: 'friend',
+    topTopics: ['habits', 'mindfulness', 'goals', 'growth'],
+    unlockedTeamMembers: ['ferni', 'maya-santos', 'peter-lynch'],
+  };
+
+  await winterSolsticeMoment.play(mockContext);
 }
 
 // ============================================================================

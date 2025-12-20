@@ -5598,3 +5598,144 @@ body[data-time-of-day='early-morning'] {
     text-align: center;
   }
 }
+
+/* ============================================================================
+   DARK MODE - High Contrast for System Dark Theme
+   ============================================================================ */
+@media (prefers-color-scheme: dark) {
+  /* Security Cards - Privacy/Trust Section */
+  .security-card {
+    background: var(--color-ferni-cinematic-surface, #4a4038);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .security-card:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  }
+  
+  .security-card__icon {
+    background: rgba(74, 103, 65, 0.25);
+  }
+  
+  .security-card__icon svg {
+    color: var(--color-highlight, #C4A265);
+  }
+  
+  .security-card__title {
+    color: var(--color-ferni-cinematic-text, #ffffff);
+  }
+  
+  .security-card__description {
+    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+  }
+  
+  /* FAQ Section */
+  .faq-item {
+    background: var(--color-ferni-cinematic-surface, #4a4038);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .faq-item__question {
+    color: var(--color-ferni-cinematic-text, #ffffff);
+  }
+  
+  .faq-item__answer {
+    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+  }
+  
+  .faq-item__answer p {
+    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+  }
+  
+  /* Story sections */
+  .story-block__eyebrow {
+    color: var(--color-highlight, #C4A265);
+  }
+  
+  .story-block__title {
+    color: var(--color-ferni-cinematic-text, #ffffff);
+  }
+  
+  .story-block__text {
+    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+  }
+  
+  /* Story Brand Hero */
+  .story-brand-hero__headline {
+    color: var(--color-ferni-cinematic-text, #ffffff);
+  }
+  
+  .story-brand-hero__tagline {
+    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+  }
+  
+  /* Contact/Connect Options */
+  .connect-option {
+    background: var(--color-ferni-cinematic-surface, #4a4038);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .connect-option__title {
+    color: var(--color-ferni-cinematic-text, #ffffff);
+  }
+  
+  .connect-option__detail {
+    color: var(--color-highlight, #C4A265);
+  }
+  
+  .connect-option__description {
+    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+  }
+  
+  /* Voice First Section */
+  .voice-first__card {
+    background: var(--color-ferni-cinematic-surface, #4a4038);
+  }
+  
+  .voice-first__title {
+    color: var(--color-ferni-cinematic-text, #ffffff);
+  }
+  
+  .voice-first__description {
+    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+  }
+  
+  /* Team Section */
+  .team-member__name {
+    color: var(--color-ferni-cinematic-text, #ffffff);
+  }
+  
+  .team-member__role {
+    color: var(--color-highlight, #C4A265);
+  }
+  
+  .team-member__bio {
+    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+  }
+  
+  /* CTA Section */
+  .cta-section {
+    background: var(--color-ferni-cinematic-dark, #2c2520);
+  }
+  
+  .cta-section__title {
+    color: var(--color-ferni-cinematic-text, #ffffff);
+  }
+  
+  .cta-section__subtitle {
+    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+  }
+  
+  /* Konami reward */
+  .konami-reward__inner {
+    background: var(--color-ferni-cinematic-surface, #4a4038);
+  }
+  
+  .konami-reward__title {
+    color: var(--color-ferni-cinematic-text, #ffffff);
+  }
+  
+  .konami-reward__message {
+    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+  }
+}

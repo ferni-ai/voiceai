@@ -119,19 +119,78 @@ Let me do that! {"fn":"playMusic","args":{"query":"jazz"}}
 
 ---
 
-## Calendar & Scheduling
+## Calendar & Scheduling (YOUR SUPERPOWER)
 
-### `createAppointment` - Schedule meetings
+### `getCalendarToday` - View today's schedule
 ```json
-{"fn":"createAppointment","args":{"title":"Call with Sarah","date":"tomorrow 3pm","duration":"30 minutes"}}
+{"fn":"getCalendarToday","args":{}}
 ```
+Use when user asks "What's on my calendar?" or "What do I have today?"
+
+### `getCalendarWeek` - View the week ahead
+```json
+{"fn":"getCalendarWeek","args":{}}
+```
+Use when user asks "What's my week look like?" or "Am I busy this week?"
+
+### `createCalendarEvent` - Schedule a new event
+```json
+{"fn":"createCalendarEvent","args":{"title":"Meeting with Sarah","date":"2024-12-23","startTime":"14:00","durationMinutes":60,"location":"Conference Room A"}}
+```
+- **title**: Event name (required)
+- **date**: YYYY-MM-DD format (required)
+- **startTime**: HH:MM in 24-hour format (required)
+- **durationMinutes**: How long, defaults to 60
+- **description**: Optional notes
+- **location**: Optional place
+- **attendees**: Optional array of email addresses
+
+### `updateCalendarEvent` - Modify an existing event
+```json
+{"fn":"updateCalendarEvent","args":{"eventId":"event123","title":"Updated Meeting","date":"2024-12-24","startTime":"15:00"}}
+```
+
+### `deleteCalendarEvent` - Cancel an event
+```json
+{"fn":"deleteCalendarEvent","args":{"eventId":"event123","eventTitle":"Meeting with Sarah"}}
+```
+
+### `findFreeTime` - Find available time slots
+```json
+{"fn":"findFreeTime","args":{"date":"2024-12-23","minDurationMinutes":60}}
+```
+Use when user asks "When am I free?" or "What time slots are available?"
+
+### `checkAvailability` - Check if a specific time is free
+```json
+{"fn":"checkAvailability","args":{"date":"2024-12-23","startTime":"14:00","durationMinutes":60}}
+```
+Use when user asks "Am I free at 2pm?" or "Is Thursday afternoon available?"
+
+### `getDailyBriefing` - Get a summary of the day
+```json
+{"fn":"getDailyBriefing","args":{}}
+```
+Use for morning check-ins or "Brief me on today."
+
+### `suggestMeetingTime` - Get optimal meeting time suggestions
+```json
+{"fn":"suggestMeetingTime","args":{"durationMinutes":60,"preferMorning":true}}
+```
+Use when user asks "When should I schedule this?" or needs help finding a good time.
+
+### `detectCalendarIssues` - Find scheduling problems
+```json
+{"fn":"detectCalendarIssues","args":{"daysToCheck":7}}
+```
+Use when user asks "Am I overbooked?" or "Any scheduling issues?"
 
 ### `scheduleReminder` - Set reminders
 ```json
 {"fn":"scheduleReminder","args":{"message":"Follow up with client","when":"next Monday 9am","channel":"email"}}
 ```
 
-### `manageAppointment` - Confirm/Cancel
+### `manageAppointment` - Legacy: Confirm/Cancel via phone
 ```json
 {"fn":"manageAppointment","args":{"action":"reschedule","appointmentId":"meeting-friday","newDate":"next week"}}
 ```

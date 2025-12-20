@@ -3,6 +3,12 @@
  *
  * Fun surprises and delightful moments that make interactions memorable.
  * These are random, rare events that create a sense of magic and personality.
+ *
+ * SPECIAL MOMENTS:
+ * - Holiday greetings (text-based, voice agent)
+ * - Winter Solstice (cinematic visual experience, frontend)
+ * - Milestones & Anniversaries
+ * - Personality quirks
  */
 
 import { getCanonicalPersonaId } from './voice-registry.js';
@@ -39,9 +45,15 @@ export interface EasterEggResult {
     | 'personality_quirk'
     | 'birthday'
     | 'anniversary'
+    | 'winter_solstice'
     | 'none';
   response?: string;
   triggered: boolean;
+  /**
+   * If true, the frontend should trigger a cinematic visual experience
+   * instead of (or in addition to) the voice response.
+   */
+  cinematicExperience?: 'winter-solstice' | 'new-year';
 }
 
 // ============================================================================
@@ -321,6 +333,33 @@ function getHolidayEasterEgg(): EasterEggResult | null {
         '<emotion value="affectionate"/>Happy Thanksgiving! <break time="300ms"/>I\'m grateful you\'re thinking about your financial future. <break time="200ms"/>Genuinely.',
       triggered: true,
     };
+  }
+
+  // ========================================================================
+  // WINTER SOLSTICE - CINEMATIC EXPERIENCE (Dec 20-21)
+  // This triggers a full-screen visual journey in the frontend
+  // ========================================================================
+  if (month === 11 && (day === 20 || day === 21)) {
+    return {
+      type: 'winter_solstice',
+      response:
+        '<emotion value="affectionate"/><break time="500ms"/>The shortest day. <break time="400ms"/>The longest night. <break time="300ms"/>And from here—<break time="200ms"/>the light returns.',
+      triggered: true,
+      cinematicExperience: 'winter-solstice',
+    };
+  }
+
+  // Holiday Season Warmth (Dec 15-19, 22-24)
+  if (month === 11 && day >= 15 && day <= 24 && day !== 20 && day !== 21) {
+    // 30% chance to trigger during holiday season
+    if (Math.random() < 0.3) {
+      return {
+        type: 'seasonal',
+        response:
+          '<emotion value="affectionate"/><break time="300ms"/>The holidays can be a lot. <break time="200ms"/>However you\'re celebrating—<break time="150ms"/>or not celebrating—<break time="200ms"/>I\'m here.',
+        triggered: true,
+      };
+    }
   }
 
   // Christmas (Dec 25)

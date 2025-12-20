@@ -1322,6 +1322,10 @@ h1,
   -webkit-line-clamp: 3;
 }
 
+.\!block {
+  display: block !important;
+}
+
 .block {
   display: block;
 }

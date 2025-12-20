@@ -115,6 +115,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'trust-context': () => import('./trust-context.js'),
   'relationship-behaviors': () => import('./relationship-behaviors.js'),
   'session-flow': () => import('./session-flow.js'),
+  'calendar-awareness': () => import('./calendar-awareness.js'), // Alex: calendar snapshot for scheduling
   goodbye: () => import('./goodbye.js'),
   rag: () => import('./rag.js'),
   tasks: () => import('./tasks.js'),

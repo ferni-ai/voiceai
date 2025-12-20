@@ -73,6 +73,8 @@ import { personaIntro } from '../ui/persona-intro.ui.js';
 // 🔓 Team unlock service - For marking members as unlocked
 // 🎉 Roster preferences - For adding members to the roster
 import { addMemberToRoster, type TeamMemberId } from '../services/roster-preferences.service.js';
+// 🌟 Winter Solstice - Cinematic holiday experience
+import { winterSolsticeMoment, type SolsticeContext } from '../ui/winter-solstice.ui.js';
 
 const log = createLogger('DataMessageHandlers');
 
@@ -266,6 +268,11 @@ export function handleDataMessage(message: DataMessage): void {
     case 'breath_sync':
       // 🫁 Ferni EQ: Breath sync quality from backend for avatar breathing animation
       handleBreathSync(message as BreathSyncEvent);
+      break;
+
+    case 'cinematic_experience':
+      // 🌟 Cinematic Experience: Full-screen visual moments (Winter Solstice, etc.)
+      handleCinematicExperience(message as CinematicExperienceEvent);
       break;
 
     default:
@@ -506,6 +513,64 @@ function handleBreathSync(event: BreathSyncEvent): void {
       },
     })
   );
+}
+
+// ============================================================================
+// CINEMATIC EXPERIENCE HANDLER - Full-screen visual moments
+// ============================================================================
+
+/**
+ * Cinematic experience event from backend
+ */
+interface CinematicExperienceEvent extends DataMessage {
+  type: 'cinematic_experience';
+  experience: 'winter-solstice' | 'new-year';
+  context?: {
+    userName?: string;
+    conversationsThisYear?: number;
+    daysSinceFirstChat?: number;
+    relationshipStage?: string;
+    topTopics?: string[];
+    unlockedTeamMembers?: string[];
+  };
+}
+
+/**
+ * Handle cinematic experience events from the agent.
+ *
+ * These are special full-screen visual moments that tell a story.
+ * They go beyond simple celebrations to create meaningful, memorable experiences.
+ *
+ * Current experiences:
+ * - winter-solstice: Dec 20-21, a Pixar-quality reflection on the year
+ */
+function handleCinematicExperience(event: CinematicExperienceEvent): void {
+  log.info('🌟 Cinematic experience triggered', { experience: event.experience });
+
+  switch (event.experience) {
+    case 'winter-solstice':
+      // Build context for personalized content
+      const solsticeContext: SolsticeContext = {
+        userName: event.context?.userName,
+        conversationsThisYear: event.context?.conversationsThisYear,
+        daysSinceFirstChat: event.context?.daysSinceFirstChat,
+        relationshipStage: event.context?.relationshipStage,
+        topTopics: event.context?.topTopics,
+        unlockedTeamMembers: event.context?.unlockedTeamMembers,
+      };
+
+      // Play the cinematic experience
+      void winterSolsticeMoment.play(solsticeContext);
+      break;
+
+    case 'new-year':
+      // Future: New Year's Eve countdown experience
+      log.warn('New Year experience not yet implemented');
+      break;
+
+    default:
+      log.warn({ experience: event.experience }, 'Unknown cinematic experience');
+  }
 }
 
 /**

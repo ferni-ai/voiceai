@@ -766,6 +766,109 @@ export function getLearningTracks(): LearningTrack[] {
       category: 'psychology',
       difficulty: 'beginner',
     },
+    {
+      id: 'relationships-connection',
+      title: 'Love, Boundaries & Connection',
+      description:
+        "Why we attach the way we do, how to say no without guilt, and what loneliness teaches us. For anyone working on their relationships—including the one with themselves.",
+      episodes: [
+        CURATED_EPISODES.find((e) => e.id === 'shetty-attachment'),
+        CURATED_EPISODES.find((e) => e.id === 'shetty-boundaries'),
+        CURATED_EPISODES.find((e) => e.id === 'hidden-brain-relationships'),
+      ]
+        .filter((e): e is CuratedEpisode => e !== undefined)
+        .map((e) =>
+          curatedToEpisode(
+            e,
+            CURATED_PODCASTS.find((p) => p.id === e.podcastId)
+          )
+        ),
+      totalDuration: 140,
+      category: 'psychology',
+      difficulty: 'intermediate',
+    },
+    {
+      id: 'building-something',
+      title: 'Building Something From Nothing',
+      description:
+        "Stories of people who started with an idea and made it real. Not hustle porn—just honest accounts of what it actually takes.",
+      episodes: [
+        CURATED_EPISODES.find((e) => e.id === 'hibt-airbnb'),
+        CURATED_EPISODES.find((e) => e.id === 'hibt-spanx'),
+      ]
+        .filter((e): e is CuratedEpisode => e !== undefined)
+        .map((e) =>
+          curatedToEpisode(
+            e,
+            CURATED_PODCASTS.find((p) => p.id === e.podcastId)
+          )
+        ),
+      totalDuration: 105,
+      category: 'business',
+      difficulty: 'beginner',
+    },
+    {
+      id: 'big-questions',
+      title: 'The Big Questions',
+      description:
+        "Meaning, freedom, mortality. The stuff that keeps you up at night. No answers here—just better questions.",
+      episodes: [
+        CURATED_EPISODES.find((e) => e.id === 'philosophize-existentialism'),
+        CURATED_EPISODES.find((e) => e.id === 'philosophize-nietzsche'),
+      ]
+        .filter((e): e is CuratedEpisode => e !== undefined)
+        .map((e) =>
+          curatedToEpisode(
+            e,
+            CURATED_PODCASTS.find((p) => p.id === e.podcastId)
+          )
+        ),
+      totalDuration: 85,
+      category: 'philosophy',
+      difficulty: 'intermediate',
+    },
+    {
+      id: 'anxiety-toolkit',
+      title: 'When Anxiety Hits',
+      description:
+        "Not about fixing yourself. About understanding what anxiety is trying to tell you, and finding some gentler ways through.",
+      episodes: [
+        CURATED_EPISODES.find((e) => e.id === 'tenpercent-anxiety'),
+        CURATED_EPISODES.find((e) => e.id === 'tenpercent-compassion'),
+        CURATED_EPISODES.find((e) => e.id === 'shetty-overthinking'),
+      ]
+        .filter((e): e is CuratedEpisode => e !== undefined)
+        .map((e) =>
+          curatedToEpisode(
+            e,
+            CURATED_PODCASTS.find((p) => p.id === e.podcastId)
+          )
+        ),
+      totalDuration: 125,
+      category: 'mindfulness',
+      difficulty: 'beginner',
+    },
+    {
+      id: 'dopamine-motivation',
+      title: 'Understanding Your Brain\'s Reward System',
+      description:
+        "Why you can't stop scrolling, why cold showers work, and how dopamine actually controls motivation. Brain science that you can use.",
+      episodes: [
+        CURATED_EPISODES.find((e) => e.id === 'huberman-dopamine'),
+        CURATED_EPISODES.find((e) => e.id === 'huberman-habits'),
+        CURATED_EPISODES.find((e) => e.id === 'huberman-cold'),
+      ]
+        .filter((e): e is CuratedEpisode => e !== undefined)
+        .map((e) =>
+          curatedToEpisode(
+            e,
+            CURATED_PODCASTS.find((p) => p.id === e.podcastId)
+          )
+        ),
+      totalDuration: 280,
+      category: 'science',
+      difficulty: 'advanced',
+    },
   ];
 }
 

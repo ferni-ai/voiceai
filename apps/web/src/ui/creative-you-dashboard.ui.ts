@@ -486,9 +486,20 @@ export class CreativeYouDashboard {
 
   private renderCreativeDNA(): void {
     const container = this.container?.querySelector('.dna-card');
-    if (!container || !this.creativeDNA) return;
+    if (!container) return;
 
     container.setAttribute('data-loading', 'false');
+
+    // Empty state - warm copy
+    if (!this.creativeDNA) {
+      container.innerHTML = `
+        <div class="empty-dna">
+          <div class="empty-icon">${ICONS.brain}</div>
+          <p>${t('creativeYou.noProfile')}</p>
+        </div>
+      `;
+      return;
+    }
 
     const topTopics = this.creativeDNA.topTopics.slice(0, 4);
     const maxScore = Math.max(...topTopics.map((topic) => topic.score), 1);
@@ -1625,6 +1636,45 @@ export class CreativeYouDashboard {
         text-align: center;
         color: var(--color-text-muted, #7A6F63);
         padding: var(--space-4, 16px);
+      }
+
+      .empty-pick,
+      .empty-dna {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-6, 24px);
+        text-align: center;
+        min-height: 120px;
+      }
+
+      .empty-pick .empty-icon,
+      .empty-dna .empty-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-background-subtle, rgba(44, 37, 32, 0.05));
+        border-radius: var(--radius-full, 9999px);
+        color: var(--color-text-muted, #7A6F63);
+        margin-bottom: 12px;
+      }
+
+      .empty-pick .empty-icon svg,
+      .empty-dna .empty-icon svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      .empty-pick p,
+      .empty-dna p {
+        font-size: 13px;
+        color: var(--color-text-muted, #7A6F63);
+        margin: 0;
+        line-height: 1.5;
+        max-width: 200px;
       }
 
       /* Reduced motion */
