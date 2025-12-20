@@ -365,8 +365,13 @@ export function getPeerComparison(params: {
  */
 export async function updateBenchmarksFromBigQuery(): Promise<void> {
   try {
-    const { BigQuery } = await import('@google-cloud/bigquery');
-    const bigquery = new BigQuery({
+    // Dynamic import - BigQuery may not be installed in all environments
+    const bqModule = await import('@google-cloud/bigquery').catch(() => null);
+    if (!bqModule) {
+      log.warn('BigQuery module not available, skipping benchmark update');
+      return;
+    }
+    const bigquery = new bqModule.BigQuery({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || 'johnb-2025',
     });
 

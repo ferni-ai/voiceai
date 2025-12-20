@@ -324,8 +324,17 @@ export async function recordBehavioralEvent(params: {
     experienceYears?: number;
   };
 }): Promise<void> {
+  // Map behavior to event type
+  const behaviorToEventType: Record<string, AnonymizedEventType> = {
+    'panic_sell': 'panic_sell',
+    'timing_attempt': 'timing_attempt',
+    'impulse_purchase': 'behavior_recorded',
+    'over_checking': 'behavior_recorded',
+  };
+
   const event = createAnonymizedEvent({
-    type: params.behavior,
+    type: behaviorToEventType[params.behavior] || 'behavior_recorded',
+    subtype: params.behavior,
     userProfile: params.userProfile,
     marketContext: params.marketConditions,
     eventData: {

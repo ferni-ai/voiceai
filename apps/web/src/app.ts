@@ -241,6 +241,8 @@ import {
 import { initCosmeticsService } from './services/cosmetics.service.js';
 // Seeds Economy - earn seeds through engagement
 import { initSeedsEconomy } from './services/seeds-economy.service.js';
+// Referral Service - network effect seeds system
+import { initReferralService, processPendingReferral } from './services/referral.service.js';
 // Seeds UI - display balance and toast notifications
 import { initSeedsDisplay } from './ui/seeds-display.ui.js';
 import { initSeedsToast } from './ui/seeds-toast.ui.js';
@@ -1371,6 +1373,9 @@ class VoiceAIApp {
 
     // 🌱 Seeds Economy - Earn seeds through natural engagement
     this.safeInit('SeedsEconomy', () => initSeedsEconomy());
+
+    // 🤝 Referral Service - Network effect seeds (check URL for ?ref= param)
+    this.safeInit('ReferralService', () => initReferralService());
 
     // 🌱 Seeds UI - Display balance and toast notifications
     this.safeInit('SeedsDisplay', () => initSeedsDisplay());

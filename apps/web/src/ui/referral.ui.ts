@@ -539,6 +539,86 @@ function injectStyles(): void {
       margin: 0;
     }
 
+    /* Seeds Bonus Banner */
+    .referral-bonus {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-3, 12px);
+      background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.1)), var(--persona-glow, rgba(74, 103, 65, 0.05)));
+      border: 1px solid var(--persona-primary, #4a6741);
+      border-radius: var(--radius-lg, 12px);
+      padding: var(--space-3, 12px) var(--space-4, 16px);
+      margin-bottom: var(--space-4, 16px);
+    }
+
+    .referral-bonus-icon {
+      font-size: 1.5rem;
+    }
+
+    .referral-bonus-text {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+    }
+
+    .referral-bonus-text strong {
+      color: var(--persona-primary, #4a6741);
+      font-size: var(--text-sm, 0.875rem);
+    }
+
+    .referral-bonus-text span {
+      color: var(--color-text-muted, #70605a);
+      font-size: var(--text-xs, 0.75rem);
+    }
+
+    /* Referral Link Display */
+    .referral-link-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2, 8px);
+      background: var(--color-background-subtle, rgba(0, 0, 0, 0.03));
+      border-radius: var(--radius-md, 8px);
+      padding: var(--space-2, 8px) var(--space-3, 12px);
+      margin-bottom: var(--space-4, 16px);
+      font-size: var(--text-xs, 0.75rem);
+    }
+
+    .referral-link-label {
+      color: var(--color-text-muted, #70605a);
+    }
+
+    .referral-link-url {
+      color: var(--persona-primary, #4a6741);
+      font-weight: 500;
+      font-family: var(--font-mono, monospace);
+    }
+
+    /* Garden Stats */
+    .referral-garden {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-1, 4px);
+      padding-top: var(--space-3, 12px);
+      border-top: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+      font-size: var(--text-xs, 0.75rem);
+    }
+
+    .referral-garden-title {
+      color: var(--color-text-muted, #70605a);
+    }
+
+    .referral-garden-stats {
+      color: var(--color-text-primary, #2c2520);
+      font-weight: 500;
+    }
+
+    .referral-garden-earned {
+      color: var(--persona-primary, #4a6741);
+    }
+
     /* Toast */
     .referral-toast {
       position: fixed;
