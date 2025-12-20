@@ -228,6 +228,9 @@ export { getToolDefinitions as getTimelessPerspectiveToolDefinitions } from './t
 // Developer domain - CLI commands, file editing, bash
 export { getToolDefinitions as getDeveloperToolDefinitions } from './developer/index.js';
 
+// Marketing domain - social media management (Alex's dogfooding tools)
+export { getToolDefinitions as getMarketingToolDefinitions } from './marketing/index.js';
+
 // ============================================================================
 // LEGACY DOMAIN EXPORTS (for backwards compatibility)
 // These will be deprecated once all consumers migrate to registry-based system

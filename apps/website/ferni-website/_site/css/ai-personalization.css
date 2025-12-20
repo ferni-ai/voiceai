@@ -236,6 +236,221 @@
   }
 }
 
+/* High engagement state - user is very interested */
+.btn--engaged {
+  position: relative;
+  overflow: visible;
+}
+
+.btn--engaged::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  background: linear-gradient(
+    135deg,
+    rgba(74, 103, 65, 0.2) 0%,
+    rgba(74, 103, 65, 0.4) 50%,
+    rgba(74, 103, 65, 0.2) 100%
+  );
+  border-radius: inherit;
+  z-index: -1;
+  animation: engaged-glow 1.5s ease-out forwards;
+}
+
+@keyframes engaged-glow {
+  0% {
+    transform: scale(1);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.05);
+    opacity: 0.7;
+  }
+}
+
+/* Highlighted for high-intent users */
+.btn--highlighted {
+  animation: highlighted-attention 3s ease-in-out infinite;
+}
+
+@keyframes highlighted-attention {
+  0%, 100% {
+    transform: translateY(0);
+    box-shadow: 0 4px 12px rgba(74, 103, 65, 0.25);
+  }
+  50% {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(74, 103, 65, 0.35);
+  }
+}
+
+/* ============================================================================
+   HESITATION DETECTION STYLES
+   ============================================================================ */
+
+/* Body class when user is hesitating */
+.user-hesitating .btn--secondary {
+  /* Subtle attention draw */
+  animation: hesitation-hint 2s ease-in-out;
+}
+
+@keyframes hesitation-hint {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+    box-shadow: 0 0 0 4px rgba(74, 103, 65, 0.1);
+  }
+}
+
+/* Attention state for CTAs */
+.btn--attention {
+  position: relative;
+}
+
+.btn--attention::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border: 2px solid var(--color-ferni);
+  border-radius: calc(var(--radius-lg, 8px) + 6px);
+  opacity: 0;
+  animation: attention-ring 2s ease-out forwards;
+}
+
+@keyframes attention-ring {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.1);
+    opacity: 0;
+  }
+}
+
+/* Helpful nudge tooltip */
+.helpful-nudge {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  background: var(--color-text-primary, #2C2520);
+  color: var(--color-paper-cream, #FFFDFB);
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 8px;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(44, 37, 32, 0.2);
+  animation: nudge-appear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  z-index: 100;
+}
+
+.helpful-nudge::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--color-text-primary, #2C2520);
+}
+
+@keyframes nudge-appear {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+.helpful-nudge--fading {
+  animation: nudge-fade 0.5s ease-out forwards;
+}
+
+@keyframes nudge-fade {
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px);
+  }
+}
+
+/* ============================================================================
+   RETENTION ELEMENTS
+   ============================================================================ */
+
+.retention-highlight {
+  position: relative;
+}
+
+.retention-highlight::before {
+  content: '';
+  position: absolute;
+  inset: -20px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(74, 103, 65, 0.03) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+  animation: retention-pulse 4s ease-in-out infinite;
+}
+
+@keyframes retention-pulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ============================================================================
+   READING PROGRESS INDICATOR (Optional)
+   ============================================================================ */
+
+.reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: var(--color-ferni);
+  width: 0%;
+  z-index: 9999;
+  transition: width 0.1s ease-out;
+  opacity: 0;
+}
+
+.reading-progress--visible {
+  opacity: 1;
+}
+
+.reading-progress::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 100px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(74, 103, 65, 0.4)
+  );
+}
+
 /* ============================================================================
    REDUCED MOTION
    ============================================================================ */

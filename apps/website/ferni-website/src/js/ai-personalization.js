@@ -280,6 +280,30 @@
       setupScrollTracking();
     }
     
+    // New enhanced features
+    if (CONFIG.enableEngagementTracking) {
+      setupEngagementTracking();
+    }
+    
+    if (CONFIG.enableHesitationDetection) {
+      setupHesitationDetection();
+    }
+    
+    if (CONFIG.enablePredictiveHints) {
+      setupPredictiveHints();
+    }
+    
+    // Setup section observation for dwell time
+    setupSectionObserver();
+    
+    // Track session duration
+    setupSessionTracking();
+    
+    // Late night special treatment
+    if (isLateNight()) {
+      applyLateNightSpecial();
+    }
+    
     // Save visit
     saveVisitorData();
     
@@ -290,6 +314,374 @@
       visitCount: state.visitCount,
       isReturning: state.isReturning
     });
+  }
+  
+  // ============================================================================
+  // ENGAGEMENT TRACKING - Measure how users interact
+  // ============================================================================
+  
+  function setupEngagementTracking() {
+    // Track mouse movements for engagement velocity
+    let lastMouseMove = Date.now();
+    let moveCount = 0;
+    
+    document.addEventListener('mousemove', throttle(() => {
+      const now = Date.now();
+      moveCount++;
+      
+      // Calculate engagement velocity (moves per second)
+      const elapsed = now - lastMouseMove;
+      if (elapsed > 1000) {
+        const velocity = moveCount / (elapsed / 1000);
+        recordEngagement('mousemove', velocity);
+        moveCount = 0;
+        lastMouseMove = now;
+      }
+      
+      state.engagement.lastActivity = now;
+      state.behavior.mouseIdleTime = 0;
+    }, 100), { passive: true });
+    
+    // Track clicks
+    document.addEventListener('click', (e) => {
+      state.engagement.interactionCount++;
+      recordEngagement('click', 1);
+      
+      // Track what was clicked
+      const target = e.target.closest('a, button, [data-action]');
+      if (target) {
+        logDebug('Interaction', { element: target.tagName, text: target.textContent?.slice(0, 30) });
+      }
+    });
+    
+    // Track hovers on important elements
+    document.querySelectorAll('.btn, .testimonial, .feature, .pricing-card').forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        state.engagement.hoverCount++;
+        recordEngagement('hover', 0.5);
+      });
+    });
+    
+    // Periodically calculate engagement score
+    setInterval(updateEngagementScore, 5000);
+  }
+  
+  function recordEngagement(type, value) {
+    const now = Date.now();
+    engagementHistory.push({ type, value, time: now });
+    
+    // Prune old entries
+    while (engagementHistory.length > 0 && engagementHistory[0].time < now - ENGAGEMENT_WINDOW) {
+      engagementHistory.shift();
+    }
+  }
+  
+  function updateEngagementScore() {
+    const now = Date.now();
+    
+    // Calculate weighted engagement from recent activity
+    let score = 0;
+    const weights = { click: 10, hover: 3, mousemove: 0.5, scroll: 1 };
+    
+    for (const entry of engagementHistory) {
+      const age = (now - entry.time) / ENGAGEMENT_WINDOW;
+      const decay = 1 - age; // More recent = higher weight
+      score += (weights[entry.type] || 1) * entry.value * decay;
+    }
+    
+    // Normalize to 0-100
+    state.intent.readiness = Math.min(100, Math.round(score));
+    
+    // Determine interest level
+    if (state.intent.readiness > 70) {
+      state.intent.interest = 'high';
+    } else if (state.intent.readiness > 30) {
+      state.intent.interest = 'medium';
+    } else {
+      state.intent.interest = 'low';
+    }
+    
+    // Trigger UI updates based on engagement
+    if (state.intent.readiness > 80 && !state.intent.highEngagementShown) {
+      state.intent.highEngagementShown = true;
+      showHighEngagementHint();
+    }
+    
+    logDebug('Engagement score', { 
+      readiness: state.intent.readiness, 
+      interest: state.intent.interest 
+    });
+  }
+  
+  function showHighEngagementHint() {
+    // User is highly engaged - subtly encourage conversion
+    const ctas = document.querySelectorAll('.btn--primary');
+    ctas.forEach(cta => {
+      cta.classList.add('btn--engaged');
+    });
+    
+    // Could also trigger a subtle animation or highlight
+  }
+  
+  // ============================================================================
+  // HESITATION DETECTION - Notice when users pause
+  // ============================================================================
+  
+  function setupHesitationDetection() {
+    let hesitationTimer = null;
+    
+    const resetHesitation = () => {
+      if (hesitationTimer) {
+        clearTimeout(hesitationTimer);
+      }
+      
+      if (state.engagement.isHesitating) {
+        state.engagement.isHesitating = false;
+        document.body.classList.remove('user-hesitating');
+      }
+      
+      hesitationTimer = setTimeout(() => {
+        state.engagement.isHesitating = true;
+        state.engagement.hesitationCount++;
+        document.body.classList.add('user-hesitating');
+        
+        onHesitationDetected();
+      }, CONFIG.hesitationThreshold);
+    };
+    
+    // Reset hesitation timer on any activity
+    ['mousemove', 'scroll', 'keydown', 'click', 'touchstart'].forEach(event => {
+      document.addEventListener(event, resetHesitation, { passive: true });
+    });
+    
+    resetHesitation();
+  }
+  
+  function onHesitationDetected() {
+    logDebug('Hesitation detected', { count: state.engagement.hesitationCount });
+    
+    // After multiple hesitations, offer help
+    if (state.engagement.hesitationCount >= 3) {
+      showHelpfulNudge();
+    }
+    
+    // Track which section they hesitated on
+    const currentSection = getCurrentVisibleSection();
+    if (currentSection) {
+      state.intent.friction.push({
+        section: currentSection,
+        time: Date.now(),
+        scrollDepth: state.maxScrollDepth
+      });
+    }
+  }
+  
+  function showHelpfulNudge() {
+    // Don't show if already shown this session
+    if (state.helpfulNudgeShown) return;
+    state.helpfulNudgeShown = true;
+    
+    // Find a good place to show a subtle nudge
+    const nudgeTarget = document.querySelector('.hero__cta .btn--secondary');
+    if (nudgeTarget) {
+      nudgeTarget.classList.add('btn--attention');
+      
+      // Create a subtle tooltip
+      const nudge = document.createElement('span');
+      nudge.className = 'helpful-nudge';
+      nudge.textContent = 'Questions? I can help.';
+      nudge.setAttribute('role', 'tooltip');
+      nudgeTarget.style.position = 'relative';
+      nudgeTarget.appendChild(nudge);
+      
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        nudge.classList.add('helpful-nudge--fading');
+        setTimeout(() => nudge.remove(), 500);
+      }, 5000);
+    }
+  }
+  
+  // ============================================================================
+  // SECTION OBSERVATION - Track which sections user reads
+  // ============================================================================
+  
+  function setupSectionObserver() {
+    const sections = document.querySelectorAll('section[id], [data-section]');
+    if (sections.length === 0) return;
+    
+    const sectionTimers = new Map();
+    
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const id = entry.target.id || entry.target.dataset.section || 'unknown';
+        
+        if (entry.isIntersecting) {
+          // Start timing
+          sectionTimers.set(id, Date.now());
+          
+          // Mark as viewed
+          if (!state.engagement.sectionsViewed.includes(id)) {
+            state.engagement.sectionsViewed.push(id);
+          }
+        } else {
+          // Stop timing and record dwell time
+          const startTime = sectionTimers.get(id);
+          if (startTime) {
+            const dwellTime = Date.now() - startTime;
+            state.engagement.dwellTimes[id] = (state.engagement.dwellTimes[id] || 0) + dwellTime;
+            sectionTimers.delete(id);
+            
+            // Check if this was meaningful engagement
+            if (dwellTime > CONFIG.dwellTimeThreshold) {
+              logDebug('Section read', { id, dwellTime: Math.round(dwellTime / 1000) + 's' });
+            }
+          }
+        }
+      });
+    }, {
+      threshold: 0.5 // 50% visible
+    });
+    
+    sections.forEach(section => observer.observe(section));
+  }
+  
+  function getCurrentVisibleSection() {
+    const sections = document.querySelectorAll('section[id], [data-section]');
+    const viewportMiddle = window.innerHeight / 2;
+    
+    for (const section of sections) {
+      const rect = section.getBoundingClientRect();
+      if (rect.top < viewportMiddle && rect.bottom > viewportMiddle) {
+        return section.id || section.dataset.section;
+      }
+    }
+    return null;
+  }
+  
+  // ============================================================================
+  // PREDICTIVE HINTS - Anticipate what user needs
+  // ============================================================================
+  
+  function setupPredictiveHints() {
+    // Predict based on scroll behavior
+    window.addEventListener('scroll', throttle(() => {
+      predictUserIntent();
+    }, 1000), { passive: true });
+  }
+  
+  function predictUserIntent() {
+    const signals = [];
+    
+    // Signal: Rapid scrolling past content = not interested
+    if (state.scrollVelocity > 500) {
+      signals.push({ signal: 'skimming', weight: -1 });
+    }
+    
+    // Signal: Slow, methodical scrolling = interested
+    if (state.scrollVelocity > 0 && state.scrollVelocity < 100) {
+      signals.push({ signal: 'reading', weight: 1 });
+    }
+    
+    // Signal: Revisited sections = comparison shopping
+    if (state.behavior.revisitedSections.length > 2) {
+      signals.push({ signal: 'comparing', weight: 0.5 });
+    }
+    
+    // Signal: Spent time on pricing = purchase intent
+    if ((state.engagement.dwellTimes['pricing'] || 0) > 5000) {
+      signals.push({ signal: 'pricing_interested', weight: 2 });
+    }
+    
+    // Signal: Read testimonials = seeking validation
+    if ((state.engagement.dwellTimes['testimonials'] || 0) > 3000) {
+      signals.push({ signal: 'seeking_validation', weight: 1.5 });
+    }
+    
+    // Calculate predicted action
+    const totalWeight = signals.reduce((sum, s) => sum + s.weight, 0);
+    
+    if (totalWeight > 3) {
+      state.intent.predicted = 'likely_to_convert';
+      highlightConversionPath();
+    } else if (totalWeight < -1) {
+      state.intent.predicted = 'may_bounce';
+      showRetentionElement();
+    }
+  }
+  
+  function highlightConversionPath() {
+    // Subtle enhancement of CTAs for interested users
+    document.querySelectorAll('.btn--primary').forEach(btn => {
+      if (!btn.classList.contains('btn--highlighted')) {
+        btn.classList.add('btn--highlighted');
+      }
+    });
+  }
+  
+  function showRetentionElement() {
+    // For users who might leave, show a value proposition
+    // This is subtle - not a popup, just enhanced visibility
+    const valueProps = document.querySelector('.value-props, .benefits');
+    if (valueProps && !valueProps.classList.contains('retention-highlight')) {
+      valueProps.classList.add('retention-highlight');
+    }
+  }
+  
+  // ============================================================================
+  // SESSION TRACKING
+  // ============================================================================
+  
+  function setupSessionTracking() {
+    // Track total time on page
+    setInterval(() => {
+      state.totalTimeOnSite = Date.now() - state.sessionStart;
+    }, 1000);
+    
+    // Save session data before leaving
+    window.addEventListener('beforeunload', () => {
+      saveSessionData();
+    });
+  }
+  
+  function saveSessionData() {
+    try {
+      const sessionData = {
+        duration: Date.now() - state.sessionStart,
+        maxScrollDepth: state.maxScrollDepth,
+        sectionsViewed: state.engagement.sectionsViewed,
+        interactionCount: state.engagement.interactionCount,
+        readiness: state.intent.readiness
+      };
+      
+      // Append to session history
+      const history = JSON.parse(localStorage.getItem('ferni_session_history') || '[]');
+      history.push(sessionData);
+      
+      // Keep only last 10 sessions
+      while (history.length > 10) {
+        history.shift();
+      }
+      
+      localStorage.setItem('ferni_session_history', JSON.stringify(history));
+    } catch (e) {
+      logDebug('Could not save session data');
+    }
+  }
+  
+  // ============================================================================
+  // UTILITY FUNCTIONS
+  // ============================================================================
+  
+  function throttle(fn, delay) {
+    let lastCall = 0;
+    return function(...args) {
+      const now = Date.now();
+      if (now - lastCall >= delay) {
+        lastCall = now;
+        return fn.apply(this, args);
+      }
+    };
   }
 
   // ============================================================================

@@ -2,7 +2,11 @@
  * Calendar Service
  *
  * High-level calendar operations for Alex (Communication Specialist).
- * Wraps the Google Calendar OAuth layer with user-friendly abstractions.
+ *
+ * HYBRID APPROACH:
+ * - Uses Google Calendar when connected (OAuth)
+ * - Falls back to local Firestore storage when not
+ * - Seamless experience either way
  *
  * Features:
  * - Get today's/week's events
@@ -11,7 +15,8 @@
  * - Check availability
  * - Smart scheduling suggestions
  *
- * @see ../google-calendar-oauth.ts for low-level OAuth operations
+ * @see ../google-calendar-oauth.ts for Google Calendar OAuth
+ * @see ./local-calendar-store.ts for local Firestore fallback
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
@@ -25,6 +30,14 @@ import {
   isCalendarConfigured,
   type CalendarEvent as GoogleCalendarEvent,
 } from '../google-calendar-oauth.js';
+import {
+  getLocalEventsForDay,
+  getLocalEvents,
+  createLocalEvent,
+  updateLocalEvent,
+  deleteLocalEvent,
+  hasLocalEvents,
+} from './local-calendar-store.js';
 
 const log = getLogger();
 
