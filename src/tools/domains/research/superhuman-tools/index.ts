@@ -16,6 +16,7 @@ import { getCompanyFundamentals } from '../external-apis.js';
 import type {
   InvestmentThesis,
   FinancialGoal,
+  LifeEvent,
   RiskEvent,
   KnowledgeGap,
 } from '../user-data/types.js';
@@ -189,7 +190,7 @@ export const createFinancialGoal = llm.tool({
     const goal: FinancialGoal = {
       id: `goal_${Date.now()}`,
       name,
-      type,
+      type: type as FinancialGoal['type'],
       target: {
         amount: targetAmount,
         date: targetDate ? new Date(targetDate) : undefined,
@@ -210,7 +211,7 @@ export const createFinancialGoal = llm.tool({
         { percentage: 90 },
         { percentage: 100 },
       ],
-      priority,
+      priority: priority as FinancialGoal['priority'],
       createdAt: new Date(),
       notes,
     };
@@ -426,7 +427,7 @@ export const recordLifeEvent = llm.tool({
     await UserDataService.saveLifeEvent(userId, {
       id: `event_${Date.now()}`,
       date: new Date(),
-      type,
+      type: type as LifeEvent['type'],
       subtype: 'custom' as any, // Simplified
       description,
       financialImpact: {

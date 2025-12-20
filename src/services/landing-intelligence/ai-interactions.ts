@@ -447,9 +447,9 @@ Ferni is a voice-first AI life coach with six specialists:
 - Nayan Patel: Sage & mentor (Partner tier)
 
 Pricing:
-- Free: 5 conversations/month, Ferni only
-- Friend ($9.99/mo): Unlimited conversations, all 6 specialists
-- Partner ($19.99/mo): Everything + Nayan, advanced features
+- Community: Ferni is free forever (session-based soft limits)
+- Founding Member ($10/mo): Unlimited conversations, all 6 specialists
+- Founding Patron ($20/mo): Everything + Nayan, advanced features
 
 Key features:
 - Voice-first (just talk naturally)
@@ -526,7 +526,7 @@ function getFallbackFAQ(question: string): SmartFAQResponse {
     return {
       question,
       answer:
-        'Ferni is free to start with 5 conversations/month. Friend tier ($9.99/mo) gives unlimited access to all 6 specialists. Partner tier ($19.99/mo) adds premium features and Nayan, our sage mentor.',
+        'Ferni is free forever - really free. If you believe in what we\'re building, you can chip in as a Founding Member ($10/mo) for unlimited access to all 6 specialists. Founding Patrons ($20/mo) get premium features and Nayan, our sage mentor.',
       relatedQuestions: ["What's included in the free tier?", 'Can I cancel anytime?'],
       confidence: 0.95,
     };

@@ -155,8 +155,8 @@
         ]
       },
       "friend": {
-        "name": "Friend",
-        "price": "$9.99",
+        "name": "Founding Member",
+        "price": "$10",
         "period": "month",
         "description": "For regular support",
         "features": [
@@ -168,8 +168,8 @@
         ]
       },
       "partner": {
-        "name": "Partner",
-        "price": "$19.99",
+        "name": "Founding Patron",
+        "price": "$20",
         "period": "month",
         "description": "For deep partnership",
         "features": [

@@ -8,9 +8,9 @@
  * - Deep personalization
  *
  * Premium Tiers:
- * - Free: Basic content, 5 convos/month
- * - Friend ($9.99): Unlimited, all core team
- * - Partner ($19.99): Everything + premium content + priority
+ * - Community: Free forever, session-based soft limits
+ * - Founding Member ($10): Unlimited, all core team
+ * - Founding Patron ($20): Everything + premium content + priority
  */
 
 import { getLogger } from '../../utils/safe-logger.js';

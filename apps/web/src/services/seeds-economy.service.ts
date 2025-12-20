@@ -480,6 +480,7 @@ export function initSeedsEconomy(): void {
 export const seedsEconomy = {
   init: initSeedsEconomy,
   recordConversation,
+  claimDailyBonus,
   checkConversationMilestone,
   recordGoalAchieved,
   recordReferral,

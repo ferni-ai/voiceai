@@ -1915,6 +1915,20 @@ class VoiceAIApp {
     const durationMs = startTime ? Date.now() - startTime : 0;
     const minutesTalked = Math.max(1, Math.round(durationMs / 60000));
 
+    // 🤝 Process any pending referral on first/early conversation
+    // This ensures referrer gets credit after new user completes a meaningful conversation
+    const convCount = modalCoordinator.getConversationCount();
+    if (convCount <= 2) {
+      const referralResult = processPendingReferral();
+      if (referralResult.processed) {
+        log.info({ bonus: referralResult.bonusAwarded }, 'Referral bonus applied');
+        // Show toast after a short delay so it doesn't conflict with conversation end UI
+        setTimeout(() => {
+          toast.success(`+${referralResult.bonusAwarded} seeds from your friend! 🌱`);
+        }, 1500);
+      }
+    }
+
     try {
       const response = await fetch('/usage/conversation', {
         method: 'POST',

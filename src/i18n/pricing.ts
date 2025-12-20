@@ -145,7 +145,7 @@ export const LOCALE_CURRENCY: Record<SupportedLocale, CurrencyCode> = {
  * Adjusted for purchasing power parity in different regions
  */
 const TIER_PRICING: Record<CurrencyCode, { friend: number; partner: number }> = {
-  USD: { friend: 999, partner: 1999 }, // $9.99, $19.99
+  USD: { friend: 1000, partner: 2000 }, // $10, $20 (Founding Member / Patron)
   EUR: { friend: 899, partner: 1799 }, // €8.99, €17.99
   GBP: { friend: 799, partner: 1599 }, // £7.99, £15.99
   JPY: { friend: 1500, partner: 3000 }, // ¥1500, ¥3000 (no decimals)

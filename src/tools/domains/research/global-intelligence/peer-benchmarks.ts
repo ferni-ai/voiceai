@@ -366,12 +366,16 @@ export function getPeerComparison(params: {
 export async function updateBenchmarksFromBigQuery(): Promise<void> {
   try {
     // Dynamic import - BigQuery may not be installed in all environments
-    const bqModule = await import('@google-cloud/bigquery').catch(() => null);
-    if (!bqModule) {
+    // Use require to avoid TypeScript module resolution errors
+    let BigQuery: new (opts: { projectId: string }) => { query: (opts: { query: string }) => Promise<Array<Record<string, unknown>[]>> };
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      BigQuery = require('@google-cloud/bigquery').BigQuery;
+    } catch {
       log.warn('BigQuery module not available, skipping benchmark update');
       return;
     }
-    const bigquery = new bqModule.BigQuery({
+    const bigquery = new BigQuery({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || 'johnb-2025',
     });
 
@@ -408,33 +412,34 @@ export async function updateBenchmarksFromBigQuery(): Promise<void> {
       HAVING sample_size >= 50
     `;
 
-    const [rows] = await bigquery.query({ query });
+    const result = await bigquery.query({ query });
+    const rows = (result[0] || []) as Array<Record<string, unknown>>;
 
     for (const row of rows) {
       const key = `${row.age_group}_${row.income_bracket}`;
       const existing = BENCHMARK_DATA.get(key);
 
       if (existing) {
-        // Update with new data
+        // Update with new data - cast to numbers
         existing.savingsRate = {
-          median: row.savings_median,
-          p25: row.savings_p25,
-          p75: row.savings_p75,
-          p90: row.savings_p90,
+          median: Number(row.savings_median) || 0,
+          p25: Number(row.savings_p25) || 0,
+          p75: Number(row.savings_p75) || 0,
+          p90: Number(row.savings_p90) || 0,
         };
         existing.netWorth = {
-          median: row.nw_median,
-          p25: row.nw_p25,
-          p75: row.nw_p75,
-          p90: row.nw_p90,
+          median: Number(row.nw_median) || 0,
+          p25: Number(row.nw_p25) || 0,
+          p75: Number(row.nw_p75) || 0,
+          p90: Number(row.nw_p90) || 0,
         };
         existing.behavioralScore = {
-          median: row.behavior_median,
-          topQuartile: row.behavior_p75,
+          median: Number(row.behavior_median) || 0,
+          topQuartile: Number(row.behavior_p75) || 0,
         };
-        existing.characteristics.emergencyFundRate = row.emergency_fund_rate;
-        existing.characteristics.automatedSavingsRate = row.automated_rate;
-        existing.sampleSize = row.sample_size;
+        existing.characteristics.emergencyFundRate = Number(row.emergency_fund_rate) || 0;
+        existing.characteristics.automatedSavingsRate = Number(row.automated_rate) || 0;
+        existing.sampleSize = Number(row.sample_size) || 0;
         existing.lastUpdated = new Date();
 
         BENCHMARK_DATA.set(key, existing);

@@ -439,12 +439,12 @@ async function storeInsightsForUser(userId: string, insights: DailyInsight[]): P
     // Convert to QuantInsight format for storage
     const quantInsight: QuantInsight = {
       id: insight.id,
-      generatedAt: insight.generatedAt,
+      date: insight.generatedAt,
       type: 'portfolio', // Default to portfolio type
       title: insight.title,
       summary: insight.message,
       details: insight.details || '',
-      actionItems: insight.actionable ? [insight.title] : [],
+      actionable: insight.actionable,
       priority: insight.priority,
       acknowledged: false,
     };
@@ -465,7 +465,7 @@ export async function getStoredInsights(userId: string): Promise<DailyInsight[]>
   today.setHours(0, 0, 0, 0);
 
   return quantInsights
-    .filter((i: QuantInsight) => new Date(i.generatedAt) >= today && !i.acknowledged)
+    .filter((i: QuantInsight) => new Date(i.date) >= today && !i.acknowledged)
     .map((qi: QuantInsight) => ({
       id: qi.id,
       userId,
@@ -474,8 +474,8 @@ export async function getStoredInsights(userId: string): Promise<DailyInsight[]>
       title: qi.title,
       message: qi.summary,
       details: qi.details,
-      actionable: qi.actionItems && qi.actionItems.length > 0,
-      generatedAt: new Date(qi.generatedAt),
+      actionable: qi.actionable,
+      generatedAt: new Date(qi.date),
       delivered: false,
       acknowledged: qi.acknowledged || false,
     }));

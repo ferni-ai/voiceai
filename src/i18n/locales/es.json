@@ -148,8 +148,8 @@
         ]
       },
       "friend": {
-        "name": "Amigo",
-        "price": "$9.99",
+        "name": "Miembro Fundador",
+        "price": "$10",
         "period": "mes",
         "description": "Para apoyo regular",
         "features": [
@@ -161,8 +161,8 @@
         ]
       },
       "partner": {
-        "name": "Socio",
-        "price": "$19.99",
+        "name": "Patrono Fundador",
+        "price": "$20",
         "period": "mes",
         "description": "Para asociación profunda",
         "features": [

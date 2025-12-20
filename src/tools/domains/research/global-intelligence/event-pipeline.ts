@@ -16,23 +16,23 @@ const log = getLogger();
 // BIGQUERY CLIENT
 // ============================================================================
 
-let bigquery: any = null;
+// BigQuery client - dynamically loaded
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let bigqueryClient: { dataset: (name: string) => { table: (name: string) => { insert: (rows: unknown[]) => Promise<void> } } } | null = null;
 
-async function getBigQuery(): Promise<unknown> {
-  if (bigquery) return bigquery;
+async function getBigQuery(): Promise<typeof bigqueryClient> {
+  if (bigqueryClient) return bigqueryClient;
 
   try {
     // Dynamic import - BigQuery may not be installed in all environments
-    const bqModule = await import('@google-cloud/bigquery').catch(() => null);
-    if (!bqModule) {
-      log.warn('BigQuery module not available');
-      return null;
-    }
-    bigquery = new bqModule.BigQuery({
+    // Use require to avoid TypeScript module resolution errors
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+    const { BigQuery } = require('@google-cloud/bigquery');
+    bigqueryClient = new BigQuery({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || 'johnb-2025',
     });
     log.info('BigQuery client initialized');
-    return bigquery;
+    return bigqueryClient;
   } catch (error) {
     log.warn({ error: String(error) }, 'BigQuery not available, events will be buffered locally');
     return null;

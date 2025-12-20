@@ -65,7 +65,7 @@ const MAX_RECENT_EVENTS = 100;
 
 // Price mapping for MRR calculation
 const TIER_PRICES: Record<string, number> = {
-  monthly: 999, // $9.99/month
+  monthly: 1000, // $10/month (Founding Member)
   yearly: 8325, // $99.90/year = $8.33/month
   free: 0,
 };
