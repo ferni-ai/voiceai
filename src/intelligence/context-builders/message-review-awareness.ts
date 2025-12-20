@@ -30,8 +30,8 @@ export const messageReviewAwarenessBuilder: ContextBuilder = {
       return [];
     }
 
-    const userId = userData.userId;
-    if (!userId) {
+    const userId = input.services?.userId || 'anonymous';
+    if (userId === 'anonymous') {
       return [];
     }
 
@@ -77,7 +77,6 @@ export const messageReviewAwarenessBuilder: ContextBuilder = {
       return [
         createStandardInjection('message_review_awareness', content, {
           category: 'messages',
-          priority: 43,
         }),
       ];
     } catch (error) {

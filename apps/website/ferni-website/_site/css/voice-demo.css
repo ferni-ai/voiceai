@@ -1,0 +1,263 @@
+/**
+ * Voice Demo CSS
+ * Styles for voice-activated demo interaction
+ */
+
+/* ============================================================================
+   VOICE BUTTON STATES
+   ============================================================================ */
+
+.demo-widget__voice {
+  position: relative;
+  overflow: visible;
+}
+
+/* Listening state - Animated ring */
+.demo-widget__voice.is-listening {
+  background: linear-gradient(
+    135deg,
+    var(--color-ferni, #4a6741) 0%,
+    #3d5a35 100%
+  );
+  color: white;
+  animation: voice-pulse 1.5s ease-in-out infinite;
+}
+
+.demo-widget__voice.is-listening::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 2px solid var(--color-ferni, #4a6741);
+  border-radius: 50%;
+  opacity: 0;
+  animation: voice-ring 1.5s ease-out infinite;
+}
+
+.demo-widget__voice.is-listening::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border: 1px solid var(--color-ferni, #4a6741);
+  border-radius: 50%;
+  opacity: 0;
+  animation: voice-ring 1.5s ease-out 0.3s infinite;
+}
+
+@keyframes voice-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes voice-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+/* Processing state */
+.demo-widget__voice.is-processing {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.demo-widget__voice.is-processing svg {
+  animation: voice-processing 1s linear infinite;
+}
+
+@keyframes voice-processing {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error state */
+.demo-widget__voice.is-error {
+  background: rgba(200, 100, 100, 0.1);
+  animation: voice-error 0.3s ease;
+}
+
+@keyframes voice-error {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+/* ============================================================================
+   WIDGET VOICE ACTIVE STATE
+   ============================================================================ */
+
+.demo-widget.is-voice-active {
+  /* Subtle highlight */
+}
+
+.demo-widget.is-voice-active .demo-widget__input-area {
+  background: linear-gradient(
+    180deg,
+    rgba(74, 103, 65, 0.05) 0%,
+    transparent 100%
+  );
+}
+
+.demo-widget.is-voice-active .demo-widget__input {
+  border-color: var(--color-ferni, #4a6741);
+  background: rgba(74, 103, 65, 0.02);
+}
+
+/* ============================================================================
+   MICROPHONE PERMISSION ERROR
+   ============================================================================ */
+
+.demo-widget__mic-error {
+  padding: 12px 16px;
+  background: rgba(200, 100, 100, 0.08);
+  border-bottom: 1px solid rgba(200, 100, 100, 0.1);
+  text-align: center;
+  animation: mic-error-appear 0.3s ease-out;
+}
+
+.demo-widget__mic-error p {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #8a5a5a;
+}
+
+.demo-widget__mic-error small {
+  font-size: 11px;
+  color: var(--color-text-secondary, #5C544A);
+  opacity: 0.8;
+}
+
+@keyframes mic-error-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================================
+   VOICE WAVEFORM VISUALIZATION (Optional Enhancement)
+   ============================================================================ */
+
+.demo-widget__waveform {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 24px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.demo-widget.is-voice-active .demo-widget__waveform {
+  opacity: 1;
+}
+
+.demo-widget__waveform-bar {
+  width: 3px;
+  height: 8px;
+  background: var(--color-ferni, #4a6741);
+  border-radius: 2px;
+  animation: waveform-bar 0.8s ease-in-out infinite;
+}
+
+.demo-widget__waveform-bar:nth-child(1) { animation-delay: 0ms; }
+.demo-widget__waveform-bar:nth-child(2) { animation-delay: 100ms; }
+.demo-widget__waveform-bar:nth-child(3) { animation-delay: 200ms; }
+.demo-widget__waveform-bar:nth-child(4) { animation-delay: 300ms; }
+.demo-widget__waveform-bar:nth-child(5) { animation-delay: 400ms; }
+
+@keyframes waveform-bar {
+  0%, 100% {
+    height: 8px;
+    opacity: 0.4;
+  }
+  50% {
+    height: 20px;
+    opacity: 1;
+  }
+}
+
+/* ============================================================================
+   TRANSCRIPT DISPLAY ANIMATION
+   ============================================================================ */
+
+/* Animate text appearing as user speaks */
+.demo-widget__input.is-transcribing {
+  animation: transcript-appear 0.1s ease-out;
+}
+
+@keyframes transcript-appear {
+  from {
+    opacity: 0.7;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ============================================================================
+   VOICE TOOLTIP
+   ============================================================================ */
+
+.demo-widget__voice-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 6px 12px;
+  background: var(--color-text-primary, #2C2520);
+  color: white;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: 
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  pointer-events: none;
+}
+
+.demo-widget__voice-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--color-text-primary, #2C2520);
+}
+
+.demo-widget__voice:hover .demo-widget__voice-tooltip,
+.demo-widget__voice:focus .demo-widget__voice-tooltip {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.demo-widget__voice.is-listening .demo-widget__voice-tooltip {
+  display: none;
+}
+

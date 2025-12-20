@@ -30,8 +30,8 @@ export const contactAwarenessBuilder: ContextBuilder = {
       return [];
     }
 
-    const userId = userData.userId;
-    if (!userId) {
+    const userId = input.services?.userId || 'anonymous';
+    if (userId === 'anonymous') {
       return [];
     }
 
@@ -78,7 +78,6 @@ export const contactAwarenessBuilder: ContextBuilder = {
       return [
         createStandardInjection('contact_awareness', content, {
           category: 'contacts',
-          priority: 44,
         }),
       ];
     } catch (error) {

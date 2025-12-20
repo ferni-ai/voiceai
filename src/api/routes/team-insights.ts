@@ -22,6 +22,11 @@ import {
   type PersonaId,
   type CrossPersonaInsight,
 } from '../../services/cross-persona-insights.js';
+import {
+  getPerformanceStats,
+  clearPerformanceLog,
+  clearAllSuperhumanCache,
+} from '../../intelligence/context-builders/superhuman-integration.js';
 import { getUserId, sendJSON, sendError, handleCorsPreflightIfNeeded } from '../helpers.js';
 import { API_ERRORS } from '../error-messages.js';
 
@@ -146,6 +151,47 @@ async function triggerInsightScan(
   }
 }
 
+/**
+ * GET /api/team-insights/performance
+ * Get performance stats for superhuman context builders (debug panel)
+ */
+function getPerformance(res: ServerResponse): void {
+  try {
+    const stats = getPerformanceStats();
+
+    sendJSON(res, {
+      ...stats,
+      timestamp: Date.now(),
+    });
+
+    log.debug({ totalCalls: stats.totalCalls }, 'Performance stats fetched');
+  } catch (error) {
+    log.error({ error }, 'Failed to get performance stats');
+    sendError(res, 'Failed to fetch performance stats', 500);
+  }
+}
+
+/**
+ * POST /api/team-insights/performance/clear
+ * Clear performance logs and caches (debug panel)
+ */
+function clearPerformance(res: ServerResponse): void {
+  try {
+    clearPerformanceLog();
+    clearAllSuperhumanCache();
+
+    sendJSON(res, {
+      success: true,
+      clearedAt: Date.now(),
+    });
+
+    log.info('Performance logs and caches cleared');
+  } catch (error) {
+    log.error({ error }, 'Failed to clear performance data');
+    sendError(res, 'Failed to clear performance data', 500);
+  }
+}
+
 // ============================================================================
 // ROUTE DISPATCHER
 // ============================================================================
@@ -193,6 +239,18 @@ export async function handleTeamInsightsRoutes(
     // POST /api/team-insights/scan
     if (pathname === '/api/team-insights/scan' && method === 'POST') {
       await triggerInsightScan(req, res, userId);
+      return true;
+    }
+
+    // GET /api/team-insights/performance (debug panel)
+    if (pathname === '/api/team-insights/performance' && method === 'GET') {
+      getPerformance(res);
+      return true;
+    }
+
+    // POST /api/team-insights/performance/clear (debug panel)
+    if (pathname === '/api/team-insights/performance/clear' && method === 'POST') {
+      clearPerformance(res);
       return true;
     }
 

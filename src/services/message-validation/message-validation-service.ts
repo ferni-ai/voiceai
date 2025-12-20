@@ -750,7 +750,9 @@ async function persistDraft(draft: MessageDraft): Promise<void> {
   if (!firestore) return;
 
   try {
-    await firestore.collection(DRAFTS_COLLECTION).doc(draft.id).set(draft);
+    // Remove undefined values for Firestore compatibility
+    const cleanDraft = JSON.parse(JSON.stringify(draft));
+    await firestore.collection(DRAFTS_COLLECTION).doc(draft.id).set(cleanDraft);
   } catch (error) {
     log.error({ error: String(error), draftId: draft.id }, 'Failed to persist draft');
   }

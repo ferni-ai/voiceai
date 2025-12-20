@@ -28,6 +28,7 @@
 import { createLogger } from '../utils/safe-logger.js';
 import { getFinancialStore } from './financial-store.js';
 import { getProductivityStore } from './productivity-store.js';
+import { insightsBroadcast } from './insights-broadcast.js';
 
 const log = createLogger({ module: 'cross-persona-insights' });
 
@@ -133,6 +134,12 @@ export function addCrossPersonaInsight(
     },
     '📨 Cross-persona insight added'
   );
+
+  // 🔔 Broadcast to connected WebSocket clients for real-time notifications
+  // Only broadcast high-priority or proactive insights to avoid noise
+  if (insight.priority === 'high' || insight.priority === 'critical' || insight.proactive) {
+    insightsBroadcast.publishInsight(userId, fullInsight);
+  }
 
   return fullInsight;
 }

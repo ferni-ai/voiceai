@@ -340,43 +340,45 @@ async function renderPerformanceStats(): Promise<void> {
   if (!statsContainer || !entriesContainer) return;
 
   try {
-    const { getPerformanceStats } = await import(
-      '../../../../src/intelligence/context-builders/superhuman-integration.js'
-    );
-    const stats = getPerformanceStats();
+    // Fetch performance stats from API (backend has the actual data)
+    const response = await fetch('/api/team-insights/performance');
+    if (!response.ok) throw new Error('Failed to fetch performance stats');
+
+    const stats = await response.json();
 
     statsContainer.innerHTML = `
       <div class="insights-debug-panel__stat">
         <div class="insights-debug-panel__stat-label">Total Calls</div>
-        <div class="insights-debug-panel__stat-value">${stats.totalCalls}</div>
+        <div class="insights-debug-panel__stat-value">${stats.totalCalls || 0}</div>
       </div>
       <div class="insights-debug-panel__stat">
         <div class="insights-debug-panel__stat-label">Avg Duration</div>
-        <div class="insights-debug-panel__stat-value ${stats.averageDurationMs > 200 ? 'insights-debug-panel__stat-value--warning' : 'insights-debug-panel__stat-value--good'}">
-          ${stats.averageDurationMs}ms
+        <div class="insights-debug-panel__stat-value ${(stats.averageDurationMs || 0) > 200 ? 'insights-debug-panel__stat-value--warning' : 'insights-debug-panel__stat-value--good'}">
+          ${stats.averageDurationMs || 0}ms
         </div>
       </div>
       <div class="insights-debug-panel__stat">
         <div class="insights-debug-panel__stat-label">Cache Hit Rate</div>
-        <div class="insights-debug-panel__stat-value ${stats.cacheHitRate > 0.5 ? 'insights-debug-panel__stat-value--good' : ''}">
-          ${Math.round(stats.cacheHitRate * 100)}%
+        <div class="insights-debug-panel__stat-value ${(stats.cacheHitRate || 0) > 0.5 ? 'insights-debug-panel__stat-value--good' : ''}">
+          ${Math.round((stats.cacheHitRate || 0) * 100)}%
         </div>
       </div>
       <div class="insights-debug-panel__stat">
         <div class="insights-debug-panel__stat-label">Slowest</div>
-        <div class="insights-debug-panel__stat-value ${stats.slowestCall && stats.slowestCall.durationMs > 300 ? 'insights-debug-panel__stat-value--error' : ''}">
+        <div class="insights-debug-panel__stat-value ${stats.slowestCall?.durationMs > 300 ? 'insights-debug-panel__stat-value--error' : ''}">
           ${stats.slowestCall?.durationMs || 0}ms
         </div>
       </div>
     `;
 
     // Render recent entries
-    if (stats.recentCalls.length > 0) {
-      entriesContainer.innerHTML = stats.recentCalls
+    const recentCalls = stats.recentCalls || [];
+    if (recentCalls.length > 0) {
+      entriesContainer.innerHTML = recentCalls
         .slice(-5)
         .reverse()
         .map(
-          (entry) => `
+          (entry: { persona: string; cacheHit: boolean; durationMs: number }) => `
         <div class="insights-debug-panel__perf-entry">
           <span class="insights-debug-panel__perf-name">
             ${entry.persona} ${entry.cacheHit ? '(cached)' : ''}
@@ -478,12 +480,13 @@ function setupEventListeners(): void {
   const clearBtn = document.getElementById('insights-clear-btn');
   clearBtn?.addEventListener('click', async () => {
     try {
-      const { clearAllSuperhumanCache, clearPerformanceLog } = await import(
-        '../../../../src/intelligence/context-builders/superhuman-integration.js'
-      );
-      clearAllSuperhumanCache();
-      clearPerformanceLog();
-      refreshAll();
+      // Call backend API to clear caches
+      const response = await fetch('/api/team-insights/performance/clear', {
+        method: 'POST',
+      });
+      if (!response.ok) throw new Error('Failed to clear caches');
+      
+      await refreshAll();
       log.info('Cleared caches');
     } catch (err) {
       log.warn('Could not clear caches:', err);

@@ -112,11 +112,12 @@
 }
 
 .footer__nav-group a {
+  display: block;
   font-family: var(--font-body, 'Inter', sans-serif);
   font-size: clamp(0.875rem, 1.2vw, 0.9375rem);
   color: var(--color-text-secondary, #5c524a);
   text-decoration: none;
-  padding: 2px 0;
+  padding: 4px 0;
   transition: color var(--duration-fast, 150ms);
 }
 

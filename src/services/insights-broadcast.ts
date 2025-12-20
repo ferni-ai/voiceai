@@ -203,6 +203,15 @@ class InsightsBroadcast extends EventEmitter {
   }
 
   /**
+   * Publish an insight to connected WebSocket clients
+   * Alias for notifyNewInsight for use by cross-persona-insights
+   */
+  publishInsight(userId: string, insight: CrossPersonaInsight): void {
+    log.debug({ userId, insightId: insight.id, priority: insight.priority }, '🔔 Broadcasting insight');
+    this.notifyNewInsight(userId, insight);
+  }
+
+  /**
    * Get monitoring status for a user
    */
   isMonitoring(userId: string): boolean {

@@ -16,6 +16,9 @@
 /* Building Ferni Story Page */
 @import './building-page.css';
 
+/* Footer - Premium Edition */
+@import './sections/footer.css';
+
 :root {
   /* Aliases that map to design tokens */
   --color-bg: var(--color-bg-primary);
