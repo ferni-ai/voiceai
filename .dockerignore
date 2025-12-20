@@ -8,13 +8,18 @@
 
 # Large directories
 # Apps - exclude large subdirs but keep apps/cli/ for build scripts
+# and apps/web/ for UI server (frontend build)
 apps/android/
 apps/electron/
 apps/ios/
 apps/macos-menubar/
 apps/marketing/
 apps/marketplace-agents/
-apps/web/
+# apps/web/ - INCLUDED for UI server frontend build
+# Only exclude build artifacts and node_modules
+apps/web/node_modules/
+apps/web/dist/
+apps/web/test-results/
 apps/website/
 # NOTE: apps/cli/ is intentionally NOT excluded (needed for Dockerfile.agent build)
 ferni-speaker-build/

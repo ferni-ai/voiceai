@@ -1,0 +1,515 @@
+/**
+ * Commitment Keeper - Better Than Human Service
+ *
+ * What no human friend can do: Never forget what you said you'd do.
+ *
+ * Tracks user commitments made during conversations and follows up
+ * with care (not nagging). This is the foundation of "better than human"
+ * accountability.
+ *
+ * @module services/superhuman/commitment-keeper
+ */
+
+import { createLogger } from '../../utils/safe-logger.js';
+import { getFirestoreDb } from '../../memory/firestore-client.js';
+
+const log = createLogger({ module: 'commitment-keeper' });
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export type CommitmentType =
+  | 'intention' // "I'm going to..." - soft commitment
+  | 'promise' // "I promise..." - strong commitment
+  | 'goal' // "My goal is..." - aspirational
+  | 'boundary' // "I need to stop..." - self-protection
+  | 'conversation' // "I need to talk to..." - interpersonal
+  | 'decision' // "I've decided..." - firm choice
+  | 'experiment' // "I'm going to try..." - exploratory;
+
+export type CommitmentStatus =
+  | 'active' // Still working toward it
+  | 'completed' // User confirmed done
+  | 'deferred' // Postponed with reason
+  | 'abandoned' // User decided not to pursue
+  | 'unclear'; // Need to check in
+
+export type FollowUpTone =
+  | 'curious' // "How did it go?"
+  | 'supportive' // "No pressure, just thinking of you"
+  | 'celebratory' // "Tell me everything!"
+  | 'gentle' // "I know this was hard..."
+  | 'patient'; // "Whenever you're ready"
+
+export interface Commitment {
+  id: string;
+  userId: string;
+
+  // What they committed to
+  statement: string; // Original words
+  summary: string; // Condensed version
+  type: CommitmentType;
+
+  // Context
+  topic?: string; // What were we discussing
+  emotionalWeight: number; // 0-1 how significant this feels
+  personInvolved?: string; // If about a relationship/conversation
+
+  // Timing
+  createdAt: number;
+  targetDate?: number; // When they said they'd do it
+  lastMentioned: number;
+  followUpAfter: number; // When to check in
+
+  // Status
+  status: CommitmentStatus;
+  followUpCount: number;
+  lastFollowUp?: number;
+
+  // Learning
+  userReactionToFollowUp?: 'appreciated' | 'annoyed' | 'neutral';
+}
+
+export interface CommitmentFollowUp {
+  commitmentId: string;
+  tone: FollowUpTone;
+  message: string;
+  shouldSurface: boolean;
+  urgency: 'low' | 'normal' | 'high';
+}
+
+export interface CommitmentDetectionResult {
+  detected: boolean;
+  commitment?: Omit<Commitment, 'id' | 'createdAt' | 'lastMentioned' | 'followUpAfter' | 'status' | 'followUpCount'>;
+  confidence: number;
+}
+
+// ============================================================================
+// COMMITMENT DETECTION PATTERNS
+// ============================================================================
+
+const COMMITMENT_PATTERNS: Array<{
+  pattern: RegExp;
+  type: CommitmentType;
+  weight: number;
+}> = [
+  // Strong intentions
+  { pattern: /\bi('m| am) going to\b/i, type: 'intention', weight: 0.7 },
+  { pattern: /\bi('ll| will)\b/i, type: 'intention', weight: 0.6 },
+  { pattern: /\bi need to\b/i, type: 'intention', weight: 0.65 },
+  { pattern: /\bi have to\b/i, type: 'intention', weight: 0.6 },
+  { pattern: /\bi('ve| have) got to\b/i, type: 'intention', weight: 0.65 },
+  { pattern: /\bi want to\b/i, type: 'intention', weight: 0.5 },
+
+  // Promises
+  { pattern: /\bi promise\b/i, type: 'promise', weight: 0.9 },
+  { pattern: /\bi swear\b/i, type: 'promise', weight: 0.85 },
+  { pattern: /\bi commit to\b/i, type: 'promise', weight: 0.9 },
+
+  // Goals
+  { pattern: /\bmy goal is\b/i, type: 'goal', weight: 0.8 },
+  { pattern: /\bi('m| am) working on\b/i, type: 'goal', weight: 0.6 },
+  { pattern: /\bi('m| am) trying to\b/i, type: 'experiment', weight: 0.5 },
+
+  // Boundaries
+  { pattern: /\bi need to stop\b/i, type: 'boundary', weight: 0.7 },
+  { pattern: /\bi('m| am) done with\b/i, type: 'boundary', weight: 0.75 },
+  { pattern: /\bno more\b/i, type: 'boundary', weight: 0.6 },
+
+  // Conversations
+  { pattern: /\bi need to (talk|speak) to\b/i, type: 'conversation', weight: 0.8 },
+  { pattern: /\bi('m| am) going to (tell|ask|confront)\b/i, type: 'conversation', weight: 0.75 },
+  { pattern: /\bi have to have (a|that) conversation\b/i, type: 'conversation', weight: 0.85 },
+
+  // Decisions
+  { pattern: /\bi('ve| have) decided\b/i, type: 'decision', weight: 0.85 },
+  { pattern: /\bi('m| am) going to (quit|leave|start|end)\b/i, type: 'decision', weight: 0.8 },
+  { pattern: /\bthat('s| is) it,? i('m| am)\b/i, type: 'decision', weight: 0.7 },
+];
+
+const TIME_PATTERNS: Array<{ pattern: RegExp; daysFromNow: number }> = [
+  { pattern: /\btoday\b/i, daysFromNow: 0 },
+  { pattern: /\btonight\b/i, daysFromNow: 0 },
+  { pattern: /\btomorrow\b/i, daysFromNow: 1 },
+  { pattern: /\bthis week\b/i, daysFromNow: 5 },
+  { pattern: /\bnext week\b/i, daysFromNow: 10 },
+  { pattern: /\bthis weekend\b/i, daysFromNow: 4 },
+  { pattern: /\bby (monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i, daysFromNow: 7 },
+  { pattern: /\bsoon\b/i, daysFromNow: 3 },
+];
+
+// ============================================================================
+// DETECTION
+// ============================================================================
+
+export function detectCommitment(
+  transcript: string,
+  userId: string,
+  context?: { topic?: string; personMentioned?: string; emotionalIntensity?: number }
+): CommitmentDetectionResult {
+  const lowerTranscript = transcript.toLowerCase();
+
+  // Find matching patterns
+  let bestMatch: { type: CommitmentType; weight: number } | null = null;
+  let matchedPattern: RegExp | null = null;
+
+  for (const { pattern, type, weight } of COMMITMENT_PATTERNS) {
+    if (pattern.test(lowerTranscript)) {
+      if (!bestMatch || weight > bestMatch.weight) {
+        bestMatch = { type, weight };
+        matchedPattern = pattern;
+      }
+    }
+  }
+
+  if (!bestMatch || !matchedPattern) {
+    return { detected: false, confidence: 0 };
+  }
+
+  // Extract the commitment statement
+  const match = transcript.match(matchedPattern);
+  if (!match) {
+    return { detected: false, confidence: 0 };
+  }
+
+  // Get the rest of the sentence after the pattern
+  const matchIndex = match.index || 0;
+  const afterMatch = transcript.slice(matchIndex);
+  const sentenceEnd = afterMatch.search(/[.!?]|$/);
+  const statement = afterMatch.slice(0, sentenceEnd + 1).trim();
+
+  // Create summary (first 100 chars or to period)
+  const summary = statement.length > 100 ? statement.slice(0, 97) + '...' : statement;
+
+  // Detect target date
+  let targetDate: number | undefined;
+  for (const { pattern, daysFromNow } of TIME_PATTERNS) {
+    if (pattern.test(lowerTranscript)) {
+      targetDate = Date.now() + daysFromNow * 24 * 60 * 60 * 1000;
+      break;
+    }
+  }
+
+  // Calculate emotional weight
+  const emotionalWeight = Math.min(
+    1,
+    (context?.emotionalIntensity || 0.5) * bestMatch.weight
+  );
+
+  return {
+    detected: true,
+    confidence: bestMatch.weight,
+    commitment: {
+      userId,
+      statement,
+      summary,
+      type: bestMatch.type,
+      topic: context?.topic,
+      emotionalWeight,
+      personInvolved: context?.personMentioned,
+      targetDate,
+    },
+  };
+}
+
+// ============================================================================
+// STORAGE
+// ============================================================================
+
+const commitmentCache = new Map<string, Commitment[]>();
+
+export async function saveCommitment(commitment: Omit<Commitment, 'id'>): Promise<Commitment> {
+  const id = `commit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const fullCommitment: Commitment = {
+    ...commitment,
+    id,
+    createdAt: Date.now(),
+    lastMentioned: Date.now(),
+    followUpAfter: commitment.targetDate || Date.now() + 3 * 24 * 60 * 60 * 1000, // Default 3 days
+    status: 'active',
+    followUpCount: 0,
+  };
+
+  try {
+    const db = getFirestoreDb();
+    if (db) {
+      await db
+        .collection('bogle_users')
+        .doc(commitment.userId)
+        .collection('commitments')
+        .doc(id)
+        .set(fullCommitment);
+    }
+
+    // Update cache
+    const userCommitments = commitmentCache.get(commitment.userId) || [];
+    userCommitments.push(fullCommitment);
+    commitmentCache.set(commitment.userId, userCommitments);
+
+    log.info(
+      { userId: commitment.userId, commitmentId: id, type: fullCommitment.type },
+      '📝 Commitment saved'
+    );
+
+    return fullCommitment;
+  } catch (error) {
+    log.error({ error: String(error), userId: commitment.userId }, 'Failed to save commitment');
+    throw error;
+  }
+}
+
+export async function loadUserCommitments(userId: string): Promise<Commitment[]> {
+  if (commitmentCache.has(userId)) {
+    return commitmentCache.get(userId) || [];
+  }
+
+  try {
+    const db = getFirestoreDb();
+    if (!db) return [];
+
+    const snapshot = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('commitments')
+      .where('status', '==', 'active')
+      .orderBy('createdAt', 'desc')
+      .limit(50)
+      .get();
+
+    const commitments = snapshot.docs.map((doc) => doc.data() as Commitment);
+    commitmentCache.set(userId, commitments);
+
+    return commitments;
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Failed to load commitments');
+    return [];
+  }
+}
+
+export async function updateCommitmentStatus(
+  userId: string,
+  commitmentId: string,
+  status: CommitmentStatus,
+  reaction?: 'appreciated' | 'annoyed' | 'neutral'
+): Promise<void> {
+  try {
+    const db = getFirestoreDb();
+    if (db) {
+      await db
+        .collection('bogle_users')
+        .doc(userId)
+        .collection('commitments')
+        .doc(commitmentId)
+        .update({
+          status,
+          ...(reaction && { userReactionToFollowUp: reaction }),
+          lastMentioned: Date.now(),
+        });
+    }
+
+    // Update cache
+    const userCommitments = commitmentCache.get(userId) || [];
+    const idx = userCommitments.findIndex((c) => c.id === commitmentId);
+    if (idx >= 0) {
+      userCommitments[idx].status = status;
+      if (reaction) userCommitments[idx].userReactionToFollowUp = reaction;
+    }
+
+    log.info({ userId, commitmentId, status }, '✅ Commitment status updated');
+  } catch (error) {
+    log.error({ error: String(error), userId, commitmentId }, 'Failed to update commitment');
+  }
+}
+
+// ============================================================================
+// FOLLOW-UP GENERATION
+// ============================================================================
+
+const FOLLOW_UP_TEMPLATES: Record<CommitmentType, Record<FollowUpTone, string[]>> = {
+  intention: {
+    curious: [
+      'I keep thinking about when you said "{summary}". How did it go?',
+      'You mentioned "{summary}" a while back. Did that happen?',
+    ],
+    supportive: [
+      'No pressure, but I remembered you wanted to {summary}. Still on your mind?',
+      'I\'ve been thinking about you. That thing about "{summary}" - whenever you\'re ready.',
+    ],
+    celebratory: ['Tell me you did it! "{summary}" - did it happen?!'],
+    gentle: ['I know "{summary}" was a big step. How are you feeling about it?'],
+    patient: ['"{summary}" - I\'m here whenever you want to talk about how it went.'],
+  },
+  promise: {
+    curious: ['You made a promise to yourself about "{summary}". How\'s that going?'],
+    supportive: ['That promise you made - "{summary}" - I believe in you. How\'s it going?'],
+    celebratory: ['That promise! "{summary}" - please tell me you kept it!'],
+    gentle: ['Promises to ourselves are hard. "{summary}" - no judgment, just checking in.'],
+    patient: ['"{summary}" - still working on it? I\'m not going anywhere.'],
+  },
+  conversation: {
+    curious: [
+      'Did you have that conversation? The one about "{summary}"?',
+      'I keep thinking about that talk you needed to have. "{summary}" - any updates?',
+    ],
+    supportive: [
+      'Those conversations are never easy. "{summary}" - still finding the right moment?',
+      'I\'m here if you want to practice. "{summary}" - big conversations take time.',
+    ],
+    celebratory: ['You had the talk! Tell me about "{summary}"!'],
+    gentle: [
+      'I know "{summary}" has been weighing on you. The right words will come.',
+      'Hard conversations. "{summary}". I\'m proud of you just for trying.',
+    ],
+    patient: [
+      '"{summary}" - whenever you\'re ready. The conversation will happen when it\'s meant to.',
+    ],
+  },
+  boundary: {
+    curious: ['How\'s that boundary going? The one about "{summary}"?'],
+    supportive: ['Boundaries are hard. "{summary}" - you\'re doing the work.'],
+    celebratory: ['Look at you holding that boundary! "{summary}" - that\'s growth.'],
+    gentle: ['"{summary}" - boundaries wobble sometimes. That\'s okay.'],
+    patient: ['"{summary}" - every day you hold it is a win.'],
+  },
+  goal: {
+    curious: ['Progress check! "{summary}" - where are you at?'],
+    supportive: ['Your goal to "{summary}" - still important to you?'],
+    celebratory: ['Goal update time! "{summary}" - I want to hear everything!'],
+    gentle: ['Goals shift sometimes. "{summary}" - still feels right?'],
+    patient: ['"{summary}" - big goals take time. How\'s the journey?'],
+  },
+  decision: {
+    curious: ['You decided "{summary}". How\'s that playing out?'],
+    supportive: ['That was a big decision. "{summary}" - feeling good about it?'],
+    celebratory: ['You made the call! "{summary}" - living with it okay?'],
+    gentle: ['Decisions have aftershocks. "{summary}" - processing it okay?'],
+    patient: ['"{summary}" - decisions unfold over time. How are you feeling now?'],
+  },
+  experiment: {
+    curious: ['How\'s the experiment going? "{summary}"?'],
+    supportive: ['Trying new things is brave. "{summary}" - learning anything?'],
+    celebratory: ['Experiment results! "{summary}" - what\'d you discover?'],
+    gentle: ['Experiments can fail - that\'s the point. "{summary}" - any data?'],
+    patient: ['"{summary}" - experiments take time. Still exploring?'],
+  },
+};
+
+export function generateFollowUp(commitment: Commitment): CommitmentFollowUp | null {
+  const now = Date.now();
+
+  // Don't follow up too soon
+  if (now < commitment.followUpAfter) {
+    return null;
+  }
+
+  // Don't follow up more than 3 times
+  if (commitment.followUpCount >= 3) {
+    return null;
+  }
+
+  // Calculate tone based on context
+  let tone: FollowUpTone = 'curious';
+  if (commitment.emotionalWeight > 0.7) {
+    tone = 'gentle';
+  } else if (commitment.followUpCount > 0) {
+    tone = commitment.userReactionToFollowUp === 'annoyed' ? 'patient' : 'supportive';
+  } else if (commitment.type === 'promise' || commitment.type === 'decision') {
+    tone = 'supportive';
+  }
+
+  // Get templates for this type and tone
+  const templates = FOLLOW_UP_TEMPLATES[commitment.type]?.[tone] || [
+    'How\'s that thing going? "{summary}"',
+  ];
+
+  const template = templates[Math.floor(Math.random() * templates.length)];
+  const message = template.replace(/{summary}/g, commitment.summary);
+
+  // Calculate urgency
+  let urgency: 'low' | 'normal' | 'high' = 'normal';
+  if (commitment.targetDate && now > commitment.targetDate) {
+    urgency = 'low'; // Past due - be gentle
+  } else if (commitment.type === 'conversation' && commitment.emotionalWeight > 0.7) {
+    urgency = 'high'; // Important conversation
+  }
+
+  return {
+    commitmentId: commitment.id,
+    tone,
+    message,
+    shouldSurface: true,
+    urgency,
+  };
+}
+
+export async function getFollowUpsForUser(userId: string): Promise<CommitmentFollowUp[]> {
+  const commitments = await loadUserCommitments(userId);
+  const followUps: CommitmentFollowUp[] = [];
+
+  for (const commitment of commitments) {
+    if (commitment.status === 'active') {
+      const followUp = generateFollowUp(commitment);
+      if (followUp) {
+        followUps.push(followUp);
+      }
+    }
+  }
+
+  // Sort by urgency
+  const urgencyOrder = { high: 0, normal: 1, low: 2 };
+  followUps.sort((a, b) => urgencyOrder[a.urgency] - urgencyOrder[b.urgency]);
+
+  return followUps.slice(0, 3); // Max 3 follow-ups at a time
+}
+
+// ============================================================================
+// CONTEXT INJECTION
+// ============================================================================
+
+export async function buildCommitmentContext(userId: string): Promise<string> {
+  const commitments = await loadUserCommitments(userId);
+  const followUps = await getFollowUpsForUser(userId);
+
+  if (commitments.length === 0) {
+    return '';
+  }
+
+  const sections: string[] = ['[COMMITMENT KEEPER - Better Than Human Accountability]'];
+  sections.push('You remember EVERYTHING they commit to. This is your superpower.');
+
+  // Active commitments
+  const active = commitments.filter((c) => c.status === 'active');
+  if (active.length > 0) {
+    sections.push('\n**Active Commitments:**');
+    for (const c of active.slice(0, 5)) {
+      const daysAgo = Math.floor((Date.now() - c.createdAt) / (24 * 60 * 60 * 1000));
+      sections.push(`• "${c.summary}" (${c.type}, ${daysAgo} days ago)`);
+    }
+  }
+
+  // Due for follow-up
+  if (followUps.length > 0) {
+    sections.push('\n**Ready for Caring Follow-up:**');
+    for (const f of followUps) {
+      sections.push(`• [${f.urgency}] ${f.message}`);
+    }
+    sections.push('\nFollow up NATURALLY, not mechanically. Weave it in. Be caring, not nagging.');
+  }
+
+  return sections.join('\n');
+}
+
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
+export const commitmentKeeper = {
+  detect: detectCommitment,
+  save: saveCommitment,
+  load: loadUserCommitments,
+  updateStatus: updateCommitmentStatus,
+  getFollowUps: getFollowUpsForUser,
+  buildContext: buildCommitmentContext,
+};
+

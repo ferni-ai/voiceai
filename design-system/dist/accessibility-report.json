@@ -1,0 +1,219 @@
+{
+  "timestamp": "2025-12-18T16:55:53.665Z",
+  "passed": true,
+  "errors": 0,
+  "warnings": 26,
+  "details": {
+    "errors": [],
+    "warnings": [
+      {
+        "type": "persona-as-text",
+        "persona": "ferni",
+        "color": "#4a6741",
+        "bg": "#584840",
+        "ratio": "1.37",
+        "message": "ferni primary (#4a6741) has 1.37:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "ferni",
+        "color": "#4a6741",
+        "bg": "#70605a",
+        "ratio": "1.06",
+        "message": "ferni primary (#4a6741) has 1.06:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "jack",
+        "color": "#9a7b5a",
+        "bg": "#584840",
+        "ratio": "2.22",
+        "message": "jack primary (#9a7b5a) has 2.22:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "jack",
+        "color": "#9a7b5a",
+        "bg": "#70605a",
+        "ratio": "1.53",
+        "message": "jack primary (#9a7b5a) has 1.53:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "peter",
+        "color": "#3a6b73",
+        "bg": "#584840",
+        "ratio": "1.46",
+        "message": "peter primary (#3a6b73) has 1.46:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "peter",
+        "color": "#3a6b73",
+        "bg": "#70605a",
+        "ratio": "1.01",
+        "message": "peter primary (#3a6b73) has 1.01:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "alex",
+        "color": "#5a6b8a",
+        "bg": "#584840",
+        "ratio": "1.62",
+        "message": "alex primary (#5a6b8a) has 1.62:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "alex",
+        "color": "#5a6b8a",
+        "bg": "#70605a",
+        "ratio": "1.11",
+        "message": "alex primary (#5a6b8a) has 1.11:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "maya",
+        "color": "#a67a6a",
+        "bg": "#584840",
+        "ratio": "2.32",
+        "message": "maya primary (#a67a6a) has 2.32:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "maya",
+        "color": "#a67a6a",
+        "bg": "#70605a",
+        "ratio": "1.60",
+        "message": "maya primary (#a67a6a) has 1.60:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "jordan",
+        "color": "#c4856a",
+        "bg": "#584840",
+        "ratio": "2.86",
+        "message": "jordan primary (#c4856a) has 2.86:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "jordan",
+        "color": "#c4856a",
+        "bg": "#70605a",
+        "ratio": "1.97",
+        "message": "jordan primary (#c4856a) has 1.97:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "nayan",
+        "color": "#b8956a",
+        "bg": "#70605a",
+        "ratio": "2.15",
+        "message": "nayan primary (#b8956a) has 2.15:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "eli",
+        "color": "#6B5B95",
+        "bg": "#584840",
+        "ratio": "1.47",
+        "message": "eli primary (#6B5B95) has 1.47:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "eli",
+        "color": "#6B5B95",
+        "bg": "#70605a",
+        "ratio": "1.01",
+        "message": "eli primary (#6B5B95) has 1.01:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "marcus",
+        "color": "#2D5A4A",
+        "bg": "#584840",
+        "ratio": "1.11",
+        "message": "marcus primary (#2D5A4A) has 1.11:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "marcus",
+        "color": "#2D5A4A",
+        "bg": "#70605a",
+        "ratio": "1.31",
+        "message": "marcus primary (#2D5A4A) has 1.31:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "kenji",
+        "color": "#2C3E50",
+        "bg": "#584840",
+        "ratio": "1.26",
+        "message": "kenji primary (#2C3E50) has 1.26:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "kenji",
+        "color": "#2C3E50",
+        "bg": "#70605a",
+        "ratio": "1.84",
+        "message": "kenji primary (#2C3E50) has 1.84:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "carmen",
+        "color": "#D4A373",
+        "bg": "#70605a",
+        "ratio": "2.65",
+        "message": "carmen primary (#D4A373) has 2.65:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "amara",
+        "color": "#7B6BA8",
+        "bg": "#584840",
+        "ratio": "1.87",
+        "message": "amara primary (#7B6BA8) has 1.87:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "amara",
+        "color": "#7B6BA8",
+        "bg": "#70605a",
+        "ratio": "1.29",
+        "message": "amara primary (#7B6BA8) has 1.29:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "sasha",
+        "color": "#E07B53",
+        "bg": "#584840",
+        "ratio": "2.95",
+        "message": "sasha primary (#E07B53) has 2.95:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "sasha",
+        "color": "#E07B53",
+        "bg": "#70605a",
+        "ratio": "2.03",
+        "message": "sasha primary (#E07B53) has 2.03:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "ray",
+        "color": "#4A5568",
+        "bg": "#584840",
+        "ratio": "1.16",
+        "message": "ray primary (#4A5568) has 1.16:1 contrast on dark bg - DO NOT use as text"
+      },
+      {
+        "type": "persona-as-text",
+        "persona": "ray",
+        "color": "#4A5568",
+        "bg": "#70605a",
+        "ratio": "1.26",
+        "message": "ray primary (#4A5568) has 1.26:1 contrast on dark bg - DO NOT use as text"
+      }
+    ]
+  }
+}

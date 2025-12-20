@@ -1,0 +1,589 @@
+/**
+ * Ferni Illustration System Tokens
+ * 
+ * Auto-generated from design-system/tokens/illustration.json.
+ * DO NOT EDIT DIRECTLY.
+ * 
+ * Ownable visual language parameters for consistent illustration style.
+ */
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export interface LineWorkConfig {
+  stroke: {
+    baseWeight: number;
+    unit: string;
+    cap: string;
+    join: string;
+    style: string;
+    character: string;
+  };
+  hierarchy: Record<string, { weight: number; usage: string }>;
+  scalingRules: Record<string, Record<string, number>>;
+}
+
+export interface IllustrationTypeConfig {
+  size: { min: number; max: number | string };
+  color: string;
+  complexity: string;
+  usage: string;
+}
+
+export interface PersonaRepresentation {
+  color: string;
+  shape: string;
+  aura: string;
+  gesture: string;
+}
+
+export interface CelebrationElement {
+  style: string;
+  colors?: string;
+  animation?: string;
+  movement?: string;
+  effect?: string;
+}
+
+export type IllustrationType = 'spot' | 'feature' | 'hero' | 'scene';
+
+// ============================================================================
+// PHILOSOPHY
+// ============================================================================
+
+/**
+ * Illustration philosophy and guiding principles.
+ */
+export const ILLUSTRATION_PHILOSOPHY = {
+  "principles": [
+    {
+      "name": "Organic",
+      "description": "Slightly imperfect, hand-drawn quality"
+    },
+    {
+      "name": "Warm",
+      "description": "Earth tones, gentle curves, approachable"
+    },
+    {
+      "name": "Minimal",
+      "description": "Only essential elements, maximum meaning"
+    },
+    {
+      "name": "Universal",
+      "description": "Abstract enough to be inclusive"
+    },
+    {
+      "name": "Serene",
+      "description": "Calm, never chaotic or busy"
+    }
+  ],
+  "notFerni": [
+    "Hyper-realistic or photographic",
+    "Cartoon-y or childish",
+    "Corporate clip-art",
+    "3D renders or gradients",
+    "Busy or cluttered",
+    "Generic tech/startup aesthetic"
+  ]
+} as const;
+
+// ============================================================================
+// LINE WORK
+// ============================================================================
+
+/**
+ * Stroke characteristics for illustration line work.
+ */
+export const LINE_WORK: LineWorkConfig = {
+  "stroke": {
+    "baseWeight": 1.5,
+    "unit": "px",
+    "cap": "round",
+    "join": "round",
+    "style": "continuous",
+    "character": "Slightly organic, not perfectly straight"
+  },
+  "hierarchy": {
+    "primary": {
+      "weight": 1.5,
+      "usage": "Main shapes, focal elements"
+    },
+    "secondary": {
+      "weight": 1,
+      "usage": "Details, textures"
+    },
+    "accent": {
+      "weight": 2,
+      "usage": "Emphasis, important elements"
+    }
+  },
+  "scalingRules": {
+    "64": {
+      "primary": 1,
+      "secondary": 0.75,
+      "accent": 1.5
+    },
+    "128": {
+      "primary": 1.5,
+      "secondary": 1,
+      "accent": 2
+    },
+    "256": {
+      "primary": 2,
+      "secondary": 1.5,
+      "accent": 2.5
+    },
+    "512": {
+      "primary": 2.5,
+      "secondary": 2,
+      "accent": 3
+    }
+  }
+};
+
+/**
+ * Get line weight for a specific size.
+ */
+export function getLineWeight(size: number, type: 'primary' | 'secondary' | 'accent' = 'primary'): number {
+  const sizeKey = size <= 64 ? '64' : size <= 128 ? '128' : size <= 256 ? '256' : '512';
+  return LINE_WORK.scalingRules[sizeKey]?.[type] || LINE_WORK.stroke.baseWeight;
+}
+
+// ============================================================================
+// COLORS
+// ============================================================================
+
+/**
+ * Illustration color palette and usage rules.
+ */
+export const ILLUSTRATION_COLORS = {
+  "light": {
+    "line": "#2C2520",
+    "fillPrimary": "var(--persona-primary)",
+    "fillSecondary": "rgba(var(--persona-primary-rgb), 0.15)",
+    "accent": "#C4A265"
+  },
+  "dark": {
+    "line": "#FAF8F5",
+    "fillPrimary": "var(--persona-primary)",
+    "fillSecondary": "rgba(var(--persona-primary-rgb), 0.2)",
+    "accent": "#C4A265"
+  },
+  "rules": [
+    "Maximum 3 colors per illustration",
+    "One fill color maximum (persona or accent)",
+    "Line color is always primary - fills are accents",
+    "Transparency creates depth - layer with opacity"
+  ]
+} as const;
+
+// ============================================================================
+// SHAPES
+// ============================================================================
+
+/**
+ * Shape language and meaning.
+ */
+export const SHAPE_VOCABULARY = {
+  "vocabulary": {
+    "circle": {
+      "meaning": "Wholeness, unity, connection",
+      "usage": "Personas, avatars, orbs"
+    },
+    "softRectangle": {
+      "meaning": "Stability, grounding",
+      "usage": "Frames, containers"
+    },
+    "organicBlob": {
+      "meaning": "Life, growth, nature",
+      "usage": "Backgrounds, accents"
+    },
+    "arc": {
+      "meaning": "Journey, progress, flow",
+      "usage": "Paths, connections"
+    },
+    "dot": {
+      "meaning": "Points, moments, particles",
+      "usage": "Decoration, rhythm"
+    }
+  },
+  "cornerRadius": {
+    "small": 4,
+    "medium": 8,
+    "large": 12,
+    "xlarge": 24,
+    "rule": "Never sharp 90° corners in illustrations"
+  }
+} as const;
+
+// ============================================================================
+// COMPOSITION
+// ============================================================================
+
+/**
+ * Grid and composition rules.
+ */
+export const COMPOSITION = {
+  "grids": {
+    "small": {
+      "size": 64,
+      "cells": 8,
+      "unit": 8
+    },
+    "medium": {
+      "size": 128,
+      "cells": 16,
+      "unit": 8
+    },
+    "large": {
+      "size": 256,
+      "cells": 32,
+      "unit": 8
+    },
+    "hero": {
+      "size": 512,
+      "cells": 64,
+      "unit": 8
+    }
+  },
+  "balance": {
+    "style": "asymmetric-but-balanced",
+    "padding": {
+      "min": "10%",
+      "max": "15%"
+    },
+    "focalPoint": "One clear area of attention",
+    "flow": "Eye should move naturally through illustration"
+  }
+} as const;
+
+/**
+ * Get grid configuration for a specific size.
+ */
+export function getGrid(size: 'small' | 'medium' | 'large' | 'hero') {
+  return COMPOSITION.grids[size];
+}
+
+// ============================================================================
+// ILLUSTRATION TYPES
+// ============================================================================
+
+/**
+ * Illustration type matrix.
+ */
+export const ILLUSTRATION_TYPES: Record<IllustrationType, IllustrationTypeConfig> = {
+  "spot": {
+    "size": {
+      "min": 64,
+      "max": 128
+    },
+    "color": "line + 1 fill",
+    "complexity": "minimal",
+    "usage": "Inline, lists"
+  },
+  "feature": {
+    "size": {
+      "min": 128,
+      "max": 256
+    },
+    "color": "line + 1-2 fills",
+    "complexity": "moderate",
+    "usage": "Empty states, cards"
+  },
+  "hero": {
+    "size": {
+      "min": 256,
+      "max": 512
+    },
+    "color": "line + 2 fills + accent",
+    "complexity": "detailed",
+    "usage": "Headers, onboarding"
+  },
+  "scene": {
+    "size": {
+      "min": 512,
+      "max": "full-width"
+    },
+    "color": "full palette",
+    "complexity": "rich",
+    "usage": "Backgrounds, splash"
+  }
+};
+
+/**
+ * Get illustration type configuration.
+ */
+export function getIllustrationType(type: IllustrationType): IllustrationTypeConfig {
+  return ILLUSTRATION_TYPES[type];
+}
+
+// ============================================================================
+// PERSONA REPRESENTATIONS
+// ============================================================================
+
+/**
+ * How to represent each persona in illustrations.
+ */
+export const PERSONA_REPRESENTATIONS = {
+  "base": {
+    "form": "Abstract circular form",
+    "style": "Warm, organic blob",
+    "face": "Never detailed - suggestion only",
+    "scale": "Consistent relative sizing"
+  },
+  "ferni": {
+    "color": "#4a6741",
+    "shape": "Centered, balanced circle",
+    "aura": "Warm glow",
+    "gesture": "Open, welcoming"
+  },
+  "peter": {
+    "color": "#3a6b73",
+    "shape": "Slightly tilted, curious",
+    "aura": "Sparkle dots",
+    "gesture": "Leaning forward"
+  },
+  "alex": {
+    "color": "#5a6b8a",
+    "shape": "Flowing, connected",
+    "aura": "Soft lines radiating",
+    "gesture": "Connecting gestures"
+  },
+  "maya": {
+    "color": "#a67a6a",
+    "shape": "Grounded, stable",
+    "aura": "Structured patterns",
+    "gesture": "Building, stacking"
+  },
+  "jordan": {
+    "color": "#c4856a",
+    "shape": "Dynamic, bouncy",
+    "aura": "Celebration particles",
+    "gesture": "Upward, celebratory"
+  },
+  "nayan": {
+    "color": "#8a7a6a",
+    "shape": "Expansive, wise",
+    "aura": "Layered circles",
+    "gesture": "Contemplative"
+  }
+} as const;
+
+/**
+ * Get persona illustration representation.
+ */
+export function getPersonaRepresentation(personaId: string): PersonaRepresentation | undefined {
+  return (PERSONA_REPRESENTATIONS as Record<string, PersonaRepresentation>)[personaId];
+}
+
+// ============================================================================
+// EMPTY STATES
+// ============================================================================
+
+/**
+ * Illustration style for empty states.
+ */
+export const EMPTY_STATE_STYLE = {
+  "style": {
+    "size": {
+      "min": 120,
+      "max": 200
+    },
+    "type": "feature",
+    "mood": "Inviting, not sad",
+    "rule": "Always suggest possibility"
+  },
+  "patterns": {
+    "noContent": "Character looking at horizon (possibility)",
+    "noResults": "Character with magnifying glass (searching)",
+    "firstTime": "Character with open door (welcome)",
+    "error": "Character with gentle shrug (it happens)"
+  }
+} as const;
+
+// ============================================================================
+// CELEBRATIONS
+// ============================================================================
+
+/**
+ * Illustration style for celebrations.
+ */
+export const CELEBRATION_ELEMENTS = {
+  "elements": {
+    "confetti": {
+      "style": "Organic dots and arcs",
+      "colors": "persona + accent"
+    },
+    "sparkles": {
+      "style": "4-point stars",
+      "animation": "twinkle"
+    },
+    "ribbons": {
+      "style": "Flowing arcs",
+      "movement": "float"
+    },
+    "burst": {
+      "style": "Radial lines from center",
+      "effect": "expand"
+    }
+  },
+  "intensity": {
+    "small": {
+      "elements": 3,
+      "size": 0.5,
+      "animation": "subtle"
+    },
+    "medium": {
+      "elements": 5,
+      "size": 0.75,
+      "animation": "noticeable"
+    },
+    "large": {
+      "elements": 8,
+      "size": 1,
+      "animation": "full"
+    }
+  }
+} as const;
+
+// ============================================================================
+// ANIMATION
+// ============================================================================
+
+/**
+ * Animation parameters for illustrated elements.
+ */
+export const ILLUSTRATION_ANIMATION = {
+  "breathing": {
+    "scale": {
+      "min": 0.98,
+      "max": 1.02
+    },
+    "duration": 4000,
+    "easing": "ease-in-out"
+  },
+  "floating": {
+    "translateY": {
+      "min": -4,
+      "max": 4
+    },
+    "duration": 3000,
+    "easing": "ease-in-out"
+  },
+  "wobble": {
+    "rotate": {
+      "min": -2,
+      "max": 2
+    },
+    "duration": 2500,
+    "easing": "ease-in-out"
+  },
+  "entrance": {
+    "opacity": {
+      "from": 0,
+      "to": 1
+    },
+    "scale": {
+      "from": 0.95,
+      "to": 1
+    },
+    "duration": 400,
+    "easing": "cubic-bezier(0.34, 1.56, 0.64, 1)"
+  }
+} as const;
+
+// ============================================================================
+// TECHNICAL SPECS
+// ============================================================================
+
+/**
+ * Technical specifications for illustration assets.
+ */
+export const ILLUSTRATION_SPECS = {
+  "format": {
+    "primary": "svg",
+    "raster": "png",
+    "animated": "lottie"
+  },
+  "optimization": {
+    "svgo": true,
+    "precision": 2,
+    "removeUnused": true
+  },
+  "naming": {
+    "pattern": "ill-{type}-{name}-{size}.svg",
+    "examples": [
+      "ill-spot-check-64.svg",
+      "ill-feature-empty-conversations-200.svg",
+      "ill-hero-welcome-512.svg"
+    ]
+  },
+  "export": {
+    "sizes": [
+      64,
+      128,
+      256,
+      512
+    ],
+    "density": [
+      "1x",
+      "2x",
+      "3x"
+    ]
+  }
+} as const;
+
+// ============================================================================
+// DOS AND DONTS
+// ============================================================================
+
+/**
+ * Guidelines for illustration creation.
+ */
+export const ILLUSTRATION_GUIDELINES = {
+  "do": [
+    "Use organic, slightly imperfect lines",
+    "Leave breathing room - embrace negative space",
+    "Use persona colors consistently",
+    "Make illustrations universal and inclusive",
+    "Keep it simple - less is more",
+    "Test at actual sizes used",
+    "Animate subtly if at all",
+    "Create illustrations that age well"
+  ],
+  "dont": [
+    "Use perfect geometric shapes",
+    "Include detailed faces or features",
+    "Use gradients or 3D effects",
+    "Overcrowd the composition",
+    "Use clip-art or stock illustration style",
+    "Include text in illustrations",
+    "Use illustrations that require context",
+    "Create illustrations that feel dated"
+  ]
+} as const;
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Generate filename for an illustration asset.
+ */
+export function generateIllustrationFilename(
+  type: IllustrationType,
+  name: string,
+  size: number
+): string {
+  return `ill-${type}-${name}-${size}.svg`;
+}
+
+/**
+ * Check if an illustration follows size guidelines.
+ */
+export function validateIllustrationSize(type: IllustrationType, size: number): boolean {
+  const config = ILLUSTRATION_TYPES[type];
+  const max = typeof config.size.max === 'string' ? Infinity : config.size.max;
+  return size >= config.size.min && size <= max;
+}
