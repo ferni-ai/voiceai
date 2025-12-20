@@ -14,6 +14,17 @@ import {
   syncCalendarToOutreach,
 } from '../services/calendar-busy-detection.js';
 import { parseBody, sendJSON, sendError, getUserId as getUserIdFromRequest } from './helpers.js';
+import {
+  isConnected,
+  getDayOverview,
+  getWeekOverview,
+  getEventsForDay,
+  type CalendarEvent,
+} from '../services/calendar/calendar-service.js';
+import {
+  generateDailyBriefing,
+  detectCalendarAlerts,
+} from '../services/calendar/calendar-intelligence.js';
 
 const log = getLogger();
 
@@ -137,6 +148,191 @@ async function handleDisconnect(
 }
 
 // ============================================================================
+// TODAY & WEEK HANDLERS
+// ============================================================================
+
+/**
+ * GET /api/calendar/today - Get today's schedule
+ */
+async function handleToday(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<void> {
+  try {
+    const connected = await isConnected(userId);
+
+    if (!connected) {
+      sendJson(res, {
+        connected: false,
+        overview: null,
+        message: 'Calendar not connected',
+      });
+      return;
+    }
+
+    const today = new Date();
+    const overview = await getDayOverview(userId, today);
+    const events = await getEventsForDay(userId, today);
+
+    // Format events for JSON
+    const formattedEvents = events.map(formatEventForApi);
+
+    sendJson(res, {
+      connected: true,
+      overview: {
+        date: overview.date,
+        totalMeetings: overview.totalMeetings,
+        totalMeetingMinutes: overview.totalMeetingMinutes,
+        freeTimeMinutes: overview.freeTimeMinutes,
+        isOverloaded: overview.isOverloaded,
+        hasBackToBack: overview.hasBackToBack,
+        events: formattedEvents,
+      },
+    });
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to get today calendar');
+    sendError(res, 'Failed to fetch calendar data', 500);
+  }
+}
+
+/**
+ * GET /api/calendar/week - Get this week's schedule
+ */
+async function handleWeek(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<void> {
+  try {
+    const connected = await isConnected(userId);
+
+    if (!connected) {
+      sendJson(res, {
+        connected: false,
+        overview: null,
+        message: 'Calendar not connected',
+      });
+      return;
+    }
+
+    const today = new Date();
+    const overview = await getWeekOverview(userId, today);
+
+    // Format events in each day
+    const formattedDays = overview.days.map((day) => ({
+      date: day.date,
+      totalMeetings: day.totalMeetings,
+      totalMeetingMinutes: day.totalMeetingMinutes,
+      freeTimeMinutes: day.freeTimeMinutes,
+      isOverloaded: day.isOverloaded,
+      hasBackToBack: day.hasBackToBack,
+      events: day.events.map(formatEventForApi),
+    }));
+
+    sendJson(res, {
+      connected: true,
+      overview: {
+        days: formattedDays,
+        totalMeetings: overview.totalMeetings,
+        busiestDay: overview.busiestDay,
+        lightestDay: overview.lightestDay,
+      },
+    });
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to get week calendar');
+    sendError(res, 'Failed to fetch calendar data', 500);
+  }
+}
+
+/**
+ * GET /api/calendar/briefing - Get daily briefing
+ */
+async function handleBriefing(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<void> {
+  try {
+    const connected = await isConnected(userId);
+
+    if (!connected) {
+      sendJson(res, {
+        connected: false,
+        briefing: null,
+        message: 'Calendar not connected',
+      });
+      return;
+    }
+
+    const today = new Date();
+    const briefing = await generateDailyBriefing(userId, today);
+
+    sendJson(res, {
+      connected: true,
+      briefing,
+    });
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to generate briefing');
+    sendError(res, 'Failed to generate briefing', 500);
+  }
+}
+
+/**
+ * GET /api/calendar/alerts - Get calendar alerts
+ */
+async function handleAlerts(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<void> {
+  try {
+    const connected = await isConnected(userId);
+
+    if (!connected) {
+      sendJson(res, {
+        connected: false,
+        alerts: [],
+        message: 'Calendar not connected',
+      });
+      return;
+    }
+
+    const today = new Date();
+    const endOfWeek = new Date(today);
+    endOfWeek.setDate(today.getDate() + 7);
+
+    const alerts = await detectCalendarAlerts(userId, {
+      start: today,
+      end: endOfWeek,
+    });
+
+    sendJson(res, {
+      connected: true,
+      alerts,
+    });
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to get calendar alerts');
+    sendError(res, 'Failed to fetch calendar alerts', 500);
+  }
+}
+
+/**
+ * Format a calendar event for API response
+ */
+function formatEventForApi(event: CalendarEvent): Record<string, unknown> {
+  return {
+    id: event.id,
+    title: event.summary || 'Untitled',
+    startTime: event.startTime instanceof Date ? event.startTime.toISOString() : event.startTime,
+    endTime: event.endTime instanceof Date ? event.endTime.toISOString() : event.endTime,
+    location: event.location || null,
+    isAllDay: event.isAllDay || false,
+    status: event.status || 'confirmed',
+  };
+}
+
+// ============================================================================
 // MAIN HANDLER
 // ============================================================================
 
@@ -183,6 +379,30 @@ export async function handleCalendarRoutes(
 
   if (pathname === '/api/calendar/disconnect' && req.method === 'POST') {
     await handleDisconnect(req, res, userId);
+    return true;
+  }
+
+  // New: Today's schedule
+  if (pathname === '/api/calendar/today' && req.method === 'GET') {
+    await handleToday(req, res, userId);
+    return true;
+  }
+
+  // New: Week schedule
+  if (pathname === '/api/calendar/week' && req.method === 'GET') {
+    await handleWeek(req, res, userId);
+    return true;
+  }
+
+  // New: Daily briefing
+  if (pathname === '/api/calendar/briefing' && req.method === 'GET') {
+    await handleBriefing(req, res, userId);
+    return true;
+  }
+
+  // New: Calendar alerts
+  if (pathname === '/api/calendar/alerts' && req.method === 'GET') {
+    await handleAlerts(req, res, userId);
     return true;
   }
 

@@ -48,6 +48,8 @@ export interface CalendarAwarenessContext {
 // CONFIGURATION
 // ============================================================================
 
+// Personas with calendar awareness (Alex is primary, others get context)
+const CALENDAR_AWARE_PERSONAS = ['alex-chen', 'ferni', 'jordan-taylor'] as const;
 const ALEX_PERSONA_ID = 'alex-chen';
 const UPCOMING_MEETING_THRESHOLD_MINUTES = 60; // Alert if meeting within 60 min
 
@@ -56,19 +58,24 @@ const UPCOMING_MEETING_THRESHOLD_MINUTES = 60; // Alert if meeting within 60 min
 // ============================================================================
 
 /**
- * Build calendar awareness context for Alex
+ * Build calendar awareness context for calendar-aware personas
  *
  * Returns null if:
- * - Not Alex persona
+ * - Not a calendar-aware persona
  * - Calendar not connected
  * - No relevant context to inject
+ *
+ * Different personas get different levels of detail:
+ * - Alex: Full detail (primary calendar manager)
+ * - Jordan: Event planning focus (for milestone scheduling)
+ * - Ferni: Light awareness (for conversation context)
  */
 export async function buildCalendarAwarenessContext(
   userId: string | undefined,
   personaId: string | undefined
 ): Promise<CalendarAwarenessContext> {
-  // Only activate for Alex
-  if (personaId !== ALEX_PERSONA_ID) {
+  // Check if this persona should have calendar awareness
+  if (!personaId || !CALENDAR_AWARE_PERSONAS.includes(personaId as typeof CALENDAR_AWARE_PERSONAS[number])) {
     return { isConnected: false, contextInjection: null };
   }
 
@@ -79,10 +86,14 @@ export async function buildCalendarAwarenessContext(
   // Check calendar connection
   const connected = await isConnected(userId);
   if (!connected) {
-    return {
-      isConnected: false,
-      contextInjection: '[CALENDAR: Not connected. If user asks about calendar, suggest connecting.]',
-    };
+    // Only Alex suggests connecting
+    if (personaId === ALEX_PERSONA_ID) {
+      return {
+        isConnected: false,
+        contextInjection: '[CALENDAR: Not connected. If user asks about calendar, suggest connecting.]',
+      };
+    }
+    return { isConnected: false, contextInjection: null };
   }
 
   try {
@@ -103,10 +114,15 @@ export async function buildCalendarAwarenessContext(
       }
     }
 
-    // Build contextual injection
-    const contextInjection = buildContextInjectionText(todayOverview, alerts, nextMeetingIn);
+    // Build contextual injection based on persona
+    const contextInjection = buildContextInjectionForPersona(
+      personaId,
+      todayOverview,
+      alerts,
+      nextMeetingIn
+    );
 
-    log.debug({ userId, hasContext: !!contextInjection }, 'Calendar awareness context built');
+    log.debug({ userId, personaId, hasContext: !!contextInjection }, 'Calendar awareness context built');
 
     return {
       isConnected: true,
@@ -122,6 +138,91 @@ export async function buildCalendarAwarenessContext(
       contextInjection: null,
     };
   }
+}
+
+/**
+ * Build context injection tailored to each persona's needs
+ */
+function buildContextInjectionForPersona(
+  personaId: string,
+  overview: DayOverview,
+  alerts: CalendarAlert[],
+  nextMeetingIn?: number
+): string | null {
+  switch (personaId) {
+    case 'alex-chen':
+      // Alex gets full calendar detail - she's the Chief of Staff
+      return buildContextInjectionText(overview, alerts, nextMeetingIn);
+
+    case 'jordan-taylor':
+      // Jordan gets event-planning focused context
+      return buildJordanCalendarContext(overview, alerts);
+
+    case 'ferni':
+      // Ferni gets light awareness for conversation context
+      return buildFerniCalendarContext(overview, nextMeetingIn);
+
+    default:
+      return null;
+  }
+}
+
+/**
+ * Build Jordan's calendar context (event planning focus)
+ */
+function buildJordanCalendarContext(
+  overview: DayOverview,
+  alerts: CalendarAlert[]
+): string | null {
+  const parts: string[] = [];
+
+  // Jordan cares about free time for planning new events
+  if (overview.totalMeetings === 0) {
+    parts.push('[SCHEDULE: Clear day - great time to plan celebrations or events]');
+  } else {
+    const freeHours = Math.round(overview.freeTimeMinutes / 60);
+    if (freeHours >= 2) {
+      parts.push(`[SCHEDULE: ${overview.totalMeetings} meetings but ${freeHours}h free for planning]`);
+    } else if (overview.isOverloaded) {
+      parts.push('[SCHEDULE: Packed day - if planning events, suggest another day]');
+    }
+  }
+
+  // Jordan cares about upcoming milestones/events in alerts
+  const eventAlerts = alerts.filter(
+    (a) => a.message.toLowerCase().includes('birthday') ||
+           a.message.toLowerCase().includes('anniversary') ||
+           a.message.toLowerCase().includes('event')
+  );
+  if (eventAlerts.length > 0) {
+    parts.push(`[EVENT ALERT: ${eventAlerts[0].message}]`);
+  }
+
+  return parts.length > 0 ? parts.join('\n') : null;
+}
+
+/**
+ * Build Ferni's calendar context (light awareness)
+ */
+function buildFerniCalendarContext(
+  overview: DayOverview,
+  nextMeetingIn?: number
+): string | null {
+  // Ferni just needs to know if user is busy/stressed or has time to chat
+
+  if (overview.isOverloaded) {
+    return '[USER CONTEXT: Heavy schedule today - may be stressed about time]';
+  }
+
+  if (nextMeetingIn !== undefined && nextMeetingIn > 0 && nextMeetingIn <= 15) {
+    return '[USER CONTEXT: Meeting starting soon - keep this brief]';
+  }
+
+  if (overview.totalMeetings === 0) {
+    return '[USER CONTEXT: Calendar is clear today - good time for deeper conversation]';
+  }
+
+  return null; // Normal day, no special context needed
 }
 
 /**
@@ -227,19 +328,24 @@ export function formatCalendarContextForSpeech(context: CalendarAwarenessContext
 /**
  * Calendar Awareness Context Builder
  *
- * Injects calendar snapshot when Alex is active and calendar is connected.
+ * Injects calendar snapshot for calendar-aware personas:
+ * - Alex: Full detail (primary)
+ * - Jordan: Event planning focus
+ * - Ferni: Light awareness
  */
 export const calendarAwarenessBuilder: ContextBuilder = {
   name: 'calendar-awareness',
-  description: 'Provides calendar context for Alex (schedule, meetings, alerts)',
+  description: 'Provides calendar context for Alex, Jordan, and Ferni',
   priority: 55, // Mid-priority - runs after safety/emotional but before humanizing
   category: BuilderCategory.CONTEXT,
 
   build: async (input: ContextBuilderInput): Promise<ContextInjection[]> => {
     const { persona, services } = input;
 
-    // Only activate for Alex
-    if (persona?.identity?.id !== ALEX_PERSONA_ID) {
+    const personaId = persona?.identity?.id;
+
+    // Check if this persona should have calendar awareness
+    if (!personaId || !CALENDAR_AWARE_PERSONAS.includes(personaId as typeof CALENDAR_AWARE_PERSONAS[number])) {
       return [];
     }
 
@@ -248,13 +354,13 @@ export const calendarAwarenessBuilder: ContextBuilder = {
       return [];
     }
 
-    const context = await buildCalendarAwarenessContext(userId, persona.identity.id);
+    const context = await buildCalendarAwarenessContext(userId, personaId);
 
     if (!context.contextInjection) {
       return [];
     }
 
-    log.debug({ userId, connected: context.isConnected }, 'Calendar awareness context injected');
+    log.debug({ userId, personaId, connected: context.isConnected }, 'Calendar awareness context injected');
 
     return [
       createStandardInjection('calendar_awareness', context.contextInjection, {

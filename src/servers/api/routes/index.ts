@@ -10,3 +10,4 @@ export { handleGoogleCalendarRoutes } from './google-calendar.js';
 export { handleMusicRoutes } from './music.js';
 export { handleAgentRoutes } from './agents.js';
 export { handlePushRoutes } from './push.js';
+export { handleCalendarDataRoutes } from './calendar-data.js';

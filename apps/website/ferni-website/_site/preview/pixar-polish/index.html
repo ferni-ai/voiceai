@@ -389,6 +389,7 @@
     
     <nav class="preview-nav">
       <a href="#living-avatar">Living Avatar</a>
+      <a href="#ai-copy-magic">AI Copy Magic</a>
       <a href="#predictive-typing">Predictive Typing</a>
       <a href="#voice-demo">Voice Demo</a>
       <a href="#scroll-hero">Scroll Hero</a>
@@ -456,6 +457,104 @@
         <h4>Scroll Response</h4>
         <p>Slight tilt in scroll direction (curiosity)</p>
       </div>
+    </div>
+  </section>
+  
+  <div class="preview-divider"></div>
+  
+  <!-- SECTION 1.5: AI Copy Magic (Gemini-Powered) -->
+  <section class="preview-section" id="ai-copy-magic">
+    <h2>AI Copy Magic (Gemini-Powered)</h2>
+    <p>Your existing Gemini AI capabilities unlocked. Dynamic copy that actually thinks - personalized hero, smart social proof, hover insights, and persona voices.</p>
+    
+    <div class="preview-card">
+      <h3>What's Now Enabled</h3>
+      <p>These features were built but disabled. Now they're live:</p>
+      
+      <div class="feature-grid">
+        <div class="feature-item">
+          <h4>Personalized Hero</h4>
+          <p>Headlines adapt to time of day AND visitor behavior. Late night? Returning? Loyal? Each gets different copy.</p>
+        </div>
+        <div class="feature-item">
+          <h4>Smart Social Proof</h4>
+          <p>Rotating "Better Than Human" proof points that highlight memory, presence, and team superpowers.</p>
+        </div>
+        <div class="feature-item">
+          <h4>Hover Insights</h4>
+          <p>Ferni "whispers" when you hover over elements. "Want to ask them something?" on team cards.</p>
+        </div>
+        <div class="feature-item">
+          <h4>Persona Voices</h4>
+          <p>Type a question on any team card - get a response in that persona's voice via Gemini.</p>
+        </div>
+        <div class="feature-item">
+          <h4>Adaptive CTAs</h4>
+          <p>CTA text changes based on sentiment. Hesitant? "Just try talking". Engaged? "Let's do this".</p>
+        </div>
+        <div class="feature-item">
+          <h4>Sentiment Tracking</h4>
+          <p>Scroll depth + time + interactions = sentiment score. Copy softens or energizes accordingly.</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="preview-card">
+      <h3>Hero Variants (Live)</h3>
+      <p>The AI Copy Magic system chooses the best variant automatically. Test them:</p>
+      
+      <div class="controls">
+        <button onclick="FerniAICopyMagic.forceVariant('late-night')">Late Night</button>
+        <button onclick="FerniAICopyMagic.forceVariant('early-morning')">Early Morning</button>
+        <button onclick="FerniAICopyMagic.forceVariant('morning')">Morning</button>
+        <button onclick="FerniAICopyMagic.forceVariant('evening')">Evening</button>
+        <button onclick="FerniAICopyMagic.forceVariant('returning')">Returning Visitor</button>
+        <button onclick="FerniAICopyMagic.forceVariant('loyal')">Loyal Visitor (3+)</button>
+        <button onclick="FerniAICopyMagic.forceVariant('default')">Default</button>
+      </div>
+      
+      <div class="demo-area" style="flex-direction: column; text-align: center; padding: 60px; position: relative;">
+        <p class="hero__tagline ai-magic-tagline" style="font-size: 14px; text-transform: uppercase; letter-spacing: 2px; color: #5C544A; margin-bottom: 16px;">BETTER THAN HUMAN.</p>
+        <h1 class="hero__headline ai-magic-headline" style="font-size: 42px; font-weight: 800; margin-bottom: 16px;">Finally, someone who <span class="hero__headline-accent" style="color: #4a6741;">gets it.</span></h1>
+        <p class="hero__subhead ai-magic-subhead" style="font-size: 16px; color: #5C544A; max-width: 500px; margin: 0 auto 24px;">Someone who remembers your whole story, hears what you're not saying, and shows up at 2am with the same presence as noon.</p>
+        <button class="btn btn--primary" style="padding: 14px 28px; font-size: 16px;">Meet Ferni</button>
+      </div>
+    </div>
+    
+    <div class="preview-card">
+      <h3>Smart Social Proof (Live)</h3>
+      <p>Watch the rotating "Better Than Human" proof points:</p>
+      
+      <div class="ai-social-proof" style="margin: 24px 0; border-radius: 12px;">
+        <div class="social-proof-dynamic__inner">
+          <div class="social-proof-dynamic__avatar">FE</div>
+          <p class="social-proof-dynamic__text" style="margin: 0; font-style: italic;">That thing you mentioned six months ago? We remember.</p>
+        </div>
+      </div>
+      
+      <p style="color: #70605a; font-size: 13px; text-align: center;">Messages rotate every 8 seconds showcasing memory, presence, and team superpowers.</p>
+    </div>
+    
+    <div class="preview-card">
+      <h3>API Endpoints (Backend)</h3>
+      <p>These Gemini-powered endpoints are ready for deeper integration:</p>
+      
+      <div style="background: #2c2520; color: #faf8f5; padding: 16px; border-radius: 8px; font-family: monospace; font-size: 13px; overflow-x: auto;">
+        <code>POST /api/landing/ai/chat</code> - Live AI conversation<br>
+        <code>POST /api/landing/ai/personalized-hero</code> - Dynamic headlines<br>
+        <code>POST /api/landing/ai/persona-preview</code> - Team member responses<br>
+        <code>POST /api/landing/ai/faq</code> - Smart FAQ answers<br>
+        <code>POST /api/landing/ai/hover-preview</code> - Contextual tooltips<br>
+        <code>POST /api/landing/ai/sentiment-copy</code> - Adaptive copy<br>
+        <code>GET /api/landing/ai/social-proof</code> - Dynamic testimonials
+      </div>
+    </div>
+    
+    <div class="preview-card">
+      <h3>State Inspector</h3>
+      <p>Current AI Copy Magic state:</p>
+      <pre id="ai-copy-state" style="background: #f5f1e8; padding: 16px; border-radius: 8px; font-size: 12px; overflow-x: auto;">{}</pre>
+      <button onclick="document.getElementById('ai-copy-state').textContent = JSON.stringify(FerniAICopyMagic.getState(), null, 2)" class="btn btn--ghost" style="margin-top: 12px;">Refresh State</button>
     </div>
   </section>
   
@@ -1027,9 +1126,11 @@ EASING.cinematic // Slow-fast-slow</code>
 <link rel="stylesheet" href="/css/cursor-ripple.css">
 <link rel="stylesheet" href="/css/presence-indicator.css">
 <link rel="stylesheet" href="/css/breathing-cards.css">
+<link rel="stylesheet" href="/css/ai-copy-magic.css">
 
 <script src="/js/living-avatar.js"></script>
 <script src="/js/ai-personalization.js"></script>
+<script src="/js/ai-copy-magic.js"></script>
 <script src="/js/scroll-storytelling.js"></script>
 <script src="/js/demo-widget.js"></script>
 <script src="/js/predictive-typing.js"></script>

@@ -490,6 +490,8 @@ toast.success('Operation completed successfully');
 - **Memory Management**: `docs/architecture/MEMORY-MANAGEMENT.md` (stateless Node, caching, cleanup)
 - **Tool/Persona patterns**: `docs/architecture/AGENT-AGNOSTIC-ARCHITECTURE.md`
 - **Agent Extensibility**: `docs/architecture/AGENT-EXTENSIBILITY.md` (commands, hooks, MCP, widgets)
+- **Cross-Persona Intelligence**: `docs/architecture/CROSS-PERSONA-INTELLIGENCE.md` (team coordination, superhuman services)
+- **Superhuman Services**: `src/services/superhuman/README.md` (10 "Better than Human" capabilities)
 - **Monetization & Team Unlocks**: `docs/architecture/MONETIZATION-SYSTEM.md`
 - **Full coding standards**: `.cursorrules` (22KB comprehensive guide)
 - **Design System**: `design-system/README.md` (tokens, animations, colors)
@@ -568,6 +570,90 @@ emotion-event-dispatcher.ts
 **Key files:**
 - Backend: `src/agents/realtime/emotion-event-dispatcher.ts`
 - Frontend: `apps/web/src/ui/better-than-human.ui.ts`
+
+## 🤝 Cross-Persona Intelligence System
+
+The team collaborates like real experts - sharing insights, coordinating handoffs, providing unified support.
+
+### Quick Reference
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| **Persona Builders** | `src/intelligence/context-builders/*-insights.ts` | Deep briefings for each persona |
+| **Superhuman Services** | `src/services/superhuman/` | 10 "Better than Human" capabilities |
+| **Insights Service** | `src/services/cross-persona-insights.ts` | Central insight management |
+| **WebSocket Server** | `src/services/insights-websocket.ts` | Real-time streaming |
+| **Debug Panel** | `apps/web/src/ui/insights-debug-panel.ui.ts` | Debug tools |
+
+### Persona Context Builders
+
+Each persona has a specialized builder that activates on entry/handoff:
+
+| Builder | What It Provides |
+|---------|-----------------|
+| `peter-research-insights.ts` | Cross-team data, financial patterns, proactive triggers |
+| `maya-coaching-insights.ts` | Habit health, Four Tendencies, mood correlations |
+| `jordan-milestone-insights.ts` | Planning velocity, celebration readiness, seasonal patterns |
+| `alex-communication-insights.ts` | Calendar density, response velocity, delegation clarity |
+| `nayan-wisdom-insights.ts` | Life synthesis, values alignment, existential context |
+| `ferni-coordinator-intelligence.ts` | Smart handoff suggestions from team insights |
+
+### 10 Superhuman Services
+
+| Service | Human Limitation It Overcomes |
+|---------|------------------------------|
+| Commitment Keeper | Friends forget promises |
+| Predictive Coaching | Can't see patterns objectively |
+| Life Narrative | Hard to maintain perspective |
+| Values Alignment | Friends avoid confrontation |
+| Emotional First Aid | Takes time to respond |
+| Relationship Network | Can't track everyone |
+| Capacity Guardian | Often too late for burnout |
+| Dream Keeper | Dreams get buried |
+| Relationship Milestones | Forgets anniversaries |
+| Seasonal Awareness | Doesn't track cycles |
+
+### Caching (Performance Critical)
+
+Tiered caching with different TTLs:
+
+| Tier | TTL | Capabilities |
+|------|-----|--------------|
+| STABLE | 5 min | seasonal, narrative, values |
+| NORMAL | 2 min | network, dreams, milestones |
+| FRESH | 30 sec | commitments, predictions, capacity |
+
+```typescript
+// Pre-warm cache on session start
+await warmupSuperhumanCache(userId);
+
+// Get performance stats
+const stats = getPerformanceStats();
+```
+
+### WebSocket Real-Time Updates
+
+High-priority insights stream to frontend via `/ws/insights`:
+
+```typescript
+// Frontend
+initCrossTeamNotifications(userId);
+
+// Backend broadcasts automatically
+addCrossPersonaInsight(userId, { priority: 'high', ... });
+```
+
+### Testing
+
+```bash
+# Unit tests
+pnpm vitest run src/tests/cross-persona
+
+# Firestore integration (requires emulator)
+FIRESTORE_EMULATOR_HOST=localhost:8080 pnpm vitest run superhuman-firestore
+```
+
+**Full docs:** `docs/architecture/CROSS-PERSONA-INTELLIGENCE.md`
 
 ## 🦸 200% Persona System - Superhuman Capabilities
 

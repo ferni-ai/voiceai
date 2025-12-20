@@ -130,6 +130,57 @@ Builders are organized by category and loaded in priority order. See `loader.ts`
 | HUMANIZING | `humanizing.ts`, `tool-humanization.ts` | Natural speech |
 | LEARNING | `community-learning.ts`, `wisdom-synthesis.ts` | Collective intelligence |
 
+## Cross-Persona Intelligence Builders
+
+These specialized builders provide deep insights when entering a persona:
+
+| Builder | Persona | Purpose |
+|---------|---------|---------|
+| `peter-research-insights.ts` | Peter | Deep research briefings, cross-team data |
+| `maya-coaching-insights.ts` | Maya | Habit coaching context, Four Tendencies |
+| `jordan-milestone-insights.ts` | Jordan | Milestone planning, life stage intelligence |
+| `alex-communication-insights.ts` | Alex | Communication coaching, calendar density |
+| `nayan-wisdom-insights.ts` | Nayan | Life wisdom synthesis, values alignment |
+| `ferni-coordinator-intelligence.ts` | Ferni | Smart handoff suggestions |
+
+### Key Files
+
+```
+shared-types.ts              - Common interfaces (MoodInsights, MemoryInsights, etc.)
+superhuman-integration.ts    - Bridges superhuman services to persona builders
+```
+
+### Using Superhuman Services
+
+```typescript
+import { getSuperhuman } from './superhuman-integration.js';
+
+// In your builder
+const superhuman = await getSuperhuman(userId, 'peter');
+if (superhuman) {
+  injections.push(
+    createStandardInjection('superhuman_context', superhuman, { category: 'superhuman' })
+  );
+}
+```
+
+### Cross-Team Data Pattern
+
+```typescript
+// Fetch data from other personas' domains
+const [habitData, goalData, calendarData] = await Promise.all([
+  getHabitDataForPeter(userId),      // Maya's domain
+  getGoalDataForPeter(userId),        // Jordan's domain
+  getCalendarDataForPeter(userId),    // Alex's domain
+]);
+```
+
+### Full Documentation
+
+See `docs/architecture/CROSS-PERSONA-INTELLIGENCE.md` for complete architecture docs.
+
+---
+
 ## Existing Builders Reference
 ```
 # SAFETY
@@ -147,6 +198,12 @@ proactive-memory.ts     - Proactive memory surfacing
 # PERSONA
 persona-identity.ts     - Core persona identity
 human-personality.ts    - Semantic matching, callbacks
+peter-research-insights.ts   - Peter's deep research briefings
+maya-coaching-insights.ts    - Maya's habit coaching context
+jordan-milestone-insights.ts - Jordan's milestone planning
+alex-communication-insights.ts - Alex's communication coaching
+nayan-wisdom-insights.ts     - Nayan's life wisdom synthesis
+ferni-coordinator-intelligence.ts - Ferni's handoff suggestions
 
 # HUMANIZING
 humanizing.ts           - Self-correction, humor, naturalness

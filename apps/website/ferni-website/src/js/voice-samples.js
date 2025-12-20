@@ -30,17 +30,21 @@
   // ═══════════════════════════════════════════════════════════════════════════
 
   const CONFIG = {
-    // TTS endpoint (optional - uses browser TTS as fallback)
-    ttsEndpoint: null, // '/api/landing/tts'
+    // TTS endpoint - uses real Cartesia AI voices!
+    // Falls back to browser TTS if API unavailable
+    ttsEndpoint: 'https://app.ferni.ai/api/landing/tts',
 
-    // Pre-recorded samples (mp3 files)
+    // Pre-recorded samples (mp3 files) - fallback if TTS fails
     samplesPath: '/audio/samples/',
 
     // Whether to enable the feature
     enabled: true,
 
-    // Use browser TTS as fallback
+    // Use browser TTS as fallback (last resort)
     useBrowserTTS: true,
+
+    // Cache generated audio for session
+    cacheAudio: true,
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -123,6 +127,17 @@
     synthesis: window.speechSynthesis,
     preferredVoice: null,
     initialized: false,
+    audioCache: new Map(), // Cache generated audio blobs
+  };
+
+  // Persona ID mapping (short names to canonical IDs for API)
+  const PERSONA_IDS = {
+    ferni: 'ferni',
+    maya: 'maya-santos',
+    peter: 'peter-john',
+    alex: 'alex-chen',
+    jordan: 'jordan-taylor',
+    nayan: 'nayan-patel',
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -173,32 +188,125 @@
 
     // Update button state
     buttonEl.classList.add('is-playing');
-    state.currentlyPlaying = { sampleId, button: buttonEl };
+    state.currentlyPlaying = { sampleId, button: buttonEl, audio: null };
 
-    // Try pre-recorded audio first
+    // Get canonical persona ID for API
+    const personaId = PERSONA_IDS[sample.persona] || 'ferni';
+
+    // Priority order:
+    // 1. Cached TTS audio (if already generated)
+    // 2. Real AI TTS via API
+    // 3. Pre-recorded samples
+    // 4. Browser TTS fallback
+
+    // Check cache first
+    const cacheKey = `${sampleId}-${personaId}`;
+    if (CONFIG.cacheAudio && state.audioCache.has(cacheKey)) {
+      console.log('%c🎤 Using cached AI voice', 'color: #4a6741');
+      await playAudioBlob(state.audioCache.get(cacheKey));
+      return;
+    }
+
+    // Try real AI TTS first
+    if (CONFIG.ttsEndpoint) {
+      try {
+        console.log('%c🎤 Generating real AI voice...', 'color: #4a6741; font-weight: bold');
+        const audioBlob = await generateTTS(sample.response, personaId);
+        
+        if (audioBlob) {
+          // Cache for future plays
+          if (CONFIG.cacheAudio) {
+            state.audioCache.set(cacheKey, audioBlob);
+          }
+          await playAudioBlob(audioBlob);
+          return;
+        }
+      } catch (err) {
+        console.warn('AI TTS failed, trying fallback:', err.message);
+      }
+    }
+
+    // Fall back to pre-recorded samples
     const audioUrl = CONFIG.samplesPath + sampleId + '.mp3';
-
     try {
       const audio = new Audio(audioUrl);
+      state.currentlyPlaying.audio = audio;
       audio.addEventListener('ended', () => stopAudio());
       audio.addEventListener('error', () => {
-        // Fall back to TTS
-        playTTS(sample.response, buttonEl);
+        // Last resort: browser TTS
+        playBrowserTTS(sample.response, buttonEl);
       });
 
       await audio.play();
     } catch {
-      // Fall back to TTS
-      playTTS(sample.response, buttonEl);
+      // Last resort: browser TTS
+      playBrowserTTS(sample.response, buttonEl);
     }
   }
 
-  function playTTS(text, buttonEl) {
+  /**
+   * Generate TTS audio using the real Ferni AI voices (Cartesia)
+   */
+  async function generateTTS(text, personaId) {
+    if (!CONFIG.ttsEndpoint) return null;
+
+    const response = await fetch(CONFIG.ttsEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text, personaId }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`TTS API error: ${response.status}`);
+    }
+
+    const audioBlob = await response.blob();
+    
+    // Log which persona voice was used
+    const usedPersona = response.headers.get('X-Persona-Name') || personaId;
+    console.log(`%c✅ Generated ${usedPersona}'s voice (${Math.round(audioBlob.size / 1024)}KB)`, 'color: #4a6741');
+    
+    return audioBlob;
+  }
+
+  /**
+   * Play audio from a blob
+   */
+  async function playAudioBlob(blob) {
+    const audioUrl = URL.createObjectURL(blob);
+    const audio = new Audio(audioUrl);
+    
+    if (state.currentlyPlaying) {
+      state.currentlyPlaying.audio = audio;
+    }
+
+    audio.addEventListener('ended', () => {
+      URL.revokeObjectURL(audioUrl);
+      stopAudio();
+    });
+    
+    audio.addEventListener('error', (e) => {
+      URL.revokeObjectURL(audioUrl);
+      console.error('Audio playback error:', e);
+      stopAudio();
+    });
+
+    await audio.play();
+  }
+
+  /**
+   * Browser TTS fallback (last resort)
+   */
+  function playBrowserTTS(text, buttonEl) {
     if (!state.synthesis || !CONFIG.useBrowserTTS) {
       stopAudio();
       return;
     }
 
+    console.log('%c⚠️ Using browser TTS fallback', 'color: #b8956a');
+    
     const utterance = new SpeechSynthesisUtterance(text);
 
     if (state.preferredVoice) {
@@ -215,11 +323,24 @@
     state.synthesis.speak(utterance);
   }
 
+  // Keep the old function name as alias for compatibility
+  function playTTS(text, buttonEl) {
+    playBrowserTTS(text, buttonEl);
+  }
+
   function stopAudio() {
+    // Stop browser TTS
     if (state.synthesis) {
       state.synthesis.cancel();
     }
 
+    // Stop audio element if playing
+    if (state.currentlyPlaying?.audio) {
+      state.currentlyPlaying.audio.pause();
+      state.currentlyPlaying.audio.currentTime = 0;
+    }
+
+    // Update button state
     if (state.currentlyPlaying?.button) {
       state.currentlyPlaying.button.classList.remove('is-playing');
     }
@@ -728,7 +849,10 @@
 
     state.initialized = true;
 
-    console.log('%c🔊 Voice Samples initialized', 'color: #4a6741; font-weight: bold;');
+    const modeInfo = CONFIG.ttsEndpoint 
+      ? '(Real AI voices enabled! 🎤)' 
+      : '(Using browser TTS fallback)';
+    console.log(`%c🔊 Voice Samples initialized ${modeInfo}`, 'color: #4a6741; font-weight: bold;');
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

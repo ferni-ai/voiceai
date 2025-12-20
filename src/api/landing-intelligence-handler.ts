@@ -40,8 +40,67 @@ import { getQuickOptimization } from '../services/landing-intelligence/orchestra
 import { generateVisitorId } from '../services/landing-intelligence/returning-visitor.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { parseBody } from './helpers.js';
+import { generatePersonaVoice } from '../services/voice-call.js';
+import { getVoiceId, getPersonaDisplayName } from '../personas/voice-registry.js';
+// SSML humanization for natural-sounding voices
+import { tagTextWithSsmlPersonaAware, sanitizeSsml } from '../ssml/index.js';
+import { makeVoiceAlive, type AliveVoiceContext } from '../speech/adaptive-ssml/alive-voice.js';
 
 const log = createLogger({ module: 'LandingIntelligenceHandler' });
+
+// ============================================================================
+// SSML HUMANIZATION FOR LANDING PAGE TTS
+// ============================================================================
+
+/**
+ * Apply SSML humanization to make voice samples sound natural and human.
+ * Uses Ferni's full SSML pipeline: persona-aware tagging + alive voice enhancements.
+ */
+function humanizeTextForTTS(text: string, personaId: string): string {
+  if (!text || text.trim().length === 0) {
+    return text;
+  }
+
+  try {
+    // Step 1: Apply persona-aware SSML tagging
+    // This adds speed, volume, emotion, and break tags based on text analysis
+    let ssml = tagTextWithSsmlPersonaAware(text, {
+      personaId,
+      naturalFillers: true,
+      breathGroupPacing: true,
+    });
+
+    // Step 2: Apply "alive voice" enhancements
+    // This adds sentence-level emotion arcs, dynamic pauses, persona fingerprints
+    const aliveContext: AliveVoiceContext = {
+      personaId,
+      userEmotion: 'neutral',
+      topicWeight: 'medium',
+      turnCount: 1,
+      userEnergy: 'medium',
+      enableLaughter: true,
+    };
+
+    const aliveResult = makeVoiceAlive(ssml, aliveContext);
+    ssml = aliveResult.text;
+
+    log.debug(
+      {
+        personaId,
+        originalLength: text.length,
+        ssmlLength: ssml.length,
+        appliedFeatures: aliveResult.appliedFeatures,
+      },
+      '✨ Applied SSML humanization for landing TTS'
+    );
+
+    return ssml;
+  } catch (error) {
+    // If SSML processing fails, return sanitized original text
+    log.warn({ error, personaId }, 'SSML humanization failed, using original text');
+    return sanitizeSsml(text);
+  }
+}
 
 // ============================================================================
 // HELPERS
@@ -699,6 +758,88 @@ export async function handleLandingIntelligenceRoutes(
 
       const result = await generateVoiceDemoResponse(body.transcript, body.sessionId);
       sendJSON(res, result);
+      return true;
+    }
+
+    // ============================================================================
+    // POST /api/landing/tts - Generate real AI voice audio using Cartesia TTS
+    // ============================================================================
+    if (pathname === '/api/landing/tts' && method === 'POST') {
+      const body = await parseBody<{ text: string; personaId?: string }>(req);
+
+      if (!body.text || typeof body.text !== 'string') {
+        sendError(res, 'text required', 400);
+        return true;
+      }
+
+      // Validate text length to prevent abuse (max 500 chars for landing page samples)
+      if (body.text.length > 500) {
+        sendError(res, 'Text too long (max 500 characters)', 400);
+        return true;
+      }
+
+      const personaId = body.personaId || 'ferni';
+      const personaName = getPersonaDisplayName(personaId);
+      
+      // Apply SSML humanization to make the voice sound natural
+      const humanizedText = humanizeTextForTTS(body.text, personaId);
+      
+      log.info(
+        { personaId, personaName, textLength: body.text.length, ssmlLength: humanizedText.length },
+        '🎤 Landing TTS request (with SSML humanization)'
+      );
+
+      try {
+        const audioBuffer = await generatePersonaVoice(humanizedText, personaId);
+
+        if (!audioBuffer) {
+          log.warn({ personaId }, 'TTS generation failed - no audio returned');
+          sendError(res, 'Failed to generate audio. TTS service unavailable.', 503);
+          return true;
+        }
+
+        // Return the audio as MP3
+        res.writeHead(200, {
+          'Content-Type': 'audio/mpeg',
+          'Content-Length': audioBuffer.length,
+          'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+          'Access-Control-Allow-Origin': '*',
+          'X-Persona-Id': personaId,
+          'X-Persona-Name': personaName,
+        });
+        res.end(audioBuffer);
+        
+        log.info(
+          { personaId, audioSize: audioBuffer.length },
+          '✅ Landing TTS audio delivered'
+        );
+        return true;
+      } catch (error) {
+        log.error({ error, personaId }, 'TTS generation error');
+        sendError(res, 'Failed to generate audio', 500);
+        return true;
+      }
+    }
+
+    // ============================================================================
+    // GET /api/landing/tts/info - Get available personas for TTS
+    // ============================================================================
+    if (pathname === '/api/landing/tts/info' && method === 'GET') {
+      const personas = [
+        { id: 'ferni', name: 'Ferni', role: 'Life Coach' },
+        { id: 'maya-santos', name: 'Maya', role: 'Habit Architect' },
+        { id: 'peter-john', name: 'Peter', role: 'Research Guide' },
+        { id: 'alex-chen', name: 'Alex', role: 'Communications Coach' },
+        { id: 'jordan-taylor', name: 'Jordan', role: 'Celebration Catalyst' },
+        { id: 'nayan-patel', name: 'Nayan', role: 'Wisdom Guide' },
+      ];
+
+      sendJSON(res, {
+        available: true,
+        personas,
+        maxTextLength: 500,
+        note: 'Use POST /api/landing/tts with { text, personaId } to generate audio',
+      });
       return true;
     }
 
