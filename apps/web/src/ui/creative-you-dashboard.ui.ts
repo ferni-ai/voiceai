@@ -96,11 +96,12 @@ const MOOD_COLORS: Record<string, string> = {
   reflect: 'var(--color-slate, #5a6b8a)',
 };
 
+// Warm mood labels (not clinical categories)
 const MOOD_LABELS: Record<string, string> = {
-  learn: 'Learn',
-  chill: 'Chill',
-  inspire: 'Inspire',
-  reflect: 'Reflect',
+  learn: 'Grow',
+  chill: 'Unwind',
+  inspire: 'Spark',
+  reflect: 'Pause',
 };
 
 // ============================================================================
@@ -598,9 +599,249 @@ export class CreativeYouDashboard {
     window.open(url, '_blank');
   }
 
-  private openPodcast(episodeId: string): void {
+  private async openPodcast(episodeId: string): Promise<void> {
     log.debug('Open podcast:', episodeId);
-    // TODO: Implement podcast player modal
+
+    // Fetch episode details from API
+    try {
+      const response = await fetch(`/api/creative/podcasts/${episodeId}`);
+      if (!response.ok) {
+        log.error('Failed to fetch episode:', response.status);
+        return;
+      }
+
+      const data = await response.json();
+      const episode = data.episode;
+
+      if (!episode) {
+        log.error('Episode not found:', episodeId);
+        return;
+      }
+
+      // Create episode detail modal
+      const modal = document.createElement('div');
+      modal.className = 'episode-detail-modal';
+      modal.innerHTML = `
+        <div class="episode-detail-backdrop"></div>
+        <div class="episode-detail-content">
+          <header>
+            <button class="close-episode-btn" aria-label="Close">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </header>
+          <div class="episode-hero">
+            <div class="podcast-icon">${ICONS.headphones}</div>
+            <span class="podcast-name">${episode.podcastTitle}</span>
+          </div>
+          <div class="episode-body">
+            <h2>${episode.title}</h2>
+            <p class="episode-duration">${Math.round(episode.duration / 60)} minutes</p>
+            <p class="episode-summary">${episode.summary || episode.description}</p>
+            ${
+              data.discussionPrompts && data.discussionPrompts.length > 0
+                ? `
+              <div class="discussion-prompts">
+                <h4>After you listen...</h4>
+                <ul>
+                  ${data.discussionPrompts.map((p: string) => `<li>${p}</li>`).join('')}
+                </ul>
+              </div>
+            `
+                : ''
+            }
+          </div>
+          <div class="episode-cta">
+            <p class="listen-hint">Find this episode on your favorite podcast app:</p>
+            <div class="podcast-links">
+              <a href="https://podcasts.apple.com/search?term=${encodeURIComponent(episode.podcastTitle + ' ' + episode.title)}" target="_blank" class="podcast-link">
+                Apple Podcasts
+              </a>
+              <a href="https://open.spotify.com/search/${encodeURIComponent(episode.podcastTitle + ' ' + episode.title)}" target="_blank" class="podcast-link">
+                Spotify
+              </a>
+              <a href="https://www.google.com/search?q=${encodeURIComponent(episode.podcastTitle + ' ' + episode.title + ' podcast')}" target="_blank" class="podcast-link">
+                Search
+              </a>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Add styles if not already present
+      if (!document.getElementById('episode-detail-styles')) {
+        const styles = document.createElement('style');
+        styles.id = 'episode-detail-styles';
+        styles.textContent = `
+          .episode-detail-modal {
+            position: fixed;
+            inset: 0;
+            z-index: var(--z-modal, 2100);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-4, 16px);
+          }
+          .episode-detail-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(44, 37, 32, 0.5);
+            backdrop-filter: blur(12px);
+          }
+          .episode-detail-content {
+            position: relative;
+            background: var(--color-background-elevated, #FFFDFB);
+            border-radius: var(--radius-2xl, 24px);
+            max-width: 420px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(44, 37, 32, 0.2);
+          }
+          .episode-detail-content header {
+            position: sticky;
+            top: 0;
+            display: flex;
+            justify-content: flex-end;
+            padding: var(--space-3, 12px);
+            background: var(--color-background-elevated, #FFFDFB);
+          }
+          .close-episode-btn {
+            background: var(--color-background-subtle, rgba(44, 37, 32, 0.05));
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            color: var(--color-text-muted, #7A6F63);
+            border-radius: var(--radius-full, 9999px);
+            transition: background 150ms ease;
+          }
+          .close-episode-btn:hover {
+            background: var(--color-background-subtle, rgba(44, 37, 32, 0.1));
+          }
+          .episode-hero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 0 var(--space-5, 20px) var(--space-4, 16px);
+          }
+          .podcast-icon {
+            width: 64px;
+            height: 64px;
+            background: var(--color-teal, #3a6b73);
+            color: white;
+            border-radius: var(--radius-xl, 20px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .podcast-icon svg {
+            width: 32px;
+            height: 32px;
+          }
+          .podcast-name {
+            font-size: 13px;
+            color: var(--color-text-muted, #7A6F63);
+          }
+          .episode-body {
+            padding: 0 var(--space-5, 20px) var(--space-4, 16px);
+          }
+          .episode-body h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--color-text-primary, #2C2520);
+            margin: 0 0 8px;
+            text-align: center;
+          }
+          .episode-duration {
+            font-size: 13px;
+            color: var(--color-teal, #3a6b73);
+            text-align: center;
+            margin: 0 0 16px;
+          }
+          .episode-summary {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--color-text-secondary, #5C5248);
+            margin: 0;
+          }
+          .discussion-prompts {
+            margin-top: 20px;
+            padding: 16px;
+            background: var(--color-background-subtle, rgba(44, 37, 32, 0.03));
+            border-radius: var(--radius-lg, 16px);
+          }
+          .discussion-prompts h4 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--color-text-primary, #2C2520);
+            margin: 0 0 12px;
+          }
+          .discussion-prompts ul {
+            margin: 0;
+            padding-left: 20px;
+          }
+          .discussion-prompts li {
+            font-size: 13px;
+            color: var(--color-text-secondary, #5C5248);
+            margin-bottom: 8px;
+            line-height: 1.5;
+          }
+          .discussion-prompts li:last-child {
+            margin-bottom: 0;
+          }
+          .episode-cta {
+            padding: var(--space-4, 16px) var(--space-5, 20px) var(--space-5, 20px);
+            border-top: 1px solid var(--color-border, rgba(44, 37, 32, 0.08));
+          }
+          .listen-hint {
+            font-size: 12px;
+            color: var(--color-text-muted, #7A6F63);
+            margin: 0 0 12px;
+            text-align: center;
+          }
+          .podcast-links {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+          }
+          .podcast-link {
+            padding: 10px 16px;
+            background: var(--color-background-subtle, rgba(44, 37, 32, 0.05));
+            color: var(--color-text-primary, #2C2520);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: var(--radius-full, 9999px);
+            transition: background 150ms ease;
+          }
+          .podcast-link:hover {
+            background: var(--color-background-subtle, rgba(44, 37, 32, 0.1));
+          }
+        `;
+        document.head.appendChild(styles);
+      }
+
+      document.body.appendChild(modal);
+
+      // Animate in
+      requestAnimationFrame(() => {
+        modal.style.opacity = '0';
+        modal.offsetHeight;
+        modal.style.transition = 'opacity 200ms ease';
+        modal.style.opacity = '1';
+      });
+
+      // Close handlers
+      const closeModal = () => {
+        modal.style.opacity = '0';
+        setTimeout(() => modal.remove(), 200);
+      };
+
+      modal.querySelector('.close-episode-btn')?.addEventListener('click', closeModal);
+      modal.querySelector('.episode-detail-backdrop')?.addEventListener('click', closeModal);
+    } catch (error) {
+      log.error('Failed to open podcast:', error);
+    }
   }
 
   private async shareCreativeDNA(): Promise<void> {
@@ -631,10 +872,247 @@ export class CreativeYouDashboard {
 
   private startLearningTrack(trackId: string): void {
     const track = this.learningTracks.find((t) => t.id === trackId);
-    if (track && track.episodes.length > 0) {
-      log.debug('Starting track:', trackId, 'First episode:', track.episodes[0]);
-      // TODO: Implement learning track player
+    if (!track || track.episodes.length === 0) {
+      log.warn('Track not found or empty:', trackId);
+      return;
     }
+
+    log.debug('Starting track:', trackId);
+
+    // Create track detail modal
+    const modal = document.createElement('div');
+    modal.className = 'track-detail-modal';
+    modal.innerHTML = `
+      <div class="track-detail-backdrop"></div>
+      <div class="track-detail-content">
+        <header>
+          <div>
+            <span class="eyebrow">${track.episodes.length} episodes • ${Math.round(track.totalDuration / 60)}h</span>
+            <h2>${track.title}</h2>
+            <p class="track-desc">${track.description}</p>
+          </div>
+          <button class="close-track-btn" aria-label="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </header>
+        <div class="track-episodes">
+          ${track.episodes
+            .map(
+              (ep, i) => `
+            <div class="track-episode" data-episode-id="${ep.id}">
+              <div class="episode-number">${i + 1}</div>
+              <div class="episode-info">
+                <h4>${ep.title}</h4>
+                <p>${ep.podcastTitle} • ${Math.round(ep.duration / 60)} min</p>
+              </div>
+              <button class="play-episode-btn" aria-label="Play episode">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              </button>
+            </div>
+          `
+            )
+            .join('')}
+        </div>
+        <div class="track-cta">
+          <button class="start-first-btn">Start with Episode 1</button>
+        </div>
+      </div>
+    `;
+
+    // Add styles if not already present
+    if (!document.getElementById('track-detail-styles')) {
+      const styles = document.createElement('style');
+      styles.id = 'track-detail-styles';
+      styles.textContent = `
+        .track-detail-modal {
+          position: fixed;
+          inset: 0;
+          z-index: var(--z-modal, 2100);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: var(--space-4, 16px);
+        }
+        .track-detail-backdrop {
+          position: absolute;
+          inset: 0;
+          background: rgba(44, 37, 32, 0.5);
+          backdrop-filter: blur(12px);
+        }
+        .track-detail-content {
+          position: relative;
+          background: var(--color-background-elevated, #FFFDFB);
+          border-radius: var(--radius-2xl, 24px);
+          max-width: 480px;
+          width: 100%;
+          max-height: 80vh;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          box-shadow: 0 20px 60px rgba(44, 37, 32, 0.2);
+        }
+        .track-detail-content header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          padding: var(--space-5, 20px) var(--space-5, 20px) var(--space-3, 12px);
+          border-bottom: 1px solid var(--color-border, rgba(44, 37, 32, 0.08));
+        }
+        .track-detail-content .eyebrow {
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: var(--color-teal, #3a6b73);
+          margin-bottom: 4px;
+          display: block;
+        }
+        .track-detail-content h2 {
+          font-size: 20px;
+          font-weight: 700;
+          color: var(--color-text-primary, #2C2520);
+          margin: 0 0 8px;
+        }
+        .track-detail-content .track-desc {
+          font-size: 13px;
+          color: var(--color-text-secondary, #5C5248);
+          margin: 0;
+          line-height: 1.5;
+        }
+        .close-track-btn {
+          background: none;
+          border: none;
+          padding: 8px;
+          cursor: pointer;
+          color: var(--color-text-muted, #7A6F63);
+          border-radius: var(--radius-full, 9999px);
+          transition: background 150ms ease;
+        }
+        .close-track-btn:hover {
+          background: var(--color-background-subtle, rgba(44, 37, 32, 0.05));
+        }
+        .track-episodes {
+          flex: 1;
+          overflow-y: auto;
+          padding: var(--space-3, 12px) var(--space-5, 20px);
+        }
+        .track-episode {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 0;
+          border-bottom: 1px solid var(--color-border, rgba(44, 37, 32, 0.05));
+        }
+        .track-episode:last-child {
+          border-bottom: none;
+        }
+        .episode-number {
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          background: var(--color-background-subtle, rgba(44, 37, 32, 0.05));
+          color: var(--color-text-muted, #7A6F63);
+          font-size: 12px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .episode-info {
+          flex: 1;
+        }
+        .episode-info h4 {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--color-text-primary, #2C2520);
+          margin: 0 0 2px;
+        }
+        .episode-info p {
+          font-size: 12px;
+          color: var(--color-text-muted, #7A6F63);
+          margin: 0;
+        }
+        .play-episode-btn {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          background: var(--color-teal, #3a6b73);
+          color: white;
+          border: none;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          transition: transform 150ms ease, box-shadow 150ms ease;
+        }
+        .play-episode-btn:hover {
+          transform: scale(1.1);
+          box-shadow: 0 4px 12px rgba(58, 107, 115, 0.3);
+        }
+        .track-cta {
+          padding: var(--space-4, 16px) var(--space-5, 20px);
+          border-top: 1px solid var(--color-border, rgba(44, 37, 32, 0.08));
+        }
+        .start-first-btn {
+          width: 100%;
+          padding: 14px;
+          background: var(--color-teal, #3a6b73);
+          color: white;
+          border: none;
+          border-radius: var(--radius-lg, 16px);
+          font-size: 15px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: transform 150ms ease, box-shadow 150ms ease;
+        }
+        .start-first-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 6px 20px rgba(58, 107, 115, 0.25);
+        }
+      `;
+      document.head.appendChild(styles);
+    }
+
+    document.body.appendChild(modal);
+
+    // Animate in
+    requestAnimationFrame(() => {
+      modal.style.opacity = '0';
+      modal.offsetHeight; // Force reflow
+      modal.style.transition = 'opacity 200ms ease';
+      modal.style.opacity = '1';
+    });
+
+    // Close handlers
+    const closeModal = () => {
+      modal.style.opacity = '0';
+      setTimeout(() => modal.remove(), 200);
+    };
+
+    modal.querySelector('.close-track-btn')?.addEventListener('click', closeModal);
+    modal.querySelector('.track-detail-backdrop')?.addEventListener('click', closeModal);
+
+    // Play episode handlers
+    modal.querySelectorAll('.play-episode-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const episodeEl = (e.currentTarget as HTMLElement).closest('.track-episode');
+        const episodeId = episodeEl?.getAttribute('data-episode-id');
+        if (episodeId) {
+          closeModal();
+          this.openPodcast(episodeId);
+        }
+      });
+    });
+
+    // Start first episode
+    modal.querySelector('.start-first-btn')?.addEventListener('click', () => {
+      closeModal();
+      if (track.episodes[0]) {
+        this.openPodcast(track.episodes[0].id);
+      }
+    });
   }
 
   // ========================================

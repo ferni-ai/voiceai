@@ -10,7 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from '../../memory/firestore-client.js';
+import { getFirestoreDb } from './firestore-utils.js';
 
 const log = createLogger({ module: 'life-narrative' });
 
@@ -248,7 +248,10 @@ export async function saveChapter(chapter: LifeChapter): Promise<void> {
     }
     chapterCache.set(chapter.userId, chapters);
 
-    log.info({ userId: chapter.userId, chapterId: chapter.id, type: chapter.type }, '📖 Chapter saved');
+    log.info(
+      { userId: chapter.userId, chapterId: chapter.id, type: chapter.type },
+      '📖 Chapter saved'
+    );
   } catch (error) {
     log.error({ error: String(error), userId: chapter.userId }, 'Failed to save chapter');
   }
@@ -344,7 +347,12 @@ export async function loadIdentity(userId: string): Promise<IdentityEvolution | 
     const db = getFirestoreDb();
     if (!db) return null;
 
-    const doc = await db.collection('bogle_users').doc(userId).collection('meta').doc('identity').get();
+    const doc = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('meta')
+      .doc('identity')
+      .get();
 
     if (doc.exists) {
       const identity = doc.data() as IdentityEvolution;
@@ -489,7 +497,9 @@ export async function buildNarrativeContextString(userId: string): Promise<strin
   }
 
   const sections: string[] = ['[LIFE NARRATIVE - Better Than Human Story Memory]'];
-  sections.push("You remember their WHOLE story. Every chapter. Use this to show them how far they've come.");
+  sections.push(
+    "You remember their WHOLE story. Every chapter. Use this to show them how far they've come."
+  );
 
   // Current chapter
   if (context.currentChapter) {
@@ -510,7 +520,9 @@ export async function buildNarrativeContextString(userId: string): Promise<strin
       transformation: 'Transformation - old self → transition → new self',
       in_progress: 'Story still unfolding...',
     };
-    sections.push(`\n**Story Arcs:** ${context.activeArcs.map((a) => arcDescriptions[a]).join(', ')}`);
+    sections.push(
+      `\n**Story Arcs:** ${context.activeArcs.map((a) => arcDescriptions[a]).join(', ')}`
+    );
   }
 
   // Identity now
@@ -553,4 +565,3 @@ export const lifeNarrative = {
   buildContext: buildNarrativeContext,
   buildContextString: buildNarrativeContextString,
 };
-

@@ -55,18 +55,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ferni.ai/developers/getting-started/</loc>
-    <lastmod>12/6/2025</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://ferni.ai/developers/api/</loc>
-    <lastmod>12/6/2025</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://ferni.ai/images/comparison/</loc>
     <lastmod>12/6/2025</lastmod>
     <changefreq>monthly</changefreq>
@@ -91,18 +79,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ferni.ai/privacy/</loc>
-    <lastmod>12/7/2025</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://ferni.ai/terms/</loc>
-    <lastmod>12/7/2025</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://ferni.ai/images/icon-research/</loc>
     <lastmod>12/7/2025</lastmod>
     <changefreq>monthly</changefreq>
@@ -115,19 +91,7 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ferni.ai/developers/testing/</loc>
-    <lastmod>12/7/2025</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://ferni.ai/developers/</loc>
-    <lastmod>12/7/2025</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://ferni.ai/images/generated/README/</loc>
     <lastmod>12/7/2025</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -181,36 +145,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ferni.ai/team/nayan/</loc>
-    <lastmod>12/7/2025</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://ferni.ai/team/peter/</loc>
-    <lastmod>12/7/2025</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://ferni.ai/team/alex/</loc>
-    <lastmod>12/7/2025</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://ferni.ai/team/maya/</loc>
-    <lastmod>12/7/2025</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://ferni.ai/team/jordan/</loc>
-    <lastmod>12/7/2025</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://ferni.ai/marketplace/</loc>
     <lastmod>12/7/2025</lastmod>
     <changefreq>monthly</changefreq>
@@ -218,12 +152,6 @@
   </url>
   <url>
     <loc>https://ferni.ai/enterprise/</loc>
-    <lastmod>12/7/2025</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://ferni.ai/developers/bundles/</loc>
     <lastmod>12/7/2025</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -255,12 +183,6 @@
   <url>
     <loc>https://ferni.ai/offline/</loc>
     <lastmod>12/8/2025</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://ferni.ai/index-old/</loc>
-    <lastmod>12/10/2025</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -303,12 +225,6 @@
   <url>
     <loc>https://ferni.ai/story-brand/</loc>
     <lastmod>12/10/2025</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://ferni.ai/audio/README/</loc>
-    <lastmod>12/13/2025</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -367,12 +283,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ferni.ai/</loc>
-    <lastmod>12/14/2025</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
     <loc>https://ferni.ai/story/</loc>
     <lastmod>12/14/2025</lastmod>
     <changefreq>monthly</changefreq>
@@ -386,7 +296,91 @@
   </url>
   <url>
     <loc>https://ferni.ai/building/</loc>
-    <lastmod>12/15/2025</lastmod>
+    <lastmod>12/18/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/</loc>
+    <lastmod>12/18/2025</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/images/generated/README/</loc>
+    <lastmod>12/18/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/privacy/</loc>
+    <lastmod>12/18/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/audio/README/</loc>
+    <lastmod>12/18/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/team/alex/</loc>
+    <lastmod>12/18/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/team/nayan/</loc>
+    <lastmod>12/18/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/team/maya/</loc>
+    <lastmod>12/18/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/team/jordan/</loc>
+    <lastmod>12/18/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/team/peter/</loc>
+    <lastmod>12/18/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/terms/</loc>
+    <lastmod>12/18/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/developers/api/</loc>
+    <lastmod>12/18/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/developers/testing/</loc>
+    <lastmod>12/18/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/developers/getting-started/</loc>
+    <lastmod>12/18/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/developers/bundles/</loc>
+    <lastmod>12/18/2025</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

@@ -208,11 +208,11 @@ const GROUNDING_SCRIPTS: Record<GroundingTechnique, string[]> = {
     "You're here. In this body. Right now.",
   ],
   'safe-place': [
-    "Close your eyes if that feels okay. <pause>",
+    'Close your eyes if that feels okay. <pause>',
     'Think of a place where you feel safe. Real or imagined.',
     'What do you see there? <pause>',
-    "What sounds are there? <pause>",
-    "What does the air feel like? <pause>",
+    'What sounds are there? <pause>',
+    'What does the air feel like? <pause>',
     "You can go there anytime. It's yours.",
   ],
   'cold-water': [
@@ -238,7 +238,11 @@ const GROUNDING_SCRIPTS: Record<GroundingTechnique, string[]> = {
 
 const PROTOCOL_BY_LEVEL: Record<
   CrisisLevel,
-  { techniques: GroundingTechnique[]; voiceTone: FirstAidResponse['voiceTone']; pacing: FirstAidResponse['pacing'] }
+  {
+    techniques: GroundingTechnique[];
+    voiceTone: FirstAidResponse['voiceTone'];
+    pacing: FirstAidResponse['pacing'];
+  }
 > = {
   safety: {
     techniques: ['breath-count', 'name-it'],
@@ -277,11 +281,10 @@ export function getFirstAidResponse(level: CrisisLevel): FirstAidResponse {
     containing:
       "You're doing hard work right now. I'm proud of you for staying with me. What do you need right now?",
     stabilizing:
-      "That was intense. You came through it. <pause> What would feel supportive right now?",
+      'That was intense. You came through it. <pause> What would feel supportive right now?',
     calming:
-      "Better? <pause> Panic passes. It always does. You did the hard part - you stayed present.",
-    grounding:
-      "How are you feeling now? <pause> More here?",
+      'Better? <pause> Panic passes. It always does. You did the hard part - you stayed present.',
+    grounding: 'How are you feeling now? <pause> More here?',
   };
 
   return {
@@ -363,4 +366,3 @@ export const emotionalFirstAid = {
   getVoiceInstructions,
   buildContext: buildFirstAidContext,
 };
-

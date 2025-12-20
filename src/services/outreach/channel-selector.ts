@@ -547,6 +547,10 @@ export function getContentTypeFromTrigger(triggerType: OutreachTriggerType): Con
     scheduled: 'reminder',
     seasonal: 'casual',
     anniversary: 'celebration',
+    // New trust-based triggers
+    check_in: 'casual', // General check-in
+    shared_memory: 'casual', // Callback to shared experiences
+    growth_reflection: 'emotional', // Reflecting on their journey
   };
 
   return mapping[triggerType] || 'casual';

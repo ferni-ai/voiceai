@@ -229,7 +229,7 @@ export async function shouldSuggestContent(
         suggestion: recommendations[0],
         timing: 'end_of_conversation',
         reason: 'Accumulated enough topics for recommendation',
-        transitionPhrase: "By the way, I found something you might enjoy...",
+        transitionPhrase: "Before you go - there's something I want to show you.",
       };
     }
   }

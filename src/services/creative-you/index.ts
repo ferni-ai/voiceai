@@ -100,5 +100,14 @@ export {
   type ContentSuggestion,
 } from './conversation-integration.js';
 
+// Better Than Human Memory (superhuman recall)
+export {
+  getSuperhumanMemoryContext,
+  generateSuperhumanCopy,
+  getMemoryEnhancedReasons,
+  type SuperhumanMemoryContext,
+  type PersonalizedCopyContext,
+} from './better-than-human-memory.js';
+
 // Types (from types.ts)
 export * from './types.js';

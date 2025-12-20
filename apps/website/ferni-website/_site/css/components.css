@@ -978,6 +978,92 @@ a.card:hover h3 {
 }
 
 /* ============================================================================
+   GARDEN DARK MODE - High Contrast for System Dark Theme
+   ============================================================================ */
+@media (prefers-color-scheme: dark) {
+  .garden,
+  .garden--story {
+    background: linear-gradient(
+      180deg,
+      var(--color-ferni-cinematic-dark, #2c2520) 0%,
+      rgba(74, 103, 65, 0.15) 50%,
+      var(--color-ferni-cinematic-deep, #3a332e) 100%
+    );
+  }
+  
+  .garden--story::before {
+    background-image: 
+      radial-gradient(circle at 20% 30%, rgba(74, 103, 65, 0.2) 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(74, 103, 65, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 50% 50%, rgba(196, 162, 101, 0.08) 0%, transparent 60%);
+  }
+  
+  .garden__headline,
+  .garden__pillar-title,
+  .garden__card-title,
+  .garden__lead,
+  .garden--story .garden__promise {
+    color: var(--color-ferni-cinematic-text, #ffffff);
+  }
+  
+  .garden__eyebrow {
+    color: var(--color-highlight, #C4A265);
+  }
+  
+  .garden--story .garden__lead,
+  .garden__pillar-desc,
+  .garden__card-text,
+  .garden__text {
+    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
+  }
+  
+  .garden__card,
+  .garden__pillar {
+    background: var(--color-ferni-cinematic-surface, #4a4038);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 
+      0 2px 4px rgba(0, 0, 0, 0.2),
+      0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+  
+  .garden__card:hover,
+  .garden__pillar:hover {
+    box-shadow: 
+      0 4px 8px rgba(0, 0, 0, 0.3),
+      0 20px 48px rgba(74, 103, 65, 0.25);
+  }
+  
+  .garden__card-icon {
+    background: linear-gradient(135deg, rgba(74, 103, 65, 0.3), rgba(74, 103, 65, 0.15));
+    color: var(--color-highlight, #C4A265);
+  }
+  
+  .garden__card:hover .garden__card-icon {
+    background: linear-gradient(135deg, rgba(74, 103, 65, 0.45), rgba(74, 103, 65, 0.25));
+  }
+  
+  .garden__pillar-icon {
+    background: linear-gradient(135deg, rgba(74, 103, 65, 0.3), rgba(74, 103, 65, 0.15));
+    color: var(--color-highlight, #C4A265);
+  }
+  
+  /* Garden CTA button in dark mode */
+  .btn--garden,
+  .btn--garden-animated {
+    background: linear-gradient(135deg, var(--color-ferni, #4a6741), var(--color-ferni-secondary, #3d5a35));
+    color: #ffffff;
+    border-color: rgba(74, 103, 65, 0.5);
+  }
+  
+  .btn--garden:hover,
+  .btn--garden-animated:hover {
+    box-shadow: 
+      0 8px 32px rgba(74, 103, 65, 0.4),
+      0 0 60px rgba(74, 103, 65, 0.2);
+  }
+}
+
+/* ============================================================================
    WAYS TO CONNECT - Apple-style elegant options
    ============================================================================ */
 

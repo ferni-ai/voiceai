@@ -4,7 +4,7 @@
  *
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: npm run sync:promo
- * Generated: 2025-12-15T19:52:32.910Z
+ * Generated: 2025-12-20T13:04:00.723Z
  */
 
 :root {
@@ -246,23 +246,5 @@
   --duration-glacial: 1500ms;
   --duration-meditative: 3000ms;
   --duration-ambient: 8000ms;
-
-  /* ============================================
-     DARK THEME - BOLD & HIGH CONTRAST
-     Background: #2c2520 (warm dark brown)
-     Designed for maximum readability
-     ============================================ */
-  --color-dark-bg: #2c2520;
-  --color-dark-bg-elevated: #3a332d;
-  --color-dark-text: #ffffff;            /* Pure white - maximum contrast for headlines */
-  --color-dark-text-primary: #ffffff;    /* Alias for headlines/important text */
-  --color-dark-text-secondary: #f0ebe4;  /* Warm cream - very readable body text */
-  --color-dark-text-muted: #ddd6cc;      /* Still bold - for captions/eyebrows */
-  --color-dark-text-dimmed: #c8bfb4;     /* Softest - but still readable */
-  --color-dark-accent: #a3c18a;          /* Brighter sage green for links/CTAs */
-  --color-dark-accent-hover: #b8d4a0;    /* Even brighter on hover */
-  --color-dark-border: rgba(255, 255, 255, 0.15);
-  --color-dark-border-strong: rgba(255, 255, 255, 0.25);
-  --color-dark-icon: #f0ebe4;            /* Icons should be clearly visible */
 
 }

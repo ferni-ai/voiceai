@@ -25,6 +25,10 @@ import {
   publishStreakProtectionAlert,
   publishMilestoneCelebration,
 } from './maya-habit-outreach.js';
+import {
+  evaluateTrustBasedOutreach,
+  handleConcernDetection,
+} from './trust-outreach-bridge.js';
 
 const log = getLogger().child({ module: 'outreach-session-integration' });
 
@@ -440,6 +444,42 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
       log.debug({ userId, mayaTriggersCreated: mayaResults.triggersCreated }, '🌱 Maya habit session analyzed');
     } catch (error) {
       log.debug({ error: String(error), userId }, 'Maya habit session analysis failed (non-fatal)');
+    }
+  }
+
+  // 🧠 TRUST-BASED OUTREACH: "Better than Human" intelligence
+  // Evaluate all trust systems (thinking of you, growth reflection, small wins, etc.)
+  try {
+    const trustResult = await evaluateTrustBasedOutreach(userId, data.sessionId);
+    triggersCreated += trustResult.triggersCreated;
+    if (trustResult.triggersCreated > 0) {
+      log.info(
+        { userId, trustTriggers: trustResult.triggersCreated, types: trustResult.triggerTypes },
+        '🧠 Trust-based outreach triggers created'
+      );
+    }
+  } catch (error) {
+    log.debug({ error: String(error), userId }, 'Trust-based outreach evaluation failed (non-fatal)');
+  }
+
+  // 💚 CONCERN DETECTION: If emotional state indicates concern, schedule follow-up
+  if (
+    emotionalState &&
+    ['sad', 'overwhelmed', 'anxious'].includes(emotionalState) &&
+    struggles.length > 0
+  ) {
+    try {
+      const lastUserMessage = turns.filter((t) => t.role === 'user').pop()?.content || '';
+      await handleConcernDetection({
+        userId,
+        concernLevel: emotionalState === 'overwhelmed' ? 'elevated' : 'moderate',
+        concernType: emotionalState,
+        lastMessage: lastUserMessage,
+        detectedEmotion: emotionalState,
+      });
+      log.debug({ userId, emotionalState }, '💚 Concern-based outreach scheduled');
+    } catch (error) {
+      log.debug({ error: String(error), userId }, 'Concern detection failed (non-fatal)');
     }
   }
 

@@ -33,8 +33,16 @@ import {
   discoveredToRecommendation,
   isYouTubeApiAvailable,
 } from './youtube-api-client.js';
+import {
+  generateSuperhumanCopy,
+  getMemoryEnhancedReasons,
+  type PersonalizedCopyContext,
+} from './better-than-human-memory.js';
 
 const log = getLogger();
+
+// Cache for superhuman memory lookups (per request)
+let superhumanMemoryCache: Map<string, PersonalizedCopyContext> | null = null;
 
 // ============================================================================
 // TYPES
@@ -205,6 +213,16 @@ export class IntelligentContentCurator {
 
     const recommendations: IntelligentRecommendation[] = [];
 
+    // 0. Preload "Better Than Human" memory for user's topics (fire-and-forget if fails)
+    try {
+      superhumanMemoryCache = await getMemoryEnhancedReasons(
+        this.userContext.userId,
+        this.userContext.recentTopics
+      );
+    } catch {
+      superhumanMemoryCache = null;
+    }
+
     // 1. Determine optimal mood based on context
     const optimalMood = this.determineOptimalMood();
 
@@ -215,12 +233,13 @@ export class IntelligentContentCurator {
     if (!preferPodcasts) {
       const videos = this.getPersonalizedVideos(optimalMood, relevantCategories, maxDuration);
       for (const video of videos) {
+        const { personalizedReason, connectionToConversations } = this.generatePersonalizedReasonWithMemory(video, 'video');
         recommendations.push({
           content: video,
           contentType: 'video',
           relevanceScore: this.calculateRelevanceScore(video, 'video'),
-          personalizedReason: this.generatePersonalizedReason(video, 'video'),
-          connectionToConversations: this.findConversationConnection(video, 'video'),
+          personalizedReason,
+          connectionToConversations,
           suggestedTiming: this.suggestTiming(video, 'video'),
         });
       }
@@ -230,12 +249,13 @@ export class IntelligentContentCurator {
     if (!preferVideos) {
       const podcasts = this.getPersonalizedPodcasts(optimalMood, relevantCategories, maxDuration);
       for (const podcast of podcasts) {
+        const { personalizedReason, connectionToConversations } = this.generatePersonalizedReasonWithMemory(podcast, 'podcast');
         recommendations.push({
           content: podcast,
           contentType: 'podcast',
           relevanceScore: this.calculateRelevanceScore(podcast, 'podcast'),
-          personalizedReason: this.generatePersonalizedReason(podcast, 'podcast'),
-          connectionToConversations: this.findConversationConnection(podcast, 'podcast'),
+          personalizedReason,
+          connectionToConversations,
           suggestedTiming: this.suggestTiming(podcast, 'podcast'),
         });
       }
@@ -434,7 +454,7 @@ export class IntelligentContentCurator {
           category: video.category,
           tags: video.topics,
         },
-        reason: `Related to ${topic}`,
+        reason: `This made me think of what you said about ${topic}.`,
         discussionPrompts: video.discussionPrompts,
         relevantTopic: topic,
         mood: video.mood,
@@ -570,6 +590,43 @@ export class IntelligentContentCurator {
     return Math.min(score, 1.0);
   }
 
+  /**
+   * Generate personalized reason WITH superhuman memory integration
+   * Uses the Better Than Human memory system for specific time references
+   */
+  private generatePersonalizedReasonWithMemory(
+    content: VideoRecommendation | PodcastRecommendation,
+    type: 'video' | 'podcast'
+  ): { personalizedReason: string; connectionToConversations: string | null } {
+    const contentTopics =
+      type === 'video'
+        ? (content as VideoRecommendation).video.tags
+        : (content as PodcastRecommendation).episode.topics;
+
+    // Find matching recent topic
+    const matchingTopic = this.userContext.recentTopics.find((topic) =>
+      contentTopics.some((t) => t.toLowerCase().includes(topic.toLowerCase()))
+    );
+
+    // Try to get superhuman memory for this topic
+    if (matchingTopic && superhumanMemoryCache) {
+      const memoryContext = superhumanMemoryCache.get(matchingTopic.toLowerCase());
+      if (memoryContext && memoryContext.superhumanTouch) {
+        // We have specific memory! Use it.
+        return {
+          personalizedReason: memoryContext.personalizedReason,
+          connectionToConversations: memoryContext.connectionToConversations,
+        };
+      }
+    }
+
+    // Fallback to non-memory personalized reason
+    const personalizedReason = this.generatePersonalizedReason(content, type);
+    const connectionToConversations = this.findConversationConnection(content, type);
+
+    return { personalizedReason, connectionToConversations };
+  }
+
   private generatePersonalizedReason(
     content: VideoRecommendation | PodcastRecommendation,
     type: 'video' | 'podcast'
@@ -640,7 +697,15 @@ export class IntelligentContentCurator {
 
     for (const topic of this.userContext.recentTopics) {
       if (contentTopics.some((t) => t.toLowerCase().includes(topic.toLowerCase()))) {
-        return `Related to when we talked about ${topic}`;
+        // Check if we have superhuman memory for more specific connection
+        if (superhumanMemoryCache) {
+          const memoryContext = superhumanMemoryCache.get(topic.toLowerCase());
+          if (memoryContext?.connectionToConversations) {
+            return memoryContext.connectionToConversations;
+          }
+        }
+        // Fallback to generic but still warm
+        return `Remember when ${topic} came up? This feels like the next piece.`;
       }
     }
 
@@ -700,7 +765,7 @@ export class IntelligentContentCurator {
           category: video.category,
           tags: video.topics,
         },
-        reason: `Matches your interest in ${keyword}`,
+        reason: `You've been exploring ${keyword}. This feels connected.`,
         discussionPrompts: video.discussionPrompts,
         mood: video.mood,
       };
@@ -736,7 +801,7 @@ export class IntelligentContentCurator {
   }
 
   private generateTrackDescription(topic: string, episodeCount: number): string {
-    return `A personalized ${episodeCount}-part journey based on your interest in ${topic}. Curated from conversations with Ferni.`;
+    return `A ${episodeCount}-part journey I put together after what we talked about. ${topic.charAt(0).toUpperCase() + topic.slice(1)} keeps coming up - there's something there.`;
   }
 
   private estimateDifficulty(

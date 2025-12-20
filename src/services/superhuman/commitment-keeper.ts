@@ -11,7 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from '../../memory/firestore-client.js';
+import { getFirestoreDb } from './firestore-utils.js';
 
 const log = createLogger({ module: 'commitment-keeper' });
 
@@ -26,7 +26,7 @@ export type CommitmentType =
   | 'boundary' // "I need to stop..." - self-protection
   | 'conversation' // "I need to talk to..." - interpersonal
   | 'decision' // "I've decided..." - firm choice
-  | 'experiment' // "I'm going to try..." - exploratory;
+  | 'experiment'; // "I'm going to try..." - exploratory;
 
 export type CommitmentStatus =
   | 'active' // Still working toward it
@@ -81,7 +81,10 @@ export interface CommitmentFollowUp {
 
 export interface CommitmentDetectionResult {
   detected: boolean;
-  commitment?: Omit<Commitment, 'id' | 'createdAt' | 'lastMentioned' | 'followUpAfter' | 'status' | 'followUpCount'>;
+  commitment?: Omit<
+    Commitment,
+    'id' | 'createdAt' | 'lastMentioned' | 'followUpAfter' | 'status' | 'followUpCount'
+  >;
   confidence: number;
 }
 
@@ -180,7 +183,7 @@ export function detectCommitment(
   const statement = afterMatch.slice(0, sentenceEnd + 1).trim();
 
   // Create summary (first 100 chars or to period)
-  const summary = statement.length > 100 ? statement.slice(0, 97) + '...' : statement;
+  const summary = statement.length > 100 ? `${statement.slice(0, 97)}...` : statement;
 
   // Detect target date
   let targetDate: number | undefined;
@@ -192,10 +195,7 @@ export function detectCommitment(
   }
 
   // Calculate emotional weight
-  const emotionalWeight = Math.min(
-    1,
-    (context?.emotionalIntensity || 0.5) * bestMatch.weight
-  );
+  const emotionalWeight = Math.min(1, (context?.emotionalIntensity || 0.5) * bestMatch.weight);
 
   return {
     detected: true,
@@ -512,4 +512,3 @@ export const commitmentKeeper = {
   getFollowUps: getFollowUpsForUser,
   buildContext: buildCommitmentContext,
 };
-

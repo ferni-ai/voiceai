@@ -139,51 +139,86 @@ export type QuestionType =
 // ============================================================================
 
 /**
- * Questions ANY persona can ask - universal human experiences
- * These don't need persona filtering
+ * COACHING-LEVEL QUESTIONS
+ * 
+ * These questions follow the "Better Than Human" coaching philosophy:
+ * - Make them PAUSE before answering
+ * - Help them think DIFFERENTLY than they were
+ * - Make them feel UNDERSTOOD, not interrogated
+ * - Make them WANT to answer (not have to)
+ * 
+ * The gold standard: "Huh. I never thought about it that way."
  */
 const UNIVERSAL_QUESTIONS: Record<QuestionType, string[]> = {
   deepening: [
-    'What makes you say that?',
-    "What's underneath that?",
-    'What happened next?',
-    'How did that land?',
-    "What's that like for you?",
+    // Don't just go deeper - help them see it differently
+    "What would you tell them if you could?",
+    "If this was someone else's story, what would you notice?",
+    "What would you do if no one was watching?",
+    "Where do you feel that in your body?",
+    "What's the version of this you're not saying out loud?",
+    "If that feeling had a voice, what would it say?",
+    "What part of this do you already know the answer to?",
   ],
   checking_in: [
-    "How are you doing? Like, really?",
-    "What's been on your mind?",
-    "How are you holding up?",
+    // Not "how are you" - specific, opens doors
+    "What's actually true for you today?",
+    "What's taking up the most space in your head right now?",
+    "What moment from today keeps coming back to you?",
+    "What haven't you told anyone yet?",
+    "What would make today feel worth it?",
+    "What's one thing that went right that you didn't expect?",
   ],
   curious: [
-    "What's something you've been thinking about lately?",
-    "What's taking up space in your head right now?",
-    "What's been on your mind?",
+    // Genuine curiosity that invites depth
+    "What's something you've been avoiding thinking about?",
+    "What would be different if you gave yourself permission?",
+    "What's one thing you'd fight for?",
+    "What would you be sad to never do?",
+    "If you woke up tomorrow and everything was different, what changed?",
+    "What do you know now that you wish you'd known sooner?",
   ],
   supportive: [
-    "That sounds hard. What would help right now?",
-    "I hear you. What do you need?",
-    "What's the hardest part of this?",
+    // Not "that's hard" - help them find their own strength
+    "What's the part of this that feels most unfair?",
+    "What would you need to hear right now?",
+    "If you could change just one thing about this, what would it be?",
+    "What's keeping you going through this?",
+    "What would 'good enough' look like here?",
+    "Who in your life has been through something like this?",
   ],
   celebratory: [
-    "That's worth celebrating! How does it feel?",
-    "How are you going to mark this?",
-    "What made this possible?",
+    // Don't rush past wins - let them land
+    "I want to stay here for a second. How does this actually feel?",
+    "What made you the kind of person who could do this?",
+    "Who do you want to tell first?",
+    "What did past-you need to hear to believe this was possible?",
+    "What does this change about how you see yourself?",
   ],
   reflective: [
-    'What do you make of all that?',
-    "What's the takeaway for you?",
-    'What does this mean for you?',
+    // Help them hear themselves
+    "What part of what you just said surprised you?",
+    "If you were giving advice to someone in your exact situation, what would you say?",
+    "What's the pattern here that you keep bumping into?",
+    "A year from now, what will you wish you had done?",
+    "What would you tell yourself six months ago?",
   ],
   silence_break: [
-    "Where did you go just now?",
-    "What's stirring?",
-    "I'm here whenever you're ready.",
+    // Don't fill silence - honor it, then gently open
+    "Where did your mind just go?",
+    "Something shifted. What is it?",
+    "Take your time. I'm not going anywhere.",
+    "What just came up for you?",
+    "You got quiet. That usually means something.",
   ],
   relationship_building: [
-    "What's something you're looking forward to?",
-    "What's been making you happy lately?",
-    "What's been good?",
+    // Build real connection, not small talk
+    "What's something people don't usually ask you about?",
+    "What's something you're proud of that you don't talk about?",
+    "What's a question you wish someone would ask you?",
+    "What's something you've changed your mind about?",
+    "What do you wish you could spend more time on?",
+    "What's something you're better at than most people realize?",
   ],
 };
 

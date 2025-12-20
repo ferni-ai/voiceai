@@ -482,6 +482,12 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
 // ============================================================================
 
 /**
+ * Categories that are "utility" content - not growth/reflection focused
+ * These are fine to surface in general browsing, but shouldn't be daily picks
+ */
+const UTILITY_CATEGORIES: VideoCategory[] = ['music-video', 'tutorial'];
+
+/**
  * Get curated video recommendations based on user context
  */
 export function getVideoRecommendations(
@@ -491,11 +497,17 @@ export function getVideoRecommendations(
     topic?: string;
     maxResults?: number;
     recentTopics?: string[];
+    excludeUtilityContent?: boolean; // Exclude music-video, tutorial, etc.
   } = {}
 ): VideoRecommendation[] {
-  const { mood, topic, maxResults = 5, recentTopics = [] } = options;
+  const { mood, topic, maxResults = 5, recentTopics = [], excludeUtilityContent = false } = options;
 
   let videos = [...CURATED_VIDEOS];
+
+  // Exclude utility content if requested (for daily picks)
+  if (excludeUtilityContent) {
+    videos = videos.filter((v) => !UTILITY_CATEGORIES.includes(v.category));
+  }
 
   // Filter by mood if specified
   if (mood) {
@@ -570,6 +582,10 @@ export function getVideosByCategory(
 
 /**
  * Get daily video pick based on day of week and user preferences
+ *
+ * BRAND PRINCIPLE: Daily picks should be GROWTH content - things that
+ * spark reflection, learning, or inspiration. Not utility content like
+ * background music or ambient streams.
  */
 export function getDailyVideoPick(
   userId: string,
@@ -594,10 +610,13 @@ export function getDailyVideoPick(
 
   const mood = userPreferences?.mood || dailyMoods[dayOfWeek];
 
+  // Get recommendations but EXCLUDE utility content
+  // Daily picks should be growth content, not background noise
   const recommendations = getVideoRecommendations(userId, {
     mood,
     recentTopics: userPreferences?.favoriteTopics,
-    maxResults: 1,
+    maxResults: 5, // Get more to filter
+    excludeUtilityContent: true, // Exclude music-video, tutorial, etc.
   });
 
   return recommendations[0] || null;
@@ -780,6 +799,14 @@ function formatDuration(seconds: number): string {
   return `PT${minutes}M${secs}S`;
 }
 
+/**
+ * Generate a recommendation reason that feels like a thoughtful friend
+ *
+ * BRAND PRINCIPLES:
+ * - Never generic ("This is cool", "Check this out")
+ * - Always intentional (why THIS video for THIS person)
+ * - Ferni voice: warm, grounded, like someone who knows you
+ */
 function getRecommendationReason(video: CuratedVideo, recentTopics: string[]): string {
   // Find matching topic - use warm, friend-like language
   const matchingTopic = recentTopics.find((t) =>
@@ -791,27 +818,64 @@ function getRecommendationReason(video: CuratedVideo, recentTopics: string[]): s
       `This came to mind when you mentioned ${matchingTopic}.`,
       `Remember when we talked about ${matchingTopic}? Watch this.`,
       `Something about ${matchingTopic} that might land with you.`,
+      `I keep thinking about what you said about ${matchingTopic}. This connects.`,
     ];
     return topicPhrases[Math.floor(Math.random() * topicPhrases.length)];
   }
 
-  // Category-based reasons (warm, not generic)
+  // Category-based reasons (intentional, not generic)
   const categoryReasons: Record<VideoCategory, string[]> = {
     'ted-talk': [
-      'This talk stuck with me. See what you think.',
-      'One of those talks that changes how you see things.',
+      'This talk stuck with me. Curious what you think.',
+      'One of those talks that shifts how you see things.',
+      "I've been sitting with this one. Worth your time.",
     ],
-    documentary: ['I keep thinking about this one.', 'Worth the watch. Trust me.'],
-    educational: ["You'll probably enjoy this.", 'Something to chew on.'],
-    'music-video': ['Just... watch this.', 'This hit different.'],
-    'podcast-clip': ['Caught this and thought of you.', 'Great conversation.'],
-    tutorial: ['This might actually help.', 'Practical and worth your time.'],
-    inspiration: ['Needed this today. Maybe you do too.', 'Spark for your day.'],
-    mindfulness: ['Take a breath with this one.', 'A quieter moment.'],
-    creativity: ['Gets the wheels turning.', "Fuel for what you're making."],
-    science: ['Mind-expanding.', 'Changes how you see things.'],
-    philosophy: ['One to sit with.', 'Made me think. Will you too.'],
-    'self-improvement': ['For your journey.', 'Small shift, big impact.'],
+    documentary: [
+      'I keep coming back to this one.',
+      'Worth the watch. Take your time with it.',
+    ],
+    educational: [
+      'This one made me pause and think.',
+      'You might find this useful.',
+    ],
+    'music-video': [
+      'Good for when you need to think.',
+      'Background for wherever you are right now.',
+    ],
+    'podcast-clip': [
+      'Caught this and thought of you.',
+      'A conversation worth eavesdropping on.',
+    ],
+    tutorial: [
+      'Practical. Might actually help.',
+      'Step by step, no fluff.',
+    ],
+    inspiration: [
+      'Needed this today. Maybe you do too.',
+      'A little spark for what you\'re working on.',
+    ],
+    mindfulness: [
+      'Take a breath with this one.',
+      'For when you need to slow down.',
+      'A quieter moment.',
+    ],
+    creativity: [
+      'Gets the wheels turning.',
+      "Fuel for what you're building.",
+    ],
+    science: [
+      'This one expanded how I think about things.',
+      'Changes how you see the world.',
+    ],
+    philosophy: [
+      'One to sit with.',
+      'Food for thought. No easy answers.',
+      'Made me think. Might do the same for you.',
+    ],
+    'self-improvement': [
+      'For your journey.',
+      'Small idea, big ripple.',
+    ],
   };
 
   const reasons = categoryReasons[video.category];

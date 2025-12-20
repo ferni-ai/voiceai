@@ -351,6 +351,60 @@ export {
 } from './agent-evolution.js';
 
 // ============================================================================
+// COACHING INTELLIGENCE - "Better Than Human" Question Generation
+// ============================================================================
+
+// Coaching Questions - Memory-grounded, pattern-surfacing, anticipatory
+export {
+  getCoachingQuestion,
+  generateMemoryGroundedQuestion,
+  generatePatternQuestion,
+  generateMirror,
+  getAnticipatoryQuestion,
+  detectPatterns,
+  type MemoryGroundedQuestion,
+  type PatternObservation,
+  type MirrorReflection,
+  type AnticipatedNeed,
+} from './coaching-questions.js';
+
+// Pattern Tracking - Cross-session pattern detection
+export {
+  processTranscriptForPatterns,
+  getUserPatterns,
+  getPatternsToSurface,
+  getPatternForSilence,
+  markPatternSurfaced,
+  generatePatternSurfacingQuestion,
+  type UserPattern,
+  type PatternType,
+  type PatternContext,
+  type PatternObservation as StoredPatternObservation,
+} from './coaching-patterns.js';
+
+// Voice Signals - Anticipatory question triggers
+export {
+  analyzeVoiceSignals,
+  getAnticipatedNeed as getAnticipatedNeedFromSignals,
+  initializeVoiceTracking,
+  recordVoiceTurn,
+  getVoiceSignalsForTurn,
+  clearVoiceHistory,
+  type VoiceSignals,
+  type SignalContext,
+  type AnticipatedNeed as VoiceAnticipatedNeed,
+} from './voice-signals.js';
+
+// Memory Loader - Load memories for coaching questions
+export {
+  loadCoachingMemories,
+  getMemoriesForTopic,
+  getSuggestedFollowUps,
+  type CoachingMemory,
+  type CoachingMemoryContext,
+} from './coaching-memory-loader.js';
+
+// ============================================================================
 // CONTEXT BUILDERS - Modular conversation intelligence injection
 // ============================================================================
 

@@ -491,8 +491,8 @@ export function discoveredToRecommendation(
       tags: video.tags,
     },
     reason: relevantTopic
-      ? `Fresh content about ${relevantTopic} I found for you`
-      : `Discovered this based on your interests`,
+      ? `This made me think of what you said about ${relevantTopic}.`
+      : `Something that landed with me. Thought you'd appreciate it.`,
     discussionPrompts: video.generatedPrompts,
     relevantTopic,
     mood,

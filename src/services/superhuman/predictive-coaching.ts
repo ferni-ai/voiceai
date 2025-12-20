@@ -10,7 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from '../../memory/firestore-client.js';
+import { getFirestoreDb } from './firestore-utils.js';
 
 const log = createLogger({ module: 'predictive-coaching' });
 
@@ -263,7 +263,8 @@ function createPrediction(
   userId: string
 ): Prediction {
   const predictionTexts: Record<PatternType, (p: PatternObservation) => string> = {
-    temporal: (p) => `Based on ${p.frequency} observations, ${p.outcome} tends to happen around this time`,
+    temporal: (p) =>
+      `Based on ${p.frequency} observations, ${p.outcome} tends to happen around this time`,
     emotional: (p) => `You often feel ${p.typicalEmotionAfter || 'different'} after ${p.trigger}`,
     behavioral: (p) => `I've noticed ${p.trigger} often leads to ${p.outcome}`,
     relational: (p) => `Conversations about ${p.trigger} often bring up ${p.outcome}`,
@@ -277,8 +278,7 @@ function createPrediction(
       `I've been thinking about you. ${p.trigger} has been weighing on you lately. Want to talk it through?`,
     behavioral: (p) =>
       `I see a pattern here. When ${p.trigger} happens, you often end up ${p.outcome}. What if we tried something different this time?`,
-    relational: (p) =>
-      `You haven't mentioned ${p.trigger} in a while. Is everything okay there?`,
+    relational: (p) => `You haven't mentioned ${p.trigger} in a while. Is everything okay there?`,
     cyclical: (p) =>
       `This time of ${timing === 'tomorrow' ? 'week' : 'day'} is usually tough. I'm here if you need me.`,
   };
@@ -308,7 +308,9 @@ export async function getDayPatterns(userId: string): Promise<DayPattern[]> {
   const dayPatterns: DayPattern[] = [];
 
   for (let day = 0; day < 7; day++) {
-    const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day];
+    const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][
+      day
+    ];
     const daySpecificPatterns = patterns.filter((p) => p.dayOfWeek?.includes(day));
 
     if (daySpecificPatterns.length > 0) {
@@ -356,7 +358,9 @@ export async function buildPredictiveContext(userId: string): Promise<Predictive
   const todayPatterns = dayPatterns.find((d) => d.dayOfWeek === currentDay);
   if (todayPatterns) {
     for (const p of todayPatterns.patterns) {
-      context.patternsDetected.push(`${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][currentDay]} pattern: ${p.description}`);
+      context.patternsDetected.push(
+        `${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][currentDay]} pattern: ${p.description}`
+      );
     }
   }
 
@@ -412,4 +416,3 @@ export const predictiveCoaching = {
   buildContext: buildPredictiveContext,
   buildContextString: buildPredictiveContextString,
 };
-

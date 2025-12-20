@@ -10,7 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from '../../memory/firestore-client.js';
+import { getFirestoreDb } from './firestore-utils.js';
 
 const log = createLogger({ module: 'values-alignment' });
 
@@ -335,7 +335,12 @@ export async function loadUserValues(userId: string): Promise<UserValue[]> {
 export async function saveValue(value: UserValue): Promise<void> {
   const db = getFirestoreDb();
   if (db) {
-    await db.collection('bogle_users').doc(value.userId).collection('values').doc(value.id).set(value);
+    await db
+      .collection('bogle_users')
+      .doc(value.userId)
+      .collection('values')
+      .doc(value.id)
+      .set(value);
   }
 
   // Update cache
@@ -451,7 +456,9 @@ export async function buildValuesContext(userId: string): Promise<string> {
   if (conflictingValues.length > 0) {
     sections.push('\n**Values Under Pressure:**');
     for (const value of conflictingValues.slice(0, 3)) {
-      const daysAgo = Math.floor((Date.now() - (value.lastConflictDate || 0)) / (24 * 60 * 60 * 1000));
+      const daysAgo = Math.floor(
+        (Date.now() - (value.lastConflictDate || 0)) / (24 * 60 * 60 * 1000)
+      );
       sections.push(
         `• ${value.category}: Conflict detected ${daysAgo} days ago. Worth exploring gently.`
       );
@@ -459,7 +466,9 @@ export async function buildValuesContext(userId: string): Promise<string> {
   }
 
   sections.push('\nWhen you see misalignment, reflect it back with curiosity, not judgment.');
-  sections.push('Example: "You said family comes first... but I\'m noticing work keeps winning. What\'s going on there?"');
+  sections.push(
+    'Example: "You said family comes first... but I\'m noticing work keeps winning. What\'s going on there?"'
+  );
 
   return sections.join('\n');
 }
@@ -476,4 +485,3 @@ export const valuesAlignment = {
   recordConflict,
   buildContext: buildValuesContext,
 };
-

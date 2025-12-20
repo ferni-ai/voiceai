@@ -67,6 +67,10 @@ import {
   createTimer,
 } from '../../services/performance-metrics.js';
 
+// Coaching Intelligence - "Better than Human" pattern detection
+import { processTranscriptForPatterns } from '../../intelligence/coaching-patterns.js';
+import { recordVoiceTurn, initializeVoiceTracking } from '../../intelligence/voice-signals.js';
+
 // Conversation engines (singletons)
 import {
   getConversationHumanizer,
@@ -1817,6 +1821,30 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   const stateTimer = createTimer();
   updateConversationState(ctx, analysisResult);
   recordPhaseTiming('conversation_state', stateTimer.stop());
+
+  // ============================================================================
+  // 🧠 COACHING INTELLIGENCE: Pattern tracking and voice signals
+  // "Better than Human" - track patterns across sessions, detect voice signals
+  // ============================================================================
+  if (services.userId) {
+    // Initialize voice tracking for this session if not already done
+    initializeVoiceTracking(services.sessionId);
+
+    // Fire-and-forget: Record voice turn for signal detection
+    recordVoiceTurn(services.sessionId, userText, {
+      topic: analysisResult.currentTopic,
+      energy: userData?.voiceEmotion?.confidence,
+      pauseBeforeMs: userData?.pauseBeforeSpeakingMs,
+    });
+
+    // Fire-and-forget: Process transcript for pattern detection (cross-session)
+    void processTranscriptForPatterns(
+      services.userId,
+      userText,
+      analysisResult.currentTopic || 'general',
+      analysisResult.analysis.emotion.primary
+    );
+  }
 
   // ============================================================================
   // PARALLEL PROCESSING: Run independent async operations concurrently

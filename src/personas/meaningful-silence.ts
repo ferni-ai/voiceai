@@ -31,6 +31,13 @@ import {
   type QuestionContext,
   type GeneratedQuestion,
 } from '../intelligence/dynamic-questions.js';
+// Coaching-level questions - memory-grounded, pattern-surfacing, anticipatory
+import {
+  getCoachingQuestion,
+  detectPatterns,
+  generateMirror,
+  getAnticipatoryQuestion,
+} from '../intelligence/coaching-questions.js';
 import { getLogger } from '../utils/safe-logger.js';
 
 const log = getLogger();
@@ -842,44 +849,95 @@ function silenceContextToQuestionContext(
 }
 
 /**
- * Get a thoughtful question using dynamic generation
- * Falls back to static questions if generation fails
+ * Get a thoughtful question using COACHING-LEVEL generation
+ * 
+ * This is the "Better than Human" approach:
+ * 1. Memory-grounded (references past conversations)
+ * 2. Pattern-surfacing (notices recurring themes)
+ * 3. Mirror (reflects their words back meaningfully)
+ * 4. Anticipatory (senses what they need before they ask)
+ * 
+ * Falls back to standard dynamic questions if coaching fails
  */
 async function getDynamicThoughtfulQuestion(
   context: SilenceContext,
   persona: PersonaConfig,
-  sessionId: string
-): Promise<{ text: string; intent?: string }> {
+  sessionId: string,
+  options?: {
+    memories?: Array<{ topic: string; daysAgo: number; summary: string }>;
+    lastTranscript?: string;
+    voiceSignals?: {
+      pauseBeforeSpeaking?: boolean;
+      voiceDropped?: boolean;
+      shortAnswers?: boolean;
+      changedSubject?: boolean;
+    };
+  }
+): Promise<{ text: string; intent?: string; coachingType?: string }> {
   try {
     const questionContext = silenceContextToQuestionContext(context, persona, sessionId);
 
-    // Determine question type based on context
-    let questionType: 'deepening' | 'checking_in' | 'curious' | 'supportive' | 'silence_break' = 'silence_break';
+    // Use coaching-level question generation with full context
+    const coachingQuestion = await getCoachingQuestion(questionContext, {
+      memories: options?.memories,
+      transcript: options?.lastTranscript || context.lastUserMessage,
+      signals: options?.voiceSignals,
+    });
 
-    if (context.recentEmotionalTone === 'heavy') {
-      questionType = 'supportive';
-    } else if (context.topicsDiscussed.length > 0 && context.turnCount > 5) {
-      questionType = 'deepening';
-    } else if (context.turnCount < 3) {
-      questionType = 'curious';
-    }
-
-    const generated = await generateQuestion(questionContext, questionType);
-
-    log.debug(
-      { personaId: persona.id, questionType, intent: generated.intent.seekingToUnderstand },
-      'Generated dynamic question for silence'
+    log.info(
+      { 
+        personaId: persona.id, 
+        method: coachingQuestion.generationMethod,
+        intent: coachingQuestion.intent.seekingToUnderstand,
+        groundedIn: (coachingQuestion as { groundedIn?: { memory?: string } }).groundedIn?.memory?.slice(0, 50),
+      },
+      '🧠 COACHING: Generated thoughtful question'
     );
 
+    // Determine coaching type for tracking
+    let coachingType = 'standard';
+    if ((coachingQuestion as { groundedIn?: unknown }).groundedIn) {
+      coachingType = 'memory_grounded';
+    } else if (coachingQuestion.intent.timingReason?.includes('pattern')) {
+      coachingType = 'pattern_surfacing';
+    } else if (coachingQuestion.intent.timingReason?.includes('signal')) {
+      coachingType = 'anticipatory';
+    } else if (coachingQuestion.intent.timingReason?.includes('Observed')) {
+      coachingType = 'mirror';
+    }
+
     return {
-      text: generated.ssml,
-      intent: generated.intent.seekingToUnderstand,
+      text: coachingQuestion.ssml,
+      intent: coachingQuestion.intent.seekingToUnderstand,
+      coachingType,
     };
   } catch (error) {
-    log.warn({ error: String(error) }, 'Dynamic question generation failed, using fallback');
-    // Fallback to static questions
-    const questions = getRelevantQuestions(context.topicsDiscussed);
-    return { text: randomFrom(questions) };
+    log.warn({ error: String(error) }, 'Coaching question generation failed, using standard dynamic');
+    
+    // Fall back to standard dynamic question
+    try {
+      const questionContext = silenceContextToQuestionContext(context, persona, sessionId);
+      let questionType: 'deepening' | 'checking_in' | 'curious' | 'supportive' | 'silence_break' = 'silence_break';
+
+      if (context.recentEmotionalTone === 'heavy') {
+        questionType = 'supportive';
+      } else if (context.topicsDiscussed.length > 0 && context.turnCount > 5) {
+        questionType = 'deepening';
+      } else if (context.turnCount < 3) {
+        questionType = 'curious';
+      }
+
+      const generated = await generateQuestion(questionContext, questionType);
+      return {
+        text: generated.ssml,
+        intent: generated.intent.seekingToUnderstand,
+        coachingType: 'fallback_dynamic',
+      };
+    } catch {
+      // Final fallback to static questions
+      const questions = getRelevantQuestions(context.topicsDiscussed);
+      return { text: randomFrom(questions), coachingType: 'fallback_static' };
+    }
   }
 }
 

@@ -60,10 +60,15 @@ export type OutreachTriggerType =
   | 'thinking_of_you' // Random kindness
   | 'follow_up' // Explicit follow-up request
   | 'accountability' // Agreed accountability check
+  | 'check_in' // General check-in
 
   // Content triggers
   | 'content_share' // Relevant content found
   | 'insight_discovery' // AI noticed something helpful
+
+  // Trust system triggers ("Better than Human")
+  | 'growth_reflection' // Notice and reflect user evolution
+  | 'shared_memory' // Callback to shared experiences (songs, jokes)
 
   // Pattern-based triggers ("Better than Human")
   | 'pattern_acknowledgment' // "Mondays seem hard for you"
@@ -855,6 +860,12 @@ class OutreachDecisionEngine extends EventEmitter {
       commitment_check: 'sms',
       habit_check: 'sms',
       thinking_of_you: 'sms',
+      check_in: 'sms',
+
+      // Trust-based triggers work well as texts (personal, non-intrusive)
+      growth_reflection: 'sms',
+      shared_memory: 'sms',
+      life_rhythm_prediction: 'sms',
 
       // Detailed stuff goes to email
       content_share: 'email',
@@ -949,6 +960,11 @@ class OutreachDecisionEngine extends EventEmitter {
       reengagement: 'casual',
       appointment_reminder: 'informative',
       event_countdown: 'celebratory',
+      // Trust-based triggers
+      growth_reflection: 'encouraging', // Warm reflection on their journey
+      shared_memory: 'casual', // Intimate callback to shared moments
+      life_rhythm_prediction: 'supportive', // Proactive support before struggle
+      check_in: 'casual', // General friendly check-in
     };
 
     if (trigger.priority === 'urgent') {

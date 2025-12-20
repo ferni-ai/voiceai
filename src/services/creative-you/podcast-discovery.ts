@@ -706,8 +706,9 @@ export function getLearningTracks(): LearningTrack[] {
   return [
     {
       id: 'productivity-mastery',
-      title: 'Productivity Mastery',
-      description: 'Science-backed strategies for focus, energy, and getting things done',
+      title: 'Getting Things Done (For Real)',
+      description:
+        "Not another productivity hack list. This is about understanding your brain—why focus fades, how sleep changes everything, and what actually sticks.",
       episodes: [
         CURATED_EPISODES.find((e) => e.id === 'huberman-sleep'),
         CURATED_EPISODES.find((e) => e.id === 'huberman-focus'),
@@ -726,8 +727,9 @@ export function getLearningTracks(): LearningTrack[] {
     },
     {
       id: 'mindfulness-journey',
-      title: 'Mindfulness Journey',
-      description: 'Start or deepen your meditation and mindfulness practice',
+      title: 'Starting to Slow Down',
+      description:
+        "If meditation feels intimidating or you've tried and it didn't stick—start here. Gentle, practical, no judgment.",
       episodes: [
         CURATED_EPISODES.find((e) => e.id === 'tenpercent-beginner'),
         CURATED_EPISODES.find((e) => e.id === 'shetty-overthinking'),
@@ -746,8 +748,9 @@ export function getLearningTracks(): LearningTrack[] {
     },
     {
       id: 'understanding-yourself',
-      title: 'Understanding Yourself',
-      description: 'Insights into why we think and behave the way we do',
+      title: 'Why You Do What You Do',
+      description:
+        "Ever wonder why you make certain choices? Why some patterns keep repeating? These episodes pull back the curtain.",
       episodes: [
         CURATED_EPISODES.find((e) => e.id === 'hidden-brain-decisions'),
         CURATED_EPISODES.find((e) => e.id === 'shetty-overthinking'),
@@ -802,22 +805,52 @@ function formatListenTime(minutes: number): string {
   return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
 }
 
+/**
+ * Generate podcast recommendation reasons that feel intentional
+ *
+ * BRAND PRINCIPLES:
+ * - Never generic ("Good podcast", "Check it out")
+ * - Always feels like Ferni picked this FOR you
+ * - Warm but not performative
+ */
 function getRecommendationReason(episode: CuratedEpisode, recentTopics: string[]): string {
-  // Find matching topic
+  // Find matching topic - use warm, friend-like language
   const matchingTopic = recentTopics.find((t) =>
     episode.topics.some((et) => et.toLowerCase().includes(t.toLowerCase()))
   );
 
   if (matchingTopic) {
-    return `Based on your interest in ${matchingTopic}`;
+    const topicPhrases = [
+      `This came to mind when you mentioned ${matchingTopic}.`,
+      `Remember when we talked about ${matchingTopic}? Give this a listen.`,
+      `Something about ${matchingTopic} that might land with you.`,
+      `I keep thinking about what you said about ${matchingTopic}. This connects.`,
+    ];
+    return topicPhrases[Math.floor(Math.random() * topicPhrases.length)];
   }
 
-  // Mood-based reasons
+  // Mood-based reasons (intentional, not generic)
   const moodReasons: Record<string, string[]> = {
-    learn: ['Something interesting to learn today', 'Expand your knowledge with this episode'],
-    chill: ['A relaxing listen for you', 'Wind down with this episode'],
-    inspire: ['Some inspiration for your day', 'This one might spark something'],
-    reflect: ['Food for thought', 'Something to reflect on'],
+    learn: [
+      'This one made me pause and think.',
+      'Might shift how you see things.',
+      'Worth your attention.',
+    ],
+    chill: [
+      'For when you need to decompress.',
+      'Gentle on the brain.',
+      'Easy listen, but stays with you.',
+    ],
+    inspire: [
+      'This one might spark something.',
+      'Needed this today. Maybe you do too.',
+      "For when you need a lift.",
+    ],
+    reflect: [
+      'One to sit with.',
+      'Take your time with this one.',
+      'No easy answers here. Just good questions.',
+    ],
   };
 
   const reasons = moodReasons[episode.mood];

@@ -48,6 +48,20 @@ import {
 
 const log = getLogger();
 
+// ============================================================================
+// WARM ERROR MESSAGES (Brand-compliant - friendly, not technical)
+// ============================================================================
+
+const WARM_ERRORS = {
+  missingUserId: "Hmm, I'm not sure who you are. Try refreshing?",
+  videoNotFound: "Can't find that video. It might have been removed.",
+  sessionNotFound: "Lost track of where we were. Want to start fresh?",
+  youtubeUnavailable: "Can't reach YouTube right now. Try the curated picks instead?",
+  trackNotFound: "That learning track isn't available right now.",
+  couldNotGenerateTrack: "Couldn't find enough content for those topics. Try something else?",
+  internalError: "Something went wrong on my end. Mind trying again?",
+} as const;
+
 /**
  * Handle Creative You API routes
  */
@@ -133,7 +147,7 @@ export async function handleCreativeYouRoutes(
 
       if (!video) {
         res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Video not found' }));
+        res.end(JSON.stringify({ error: WARM_ERRORS.videoNotFound }));
         return true;
       }
 
@@ -285,8 +299,15 @@ export async function handleCreativeYouRoutes(
       // Check if it's an episode or podcast
       const episode = getEpisodeById(podcastId);
       if (episode) {
+        // Get discussion prompts from curated episodes
+        const { CURATED_EPISODES } = await import(
+          '../../services/creative-you/podcast-discovery.js'
+        );
+        const curatedEpisode = CURATED_EPISODES.find((e) => e.id === podcastId);
+        const discussionPrompts = curatedEpisode?.discussionPrompts || [];
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ episode }));
+        res.end(JSON.stringify({ episode, discussionPrompts }));
         return true;
       }
 
@@ -310,7 +331,7 @@ export async function handleCreativeYouRoutes(
     if (pathname === '/api/creative/youtube/search' && method === 'GET') {
       if (!isYouTubeApiAvailable()) {
         res.writeHead(503, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'YouTube API not configured' }));
+        res.end(JSON.stringify({ error: WARM_ERRORS.youtubeUnavailable }));
         return true;
       }
 
@@ -338,7 +359,7 @@ export async function handleCreativeYouRoutes(
     if (pathname === '/api/creative/youtube/discover' && method === 'GET') {
       if (!isYouTubeApiAvailable()) {
         res.writeHead(503, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'YouTube API not configured' }));
+        res.end(JSON.stringify({ error: WARM_ERRORS.youtubeUnavailable }));
         return true;
       }
 
@@ -448,8 +469,8 @@ export async function handleCreativeYouRoutes(
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(
           JSON.stringify({
-            error: 'Could not generate track for these topics',
-            suggestion: 'Try different topics like: productivity, creativity, anxiety, relationships',
+            error: WARM_ERRORS.couldNotGenerateTrack,
+            suggestion: 'Try topics like: productivity, creativity, anxiety, relationships',
           })
         );
         return true;
@@ -480,7 +501,7 @@ export async function handleCreativeYouRoutes(
 
       if (!track) {
         res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Track not found' }));
+        res.end(JSON.stringify({ error: WARM_ERRORS.trackNotFound }));
         return true;
       }
 
@@ -588,7 +609,7 @@ export async function handleCreativeYouRoutes(
   } catch (error) {
     log.error({ error, pathname }, '🎨 Creative You route error');
     res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Internal server error' }));
+    res.end(JSON.stringify({ error: WARM_ERRORS.internalError }));
     return true;
   }
 }

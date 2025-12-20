@@ -1191,6 +1191,26 @@ export {
   type StreakAtRiskResult,
 } from './maya-habit-outreach.js';
 
+// 🧠 Trust-Based Outreach Bridge ("Better than Human")
+export {
+  evaluateTrustBasedOutreach,
+  handleConcernDetection,
+  shouldAvoidOutreachTopic,
+  runTrustBasedOutreachBatch,
+  type TrustOutreachEvaluationResult,
+  type ConcernOutreachContext,
+} from './trust-outreach-bridge.js';
+
+// 🌊 Life Rhythm Prediction Outreach
+export {
+  evaluateLifeRhythmOutreach,
+  triggerLifeRhythmOutreach,
+  generateLifeRhythmMessage,
+  runDailyLifeRhythmOutreach,
+  type LifeRhythmOutreachConfig,
+  type LifeRhythmOutreachResult,
+} from './life-rhythm-outreach.js';
+
 // ============================================================================
 // DEFAULT EXPORT
 // ============================================================================
