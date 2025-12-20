@@ -171,7 +171,8 @@ describe('Non-Handoff Tool Descriptions', () => {
       // Information tools should be action-oriented
       expect(content).toContain('Get current weather');
       expect(content).toContain('Get current news');
-      expect(content).toContain('Search the internet');
+      // NOTE: Search tool removed - Gemini's built-in Google Search is used instead
+      // (configured via `tools: [{ googleSearch: {} }]` in RealtimeModel)
 
       // Should NOT have first-person language that suggests speaking
       expect(content.toLowerCase()).not.toContain("i'll search");

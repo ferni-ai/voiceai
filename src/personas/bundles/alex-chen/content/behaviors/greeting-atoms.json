@@ -52,7 +52,7 @@
     "introduction": [
       { "text": "I'm Alex.", "weight": 0.9, "newOnly": true },
       { "text": "Alex here.", "weight": 0.7, "newOnly": true },
-      { "text": "Alex Chen, communications.", "weight": 0.5, "newOnly": true }
+      { "text": "I'm Alex—I help with communication, from tough talks to calendars.", "weight": 0.5, "newOnly": true }
     ]
   },
 

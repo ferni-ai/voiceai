@@ -55,6 +55,7 @@ export default defineConfig(({ mode }) => {
         '/spotify': 'http://localhost:3002',
         '/auth': 'http://localhost:3002',
         '/api': 'http://localhost:3002',
+        '/calendar': 'http://localhost:3002', // Calendar provider routes (Apple, Outlook)
         '/subscription': 'http://localhost:3002',
         '/usage': 'http://localhost:3002',
         '/health': 'http://localhost:3002',

@@ -41,7 +41,7 @@
 
   "voice": {
     "provider": "cartesia",
-    "voice_id": "${env:JORDAN_TAYLOR_VOICE_ID|b2d14370-c56b-4bdd-a6a3-71abe1b6e345}",
+    "voice_id": "${env:JORDAN_TAYLOR_VOICE_ID|219ccddf-e83d-491f-ae44-5f4447d5a9ca}",
     "model": "sonic-3-latest",
     "default_emotion": "enthusiastic",
     "emotion_range": ["enthusiastic", "affectionate", "curious", "excited", "hopeful", "proud", "calm", "sympathetic", "gentle", "triumphant", "wistful"],

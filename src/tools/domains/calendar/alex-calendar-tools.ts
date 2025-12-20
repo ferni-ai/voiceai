@@ -21,8 +21,8 @@ import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolDefinition, ToolContext } from '../../registry/types.js';
+// Use the new unified calendar system (Ferni-native, provider-agnostic)
 import {
-  isConnected,
   getEventsForDay,
   getEventsForWeek,
   createEvent,
@@ -32,9 +32,12 @@ import {
   isTimeSlotAvailable,
   getDayOverview,
   getWeekOverview,
+  type CreateEventInput,
+} from '../../../services/calendar/index.js';
+// Keep formatting helpers from old service for now
+import {
   formatEventForSpeech,
   formatDayOverviewForSpeech,
-  type CreateEventInput,
 } from '../../../services/calendar/calendar-service.js';
 import {
   generateDailyBriefing,
@@ -85,11 +88,7 @@ const getCalendarTodayDef: ToolDefinition = {
           return 'I need to know who you are to check your calendar. Could you help me with that?';
         }
 
-        const connected = await isConnected(userId);
-        if (!connected) {
-          return 'Your calendar isn\'t connected yet. Would you like me to help you set that up?';
-        }
-
+        // Calendar is always available - it's native to Ferni
         const overview = await getDayOverview(userId, new Date());
 
         if (overview.totalMeetings === 0) {
@@ -145,11 +144,6 @@ const getCalendarWeekDef: ToolDefinition = {
         const userId = ctx.userId;
         if (!userId) {
           return 'I need to know who you are to check your calendar.';
-        }
-
-        const connected = await isConnected(userId);
-        if (!connected) {
-          return 'Your calendar isn\'t connected yet. Would you like to set that up?';
         }
 
         const overview = await getWeekOverview(userId);
@@ -215,11 +209,6 @@ const createCalendarEventDef: ToolDefinition = {
         const userId = ctx.userId;
         if (!userId) {
           return 'I need to know who you are to add to your calendar.';
-        }
-
-        const connected = await isConnected(userId);
-        if (!connected) {
-          return 'Your calendar isn\'t connected. Want me to help you set that up first?';
         }
 
         // Parse date and time
@@ -384,11 +373,6 @@ const findFreeTimeDef: ToolDefinition = {
           return 'I need to know who you are to check your availability.';
         }
 
-        const connected = await isConnected(userId);
-        if (!connected) {
-          return 'Your calendar isn\'t connected. Want me to help you set that up?';
-        }
-
         let checkDate = new Date();
         if (params.date) {
           const [year, month, day] = params.date.split('-').map(Number);
@@ -497,11 +481,6 @@ const getDailyBriefingDef: ToolDefinition = {
           return 'I need to know who you are to brief you on your day.';
         }
 
-        const connected = await isConnected(userId);
-        if (!connected) {
-          return 'Your calendar isn\'t connected yet. Once you connect it, I can give you a proper briefing.';
-        }
-
         let date = new Date();
         if (params.date) {
           const [year, month, day] = params.date.split('-').map(Number);
@@ -564,11 +543,6 @@ const suggestMeetingTimeDef: ToolDefinition = {
           return 'I need to know who you are to suggest meeting times.';
         }
 
-        const connected = await isConnected(userId);
-        if (!connected) {
-          return 'Your calendar isn\'t connected. Connect it and I can suggest optimal times.';
-        }
-
         const suggestions = await suggestMeetingTimes(userId, {
           durationMinutes: params.durationMinutes,
           preferMorning: params.preferMorning,
@@ -629,11 +603,6 @@ const detectCalendarIssuesDef: ToolDefinition = {
         const userId = ctx.userId;
         if (!userId) {
           return 'I need to know who you are to check your calendar.';
-        }
-
-        const connected = await isConnected(userId);
-        if (!connected) {
-          return 'Your calendar isn\'t connected. Connect it and I can help spot issues.';
         }
 
         const daysToCheck = params.daysToCheck || 7;
@@ -702,11 +671,6 @@ const scheduleEventNaturalDef: ToolDefinition = {
           return 'I need to know who you are to schedule events.';
         }
 
-        const connected = await isConnected(userId);
-        if (!connected) {
-          return "Your calendar isn't connected yet. Would you like me to help you set that up?";
-        }
-
         const result = await parseEventRequest(userId, params.request, params.duration);
 
         if (!result.success) {
@@ -757,11 +721,6 @@ const getPreMeetingBriefingDef: ToolDefinition = {
           return 'I need to know who you are to get your briefings.';
         }
 
-        const connected = await isConnected(userId);
-        if (!connected) {
-          return "Your calendar isn't connected. Connect it so I can help you prepare for meetings.";
-        }
-
         const briefings = await getUpcomingBriefings(userId, params.windowMinutes || 60);
 
         if (briefings.length === 0) {
@@ -808,11 +767,6 @@ const getPostMeetingFollowUpDef: ToolDefinition = {
         const userId = ctx.userId;
         if (!userId) {
           return 'I need to know who you are to help with follow-ups.';
-        }
-
-        const connected = await isConnected(userId);
-        if (!connected) {
-          return "Your calendar isn't connected. I can't see your meetings.";
         }
 
         const followUps = await getPostMeetingFollowUps(userId, params.windowMinutes || 30);
@@ -863,11 +817,6 @@ const checkConflictsDef: ToolDefinition = {
         const userId = ctx.userId;
         if (!userId) {
           return 'I need to know who you are to check your calendar.';
-        }
-
-        const connected = await isConnected(userId);
-        if (!connected) {
-          return "Your calendar isn't connected. I can't check for conflicts.";
         }
 
         // Parse the natural language time
@@ -923,11 +872,6 @@ const findBestTimeDef: ToolDefinition = {
         const userId = ctx.userId;
         if (!userId) {
           return 'I need to know who you are to find times for you.';
-        }
-
-        const connected = await isConnected(userId);
-        if (!connected) {
-          return "Your calendar isn't connected. Connect it so I can find the best times.";
         }
 
         const suggestions = await findBestTimeFor(userId, params.duration, {

@@ -29,6 +29,15 @@ export {
   getArrivingBanter,
 } from './team-engagement/banter.js';
 
+// Intelligent banter (context-aware handoffs)
+export {
+  getIntelligentBanter,
+  buildBanterContext,
+  detectTimeOfDay,
+  type BanterContext,
+  type IntelligentBanterResult,
+} from './team-engagement/intelligent-banter.js';
+
 // ============================================================================
 // TYPES
 // ============================================================================

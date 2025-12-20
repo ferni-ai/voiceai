@@ -30,6 +30,7 @@ import {
   handleHealthRoutes,
   handleTokenRoutes,
   handleGoogleCalendarRoutes,
+  handleMicrosoftCalendarRoutes,
   handleMusicRoutes,
   handleAgentRoutes,
   handlePushRoutes,
@@ -184,6 +185,11 @@ const server = http.createServer(async (req, res) => {
   // Google Calendar OAuth routes
   if (pathname.startsWith('/auth/google')) {
     if (await handleGoogleCalendarRoutes(req, res, pathname, parsedUrl)) return;
+  }
+
+  // Microsoft Calendar OAuth routes
+  if (pathname.startsWith('/auth/microsoft')) {
+    if (await handleMicrosoftCalendarRoutes(req, res, pathname, parsedUrl)) return;
   }
 
   // Music status routes

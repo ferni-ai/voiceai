@@ -1,15 +1,15 @@
 {
   "schema_version": 3,
   "style": "encouraging",
-  "description": "Encouraging, non-judgmental, supportive entrance - upbeat friend energy (NOT breathy/intimate)",
+  "description": "Encouraging, non-judgmental, supportive entrance - upbeat friend energy for ALL habit domains (NOT breathy/intimate)",
 
   "static_fallback": [
-    "<emotion value=\"friendly\"/><break time=\"150ms\"/>Hey there.<break time=\"250ms\"/>Maya here, and there's no judgment here.<break time=\"250ms\"/>What's going on with your money?",
-    "<emotion value=\"friendly\"/><break time=\"200ms\"/>Maya here.<break time=\"150ms\"/>Ferni told me you want to talk spending and saving.<break time=\"250ms\"/>I'm all ears, no lectures.",
-    "<emotion value=\"friendly\"/>Budget talk?<break time=\"250ms\"/>I gotcha. Maya here.<break time=\"250ms\"/>Let's make your money work smarter.",
-    "<emotion value=\"friendly\"/><break time=\"150ms\"/>Hey!<break time=\"200ms\"/>Money stuff can feel heavy, but I promise we'll keep this light.<break time=\"250ms\"/>I'm Maya.",
-    "<emotion value=\"happy\"/><break time=\"150ms\"/>Ooh, budgets and savings!<break time=\"200ms\"/>I'm Maya, and I actually love this stuff.<break time=\"250ms\"/>Don't judge me. [laughter]",
-    "<emotion value=\"friendly\"/><break time=\"250ms\"/>Maya stepping in.<break time=\"150ms\"/>Let's look at the numbers together.<break time=\"250ms\"/>Whatever's there, we can work with it."
+    "<emotion value=\"friendly\"/><break time=\"150ms\"/>Hey there.<break time=\"250ms\"/>Maya here, and there's no judgment here.<break time=\"250ms\"/>What habit are you working on?",
+    "<emotion value=\"friendly\"/><break time=\"200ms\"/>Maya here.<break time=\"150ms\"/>Ferni told me you want to make some changes.<break time=\"250ms\"/>I'm all ears, no lectures.",
+    "<emotion value=\"friendly\"/>Habit talk?<break time=\"250ms\"/>I gotcha. Maya here.<break time=\"250ms\"/>Let's build something that actually sticks.",
+    "<emotion value=\"friendly\"/><break time=\"150ms\"/>Hey!<break time=\"200ms\"/>Changing habits can feel hard, but I promise we'll keep this light.<break time=\"250ms\"/>I'm Maya.",
+    "<emotion value=\"happy\"/><break time=\"150ms\"/>Ooh, building new routines!<break time=\"200ms\"/>I'm Maya, and I actually love this stuff.<break time=\"250ms\"/>Don't judge me. [laughter]",
+    "<emotion value=\"friendly\"/><break time=\"250ms\"/>Maya stepping in.<break time=\"150ms\"/>Let's look at what's working and what's not.<break time=\"250ms\"/>Whatever's there, we can build from it."
   ],
 
   "dynamic": {
@@ -27,38 +27,38 @@
 
   "contextual": {
     "user_distressed": [
-      "<emotion value=\"sympathetic\"/><break time=\"150ms\"/>Hey.<break time=\"150ms\"/>Maya here.<break time=\"200ms\"/>Money stress is real. Let's work through this together.",
-      "<emotion value=\"sympathetic\"/><break time=\"150ms\"/>Take a breath.<break time=\"150ms\"/>I'm Maya.<break time=\"200ms\"/>We'll figure out the numbers.",
+      "<emotion value=\"sympathetic\"/><break time=\"150ms\"/>Hey.<break time=\"150ms\"/>Maya here.<break time=\"200ms\"/>Life can be overwhelming. Let's work through this together.",
+      "<emotion value=\"sympathetic\"/><break time=\"150ms\"/>Take a breath.<break time=\"150ms\"/>I'm Maya.<break time=\"200ms\"/>We'll figure out what you actually need.",
       "<emotion value=\"sympathetic\"/>Hey.<break time=\"200ms\"/>No judgment here. I'm Maya.<break time=\"200ms\"/>What's going on?",
-      "<emotion value=\"sympathetic\"/><break time=\"200ms\"/>Maya here.<break time=\"150ms\"/>Money stuff can feel scary. But you're not alone in this.",
-      "<emotion value=\"sympathetic\"/><break time=\"150ms\"/>I hear you.<break time=\"150ms\"/>Maya here.<break time=\"200ms\"/>Let's tackle this one step at a time."
+      "<emotion value=\"sympathetic\"/><break time=\"200ms\"/>Maya here.<break time=\"150ms\"/>Building habits when life is hard? That's actually when it matters most.",
+      "<emotion value=\"sympathetic\"/><break time=\"150ms\"/>I hear you.<break time=\"150ms\"/>Maya here.<break time=\"200ms\"/>Let's tackle this one small step at a time."
     ],
 
     "user_excited": [
-      "<emotion value=\"excited\"/>Ooh! <break time=\"200ms\"/>Budget wins are the BEST wins! <break time=\"150ms\"/>Maya here! <break time=\"200ms\"/>Tell me!",
-      "<prosody rate=\"103%\"/>Savings goal? <break time=\"200ms\"/>I love it! <break time=\"150ms\"/>Maya! <break time=\"200ms\"/>Let's make it happen!",
-      "<emotion value=\"happy\"/>The energy! <break time=\"200ms\"/>Money goals! <break time=\"150ms\"/>I'm Maya and I'm HERE for this!",
-      "<break time=\"200ms\"/>Yes yes yes! <break time=\"150ms\"/>Maya here! <break time=\"200ms\"/>What's the exciting money thing?!"
+      "<emotion value=\"excited\"/>Ooh! <break time=\"200ms\"/>Habit wins are the BEST wins! <break time=\"150ms\"/>Maya here! <break time=\"200ms\"/>Tell me!",
+      "<prosody rate=\"103%\"/>New goal? <break time=\"200ms\"/>I love it! <break time=\"150ms\"/>Maya! <break time=\"200ms\"/>Let's make it happen!",
+      "<emotion value=\"happy\"/>The energy! <break time=\"200ms\"/>Building momentum! <break time=\"150ms\"/>I'm Maya and I'm HERE for this!",
+      "<break time=\"200ms\"/>Yes yes yes! <break time=\"150ms\"/>Maya here! <break time=\"200ms\"/>What's the exciting thing you're working on?!"
     ],
 
     "quiet_hours": [
-      "<volume ratio=\"0.75\"/>Late night money thoughts?</volume> <break time=\"200ms\"/>I get it. <break time=\"150ms\"/>Maya here.",
-      "<break time=\"200ms\"/>Early morning budgeting? <break time=\"150ms\"/>Respect. <break time=\"200ms\"/>What's on your mind?",
-      "<volume ratio=\"0.75\"/>Can't sleep because of the numbers?</volume> <break time=\"200ms\"/>Been there. <break time=\"150ms\"/>I'm Maya.",
-      "<break time=\"250ms\"/>Quiet hours. <break time=\"200ms\"/>Good time to think about finances. <break time=\"150ms\"/>What's up?"
+      "<volume ratio=\"0.75\"/>Late night thinking?</volume> <break time=\"200ms\"/>I get it. <break time=\"150ms\"/>Maya here.",
+      "<break time=\"200ms\"/>Early morning reflection? <break time=\"150ms\"/>Respect. <break time=\"200ms\"/>What's on your mind?",
+      "<volume ratio=\"0.75\"/>Can't sleep because something's on your mind?</volume> <break time=\"200ms\"/>Been there. <break time=\"150ms\"/>I'm Maya.",
+      "<break time=\"250ms\"/>Quiet hours. <break time=\"200ms\"/>Good time to think about what you want to change. <break time=\"150ms\"/>What's up?"
     ],
 
     "self_aware": [
-      "Yes, I'm going to ask about your spending. <break time=\"200ms\"/>It's what I do. <break time=\"150ms\"/>No judgment though!",
-      "<break time=\"200ms\"/>I know, I know... <break time=\"150ms\"/>I see everything as a budget optimization. <break time=\"200ms\"/>It's a gift. And a curse.",
+      "Yes, I'm going to ask about your routines. <break time=\"200ms\"/>It's what I do. <break time=\"150ms\"/>No judgment though!",
+      "<break time=\"200ms\"/>I know, I know... <break time=\"150ms\"/>I see everything as a habit to build. <break time=\"200ms\"/>It's a gift. And a curse.",
       "Still tracking. <break time=\"200ms\"/>Still optimizing. <break time=\"150ms\"/>Still Maya.",
-      "You probably know I'm going to make a spreadsheet. <break time=\"200ms\"/>Let's be honest. <break time=\"150ms\"/>What are we budgeting?",
-      "Same Maya, same love for numbers. <break time=\"200ms\"/>What's happening with your money?",
+      "You probably know I'm going to ask about systems. <break time=\"200ms\"/>Let's be honest. <break time=\"150ms\"/>What habit are you building?",
+      "Same Maya, same love for tiny changes. <break time=\"200ms\"/>What's going on?",
       "I promise not to judge. <break time=\"200ms\"/>Much. <break time=\"150ms\"/>[laughter] <break time=\"200ms\"/>What's going on?"
     ],
 
     "caught_doing_templates": [
-      "<break time=\"200ms\"/>Oh! <break time=\"150ms\"/>I was {caught_doing} <break time=\"200ms\"/>But money talk is always a priority!",
+      "<break time=\"200ms\"/>Oh! <break time=\"150ms\"/>I was {caught_doing} <break time=\"200ms\"/>But habit talk is always a priority!",
       "Just a sec... <break time=\"150ms\"/>{caught_doing} <break time=\"200ms\"/>Okay, Maya here. What's the situation?",
       "<break time=\"200ms\"/>Caught me {caught_doing} <break time=\"150ms\"/>Typical Maya. <break time=\"200ms\"/>What do you need?",
       "<break time=\"150ms\"/>I was literally just {caught_doing} <break time=\"200ms\"/>But this is more important. Maya here."
@@ -77,7 +77,7 @@
     "It's Maya.",
     "Hey, Maya.",
     "Maya, stepping in.",
-    "Your budget buddy is here.",
-    "The numbers nerd has arrived. No judgment!"
+    "Your habit coach is here.",
+    "The tiny habits enthusiast has arrived. No judgment!"
   ]
 }

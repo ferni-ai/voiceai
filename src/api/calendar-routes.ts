@@ -2,7 +2,12 @@
  * Calendar API Routes
  *
  * Handles calendar status, sync, and disconnect operations.
- * Works with Google Calendar OAuth flow in token-server.js.
+ * Supports multiple calendar providers (Google, Apple, Outlook).
+ *
+ * Provider Architecture:
+ * - Each user has a native Ferni calendar (always available)
+ * - External providers sync to/from the Ferni calendar
+ * - Providers: Google (OAuth), Apple (CalDAV), Outlook (Microsoft Graph)
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
@@ -25,6 +30,8 @@ import {
   generateDailyBriefing,
   detectCalendarAlerts,
 } from '../services/calendar/calendar-intelligence.js';
+import { appleCalendarProvider } from '../services/calendar/providers/apple-provider.js';
+import { outlookCalendarProvider } from '../services/calendar/providers/outlook-provider.js';
 
 const log = getLogger();
 
@@ -333,6 +340,257 @@ function formatEventForApi(event: CalendarEvent): Record<string, unknown> {
 }
 
 // ============================================================================
+// PROVIDERS STATUS
+// ============================================================================
+
+/**
+ * GET /api/calendar/providers/status - Get all providers' connection status
+ */
+async function handleProvidersStatus(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<void> {
+  try {
+    // Check each provider
+    const [googleConnected, appleConnected, outlookConnected] = await Promise.all([
+      isCalendarConfigured(userId),
+      appleCalendarProvider.isConnected(userId),
+      outlookCalendarProvider.isConnected(userId),
+    ]);
+
+    // Check if Outlook is configured (requires env vars)
+    const outlookConfigured = outlookCalendarProvider.isConfigured();
+
+    sendJson(res, {
+      success: true,
+      providers: {
+        google: {
+          provider: 'google',
+          connected: googleConnected,
+          configured: !!(
+            process.env.GOOGLE_CALENDAR_CLIENT_ID && process.env.GOOGLE_CALENDAR_CLIENT_SECRET
+          ),
+        },
+        apple: {
+          provider: 'apple',
+          connected: appleConnected,
+          configured: true, // Apple uses user credentials, always "configured"
+        },
+        outlook: {
+          provider: 'outlook',
+          connected: outlookConnected,
+          configured: outlookConfigured,
+        },
+      },
+      outlookConfigured,
+    });
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to get providers status');
+    sendError(res, 'Failed to get providers status', 500);
+  }
+}
+
+// ============================================================================
+// APPLE CALENDAR ROUTES
+// ============================================================================
+
+/**
+ * POST /calendar/apple/connect - Connect Apple Calendar with credentials
+ */
+async function handleAppleConnect(
+  req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<void> {
+  try {
+    const body = await parseBody<{
+      apple_id?: string;
+      app_password?: string;
+    }>(req);
+
+    const appleId = body.apple_id;
+    const appPassword = body.app_password;
+
+    if (!appleId || !appPassword) {
+      sendError(res, 'Apple ID and app-specific password required', 400);
+      return;
+    }
+
+    // Validate and store credentials
+    const success = await appleCalendarProvider.storeCredentials(userId, appleId, appPassword);
+
+    if (success) {
+      sendJson(res, {
+        success: true,
+        message: 'Apple Calendar connected',
+      });
+      log.info({ userId, appleId }, '🍎 Apple Calendar connected');
+    } else {
+      sendJson(res, {
+        success: false,
+        error: 'Invalid credentials. Make sure you\'re using an app-specific password.',
+      });
+    }
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to connect Apple Calendar');
+    sendError(res, 'Failed to connect Apple Calendar', 500);
+  }
+}
+
+/**
+ * POST /calendar/apple/disconnect - Disconnect Apple Calendar
+ */
+async function handleAppleDisconnect(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<void> {
+  try {
+    await appleCalendarProvider.disconnect(userId);
+    sendJson(res, { success: true });
+    log.info({ userId }, '🍎 Apple Calendar disconnected');
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to disconnect Apple Calendar');
+    sendError(res, 'Failed to disconnect Apple Calendar', 500);
+  }
+}
+
+/**
+ * POST /calendar/apple/sync - Sync Apple Calendar events
+ */
+async function handleAppleSync(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<void> {
+  try {
+    const connected = await appleCalendarProvider.isConnected(userId);
+
+    if (!connected) {
+      sendError(res, 'Apple Calendar not connected', 400);
+      return;
+    }
+
+    // Fetch events for the next 30 days
+    const now = new Date();
+    const endDate = new Date(now);
+    endDate.setDate(now.getDate() + 30);
+
+    const events = await appleCalendarProvider.fetchEvents(userId, now, endDate);
+
+    sendJson(res, {
+      success: true,
+      eventCount: events.length,
+      message: `Synced ${events.length} events from Apple Calendar`,
+    });
+    log.info({ userId, eventCount: events.length }, '🍎 Apple Calendar synced');
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to sync Apple Calendar');
+    sendError(res, 'Failed to sync Apple Calendar', 500);
+  }
+}
+
+// ============================================================================
+// OUTLOOK CALENDAR ROUTES
+// ============================================================================
+
+/**
+ * POST /calendar/outlook/callback - Handle Microsoft OAuth callback
+ */
+async function handleOutlookCallback(
+  req: IncomingMessage,
+  res: ServerResponse,
+  userId: string,
+  parsedUrl: URL
+): Promise<void> {
+  try {
+    const code = parsedUrl.searchParams.get('code');
+
+    if (!code) {
+      sendError(res, 'Authorization code required', 400);
+      return;
+    }
+
+    const redirectUri = `${process.env.PUBLIC_URL || 'https://app.ferni.ai'}/calendar/outlook/callback`;
+    const success = await outlookCalendarProvider.handleAuthCallback(userId, code, redirectUri);
+
+    if (success) {
+      // Redirect to settings with success message
+      res.writeHead(302, {
+        Location: '/settings?calendar=outlook&status=connected',
+      });
+      res.end();
+      log.info({ userId }, '📧 Outlook Calendar connected');
+    } else {
+      res.writeHead(302, {
+        Location: '/settings?calendar=outlook&status=error',
+      });
+      res.end();
+    }
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to handle Outlook callback');
+    res.writeHead(302, {
+      Location: '/settings?calendar=outlook&status=error',
+    });
+    res.end();
+  }
+}
+
+/**
+ * POST /calendar/outlook/disconnect - Disconnect Outlook Calendar
+ */
+async function handleOutlookDisconnect(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<void> {
+  try {
+    await outlookCalendarProvider.disconnect(userId);
+    sendJson(res, { success: true });
+    log.info({ userId }, '📧 Outlook Calendar disconnected');
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to disconnect Outlook Calendar');
+    sendError(res, 'Failed to disconnect Outlook Calendar', 500);
+  }
+}
+
+/**
+ * POST /calendar/outlook/sync - Sync Outlook Calendar events
+ */
+async function handleOutlookSync(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<void> {
+  try {
+    const connected = await outlookCalendarProvider.isConnected(userId);
+
+    if (!connected) {
+      sendError(res, 'Outlook Calendar not connected', 400);
+      return;
+    }
+
+    // Fetch events for the next 30 days
+    const now = new Date();
+    const endDate = new Date(now);
+    endDate.setDate(now.getDate() + 30);
+
+    const events = await outlookCalendarProvider.fetchEvents(userId, now, endDate);
+
+    sendJson(res, {
+      success: true,
+      eventCount: events.length,
+      message: `Synced ${events.length} events from Outlook`,
+    });
+    log.info({ userId, eventCount: events.length }, '📧 Outlook Calendar synced');
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to sync Outlook Calendar');
+    sendError(res, 'Failed to sync Outlook Calendar', 500);
+  }
+}
+
+// ============================================================================
 // MAIN HANDLER
 // ============================================================================
 
@@ -342,9 +600,13 @@ export async function handleCalendarRoutes(
   pathname: string,
   parsedUrl: URL
 ): Promise<boolean> {
-  if (!pathname.startsWith('/api/calendar')) {
+  // Handle both /api/calendar and /calendar routes
+  if (!pathname.startsWith('/api/calendar') && !pathname.startsWith('/calendar')) {
     return false;
   }
+
+  // Normalize path (remove /api prefix if present)
+  const normalizedPath = pathname.startsWith('/api') ? pathname.slice(4) : pathname;
 
   // Get userId from request
   let userId: string | null = null;
@@ -352,7 +614,10 @@ export async function handleCalendarRoutes(
   if (req.method === 'POST') {
     try {
       const body = await parseBody<Record<string, unknown>>(req);
-      userId = (body.userId as string) || getUserIdFromRequest(req, parsedUrl);
+      userId =
+        (body.userId as string) ||
+        (body.user_id as string) ||
+        getUserIdFromRequest(req, parsedUrl);
     } catch {
       sendError(res, 'Invalid request body');
       return true;
@@ -361,47 +626,118 @@ export async function handleCalendarRoutes(
     userId = getUserIdFromRequest(req, parsedUrl);
   }
 
+  // Special case: Outlook OAuth callback may not have userId in body
+  if (normalizedPath === '/calendar/outlook/callback') {
+    userId = parsedUrl.searchParams.get('state') || userId;
+  }
+
   if (!userId) {
     sendError(res, 'User ID required', 401);
     return true;
   }
 
-  // Route to appropriate handler
-  if (pathname === '/api/calendar/status' && req.method === 'GET') {
+  // ========================================================================
+  // PROVIDER STATUS (NEW)
+  // ========================================================================
+
+  if (normalizedPath === '/calendar/providers/status' && req.method === 'GET') {
+    await handleProvidersStatus(req, res, userId);
+    return true;
+  }
+
+  // ========================================================================
+  // GOOGLE CALENDAR ROUTES (original)
+  // ========================================================================
+
+  if (normalizedPath === '/calendar/status' && req.method === 'GET') {
     await handleStatus(req, res, userId);
     return true;
   }
 
-  if (pathname === '/api/calendar/sync' && req.method === 'POST') {
+  if (normalizedPath === '/calendar/sync' && req.method === 'POST') {
     await handleSync(req, res, userId);
     return true;
   }
 
-  if (pathname === '/api/calendar/disconnect' && req.method === 'POST') {
+  if (normalizedPath === '/calendar/disconnect' && req.method === 'POST') {
     await handleDisconnect(req, res, userId);
     return true;
   }
 
-  // New: Today's schedule
-  if (pathname === '/api/calendar/today' && req.method === 'GET') {
+  // Alias: /calendar/google/disconnect
+  if (normalizedPath === '/calendar/google/disconnect' && req.method === 'POST') {
+    await handleDisconnect(req, res, userId);
+    return true;
+  }
+
+  // Alias: /calendar/google/sync
+  if (normalizedPath === '/calendar/google/sync' && req.method === 'POST') {
+    await handleSync(req, res, userId);
+    return true;
+  }
+
+  // ========================================================================
+  // APPLE CALENDAR ROUTES
+  // ========================================================================
+
+  if (normalizedPath === '/calendar/apple/connect' && req.method === 'POST') {
+    await handleAppleConnect(req, res, userId);
+    return true;
+  }
+
+  if (normalizedPath === '/calendar/apple/disconnect' && req.method === 'POST') {
+    await handleAppleDisconnect(req, res, userId);
+    return true;
+  }
+
+  if (normalizedPath === '/calendar/apple/sync' && req.method === 'POST') {
+    await handleAppleSync(req, res, userId);
+    return true;
+  }
+
+  // ========================================================================
+  // OUTLOOK CALENDAR ROUTES
+  // ========================================================================
+
+  if (normalizedPath === '/calendar/outlook/callback' && req.method === 'GET') {
+    await handleOutlookCallback(req, res, userId, parsedUrl);
+    return true;
+  }
+
+  if (normalizedPath === '/calendar/outlook/disconnect' && req.method === 'POST') {
+    await handleOutlookDisconnect(req, res, userId);
+    return true;
+  }
+
+  if (normalizedPath === '/calendar/outlook/sync' && req.method === 'POST') {
+    await handleOutlookSync(req, res, userId);
+    return true;
+  }
+
+  // ========================================================================
+  // CALENDAR DATA ROUTES (original)
+  // ========================================================================
+
+  // Today's schedule
+  if (normalizedPath === '/calendar/today' && req.method === 'GET') {
     await handleToday(req, res, userId);
     return true;
   }
 
-  // New: Week schedule
-  if (pathname === '/api/calendar/week' && req.method === 'GET') {
+  // Week schedule
+  if (normalizedPath === '/calendar/week' && req.method === 'GET') {
     await handleWeek(req, res, userId);
     return true;
   }
 
-  // New: Daily briefing
-  if (pathname === '/api/calendar/briefing' && req.method === 'GET') {
+  // Daily briefing
+  if (normalizedPath === '/calendar/briefing' && req.method === 'GET') {
     await handleBriefing(req, res, userId);
     return true;
   }
 
-  // New: Calendar alerts
-  if (pathname === '/api/calendar/alerts' && req.method === 'GET') {
+  // Calendar alerts
+  if (normalizedPath === '/calendar/alerts' && req.method === 'GET') {
     await handleAlerts(req, res, userId);
     return true;
   }

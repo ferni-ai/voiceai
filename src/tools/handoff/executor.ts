@@ -54,6 +54,13 @@ import {
   resetHandoffState as resetStateHandoffState,
   setCurrentAgent,
 } from './state.js';
+// FIX: Import session-scoped state for concurrent session isolation
+import {
+  getSessionState,
+  hasSessionState,
+  getCurrentAgent as getSessionCurrentAgent,
+  setCurrentAgent as setSessionCurrentAgent,
+} from './session-state.js';
 // FIX BUG #12: Import HandoffRecord from types.ts instead of duplicating
 import type { HandoffRecord } from './types.js';
 
@@ -279,7 +286,13 @@ export async function executeHandoff(
   reason: string,
   options: ExecuteHandoffOptions = {}
 ): Promise<HandoffResult> {
-  const previousAgent = getCurrentAgent();
+  // FIX: Use session-scoped state when sessionId is provided to prevent
+  // concurrent session interference. Fall back to global state for backwards compatibility.
+  const { sessionId } = options;
+  const sessionState = sessionId && hasSessionState(sessionId) ? getSessionState(sessionId) : null;
+  const previousAgent = sessionState
+    ? getSessionCurrentAgent(sessionState)
+    : getCurrentAgent();
 
   // Normalize the target agent ID
   const canonicalTargetId = getCanonicalPersonaId(targetAgentId);
@@ -400,6 +413,10 @@ export async function executeHandoff(
   }
 
   // Update current agent
+  // FIX: Update both session-scoped and global state for compatibility
+  if (sessionState) {
+    setSessionCurrentAgent(sessionState, canonicalTargetId as AgentId);
+  }
   setCurrentAgent(canonicalTargetId as AgentId);
 
   // Generate greeting

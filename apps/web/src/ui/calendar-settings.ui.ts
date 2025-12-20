@@ -1,13 +1,20 @@
 /**
  * Calendar Settings UI
  *
- * Settings panel for managing Google Calendar integration.
- * Allows users to connect/disconnect their calendar and manage preferences.
+ * Settings panel for managing calendar integrations.
+ * Ferni has its own native calendar - external providers (Google, Apple, Outlook)
+ * are optional sync integrations.
+ *
+ * ARCHITECTURE:
+ *   - Ferni Calendar = always active (native, Firestore-backed)
+ *   - Google Calendar = optional sync integration
+ *   - Apple Calendar = optional sync integration (coming soon)
+ *   - Outlook = optional sync integration (coming soon)
  *
  * DESIGN PRINCIPLES:
  *   - Centered floating modal (brand-compliant)
- *   - Clear connection status indicator
- *   - Simple connect/disconnect flow
+ *   - Clear native vs integration distinction
+ *   - Provider management with sync status
  *   - Warmth-focused animations
  */
 
@@ -25,6 +32,20 @@ export interface CalendarStatus {
   calendarName?: string;
   lastSynced?: string;
   scopes?: string[];
+}
+
+export interface ProviderStatus {
+  provider: 'google' | 'apple' | 'outlook';
+  connected: boolean;
+  email?: string;
+  lastSynced?: string;
+  configured: boolean;
+}
+
+export interface CalendarProvidersStatus {
+  google: ProviderStatus;
+  apple: ProviderStatus;
+  outlook: ProviderStatus;
 }
 
 export interface CalendarSettingsCallbacks {
@@ -85,7 +106,9 @@ class CalendarSettingsUI {
   private styleElement: HTMLStyleElement | null = null;
   private isVisible = false;
   private status: CalendarStatus | null = null;
+  private providersStatus: CalendarProvidersStatus | null = null;
   private isLoading = false;
+  private showingAppleSetup = false;
 
   /**
    * Initialize the settings panel
@@ -168,19 +191,79 @@ class CalendarSettingsUI {
 
   private async loadStatus(): Promise<void> {
     try {
+      // Load legacy status for backward compatibility
       const response = await apiGet<{ success: boolean; status: CalendarStatus }>(
         '/api/calendar/status'
       );
 
       if (response.data?.success) {
         this.status = response.data.status;
-        this.renderContent();
       } else {
-        this.renderError('Unable to load calendar status');
+        this.status = { connected: false };
       }
+
+      // Try to load providers status (new API)
+      try {
+        const providersResponse = await apiGet<{ success: boolean; providers: CalendarProvidersStatus }>(
+          '/api/calendar/providers/status'
+        );
+
+        if (providersResponse.data?.success) {
+          this.providersStatus = providersResponse.data.providers;
+        } else {
+          // Fallback: build from legacy status
+          this.providersStatus = {
+            google: {
+              provider: 'google',
+              connected: this.status?.connected ?? false,
+              email: this.status?.email,
+              lastSynced: this.status?.lastSynced,
+              configured: true, // Google is always configured
+            },
+            apple: {
+              provider: 'apple',
+              connected: false,
+              configured: true, // Apple uses user credentials, always "configured"
+            },
+            outlook: {
+              provider: 'outlook',
+              connected: false,
+              configured: !!providersResponse.data?.outlookConfigured,
+            },
+          };
+        }
+      } catch {
+        // Build from legacy status if new API not available
+        this.providersStatus = {
+          google: {
+            provider: 'google',
+            connected: this.status?.connected ?? false,
+            email: this.status?.email,
+            lastSynced: this.status?.lastSynced,
+            configured: true,
+          },
+          apple: {
+            provider: 'apple',
+            connected: false,
+            configured: true,
+          },
+          outlook: {
+            provider: 'outlook',
+            connected: false,
+            configured: false,
+          },
+        };
+      }
+
+      this.renderContent();
     } catch {
       // Assume not connected if API fails
       this.status = { connected: false };
+      this.providersStatus = {
+        google: { provider: 'google', connected: false, configured: true },
+        apple: { provider: 'apple', connected: false, configured: true },
+        outlook: { provider: 'outlook', connected: false, configured: false },
+      };
       this.renderContent();
     }
   }
@@ -208,103 +291,201 @@ class CalendarSettingsUI {
   private renderContent(): void {
     if (!this.wrapper || !this.status) return;
 
-    const connectedContent = this.status.connected
-      ? `
-        <div class="calendar-settings__status calendar-settings__status--connected">
-          <div class="calendar-settings__status-icon">${ICONS.check}</div>
+    // Always show Ferni calendar as active (it's native!)
+    const ferniCalendarSection = `
+      <div class="calendar-settings__native">
+        <div class="calendar-settings__native-header">
+          <div class="calendar-settings__status-icon calendar-settings__status-icon--success">${ICONS.check}</div>
           <div class="calendar-settings__status-text">
-            <span class="calendar-settings__status-label">Google Connected</span>
-            ${this.status.email ? `<span class="calendar-settings__status-detail">${this.escapeHtml(this.status.email)}</span>` : ''}
+            <span class="calendar-settings__status-label">Ferni Calendar</span>
+            <span class="calendar-settings__status-detail">Your personal calendar - always active</span>
           </div>
         </div>
+        <p class="calendar-settings__native-description">
+          Your calendar works right away. Ask me to schedule events, check your availability, or remind you about appointments.
+        </p>
+      </div>
+    `;
 
-        <div class="calendar-settings__services">
-          <div class="calendar-settings__service">
-            <div class="calendar-settings__service-icon">${ICONS.calendar}</div>
-            <div class="calendar-settings__service-name">Calendar</div>
-            <div class="calendar-settings__service-status calendar-settings__service-status--active">Active</div>
+    // Provider integrations section
+    const googleSection = this.status.connected
+      ? `
+        <div class="calendar-settings__provider calendar-settings__provider--connected">
+          <div class="calendar-settings__provider-header">
+            <div class="calendar-settings__provider-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            </div>
+            <div class="calendar-settings__provider-info">
+              <span class="calendar-settings__provider-name">Google Calendar</span>
+              <span class="calendar-settings__provider-status">
+                ${this.status.email ? this.escapeHtml(this.status.email) : 'Connected'}
+              </span>
+            </div>
+            <div class="calendar-settings__provider-badge calendar-settings__provider-badge--synced">Synced</div>
           </div>
-          <div class="calendar-settings__service">
-            <div class="calendar-settings__service-icon">${ICONS.mail}</div>
-            <div class="calendar-settings__service-name">Gmail (read-only)</div>
-            <div class="calendar-settings__service-status calendar-settings__service-status--active">Active</div>
+          ${
+            this.status.lastSynced
+              ? `<div class="calendar-settings__provider-meta">Last synced ${this.formatDate(this.status.lastSynced)}</div>`
+              : ''
+          }
+          <div class="calendar-settings__provider-actions">
+            <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--secondary" data-action="sync">
+              ${ICONS.refresh}
+              <span>Sync</span>
+            </button>
+            <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect">
+              <span>Disconnect</span>
+            </button>
           </div>
-        </div>
-
-        ${
-          this.status.calendarName
-            ? `
-          <div class="calendar-settings__info">
-            <span class="calendar-settings__info-label">Primary Calendar</span>
-            <span class="calendar-settings__info-value">${this.escapeHtml(this.status.calendarName)}</span>
-          </div>
-        `
-            : ''
-        }
-
-        ${
-          this.status.lastSynced
-            ? `
-          <div class="calendar-settings__info">
-            <span class="calendar-settings__info-label">Last synced</span>
-            <span class="calendar-settings__info-value">${this.formatDate(this.status.lastSynced)}</span>
-          </div>
-        `
-            : ''
-        }
-
-        <div class="calendar-settings__actions">
-          <button class="calendar-settings__btn calendar-settings__btn--secondary" data-action="sync">
-            ${ICONS.refresh}
-            <span>Sync Now</span>
-          </button>
-          <button class="calendar-settings__btn calendar-settings__btn--danger" data-action="disconnect">
-            ${ICONS.unlink}
-            <span>Disconnect</span>
-          </button>
         </div>
       `
       : `
-        <div class="calendar-settings__status calendar-settings__status--disconnected">
-          <div class="calendar-settings__status-icon">${ICONS.calendar}</div>
-          <div class="calendar-settings__status-text">
-            <span class="calendar-settings__status-label">Not connected</span>
-            <span class="calendar-settings__status-detail">Connect your calendar to enable smart scheduling</span>
+        <div class="calendar-settings__provider calendar-settings__provider--available">
+          <div class="calendar-settings__provider-header">
+            <div class="calendar-settings__provider-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            </div>
+            <div class="calendar-settings__provider-info">
+              <span class="calendar-settings__provider-name">Google Calendar</span>
+              <span class="calendar-settings__provider-status">Sync your existing events</span>
+            </div>
           </div>
-        </div>
-
-        <div class="calendar-settings__benefits">
-          <h3>What you'll unlock:</h3>
-          <ul>
-            <li>Calendar: Smart scheduling through voice</li>
-            <li>Calendar: Context-aware coaching based on your schedule</li>
-            <li>Gmail: Inbox triage and email summaries (read-only)</li>
-            <li>Gmail: Help prioritizing what needs your attention</li>
-          </ul>
-        </div>
-
-        <div class="calendar-settings__actions">
-          <button class="calendar-settings__btn calendar-settings__btn--primary" data-action="connect">
+          <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--primary" data-action="connect">
             ${ICONS.link}
-            <span>Connect Google Account</span>
+            <span>Connect</span>
           </button>
         </div>
+      `;
 
-        <p class="calendar-settings__privacy">
-          We only read your calendar and inbox to help you. Your data stays private. We never send emails on your behalf.
-        </p>
+    // Apple Calendar section
+    const appleSection = this.providersStatus?.apple?.connected
+      ? `
+        <div class="calendar-settings__provider calendar-settings__provider--connected">
+          <div class="calendar-settings__provider-header">
+            <div class="calendar-settings__provider-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#555" d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+            </div>
+            <div class="calendar-settings__provider-info">
+              <span class="calendar-settings__provider-name">Apple Calendar</span>
+              <span class="calendar-settings__provider-status">
+                ${this.providersStatus.apple.email ? this.escapeHtml(this.providersStatus.apple.email) : 'Connected'}
+              </span>
+            </div>
+            <div class="calendar-settings__provider-badge calendar-settings__provider-badge--synced">Synced</div>
+          </div>
+          <div class="calendar-settings__provider-actions">
+            <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--secondary" data-action="sync-apple">
+              ${ICONS.refresh}
+              <span>Sync</span>
+            </button>
+            <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect-apple">
+              <span>Disconnect</span>
+            </button>
+          </div>
+        </div>
+      `
+      : `
+        <div class="calendar-settings__provider calendar-settings__provider--available">
+          <div class="calendar-settings__provider-header">
+            <div class="calendar-settings__provider-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#555" d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+            </div>
+            <div class="calendar-settings__provider-info">
+              <span class="calendar-settings__provider-name">Apple Calendar</span>
+              <span class="calendar-settings__provider-status">iCloud sync via app-specific password</span>
+            </div>
+          </div>
+          <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--primary" data-action="connect-apple">
+            ${ICONS.link}
+            <span>Connect</span>
+          </button>
+        </div>
+      `;
+
+    // Outlook section
+    const outlookSection = this.providersStatus?.outlook?.connected
+      ? `
+        <div class="calendar-settings__provider calendar-settings__provider--connected">
+          <div class="calendar-settings__provider-header">
+            <div class="calendar-settings__provider-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#0078d4" d="M7.88 12.04q0 .45-.11.87-.1.41-.33.74-.22.33-.58.52-.37.2-.87.2t-.85-.2q-.35-.21-.57-.55-.22-.33-.33-.75-.1-.42-.1-.86t.1-.87q.1-.43.34-.76.22-.34.59-.54.36-.2.87-.2t.86.2q.35.21.57.55.22.34.31.77.1.43.1.88zM24 12v9.38q0 .46-.33.8-.33.32-.8.32H7.13q-.46 0-.8-.33-.32-.33-.32-.8V18H1q-.41 0-.7-.3-.3-.29-.3-.7V7q0-.41.3-.7Q.58 6 1 6h6.13V2.55q0-.44.3-.75.3-.3.7-.3H22.88q.46 0 .79.33.33.34.33.8z"/></svg>
+            </div>
+            <div class="calendar-settings__provider-info">
+              <span class="calendar-settings__provider-name">Outlook</span>
+              <span class="calendar-settings__provider-status">
+                ${this.providersStatus.outlook.email ? this.escapeHtml(this.providersStatus.outlook.email) : 'Connected'}
+              </span>
+            </div>
+            <div class="calendar-settings__provider-badge calendar-settings__provider-badge--synced">Synced</div>
+          </div>
+          <div class="calendar-settings__provider-actions">
+            <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--secondary" data-action="sync-outlook">
+              ${ICONS.refresh}
+              <span>Sync</span>
+            </button>
+            <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect-outlook">
+              <span>Disconnect</span>
+            </button>
+          </div>
+        </div>
+      `
+      : this.providersStatus?.outlook?.configured
+        ? `
+        <div class="calendar-settings__provider calendar-settings__provider--available">
+          <div class="calendar-settings__provider-header">
+            <div class="calendar-settings__provider-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#0078d4" d="M7.88 12.04q0 .45-.11.87-.1.41-.33.74-.22.33-.58.52-.37.2-.87.2t-.85-.2q-.35-.21-.57-.55-.22-.33-.33-.75-.1-.42-.1-.86t.1-.87q.1-.43.34-.76.22-.34.59-.54.36-.2.87-.2t.86.2q.35.21.57.55.22.34.31.77.1.43.1.88zM24 12v9.38q0 .46-.33.8-.33.32-.8.32H7.13q-.46 0-.8-.33-.32-.33-.32-.8V18H1q-.41 0-.7-.3-.3-.29-.3-.7V7q0-.41.3-.7Q.58 6 1 6h6.13V2.55q0-.44.3-.75.3-.3.7-.3H22.88q.46 0 .79.33.33.34.33.8z"/></svg>
+            </div>
+            <div class="calendar-settings__provider-info">
+              <span class="calendar-settings__provider-name">Outlook</span>
+              <span class="calendar-settings__provider-status">Microsoft 365 sync</span>
+            </div>
+          </div>
+          <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--primary" data-action="connect-outlook">
+            ${ICONS.link}
+            <span>Connect</span>
+          </button>
+        </div>
+      `
+        : `
+        <div class="calendar-settings__provider calendar-settings__provider--coming-soon">
+          <div class="calendar-settings__provider-header">
+            <div class="calendar-settings__provider-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#0078d4" d="M7.88 12.04q0 .45-.11.87-.1.41-.33.74-.22.33-.58.52-.37.2-.87.2t-.85-.2q-.35-.21-.57-.55-.22-.33-.33-.75-.1-.42-.1-.86t.1-.87q.1-.43.34-.76.22-.34.59-.54.36-.2.87-.2t.86.2q.35.21.57.55.22.34.31.77.1.43.1.88zM24 12v9.38q0 .46-.33.8-.33.32-.8.32H7.13q-.46 0-.8-.33-.32-.33-.32-.8V18H1q-.41 0-.7-.3-.3-.29-.3-.7V7q0-.41.3-.7Q.58 6 1 6h6.13V2.55q0-.44.3-.75.3-.3.7-.3H22.88q.46 0 .79.33.33.34.33.8z"/></svg>
+            </div>
+            <div class="calendar-settings__provider-info">
+              <span class="calendar-settings__provider-name">Outlook</span>
+              <span class="calendar-settings__provider-status">Contact admin to enable</span>
+            </div>
+            <span class="calendar-settings__provider-badge calendar-settings__provider-badge--soon">Not configured</span>
+          </div>
+        </div>
       `;
 
     this.wrapper.innerHTML = `
       <header class="calendar-settings__header">
         <div class="calendar-settings__icon">${ICONS.calendar}</div>
-        <h2 class="calendar-settings__title">Google Connection</h2>
+        <h2 class="calendar-settings__title">Calendar</h2>
         <button class="calendar-settings__close" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
       </header>
       <div class="calendar-settings__content">
-        ${connectedContent}
+        ${ferniCalendarSection}
+
+        <div class="calendar-settings__divider">
+          <span>Sync Integrations</span>
+        </div>
+
+        <div class="calendar-settings__providers">
+          ${googleSection}
+          ${appleSection}
+          ${outlookSection}
+        </div>
+
+        <p class="calendar-settings__privacy">
+          Integrations sync your existing events into Ferni. Your data stays private.
+        </p>
       </div>
     `;
 
@@ -318,7 +499,7 @@ class CalendarSettingsUI {
     this.wrapper.innerHTML = `
       <header class="calendar-settings__header">
         <div class="calendar-settings__icon">${ICONS.calendar}</div>
-        <h2 class="calendar-settings__title">Google Connection</h2>
+        <h2 class="calendar-settings__title">Calendar</h2>
         <button class="calendar-settings__close" aria-label="${t('common.close')}">
           ${ICONS.close}
         </button>
@@ -345,25 +526,59 @@ class CalendarSettingsUI {
   }
 
   private bindActions(): void {
-    // Connect button
+    // Google Connect button
     this.wrapper?.querySelector('[data-action="connect"]')?.addEventListener('click', async () => {
-      await this.connect();
+      await this.connectGoogle();
     });
 
-    // Disconnect button
+    // Google Disconnect button
     this.wrapper
       ?.querySelector('[data-action="disconnect"]')
       ?.addEventListener('click', async () => {
-        await this.disconnect();
+        await this.disconnectGoogle();
       });
 
-    // Sync button
+    // Google Sync button
     this.wrapper?.querySelector('[data-action="sync"]')?.addEventListener('click', async () => {
-      await this.sync();
+      await this.syncGoogle();
+    });
+
+    // Apple Connect button
+    this.wrapper?.querySelector('[data-action="connect-apple"]')?.addEventListener('click', async () => {
+      this.showAppleSetup();
+    });
+
+    // Apple Disconnect button
+    this.wrapper?.querySelector('[data-action="disconnect-apple"]')?.addEventListener('click', async () => {
+      await this.disconnectApple();
+    });
+
+    // Apple Sync button
+    this.wrapper?.querySelector('[data-action="sync-apple"]')?.addEventListener('click', async () => {
+      await this.syncApple();
+    });
+
+    // Outlook Connect button
+    this.wrapper?.querySelector('[data-action="connect-outlook"]')?.addEventListener('click', async () => {
+      await this.connectOutlook();
+    });
+
+    // Outlook Disconnect button
+    this.wrapper?.querySelector('[data-action="disconnect-outlook"]')?.addEventListener('click', async () => {
+      await this.disconnectOutlook();
+    });
+
+    // Outlook Sync button
+    this.wrapper?.querySelector('[data-action="sync-outlook"]')?.addEventListener('click', async () => {
+      await this.syncOutlook();
     });
   }
 
-  private async connect(): Promise<void> {
+  // ============================================================================
+  // GOOGLE CALENDAR METHODS
+  // ============================================================================
+
+  private async connectGoogle(): Promise<void> {
     if (this.isLoading) return;
     this.isLoading = true;
 
@@ -372,12 +587,309 @@ class CalendarSettingsUI {
       // Note: Backend expects snake_case user_id parameter
       const userId = this.getUserId();
       window.location.href = `/auth/google/login?user_id=${encodeURIComponent(userId)}`;
-    } catch (error) {
+    } catch {
       this.renderError("Couldn't connect. Try again?");
     } finally {
       this.isLoading = false;
     }
   }
+
+  private async disconnectGoogle(): Promise<void> {
+    if (this.isLoading) return;
+    this.isLoading = true;
+
+    try {
+      const userId = this.getUserId();
+      await apiPost(`/calendar/google/disconnect`, { user_id: userId });
+
+      // Update status
+      this.status = { connected: false };
+      if (this.providersStatus) {
+        this.providersStatus.google = { ...this.providersStatus.google, connected: false };
+      }
+      this.renderContent();
+      this.callbacks.onConnectionChange?.(false);
+    } catch {
+      this.renderError("Couldn't disconnect. Try again?");
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  private async syncGoogle(): Promise<void> {
+    if (this.isLoading) return;
+    this.isLoading = true;
+
+    const syncButton = this.wrapper?.querySelector('[data-action="sync"]') as HTMLButtonElement;
+    if (syncButton) {
+      syncButton.disabled = true;
+      syncButton.innerHTML = `${ICONS.refresh}<span>Syncing...</span>`;
+    }
+
+    try {
+      const userId = this.getUserId();
+      await apiPost(`/calendar/google/sync`, { user_id: userId });
+
+      // Reload status
+      await this.loadStatus();
+    } catch {
+      this.renderError("Couldn't sync. Try again?");
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  // ============================================================================
+  // APPLE CALENDAR METHODS
+  // ============================================================================
+
+  private showAppleSetup(): void {
+    this.showingAppleSetup = true;
+    this.renderAppleSetupModal();
+  }
+
+  private renderAppleSetupModal(): void {
+    if (!this.wrapper) return;
+
+    this.wrapper.innerHTML = `
+      <header class="calendar-settings__header">
+        <button class="calendar-settings__back" aria-label="Back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+        </button>
+        <h2 class="calendar-settings__title">Connect Apple Calendar</h2>
+        <button class="calendar-settings__close" aria-label="${t('common.close')}">
+          ${ICONS.close}
+        </button>
+      </header>
+      <div class="calendar-settings__content">
+        <div class="calendar-settings__apple-setup">
+          <div class="calendar-settings__apple-steps">
+            <h3>How to connect Apple Calendar</h3>
+            <ol>
+              <li>
+                Go to <a href="https://appleid.apple.com/account/manage" target="_blank" rel="noopener noreferrer">appleid.apple.com</a>
+              </li>
+              <li>Sign in with your Apple ID</li>
+              <li>Go to <strong>Sign-In and Security</strong> → <strong>App-Specific Passwords</strong></li>
+              <li>Click the <strong>+</strong> button to generate a new password</li>
+              <li>Name it <strong>"Ferni Calendar"</strong></li>
+              <li>Copy the generated password and paste it below</li>
+            </ol>
+          </div>
+
+          <form class="calendar-settings__apple-form" id="apple-connect-form">
+            <div class="calendar-settings__form-group">
+              <label for="apple-id">Apple ID Email</label>
+              <input
+                type="email"
+                id="apple-id"
+                name="appleId"
+                placeholder="yourname@icloud.com"
+                required
+                autocomplete="email"
+              />
+            </div>
+            <div class="calendar-settings__form-group">
+              <label for="apple-password">App-Specific Password</label>
+              <input
+                type="password"
+                id="apple-password"
+                name="appPassword"
+                placeholder="xxxx-xxxx-xxxx-xxxx"
+                required
+                autocomplete="off"
+              />
+              <small>This is NOT your Apple ID password. Generate an app-specific password above.</small>
+            </div>
+            <div class="calendar-settings__apple-actions">
+              <button type="button" class="calendar-settings__btn calendar-settings__btn--secondary" data-action="cancel-apple">
+                Cancel
+              </button>
+              <button type="submit" class="calendar-settings__btn calendar-settings__btn--primary" id="apple-connect-btn">
+                Connect
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+
+    // Bind back button
+    this.wrapper.querySelector('.calendar-settings__back')?.addEventListener('click', () => {
+      this.showingAppleSetup = false;
+      this.renderContent();
+    });
+
+    // Bind cancel button
+    this.wrapper.querySelector('[data-action="cancel-apple"]')?.addEventListener('click', () => {
+      this.showingAppleSetup = false;
+      this.renderContent();
+    });
+
+    // Bind form submission
+    const form = this.wrapper.querySelector('#apple-connect-form') as HTMLFormElement;
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await this.submitAppleCredentials(form);
+    });
+
+    this.bindCloseButton();
+  }
+
+  private async submitAppleCredentials(form: HTMLFormElement): Promise<void> {
+    const formData = new FormData(form);
+    const appleId = formData.get('appleId') as string;
+    const appPassword = formData.get('appPassword') as string;
+
+    if (!appleId || !appPassword) return;
+
+    const submitBtn = form.querySelector('#apple-connect-btn') as HTMLButtonElement;
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Connecting...';
+    }
+
+    try {
+      const userId = this.getUserId();
+      const response = await apiPost('/calendar/apple/connect', {
+        user_id: userId,
+        apple_id: appleId,
+        app_password: appPassword,
+      });
+
+      if (response.success) {
+        this.showingAppleSetup = false;
+        await this.loadStatus();
+      } else {
+        this.showAppleError(response.error || "Couldn't connect. Check your credentials.");
+      }
+    } catch {
+      this.showAppleError("Couldn't connect. Check your credentials and try again.");
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Connect';
+      }
+    }
+  }
+
+  private showAppleError(message: string): void {
+    const form = this.wrapper?.querySelector('#apple-connect-form');
+    if (!form) return;
+
+    // Remove existing error
+    form.querySelector('.calendar-settings__error-message')?.remove();
+
+    // Add error message
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'calendar-settings__error-message';
+    errorDiv.textContent = message;
+    form.insertBefore(errorDiv, form.querySelector('.calendar-settings__apple-actions'));
+  }
+
+  private async disconnectApple(): Promise<void> {
+    if (this.isLoading) return;
+    this.isLoading = true;
+
+    try {
+      const userId = this.getUserId();
+      await apiPost(`/calendar/apple/disconnect`, { user_id: userId });
+
+      if (this.providersStatus) {
+        this.providersStatus.apple = { ...this.providersStatus.apple, connected: false };
+      }
+      this.renderContent();
+    } catch {
+      this.renderError("Couldn't disconnect. Try again?");
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  private async syncApple(): Promise<void> {
+    if (this.isLoading) return;
+    this.isLoading = true;
+
+    const syncButton = this.wrapper?.querySelector('[data-action="sync-apple"]') as HTMLButtonElement;
+    if (syncButton) {
+      syncButton.disabled = true;
+      syncButton.innerHTML = `${ICONS.refresh}<span>Syncing...</span>`;
+    }
+
+    try {
+      const userId = this.getUserId();
+      await apiPost(`/calendar/apple/sync`, { user_id: userId });
+      await this.loadStatus();
+    } catch {
+      this.renderError("Couldn't sync. Try again?");
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  // ============================================================================
+  // OUTLOOK CALENDAR METHODS
+  // ============================================================================
+
+  private async connectOutlook(): Promise<void> {
+    if (this.isLoading) return;
+    this.isLoading = true;
+
+    try {
+      const userId = this.getUserId();
+      window.location.href = `/auth/microsoft/login?user_id=${encodeURIComponent(userId)}`;
+    } catch {
+      this.renderError("Couldn't connect. Try again?");
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  private async disconnectOutlook(): Promise<void> {
+    if (this.isLoading) return;
+    this.isLoading = true;
+
+    try {
+      const userId = this.getUserId();
+      await apiPost(`/calendar/outlook/disconnect`, { user_id: userId });
+
+      if (this.providersStatus) {
+        this.providersStatus.outlook = { ...this.providersStatus.outlook, connected: false };
+      }
+      this.renderContent();
+    } catch {
+      this.renderError("Couldn't disconnect. Try again?");
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  private async syncOutlook(): Promise<void> {
+    if (this.isLoading) return;
+    this.isLoading = true;
+
+    const syncButton = this.wrapper?.querySelector('[data-action="sync-outlook"]') as HTMLButtonElement;
+    if (syncButton) {
+      syncButton.disabled = true;
+      syncButton.innerHTML = `${ICONS.refresh}<span>Syncing...</span>`;
+    }
+
+    try {
+      const userId = this.getUserId();
+      await apiPost(`/calendar/outlook/sync`, { user_id: userId });
+      await this.loadStatus();
+    } catch {
+      this.renderError("Couldn't sync. Try again?");
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  // ============================================================================
+  // LEGACY METHODS (for backward compatibility)
+  // ============================================================================
 
   private async disconnect(): Promise<void> {
     if (this.isLoading) return;
@@ -752,6 +1264,179 @@ class CalendarSettingsUI {
         flex-shrink: 0;
       }
 
+      .calendar-settings__btn--small {
+        flex: 0;
+        padding: var(--space-2, 8px) var(--space-3, 12px);
+        font-size: var(--text-xs, 0.75rem);
+      }
+
+      .calendar-settings__btn--ghost {
+        background: transparent;
+        color: var(--color-text-muted, #756a5e);
+      }
+
+      .calendar-settings__btn--ghost:hover {
+        background: var(--color-background-secondary, #f5f2ed);
+        color: var(--color-text-secondary, #5c544a);
+      }
+
+      /* ========================================================================
+         NATIVE CALENDAR SECTION
+         ======================================================================== */
+      .calendar-settings__native {
+        padding: var(--space-4, 16px);
+        background: var(--persona-tint, rgba(74, 103, 65, 0.08));
+        border-radius: var(--radius-lg, 12px);
+        margin-bottom: var(--ma-rest, 21px);
+      }
+
+      .calendar-settings__native-header {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3, 12px);
+        margin-bottom: var(--space-2, 8px);
+      }
+
+      .calendar-settings__native-description {
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-secondary, #5c544a);
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      .calendar-settings__status-icon--success {
+        color: var(--color-semantic-success, #4a6741);
+      }
+
+      /* ========================================================================
+         DIVIDER
+         ======================================================================== */
+      .calendar-settings__divider {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3, 12px);
+        margin: var(--ma-rest, 21px) 0;
+      }
+
+      .calendar-settings__divider::before,
+      .calendar-settings__divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+      }
+
+      .calendar-settings__divider span {
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted, #756a5e);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      /* ========================================================================
+         PROVIDERS
+         ======================================================================== */
+      .calendar-settings__providers {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3, 12px);
+      }
+
+      .calendar-settings__provider {
+        padding: var(--space-3, 12px);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.08));
+        border-radius: var(--radius-lg, 12px);
+        transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .calendar-settings__provider--connected {
+        background: var(--color-background-secondary, #f5f2ed);
+      }
+
+      .calendar-settings__provider--available:hover {
+        border-color: var(--color-accent-primary, #4a6741);
+        background: var(--color-background-secondary, #f5f2ed);
+      }
+
+      .calendar-settings__provider--coming-soon {
+        opacity: 0.6;
+      }
+
+      .calendar-settings__provider-header {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3, 12px);
+      }
+
+      .calendar-settings__provider-icon {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .calendar-settings__provider-icon svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .calendar-settings__provider-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .calendar-settings__provider-name {
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-text-primary, #2c2520);
+      }
+
+      .calendar-settings__provider-status {
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted, #756a5e);
+      }
+
+      .calendar-settings__provider-badge {
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        font-weight: var(--font-weight-medium, 500);
+        padding: 2px 8px;
+        border-radius: var(--radius-full, 9999px);
+      }
+
+      .calendar-settings__provider-badge--synced {
+        background: var(--color-semantic-success-bg, rgba(74, 103, 65, 0.1));
+        color: var(--color-semantic-success, #4a6741);
+      }
+
+      .calendar-settings__provider-badge--soon {
+        background: var(--color-background-tertiary, #ebe6df);
+        color: var(--color-text-muted, #756a5e);
+      }
+
+      .calendar-settings__provider-meta {
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted, #756a5e);
+        margin-top: var(--space-2, 8px);
+        margin-left: 36px;
+      }
+
+      .calendar-settings__provider-actions {
+        display: flex;
+        gap: var(--space-2, 8px);
+        margin-top: var(--space-3, 12px);
+        margin-left: 36px;
+      }
+
       .calendar-settings__btn--primary {
         background: var(--color-accent-primary, #2d5a3d);
         color: white;
@@ -897,6 +1582,138 @@ class CalendarSettingsUI {
       }
 
       /* ========================================================================
+         APPLE SETUP
+         ======================================================================== */
+      .calendar-settings__back {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        background: transparent;
+        border: none;
+        color: var(--color-text-secondary, #5c544a);
+        cursor: pointer;
+        transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .calendar-settings__back:hover {
+        color: var(--color-text-primary, #2c2520);
+      }
+
+      .calendar-settings__apple-setup h3 {
+        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+        font-size: var(--text-base, 1rem);
+        font-weight: var(--font-weight-semibold, 600);
+        color: var(--color-text-primary, #2c2520);
+        margin: 0 0 var(--space-4, 16px) 0;
+      }
+
+      .calendar-settings__apple-steps {
+        margin-bottom: var(--ma-rest, 21px);
+      }
+
+      .calendar-settings__apple-steps ol {
+        margin: 0;
+        padding-left: var(--space-6, 24px);
+        color: var(--color-text-secondary, #5c544a);
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        line-height: 1.6;
+      }
+
+      .calendar-settings__apple-steps li {
+        margin-bottom: var(--space-2, 8px);
+      }
+
+      .calendar-settings__apple-steps a {
+        color: var(--color-accent-primary, #2d5a3d);
+        text-decoration: none;
+      }
+
+      .calendar-settings__apple-steps a:hover {
+        text-decoration: underline;
+      }
+
+      .calendar-settings__apple-form {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4, 16px);
+      }
+
+      .calendar-settings__form-group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1, 4px);
+      }
+
+      .calendar-settings__form-group label {
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        font-weight: var(--font-weight-medium, 500);
+        color: var(--color-text-primary, #2c2520);
+      }
+
+      .calendar-settings__form-group input {
+        padding: var(--space-3, 12px);
+        font-family: var(--font-body);
+        font-size: var(--text-base, 1rem);
+        color: var(--color-text-primary, #2c2520);
+        background: var(--color-background-primary, #fffdfb);
+        border: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.15));
+        border-radius: var(--radius-md, 8px);
+        transition: border-color ${DURATION.FAST}ms ${EASING.STANDARD};
+      }
+
+      .calendar-settings__form-group input:focus {
+        outline: none;
+        border-color: var(--color-accent-primary, #2d5a3d);
+      }
+
+      .calendar-settings__form-group input::placeholder {
+        color: var(--color-text-muted, #756a5e);
+      }
+
+      .calendar-settings__form-group small {
+        font-family: var(--font-body);
+        font-size: var(--text-xs, 0.75rem);
+        color: var(--color-text-muted, #756a5e);
+        margin-top: var(--space-1, 4px);
+      }
+
+      .calendar-settings__apple-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--space-3, 12px);
+        margin-top: var(--space-2, 8px);
+      }
+
+      .calendar-settings__error-message {
+        padding: var(--space-3, 12px);
+        background: var(--color-semantic-error-bg, rgba(181, 69, 58, 0.1));
+        color: var(--color-semantic-error, #b5453a);
+        border-radius: var(--radius-md, 8px);
+        font-family: var(--font-body);
+        font-size: var(--text-sm, 0.875rem);
+        margin-bottom: var(--space-2, 8px);
+      }
+
+      [data-theme="midnight"] .calendar-settings__form-group input {
+        background: var(--color-background-tertiary, #685852);
+        border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.1));
+        color: var(--color-text-primary, #faf6f0);
+      }
+
+      [data-theme="midnight"] .calendar-settings__apple-setup h3 {
+        color: var(--color-text-primary, #faf6f0);
+      }
+
+      [data-theme="midnight"] .calendar-settings__apple-steps ol {
+        color: var(--color-text-secondary, #f0ebe4);
+      }
+
+      /* ========================================================================
          MOBILE
          ======================================================================== */
       @media (max-width: 480px) {
@@ -913,6 +1730,14 @@ class CalendarSettingsUI {
 
         .calendar-settings__actions {
           flex-direction: column;
+        }
+
+        .calendar-settings__apple-actions {
+          flex-direction: column;
+        }
+
+        .calendar-settings__apple-actions button {
+          width: 100%;
         }
       }
     `;

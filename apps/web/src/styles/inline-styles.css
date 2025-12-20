@@ -9210,17 +9210,20 @@ body {
 }
 
 /* Santa hat decoration - SVG icon (no emoji per design standards) */
+/* Uses Ferni animation principles: ambient breathing, spring easing */
 .holiday-christmas #coachAvatar .santa-hat-decoration {
   position: absolute;
-  top: -24px;
+  /* Position so the hat sits on top with fur band wrapping around avatar */
+  top: -45px;
   left: 50%;
-  transform: translateX(-50%) rotate(-8deg);
-  width: 72px;
-  height: 56px;
+  transform: translateX(-50%) rotate(-12deg);
+  /* Sized so avatar head fits inside the hat */
+  width: 150px;
+  height: 90px;
   z-index: var(--z-content, 10);
   pointer-events: none;
-  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.2));
-  transform-origin: bottom center;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.18));
+  transform-origin: 50% 100%; /* Pivot from bottom for natural wobble */
 }
 
 .holiday-christmas #coachAvatar .santa-hat-decoration svg {
@@ -9228,19 +9231,43 @@ body {
   height: 100%;
 }
 
-/* Subtle wobble animation for the hat */
-@keyframes santaHatWobble {
-  0%, 100% { transform: translateX(-50%) rotate(-8deg); }
-  25% { transform: translateX(-50%) rotate(-10deg); }
-  75% { transform: translateX(-50%) rotate(-6deg); }
+/* Ambient breathing wobble - Ferni AMBIENT_SLOW timing (5s) with ease-in-out */
+@keyframes santaHatBreathing {
+  0%, 100% { 
+    transform: translateX(-50%) rotate(-12deg) scale(1);
+  }
+  30% { 
+    transform: translateX(-50%) rotate(-14deg) scale(1.01);
+  }
+  60% { 
+    transform: translateX(-50%) rotate(-10deg) scale(1);
+  }
+  80% { 
+    transform: translateX(-50%) rotate(-13deg) scale(0.995);
+  }
+}
+
+/* Pompom wobble - secondary motion for follow-through feel */
+@keyframes pompomWobble {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  20% { transform: translate(2px, -1px) rotate(3deg); }
+  40% { transform: translate(-1px, 1px) rotate(-2deg); }
+  60% { transform: translate(1px, 0) rotate(2deg); }
+  80% { transform: translate(-1px, -1px) rotate(-1deg); }
 }
 
 .holiday-christmas #coachAvatar .santa-hat-decoration {
-  animation: santaHatWobble 4s ease-in-out infinite;
+  animation: santaHatBreathing 5s ease-in-out infinite;
+}
+
+.holiday-christmas #coachAvatar .santa-hat-decoration .pompom-group {
+  animation: pompomWobble 3s ease-in-out infinite;
+  transform-origin: center;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .holiday-christmas #coachAvatar .santa-hat-decoration {
+  .holiday-christmas #coachAvatar .santa-hat-decoration,
+  .holiday-christmas #coachAvatar .santa-hat-decoration .pompom-group {
     animation: none;
   }
 }

@@ -786,6 +786,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     // =========================================================================
     // PRE-SESSION BRIEFING - Make Ferni aware of time, date, context
+    // GUARANTEE: Agent ALWAYS gets datetime awareness, even if full briefing fails
     // =========================================================================
     try {
       const { generatePreSessionBriefing } = await import('../services/pre-session-briefing.js');
@@ -801,8 +802,22 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         `[voice-agent-entry] 📋 Pre-session briefing generated (${briefing.temporal.timeOfDay}, ${briefing.cultural.season})\n`
       );
     } catch (briefingErr) {
+      // FALLBACK: Generate minimal datetime awareness so agent is NEVER unaware of time
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+      const timeStr = now.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+      userData.preSessionBriefing = `[YOUR AWARENESS - ${dateStr}]\nIt's ${timeStr}.\nUse this awareness naturally - don't announce it, just BE present in the moment.`;
       process.stderr.write(
-        `[voice-agent-entry] Pre-session briefing failed (non-fatal): ${String(briefingErr)}\n`
+        `[voice-agent-entry] Pre-session briefing failed, using fallback datetime: ${String(briefingErr)}\n`
       );
     }
 

@@ -29,7 +29,12 @@ import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/types.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { UserData } from './types.js';
-import { getArrivingBanter, getHandoffBanter } from '../../services/team-engagement.js';
+import {
+  getArrivingBanter,
+  getHandoffBanter,
+  getIntelligentBanter,
+  buildBanterContext,
+} from '../../services/team-engagement.js';
 import { getDJIntegration } from '../dj-integration.js';
 import { criticalMonitor } from '../voice-agent/critical-function-monitor.js';
 
@@ -260,14 +265,64 @@ export function createHandoffHandler(config: HandoffHandlerConfig) {
           },
           '🎭 BANTER: Looking up handoff banter'
         );
-        const softOpenBanter = getHandoffBanter(prevPersona.id, persona.id);
-        const arrivingBanter = getArrivingBanter(persona.id, prevPersona.id);
+
+        // INTELLIGENT BANTER: Use context-aware banter when available
+        let softOpenBanter: string | null = null;
+        let arrivingBanter: string | null = null;
+        let wasIntelligentBanter = false;
+
+        try {
+          // Build rich context from session services
+          const history = services.historyTracker?.getSessionHistory?.();
+          const handoffCount = services.handoffState?.handoffHistory?.length || 0;
+          const relationshipContext = services.sessionPriming?.relationshipContext;
+
+          // Extract handoff reason from greeting if available
+          const handoffReason = greeting?.slice(0, 100); // Use greeting as reason hint
+
+          const banterContext = buildBanterContext({
+            historyTopics: history?.metadata?.topicsDiscussed,
+            // Note: emotional state from sessionPriming if available
+            detectedEmotion: services.sessionPriming?.emotionalContext?.lastEmotion,
+            handoffCount,
+            isFirstTimeUser: (services.userProfile?.totalConversations || 0) <= 1,
+            userName: services.userProfile?.name,
+            handoffReason,
+            totalSessions: services.userProfile?.totalConversations,
+            relationshipStage: relationshipContext?.stage,
+          });
+
+          const intelligentResult = getIntelligentBanter(
+            prevPersona.id,
+            persona.id,
+            banterContext
+          );
+
+          softOpenBanter = intelligentResult.softOpenBanter;
+          arrivingBanter = intelligentResult.arrivingBanter;
+          wasIntelligentBanter = intelligentResult.wasIntelligent;
+
+          // Log context used for debugging
+          if (intelligentResult.contextUsed) {
+            logger.debug(
+              { contextUsed: intelligentResult.contextUsed },
+              '🎭 BANTER: Context used for generation'
+            );
+          }
+        } catch (banterErr) {
+          // Fallback to static banter on error
+          logger.debug({ error: String(banterErr) }, 'Intelligent banter failed, using static');
+          softOpenBanter = getHandoffBanter(prevPersona.id, persona.id);
+          arrivingBanter = getArrivingBanter(persona.id, prevPersona.id);
+        }
+
         logger.info(
           {
             hasSoftOpen: !!softOpenBanter,
             hasArriving: !!arrivingBanter,
             softOpenPreview: softOpenBanter?.slice(0, 50),
             arrivingPreview: arrivingBanter?.slice(0, 50),
+            wasIntelligent: wasIntelligentBanter,
           },
           '🎭 BANTER: Lookup results'
         );

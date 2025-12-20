@@ -251,8 +251,18 @@ function applyHolidayTheme(holiday: Holiday): void {
 /**
  * Add Santa hat decoration SVG to the avatar.
  * Uses SVG instead of emoji per design standards.
+ * Animation follows Ferni's Pixar-inspired character animation principles:
+ * - Anticipation → Action → Follow-through
+ * - Spring easing for playful bounce
+ * - Ambient breathing for life
  */
 function addChristmasTreeDecoration(): void {
+  // Import animation constants inline to avoid circular deps
+  const EASING_SPRING = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
+  const EASING_ANTICIPATE = 'cubic-bezier(0.38, -0.4, 0.88, 0.65)';
+  const EASING_GENTLE = 'cubic-bezier(0.25, 0.1, 0.25, 1)';
+  const DURATION_CELEBRATION = 800; // Ferni DURATION.CELEBRATION
+  
   // Wait for avatar to be available
   const tryAddDecoration = (): void => {
     const avatar = document.getElementById('coachAvatar');
@@ -270,60 +280,121 @@ function addChristmasTreeDecoration(): void {
     decoration.className = 'santa-hat-decoration';
     decoration.setAttribute('aria-hidden', 'true');
     
-    // SVG Santa Hat - fun and festive!
-    // Colors: Christmas red (#c41e3a), white fur trim, warm gold pompom
+    // SVG Santa Hat - designed so avatar circle fits INSIDE the hat
+    // Fur band is an arc that wraps around the top of the avatar
     decoration.innerHTML = `
-      <svg viewBox="0 0 80 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Hat shadow for depth -->
-        <ellipse cx="40" cy="54" rx="32" ry="4" fill="rgba(0,0,0,0.1)"/>
-        
-        <!-- Main hat body - classic Santa red -->
-        <path d="M12 50 Q20 20, 40 8 Q60 20, 68 50 Q40 48, 12 50Z" 
+      <svg viewBox="0 0 150 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Main hat cone - rises from the fur band -->
+        <path d="M25 75 
+                 Q30 45, 50 28 
+                 Q70 15, 85 22
+                 Q95 28, 100 40
+                 L120 75
+                 Q75 72, 25 75Z" 
               fill="#c41e3a" stroke="#a01830" stroke-width="1"/>
         
-        <!-- Hat highlight/shine -->
-        <path d="M20 45 Q28 22, 42 12 Q38 20, 22 42Z" 
+        <!-- Hat highlight -->
+        <path d="M35 68 Q42 42, 58 28 Q52 45, 38 65Z" 
               fill="rgba(255,255,255,0.15)"/>
         
-        <!-- Fur trim band at bottom - fluffy white -->
-        <path d="M8 48 Q10 42, 20 44 Q30 40, 40 42 Q50 40, 60 44 Q70 42, 72 48 
-                 Q70 56, 60 54 Q50 58, 40 56 Q30 58, 20 54 Q10 56, 8 48Z" 
-              fill="#fff" stroke="#e8e0d8" stroke-width="0.5"/>
-        
-        <!-- Fur texture details -->
-        <path d="M15 48 Q18 45, 22 48" stroke="#e0d8d0" stroke-width="1" fill="none" stroke-linecap="round"/>
-        <path d="M30 46 Q34 43, 38 46" stroke="#e0d8d0" stroke-width="1" fill="none" stroke-linecap="round"/>
-        <path d="M48 46 Q52 43, 56 46" stroke="#e0d8d0" stroke-width="1" fill="none" stroke-linecap="round"/>
-        <path d="M62 48 Q65 45, 68 48" stroke="#e0d8d0" stroke-width="1" fill="none" stroke-linecap="round"/>
-        
-        <!-- Droopy hat tip curling to the side -->
-        <path d="M40 8 Q55 4, 70 12 Q75 18, 72 24" 
+        <!-- Droopy tip curling right -->
+        <path d="M100 40 
+                 Q115 30, 130 35 
+                 Q140 42, 135 55
+                 Q130 62, 122 64" 
               fill="#c41e3a" stroke="#a01830" stroke-width="1" stroke-linecap="round"/>
         
-        <!-- Pompom at the tip - fluffy white ball -->
-        <circle cx="72" cy="24" r="8" fill="#fff" stroke="#e8e0d8" stroke-width="0.5"/>
-        <circle cx="70" cy="22" r="2" fill="#f5f0eb" opacity="0.8"/>
-        <circle cx="74" cy="26" r="1.5" fill="#ebe5de" opacity="0.6"/>
+        <!-- Tip shine -->
+        <path d="M103 39 Q118 32, 132 37 Q122 38, 106 43Z" 
+              fill="rgba(255,255,255,0.12)"/>
+        
+        <!-- Fur trim band - arc shape that wraps around avatar's head -->
+        <!-- This curves DOWN on the sides to look like it wraps around -->
+        <path d="M10 72
+                 Q10 65, 20 68
+                 Q40 60, 75 58
+                 Q110 60, 130 68
+                 Q140 65, 140 72
+                 Q140 82, 130 85
+                 Q110 90, 75 90
+                 Q40 90, 20 85
+                 Q10 82, 10 72Z" 
+              fill="#fff" stroke="#e8e0d8" stroke-width="0.5"/>
+        
+        <!-- Fur fluff texture -->
+        <path d="M25 74 Q32 68, 40 74" stroke="#ddd5cd" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M55 70 Q65 63, 75 70" stroke="#ddd5cd" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M90 70 Q100 63, 110 70" stroke="#ddd5cd" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M120 74 Q127 68, 134 74" stroke="#ddd5cd" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        
+        <!-- Pompom -->
+        <g class="pompom-group">
+          <circle cx="128" cy="60" r="11" fill="#fff" stroke="#e8e0d8" stroke-width="0.5"/>
+          <circle cx="124" cy="56" r="3" fill="#f8f5f2" opacity="0.9"/>
+          <circle cx="132" cy="63" r="2" fill="#f0ebe6" opacity="0.7"/>
+        </g>
       </svg>
     `;
     
     avatar.appendChild(decoration);
     
-    // Animate in with a fun drop + bounce
-    requestAnimationFrame(() => {
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    
+    if (prefersReducedMotion) {
+      // Simple fade in for reduced motion
       decoration.animate(
+        [{ opacity: 0 }, { opacity: 1 }],
+        { duration: 200, fill: 'forwards' }
+      );
+      return;
+    }
+    
+    // Ferni character animation: Anticipation → Action → Follow-through
+    requestAnimationFrame(() => {
+      // Phase 1: Anticipation (15% of duration) - hat rises slightly, tilts back
+      const anticipation = decoration.animate(
         [
-          { transform: 'translateX(-50%) rotate(-8deg) translateY(-30px)', opacity: 0 },
-          { transform: 'translateX(-50%) rotate(-12deg) translateY(5px)', opacity: 1 },
-          { transform: 'translateX(-50%) rotate(-6deg) translateY(-2px)', opacity: 1 },
-          { transform: 'translateX(-50%) rotate(-8deg) translateY(0)', opacity: 1 }
+          { transform: 'translateX(-50%) rotate(-12deg) translateY(-25px) scale(0.6)', opacity: 0 },
+          { transform: 'translateX(-50%) rotate(-5deg) translateY(-35px) scale(0.95)', opacity: 0.8 }
         ],
         {
-          duration: 600,
-          easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', // Spring bounce
+          duration: DURATION_CELEBRATION * 0.15,
+          easing: EASING_ANTICIPATE,
           fill: 'forwards'
         }
       );
+      
+      anticipation.onfinish = () => {
+        // Phase 2: Action (55% of duration) - hat drops down with spring overshoot
+        const action = decoration.animate(
+          [
+            { transform: 'translateX(-50%) rotate(-5deg) translateY(-35px) scale(0.95)', opacity: 0.8 },
+            { transform: 'translateX(-50%) rotate(-15deg) translateY(4px) scale(1.02)', opacity: 1 }
+          ],
+          {
+            duration: DURATION_CELEBRATION * 0.55,
+            easing: EASING_SPRING,
+            fill: 'forwards'
+          }
+        );
+        
+        action.onfinish = () => {
+          // Phase 3: Follow-through (30% of duration) - settle into final position
+          decoration.animate(
+            [
+              { transform: 'translateX(-50%) rotate(-15deg) translateY(4px) scale(1.02)' },
+              { transform: 'translateX(-50%) rotate(-10deg) translateY(-2px) scale(0.99)' },
+              { transform: 'translateX(-50%) rotate(-12deg) translateY(0) scale(1)' }
+            ],
+            {
+              duration: DURATION_CELEBRATION * 0.30,
+              easing: EASING_GENTLE,
+              fill: 'forwards'
+            }
+          );
+        };
+      };
     });
   };
   

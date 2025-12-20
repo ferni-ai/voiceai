@@ -664,6 +664,19 @@ export class CallMusicPlayer {
     }
 
     try {
+      // FIX: Clear all timers ATOMICALLY at the very start before any async work
+      // This prevents race conditions where old timers fire during download
+      if (this.midSongMomentTimer) {
+        clearTimeout(this.midSongMomentTimer);
+        this.midSongMomentTimer = null;
+      }
+      if (this.trackEndBackupTimer) {
+        clearTimeout(this.trackEndBackupTimer);
+        this.trackEndBackupTimer = null;
+      }
+      // Mark any pending track end as handled before starting new track
+      this.trackEndHandled = true;
+
       // Stop any current playback
       if (DEBUG_MUSIC) log.debug('Stopping any current playback');
       this.stop();

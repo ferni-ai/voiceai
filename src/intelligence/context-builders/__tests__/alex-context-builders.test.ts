@@ -116,8 +116,9 @@ describe('calendar-awareness context builder', () => {
   });
 
   describe('persona filtering', () => {
-    it('should only activate for alex-chen persona', async () => {
-      const result = await buildCalendarAwarenessContext('user-123', 'ferni');
+    it('should NOT activate for non-calendar-aware personas', async () => {
+      // maya-santos is NOT in CALENDAR_AWARE_PERSONAS
+      const result = await buildCalendarAwarenessContext('user-123', 'maya-santos');
 
       expect(result.isConnected).toBe(false);
       expect(result.contextInjection).toBeNull();
@@ -129,6 +130,15 @@ describe('calendar-awareness context builder', () => {
 
       const result = await buildCalendarAwarenessContext('user-123', 'alex-chen');
 
+      expect(mockIsConnected).toHaveBeenCalledWith('user-123');
+    });
+
+    it('should activate for ferni persona (as coordinator)', async () => {
+      mockIsConnected.mockResolvedValue(false);
+
+      const result = await buildCalendarAwarenessContext('user-123', 'ferni');
+
+      // Ferni is in CALENDAR_AWARE_PERSONAS so isConnected SHOULD be called
       expect(mockIsConnected).toHaveBeenCalledWith('user-123');
     });
   });

@@ -361,6 +361,28 @@ class VoiceAIApp {
   private isInitialized = false;
   private audioCleanup: (() => void) | null = null;
 
+  // FIX: Track event listeners to prevent memory leaks
+  // All document/window event listeners should be added via addTrackedListener()
+  // and will be automatically removed in dispose()
+  private trackedListeners: Array<{
+    target: EventTarget;
+    event: string;
+    handler: EventListener;
+  }> = [];
+
+  /**
+   * Add an event listener and track it for cleanup.
+   * Use this instead of direct addEventListener to prevent memory leaks.
+   */
+  private addTrackedListener(
+    target: EventTarget,
+    event: string,
+    handler: EventListener
+  ): void {
+    target.addEventListener(event, handler);
+    this.trackedListeners.push({ target, event, handler });
+  }
+
   /**
    * Initialize the application.
    * Must be called after DOM is ready.
@@ -1122,7 +1144,7 @@ class VoiceAIApp {
       }
 
       // Set up gentle check-in handler for significant concern detection
-      document.addEventListener('ferni:gentle-checkin', ((e: CustomEvent) => {
+      this.addTrackedListener(document, 'ferni:gentle-checkin', ((e: CustomEvent) => {
         const { level, triggers } = e.detail || {};
         log.info('🚀 Ferni EQ gentle check-in triggered', { level, triggers });
 
@@ -1144,7 +1166,7 @@ class VoiceAIApp {
       // Energy matching, relationship warmth, growth celebration, protective mode
 
       // Wire up to track conversation interactions for relationship warmth
-      document.addEventListener('ferni:conversation-turn', () => {
+      this.addTrackedListener(document, 'ferni:conversation-turn', () => {
         avatarSoul.recordInteraction(0.5);
       });
     });
@@ -1410,7 +1432,7 @@ class VoiceAIApp {
       growthJourneyService.init();
 
       // Listen for new milestones to celebrate
-      document.addEventListener('ferni:milestone-celebrated', ((e: CustomEvent) => {
+      this.addTrackedListener(document, 'ferni:milestone-celebrated', ((e: CustomEvent) => {
         const { milestone } = e.detail;
         // Celebrate with warmth, not gamification
         presenceUI.bounce();
@@ -1518,13 +1540,13 @@ class VoiceAIApp {
     this.safeInit('PushNotifications', () => void initPushNotifications());
 
     // 📬 Listen for push notification navigation events
-    window.addEventListener('ferni:open-engagement', () => {
+    this.addTrackedListener(window, 'ferni:open-engagement', () => {
       getEngagementUI().show();
     });
-    window.addEventListener('ferni:open-predictions', () => {
+    this.addTrackedListener(window, 'ferni:open-predictions', () => {
       getPredictionsUI().show();
     });
-    window.addEventListener('ferni:open-team-huddle', () => {
+    this.addTrackedListener(window, 'ferni:open-team-huddle', () => {
       showTeamHuddle();
     });
 
@@ -1561,28 +1583,28 @@ class VoiceAIApp {
     }
 
     // 📊 Dev Panel modal event listeners
-    window.addEventListener('ferni:open-analytics', () => {
+    this.addTrackedListener(window, 'ferni:open-analytics', () => {
       void showAnalyticsDashboard();
     });
-    window.addEventListener('ferni:open-history', () => {
+    this.addTrackedListener(window, 'ferni:open-history', () => {
       void showConversationHistory();
     });
-    window.addEventListener('ferni:open-insights', () => {
+    this.addTrackedListener(window, 'ferni:open-insights', () => {
       void showCognitiveInsights();
     });
-    window.addEventListener('ferni:start-tour', () => {
+    this.addTrackedListener(window, 'ferni:start-tour', () => {
       getOnboardingUI().start();
     });
-    window.addEventListener('ferni:open-daily-practice', () => {
+    this.addTrackedListener(window, 'ferni:open-daily-practice', () => {
       // Daily check-in uses engagement UI rituals
       getEngagementUI().show();
     });
-    window.addEventListener('ferni:open-marketplace', () => {
+    this.addTrackedListener(window, 'ferni:open-marketplace', () => {
       void marketplaceUI.open();
     });
 
     // 🌱 Garden Widget - Plant seed flow integration
-    window.addEventListener('ferni:open-plant-seed', ((e: CustomEvent) => {
+    this.addTrackedListener(window, 'ferni:open-plant-seed', ((e: CustomEvent) => {
       const detail = e.detail as { type: 'one-time' | 'monthly' } | undefined;
       const userId = appState.get('deviceId');
       if (userId) {
@@ -1593,7 +1615,7 @@ class VoiceAIApp {
     }) as EventListener);
 
     // 💬 Dev Panel transcript injection
-    window.addEventListener('ferni:transcript', ((e: CustomEvent) => {
+    this.addTrackedListener(window, 'ferni:transcript', ((e: CustomEvent) => {
       const { type, text, isFinal } = e.detail;
       // transcriptUI.show() handles both user and agent messages
       // User messages are typically interim, agent messages are final
@@ -1605,7 +1627,7 @@ class VoiceAIApp {
     }) as EventListener);
 
     // 📶 Dev Panel connection quality simulation
-    window.addEventListener('ferni:connection-quality', ((e: CustomEvent) => {
+    this.addTrackedListener(window, 'ferni:connection-quality', ((e: CustomEvent) => {
       const { quality } = e.detail;
       // Map dev panel values to ConnectionQuality type
       const qualityMap: Record<string, 'excellent' | 'good' | 'fair' | 'poor' | 'disconnected'> = {
@@ -1620,7 +1642,7 @@ class VoiceAIApp {
     }) as EventListener);
 
     // 🎊 Dev Panel streak milestone simulation
-    window.addEventListener('ferni:streak-milestone', ((e: CustomEvent) => {
+    this.addTrackedListener(window, 'ferni:streak-milestone', ((e: CustomEvent) => {
       const { days, intensity } = e.detail;
       // Show streak notification UI
       showStreakMilestone('Daily Check-in', days, 'ferni');
@@ -1642,14 +1664,14 @@ class VoiceAIApp {
     // this.safeInit('AgentParticlesUI', () => void initAgentParticles());
 
     // 💚 Connection Heart - Listen for connect requests
-    window.addEventListener('ferni:request-connect', () => {
+    this.addTrackedListener(window, 'ferni:request-connect', () => {
       if (appState.get('connection') === 'disconnected') {
         void this.connect();
       }
     });
 
     // 🌅 Conversation End - Auto-disconnect after agent says goodbye
-    window.addEventListener('ferni:conversation-end-disconnect', (e) => {
+    this.addTrackedListener(window, 'ferni:conversation-end-disconnect', (e) => {
       if (appState.get('connection') === 'connected') {
         const detail = (e as CustomEvent<{ agentInitiated?: boolean; exitType?: string }>).detail;
 
@@ -2597,6 +2619,13 @@ class VoiceAIApp {
     disposeMoodContext();
     disposeWeatherEffects();
     ferniExpressions.dispose();
+
+    // FIX: Clean up all tracked event listeners to prevent memory leaks
+    for (const { target, event, handler } of this.trackedListeners) {
+      target.removeEventListener(event, handler);
+    }
+    log.debug(`Cleaned up ${this.trackedListeners.length} tracked event listeners`);
+    this.trackedListeners = [];
 
     this.isInitialized = false;
   }
