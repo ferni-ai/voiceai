@@ -303,7 +303,9 @@ export async function updateEvent(
     syncStatus: event.syncStatus === 'synced' ? 'pending' : event.syncStatus,
   };
 
-  events.set(eventId, updated);
+  if (events) {
+    events.set(eventId, updated);
+  }
   await persistEvent(userId, updated);
 
   log.info({ userId, eventId }, 'Updated calendar event');
@@ -319,7 +321,7 @@ export async function deleteEvent(userId: string, eventId: string): Promise<bool
   const events = eventCache.get(userId);
   const event = events?.get(eventId);
 
-  if (!event) {
+  if (!event || !events) {
     return false;
   }
 
@@ -421,6 +423,47 @@ export async function importExternalEvent(
 
   log.debug({ userId, eventId: event.id, provider, externalId }, 'Imported event from provider');
   return event;
+}
+
+/**
+ * Import multiple events from an external provider
+ * Used by webhooks and batch sync operations
+ */
+export async function importEventsFromProvider(
+  userId: string,
+  provider: CalendarProvider,
+  events: Array<Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt'>>
+): Promise<number> {
+  let imported = 0;
+
+  for (const eventData of events) {
+    try {
+      await importExternalEvent(
+        userId,
+        provider,
+        eventData.externalId || `${provider}_${Date.now()}_${imported}`,
+        eventData.externalCalendarId || 'primary',
+        {
+          title: eventData.title,
+          description: eventData.description,
+          location: eventData.location,
+          startTime: eventData.startTime,
+          endTime: eventData.endTime,
+          isAllDay: eventData.isAllDay,
+          attendees: eventData.attendees,
+          reminders: eventData.reminders,
+          color: eventData.color,
+        },
+        eventData.etag
+      );
+      imported++;
+    } catch (error) {
+      log.warn({ error: String(error), userId, provider }, 'Failed to import event');
+    }
+  }
+
+  log.info({ userId, provider, imported, total: events.length }, 'Imported events from provider');
+  return imported;
 }
 
 // ============================================================================
@@ -764,6 +807,7 @@ export default {
   updateEvent,
   deleteEvent,
   importExternalEvent,
+  importEventsFromProvider,
 
   // Provider operations
   getProviderConnections,

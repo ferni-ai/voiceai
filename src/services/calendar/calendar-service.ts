@@ -698,8 +698,9 @@ function getStartOfWeek(date: Date): Date {
 
 /**
  * Format event for speech output
+ * Accepts both old CalendarEvent and new unified CalendarEvent
  */
-export function formatEventForSpeech(event: CalendarEvent): string {
+export function formatEventForSpeech(event: Pick<CalendarEvent, 'title' | 'startTime' | 'endTime' | 'location' | 'attendees'>): string {
   const timeOptions: Intl.DateTimeFormatOptions = {
     hour: 'numeric',
     minute: '2-digit',
@@ -725,8 +726,16 @@ export function formatEventForSpeech(event: CalendarEvent): string {
 
 /**
  * Format day overview for speech
+ * Accepts both old DayOverview and new unified DayOverview
  */
-export function formatDayOverviewForSpeech(overview: DayOverview): string {
+export function formatDayOverviewForSpeech(overview: {
+  date: Date;
+  totalMeetings: number;
+  firstEvent?: CalendarEvent | { startTime: Date; title: string };
+  isOverloaded?: boolean;
+  freeTimeMinutes?: number;
+  hasBackToBack?: boolean;
+}): string {
   const dayName = overview.date.toLocaleDateString('en-US', { weekday: 'long' });
 
   if (overview.totalMeetings === 0) {

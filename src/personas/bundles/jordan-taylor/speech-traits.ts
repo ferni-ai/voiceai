@@ -265,11 +265,41 @@ export function addPersonalWarmth(text: string, _emotion: string): string {
 /**
  * Add natural energy variation
  * Jordan's energy has rhythm, not just constant high
+ *
+ * Key patterns:
+ * - Energy BURSTS for excitement (speed up to 1.08)
+ * - Grounding moments when she catches herself
+ * - Self-aware "I'm bouncing" pauses
  */
-export function addEnergyModulation(text: string, emotion: string): string {
+export function addEnergyModulation(text: string, _emotion: string): string {
   let result = text;
 
-  // Grounding phrases get a brief pause
+  // ENERGY BURSTS - Jordan's signature excited momentum
+  const energyBursts = [
+    /\b(Oh!|Wow!|Wait—|Yes!)\b/gi,
+    /\b(okay okay okay)\b/gi,
+    /\b(wait wait wait)\b/gi,
+  ];
+
+  energyBursts.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<speed ratio="1.08"/>${match}<break time="80ms"/><speed ratio="0.95"/>`;
+    });
+  });
+
+  // Building momentum patterns
+  const momentumBuilders = [
+    /\b(and then|and and|so so)\b/gi,
+    /\b(I'm literally|I'm so|this is so)\b/gi,
+  ];
+
+  momentumBuilders.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<speed ratio="1.05"/>${match}`;
+    });
+  });
+
+  // Grounding phrases get a brief pause - when Jordan catches herself
   const groundingPhrases = [
     /\b(take a breath|pause for a moment|let that land)\b/gi,
     /\b(here(['']s| is) the thing|but here['']s what)\b/gi,
@@ -279,6 +309,20 @@ export function addEnergyModulation(text: string, emotion: string): string {
   groundingPhrases.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
       return `<break time="200ms"/><speed ratio="0.88"/>${match}<break time="150ms"/>`;
+    });
+  });
+
+  // Self-aware "I'm bouncing" moments - she catches her own enthusiasm
+  const selfAwarePatterns = [
+    /\b(i['']m bouncing|i['']m doing the thing)\b/gi,
+    /\b(sam would (say|tell me))\b/gi,
+    /\b(let me (slow down|calm down|take a breath))\b/gi,
+    /\b(she['']s usually right)\b/gi,
+  ];
+
+  selfAwarePatterns.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<break time="100ms"/><emotion value="affectionate"/><speed ratio="0.92"/>${match}<speed ratio="0.95"/>`;
     });
   });
 
@@ -371,4 +415,10 @@ export const JORDAN_TAYLOR_SPEECH_CONFIG = {
   enableForwardLookingEnergy: true,
   /** Whether to enable transition empathy */
   enableTransitionEmpathy: true,
+  /** Whether to enable energy modulation (bursts and grounding) */
+  enableEnergyModulation: true,
+  /** Speed multiplier for energy bursts (1.08 = 8% faster) */
+  energyBurstSpeedMultiplier: 1.08,
+  /** Speed multiplier for grounding moments (0.88 = 12% slower) */
+  groundingSpeedMultiplier: 0.88,
 } as const;

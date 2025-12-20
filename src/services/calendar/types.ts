@@ -352,5 +352,34 @@ export interface StoredProviderConnection {
   accessToken?: string;
   refreshToken?: string;
   tokenExpiry?: string;
+  /** Selected calendars for sync (if empty, sync all) */
+  selectedCalendars?: SelectedCalendar[];
+}
+
+/**
+ * A calendar selected for sync
+ */
+export interface SelectedCalendar {
+  /** Calendar ID (e.g., 'primary', URL for CalDAV) */
+  id: string;
+  /** Display name */
+  name: string;
+  /** Whether this calendar is selected for sync */
+  enabled: boolean;
+  /** Whether this is the user's primary calendar */
+  primary: boolean;
+  /** Calendar color (if available) */
+  color?: string;
+}
+
+/**
+ * Settings for calendar selection
+ */
+export interface CalendarSelectionSettings {
+  provider: CalendarProvider;
+  /** All available calendars from the provider */
+  availableCalendars: SelectedCalendar[];
+  /** Currently selected calendar IDs */
+  selectedIds: string[];
 }
 

@@ -44,6 +44,9 @@ import { abTestingService } from '../../tools/ab-testing.js';
 import { patternAnalyzer } from '../../tools/pattern-analyzer.js';
 import { autoOptimizer } from '../../tools/auto-optimizer.js';
 
+// FinOps cost tracking
+import { finops } from '../../services/observability/finops.js';
+
 // Tool Orchestrator for dynamic tool refresh
 import {
   isOrchestratorInitialized,
@@ -173,6 +176,16 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
 
   resetCatchphraseTracking();
   resetAllConversationState();
+
+  // ================================================================
+  // START FINOPS TRACKING
+  // ================================================================
+  const subscriptionTier = 'free'; // Will be updated after profile load
+  finops.startSession({
+    sessionId,
+    userId,
+    tier: subscriptionTier,
+  });
 
   // ================================================================
   // CREATE SESSION SERVICES

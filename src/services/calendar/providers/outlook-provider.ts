@@ -168,7 +168,7 @@ class MicrosoftGraphClient {
         return {} as T;
       }
 
-      return response.json();
+      return (await response.json()) as T;
     } catch (error) {
       log.error({ error: String(error) }, 'Graph API request failed');
       return null;
@@ -205,7 +205,11 @@ class MicrosoftGraphClient {
         return false;
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as {
+        access_token: string;
+        refresh_token?: string;
+        expires_in: number;
+      };
 
       this.tokens = {
         ...this.tokens,
@@ -404,7 +408,11 @@ export class OutlookCalendarProvider implements CalendarProviderAdapter {
         return false;
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as {
+        access_token: string;
+        refresh_token: string;
+        expires_in: number;
+      };
 
       const tokens: MicrosoftTokens = {
         accessToken: data.access_token,

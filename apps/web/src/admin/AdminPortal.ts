@@ -144,6 +144,19 @@ const ADMIN_SECTIONS: AdminSection[] = [
     component: async () => (await import('./sections/FlagsSection.js')).render(),
   },
   {
+    id: 'finops',
+    name: 'FinOps',
+    icon: ICON_CHART,
+    description: 'Cost tracking, unit economics, burn rate',
+    badge: 'NEW',
+    component: async () => {
+      const section = await import('./sections/FinOpsSection.js');
+      const html = await section.render();
+      setTimeout(() => section.setupEvents(), 100);
+      return html;
+    },
+  },
+  {
     id: 'operations',
     name: 'Operations',
     icon: ICON_CHART,

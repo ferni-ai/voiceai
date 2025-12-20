@@ -3,10 +3,13 @@
  *
  * Makes outbound calls using Cartesia TTS voices for any persona.
  * Also handles incoming call routing to LiveKit agents.
+ *
+ * Now with SSML support for natural-sounding outbound calls!
  */
 
 import { getCircuitBreaker } from '../utils/circuit-breaker.js';
 import { getLogger } from '../utils/safe-logger.js';
+import { enhanceOutboundMessage, type OutboundSsmlOptions } from './outreach/outbound-ssml.js';
 
 // Voice registry for consistent voice ID resolution
 import { getPersonaDisplayName, getVoiceId } from '../personas/voice-registry.js';
@@ -211,6 +214,8 @@ export interface PersonaCallOptions {
   fallbackToTwilioVoice?: boolean;
   /** Custom greeting to use instead of default "Hey, this is {name} calling" */
   customGreeting?: string;
+  /** SSML options for natural speech. Set to false to disable SSML enhancement. */
+  ssml?: OutboundSsmlOptions | false;
 }
 
 /**
@@ -245,6 +250,15 @@ export async function callWithPersonaVoice(
 
   logger.info({ to: e164Phone, personaId }, `📞 Initiating call with ${firstName}'s voice...`);
 
+  // Enhance message with SSML for natural speech (unless explicitly disabled)
+  let enhancedMessage = message;
+  if (options?.ssml !== false) {
+    const ssmlOptions: OutboundSsmlOptions = typeof options?.ssml === 'object' ? options.ssml : {};
+    ssmlOptions.personaId = personaId;
+    enhancedMessage = enhanceOutboundMessage(message, ssmlOptions);
+    logger.debug({ original: message.length, enhanced: enhancedMessage.length }, '🎤 Applied SSML enhancement');
+  }
+
   // Try to generate persona's voice
   let twiml: string;
   let usedCartesiaVoice = false;
@@ -254,7 +268,7 @@ export async function callWithPersonaVoice(
   const greeting = options?.customGreeting || `Hey, this is ${firstName} calling.`;
 
   if (CARTESIA_API_KEY) {
-    const audioBuffer = await generatePersonaVoice(message, personaId);
+    const audioBuffer = await generatePersonaVoice(enhancedMessage, personaId);
 
     if (audioBuffer) {
       // Try to host the audio
@@ -488,6 +502,16 @@ function escapeXml(text: string): string {
 // EXPORTS
 // ============================================================================
 
+// Re-export SSML utilities for callers who want fine-grained control
+export {
+  enhanceOutboundMessage,
+  createWarmOpening,
+  createWarmClosing,
+  thoughtfulPause,
+  warmWrap,
+  type OutboundSsmlOptions,
+} from './outreach/outbound-ssml.js';
+
 export default {
   generatePersonaVoice,
   generateAlexVoice, // deprecated
@@ -495,4 +519,5 @@ export default {
   callWithAlexVoice, // deprecated
   generateIncomingCallTwiml,
   configureIncomingCallWebhook,
+  enhanceOutboundMessage, // NEW: SSML enhancement
 };

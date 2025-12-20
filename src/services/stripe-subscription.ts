@@ -532,6 +532,12 @@ export async function recordConversation(
       approachingLimit: false,
       atLimit: false,
       teamAccess: 'ferni-only',
+      // Soft cap fields (default for unknown user)
+      softConversationCap: 30,
+      conversationsUsed: 0,
+      approachingSoftCap: false,
+      pastSoftCap: false,
+      softCapMessage: null,
     };
   }
 
@@ -590,6 +596,12 @@ export async function getUsageStatus(userId: string): Promise<UsageStatus> {
       approachingLimit: false,
       atLimit: false,
       teamAccess: 'ferni-only',
+      // Soft cap fields (default for new user)
+      softConversationCap: 30,
+      conversationsUsed: 0,
+      approachingSoftCap: false,
+      pastSoftCap: false,
+      softCapMessage: null,
     };
   }
 

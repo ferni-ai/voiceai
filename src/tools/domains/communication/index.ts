@@ -5,12 +5,14 @@
  * - communication.ts: Base email, SMS, calendar integration
  * - communication-coaching.ts: Communication coaching and frameworks
  * - proactive-outreach.ts: Agent-initiated contact (texts, emails, calls)
+ * - personalized-outreach-tools.ts: Batch personalized messaging, contact groups
  *
  * DOMAIN: communication
  * TOOLS:
  *   Core: sendMessage (email or SMS), scheduleReminder, scheduleEvent
  *   Coaching: draftMessage, rolePlayConversation, analyzeMessage, communicationStrategy
  *   Proactive: proactiveOutreach (save contact, send text/email, schedule reminder, call)
+ *   Personalized: sendPersonalizedMessage, sendGroupMessage, getOutreachSuggestions, manageContactGroup
  */
 
 import { llm } from '@livekit/agents';
@@ -33,6 +35,8 @@ import { getAlexGmailToolDefinitions } from './alex-gmail-tools.js';
 import { getAlexContactToolDefinitions } from './alex-contact-tools.js';
 // Message validation tools for Alex ("Sleep on it")
 import { getAlexMessageValidationToolDefinitions } from './alex-message-validation-tools.js';
+// Personalized outreach tools (batch messaging, groups, seasonal)
+import { getPersonalizedOutreachToolDefinitions } from './personalized-outreach-tools.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
@@ -347,6 +351,7 @@ const communicationTools: ToolDefinition[] = [
   ...getAlexGmailToolDefinitions(),
   ...getAlexContactToolDefinitions(),
   ...getAlexMessageValidationToolDefinitions(),
+  ...getPersonalizedOutreachToolDefinitions(),
 ];
 
 // ============================================================================
@@ -365,6 +370,7 @@ export {
   getAlexGmailToolDefinitions,
   getAlexContactToolDefinitions,
   getAlexMessageValidationToolDefinitions,
+  getPersonalizedOutreachToolDefinitions,
 };
 
 // Re-export legacy tool creators for direct use by persona agents

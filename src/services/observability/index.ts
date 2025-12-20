@@ -33,6 +33,15 @@ export {
 } from './memory-health.js';
 export { costMetrics, type CostSnapshot, type CostEvent } from './cost-tracking.js';
 export {
+  finops,
+  type FinOpsSnapshot,
+  type SessionCost,
+  type UserCostSummary,
+  type FinOpsAlert,
+  type FinOpsThresholds,
+  PRICING,
+} from './finops.js';
+export {
   errorMetrics,
   type ErrorSnapshot,
   type ErrorEvent,

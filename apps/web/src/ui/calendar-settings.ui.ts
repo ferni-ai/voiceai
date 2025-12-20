@@ -21,6 +21,9 @@
 import { t } from '../i18n/index.js';
 import { DURATION, EASING, prefersReducedMotion } from '../config/animation-constants.js';
 import { apiGet, apiPost } from '../utils/api.js';
+import { showCalendarConflicts } from './calendar-conflicts.ui.js';
+import { showCalendarSelection } from './calendar-selection.ui.js';
+import type { CalendarProvider } from './calendar-selection.ui.js';
 
 // ============================================================================
 // TYPES
@@ -63,6 +66,15 @@ const ICONS = {
     <line x1="16" y1="2" x2="16" y2="6"/>
     <line x1="8" y1="2" x2="8" y2="6"/>
     <line x1="3" y1="10" x2="21" y2="10"/>
+  </svg>`,
+  settings: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+    <circle cx="12" cy="12" r="3"/>
+  </svg>`,
+  alert: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+    <line x1="12" y1="9" x2="12" y2="13"/>
+    <line x1="12" y1="17" x2="12.01" y2="17"/>
   </svg>`,
   mail: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <rect width="20" height="16" x="2" y="4" rx="2"/>
@@ -333,6 +345,9 @@ class CalendarSettingsUI {
               ${ICONS.refresh}
               <span>Sync</span>
             </button>
+            <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-google" title="Choose calendars">
+              ${ICONS.settings}
+            </button>
             <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect">
               <span>Disconnect</span>
             </button>
@@ -378,6 +393,9 @@ class CalendarSettingsUI {
               ${ICONS.refresh}
               <span>Sync</span>
             </button>
+            <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-apple" title="Choose calendars">
+              ${ICONS.settings}
+            </button>
             <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect-apple">
               <span>Disconnect</span>
             </button>
@@ -422,6 +440,9 @@ class CalendarSettingsUI {
             <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--secondary" data-action="sync-outlook">
               ${ICONS.refresh}
               <span>Sync</span>
+            </button>
+            <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="select-outlook" title="Choose calendars">
+              ${ICONS.settings}
             </button>
             <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost" data-action="disconnect-outlook">
               <span>Disconnect</span>
@@ -482,6 +503,15 @@ class CalendarSettingsUI {
           ${appleSection}
           ${outlookSection}
         </div>
+
+        ${this.hasAnyProviderConnected() ? `
+        <div class="calendar-settings__conflicts-section">
+          <button class="calendar-settings__btn calendar-settings__btn--small calendar-settings__btn--ghost calendar-settings__btn--full" data-action="show-conflicts">
+            ${ICONS.alert}
+            <span>View Sync Conflicts</span>
+          </button>
+        </div>
+        ` : ''}
 
         <p class="calendar-settings__privacy">
           Integrations sync your existing events into Ferni. Your data stays private.
@@ -571,6 +601,24 @@ class CalendarSettingsUI {
     // Outlook Sync button
     this.wrapper?.querySelector('[data-action="sync-outlook"]')?.addEventListener('click', async () => {
       await this.syncOutlook();
+    });
+
+    // Calendar Selection buttons
+    this.wrapper?.querySelector('[data-action="select-google"]')?.addEventListener('click', () => {
+      showCalendarSelection('google' as CalendarProvider, () => this.loadStatus());
+    });
+
+    this.wrapper?.querySelector('[data-action="select-apple"]')?.addEventListener('click', () => {
+      showCalendarSelection('apple' as CalendarProvider, () => this.loadStatus());
+    });
+
+    this.wrapper?.querySelector('[data-action="select-outlook"]')?.addEventListener('click', () => {
+      showCalendarSelection('outlook' as CalendarProvider, () => this.loadStatus());
+    });
+
+    // Conflicts button
+    this.wrapper?.querySelector('[data-action="show-conflicts"]')?.addEventListener('click', () => {
+      showCalendarConflicts();
     });
   }
 
@@ -937,6 +985,15 @@ class CalendarSettingsUI {
   private getUserId(): string {
     // Get user ID from local storage or auth state
     return localStorage.getItem('ferni_user_id') || 'anonymous';
+  }
+
+  private hasAnyProviderConnected(): boolean {
+    return !!(
+      this.status?.connected ||
+      this.providersStatus?.google?.connected ||
+      this.providersStatus?.apple?.connected ||
+      this.providersStatus?.outlook?.connected
+    );
   }
 
   private formatDate(dateString: string): string {

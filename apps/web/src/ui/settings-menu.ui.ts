@@ -20,6 +20,8 @@ import {
   UNLOCKABLE_FEATURES,
   type RelationshipStage,
 } from '../services/relationship-stage.service.js';
+// Team unlock service - for gating marketplace behind full team unlock
+import { isFullTeamUnlocked } from '../services/team-unlock.service.js';
 // Roadmap service - for "What's Growing" experience
 import { roadmapService } from '../services/roadmap.service.js';
 import { showRoadmapPanel } from './roadmap-panel.ui.js';
@@ -492,6 +494,11 @@ class SettingsMenuUI {
   private renderMenuItem(action: string, icon: string, label: string, extraClasses = ''): string {
     // Hide roadmap items from the menu - they live in "What's Growing" panel
     if (roadmapService.isRoadmapFeature(action)) {
+      return '';
+    }
+
+    // Hide marketplace until full team is unlocked - users should know the team first
+    if (action === 'discover-agents' && !isFullTeamUnlocked()) {
       return '';
     }
 

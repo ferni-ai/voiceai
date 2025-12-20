@@ -78,6 +78,14 @@ async function loadPersonaTraits(personaId: string): Promise<PersonaSpeechTraitC
     let config: PersonaSpeechTraitConfig | null = null;
 
     switch (personaId) {
+      case 'ferni': {
+        const module = await import('../../personas/bundles/ferni/speech-traits.js');
+        config = {
+          baseSpeed: module.FERNI_SPEECH_CONFIG.baseSpeed,
+          apply: module.applyFerniSpeechTraits,
+        };
+        break;
+      }
       case 'peter-john': {
         const module = await import('../../personas/bundles/peter-john/speech-traits.js');
         config = {
@@ -118,10 +126,8 @@ async function loadPersonaTraits(personaId: string): Promise<PersonaSpeechTraitC
         };
         break;
       }
-      case 'ferni':
       default:
-        // Ferni uses alive-voice persona fingerprint only (no extra traits yet)
-        // Could add ferni/speech-traits.ts in the future
+        // Unknown persona - no custom traits
         return null;
     }
 
@@ -154,7 +160,7 @@ let preloaded = false;
 export async function preloadAllTraits(): Promise<void> {
   if (preloaded) return;
 
-  const personas = ['peter-john', 'maya-santos', 'alex-chen', 'jordan-taylor', 'nayan-patel'];
+  const personas = ['ferni', 'peter-john', 'maya-santos', 'alex-chen', 'jordan-taylor', 'nayan-patel'];
 
   await Promise.all(personas.map((id) => loadPersonaTraits(id)));
 
@@ -246,7 +252,7 @@ export function applyPersonaSpeechTraitsSync(
  * Check if a persona has custom speech traits.
  */
 export function hasCustomSpeechTraits(personaId: string): boolean {
-  const withTraits = ['peter-john', 'maya-santos', 'alex-chen', 'jordan-taylor', 'nayan-patel'];
+  const withTraits = ['ferni', 'peter-john', 'maya-santos', 'alex-chen', 'jordan-taylor', 'nayan-patel'];
   return withTraits.includes(personaId);
 }
 
@@ -254,7 +260,7 @@ export function hasCustomSpeechTraits(personaId: string): boolean {
  * Get list of personas with custom speech traits.
  */
 export function getPersonasWithSpeechTraits(): string[] {
-  return ['peter-john', 'maya-santos', 'alex-chen', 'jordan-taylor', 'nayan-patel'];
+  return ['ferni', 'peter-john', 'maya-santos', 'alex-chen', 'jordan-taylor', 'nayan-patel'];
 }
 
 /**

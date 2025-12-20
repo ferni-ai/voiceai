@@ -525,6 +525,43 @@ export type {
   WeekOverview as CalendarWeekOverview,
 } from './calendar-view.ui.js';
 
+// Calendar Settings UI - Provider integration management
+export {
+  getCalendarSettingsUI,
+  showCalendarSettings,
+  openCalendarSettings,
+  hideCalendarSettings,
+} from './calendar-settings.ui.js';
+export type {
+  CalendarStatus,
+  ProviderStatus,
+  CalendarProvidersStatus,
+  CalendarSettingsCallbacks,
+} from './calendar-settings.ui.js';
+
+// Calendar Conflicts UI - Sync conflict resolution
+export {
+  getCalendarConflictsUI,
+  showCalendarConflicts,
+  hideCalendarConflicts,
+} from './calendar-conflicts.ui.js';
+export type {
+  CalendarConflict,
+  ConflictEventData,
+  ConflictResolution,
+} from './calendar-conflicts.ui.js';
+
+// Calendar Selection UI - Selective calendar sync
+export {
+  getCalendarSelectionUI,
+  showCalendarSelection,
+  hideCalendarSelection,
+} from './calendar-selection.ui.js';
+export type {
+  CalendarItem,
+  CalendarProvider,
+} from './calendar-selection.ui.js';
+
 // Types
 export type { ConnectionQuality } from './connection-quality.ui.js';
 export type { ControlCallbacks } from './controls.ui.js';

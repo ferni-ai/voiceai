@@ -470,6 +470,36 @@ export function isTeamMemberUnlocked(memberId: TeamMemberId): boolean {
 }
 
 /**
+ * Check if the full core team is unlocked (all non-premium members).
+ * Used to gate features like the marketplace that require the full team experience.
+ */
+export function isFullTeamUnlocked(): boolean {
+  // Subscribers get all non-premium members immediately
+  if (subscriptionTier === 'friend' || subscriptionTier === 'partner') {
+    return true;
+  }
+  
+  // If state isn't ready yet, check persisted state
+  if (!currentState) {
+    const persisted = loadPersistedState();
+    if (persisted) {
+      // Subscribers (from persisted state) get all non-premium members
+      if (persisted.tier === 'friend' || persisted.tier === 'partner') {
+        return true;
+      }
+      // Check if all core team members are in the persisted unlocked list
+      const coreTeamIds = TEAM_MEMBERS.filter((m) => !m.premium).map((m) => m.id);
+      return coreTeamIds.every((id) => persisted.unlockedMembers.includes(id));
+    }
+    return false;
+  }
+  
+  // Core team = all non-premium members (Ferni, Maya, Peter, Alex, Jordan)
+  const coreTeam = TEAM_MEMBERS.filter((m) => !m.premium);
+  return coreTeam.every((member) => currentState!.unlockedMembers.has(member.id));
+}
+
+/**
  * Get unlock status for a specific member
  */
 export function getMemberStatus(memberId: TeamMemberId): MemberUnlockStatus {
@@ -544,22 +574,6 @@ export function onAlmostThere(
 // ============================================================================
 // UI HELPERS
 // ============================================================================
-
-/**
- * Check if all core team members are unlocked.
- * Marketplace agents require the full team to be unlocked first.
- */
-export function isFullTeamUnlocked(): boolean {
-  if (!currentState) return false;
-
-  // Check that all team members are unlocked
-  for (const member of TEAM_MEMBERS) {
-    if (!currentState.unlockedMembers.has(member.id)) {
-      return false;
-    }
-  }
-  return true;
-}
 
 /**
  * Get CSS classes for a team member based on unlock status

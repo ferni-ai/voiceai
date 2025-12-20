@@ -200,16 +200,35 @@ export function addChallengingDirectness(text: string, _emotion: string): string
 /**
  * Add silence where Nayan would naturally pause
  * Silence is teaching, not absence
+ *
+ * Voice guidance specifies:
+ * - 300ms: Between thoughts
+ * - 500ms: Before wisdom
+ * - 700ms: Letting truth settle
+ * - 1000ms: Rare, profound silence
  */
 export function addProfoundPauses(text: string, _emotion: string): string {
   let result = text;
 
-  // After questions, longer pauses for reflection
+  // After questions, longer pauses for reflection (700ms - letting truth settle)
   result = result.replace(/\?(\s*)/g, (match, space) => {
-    return `?<break time="400ms"/>${space}`;
+    return `?<break time="700ms"/>${space}`;
   });
 
-  // Before important statements
+  // Peak wisdom moments - RARE, 1000ms silence
+  const peakWisdomPatterns = [
+    /\b(the seeker is the sought)\b/gi,
+    /\b(the question is the answer)\b/gi,
+    /\b(existence experiencing itself)\b/gi,
+  ];
+
+  peakWisdomPatterns.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<break time="1000ms"/><speed ratio="0.70"/><volume ratio="1.05"/>${match}<volume ratio="1.0"/><break time="600ms"/>`;
+    });
+  });
+
+  // Before important statements (500ms - before wisdom)
   const importantMarkers = [
     /\b(the truth is|here is the truth|listen)\b/gi,
     /\b(understand this|know this|remember this)\b/gi,
@@ -218,8 +237,17 @@ export function addProfoundPauses(text: string, _emotion: string): string {
 
   importantMarkers.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
-      return `<break time="350ms"/><speed ratio="0.75"/>${match}`;
+      return `<break time="500ms"/><speed ratio="0.75"/>${match}`;
     });
+  });
+
+  // After periods in philosophical statements, add settling pause (300ms)
+  result = result.replace(/\.(\s+)([A-Z])/g, (match, space, letter) => {
+    // Only add if not already has a break
+    if (!match.includes('<break')) {
+      return `.<break time="300ms"/>${space}${letter}`;
+    }
+    return match;
   });
 
   return result;
@@ -355,16 +383,20 @@ export function applyNayanPatelSpeechTraits(
  * Configuration for Nayan Patel's speech traits
  */
 export const NAYAN_PATEL_SPEECH_CONFIG = {
-  /** Base speech speed (deliberate, measured) */
+  /** Base speech speed (deliberate, measured - slower than default) */
   baseSpeed: 0.82,
   /** Whether to enable profound pauses */
   enableProfoundPauses: true,
-  /** Pause duration multiplier (1.0 = normal) */
-  pauseMultiplier: 1.3,
+  /** Pause duration multiplier (1.5 = 50% longer pauses for meditative feel) */
+  pauseMultiplier: 1.5,
   /** Whether to enable paradox emphasis */
   enableParadoxEmphasis: true,
   /** Whether to enable storytelling mode */
   enableStorytellingMode: true,
   /** Whether to enable challenging directness */
   enableChallengingDirectness: true,
+  /** Maximum pause duration in ms (voice guidance: up to 1000ms) */
+  maxPauseDuration: 1000,
+  /** Whether to use silence as teaching tool */
+  silenceAsTeaching: true,
 } as const;

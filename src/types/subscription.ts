@@ -94,6 +94,12 @@ export interface TierConfig {
   /** Access to cosmetics shop */
   cosmeticsAccess: boolean;
 
+  /**
+   * Soft conversation cap per month (triggers upgrade prompt, doesn't block)
+   * null = no soft cap (paid tiers)
+   */
+  softConversationCap: number | null;
+
   /** Monthly price in cents (for display) */
   priceInCents: number;
 
@@ -136,6 +142,9 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
     familySharing: false,
     betaFeatures: false,
     cosmeticsAccess: false, // Can view but not purchase
+    // Soft cap at 30 conversations/month - doesn't block, just prompts
+    // Configurable via env var for A/B testing (default: 30)
+    softConversationCap: parseInt(process.env.FREE_SOFT_CAP || '30', 10),
     priceInCents: 0,
     annualPriceInCents: 0,
     annualSavingsPerMonth: 0,
@@ -155,6 +164,7 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
     familySharing: false,
     betaFeatures: true,
     cosmeticsAccess: true,
+    softConversationCap: null, // No cap for paying members
     priceInCents: 1000, // $10/month (round number feels like "chipping in")
     annualPriceInCents: 10000, // $100/year = $8.33/month (2 months free!)
     annualSavingsPerMonth: 167, // Save $1.67/month ($20/year)
@@ -181,6 +191,7 @@ export const TIER_CONFIGS: Record<SubscriptionTier, TierConfig> = {
     familySharing: true,
     betaFeatures: true,
     cosmeticsAccess: true,
+    softConversationCap: null, // No cap for paying members
     priceInCents: 2000, // $20/month (round number)
     annualPriceInCents: 20000, // $200/year = $16.67/month (2 months free!)
     annualSavingsPerMonth: 333, // Save $3.33/month ($40/year)
@@ -492,6 +503,23 @@ export interface UsageStatus {
 
   /** Team access level */
   teamAccess: 'ferni-only' | 'core-team' | 'full-team';
+
+  // ============== SOFT CAP FIELDS (FinOps) ==============
+
+  /** Soft conversation cap (triggers prompt, doesn't block) */
+  softConversationCap: number | null;
+
+  /** Conversations used this month toward soft cap */
+  conversationsUsed: number;
+
+  /** Whether approaching soft cap (80%+) */
+  approachingSoftCap: boolean;
+
+  /** Whether at or past soft cap */
+  pastSoftCap: boolean;
+
+  /** Soft cap warning message (if applicable) */
+  softCapMessage: string | null;
 }
 
 // ============================================================================
@@ -619,6 +647,11 @@ export function createFreshUsage(): MonthlyUsage {
  * - Free users can talk to Ferni unlimited times
  * - Sessions are limited to 7 minutes (like a Fortnite match)
  * - Subscribers get unlimited session time + team access
+ *
+ * SOFT CAPS (FinOps):
+ * - Free tier has soft cap at 30 convos/month (configurable)
+ * - Doesn't block - just triggers gentle upgrade prompt
+ * - Helps with cost management without hurting user experience
  */
 export function calculateUsageStatus(subscription: SubscriptionData): UsageStatus {
   const config = TIER_CONFIGS[subscription.tier];
@@ -644,6 +677,33 @@ export function calculateUsageStatus(subscription: SubscriptionData): UsageStatu
   const atLimit = false;
   const approachingLimit = false;
 
+  // ============== SOFT CAP CALCULATIONS (FinOps) ==============
+  const softConversationCap = config.softConversationCap;
+  const conversationsUsed = usage.conversationCount;
+
+  // Check soft cap status (only for tiers with a cap)
+  let approachingSoftCap = false;
+  let pastSoftCap = false;
+  let softCapMessage: string | null = null;
+
+  if (softConversationCap !== null) {
+    const softCapUsage = conversationsUsed / softConversationCap;
+    approachingSoftCap = softCapUsage >= 0.8 && softCapUsage < 1.0;
+    pastSoftCap = softCapUsage >= 1.0;
+
+    if (pastSoftCap) {
+      softCapMessage = getSoftCapMessage('pastCap', {
+        count: String(conversationsUsed),
+        cap: String(softConversationCap),
+      });
+    } else if (approachingSoftCap) {
+      const remaining = softConversationCap - conversationsUsed;
+      softCapMessage = getSoftCapMessage('approaching', {
+        remaining: String(remaining),
+      });
+    }
+  }
+
   // Generate human-readable status
   let statusMessage: string;
   if (subscription.tier !== 'free') {
@@ -666,7 +726,56 @@ export function calculateUsageStatus(subscription: SubscriptionData): UsageStatu
     approachingLimit,
     atLimit,
     teamAccess: config.teamAccess,
+    // Soft cap fields
+    softConversationCap,
+    conversationsUsed,
+    approachingSoftCap,
+    pastSoftCap,
+    softCapMessage,
   };
+}
+
+/**
+ * Soft cap messages - warm, human, no pressure
+ *
+ * FOUNDERS FUND PHILOSOPHY:
+ * - Never make user feel bad for using the product
+ * - Frame as "we're building this together"
+ * - Support is optional but valuable
+ */
+const SOFT_CAP_MESSAGES = {
+  /** Approaching soft cap (80%+) */
+  approaching: [
+    "We've been talking a lot this month - I love it! Just a heads up: Founding Members help keep Ferni free for everyone. No pressure, just wanted you to know.",
+    "You've been using Ferni a lot this month - that's exactly what we hoped for! If you find value in our conversations, consider becoming a Founding Member.",
+    "Our conversations have been great this month! Founding Members get unlimited time and support what we're building together.",
+  ],
+
+  /** Past soft cap (100%+) */
+  pastCap: [
+    "You've had {count} conversations this month - you're really getting value from Ferni! I'll always be here. If you want to give back, Founding Members help keep this free for everyone.",
+    "Wow, {count} conversations! I'm so glad we've connected this much. Ferni will always be free, but Founding Members help us keep it that way for everyone.",
+    "Our {count}th conversation this month! You're one of my most engaged friends. No limits here - but if you want to support what we're building, consider becoming a Founder.",
+  ],
+} as const;
+
+/**
+ * Get a random soft cap message with variable substitution
+ */
+function getSoftCapMessage(
+  category: keyof typeof SOFT_CAP_MESSAGES,
+  variables?: Record<string, string>
+): string {
+  const messages = SOFT_CAP_MESSAGES[category];
+  const message = messages[Math.floor(Math.random() * messages.length)];
+
+  if (!variables) return message;
+
+  let result: string = message;
+  for (const [key, value] of Object.entries(variables)) {
+    result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
+  }
+  return result;
 }
 
 // ============================================================================

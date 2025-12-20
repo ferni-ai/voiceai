@@ -55,6 +55,9 @@ import { awardSeedsForConversation } from '../../api/roadmap-routes.js';
 // Event cleanup registry for tracking and cleaning up event handlers
 import { runSessionCleanup as runRegistryCleanup } from '../session/event-cleanup-registry.js';
 
+// FinOps cost tracking
+import { finops } from '../../services/observability/finops.js';
+
 // FIX AUDIT: Import proper types for event handlers instead of using `any`
 import type { HandoffEventPayload } from '../shared/handoff-handler.js';
 
@@ -166,6 +169,15 @@ export async function handleSessionCleanup(ctx: CleanupContext): Promise<void> {
     const sessionDurationMs = services?.sessionStartTime
       ? Date.now() - services.sessionStartTime
       : 0;
+
+    // End FinOps session tracking
+    const sessionCost = finops.endSession(sessionId);
+    if (sessionCost) {
+      diag.session('FinOps session ended', {
+        totalCost: sessionCost.totalCost.toFixed(4),
+        durationMinutes: sessionCost.durationMinutes.toFixed(1),
+      });
+    }
 
     // Emit async event for background processing
     emitConversationEnd({

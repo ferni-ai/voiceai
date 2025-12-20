@@ -6,7 +6,7 @@
  */
 
 import { createLogger } from '../utils/logger.js';
-import { apiPost, apiDelete, getUserId } from '../utils/api.js';
+import { apiPost, apiDelete, apiGet, getUserId } from '../utils/api.js';
 import type { CustomRitual } from '../ui/ritual-builder.ui.js';
 
 const log = createLogger('Rituals');
@@ -22,6 +22,7 @@ export interface SavedRitual extends CustomRitual {
   streak: number;
   lastCompletedAt: string | null;
   completedDates: string[]; // ISO date strings
+  calendarEventIds?: string[]; // IDs of synced calendar events
 }
 
 export interface RitualsServiceCallbacks {
@@ -66,6 +67,8 @@ class RitualsService {
 
   /**
    * Create a new ritual from the builder
+   *
+   * If scheduleInCalendar is true, will create calendar events via the API.
    */
   async createRitual(ritual: CustomRitual): Promise<SavedRitual> {
     const id = `ritual_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -79,7 +82,16 @@ class RitualsService {
       streak: 0,
       lastCompletedAt: null,
       completedDates: [],
+      calendarEventIds: [],
     };
+
+    // If calendar integration requested, schedule via API
+    if (ritual.scheduleInCalendar) {
+      const calendarResult = await this.scheduleInCalendar(savedRitual);
+      if (calendarResult.calendarEventIds?.length) {
+        savedRitual.calendarEventIds = calendarResult.calendarEventIds;
+      }
+    }
 
     this.rituals.set(id, savedRitual);
     this.saveToStorage();
@@ -88,9 +100,59 @@ class RitualsService {
     await this.syncToBackend(savedRitual);
 
     this.callbacks.onRitualCreated?.(savedRitual);
-    log.info('Ritual created', { id, name: ritual.name });
+    log.info('Ritual created', { 
+      id, 
+      name: ritual.name,
+      hasCalendar: (savedRitual.calendarEventIds?.length || 0) > 0
+    });
 
     return savedRitual;
+  }
+
+  /**
+   * Schedule a ritual in the user's calendar
+   */
+  private async scheduleInCalendar(ritual: SavedRitual): Promise<{ calendarEventIds?: string[] }> {
+    try {
+      const durationMinutes = this.parseDurationToMinutes(ritual.duration);
+
+      const response = await apiPost('/api/practices/schedule', {
+        id: ritual.id,
+        name: ritual.name,
+        description: ritual.description,
+        durationMinutes,
+        frequency: ritual.frequency,
+        preferredTime: ritual.preferredTime,
+        scheduleInCalendar: true,
+        specificTime: ritual.specificTime,
+        reminderMinutes: ritual.reminderMinutes || [5],
+      });
+
+      if (response.ok && response.data) {
+        const data = response.data as { practice?: { calendarEventIds?: string[] } };
+        if (data.practice?.calendarEventIds) {
+          log.info('Ritual scheduled in calendar', { 
+            id: ritual.id, 
+            eventCount: data.practice.calendarEventIds.length 
+          });
+          return { calendarEventIds: data.practice.calendarEventIds };
+        }
+      }
+
+      log.warn('Calendar scheduling returned no events', { id: ritual.id });
+      return {};
+    } catch (err) {
+      log.error('Failed to schedule in calendar', err);
+      return {};
+    }
+  }
+
+  private parseDurationToMinutes(duration: string): number {
+    const match = duration.match(/(\d+)\s*(min|sec)/i);
+    if (!match) return 5;
+    const value = parseInt(match[1], 10);
+    const unit = match[2].toLowerCase();
+    return unit === 'sec' ? Math.ceil(value / 60) : value;
   }
 
   /**
@@ -131,6 +193,11 @@ class RitualsService {
       return false;
     }
 
+    // Delete calendar events if any
+    if (ritual.calendarEventIds?.length) {
+      await this.removeCalendarEvents(id);
+    }
+
     this.rituals.delete(id);
     this.saveToStorage();
 
@@ -141,6 +208,20 @@ class RitualsService {
     log.info('Ritual deleted', { id, name: ritual.name });
 
     return true;
+  }
+
+  /**
+   * Remove calendar events for a ritual
+   */
+  private async removeCalendarEvents(ritualId: string): Promise<void> {
+    try {
+      const result = await apiDelete(`/api/practices/${ritualId}/calendar`);
+      if (result.ok) {
+        log.info('Calendar events removed for ritual', { ritualId });
+      }
+    } catch (err) {
+      log.warn('Failed to remove calendar events', { ritualId, err });
+    }
   }
 
   /**

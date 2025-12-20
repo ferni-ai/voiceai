@@ -108,27 +108,71 @@ export function addInstructionClarity(text: string, _emotion: string): string {
 }
 
 // =============================================================================
-// EFFICIENCY PATTERNS
+// CALMING PRESENCE (Critical - Alex's core purpose)
+// =============================================================================
+
+/**
+ * Add calming presence for overwhelmed moments
+ * Voice guidance: "SLOWER, not faster" when anxious
+ *
+ * When they're overwhelmed, go SLOWER, not faster.
+ */
+export function addCalmingPresence(text: string, _emotion: string): string {
+  let result = text;
+
+  // Core calming phrases - these get the SLOWEST treatment
+  const calmingPhrases = [
+    /\b(breathe)\b/gi,
+    /\b(one thing at a time)\b/gi,
+    /\b(we['']re going to figure this out)\b/gi,
+    /\b(it['']s okay)\b/gi,
+    /\b(hey\.?)\b/gi, // Just "Hey." is grounding
+  ];
+
+  calmingPhrases.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<emotion value="calm"/><speed ratio="0.85"/><volume ratio="0.95"/>${match}<break time="200ms"/><volume ratio="1.0"/><speed ratio="0.92"/>`;
+    });
+  });
+
+  return result;
+}
+
+// =============================================================================
+// EFFICIENCY PATTERNS (for wins, not rushing)
 // =============================================================================
 
 /**
  * Add emphasis to efficiency-focused statements
- * Alex values respecting people's time
+ * Alex values respecting people's time - but efficiency is LOVE, not cold
  */
 export function addEfficiencyEmphasis(text: string, _emotion: string): string {
   let result = text;
 
+  // These show efficiency as caring, not rushing
   const efficiencyPhrases = [
     /\b(save(s)? (you )?time)\b/gi,
     /\b(more efficient|less friction)\b/gi,
     /\b(handle(d)?|handled|got it covered)\b/gi,
     /\b(taken care of|sorted|organized)\b/gi,
-    /\b(quick(ly)?|fast(er)?|streamline(d)?)\b/gi,
+    /\b(one less thing to worry about)\b/gi,
+    /\b(you['']ve got enough going on)\b/gi,
   ];
 
   efficiencyPhrases.forEach((pattern) => {
     result = result.replace(pattern, (match) => {
-      return `<speed ratio="0.92"/>${match}`;
+      return `<emotion value="affectionate"/><speed ratio="0.92"/>${match}`;
+    });
+  });
+
+  // Quick/fast only in positive contexts (wins)
+  const speedPhrases = [
+    /\b(quick(ly)?|fast(er)?|streamline(d)?)\b/gi,
+  ];
+
+  speedPhrases.forEach((pattern) => {
+    result = result.replace(pattern, (match) => {
+      return `<speed ratio="0.95"/>${match}`;
     });
   });
 
@@ -322,6 +366,8 @@ export function addPlantWarmth(text: string, _emotion: string): string {
  * This is the main entry point for persona-specific SSML processing.
  * It applies all of Alex's unique speech patterns to the text.
  *
+ * NOTE: Calming presence is TIER 1 - most important for Alex's purpose
+ *
  * @param text - The text to process
  * @param emotion - The detected emotion
  * @param _baseSpeed - The base speech speed (unused but kept for API compatibility)
@@ -336,7 +382,8 @@ export function applyAlexChenSpeechTraits(
 ): string {
   let processedText = text;
 
-  // TIER 1: SIGNATURE PHRASES
+  // TIER 1: CALMING PRESENCE (Alex's core purpose)
+  processedText = addCalmingPresence(processedText, emotion);
   processedText = addCatchphraseEmphasis(processedText, emotion);
   processedText = addOrganizationVocabulary(processedText, emotion);
 
@@ -361,14 +408,18 @@ export function applyAlexChenSpeechTraits(
  * Configuration for Alex Chen's speech traits
  */
 export const ALEX_CHEN_SPEECH_CONFIG = {
-  /** Base speech speed (efficient, clear pace) */
-  baseSpeed: 0.94,
+  /** Base speech speed (calmer default - efficiency is love, not rush) */
+  baseSpeed: 0.92,
+  /** Whether to enable calming presence (Alex's core purpose) */
+  enableCalmingPresence: true,
+  /** Speed for calming moments (slower for anxiety) */
+  calmingSpeed: 0.85,
   /** Whether to enable instruction clarity */
   enableInstructionClarity: true,
   /** Whether to enable warm moments */
   enableWarmMoments: true,
   /** Probability of warm moments showing through (0-1) */
-  warmthProbability: 0.2,
+  warmthProbability: 0.25,
   /** Whether to enable boundary language */
   enableBoundaryLanguage: true,
 } as const;

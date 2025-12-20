@@ -32,6 +32,39 @@ import {
 } from '../services/calendar/calendar-intelligence.js';
 import { appleCalendarProvider } from '../services/calendar/providers/apple-provider.js';
 import { outlookCalendarProvider } from '../services/calendar/providers/outlook-provider.js';
+import { googleCalendarProvider } from '../services/calendar/providers/google-provider.js';
+import {
+  checkCalendarRateLimit,
+  getCalendarRateLimitStatus,
+} from '../services/calendar/utils/rate-limiter.js';
+import {
+  getSelectedCalendars,
+  updateSelectedCalendars,
+} from '../services/calendar/calendar-selection.js';
+import {
+  getPendingConflicts,
+  getConflictSummary,
+  resolveConflict,
+  dismissConflict,
+  autoResolveConflicts,
+  getResolutionPreference,
+  setResolutionPreference,
+} from '../services/calendar/conflict-resolver.js';
+import type { SelectedCalendar, CalendarProvider as ProviderType, ConflictResolution } from '../services/calendar/types.js';
+
+// Webhook and polling services for real-time sync
+import {
+  stopAllUserChannels as stopGoogleWatchChannels,
+} from '../services/calendar/webhooks/google-webhook.js';
+import {
+  createSubscription as createOutlookSubscription,
+  stopAllUserSubscriptions as stopOutlookSubscriptions,
+} from '../services/calendar/webhooks/outlook-webhook.js';
+import {
+  registerUser as registerApplePolling,
+  unregisterUser as unregisterApplePolling,
+  pollUser as pollAppleUser,
+} from '../services/calendar/polling/apple-polling.js';
 
 const log = getLogger();
 
@@ -46,6 +79,38 @@ const log = getLogger();
  */
 function sendJson(res: ServerResponse, data: unknown, status = 200): void {
   sendJSON(res, data, status);
+}
+
+/**
+ * Check rate limit and apply headers
+ * Returns true if request should be blocked
+ */
+function checkRateLimitAndApply(
+  res: ServerResponse,
+  userId: string,
+  operation: 'sync' | 'credential'
+): boolean {
+  const rateLimit = checkCalendarRateLimit(userId, operation);
+
+  // Apply rate limit headers
+  for (const [key, value] of Object.entries(rateLimit.headers)) {
+    res.setHeader(key, value);
+  }
+
+  if (!rateLimit.allowed) {
+    sendJson(
+      res,
+      {
+        error: 'Rate limit exceeded',
+        retryAfter: rateLimit.retryAfterSeconds,
+        message: `Too many requests. Try again in ${rateLimit.retryAfterSeconds} seconds.`,
+      },
+      429
+    );
+    return true;
+  }
+
+  return false;
 }
 
 // ============================================================================
@@ -103,6 +168,75 @@ async function handleStatus(
 }
 
 /**
+ * GET /api/calendar/sync-status - Get detailed sync status for all providers
+ */
+async function handleSyncStatus(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<void> {
+  try {
+    // Check each provider
+    const [googleConnected, appleConnected, outlookConnected] = await Promise.all([
+      isCalendarConfigured(userId),
+      appleCalendarProvider.isConnected(userId),
+      outlookCalendarProvider.isConnected(userId),
+    ]);
+
+    // Get conflict summary
+    const conflicts = await getConflictSummary(userId);
+
+    // Get rate limit status
+    const rateLimits = getCalendarRateLimitStatus(userId);
+
+    sendJson(res, {
+      success: true,
+      nativeCalendar: {
+        active: true,
+        status: 'ready',
+      },
+      providers: {
+        google: {
+          connected: googleConnected,
+          status: googleConnected ? 'synced' : 'disconnected',
+          configured: !!(process.env.GOOGLE_CALENDAR_CLIENT_ID),
+          webhooksEnabled: true, // Google supports webhooks
+        },
+        apple: {
+          connected: appleConnected,
+          status: appleConnected ? 'synced' : 'disconnected',
+          configured: true,
+          webhooksEnabled: false, // CalDAV doesn't support push
+        },
+        outlook: {
+          connected: outlookConnected,
+          status: outlookConnected ? 'synced' : 'disconnected',
+          configured: outlookCalendarProvider.isConfigured(),
+          webhooksEnabled: false, // Not implemented yet
+        },
+      },
+      conflicts: {
+        pending: conflicts.pending,
+        total: conflicts.total,
+      },
+      rateLimits: {
+        sync: {
+          remaining: rateLimits.sync.remaining,
+          limit: 100,
+        },
+        credential: {
+          remaining: rateLimits.credential.remaining,
+          limit: 30,
+        },
+      },
+    });
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to get sync status');
+    sendError(res, 'Failed to get sync status', 500);
+  }
+}
+
+/**
  * POST /api/calendar/sync - Sync calendar to outreach timing
  */
 async function handleSync(
@@ -110,6 +244,11 @@ async function handleSync(
   res: ServerResponse,
   userId: string
 ): Promise<void> {
+  // Rate limit sync operations
+  if (checkRateLimitAndApply(res, userId, 'sync')) {
+    return;
+  }
+
   try {
     const isConnected = await isCalendarConfigured(userId);
 
@@ -142,7 +281,20 @@ async function handleDisconnect(
   res: ServerResponse,
   userId: string
 ): Promise<void> {
+  // Rate limit credential operations
+  if (checkRateLimitAndApply(res, userId, 'credential')) {
+    return;
+  }
+
   try {
+    // Stop webhook watch channels first
+    try {
+      await stopGoogleWatchChannels(userId);
+      log.info({ userId }, '📅 Google Calendar webhooks stopped');
+    } catch (watchError) {
+      log.warn({ error: String(watchError), userId }, '📅 Error stopping Google webhooks (non-blocking)');
+    }
+
     // Delete stored tokens
     await deleteUserTokens(userId);
 
@@ -151,6 +303,280 @@ async function handleDisconnect(
   } catch (error) {
     log.error({ error, userId }, 'Failed to disconnect calendar');
     sendError(res, 'Failed to disconnect calendar', 500);
+  }
+}
+
+/**
+ * GET /api/calendar/rate-limit - Get rate limit status
+ */
+async function handleRateLimitStatus(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<void> {
+  const status = getCalendarRateLimitStatus(userId);
+  sendJson(res, {
+    success: true,
+    limits: {
+      sync: {
+        remaining: status.sync.remaining,
+        resetAt: status.sync.resetAt.toISOString(),
+        limit: 100,
+        windowSeconds: 60,
+      },
+      credential: {
+        remaining: status.credential.remaining,
+        resetAt: status.credential.resetAt.toISOString(),
+        limit: 30,
+        windowSeconds: 60,
+      },
+      global: {
+        remaining: status.global.remaining,
+        resetAt: status.global.resetAt.toISOString(),
+        limit: 1000,
+        windowSeconds: 60,
+      },
+    },
+  });
+}
+
+// ============================================================================
+// CALENDAR SELECTION HANDLERS
+// ============================================================================
+
+/**
+ * GET /calendar/{provider}/calendars - List available calendars
+ */
+async function handleListCalendars(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  userId: string,
+  provider: ProviderType
+): Promise<void> {
+  try {
+    const calendars = await getSelectedCalendars(userId, provider);
+
+    sendJson(res, {
+      success: true,
+      provider,
+      calendars,
+      enabledCount: calendars.filter((c) => c.enabled).length,
+      totalCount: calendars.length,
+    });
+  } catch (error) {
+    log.error({ error, userId, provider }, 'Failed to list calendars');
+    sendError(res, 'Failed to list calendars', 500);
+  }
+}
+
+/**
+ * POST /calendar/{provider}/calendars/select - Update selected calendars
+ */
+async function handleSelectCalendars(
+  req: IncomingMessage,
+  res: ServerResponse,
+  userId: string,
+  provider: ProviderType
+): Promise<void> {
+  // Rate limit credential operations
+  if (checkRateLimitAndApply(res, userId, 'credential')) {
+    return;
+  }
+
+  try {
+    const body = await parseBody<{
+      calendar_ids?: string[];
+      calendarIds?: string[];
+    }>(req);
+
+    const selectedIds = body.calendar_ids || body.calendarIds || [];
+
+    if (!Array.isArray(selectedIds)) {
+      sendError(res, 'calendar_ids must be an array', 400);
+      return;
+    }
+
+    const result = await updateSelectedCalendars(userId, provider, selectedIds);
+
+    if (result.success) {
+      sendJson(res, {
+        success: true,
+        provider,
+        calendars: result.calendars,
+        enabledCount: result.calendars.filter((c: SelectedCalendar) => c.enabled).length,
+        message: 'Calendar selection updated',
+      });
+      log.info({ userId, provider, selectedIds }, 'Updated calendar selection');
+    } else {
+      sendJson(res, {
+        success: false,
+        error: 'Failed to update calendar selection',
+      });
+    }
+  } catch (error) {
+    log.error({ error, userId, provider }, 'Failed to update calendar selection');
+    sendError(res, 'Failed to update calendar selection', 500);
+  }
+}
+
+// ============================================================================
+// CONFLICT RESOLUTION HANDLERS
+// ============================================================================
+
+/**
+ * GET /calendar/conflicts - Get pending conflicts
+ */
+async function handleGetConflicts(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<void> {
+  try {
+    const [conflicts, summary, preference] = await Promise.all([
+      getPendingConflicts(userId),
+      getConflictSummary(userId),
+      getResolutionPreference(userId),
+    ]);
+
+    sendJson(res, {
+      success: true,
+      conflicts,
+      summary,
+      preference,
+    });
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to get conflicts');
+    sendError(res, 'Failed to get conflicts', 500);
+  }
+}
+
+/**
+ * POST /calendar/conflicts/:id/resolve - Resolve a specific conflict
+ */
+async function handleResolveConflict(
+  req: IncomingMessage,
+  res: ServerResponse,
+  userId: string,
+  conflictId: string
+): Promise<void> {
+  if (checkRateLimitAndApply(res, userId, 'sync')) {
+    return;
+  }
+
+  try {
+    const body = await parseBody<{
+      resolution?: ConflictResolution;
+    }>(req);
+
+    const resolution = body.resolution || 'newest-wins';
+
+    const result = await resolveConflict(userId, conflictId, resolution, 'user');
+
+    if (result.success) {
+      sendJson(res, {
+        success: true,
+        message: 'Conflict resolved',
+        resolution,
+      });
+    } else {
+      sendJson(res, {
+        success: false,
+        error: 'Failed to resolve conflict',
+      });
+    }
+  } catch (error) {
+    log.error({ error, userId, conflictId }, 'Failed to resolve conflict');
+    sendError(res, 'Failed to resolve conflict', 500);
+  }
+}
+
+/**
+ * DELETE /calendar/conflicts/:id - Dismiss a conflict
+ */
+async function handleDismissConflict(
+  _req: IncomingMessage,
+  res: ServerResponse,
+  userId: string,
+  conflictId: string
+): Promise<void> {
+  try {
+    const success = await dismissConflict(userId, conflictId);
+
+    sendJson(res, {
+      success,
+      message: success ? 'Conflict dismissed' : 'Failed to dismiss conflict',
+    });
+  } catch (error) {
+    log.error({ error, userId, conflictId }, 'Failed to dismiss conflict');
+    sendError(res, 'Failed to dismiss conflict', 500);
+  }
+}
+
+/**
+ * POST /calendar/conflicts/auto-resolve - Auto-resolve all conflicts
+ */
+async function handleAutoResolve(
+  req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<void> {
+  if (checkRateLimitAndApply(res, userId, 'sync')) {
+    return;
+  }
+
+  try {
+    const body = await parseBody<{
+      strategy?: ConflictResolution;
+    }>(req);
+
+    const strategy = body.strategy || 'newest-wins';
+    const result = await autoResolveConflicts(userId, strategy);
+
+    sendJson(res, {
+      success: true,
+      ...result,
+      message: `Auto-resolved ${result.resolved} conflicts`,
+    });
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to auto-resolve conflicts');
+    sendError(res, 'Failed to auto-resolve conflicts', 500);
+  }
+}
+
+/**
+ * PUT /calendar/conflicts/preference - Update resolution preference
+ */
+async function handleSetPreference(
+  req: IncomingMessage,
+  res: ServerResponse,
+  userId: string
+): Promise<void> {
+  try {
+    const body = await parseBody<{
+      strategy?: ConflictResolution;
+    }>(req);
+
+    if (!body.strategy) {
+      sendError(res, 'strategy is required', 400);
+      return;
+    }
+
+    const valid: ConflictResolution[] = ['ferni-wins', 'provider-wins', 'newest-wins', 'manual'];
+    if (!valid.includes(body.strategy)) {
+      sendError(res, `Invalid strategy. Must be one of: ${valid.join(', ')}`, 400);
+      return;
+    }
+
+    const success = await setResolutionPreference(userId, body.strategy);
+
+    sendJson(res, {
+      success,
+      preference: body.strategy,
+      message: success ? 'Preference updated' : 'Failed to update preference',
+    });
+  } catch (error) {
+    log.error({ error, userId }, 'Failed to set preference');
+    sendError(res, 'Failed to set preference', 500);
   }
 }
 
@@ -403,6 +829,11 @@ async function handleAppleConnect(
   res: ServerResponse,
   userId: string
 ): Promise<void> {
+  // Rate limit credential operations (more restrictive)
+  if (checkRateLimitAndApply(res, userId, 'credential')) {
+    return;
+  }
+
   try {
     const body = await parseBody<{
       apple_id?: string;
@@ -421,11 +852,17 @@ async function handleAppleConnect(
     const success = await appleCalendarProvider.storeCredentials(userId, appleId, appPassword);
 
     if (success) {
+      // Register user for periodic polling (Apple doesn't support webhooks)
+      await registerApplePolling(userId);
+
+      // Trigger initial sync
+      await pollAppleUser(userId);
+
       sendJson(res, {
         success: true,
         message: 'Apple Calendar connected',
       });
-      log.info({ userId, appleId }, '🍎 Apple Calendar connected');
+      log.info({ userId, appleId }, '🍎 Apple Calendar connected and polling registered');
     } else {
       sendJson(res, {
         success: false,
@@ -447,9 +884,13 @@ async function handleAppleDisconnect(
   userId: string
 ): Promise<void> {
   try {
+    // Unregister from polling first
+    await unregisterApplePolling(userId);
+
+    // Then disconnect the provider
     await appleCalendarProvider.disconnect(userId);
     sendJson(res, { success: true });
-    log.info({ userId }, '🍎 Apple Calendar disconnected');
+    log.info({ userId }, '🍎 Apple Calendar disconnected and polling unregistered');
   } catch (error) {
     log.error({ error, userId }, 'Failed to disconnect Apple Calendar');
     sendError(res, 'Failed to disconnect Apple Calendar', 500);
@@ -464,6 +905,11 @@ async function handleAppleSync(
   res: ServerResponse,
   userId: string
 ): Promise<void> {
+  // Rate limit sync operations
+  if (checkRateLimitAndApply(res, userId, 'sync')) {
+    return;
+  }
+
   try {
     const connected = await appleCalendarProvider.isConnected(userId);
 
@@ -516,6 +962,14 @@ async function handleOutlookCallback(
     const success = await outlookCalendarProvider.handleAuthCallback(userId, code, redirectUri);
 
     if (success) {
+      // Set up webhook subscription for real-time sync
+      const subscription = await createOutlookSubscription(userId);
+      if (subscription) {
+        log.info({ userId, subscriptionId: subscription.subscriptionId }, '📧 Outlook webhook subscription created');
+      } else {
+        log.warn({ userId }, '📧 Could not create Outlook webhook (webhooks may not be enabled)');
+      }
+
       // Redirect to settings with success message
       res.writeHead(302, {
         Location: '/settings?calendar=outlook&status=connected',
@@ -546,9 +1000,13 @@ async function handleOutlookDisconnect(
   userId: string
 ): Promise<void> {
   try {
+    // Stop webhook subscriptions first
+    await stopOutlookSubscriptions(userId);
+
+    // Then disconnect the provider
     await outlookCalendarProvider.disconnect(userId);
     sendJson(res, { success: true });
-    log.info({ userId }, '📧 Outlook Calendar disconnected');
+    log.info({ userId }, '📧 Outlook Calendar disconnected and webhooks stopped');
   } catch (error) {
     log.error({ error, userId }, 'Failed to disconnect Outlook Calendar');
     sendError(res, 'Failed to disconnect Outlook Calendar', 500);
@@ -563,6 +1021,11 @@ async function handleOutlookSync(
   res: ServerResponse,
   userId: string
 ): Promise<void> {
+  // Rate limit sync operations
+  if (checkRateLimitAndApply(res, userId, 'sync')) {
+    return;
+  }
+
   try {
     const connected = await outlookCalendarProvider.isConnected(userId);
 
@@ -646,11 +1109,25 @@ export async function handleCalendarRoutes(
   }
 
   // ========================================================================
+  // RATE LIMIT STATUS
+  // ========================================================================
+
+  if (normalizedPath === '/calendar/rate-limit' && req.method === 'GET') {
+    await handleRateLimitStatus(req, res, userId);
+    return true;
+  }
+
+  // ========================================================================
   // GOOGLE CALENDAR ROUTES (original)
   // ========================================================================
 
   if (normalizedPath === '/calendar/status' && req.method === 'GET') {
     await handleStatus(req, res, userId);
+    return true;
+  }
+
+  if (normalizedPath === '/calendar/sync-status' && req.method === 'GET') {
+    await handleSyncStatus(req, res, userId);
     return true;
   }
 
@@ -711,6 +1188,75 @@ export async function handleCalendarRoutes(
 
   if (normalizedPath === '/calendar/outlook/sync' && req.method === 'POST') {
     await handleOutlookSync(req, res, userId);
+    return true;
+  }
+
+  // ========================================================================
+  // CALENDAR SELECTION ROUTES (ALL PROVIDERS)
+  // ========================================================================
+
+  // Google calendars
+  if (normalizedPath === '/calendar/google/calendars' && req.method === 'GET') {
+    await handleListCalendars(req, res, userId, 'google');
+    return true;
+  }
+
+  if (normalizedPath === '/calendar/google/calendars/select' && req.method === 'POST') {
+    await handleSelectCalendars(req, res, userId, 'google');
+    return true;
+  }
+
+  // Apple calendars
+  if (normalizedPath === '/calendar/apple/calendars' && req.method === 'GET') {
+    await handleListCalendars(req, res, userId, 'apple');
+    return true;
+  }
+
+  if (normalizedPath === '/calendar/apple/calendars/select' && req.method === 'POST') {
+    await handleSelectCalendars(req, res, userId, 'apple');
+    return true;
+  }
+
+  // Outlook calendars
+  if (normalizedPath === '/calendar/outlook/calendars' && req.method === 'GET') {
+    await handleListCalendars(req, res, userId, 'outlook');
+    return true;
+  }
+
+  if (normalizedPath === '/calendar/outlook/calendars/select' && req.method === 'POST') {
+    await handleSelectCalendars(req, res, userId, 'outlook');
+    return true;
+  }
+
+  // ========================================================================
+  // CONFLICT RESOLUTION ROUTES
+  // ========================================================================
+
+  if (normalizedPath === '/calendar/conflicts' && req.method === 'GET') {
+    await handleGetConflicts(req, res, userId);
+    return true;
+  }
+
+  if (normalizedPath === '/calendar/conflicts/auto-resolve' && req.method === 'POST') {
+    await handleAutoResolve(req, res, userId);
+    return true;
+  }
+
+  if (normalizedPath === '/calendar/conflicts/preference' && req.method === 'PUT') {
+    await handleSetPreference(req, res, userId);
+    return true;
+  }
+
+  // Dynamic conflict routes (resolve/dismiss)
+  const conflictResolveMatch = normalizedPath.match(/^\/calendar\/conflicts\/([^/]+)\/resolve$/);
+  if (conflictResolveMatch && req.method === 'POST') {
+    await handleResolveConflict(req, res, userId, conflictResolveMatch[1]);
+    return true;
+  }
+
+  const conflictDismissMatch = normalizedPath.match(/^\/calendar\/conflicts\/([^/]+)$/);
+  if (conflictDismissMatch && req.method === 'DELETE') {
+    await handleDismissConflict(req, res, userId, conflictDismissMatch[1]);
     return true;
   }
 

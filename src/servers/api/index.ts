@@ -101,6 +101,9 @@ import { handleGardenRoutes } from '../../api/garden-routes.js';
 import { handleRoadmapRoutes } from '../../api/roadmap-routes.js';
 import { handleMarketingRoutes } from '../../api/marketing-routes.js';
 import { handleSeedsRoutes } from '../../api/seeds-routes.js';
+import { handleCalendarWebhookRoutes } from '../../api/calendar-webhook-routes.js';
+import { handlePracticeCalendarRoutes } from '../../api/routes/practice-calendar.js';
+import { handleFinOpsRoutes } from '../../api/finops-routes.js';
 
 // WebSocket for real-time insights
 import {
@@ -360,6 +363,12 @@ const server = http.createServer(async (req, res) => {
       if (handled) return;
     }
 
+    // FinOps routes
+    if (pathname.startsWith('/api/finops')) {
+      const handled = await handleFinOpsRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
     // Tools analytics routes
     if (pathname.startsWith('/api/tools')) {
       const handled = await handleToolsAnalyticsRoutes(req, res, pathname);
@@ -391,8 +400,20 @@ const server = http.createServer(async (req, res) => {
     }
 
     // Calendar routes
-    if (pathname.startsWith('/api/calendar')) {
+    if (pathname.startsWith('/api/calendar') || pathname.startsWith('/calendar')) {
       const handled = await handleCalendarRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Calendar webhooks (real-time sync from providers)
+    if (pathname.startsWith('/webhooks/calendar')) {
+      const handled = await handleCalendarWebhookRoutes(req, res, pathname);
+      if (handled) return;
+    }
+
+    // Practice-Calendar routes (calendar-integrated practices)
+    if (pathname.startsWith('/api/practices')) {
+      const handled = await handlePracticeCalendarRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
 

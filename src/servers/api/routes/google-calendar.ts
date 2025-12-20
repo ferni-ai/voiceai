@@ -8,6 +8,10 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { createOAuthStateManager } from '../../../utils/ddos-protection.js';
 import * as googleCalendarService from '../../token/oauth/google-calendar.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import {
+  startWatchChannel,
+  stopAllUserChannels as stopAllUserWatchChannels,
+} from '../../../services/calendar/webhooks/google-webhook.js';
 
 const log = createLogger({ module: 'GoogleCalendarRoutes' });
 
@@ -132,14 +136,29 @@ export async function handleGoogleCalendarRoutes(
       };
 
       // Save tokens for this user (async - uses Firestore)
-      await googleCalendarService.saveTokens(stateData.user_id ?? '', {
+      const userId = stateData.user_id ?? '';
+      await googleCalendarService.saveTokens(userId, {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token || '',
         expires_at: Date.now() + tokens.expires_in * 1000,
         scope: tokens.scope,
       });
 
-      log.info({ userId: stateData.user_id ?? 'unknown' }, 'Google Calendar linked');
+      // Set up webhook watch channel for real-time sync
+      if (userId) {
+        try {
+          const watchChannel = await startWatchChannel(userId, 'primary');
+          if (watchChannel) {
+            log.info({ userId, channelId: watchChannel.id }, '📅 Google Calendar webhook watch channel created');
+          } else {
+            log.warn({ userId }, '📅 Could not create Google webhook watch (webhooks may not be enabled)');
+          }
+        } catch (watchError) {
+          log.warn({ error: String(watchError), userId }, '📅 Google webhook setup failed (non-blocking)');
+        }
+      }
+
+      log.info({ userId: userId || 'unknown' }, 'Google Calendar linked');
 
       // Redirect back to app
       const returnUrl = stateData.return_url ?? '/?calendar_linked=true';
@@ -221,6 +240,14 @@ export async function handleGoogleCalendarRoutes(
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'user_id is required' }));
       return true;
+    }
+
+    // Stop webhook watch channels first
+    try {
+      await stopAllUserWatchChannels(userId);
+      log.info({ userId }, '📅 Google Calendar webhooks stopped');
+    } catch (error) {
+      log.warn({ error: String(error), userId }, '📅 Error stopping Google webhooks (non-blocking)');
     }
 
     await googleCalendarService.removeTokens(userId);
