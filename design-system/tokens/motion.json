@@ -405,6 +405,64 @@
         { "partial": "Actually", "tone": "any", "emotion": "curious" }
       ]
     }
+  },
+
+  "cinematicMoments": {
+    "description": "Full-screen cinematic experiences for special occasions",
+    
+    "winterSolstice": {
+      "description": "The shortest day, the longest warmth - a Pixar-quality year reflection",
+      "duration": {
+        "total": 18000,
+        "act1_darkness": 3000,
+        "act2_constellation": 3000,
+        "act3_sunrise": 4000,
+        "act4_gathering": 4000,
+        "act5_promise": 4000
+      },
+      "colors": {
+        "skyTop": "#0d1b2a",
+        "skyMid": "#1b263b",
+        "horizon": "#2c3e50",
+        "dawnHorizon": "#d4a574",
+        "dawnSkyMid": "#2d4a5a",
+        "sunCore": "#f8e8c8",
+        "sunMid": "#f4d9a5",
+        "sunOuter": "#e8c088",
+        "star": "#f0f4ff",
+        "constellation": "rgba(240, 244, 255, 0.4)",
+        "snow": "#ffffff",
+        "fog": "#c4b8a8"
+      },
+      "animations": {
+        "starTwinkle": {
+          "duration": "1000-3000ms",
+          "easing": "sine.inOut"
+        },
+        "sunRise": {
+          "duration": 2000,
+          "easing": "power1.out",
+          "translateY": -350
+        },
+        "snowFall": {
+          "duration": "8000-12000ms",
+          "easing": "none",
+          "particleCount": 30
+        },
+        "teamOrb": {
+          "duration": 300,
+          "easing": "back.out(1.7)",
+          "stagger": 150
+        }
+      },
+      "storyBeats": {
+        "act1": "DAWN - The darkest moment before light (acknowledgment)",
+        "act2": "REFLECTION - Stars that represent memories/growth",
+        "act3": "RETURN - The sun rises (hope)",
+        "act4": "GATHERING - The team comes together (warmth)",
+        "act5": "PROMISE - A commitment for the year ahead"
+      }
+    }
   }
 }
 

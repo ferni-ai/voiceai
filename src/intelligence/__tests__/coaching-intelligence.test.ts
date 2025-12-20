@@ -7,8 +7,8 @@ import {
   detectPatterns,
   generateMirror,
   getAnticipatoryQuestion,
-  type QuestionContext,
 } from '../coaching-questions.js';
+import { type QuestionContext } from '../dynamic-questions.js';
 import {
   detectPatternsInTranscript,
   generatePatternSurfacingQuestion,
@@ -35,6 +35,7 @@ describe('Coaching Questions', () => {
         hourOfDay: 14,
         isWeekend: false,
         turnCount: 10,
+        boundaries: [],
       };
 
       const patterns = detectPatterns(context);
@@ -53,6 +54,7 @@ describe('Coaching Questions', () => {
         hourOfDay: 10,
         isWeekend: false,
         turnCount: 15,
+        boundaries: [],
       };
 
       const patterns = detectPatterns(context);

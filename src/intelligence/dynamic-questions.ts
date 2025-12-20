@@ -590,7 +590,7 @@ export async function generateQuestion(
   const contentHash = hashContent(question);
   recordQuestion(context.sessionId, contentHash);
 
-  const result = {
+  const result: GeneratedQuestion = {
     text: question,
     ssml: `<break time="400ms"/>${question}`,
     intent: {

@@ -132,6 +132,8 @@ export interface UserData {
   lastAgentSpeechEndTime?: number;
   /** Recommended delay before responding (from human turn intelligence) */
   recommendedResponseDelay?: number;
+  /** How long user paused before speaking (ms) - for voice signal analysis */
+  pauseBeforeSpeakingMs?: number;
   lastEmotionAnalysis?: {
     primary: string;
     intensity: number;

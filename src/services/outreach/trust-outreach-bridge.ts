@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { isOutreachTriggerCreationEnabled } from '../../config/feature-flags.js';
 import {
   publishOutreachTrigger,
   type OutreachTriggerPayload,
@@ -108,6 +109,18 @@ export async function evaluateTrustBasedOutreach(
     triggerTypes: [],
     skipped: [],
   };
+
+  // Check feature flag before creating any triggers
+  if (!isOutreachTriggerCreationEnabled()) {
+    log.debug({ userId }, 'Outreach trigger creation disabled via feature flag');
+    return result;
+  }
+
+  // Skip test users
+  if (userId.startsWith('e2e-test') || userId.startsWith('test-') || userId.includes('-test-')) {
+    log.debug({ userId }, 'Skipping trust-based outreach for test user');
+    return result;
+  }
 
   log.debug({ userId }, '🧠 Evaluating trust-based outreach opportunities');
 

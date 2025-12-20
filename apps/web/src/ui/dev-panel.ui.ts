@@ -217,6 +217,15 @@ export function initDevPanel(): void {
   // Show dev indicator
   showDevIndicator();
 
+  // Auto-unlock team when VITE_DEV_PANEL_AUTO=true
+  if (ENV_CONFIG.autoEnable) {
+    // Use setTimeout to ensure services are ready
+    setTimeout(() => {
+      quickUnlockAll();
+      log.info('Auto-unlocked all team members (VITE_DEV_PANEL_AUTO=true)');
+    }, 100);
+  }
+
   log.info('Dev panel initialized (Cmd/Ctrl+Shift+D to open)');
 }
 

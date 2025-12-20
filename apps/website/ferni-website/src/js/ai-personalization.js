@@ -1,13 +1,16 @@
 /**
- * 🧠 AI-Aware Personalization
+ * AI-Aware Personalization System
  * "Better than human" - because we notice things humans forget to notice
  * 
  * Features:
- * - Time-aware greetings: "It's 3:47 AM. Still up?"
- * - Returning visitor recognition with memory
- * - Scroll-depth adaptive CTAs
+ * - Time-aware greetings with emotional intelligence
+ * - Visitor memory with behavioral profiling
+ * - Scroll-depth adaptive CTAs with urgency calibration
  * - Mood-based color temperature shifts
- * - Contextual testimonial selection
+ * - Engagement velocity tracking
+ * - Hesitation detection (pausing = uncertainty)
+ * - Section dwell time analysis
+ * - Predictive intent modeling
  * 
  * Philosophy: The best AI doesn't show off—it just... notices.
  */
@@ -25,6 +28,11 @@
     enableAdaptiveCTAs: true,
     enableMoodShift: true,
     enablePersonalizedTestimonials: true,
+    enableEngagementTracking: true,
+    enableHesitationDetection: true,
+    enablePredictiveHints: true,
+    hesitationThreshold: 3000, // ms of inactivity = hesitation
+    dwellTimeThreshold: 2000,  // ms to count as "reading" a section
     debugMode: false
   };
 
@@ -183,19 +191,66 @@
   };
 
   // ============================================================================
-  // STATE
+  // STATE - Comprehensive behavioral tracking
   // ============================================================================
   
   const state = {
+    // Time
     currentHour: new Date().getHours(),
+    currentMinute: new Date().getMinutes(),
+    
+    // Visitor profile
     visitCount: 0,
     lastVisit: null,
-    maxScrollDepth: 0,
-    currentTimeBlock: null,
     isReturning: false,
     visitorTier: null,
+    totalTimeOnSite: 0,
+    
+    // Current session
+    sessionStart: Date.now(),
+    currentTimeBlock: null,
+    maxScrollDepth: 0,
+    scrollVelocity: 0,
+    lastScrollTime: 0,
+    
+    // Engagement metrics
+    engagement: {
+      sectionsViewed: [],
+      dwellTimes: {},         // section -> ms spent
+      interactionCount: 0,
+      hoverCount: 0,
+      lastActivity: Date.now(),
+      isHesitating: false,
+      hesitationCount: 0,
+      readingSpeed: 'normal', // slow, normal, fast
+    },
+    
+    // Behavioral signals
+    behavior: {
+      scrollDirection: 'down',
+      scrollPatterns: [],     // Track scroll behavior over time
+      revisitedSections: [],  // Sections scrolled back to
+      mouseIdleTime: 0,
+      cursorHeatmap: [],      // Areas of high cursor activity
+    },
+    
+    // Intent prediction
+    intent: {
+      interest: 'unknown',    // high, medium, low
+      readiness: 0,           // 0-100 score
+      friction: [],           // Detected friction points
+      predicted: null,        // Predicted next action
+    },
+    
     initialized: false
   };
+  
+  // ============================================================================
+  // ENGAGEMENT VELOCITY TRACKING
+  // ============================================================================
+  
+  const engagementHistory = [];
+  const ENGAGEMENT_WINDOW = 30000; // 30 second window
 
   // ============================================================================
   // INITIALIZATION

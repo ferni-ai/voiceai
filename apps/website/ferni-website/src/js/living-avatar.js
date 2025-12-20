@@ -180,28 +180,40 @@
     // Check for reduced motion preference
     state.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     
+    // Listen for changes to motion preference
+    window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
+      state.prefersReducedMotion = e.matches;
+    });
+    
     // Find the hero Ferni avatar
     avatarEl = document.querySelector('.hero-ferni');
     if (!avatarEl) {
-      console.log('[LivingAvatar] No hero-ferni element found, skipping');
-      return;
+      // Try alternate selectors
+      avatarEl = document.querySelector('[data-ferni-avatar]');
+      if (!avatarEl) {
+        logDebug('No avatar element found, skipping initialization');
+        return;
+      }
     }
     
     // Cache DOM references
-    orbEl = avatarEl.querySelector('.hero-ferni__orb');
-    glowEl = avatarEl.querySelector('.hero-ferni__glow');
-    textEl = avatarEl.querySelector('.hero-ferni__text');
-    ringsEl = avatarEl.querySelectorAll('.hero-ferni__ring');
+    orbEl = avatarEl.querySelector('.hero-ferni__orb') || avatarEl.querySelector('[data-orb]');
+    glowEl = avatarEl.querySelector('.hero-ferni__glow') || avatarEl.querySelector('[data-glow]');
+    textEl = avatarEl.querySelector('.hero-ferni__text') || avatarEl.querySelector('[data-text]');
+    ringsEl = avatarEl.querySelectorAll('.hero-ferni__ring, [data-ring]');
     
     // Add living class
     avatarEl.classList.add('hero-ferni--living');
     
+    // Load emotional memory from session
+    loadEmotionalMemory();
+    
     // Set up event listeners
     setupEventListeners();
     
-    // Start animation loops
+    // Start unified animation loop (replaces separate loops)
     if (!state.prefersReducedMotion) {
-      startMouseTracking();
+      startAnimationLoop();
       startBlinking();
       startBreathing();
     }
@@ -209,8 +221,57 @@
     // Check for returning visitor
     checkReturningVisitor();
     
+    // Track visibility
+    setupVisibilityTracking();
+    
     state.initialized = true;
-    console.log('[LivingAvatar] Initialized - Ferni is alive! 🌱');
+    logDebug('Avatar initialized with spring physics');
+  }
+  
+  function loadEmotionalMemory() {
+    if (!CONFIG.enableEmotionalMemory) return;
+    
+    try {
+      const stored = sessionStorage.getItem('ferni_emotional_memory');
+      if (stored) {
+        const memory = JSON.parse(stored);
+        state.emotionalMemory = { ...state.emotionalMemory, ...memory };
+        state.emotionalMemory.interactionCount++;
+      }
+    } catch (e) {
+      logDebug('Could not load emotional memory');
+    }
+  }
+  
+  function saveEmotionalMemory() {
+    if (!CONFIG.enableEmotionalMemory) return;
+    
+    try {
+      sessionStorage.setItem('ferni_emotional_memory', JSON.stringify(state.emotionalMemory));
+    } catch (e) {
+      logDebug('Could not save emotional memory');
+    }
+  }
+  
+  function setupVisibilityTracking() {
+    // Pause animations when tab not visible
+    document.addEventListener('visibilitychange', () => {
+      state.isVisible = document.visibilityState === 'visible';
+      if (state.isVisible) {
+        // Reset timing on visibility restore
+        state.lastFrameTime = performance.now();
+      }
+    });
+    
+    // Track window focus
+    window.addEventListener('focus', () => { state.isFocused = true; });
+    window.addEventListener('blur', () => { state.isFocused = false; });
+  }
+  
+  function logDebug(...args) {
+    if (window.FERNI_DEBUG) {
+      console.log('[LivingAvatar]', ...args);
+    }
   }
 
   // ============================================================================
@@ -542,14 +603,58 @@
   }
 
   // ============================================================================
-  // BREATHING - Subtle scale animation
+  // BREATHING - Variable rate with natural pauses
   // ============================================================================
   
+  function updateBreathing() {
+    if (!avatarEl) return;
+    
+    // Breathing phase progression (0 to 1 to 0)
+    const breathSpeed = (1 / state.currentBreathDuration) * 16.67 * state.deltaTime;
+    
+    if (!state.breathHolding) {
+      state.breathPhase += breathSpeed * state.breathDirection;
+      
+      // Reverse direction at peaks
+      if (state.breathPhase >= 1) {
+        state.breathPhase = 1;
+        state.breathDirection = -1;
+        
+        // Chance to hold breath at peak (anticipation)
+        if (Math.random() < CONFIG.breathPauseChance) {
+          state.breathHolding = true;
+          setTimeout(() => {
+            state.breathHolding = false;
+          }, 200 + Math.random() * 300);
+        }
+      } else if (state.breathPhase <= 0) {
+        state.breathPhase = 0;
+        state.breathDirection = 1;
+        
+        // Vary breath duration each cycle
+        state.currentBreathDuration = CONFIG.breathDurationBase + 
+          (Math.random() - 0.5) * CONFIG.breathDurationVariance * 2;
+      }
+    }
+    
+    // Smooth sine curve for natural breathing
+    const breathCurve = Math.sin(state.breathPhase * Math.PI);
+    const breathScale = 1 + (CONFIG.breathScale - 1) * breathCurve;
+    
+    // Apply breath scale via CSS variable
+    avatarEl.style.setProperty('--breath-scale', breathScale.toFixed(4));
+    
+    // Breathing affects glow intensity too
+    if (glowEl) {
+      const glowIntensity = 0.4 + breathCurve * 0.15;
+      glowEl.style.opacity = glowIntensity.toFixed(3);
+    }
+  }
+  
   function startBreathing() {
-    // CSS handles this via animation, but we can modulate it
+    // Initial setup
     if (avatarEl) {
-      avatarEl.style.setProperty('--breath-duration', `${CONFIG.breathDuration}ms`);
-      avatarEl.style.setProperty('--breath-scale', CONFIG.breathScale);
+      avatarEl.classList.add('hero-ferni--breathing');
     }
   }
 

@@ -550,8 +550,8 @@ class WinterSolsticeMomentUI {
     snowParticles.forEach(p => snowLayer?.appendChild(p));
 
     // Play sound
-    soundUI.play('entrance');
-    haptics.warmth();
+    soundUI.play('celebrate');
+    haptics.bigWin();
 
     // Create master timeline
     this.masterTimeline = gsap.timeline({
@@ -1167,6 +1167,6 @@ export function isWinterSolsticeDay(): boolean {
 
 // Expose to window for dev panel testing
 if (typeof window !== 'undefined') {
-  (window as Record<string, unknown>).winterSolsticeMoment = winterSolsticeMoment;
+  (window as unknown as Record<string, unknown>).winterSolsticeMoment = winterSolsticeMoment;
 }
 

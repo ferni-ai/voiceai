@@ -104,7 +104,7 @@ const PATTERN_TEMPLATES: Array<{
   },
   {
     signal: 'energy_dropped',
-    detector: (ctx) => ctx.emotionalState === 'subdued' || ctx.emotionalState === 'low',
+    detector: (ctx) => ctx.emotionalState?.primary === 'subdued' || ctx.emotionalState?.primary === 'low',
     questions: [
       'Your energy shifted just now. Where did you go?',
       'Something changed. What came up for you?',

@@ -242,10 +242,10 @@ async function loadVoiceConversationMemory(userId: string): Promise<VoiceMemoryD
         lastMentioned: t.lastMentioned,
       })),
       importantMoments: memory.importantMoments.map(
-        (m: { type: string; summary: string; context?: string; date: Date }) => ({
-          type: m.type,
+        (m: { summary: string; date: Date; emotion?: string }) => ({
+          type: m.emotion || 'moment', // emotion serves as type indicator
           summary: m.summary,
-          context: m.context,
+          context: undefined,
           date: m.date,
         })
       ),
@@ -271,18 +271,21 @@ interface PersonaMemoryData {
 
 async function loadPersonaMemories(
   userId: string,
-  personaId: string
+  _personaId: string
 ): Promise<PersonaMemoryData[]> {
   try {
     // Dynamic import to avoid circular dependencies
-    const { getMemoriesForUser } = await import('../services/persona-memories.js');
-    const memories = await getMemoriesForUser(userId, personaId);
+    const { getAllUserMemories } = await import('../services/persona-memories.js');
+    const memories = await getAllUserMemories(userId);
 
-    return memories.map((m: { name: string; details?: string; createdAt: Date }) => ({
-      name: m.name,
-      details: m.details,
-      createdAt: m.createdAt,
-    }));
+    // Filter and map to PersonaMemoryData format
+    return memories
+      .filter((m) => m.name) // Only memories with names
+      .map((m) => ({
+        name: m.name,
+        details: m.details,
+        createdAt: m.createdAt,
+      }));
   } catch (error) {
     log.debug({ error: String(error) }, 'Persona memories unavailable');
     return [];

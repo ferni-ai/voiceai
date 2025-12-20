@@ -180,28 +180,40 @@
     // Check for reduced motion preference
     state.prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     
+    // Listen for changes to motion preference
+    window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
+      state.prefersReducedMotion = e.matches;
+    });
+    
     // Find the hero Ferni avatar
     avatarEl = document.querySelector('.hero-ferni');
     if (!avatarEl) {
-      console.log('[LivingAvatar] No hero-ferni element found, skipping');
-      return;
+      // Try alternate selectors
+      avatarEl = document.querySelector('[data-ferni-avatar]');
+      if (!avatarEl) {
+        logDebug('No avatar element found, skipping initialization');
+        return;
+      }
     }
     
     // Cache DOM references
-    orbEl = avatarEl.querySelector('.hero-ferni__orb');
-    glowEl = avatarEl.querySelector('.hero-ferni__glow');
-    textEl = avatarEl.querySelector('.hero-ferni__text');
-    ringsEl = avatarEl.querySelectorAll('.hero-ferni__ring');
+    orbEl = avatarEl.querySelector('.hero-ferni__orb') || avatarEl.querySelector('[data-orb]');
+    glowEl = avatarEl.querySelector('.hero-ferni__glow') || avatarEl.querySelector('[data-glow]');
+    textEl = avatarEl.querySelector('.hero-ferni__text') || avatarEl.querySelector('[data-text]');
+    ringsEl = avatarEl.querySelectorAll('.hero-ferni__ring, [data-ring]');
     
     // Add living class
     avatarEl.classList.add('hero-ferni--living');
     
+    // Load emotional memory from session
+    loadEmotionalMemory();
+    
     // Set up event listeners
     setupEventListeners();
     
-    // Start animation loops
+    // Start unified animation loop (replaces separate loops)
     if (!state.prefersReducedMotion) {
-      startMouseTracking();
+      startAnimationLoop();
       startBlinking();
       startBreathing();
     }
@@ -209,8 +221,57 @@
     // Check for returning visitor
     checkReturningVisitor();
     
+    // Track visibility
+    setupVisibilityTracking();
+    
     state.initialized = true;
-    console.log('[LivingAvatar] Initialized - Ferni is alive! 🌱');
+    logDebug('Avatar initialized with spring physics');
+  }
+  
+  function loadEmotionalMemory() {
+    if (!CONFIG.enableEmotionalMemory) return;
+    
+    try {
+      const stored = sessionStorage.getItem('ferni_emotional_memory');
+      if (stored) {
+        const memory = JSON.parse(stored);
+        state.emotionalMemory = { ...state.emotionalMemory, ...memory };
+        state.emotionalMemory.interactionCount++;
+      }
+    } catch (e) {
+      logDebug('Could not load emotional memory');
+    }
+  }
+  
+  function saveEmotionalMemory() {
+    if (!CONFIG.enableEmotionalMemory) return;
+    
+    try {
+      sessionStorage.setItem('ferni_emotional_memory', JSON.stringify(state.emotionalMemory));
+    } catch (e) {
+      logDebug('Could not save emotional memory');
+    }
+  }
+  
+  function setupVisibilityTracking() {
+    // Pause animations when tab not visible
+    document.addEventListener('visibilitychange', () => {
+      state.isVisible = document.visibilityState === 'visible';
+      if (state.isVisible) {
+        // Reset timing on visibility restore
+        state.lastFrameTime = performance.now();
+      }
+    });
+    
+    // Track window focus
+    window.addEventListener('focus', () => { state.isFocused = true; });
+    window.addEventListener('blur', () => { state.isFocused = false; });
+  }
+  
+  function logDebug(...args) {
+    if (window.FERNI_DEBUG) {
+      console.log('[LivingAvatar]', ...args);
+    }
   }
 
   // ============================================================================
@@ -243,15 +304,29 @@
   }
 
   // ============================================================================
-  // MOUSE TRACKING - The core "living" behavior
+  // MOUSE TRACKING - Spring physics for organic movement
   // ============================================================================
   
   function handleMouseMove(e) {
     state.mouseX = e.clientX;
     state.mouseY = e.clientY;
     
+    // Update attention based on movement
+    state.attentionLevel = Math.min(1, state.attentionLevel + 0.1);
+    state.lastInteractionTime = Date.now();
+    
     if (!state.attentionTarget) {
       updateTargetFromMouse();
+    }
+    
+    // Update pupil dilation based on cursor speed
+    if (CONFIG.enablePupilDilation) {
+      const speed = Math.sqrt(
+        Math.pow(e.movementX || 0, 2) + 
+        Math.pow(e.movementY || 0, 2)
+      );
+      // Fast movement = slight dilation (alertness)
+      state.targetPupilScale = 1.0 + Math.min(speed / 100, 0.15);
     }
   }
   
@@ -259,6 +334,7 @@
     if (e.touches.length > 0) {
       state.mouseX = e.touches[0].clientX;
       state.mouseY = e.touches[0].clientY;
+      state.attentionLevel = Math.min(1, state.attentionLevel + 0.15);
       updateTargetFromMouse();
     }
   }
@@ -270,41 +346,174 @@
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
     
-    // Calculate direction vector
     const dx = state.mouseX - centerX;
     const dy = state.mouseY - centerY;
-    
-    // Calculate distance for intensity
     const distance = Math.sqrt(dx * dx + dy * dy);
-    const maxDistance = Math.max(window.innerWidth, window.innerHeight) / 2;
-    const intensity = Math.min(distance / maxDistance, 1);
     
-    // Apply eased offset
-    state.targetX = (dx / maxDistance) * CONFIG.maxOffset * intensity;
-    state.targetY = (dy / maxDistance) * CONFIG.maxOffset * intensity;
+    // Deadzone - ignore very small movements
+    if (distance < PHYSICS.gazeDeadzone) {
+      return;
+    }
+    
+    const maxDistance = Math.max(window.innerWidth, window.innerHeight) / 2;
+    
+    // Non-linear intensity curve (more responsive at edges)
+    const normalizedDist = Math.min(distance / maxDistance, 1);
+    const intensity = easeOutCubic(normalizedDist);
+    
+    // Calculate target with anticipation
+    const anticipatedX = dx + (dx - state.targetX * maxDistance / PHYSICS.maxGazeOffset) * PHYSICS.anticipationFactor;
+    const anticipatedY = dy + (dy - state.targetY * maxDistance / PHYSICS.maxGazeOffset) * PHYSICS.anticipationFactor;
+    
+    state.targetX = (anticipatedX / maxDistance) * PHYSICS.maxGazeOffset * intensity;
+    state.targetY = (anticipatedY / maxDistance) * PHYSICS.maxGazeOffset * intensity;
   }
   
-  function startMouseTracking() {
-    function update() {
-      // Smooth interpolation (organic lag)
-      state.currentX += (state.targetX - state.currentX) * CONFIG.trackingLag;
-      state.currentY += (state.targetY - state.currentY) * CONFIG.trackingLag;
+  // Easing function for natural movement
+  function easeOutCubic(t) {
+    return 1 - Math.pow(1 - t, 3);
+  }
+  
+  function startAnimationLoop() {
+    let lastTime = performance.now();
+    
+    function update(currentTime) {
+      // Calculate delta time for frame-rate independent animation
+      state.deltaTime = Math.min((currentTime - lastTime) / 16.67, 2); // Cap at 2x normal
+      lastTime = currentTime;
       
-      // Apply transform
-      if (orbEl) {
-        orbEl.style.transform = `translate(${state.currentX}px, ${state.currentY}px)`;
+      if (!state.prefersReducedMotion && state.isVisible) {
+        updateGazePhysics();
+        updatePupil();
+        updateBreathing();
+        updateAttention();
+        updateSaccades();
+        applyTransforms();
       }
-      
-      // Subtle ring parallax (depth effect)
-      ringsEl.forEach((ring, i) => {
-        const factor = 0.3 + (i * 0.2);
-        ring.style.transform = `translate(${state.currentX * factor}px, ${state.currentY * factor}px)`;
-      });
       
       requestAnimationFrame(update);
     }
     
-    update();
+    requestAnimationFrame(update);
+  }
+  
+  function updateGazePhysics() {
+    // Spring physics: F = -kx - cv
+    // where k = stiffness, x = displacement, c = damping, v = velocity
+    
+    const dx = state.targetX - state.currentX;
+    const dy = state.targetY - state.currentY;
+    
+    // Spring force
+    const forceX = dx * PHYSICS.stiffness;
+    const forceY = dy * PHYSICS.stiffness;
+    
+    // Apply force to velocity (with damping)
+    state.velocityX = (state.velocityX + forceX) * PHYSICS.damping;
+    state.velocityY = (state.velocityY + forceY) * PHYSICS.damping;
+    
+    // Apply velocity to position
+    state.currentX += state.velocityX * state.deltaTime;
+    state.currentY += state.velocityY * state.deltaTime;
+    
+    // Snap to target if very close and slow
+    const speed = Math.sqrt(state.velocityX * state.velocityX + state.velocityY * state.velocityY);
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    if (speed < PHYSICS.velocityThreshold && dist < PHYSICS.positionThreshold) {
+      state.currentX = state.targetX;
+      state.currentY = state.targetY;
+      state.velocityX = 0;
+      state.velocityY = 0;
+    }
+  }
+  
+  function updatePupil() {
+    if (!CONFIG.enablePupilDilation) return;
+    
+    // Smooth pupil dilation
+    state.pupilScale += (state.targetPupilScale - state.pupilScale) * CONFIG.pupilDilationSpeed * state.deltaTime;
+    
+    // Clamp
+    state.pupilScale = Math.max(CONFIG.minPupilScale, Math.min(CONFIG.maxPupilScale, state.pupilScale));
+    
+    // Decay target back to normal
+    state.targetPupilScale += (1.0 - state.targetPupilScale) * 0.02 * state.deltaTime;
+  }
+  
+  function updateSaccades() {
+    // Random micro-saccades for realism
+    if (!state.inSaccade && Math.random() < PHYSICS.saccadeChance * state.deltaTime) {
+      state.inSaccade = true;
+      state.saccadeStartTime = performance.now();
+      state.saccadeOffsetX = (Math.random() - 0.5) * PHYSICS.saccadeDistance * 2;
+      state.saccadeOffsetY = (Math.random() - 0.5) * PHYSICS.saccadeDistance * 2;
+      
+      // Sometimes blink during saccade
+      if (CONFIG.blinkOnSaccade && Math.random() < 0.3) {
+        blink();
+      }
+    }
+    
+    if (state.inSaccade) {
+      const elapsed = performance.now() - state.saccadeStartTime;
+      if (elapsed > PHYSICS.saccadeDuration) {
+        state.inSaccade = false;
+        state.saccadeOffsetX = 0;
+        state.saccadeOffsetY = 0;
+      }
+    }
+  }
+  
+  function updateAttention() {
+    // Decay attention over time
+    state.attentionLevel *= Math.pow(CONFIG.attentionDecay, state.deltaTime);
+    
+    // Trigger idle behaviors when attention is low
+    if (state.attentionLevel < CONFIG.attentionThreshold) {
+      // Occasional "looking around"
+      if (Math.random() < 0.001 * state.deltaTime) {
+        const randomX = (Math.random() - 0.5) * PHYSICS.maxGazeOffset;
+        const randomY = (Math.random() - 0.5) * PHYSICS.maxGazeOffset * 0.5;
+        state.targetX = randomX;
+        state.targetY = randomY;
+      }
+    }
+  }
+  
+  function applyTransforms() {
+    if (!orbEl) return;
+    
+    // Combine gaze position with saccade offset
+    const finalX = state.currentX + state.saccadeOffsetX;
+    const finalY = state.currentY + state.saccadeOffsetY;
+    
+    // Apply to orb with subtle 3D rotation for depth
+    const rotateY = finalX * 0.3;
+    const rotateX = -finalY * 0.3;
+    
+    orbEl.style.transform = `
+      translate(${finalX}px, ${finalY}px)
+      rotateX(${rotateX}deg)
+      rotateY(${rotateY}deg)
+      scale(${state.pupilScale})
+    `;
+    
+    // Parallax rings with depth layering
+    ringsEl.forEach((ring, i) => {
+      const depth = 0.3 + (i * 0.15);
+      const ringX = finalX * depth;
+      const ringY = finalY * depth;
+      const ringRotate = finalX * 0.1 * (i + 1);
+      ring.style.transform = `translate(${ringX}px, ${ringY}px) rotate(${ringRotate}deg)`;
+    });
+    
+    // Glow follows with even more lag (atmospheric)
+    if (glowEl) {
+      const glowX = finalX * 0.15;
+      const glowY = finalY * 0.15;
+      glowEl.style.transform = `translate(${glowX}px, ${glowY}px)`;
+    }
   }
 
   // ============================================================================
@@ -394,14 +603,58 @@
   }
 
   // ============================================================================
-  // BREATHING - Subtle scale animation
+  // BREATHING - Variable rate with natural pauses
   // ============================================================================
   
+  function updateBreathing() {
+    if (!avatarEl) return;
+    
+    // Breathing phase progression (0 to 1 to 0)
+    const breathSpeed = (1 / state.currentBreathDuration) * 16.67 * state.deltaTime;
+    
+    if (!state.breathHolding) {
+      state.breathPhase += breathSpeed * state.breathDirection;
+      
+      // Reverse direction at peaks
+      if (state.breathPhase >= 1) {
+        state.breathPhase = 1;
+        state.breathDirection = -1;
+        
+        // Chance to hold breath at peak (anticipation)
+        if (Math.random() < CONFIG.breathPauseChance) {
+          state.breathHolding = true;
+          setTimeout(() => {
+            state.breathHolding = false;
+          }, 200 + Math.random() * 300);
+        }
+      } else if (state.breathPhase <= 0) {
+        state.breathPhase = 0;
+        state.breathDirection = 1;
+        
+        // Vary breath duration each cycle
+        state.currentBreathDuration = CONFIG.breathDurationBase + 
+          (Math.random() - 0.5) * CONFIG.breathDurationVariance * 2;
+      }
+    }
+    
+    // Smooth sine curve for natural breathing
+    const breathCurve = Math.sin(state.breathPhase * Math.PI);
+    const breathScale = 1 + (CONFIG.breathScale - 1) * breathCurve;
+    
+    // Apply breath scale via CSS variable
+    avatarEl.style.setProperty('--breath-scale', breathScale.toFixed(4));
+    
+    // Breathing affects glow intensity too
+    if (glowEl) {
+      const glowIntensity = 0.4 + breathCurve * 0.15;
+      glowEl.style.opacity = glowIntensity.toFixed(3);
+    }
+  }
+  
   function startBreathing() {
-    // CSS handles this via animation, but we can modulate it
+    // Initial setup
     if (avatarEl) {
-      avatarEl.style.setProperty('--breath-duration', `${CONFIG.breathDuration}ms`);
-      avatarEl.style.setProperty('--breath-scale', CONFIG.breathScale);
+      avatarEl.classList.add('hero-ferni--breathing');
     }
   }
 
