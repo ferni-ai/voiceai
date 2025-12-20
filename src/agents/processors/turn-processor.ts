@@ -71,6 +71,9 @@ import {
 import { processTranscriptForPatterns } from '../../intelligence/coaching-patterns.js';
 import { recordVoiceTurn, initializeVoiceTracking } from '../../intelligence/voice-signals.js';
 
+// Predictive Intelligence - Superhuman pattern prediction
+import { processForPredictiveIntelligence } from '../integrations/predictive-intelligence-integration.js';
+
 // Viral Growth - Natural referral prompts and conversation context
 import {
   buildReferralPromptInjection,
@@ -1900,6 +1903,22 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       analysisResult.currentTopic || 'general',
       analysisResult.analysis.emotion.primary
     );
+
+    // Fire-and-forget: Predictive Intelligence - feeds superhuman predictions system
+    void processForPredictiveIntelligence({
+      userId: services.userId,
+      sessionId: services.sessionId,
+      message: userText,
+      topic: analysisResult.currentTopic || 'general',
+      emotion: analysisResult.analysis.emotion.primary,
+      emotionIntensity: analysisResult.analysis.emotion.intensity,
+      voiceStrain: userData?.voiceEmotion?.confidence,
+      dayOfWeek: new Date().getDay(),
+      hourOfDay: new Date().getHours(),
+      turnCount: userData?.conversationState?.getFlowContext?.()?.turnCount || userData?.turnCount || 0,
+      sessionCount: services.userProfile?.totalConversations || 1,
+      relationshipStage: services.userProfile?.relationshipStage,
+    });
   }
 
   // ============================================================================
@@ -2214,6 +2233,26 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
         weight: reflectionMoment.emotionalWeight,
       });
     }
+  }
+
+  // 15. PERIODIC AUTO-SAVE: Save profile every 3 turns to prevent data loss
+  // This ensures name and other critical data survives abrupt disconnects
+  const currentTurnCount = userData.turnCount || 0;
+  const AUTO_SAVE_INTERVAL = 3; // Save every 3 turns
+  if (
+    services.saveProfile &&
+    services.userProfile &&
+    currentTurnCount > 0 &&
+    currentTurnCount % AUTO_SAVE_INTERVAL === 0
+  ) {
+    // Fire and forget - don't block the response
+    services.saveProfile().catch((saveErr) => {
+      diag.warn('Periodic auto-save failed (non-fatal)', { 
+        error: String(saveErr),
+        turnCount: currentTurnCount 
+      });
+    });
+    diag.debug('Periodic auto-save triggered', { turnCount: currentTurnCount });
   }
 
   // Calculate elapsed time
