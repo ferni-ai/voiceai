@@ -317,7 +317,7 @@
       );
 
       // Observe key sections
-      ['#team', '#pricing', '#faq', '#testimonials', '.two-am'].forEach(function (selector) {
+      ['#team', '#founders', '#faq', '#testimonials', '.two-am'].forEach(function (selector) {
         var el = document.querySelector(selector);
         if (el) {
           sectionObserver.observe(el);

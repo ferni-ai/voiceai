@@ -100,3 +100,16 @@ export {
   type AgentReport,
   type AutomationConfig,
 } from './optimization-agent.js';
+
+// Gemini client (low-level)
+export { generateText, generateJSON, checkGeminiHealth } from './gemini-client.js';
+
+// Content cache (pre-generation)
+export {
+  getCachedHero,
+  getCachedSocialProof,
+  getCachedMemoryStories,
+  getCachedLateNightScenarios,
+  runBatchGeneration,
+  getCacheControlHeader,
+} from './content-cache.js';

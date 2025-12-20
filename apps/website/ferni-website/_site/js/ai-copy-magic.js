@@ -763,7 +763,7 @@
     },
     // Engaged (scrolled, spent time)
     engaged: {
-      text: 'Start free',
+      text: 'Talk to Ferni',
       subtext: 'Join 50,000+ finding clarity',
       style: 'btn--primary',
     },

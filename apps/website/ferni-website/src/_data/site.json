@@ -287,9 +287,9 @@
       "text": "Call Ferni",
       "url": "tel:+14844813081"
     },
-    "pricing": {
-      "free": "Begin Free",
-      "premium": "Upgrade"
+    "founders": {
+      "free": "Talk to Ferni",
+      "member": "Chip In"
     },
     "variants": {
       "hesitant": {
@@ -317,7 +317,7 @@
 
   "seo": {
     "title": "Ferni - Your AI Life Coach | Better Than Human",
-    "description": "Meet Ferni: six brilliant AI minds who remember your whole story, hear what you're not saying, and show up at 2am with the same presence as noon. Free to start.",
+    "description": "Meet Ferni: six brilliant AI minds who remember your whole story, hear what you're not saying, and show up at 2am with the same presence as noon. Free forever.",
     "keywords": [
       "AI life coach",
       "personal coach",

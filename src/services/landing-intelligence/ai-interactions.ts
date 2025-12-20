@@ -50,7 +50,8 @@ async function loadGeminiSDK(): Promise<boolean> {
 // CONFIGURATION
 // ============================================================================
 
-const MODEL_NAME = 'gemini-1.5-flash';
+// Use gemini-1.5-flash-latest for availability
+const MODEL_NAME = 'gemini-1.5-flash-latest';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getGenAI(): Promise<any | null> {

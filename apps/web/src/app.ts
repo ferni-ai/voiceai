@@ -198,6 +198,8 @@ import { openOutreachSchedule } from './ui/outreach-schedule.ui.js';
 import { openContactSettings } from './ui/contact-settings.ui.js';
 // Calendar Settings UI
 import { openCalendarSettings } from './ui/calendar-settings.ui.js';
+// Calendar View UI - Visual schedule display
+import { showCalendarView, setCalendarViewCallbacks } from './ui/calendar-view.ui.js';
 // Wearable Settings UI - Connected device management
 import { showWearableSettings } from './ui/wearable-settings.ui.js';
 // Video Settings UI - Video session controls
@@ -1460,7 +1462,17 @@ class VoiceAIApp {
         onPlayGamesClick: () => showGamePicker(),
         onOutreachScheduleClick: () => void openOutreachSchedule(),
         onContactSettingsClick: () => void openContactSettings(),
-        onCalendarSettingsClick: () => void openCalendarSettings(),
+        onCalendarSettingsClick: () => {
+          // Show calendar view (has connect button for disconnected users)
+          setCalendarViewCallbacks({
+            onConnectCalendar: () => {
+              // Redirect to Google OAuth flow
+              const userId = this.bogleClient?.getUserId() || 'anonymous';
+              window.location.href = `/auth/google/calendar?userId=${userId}`;
+            },
+          });
+          void showCalendarView();
+        },
         onVoiceEnrollmentClick: () => void showVoiceEnrollmentModal(),
         onSubscriptionClick: () => void supportFerniUI.open(),
         onBillingPortalClick: () => void this.openBillingPortal(),

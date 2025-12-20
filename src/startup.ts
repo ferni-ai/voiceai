@@ -210,6 +210,17 @@ export async function startup(): Promise<AppConfig> {
     logger.warn(`Intelligent Outreach Engine startup failed (non-fatal): ${outreachErr}`);
   }
 
+  // Start Calendar Briefing Job (Morning notifications for users with calendars)
+  // Alex delivers personalized morning briefings about upcoming meetings
+  logger.info('Starting Calendar Briefing Job...');
+  try {
+    const { startCalendarBriefingJob } = await import('./tasks/scheduled/calendar-briefing-job.js');
+    startCalendarBriefingJob();
+    logger.info('✓ Calendar Briefing Job running (15min intervals)');
+  } catch (briefingErr) {
+    logger.warn(`Calendar Briefing Job startup failed (non-fatal): ${briefingErr}`);
+  }
+
   // ============================================================================
   // SPLIT INITIALIZATION: Essential vs Deferred
   // Essential: Must complete before first session (team handlers, persistence)

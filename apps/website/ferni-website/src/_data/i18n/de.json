@@ -72,52 +72,51 @@
       "sampleQuote": "Sie haben erwähnt, 'irgendwann' Japan besuchen zu wollen. Machen wir daraus einen echten Tag."
     }
   },
-  "pricing": {
-    "sectionTitle": "Einfache Preise",
-    "headline": "Kostenlos starten.",
-    "headlineAccent": "Wachsen, wenn Sie bereit sind.",
-    "subtitle": "Keine versteckten Gebühren. Keine Verträge. Jederzeit kündbar.",
-    "popular": "Am Beliebtesten",
-    "trialNote": "7 Tage kostenlos testen. Jederzeit kündbar.",
-    "free": {
-      "name": "Kostenlos",
-      "price": "0€",
+  "founders": {
+    "sectionTitle": "Gründerfonds",
+    "headline": "Kostenlos.",
+    "headlineAccent": "Wirklich kostenlos.",
+    "subtitle": "Wir bauen etwas, das jeder verdient. Wenn du auch daran glaubst, mach mit.",
+    "mostChosen": "Am Meisten Gewählt",
+    "cancelNote": "Jederzeit ändern oder kündigen. Keine harten Gefühle.",
+    "community": {
+      "name": "Community",
+      "price": "Kostenlos",
       "period": "für immer",
-      "description": "Ferni kennenlernen",
-      "cta": "Kostenlos starten",
-      "features": [
-        "5 Gespräche/Monat",
-        "Mit Ferni chatten (Lebenscoach)",
-        "Web- und Telefonzugang",
-        "Einfache Gesprächserinnerung"
-      ]
-    },
-    "friend": {
-      "name": "Freund",
-      "price": "9,99€",
-      "period": "Monat",
-      "description": "Für regelmäßige Unterstützung",
-      "cta": "Kostenlos testen",
+      "description": "Ferni ist für dich da",
+      "cta": "Mit Ferni sprechen",
       "features": [
         "Unbegrenzte Gespräche",
-        "Alle 6 KI-Spezialisten",
-        "Vollständige Gesprächserinnerung",
-        "Prioritäts-Antwortzeiten",
-        "Web-, Telefon- und SMS-Zugang"
+        "Sprich mit Ferni (Lebenscoach)",
+        "Sprache und Text",
+        "Vollständiges Gedächtnis — Ich erinnere mich an alles"
       ]
     },
-    "partner": {
-      "name": "Partner",
-      "price": "19,99€",
+    "foundingMember": {
+      "name": "Gründungsmitglied",
+      "price": "10€",
       "period": "Monat",
-      "description": "Für tiefe Partnerschaft",
-      "cta": "Kostenlos testen",
+      "description": "Mach mit. Hilf uns, das aufzubauen.",
+      "cta": "Beitragen",
       "features": [
-        "Alles in Freund",
-        "Zugang zu Nayan (Weiser Mentor)",
-        "Erweiterte Personalisierung",
-        "Unbegrenzter Speicher & Kontext",
-        "Früher Zugang zu Features"
+        "Unbegrenzte Gesprächszeit",
+        "Lerne das ganze Team kennen",
+        "Dein Name auf der Gründerwand",
+        "Stimme ab, was wir bauen"
+      ]
+    },
+    "foundingPatron": {
+      "name": "Gründungspatron",
+      "price": "20€",
+      "period": "Monat",
+      "description": "Du formst, was wir werden",
+      "cta": "Beitragen",
+      "features": [
+        "Alles in Gründungsmitglied",
+        "Volles Team + Nayan-Zugang",
+        "Früher Zugang zu neuen Features",
+        "Direkter Draht zu den Gründern",
+        "Familienfreigabe"
       ]
     }
   },
@@ -129,7 +128,7 @@
     "items": [
       {
         "question": "Ist Ferni wirklich kostenlos?",
-        "answer": "Ja! Ferni ist komplett kostenlos. Wir glauben, dass jeder Zugang zu qualitativem Lebenscoaching verdient. Unsere Premium-Funktionen kommen bald, aber das Kernerlebnis wird immer kostenlos sein."
+        "answer": "Ja. Wirklich. Ferni hört zu, erinnert sich und ist für dich da — für immer kostenlos. Kein Haken. Wenn du an das glaubst, was wir aufbauen, kannst du über den Gründerfonds beitragen. Aber ehrlich? Einfach mit Ferni zu reden ist genug."
       },
       {
         "question": "Wie funktioniert das Telefonieren?",
@@ -175,7 +174,7 @@
   "nav": {
     "features": "Funktionen",
     "team": "Team",
-    "pricing": "Preise",
+    "support": "Unterstützen",
     "faq": "FAQ",
     "developers": "Entwickler",
     "about": "Über uns",
@@ -219,7 +218,7 @@
     "callFerni": "Ferni anrufen",
     "suggestionsLabel": "Oder probiere eines davon:",
     "meetTeam": "Das Team kennenlernen",
-    "viewPricing": "Preise ansehen",
+    "supportFerni": "Ferni unterstützen",
     "readFaq": "FAQ lesen",
     "readBlog": "Unseren Blog lesen"
   }

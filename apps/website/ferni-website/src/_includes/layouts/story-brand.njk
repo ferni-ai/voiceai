@@ -22,11 +22,12 @@
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#4a6741">
   
-  {# ====== STYLES ====== #}
-  <link rel="stylesheet" href="/css/story-brand.css">
-  <link rel="stylesheet" href="/css/components.css">
-  <link rel="stylesheet" href="/css/landing-intelligence.css">
-  <link rel="stylesheet" href="/css/ai-copy-magic.css">
+  {# ====== STYLES (with cache-busting) ====== #}
+  <link rel="stylesheet" href="/css/story-brand.css?v=20251220">
+  <link rel="stylesheet" href="/css/components.css?v=20251220">
+  <link rel="stylesheet" href="/css/landing-intelligence.css?v=20251220">
+  <link rel="stylesheet" href="/css/ai-copy-magic.css?v=20251220">
+  <link rel="stylesheet" href="/css/ai-storytelling.css?v=20251220">
   
   {# ====== OPEN GRAPH ====== #}
   <meta property="og:title" content="{{ title }} | Ferni">
@@ -230,6 +231,10 @@
   {# ====== AI COPY MAGIC - Gemini-powered dynamic copy ====== #}
   {# Time-aware hero, smart social proof, adaptive CTAs, hover insights #}
   <script src="/js/ai-copy-magic.js"></script>
+  
+  {# ====== AI STORYTELLING - Superhuman narrative generation ====== #}
+  {# Memory timeline, showcase chat, use case voices, journey stories #}
+  <script src="/js/ai-storytelling.js"></script>
   
   {# ====== VOICE DEMO - Live AI Interaction ====== #}
   <script src="/js/voice-demo.js"></script>

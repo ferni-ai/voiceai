@@ -17,6 +17,7 @@ import {
   generatePersonaPreview,
   generateSentimentReactiveCopy,
   generateSocialProof,
+  generateText,
   getOptimalSectionOrder,
   getReturningVisitorContext,
   getReturningVisitorExperience,
@@ -681,32 +682,123 @@ export async function handleLandingIntelligenceRoutes(
 
     // ============================================================================
     // POST /api/landing/ai/personalized-hero - AI-generated hero content
+    // With edge caching for cost optimization
     // ============================================================================
     if (pathname === '/api/landing/ai/personalized-hero' && method === 'POST') {
       const body = await parseBody<PersonalizedHeroRequest>(req);
-
+      
+      const hour = body.hour ?? new Date().getHours();
+      const isReturning = body.isReturning ?? false;
+      const visitCount = body.visitCount ?? 1;
+      
+      // Determine time block and visitor type for cache lookup
+      const timeBlock = getTimeBlock(hour);
+      const visitorType = visitCount > 5 ? 'loyal' : isReturning ? 'returning' : 'new';
+      
+      // Try to get cached content first (cost optimization)
+      try {
+        const { getCachedHero, getCacheControlHeader } = await import(
+          '../services/landing-intelligence/content-cache.js'
+        );
+        
+        const cached = await getCachedHero(timeBlock, visitorType);
+        
+        if (cached) {
+          // Return cached content with edge cache headers
+          res.writeHead(200, {
+            'Content-Type': 'application/json',
+            'Cache-Control': getCacheControlHeader('heroes'),
+            'Access-Control-Allow-Origin': '*',
+            'X-Cache-Status': 'HIT',
+          });
+          res.end(JSON.stringify({
+            personalized: true,
+            eyebrow: cached.eyebrow,
+            headline: cached.headline,
+            tagline: cached.subhead,
+            cta: cached.cta,
+            cached: true,
+            cacheKey: `${timeBlock}-${visitorType}`,
+          }));
+          return true;
+        }
+      } catch (cacheError) {
+        log.debug({ error: String(cacheError) }, 'Cache lookup failed, falling back to real-time');
+      }
+      
+      // Fall back to real-time generation (more expensive)
       const result = await generatePersonalizedHero({
-        hour: body.hour ?? new Date().getHours(),
+        hour,
         referrer: body.referrer,
-        isReturning: body.isReturning ?? false,
-        visitCount: body.visitCount ?? 1,
+        isReturning,
+        visitCount,
         device: body.device ?? 'desktop',
         sentiment: body.sentiment,
         topSectionsViewed: body.topSectionsViewed,
       });
-      sendJSON(res, result);
+      
+      // Return with shorter cache (real-time content)
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=300, s-maxage=1800', // 5m browser, 30m CDN
+        'Access-Control-Allow-Origin': '*',
+        'X-Cache-Status': 'MISS',
+      });
+      res.end(JSON.stringify(result));
       return true;
+    }
+    
+    // Helper function for time block
+    function getTimeBlock(hour: number): string {
+      if (hour >= 0 && hour < 5) return 'lateNight';
+      if (hour >= 5 && hour < 9) return 'earlyMorning';
+      if (hour >= 9 && hour < 12) return 'morning';
+      if (hour >= 12 && hour < 17) return 'afternoon';
+      return 'evening';
     }
 
     // ============================================================================
     // GET /api/landing/ai/social-proof - Dynamic social proof snippets
+    // With edge caching for cost optimization
     // ============================================================================
     if (pathname === '/api/landing/ai/social-proof' && method === 'GET') {
       const url = new URL(req.url || '', 'http://localhost');
       const count = parseInt(url.searchParams.get('count') || '3', 10);
 
+      // Try to get cached content first
+      try {
+        const { getCachedSocialProof, getCacheControlHeader } = await import(
+          '../services/landing-intelligence/content-cache.js'
+        );
+        
+        const cached = await getCachedSocialProof(count);
+        
+        if (cached && cached.length > 0) {
+          res.writeHead(200, {
+            'Content-Type': 'application/json',
+            'Cache-Control': getCacheControlHeader('socialProof'),
+            'Access-Control-Allow-Origin': '*',
+            'X-Cache-Status': 'HIT',
+          });
+          res.end(JSON.stringify({
+            messages: cached.map(m => m.text),
+            cached: true,
+          }));
+          return true;
+        }
+      } catch (cacheError) {
+        log.debug({ error: String(cacheError) }, 'Cache lookup failed, falling back to real-time');
+      }
+
+      // Fall back to real-time generation
       const result = await generateSocialProof(count);
-      sendJSON(res, result);
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=300, s-maxage=1800',
+        'Access-Control-Allow-Origin': '*',
+        'X-Cache-Status': 'MISS',
+      });
+      res.end(JSON.stringify(result));
       return true;
     }
 
@@ -738,12 +830,14 @@ export async function handleLandingIntelligenceRoutes(
       
       try {
         const text = await generateText(prompt);
-        // Try to parse JSON from the response
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const scenario = JSON.parse(jsonMatch[0]);
-          sendJSON(res, scenario);
-          return true;
+        if (text) {
+          // Try to parse JSON from the response
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const scenario = JSON.parse(jsonMatch[0]);
+            sendJSON(res, scenario);
+            return true;
+          }
         }
       } catch (err) {
         log.warn('AI late-night scenario generation failed', { error: String(err) });
@@ -891,6 +985,48 @@ export async function handleLandingIntelligenceRoutes(
         note: 'Use POST /api/landing/tts with { text, personaId } to generate audio',
       });
       return true;
+    }
+
+    // ============================================================================
+    // POST /api/landing/generate-content - Batch generate cached content
+    // Called by Cloud Scheduler daily at 4am for cost optimization
+    // ============================================================================
+    if (pathname === '/api/landing/generate-content' && method === 'POST') {
+      const body = await parseBody<{
+        action?: string;
+        includeHeroes?: boolean;
+        includeSocialProof?: boolean;
+      }>(req);
+      
+      log.info({ action: body.action }, 'Starting batch content generation');
+      
+      try {
+        const { runBatchGeneration } = await import(
+          '../services/landing-intelligence/content-cache.js'
+        );
+        
+        const result = await runBatchGeneration();
+        
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        });
+        res.end(JSON.stringify({
+          success: true,
+          generated: {
+            heroes: result.heroes,
+            socialProof: result.socialProof,
+          },
+          estimatedCost: result.totalCost,
+          generatedAt: new Date().toISOString(),
+        }));
+        return true;
+        
+      } catch (genError) {
+        log.error({ error: String(genError) }, 'Batch content generation failed');
+        sendError(res, 'Content generation failed', 500);
+        return true;
+      }
     }
 
     // Not handled

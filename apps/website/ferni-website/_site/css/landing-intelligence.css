@@ -812,15 +812,18 @@
   z-index: 1;
 }
 
+/* EYEBROW - Accent color for pop, high visibility */
 .memory-demo .section__eyebrow {
-  font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: 0.2em;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.4);
+  color: #8cb87c; /* Ferni green accent - pops against dark */
   margin-bottom: var(--space-6);
+  text-shadow: 0 0 30px rgba(140, 184, 124, 0.4);
 }
 
+/* TITLE - Pure white, maximum contrast */
 .memory-demo .section__title {
   font-size: clamp(3.5rem, 10vw, 7rem);
   font-weight: 700;
@@ -829,15 +832,17 @@
   color: #ffffff;
   max-width: 900px;
   margin: 0 auto;
+  text-shadow: 0 2px 40px rgba(0, 0, 0, 0.3);
 }
 
+/* SUBTITLE - High contrast cream, not muted */
 .memory-demo .section__subtitle {
   font-size: clamp(1.25rem, 2.5vw, 1.625rem);
   font-weight: 400;
   line-height: 1.5;
   max-width: 600px;
   margin: var(--space-8) auto 0;
-  color: rgba(255, 255, 255, 0.6);
+  color: #e8e4dc; /* Warm cream - 7:1+ contrast ratio */
 }
 
 /* Timeline Layout - Centered, dramatic spacing */
@@ -938,83 +943,95 @@
     0 0 60px rgba(74, 103, 65, 0.3);
 }
 
-/* Date Labels - Minimal, high contrast */
+/* Date Labels - HIGH CONTRAST with accent undertone */
 .memory-demo__date {
   display: inline-block;
   font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.5);
+  color: #c9c4bc; /* Warm light gray - 6:1+ contrast */
   text-transform: uppercase;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.12em;
   margin-bottom: var(--space-4);
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 100px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* User Message Cards - Glass morphism on dark */
+/* User Message Cards - Glass morphism with better contrast */
 .memory-demo__card {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border-radius: 20px;
   padding: clamp(24px, 4vw, 32px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 
+    0 4px 24px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .memory-demo__card:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.12);
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-3px);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-/* Speaker Label */
+/* Speaker Label - Bold, clear */
 .memory-demo__speaker {
   font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.7);
+  color: #f0ece6; /* Near white - 9:1+ contrast */
   margin-bottom: var(--space-3);
   letter-spacing: 0.02em;
 }
 
-/* Message Text - Elegant, readable */
+/* Message Text - High contrast, readable */
 .memory-demo__text {
   font-family: var(--font-body, 'Inter', sans-serif);
   font-size: clamp(1.0625rem, 2vw, 1.1875rem);
-  line-height: 1.65;
-  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.7;
+  color: #f5f3f0; /* Very light cream - 10:1+ contrast */
   margin: 0;
   font-style: italic;
 }
 
-/* Remembered indicator */
+/* Remembered indicator - Accent color for visibility */
 .memory-demo__indicator {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin-top: var(--space-4);
   font-family: var(--font-body, 'Inter', sans-serif);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #a8c49c; /* Soft sage - accent color */
 }
 
 .memory-demo__indicator svg {
-  opacity: 0.5;
+  opacity: 0.9;
+  color: #8cb87c; /* Ferni green */
 }
 
-/* Emotion Tags */
+/* Emotion Tags - More visible */
 .memory-demo__emotion {
   display: inline-block;
   margin-top: var(--space-4);
   font-family: var(--font-body, 'Inter', sans-serif);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.5);
-  padding: 4px 12px;
-  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #d4cfc8; /* Warm light - 5:1+ contrast */
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 100px;
   font-style: normal;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1081,52 +1098,61 @@
 }
 
 .memory-demo__speaker--ferni {
-  color: rgba(255, 255, 255, 0.95);
+  color: #ffffff;
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  font-size: 0.9375rem;
+  font-size: 1rem;
+  font-weight: 700;
   position: relative;
   z-index: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .memory-demo__avatar {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.35);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: -0.02em;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 .memory-demo__card--ferni .memory-demo__text {
-  color: rgba(255, 255, 255, 0.95);
-  font-size: clamp(1.125rem, 2vw, 1.3125rem);
+  color: #ffffff;
+  font-size: clamp(1.1875rem, 2.2vw, 1.375rem);
   font-style: italic;
-  line-height: 1.7;
+  line-height: 1.75;
   position: relative;
   z-index: 1;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    INSIGHTS PANEL - Clean & Spacious
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* Insights Panel - HIGH CONTRAST on dark background */
 .memory-demo__insights {
-  background: var(--color-background-elevated, #fffdfb);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border-radius: 24px;
   padding: clamp(40px, 6vw, 56px);
-  box-shadow:
-    0 4px 6px rgba(0, 0, 0, 0.02),
-    0 12px 40px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   position: sticky;
   top: 120px;
   opacity: 0;
@@ -1143,11 +1169,11 @@
 
 .memory-demo__insights-title {
   font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-  font-size: clamp(1.25rem, 2vw, 1.5rem);
+  font-size: clamp(1.375rem, 2.2vw, 1.625rem);
   font-weight: 700;
-  color: var(--color-text-primary, #2c2520);
+  color: #ffffff;
   margin-bottom: clamp(28px, 4vw, 40px);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   padding-left: 4px;
 }
 
@@ -1165,7 +1191,7 @@
   gap: 14px;
   align-items: flex-start;
   padding: 0 8px clamp(20px, 3vw, 24px) 8px;
-  border-bottom: 1px solid rgba(44, 37, 32, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   opacity: 0;
   transform: translateY(10px);
   transition:
@@ -1185,68 +1211,77 @@
 
 .memory-demo__insight-icon {
   flex-shrink: 0;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-muted, #9a8f84);
+  color: #8cb87c; /* Ferni green accent */
   margin-top: 1px;
 }
 
 .memory-demo__insight-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
 }
 
 .memory-demo__insights-list strong {
   display: block;
   font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-  font-size: 1rem;
+  font-size: 1.0625rem;
   font-weight: 700;
-  color: var(--color-text-primary, #2c2520);
-  margin-bottom: 4px;
+  color: #f0ece6; /* High contrast cream */
+  margin-bottom: 6px;
 }
 
 .memory-demo__insights-list p {
   font-family: var(--font-body, 'Inter', sans-serif);
-  font-size: 0.9375rem;
-  color: var(--color-text-secondary, #5c544a);
+  font-size: 1rem;
+  color: #d4cfc8; /* Warm light gray - 5:1+ contrast */
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 /* Magic Footer - The Punchline */
+/* Magic Footer - THE PUNCHLINE - Must POP */
 .memory-demo__magic {
-  margin-top: clamp(28px, 5vw, 40px);
-  padding: clamp(20px, 3vw, 28px);
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: clamp(32px, 6vw, 48px);
+  padding: clamp(20px, 3vw, 28px) clamp(24px, 4vw, 32px);
+  background: linear-gradient(
+    135deg,
+    rgba(140, 184, 124, 0.15) 0%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(140, 184, 124, 0.25);
   border-radius: 16px;
   display: flex;
   align-items: center;
   gap: var(--space-4);
   font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-  font-size: clamp(1rem, 1.6vw, 1.125rem);
-  color: rgba(255, 255, 255, 0.85);
-  font-weight: 500;
+  font-size: clamp(1.0625rem, 1.8vw, 1.1875rem);
+  color: #f0ece6; /* High contrast cream */
+  font-weight: 600;
   letter-spacing: -0.01em;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .memory-demo__magic svg {
   flex-shrink: 0;
-  color: #d4a574;
-  width: 24px;
-  height: 24px;
-  filter: drop-shadow(0 0 8px rgba(212, 165, 116, 0.4));
+  color: #e6c89a; /* Warm gold - high visibility */
+  width: 26px;
+  height: 26px;
+  filter: drop-shadow(0 0 12px rgba(230, 200, 154, 0.5));
 }
 
 .memory-demo__magic em {
   font-style: normal;
-  font-weight: 600;
-  color: #8ab47a;
+  font-weight: 700;
+  color: #a8d498; /* Bright sage green */
+  text-shadow: 0 0 20px rgba(168, 212, 152, 0.4);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1254,6 +1289,10 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @media (max-width: 1024px) {
+  .memory-demo .section__title {
+    font-size: clamp(2.75rem, 8vw, 5rem);
+  }
+
   .memory-demo__showcase {
     grid-template-columns: 1fr;
     gap: clamp(40px, 8vw, 60px);
@@ -1271,25 +1310,58 @@
 
 @media (max-width: 640px) {
   .memory-demo {
-    padding: clamp(60px, 12vh, 100px) 0;
+    padding: clamp(80px, 15vh, 120px) 0;
   }
 
-  .memory-demo__timeline,
-  .memory-demo__insights {
+  .memory-demo .section__header {
+    margin-bottom: clamp(60px, 10vh, 100px);
+  }
+
+  .memory-demo .section__title {
+    font-size: clamp(2.25rem, 12vw, 3.5rem);
+    letter-spacing: -0.03em;
+  }
+
+  .memory-demo .section__subtitle {
+    font-size: clamp(1rem, 4vw, 1.25rem);
+    margin-top: var(--space-6);
+  }
+
+  .memory-demo__timeline {
+    max-width: 100%;
+  }
+
+  .memory-demo__thread {
+    padding-left: 28px;
+  }
+
+  .memory-demo__card {
+    padding: clamp(20px, 5vw, 28px);
+    border-radius: 16px;
+  }
+
+  .memory-demo__card--ferni {
     padding: clamp(24px, 6vw, 32px);
     border-radius: 20px;
   }
 
-  .memory-demo__thread {
-    padding-left: 24px;
-  }
-
   .memory-demo__moment::before {
-    left: -24px;
+    left: -28px;
+    width: 12px;
+    height: 12px;
   }
 
   .memory-demo__moment--today::before {
-    left: -26px;
+    left: -30px;
+    width: 16px;
+    height: 16px;
+  }
+
+  .memory-demo__magic {
+    padding: clamp(16px, 4vw, 24px);
+    flex-direction: column;
+    text-align: center;
+    gap: var(--space-3);
   }
 }
 
@@ -1761,24 +1833,5 @@
     color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
   }
   
-  /* Memory demo */
-  .memory-demo__card {
-    background: var(--color-ferni-cinematic-surface, #4a4038);
-  }
-  
-  .memory-demo__text {
-    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
-  }
-  
-  .memory-demo__insights {
-    background: var(--color-ferni-cinematic-deep, #3a332e);
-  }
-  
-  .memory-demo__insights-title {
-    color: var(--color-ferni-cinematic-text, #ffffff);
-  }
-  
-  .memory-demo__insights-list li {
-    color: var(--color-ferni-cinematic-text-secondary, #f0ebe4);
-  }
+  /* Memory demo - Already dark by default, no overrides needed */
 }

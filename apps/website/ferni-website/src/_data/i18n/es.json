@@ -72,52 +72,51 @@
       "sampleQuote": "Mencionaste querer visitar Japón 'algún día'. Hagámoslo un día real."
     }
   },
-  "pricing": {
-    "sectionTitle": "Precios Simples",
-    "headline": "Empieza gratis.",
-    "headlineAccent": "Crece cuando estés listo.",
-    "subtitle": "Sin tarifas ocultas. Sin contratos. Cancela cuando quieras.",
-    "popular": "Más Popular",
-    "trialNote": "Prueba gratis de 7 días. Cancela cuando quieras.",
-    "free": {
-      "name": "Gratis",
-      "price": "$0",
+  "founders": {
+    "sectionTitle": "Fondo de Fundadores",
+    "headline": "Gratis.",
+    "headlineAccent": "Realmente gratis.",
+    "subtitle": "Estamos construyendo algo que creemos que todos merecen. Si tú también crees, contribuye.",
+    "mostChosen": "Más Elegido",
+    "cancelNote": "Cambia o cancela cuando quieras. Sin resentimientos.",
+    "community": {
+      "name": "Comunidad",
+      "price": "Gratis",
       "period": "para siempre",
-      "description": "Conoce a Ferni",
-      "cta": "Empezar Gratis",
-      "features": [
-        "5 conversaciones/mes",
-        "Chatea con Ferni (Coach de Vida)",
-        "Acceso web y telefónico",
-        "Memoria de conversación básica"
-      ]
-    },
-    "friend": {
-      "name": "Amigo",
-      "price": "$9.99",
-      "period": "mes",
-      "description": "Para apoyo regular",
-      "cta": "Empezar Prueba Gratis",
+      "description": "Ferni está aquí para ti",
+      "cta": "Habla con Ferni",
       "features": [
         "Conversaciones ilimitadas",
-        "Los 6 especialistas de IA",
-        "Memoria de conversación completa",
-        "Tiempos de respuesta prioritarios",
-        "Acceso web, telefónico y SMS"
+        "Habla con Ferni (Coach de Vida)",
+        "Voz y texto",
+        "Memoria completa — Recuerdo todo"
       ]
     },
-    "partner": {
-      "name": "Socio",
-      "price": "$19.99",
+    "foundingMember": {
+      "name": "Miembro Fundador",
+      "price": "$10",
       "period": "mes",
-      "description": "Para asociación profunda",
-      "cta": "Empezar Prueba Gratis",
+      "description": "Contribuye. Ayúdanos a construir esto.",
+      "cta": "Contribuir",
       "features": [
-        "Todo en Amigo",
-        "Acceso a Nayan (Mentor Sabio)",
-        "Personalización avanzada",
-        "Memoria y contexto ilimitados",
-        "Acceso anticipado a funciones"
+        "Tiempo de conversación ilimitado",
+        "Conoce a todo el equipo",
+        "Tu nombre en el Muro de Fundadores",
+        "Vota qué construimos"
+      ]
+    },
+    "foundingPatron": {
+      "name": "Patrón Fundador",
+      "price": "$20",
+      "period": "mes",
+      "description": "Estás moldeando lo que seremos",
+      "cta": "Contribuir",
+      "features": [
+        "Todo en Miembro Fundador",
+        "Equipo completo + acceso a Nayan",
+        "Acceso anticipado a nuevas funciones",
+        "Línea directa con los fundadores",
+        "Compartir en familia"
       ]
     }
   },
@@ -129,7 +128,7 @@
     "items": [
       {
         "question": "¿Ferni es realmente gratis?",
-        "answer": "¡Sí! Ferni es completamente gratis de usar. Creemos que todos merecen acceso a coaching de vida de calidad. Nuestras funciones premium llegarán pronto, pero la experiencia básica siempre será gratis."
+        "answer": "Sí. Realmente. Ferni escucha, recuerda y está aquí para ti — gratis para siempre. Sin trampa. Si crees en lo que estamos construyendo, puedes contribuir a través del Fondo de Fundadores. Pero honestamente, solo hablar con Ferni es suficiente."
       },
       {
         "question": "¿Cómo funciona la llamada telefónica?",
@@ -175,7 +174,7 @@
   "nav": {
     "features": "Características",
     "team": "Equipo",
-    "pricing": "Precios",
+    "support": "Apoyar",
     "faq": "Preguntas frecuentes",
     "developers": "Desarrolladores",
     "about": "Nosotros",
@@ -219,7 +218,7 @@
     "callFerni": "Llamar a Ferni",
     "suggestionsLabel": "O prueba uno de estos:",
     "meetTeam": "Conoce al equipo",
-    "viewPricing": "Ver precios",
+    "supportFerni": "Apoyar a Ferni",
     "readFaq": "Leer preguntas frecuentes",
     "readBlog": "Leer nuestro blog"
   }

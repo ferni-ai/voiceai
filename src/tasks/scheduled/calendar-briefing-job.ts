@@ -18,11 +18,22 @@ import {
 } from '../../services/calendar/calendar-service.js';
 import { generateDailyBriefing, type DailyBriefing } from '../../services/calendar/calendar-intelligence.js';
 import { canSendOutreach } from '../../services/outreach-intelligence.js';
+import {
+  getPushNotificationsService,
+  type PushNotificationPayload,
+  type NotificationType,
+} from '../../services/push-notifications.js';
 
 const log = createLogger({ module: 'CalendarBriefingJob' });
 
-// Placeholder for push notification - to be wired up
-async function sendPushNotification(
+// ============================================================================
+// PUSH NOTIFICATION INTEGRATION
+// ============================================================================
+
+/**
+ * Send push notification using the push notification service
+ */
+async function sendCalendarBriefingNotification(
   userId: string,
   payload: {
     title: string;
@@ -31,16 +42,82 @@ async function sendPushNotification(
     personaId?: string;
     data?: Record<string, unknown>;
   }
-): Promise<void> {
-  log.info({ userId, title: payload.title }, 'Would send push notification');
-  // TODO: Wire up to actual push notification service
+): Promise<boolean> {
+  try {
+    const pushService = getPushNotificationsService();
+    const notificationPayload: PushNotificationPayload = {
+      title: payload.title,
+      body: payload.body,
+      type: (payload.type as NotificationType) || 'general',
+      personaId: payload.personaId,
+      data: payload.data,
+    };
+    
+    const sent = await pushService.sendNotification(userId, notificationPayload);
+    if (sent) {
+      log.info({ userId, title: payload.title }, 'Calendar briefing notification sent');
+    } else {
+      log.debug({ userId }, 'No push subscription for user');
+    }
+    return sent;
+  } catch (error) {
+    log.error({ userId, error: String(error) }, 'Failed to send calendar briefing notification');
+    return false;
+  }
 }
 
-// Placeholder for getting users with calendar - to be wired up
+// ============================================================================
+// USER CALENDAR LOOKUP (Firestore)
+// ============================================================================
+
+import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+
+let db: FirestoreType | null = null;
+const OAUTH_TOKENS_COLLECTION = 'google_calendar_tokens';
+
+async function getFirestore(): Promise<FirestoreType | null> {
+  if (db) return db;
+
+  try {
+    const { Firestore } = await import('@google-cloud/firestore');
+    db = new Firestore({
+      projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
+      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+    });
+    log.debug('Calendar briefing job Firestore initialized');
+    return db;
+  } catch (error) {
+    log.warn({ error }, 'Firestore not available for calendar briefing job');
+    return null;
+  }
+}
+
+/**
+ * Get all user IDs that have connected their Google Calendar
+ * by querying the google_calendar_tokens Firestore collection
+ */
 async function getAllUserIdsWithCalendar(): Promise<string[]> {
-  // TODO: Query Firestore for users with calendar tokens
-  log.debug('Getting users with calendar');
-  return [];
+  try {
+    const firestore = await getFirestore();
+    if (!firestore) {
+      log.debug('Firestore not available, returning empty user list');
+      return [];
+    }
+
+    const snapshot = await firestore.collection(OAUTH_TOKENS_COLLECTION).get();
+    const userIds: string[] = [];
+
+    snapshot.forEach((doc) => {
+      // Document ID is the userId
+      userIds.push(doc.id);
+    });
+
+    log.debug({ userCount: userIds.length }, 'Found users with calendar');
+    return userIds;
+  } catch (error) {
+    log.error({ error: String(error) }, 'Failed to query users with calendar');
+    return [];
+  }
 }
 
 // Get user timezone from preferences or default
@@ -105,7 +182,7 @@ export async function checkAndSendMorningBriefings(): Promise<{
         }
 
         // Check if user allows outreach now
-        const canSend = await canSendOutreach(userId, 'push');
+        const canSend = canSendOutreach(userId);
         if (!canSend) {
           log.debug({ userId }, 'Skipping briefing - user in quiet hours');
           skipped++;
@@ -138,7 +215,7 @@ export async function checkAndSendMorningBriefings(): Promise<{
         const title = formatBriefingTitle(overview.totalMeetings);
         const body = formatBriefingBody(briefing);
 
-        await sendPushNotification(userId, {
+        const notificationSent = await sendCalendarBriefingNotification(userId, {
           title,
           body,
           type: 'general',
@@ -148,6 +225,12 @@ export async function checkAndSendMorningBriefings(): Promise<{
             meetingCount: overview.totalMeetings,
           },
         });
+
+        if (!notificationSent) {
+          // User doesn't have push notifications enabled
+          skipped++;
+          continue;
+        }
 
         sentBriefings.set(userId, new Date());
         sent++;
@@ -192,6 +275,8 @@ function getCurrentHourInTimezone(timezone: string): number {
 
 /**
  * Format briefing title
+ * 
+ * Brand voice: Warm, supportive, human - not anxiety-inducing
  */
 function formatBriefingTitle(meetingCount: number): string {
   if (meetingCount === 1) {
@@ -200,7 +285,8 @@ function formatBriefingTitle(meetingCount: number): string {
   if (meetingCount <= 3) {
     return `Good morning - ${meetingCount} meetings today`;
   }
-  return `Busy day ahead - ${meetingCount} meetings`;
+  // Supportive framing for heavy days, not anxiety-inducing
+  return `Full day ahead - ${meetingCount} meetings`;
 }
 
 /**

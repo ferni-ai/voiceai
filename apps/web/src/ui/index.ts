@@ -510,6 +510,21 @@ export {
   progressIndicator,
 } from './progress-indicator.ui.js';
 
+// Calendar View UI - Visual calendar component for Alex
+export {
+  calendarViewUI,
+  hideCalendarView,
+  setCalendarViewCallbacks,
+  showCalendarView,
+  toggleCalendarView,
+} from './calendar-view.ui.js';
+export type {
+  CalendarEvent as CalendarViewEvent,
+  CalendarViewCallbacks,
+  DayOverview as CalendarDayOverview,
+  WeekOverview as CalendarWeekOverview,
+} from './calendar-view.ui.js';
+
 // Types
 export type { ConnectionQuality } from './connection-quality.ui.js';
 export type { ControlCallbacks } from './controls.ui.js';

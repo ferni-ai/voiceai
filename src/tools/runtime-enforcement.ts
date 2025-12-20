@@ -143,6 +143,12 @@ const DOMAIN_OWNERSHIP: Record<string, string[]> = {
     'communicationStrategy',
     'buildAssertiveness',
     'planFollowUp',
+    // Enhanced Calendar Tools (Phase 2-3)
+    'parseNaturalDate',
+    'confirmEventDetails',
+    'getPreMeetingBriefing',
+    'suggestPostMeetingFollowUp',
+    'suggestRecurringEvents',
   ],
   // Jordan owns event/milestone/goal planning tools (from life-planning domain)
   // See: src/tools/domains/life-planning/index.ts

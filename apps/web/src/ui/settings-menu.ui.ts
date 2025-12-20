@@ -639,7 +639,6 @@ class SettingsMenuUI {
             ${this.renderMenuItem('accent-settings', ICONS.globe, t('menu.items.voiceAccent'))}
             ${this.renderMenuItem('commands', ICONS.commands, t('menu.items.guidedPractices'))}
             ${this.renderMenuItem('ritual', ICONS.ritual, t('menu.items.createPractice'))}
-            ${this.renderMenuItemWithBadge('wearable-settings', ICONS.watch, t('menu.items.wearables'), t('common.new'))}
             ${this.renderMenuItem('connections', ICONS.link, t('menu.items.connections'))}
             ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.calendar'))}
             ${this.renderMenuItem('notifications', ICONS.bell, t('menu.items.notifications'))}

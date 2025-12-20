@@ -72,52 +72,51 @@
       "sampleQuote": "'언젠가' 일본에 가고 싶다고 했죠. 실제 날짜를 정해봐요."
     }
   },
-  "pricing": {
-    "sectionTitle": "간단한 요금제",
-    "headline": "무료로 시작.",
-    "headlineAccent": "준비되면 성장.",
-    "subtitle": "숨겨진 비용 없음. 계약 없음. 언제든 취소 가능.",
-    "popular": "가장 인기",
-    "trialNote": "7일 무료 체험. 언제든 취소 가능.",
-    "free": {
-      "name": "무료",
-      "price": "₩0",
+  "founders": {
+    "sectionTitle": "파운더스 펀드",
+    "headline": "무료.",
+    "headlineAccent": "정말 무료.",
+    "subtitle": "우리는 모두가 받을 자격이 있는 것을 만들고 있습니다. 당신도 믿는다면, 함께해주세요.",
+    "mostChosen": "가장 많이 선택됨",
+    "cancelNote": "언제든 변경하거나 취소하세요. 괜찮습니다.",
+    "community": {
+      "name": "커뮤니티",
+      "price": "무료",
       "period": "영원히",
-      "description": "Ferni 알아가기",
-      "cta": "무료로 시작",
-      "features": [
-        "월 5회 대화",
-        "Ferni와 채팅 (라이프 코치)",
-        "웹 및 전화 접근",
-        "기본 대화 기억"
-      ]
-    },
-    "friend": {
-      "name": "프렌드",
-      "price": "₩15,000",
-      "period": "월",
-      "description": "정기적인 지원을 위해",
-      "cta": "무료 체험 시작",
+      "description": "Ferni가 당신을 위해 여기 있습니다",
+      "cta": "Ferni와 대화하기",
       "features": [
         "무제한 대화",
-        "6명의 AI 전문가 전체",
-        "전체 대화 기억",
-        "우선 응답 시간",
-        "웹, 전화, SMS 접근"
+        "Ferni와 대화 (라이프 코치)",
+        "음성 및 텍스트",
+        "완전한 기억 — 모든 것을 기억합니다"
       ]
     },
-    "partner": {
-      "name": "파트너",
+    "foundingMember": {
+      "name": "파운딩 멤버",
+      "price": "₩15,000",
+      "period": "월",
+      "description": "함께 만들어요.",
+      "cta": "참여하기",
+      "features": [
+        "무제한 대화 시간",
+        "전체 팀 만나기",
+        "파운더스 월에 이름 등록",
+        "다음에 무엇을 만들지 투표"
+      ]
+    },
+    "foundingPatron": {
+      "name": "파운딩 패트론",
       "price": "₩30,000",
       "period": "월",
-      "description": "깊은 파트너십을 위해",
-      "cta": "무료 체험 시작",
+      "description": "우리의 미래를 형성합니다",
+      "cta": "참여하기",
       "features": [
-        "프렌드의 모든 것",
-        "Nayan (현자 멘토) 접근",
-        "고급 개인화",
-        "무제한 메모리 & 컨텍스트",
-        "기능 조기 접근"
+        "파운딩 멤버의 모든 것",
+        "전체 팀 + Nayan 접근",
+        "새로운 기능 조기 접근",
+        "창립자와의 직접 연결",
+        "가족 공유"
       ]
     }
   },
@@ -129,7 +128,7 @@
     "items": [
       {
         "question": "Ferni가 정말 무료인가요?",
-        "answer": "네! Ferni는 완전히 무료입니다. 모든 사람이 양질의 라이프 코칭에 접근할 자격이 있다고 믿습니다. 프리미엄 기능은 곧 출시 예정이지만, 핵심 경험은 항상 무료입니다."
+        "answer": "네. 정말로요. Ferni는 듣고, 기억하고, 당신을 위해 여기 있습니다 — 영원히 무료. 함정 없어요. 우리가 만들고 있는 것을 믿는다면, 파운더스 펀드를 통해 참여할 수 있습니다. 하지만 솔직히? Ferni와 대화하는 것만으로도 충분합니다."
       },
       {
         "question": "전화 통화는 어떻게 작동하나요?",
@@ -175,7 +174,7 @@
   "nav": {
     "features": "기능",
     "team": "팀",
-    "pricing": "요금",
+    "support": "서포트",
     "faq": "FAQ",
     "developers": "개발자",
     "about": "회사 소개",
@@ -219,7 +218,7 @@
     "callFerni": "Ferni에게 전화",
     "suggestionsLabel": "또는 다음 중 하나를 시도해 보세요:",
     "meetTeam": "팀 소개",
-    "viewPricing": "요금제 보기",
+    "supportFerni": "Ferni 지원하기",
     "readFaq": "FAQ 읽기",
     "readBlog": "블로그 읽기"
   }

@@ -46,7 +46,12 @@
         "manageAppointment",
         "scheduleReminder",
         "manageContact",
-        "findBusiness"
+        "findBusiness",
+        "parseNaturalDate",
+        "confirmEventDetails",
+        "getPreMeetingBriefing",
+        "suggestPostMeetingFollowUp",
+        "suggestRecurringEvents"
       ],
       "email": [
         "getInboxSummary",
@@ -495,7 +500,12 @@
       "postToTwitter",
       "postToLinkedIn",
       "listScheduledPosts",
-      "getMarketingAnalytics"
+      "getMarketingAnalytics",
+      "parseNaturalDate",
+      "confirmEventDetails",
+      "getPreMeetingBriefing",
+      "suggestPostMeetingFollowUp",
+      "suggestRecurringEvents"
     ],
     "forbidden": [
       "dayTrade",
