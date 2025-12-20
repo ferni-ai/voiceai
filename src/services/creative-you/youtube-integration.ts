@@ -781,29 +781,37 @@ function formatDuration(seconds: number): string {
 }
 
 function getRecommendationReason(video: CuratedVideo, recentTopics: string[]): string {
-  // Find matching topic
+  // Find matching topic - use warm, friend-like language
   const matchingTopic = recentTopics.find((t) =>
     video.topics.some((vt) => vt.toLowerCase().includes(t.toLowerCase()))
   );
 
   if (matchingTopic) {
-    return `Based on your interest in ${matchingTopic}`;
+    const topicPhrases = [
+      `This came to mind when you mentioned ${matchingTopic}.`,
+      `Remember when we talked about ${matchingTopic}? Watch this.`,
+      `Something about ${matchingTopic} that might land with you.`,
+    ];
+    return topicPhrases[Math.floor(Math.random() * topicPhrases.length)];
   }
 
-  // Category-based reasons
+  // Category-based reasons (warm, not generic)
   const categoryReasons: Record<VideoCategory, string[]> = {
-    'ted-talk': ['A thought-provoking TED talk for you', 'This talk might shift your perspective'],
-    documentary: ['A fascinating documentary to explore'],
-    educational: ['Something interesting to learn today'],
-    'music-video': ['Some music to set the mood'],
-    'podcast-clip': ['A great conversation clip'],
-    tutorial: ['A helpful tutorial you might enjoy'],
-    inspiration: ['Some inspiration for your day'],
-    mindfulness: ['A mindful moment for you'],
-    creativity: ['Fuel for your creative mind'],
-    science: ['Expand your understanding'],
-    philosophy: ['Food for thought'],
-    'self-improvement': ['Something to help you grow'],
+    'ted-talk': [
+      'This talk stuck with me. See what you think.',
+      'One of those talks that changes how you see things.',
+    ],
+    documentary: ['I keep thinking about this one.', 'Worth the watch. Trust me.'],
+    educational: ["You'll probably enjoy this.", 'Something to chew on.'],
+    'music-video': ['Just... watch this.', 'This hit different.'],
+    'podcast-clip': ['Caught this and thought of you.', 'Great conversation.'],
+    tutorial: ['This might actually help.', 'Practical and worth your time.'],
+    inspiration: ['Needed this today. Maybe you do too.', 'Spark for your day.'],
+    mindfulness: ['Take a breath with this one.', 'A quieter moment.'],
+    creativity: ['Gets the wheels turning.', "Fuel for what you're making."],
+    science: ['Mind-expanding.', 'Changes how you see things.'],
+    philosophy: ['One to sit with.', 'Made me think. Will you too.'],
+    'self-improvement': ['For your journey.', 'Small shift, big impact.'],
   };
 
   const reasons = categoryReasons[video.category];

@@ -294,34 +294,50 @@ function inferCategory(query: string, tags: string[] = []): VideoCategory {
 
 /**
  * Generate discussion prompts based on video title/description
+ * Brand voice: Curious friend, not clinical interviewer
  */
 function generateDiscussionPrompts(title: string, description: string): string[] {
   const prompts: string[] = [];
 
-  // Generic prompts that work for most content
-  prompts.push("What stood out to you most in this video?");
-  prompts.push("How does this connect to something in your own life?");
+  // Warm, curious prompts (not interview questions)
+  const openingPrompts = [
+    "What part stuck with you?",
+    "Did anything surprise you?",
+    "What would you push back on?",
+  ];
+  prompts.push(openingPrompts[Math.floor(Math.random() * openingPrompts.length)]);
 
-  // Topic-specific prompts
+  // Topic-specific prompts (friend voice)
   const lowerTitle = title.toLowerCase();
   const lowerDesc = description.toLowerCase();
   const combined = lowerTitle + ' ' + lowerDesc;
 
   if (combined.includes('habit') || combined.includes('routine')) {
-    prompts.push("What's one habit from this you'd want to try?");
+    prompts.push("Would you actually try this? Be honest.");
   }
   if (combined.includes('anxiety') || combined.includes('stress')) {
-    prompts.push("What technique from this would help you most right now?");
+    prompts.push("Does this land, or does it feel like advice that misses the mark?");
   }
   if (combined.includes('productivity') || combined.includes('focus')) {
-    prompts.push("What's one thing blocking your productivity that this might help with?");
+    prompts.push("What would your biggest obstacle be if you tried this?");
   }
   if (combined.includes('relationship') || combined.includes('communication')) {
-    prompts.push("Who in your life would you apply these ideas with?");
+    prompts.push("Who came to mind while watching this?");
   }
   if (combined.includes('purpose') || combined.includes('meaning')) {
-    prompts.push("How does this change how you think about what matters?");
+    prompts.push("Does this change anything for you, or confirm what you already knew?");
   }
+  if (combined.includes('creativity') || combined.includes('creative')) {
+    prompts.push("What would you make with this idea?");
+  }
+
+  // Closing prompt (warm, forward-looking)
+  const closingPrompts = [
+    "What's one thing you'd tell them if you could?",
+    "How does this sit with you now versus when it started?",
+    "Anything you want to come back to later?",
+  ];
+  prompts.push(closingPrompts[Math.floor(Math.random() * closingPrompts.length)]);
 
   return prompts.slice(0, 3);
 }

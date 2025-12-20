@@ -243,20 +243,23 @@ export async function shouldSuggestContent(
 
 /**
  * Generate a natural transition phrase to suggest content
+ * Brand voice: Friend sharing something, not algorithm recommending
  */
 function generateTransitionPhrase(topic: string, recommendation: IntelligentRecommendation): string {
-  const contentType = recommendation.contentType === 'video' ? 'video' : 'podcast episode';
   const title =
     recommendation.contentType === 'video'
-      ? (recommendation.content as any).video?.title
-      : (recommendation.content as any).episode?.title;
+      ? (recommendation.content as unknown as { video?: { title: string } }).video?.title
+      : (recommendation.content as unknown as { episode?: { title: string } }).episode?.title;
 
+  // Natural, friend-like transitions (not "I found a video you might enjoy")
   const phrases = [
-    `Speaking of ${topic}, I know a great ${contentType} you might enjoy: "${title}"`,
-    `That reminds me - there's a ${contentType} that connects to what we're discussing...`,
-    `You know, our conversation about ${topic} made me think of something you might like...`,
-    `When you have a moment, I found a ${contentType} related to ${topic} that I think you'd appreciate.`,
-    `This ties into what we've been talking about - want me to save "${title}" for later?`,
+    `Oh - this made me think of something. Have you seen "${title}"?`,
+    `Wait, that reminds me. There's this thing about ${topic} you need to see.`,
+    `Before I forget - I keep wanting to share "${title}" with you.`,
+    `You know what? Our ${topic} conversation made me think of this. Check it out later?`,
+    `Okay, random - but "${title}" feels like it was made for what we're talking about.`,
+    `I've been wanting to show you something. It connects to what you said about ${topic}.`,
+    `Oh, this is perfect timing. Remember ${topic}? Watch this.`,
   ];
 
   return phrases[Math.floor(Math.random() * phrases.length)];

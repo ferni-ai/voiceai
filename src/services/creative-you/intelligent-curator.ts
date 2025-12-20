@@ -388,8 +388,8 @@ export class IntelligentContentCurator {
           content: videoRec,
           contentType: 'video',
           relevanceScore: video.relevanceScore,
-          personalizedReason: `Fresh content I just found about ${topic}`,
-          connectionToConversations: `Related to our conversations about ${topic}`,
+          personalizedReason: `Just found this while thinking about ${topic}. Had to share.`,
+          connectionToConversations: `Remember when we talked about ${topic}? This feels connected.`,
           suggestedTiming: 'later',
         });
       }
@@ -444,8 +444,8 @@ export class IntelligentContentCurator {
         content: videoRec,
         contentType: 'video',
         relevanceScore: 0.9, // High relevance since it's topic-specific
-        personalizedReason: `This connects to what we discussed about ${topic}`,
-        connectionToConversations: `You mentioned ${topic} in our conversation`,
+        personalizedReason: `This made me think of what you said about ${topic}.`,
+        connectionToConversations: `Remember when ${topic} came up? This feels like the next piece.`,
         suggestedTiming: 'now',
       });
     }
@@ -584,21 +584,49 @@ export class IntelligentContentCurator {
       contentTopics.some((t) => t.toLowerCase().includes(topic.toLowerCase()))
     );
 
+    // Brand-compliant copy - sounds like a friend, not an algorithm
     if (matchingTopic) {
-      return `This connects to our conversation about ${matchingTopic}`;
+      const topicPhrases = [
+        `Remember when we talked about ${matchingTopic}? This made me think of you.`,
+        `This reminded me of what you said about ${matchingTopic}.`,
+        `You've been on my mind since we talked about ${matchingTopic}.`,
+        `I keep coming back to what you shared about ${matchingTopic}. This feels connected.`,
+      ];
+      return topicPhrases[Math.floor(Math.random() * topicPhrases.length)];
     }
 
-    // Time-based reason
-    const { timeOfDay } = this.userContext;
+    // Time-based reason (warm, not clinical)
+    const { timeOfDay, conversationCount } = this.userContext;
     if (timeOfDay === 'morning' && content.mood === 'inspire') {
-      return "Some morning inspiration to start your day";
+      return "Something to spark your morning.";
     }
     if (timeOfDay === 'night' && content.mood === 'reflect') {
-      return "Something thoughtful for your evening";
+      return "It's late. Something quieter for your evening.";
+    }
+    if (timeOfDay === 'night' && content.mood === 'learn') {
+      return "Night owl mode? I've got something good.";
+    }
+    if (timeOfDay === 'afternoon' && content.mood === 'chill') {
+      return "Afternoon slump? This might help.";
     }
 
-    // Fallback to original reason
-    return content.reason;
+    // Relationship depth (Better Than Human - we track history)
+    if (conversationCount > 10) {
+      const deepPhrases = [
+        "I've noticed you keep exploring ideas like this. There's a reason...",
+        "After everything we've talked about, this felt right.",
+        "This connects to something I've been wanting to share with you.",
+      ];
+      return deepPhrases[Math.floor(Math.random() * deepPhrases.length)];
+    }
+
+    // Warm fallback - never generic
+    const warmFallbacks = [
+      "Something that made me think of you.",
+      "I found this and thought you'd appreciate it.",
+      "This landed with me. Curious what you think.",
+    ];
+    return warmFallbacks[Math.floor(Math.random() * warmFallbacks.length)];
   }
 
   private findConversationConnection(
@@ -681,7 +709,7 @@ export class IntelligentContentCurator {
         content: videoRec,
         contentType: 'video',
         relevanceScore: 0.7,
-        personalizedReason: `Found this while looking for ${keyword} content`,
+        personalizedReason: `Something about ${keyword} that might land with you.`,
         connectionToConversations: null,
         suggestedTiming: 'now',
       });
