@@ -137,6 +137,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'music',
     'music-emotion-offers',
     'daily-rituals', // NEW: Morning Sky Check, Habit Heartbeat, etc.
+    'outreach-awareness', // NEW: Proactive contact outreach nudges
   ],
 
   // TEAM - Multi-persona coordination

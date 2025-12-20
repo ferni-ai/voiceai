@@ -146,6 +146,18 @@ const DEFAULT_CONFIG: Partial<ConversationalCallConfig> = {
 const activeCallsStore = new Map<string, OutboundCall>();
 const callHistoryStore = new Map<string, OutboundCall[]>(); // userId -> calls
 
+// Referral conversation summaries - keyed by recipient name
+// This allows the referrer to get updates about how the intro call went
+export interface ReferralConversationSummary {
+  recipientName: string;
+  calledAt: Date;
+  summary: string;
+  receptivity?: 'warm' | 'curious' | 'hesitant' | 'not_interested';
+  keyTopics?: string[];
+  callDuration?: number;
+}
+const referralConversationsStore = new Map<string, ReferralConversationSummary[]>();
+
 // ============================================================================
 // CONVERSATIONAL CALL SERVICE
 // ============================================================================
@@ -558,6 +570,95 @@ class ConversationalCallService extends EventEmitter {
   }
 
   // ============================================================================
+  // CONVERSATION SUMMARY
+  // ============================================================================
+
+  /**
+   * Update conversation summary for a call (called by voice agent after call ends)
+   */
+  updateCallSummary(
+    callId: string,
+    summary: {
+      conversationSummary: string;
+      followUpActions?: string[];
+      userMood?: string;
+      keyTopics?: string[];
+      receptivity?: 'warm' | 'curious' | 'hesitant' | 'not_interested';
+    }
+  ): void {
+    const call = activeCallsStore.get(callId);
+    if (!call) {
+      // Check history
+      for (const [, history] of callHistoryStore) {
+        const found = history.find((c) => c.id === callId);
+        if (found) {
+          found.conversationSummary = summary.conversationSummary;
+          found.followUpActions = summary.followUpActions;
+          found.userMood = summary.userMood;
+          log.info({ callId }, '📝 Updated call summary (from history)');
+
+          // Store for referrer context
+          this.storeReferralConversation(found, summary);
+          return;
+        }
+      }
+      log.warn({ callId }, 'Cannot update summary - call not found');
+      return;
+    }
+
+    call.conversationSummary = summary.conversationSummary;
+    call.followUpActions = summary.followUpActions;
+    call.userMood = summary.userMood;
+    activeCallsStore.set(callId, call);
+
+    log.info({ callId }, '📝 Updated call summary');
+
+    // Store for referrer context
+    this.storeReferralConversation(call, summary);
+  }
+
+  /**
+   * Store referral conversation for later context injection
+   */
+  private storeReferralConversation(
+    call: OutboundCall,
+    summary: {
+      conversationSummary: string;
+      keyTopics?: string[];
+      receptivity?: 'warm' | 'curious' | 'hesitant' | 'not_interested';
+    }
+  ): void {
+    // Find referrer ID from trigger context
+    const triggerId = call.context.trigger.id;
+    const referrerMatch = triggerId.match(/ref_(\d+)/);
+    if (!referrerMatch) return;
+
+    // Store in referral conversations store (keyed by referrer + recipient)
+    const key = `${call.context.user.name}`;
+    const existing = referralConversationsStore.get(key) || [];
+    existing.push({
+      recipientName: call.context.user.name,
+      calledAt: call.initiatedAt,
+      summary: summary.conversationSummary,
+      receptivity: summary.receptivity,
+      keyTopics: summary.keyTopics,
+      callDuration: call.callDurationSeconds,
+    });
+    referralConversationsStore.set(key, existing);
+
+    log.info(
+      { recipientName: call.context.user.name, receptivity: summary.receptivity },
+      '🌱 Stored referral conversation for context'
+    );
+
+    this.emit('referral-conversation-stored', {
+      recipientName: call.context.user.name,
+      summary: summary.conversationSummary,
+      receptivity: summary.receptivity,
+    });
+  }
+
+  // ============================================================================
   // CALL COMPLETION
   // ============================================================================
 
@@ -579,6 +680,7 @@ class ConversationalCallService extends EventEmitter {
         status: call.status,
         duration: call.callDurationSeconds,
         voicemailLeft: call.voicemailLeft,
+        hasSummary: !!call.conversationSummary,
       },
       '📞 Call completed'
     );
@@ -722,6 +824,69 @@ export function isConversationalCallsConfigured(): boolean {
   return service.isConfigured();
 }
 
+/**
+ * Get referral conversation summaries for a recipient
+ *
+ * Use this to inject context about how previous referral calls went.
+ * For example: "I called Sarah last week - she was curious and we talked about stress management."
+ */
+export function getReferralConversations(recipientName: string): ReferralConversationSummary[] {
+  return referralConversationsStore.get(recipientName) || [];
+}
+
+/**
+ * Get all referral conversations (for context injection)
+ */
+export function getAllReferralConversations(): Map<string, ReferralConversationSummary[]> {
+  return referralConversationsStore;
+}
+
+/**
+ * Format referral conversations for context injection
+ */
+export function formatReferralConversationsForContext(): string | null {
+  if (referralConversationsStore.size === 0) return null;
+
+  const parts: string[] = [];
+
+  for (const [recipientName, conversations] of referralConversationsStore) {
+    const latest = conversations[conversations.length - 1];
+    if (!latest) continue;
+
+    const daysAgo = Math.floor((Date.now() - latest.calledAt.getTime()) / (1000 * 60 * 60 * 24));
+    const timeAgo = daysAgo === 0 ? 'today' : daysAgo === 1 ? 'yesterday' : `${daysAgo} days ago`;
+
+    let receptivityNote = '';
+    switch (latest.receptivity) {
+      case 'warm':
+        receptivityNote = 'They seemed really receptive and warm.';
+        break;
+      case 'curious':
+        receptivityNote = 'They were curious and asked questions.';
+        break;
+      case 'hesitant':
+        receptivityNote = "They were a bit hesitant - don't push.";
+        break;
+      case 'not_interested':
+        receptivityNote = "They weren't interested - respect that.";
+        break;
+    }
+
+    parts.push(
+      `- ${recipientName}: Called ${timeAgo}. ${latest.summary}${receptivityNote ? ' ' + receptivityNote : ''}`
+    );
+  }
+
+  if (parts.length === 0) return null;
+
+  return `[REFERRAL CALLS YOU'VE MADE]
+The user asked you to call these people to introduce yourself. Here's how those calls went:
+
+${parts.join('\n')}
+
+If the user asks about these calls, share how it went naturally. If they haven't asked, don't bring it up unless relevant.`;
+}
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -734,4 +899,7 @@ export default {
   getConversationalCallService,
   makeConversationalCall,
   isConversationalCallsConfigured,
+  getReferralConversations,
+  getAllReferralConversations,
+  formatReferralConversationsForContext,
 };

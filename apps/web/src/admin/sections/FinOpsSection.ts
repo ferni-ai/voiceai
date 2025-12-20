@@ -149,6 +149,15 @@ async function setCash(amount: number): Promise<void> {
   });
 }
 
+async function syncMRRFromStripe(): Promise<{ mrr: number; subscriptionCount: number; success: boolean }> {
+  const adminKey = localStorage.getItem('admin_key') || 'dev-mode';
+  const response = await fetch(`/api/finops/sync-mrr?admin_key=${adminKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  return response.json();
+}
+
 async function setLTVCACConfig(cac?: number, churnRate?: number): Promise<void> {
   const adminKey = localStorage.getItem('admin_key') || 'dev-mode';
   const body: Record<string, number> = {};
@@ -466,6 +475,7 @@ export async function render(): Promise<string> {
               <label for="config-mrr">Monthly Recurring Revenue ($)</label>
               <input type="number" id="config-mrr" placeholder="Enter MRR" min="0" step="100">
               <button class="btn-small" id="save-mrr">Save</button>
+              <button class="btn-small btn-secondary" id="sync-mrr">Sync from Stripe</button>
             </div>
             <div class="config-item">
               <label for="config-cash">Cash Reserve ($)</label>
@@ -1034,6 +1044,29 @@ export async function setupEvents(): Promise<void> {
     if (!isNaN(cash)) {
       await setCash(cash);
       await refreshData();
+    }
+  });
+
+  // Sync MRR from Stripe
+  const syncMrrBtn = document.getElementById('sync-mrr');
+  syncMrrBtn?.addEventListener('click', async () => {
+    const btn = syncMrrBtn as HTMLButtonElement;
+    const originalText = btn.textContent;
+    btn.textContent = 'Syncing...';
+    btn.disabled = true;
+    
+    try {
+      const result = await syncMRRFromStripe();
+      if (result.success) {
+        const mrrInput = document.getElementById('config-mrr') as HTMLInputElement;
+        if (mrrInput) {
+          mrrInput.value = result.mrr.toFixed(2);
+        }
+        await refreshData();
+      }
+    } finally {
+      btn.textContent = originalText;
+      btn.disabled = false;
     }
   });
 

@@ -551,6 +551,7 @@ export function getContentTypeFromTrigger(triggerType: OutreachTriggerType): Con
     check_in: 'casual', // General check-in
     shared_memory: 'casual', // Callback to shared experiences
     growth_reflection: 'emotional', // Reflecting on their journey
+    personal_share: 'casual', // Sharing Ferni with a friend
   };
 
   return mapping[triggerType] || 'casual';

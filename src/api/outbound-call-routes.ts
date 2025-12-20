@@ -47,6 +47,9 @@ export function registerOutboundCallRoutes(router: Router): void {
   // End a call
   router.post('/api/outbound-call/:callId/end', endCall);
 
+  // Update call summary (called by voice agent after conversation)
+  router.post('/api/outbound-call/:callId/summary', updateSummary);
+
   log.info('📞 Outbound call routes registered');
 }
 
@@ -245,6 +248,43 @@ async function endCall(req: Request, res: Response): Promise<void> {
   } catch (error) {
     log.error({ error, callId }, 'Failed to end call');
     res.status(500).json({ error: 'Failed to end call' });
+  }
+}
+
+/**
+ * Update call summary (called by voice agent after conversation ends)
+ *
+ * This captures the conversation summary and makes it available for
+ * future context injection - so Ferni can naturally mention how the call went.
+ */
+async function updateSummary(req: Request, res: Response): Promise<void> {
+  const { callId } = req.params;
+  const { conversationSummary, followUpActions, userMood, keyTopics, receptivity } = req.body;
+
+  if (!conversationSummary) {
+    res.status(400).json({ error: 'conversationSummary is required' });
+    return;
+  }
+
+  try {
+    const service = getConversationalCallService();
+    service.updateCallSummary(callId, {
+      conversationSummary,
+      followUpActions,
+      userMood,
+      keyTopics,
+      receptivity, // 'warm' | 'curious' | 'hesitant' | 'not_interested'
+    });
+
+    res.json({
+      success: true,
+      message: `Summary updated for call ${callId}`,
+    });
+
+    log.info({ callId, receptivity }, '📝 Call summary captured');
+  } catch (error) {
+    log.error({ error, callId }, 'Failed to update summary');
+    res.status(500).json({ error: 'Failed to update summary' });
   }
 }
 

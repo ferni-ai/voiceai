@@ -115,10 +115,10 @@ Perfect for more personal, warm communication.`,
             }
 
             // For now, return the URL - in production this would send via MMS
-            let response = `🎙️ **Voice message ready for ${contact.name}!**\n\n`;
-            response += `**Preview:** ${voiceMessage.audioUrl}\n`;
-            response += `**Duration:** ~${voiceMessage.duration} seconds\n`;
-            response += `**Voice:** ${params.persona || 'Ferni'}\n\n`;
+            let response = `Voice message ready for ${contact.name}\n\n`;
+            response += `Preview: ${voiceMessage.audioUrl}\n`;
+            response += `Duration: about ${voiceMessage.duration} seconds\n`;
+            response += `Voice: ${params.persona || 'Ferni'}\n\n`;
             response += `Transcript: "${params.message.slice(0, 100)}${params.message.length > 100 ? '...' : ''}"\n\n`;
             response += 'Want me to send it?';
 
@@ -194,15 +194,15 @@ Much nicer than plain text emails.`,
 
             // Get subject based on occasion
             const subjects: Record<string, string> = {
-              christmas: `Merry Christmas, ${contact.name}! 🎄`,
-              new_year: `Happy New Year, ${contact.name}! 🎉`,
-              thanksgiving: `Happy Thanksgiving, ${contact.name}! 🦃`,
-              birthday: `Happy Birthday, ${contact.name}! 🎂`,
-              anniversary: `Happy Anniversary, ${contact.name}! 💕`,
+              christmas: `Merry Christmas, ${contact.name}`,
+              new_year: `Happy New Year, ${contact.name}`,
+              thanksgiving: `Happy Thanksgiving, ${contact.name}`,
+              birthday: `Happy Birthday, ${contact.name}`,
+              anniversary: `Happy Anniversary, ${contact.name}`,
               check_in: `Thinking of you, ${contact.name}`,
               thinking_of_you: `Just wanted to say hi, ${contact.name}`,
               sympathy: `Thinking of you`,
-              congratulations: `Congratulations, ${contact.name}! 🎉`,
+              congratulations: `Congratulations, ${contact.name}`,
             };
 
             const subject = subjects[params.occasion] || `A message for you, ${contact.name}`;
@@ -218,7 +218,7 @@ Much nicer than plain text emails.`,
                 gotResponse: false, // Will be updated when they respond
               });
 
-              return `✨ **Beautiful email sent to ${contact.name}!**\n\nSubject: ${subject}\n\nThe email uses our gorgeous ${params.occasion} template with Ferni branding.`;
+              return `Email sent to ${contact.name}\n\nSubject: ${subject}\n\nUsed the ${params.occasion} template with Ferni branding.`;
             } catch (error) {
               log.error({ error: String(error) }, 'Failed to send rich email');
               return `Had trouble sending the email: ${String(error)}`;
@@ -285,37 +285,37 @@ Better than generic gift guides because it knows who they are.`,
             );
 
             // Format response
-            let response = `🎁 **Gift Ideas for ${contact.name}** (${params.occasion})\n\n`;
-            response += `**Budget:** ${params.budget || 'moderate'}\n\n`;
+            let response = `Gift Ideas for ${contact.name} (${params.occasion})\n\n`;
+            response += `Budget: ${params.budget || 'moderate'}\n\n`;
 
             if (recommendations.suggestions.length === 0) {
               response += 'I need more information about their interests to give good suggestions. ';
-              response += 'Tell me what they\'re into and I\'ll have better ideas!';
+              response += 'Tell me what they\'re into and I\'ll have better ideas.';
               return response;
             }
 
-            response += '**Top Suggestions:**\n\n';
+            response += 'Top Suggestions:\n\n';
 
             for (let i = 0; i < Math.min(5, recommendations.suggestions.length); i++) {
               const gift = recommendations.suggestions[i];
-              response += `${i + 1}. **${gift.name}** (${gift.estimatedPrice})\n`;
+              response += `${i + 1}. ${gift.name} (${gift.estimatedPrice})\n`;
               response += `   ${gift.description}\n`;
-              response += `   💡 ${gift.whyThisGift}\n`;
+              response += `   Why: ${gift.whyThisGift}\n`;
               if (gift.whereToBuy && gift.whereToBuy.length > 0) {
-                response += `   🛒 Buy at: ${gift.whereToBuy.slice(0, 3).join(', ')}\n`;
+                response += `   Buy at: ${gift.whereToBuy.slice(0, 3).join(', ')}\n`;
               }
               if (gift.personalizeHow) {
-                response += `   ✨ Personalize: ${gift.personalizeHow}\n`;
+                response += `   Personalize: ${gift.personalizeHow}\n`;
               }
               response += '\n';
             }
 
-            response += `**Personal Touch Ideas:**\n`;
+            response += `Personal Touch Ideas:\n`;
             for (const idea of recommendations.personalTouchIdeas.slice(0, 3)) {
-              response += `• ${idea}\n`;
+              response += `- ${idea}\n`;
             }
 
-            response += `\n**Timing:** ${recommendations.timingAdvice}`;
+            response += `\nTiming: ${recommendations.timingAdvice}`;
 
             return response;
           },
@@ -370,17 +370,11 @@ Better than generic gift guides because it knows who they are.`,
               reaction: params.reaction,
             });
 
-            let response = `📝 Recorded! Gave ${contact.name} "${params.giftDescription}" for ${params.occasion}.`;
+            let response = `Recorded. Gave ${contact.name} "${params.giftDescription}" for ${params.occasion}.`;
             if (params.reaction) {
-              const reactionEmojis = {
-                loved_it: '😍',
-                liked_it: '😊',
-                neutral: '😐',
-                not_their_thing: '😬',
-              };
-              response += ` They ${params.reaction.replace('_', ' ')} ${reactionEmojis[params.reaction]}`;
+              response += ` They ${params.reaction.replace(/_/g, ' ')}.`;
             }
-            response += '\n\nI\'ll remember this for future suggestions!';
+            response += '\n\nI\'ll remember this for future suggestions.';
 
             return response;
           },
@@ -425,21 +419,13 @@ The more you use it, the smarter it gets.`,
               contact.name
             );
 
-            let response = `⏰ **Best time to reach ${contact.name}:**\n\n`;
-            response += `📅 **${recommendation.recommendedTimeLabel}**\n\n`;
-
-            const confidenceEmojis = {
-              high: '🎯',
-              medium: '📊',
-              low: '📈',
-              learning: '🔄',
-            };
-
-            response += `${confidenceEmojis[recommendation.confidenceLevel]} **Confidence:** ${recommendation.confidenceLevel}\n`;
+            let response = `Best time to reach ${contact.name}:\n\n`;
+            response += `${recommendation.recommendedTimeLabel}\n\n`;
+            response += `Confidence: ${recommendation.confidenceLevel}\n`;
             response += `${recommendation.confidenceReason}\n\n`;
 
-            response += `**Expected response rate:** ~${recommendation.expectedResponseRate}%\n`;
-            response += `**Data points:** ${recommendation.dataPoints} interactions\n\n`;
+            response += `Expected response rate: about ${recommendation.expectedResponseRate}%\n`;
+            response += `Based on ${recommendation.dataPoints} interactions\n\n`;
 
             const sendDate = recommendation.suggestedSendTime;
             const isToday = sendDate.toDateString() === new Date().toDateString();
@@ -449,10 +435,10 @@ The more you use it, the smarter it gets.`,
             });
 
             if (isToday) {
-              response += `💡 **Suggested:** Send today around ${timeStr}`;
+              response += `Suggested: Send today around ${timeStr}`;
             } else {
               const dayStr = sendDate.toLocaleDateString('en-US', { weekday: 'long' });
-              response += `💡 **Suggested:** Send ${dayStr} around ${timeStr}`;
+              response += `Suggested: Send ${dayStr} around ${timeStr}`;
             }
 
             return response;
@@ -515,6 +501,135 @@ This keeps your data safe while giving you powerful contact management!`;
     },
 
     // =========================================================================
+    // sendIndividualMessage - Single personalized message to one person
+    // =========================================================================
+    {
+      id: 'sendIndividualMessage',
+      name: 'Send Individual Message',
+      description: `Send a deeply personalized message to a single contact.
+Uses all available context: relationship history, recent conversations, interests,
+and upcoming dates to craft a message that feels genuinely personal.
+You choose the channel: email, text, or voice.`,
+      domain: 'communication',
+      tags: ['message', 'personalized', 'individual', 'send'],
+      requiredServices: ['sendgrid', 'twilio'],
+
+      create: (ctx: ToolContext): Tool => {
+        return llm.tool({
+          description: 'Send a deeply personalized message to one person.',
+          parameters: z.object({
+            contactName: z.string().describe('Name of the person to message'),
+            purpose: z.string().describe('Why are you reaching out? (check-in, birthday, thank you, etc.)'),
+            channel: z.enum(['email', 'text', 'voice'])
+              .optional()
+              .describe('How to send: email, text, or voice. Uses their preference if not specified.'),
+            customMessage: z.string()
+              .optional()
+              .describe('Optional: Your own message. If not provided, I\'ll draft one for you.'),
+          }),
+          execute: async (params: {
+            contactName: string;
+            purpose: string;
+            channel?: 'email' | 'text' | 'voice';
+            customMessage?: string;
+          }) => {
+            const userId = ctx.userId;
+            if (!userId) {
+              return 'I need to know who you are.';
+            }
+
+            // Find contact
+            const matches = await searchContacts(userId, params.contactName);
+            if (matches.length === 0) {
+              return `I don't have ${params.contactName} in your contacts. Would you like me to add them?`;
+            }
+
+            const contact = matches[0];
+            const channel = params.channel || (contact.preferredChannel as 'email' | 'text') || 'email';
+
+            // Check we have the required contact info
+            if (channel === 'email' && !contact.email) {
+              return `${contact.name} doesn't have an email address. Should I send a text instead?`;
+            }
+            if ((channel === 'text' || channel === 'voice') && !contact.phone) {
+              return `${contact.name} doesn't have a phone number. Should I send an email instead?`;
+            }
+
+            // Build context for personalization
+            const context = await buildOutreachContext(userId, contact.id, 'check_in');
+            let message = params.customMessage || '';
+
+            // If no custom message, generate one
+            if (!message && context) {
+              message = await generatePersonalizedMessage(
+                context,
+                params.purpose,
+                'casual'
+              );
+            }
+
+            if (!message) {
+              return `I couldn't generate a message. Could you tell me what you'd like to say to ${contact.name}?`;
+            }
+
+            // Send based on channel
+            try {
+              if (channel === 'voice') {
+                if (!isVoiceSynthesisAvailable()) {
+                  return 'Voice messages aren\'t configured. Should I send a text instead?';
+                }
+
+                const voiceMsg = await generateVoiceMessage({
+                  text: message,
+                  personaId: 'ferni',
+                  userId,
+                });
+
+                if (!voiceMsg) {
+                  return 'Had trouble generating the voice message. Should I send a text instead?';
+                }
+
+                return `Voice message ready for ${contact.name}\n\nMessage: "${message}"\nPreview: ${voiceMsg.audioUrl}\n\nWant me to send it?`;
+              }
+
+              if (channel === 'text') {
+                await sendSMS(contact.phone!, message);
+                await recordOutcome(userId, {
+                  contactId: contact.id,
+                  sentAt: new Date(),
+                  channel: 'sms',
+                  gotResponse: false,
+                });
+                return `Sent text to ${contact.name}.\n\nMessage: "${message}"`;
+              }
+
+              // Email
+              const subject = params.purpose.includes('birthday')
+                ? `Happy Birthday, ${contact.name}`
+                : params.purpose.includes('thank')
+                  ? `Thank you, ${contact.name}`
+                  : `Hey ${contact.name}`;
+
+              await sendEmail(contact.email!, subject, message);
+              await recordOutcome(userId, {
+                contactId: contact.id,
+                sentAt: new Date(),
+                channel: 'email',
+                gotResponse: false,
+              });
+
+              return `Sent email to ${contact.name}.\n\nSubject: ${subject}\nMessage: "${message}"`;
+
+            } catch (error) {
+              log.error({ error: String(error), channel }, 'Failed to send message');
+              return `Had trouble sending that: ${String(error)}`;
+            }
+          },
+        });
+      },
+    },
+
+    // =========================================================================
     // getBatchTimingRecommendations - Optimal times for a group
     // =========================================================================
     {
@@ -551,7 +666,7 @@ This keeps your data safe while giving you powerful contact management!`;
 
             const recommendations = await getBatchTimingRecommendations(userId, contacts);
 
-            let response = `⏰ **Optimal send times for ${contacts.length} contacts:**\n\n`;
+            let response = `Optimal send times for ${contacts.length} contacts:\n\n`;
 
             // Group by recommended time
             const byTime = new Map<string, typeof recommendations>();
@@ -564,9 +679,9 @@ This keeps your data safe while giving you powerful contact management!`;
             }
 
             for (const [time, recs] of byTime) {
-              response += `**${time}:**\n`;
+              response += `${time}:\n`;
               for (const rec of recs) {
-                response += `• ${rec.contactName} (~${rec.expectedResponseRate}% response rate)\n`;
+                response += `- ${rec.contactName} (about ${rec.expectedResponseRate}% response rate)\n`;
               }
               response += '\n';
             }

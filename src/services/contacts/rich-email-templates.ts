@@ -188,12 +188,10 @@ export function christmasTemplate(params: TemplateParams): string {
   const content = `
     <div class="card">
       <div class="header">
-        <div class="logo"><span class="logo-text">🎄</span></div>
+        <div class="logo"><span class="logo-text">F</span></div>
         <p class="occasion">Season's Greetings</p>
-        <h1 class="greeting">Merry Christmas, ${recipientName}!</h1>
+        <h1 class="greeting">Merry Christmas, ${recipientName}</h1>
       </div>
-      
-      <div class="decoration">✨ 🎄 ✨</div>
       
       <div class="message">${escapeHtml(message)}</div>
       
@@ -201,7 +199,7 @@ export function christmasTemplate(params: TemplateParams): string {
       
       <div class="signature">
         <p class="signature-name">With warmth,<br>${senderName}</p>
-        <p class="signature-note">Sent with love via Ferni</p>
+        <p class="signature-note">Sent with care via Ferni</p>
       </div>
     </div>
     
@@ -211,7 +209,7 @@ export function christmasTemplate(params: TemplateParams): string {
 
   return baseTemplate(content, {
     accentColor: COLORS.christmas,
-    previewText: `Merry Christmas from ${senderName}! 🎄`,
+    previewText: `Merry Christmas from ${senderName}`,
   });
 }
 
@@ -222,12 +220,10 @@ export function newYearTemplate(params: TemplateParams): string {
   const content = `
     <div class="card">
       <div class="header">
-        <div class="logo"><span class="logo-text">🎉</span></div>
+        <div class="logo"><span class="logo-text">F</span></div>
         <p class="occasion">New Year Wishes</p>
-        <h1 class="greeting">Happy ${year}, ${recipientName}!</h1>
+        <h1 class="greeting">Happy ${year}, ${recipientName}</h1>
       </div>
-      
-      <div class="decoration">🥂 ✨ 🎊</div>
       
       <div class="message">${escapeHtml(message)}</div>
       
@@ -245,7 +241,7 @@ export function newYearTemplate(params: TemplateParams): string {
 
   return baseTemplate(content, {
     accentColor: COLORS.newYear,
-    previewText: `Happy New Year from ${senderName}! 🎉`,
+    previewText: `Happy New Year from ${senderName}`,
   });
 }
 
@@ -255,13 +251,11 @@ export function birthdayTemplate(params: TemplateParams & { age?: number }): str
   const content = `
     <div class="card">
       <div class="header">
-        <div class="logo"><span class="logo-text">🎂</span></div>
+        <div class="logo"><span class="logo-text">F</span></div>
         <p class="occasion">Birthday Wishes</p>
-        <h1 class="greeting">Happy Birthday, ${recipientName}!</h1>
-        ${age ? `<p style="font-size: 16px; color: ${COLORS.textMuted};">Celebrating ${age} amazing years! 🎉</p>` : ''}
+        <h1 class="greeting">Happy Birthday, ${recipientName}</h1>
+        ${age ? `<p style="font-size: 16px; color: ${COLORS.textMuted};">Celebrating ${age} amazing years</p>` : ''}
       </div>
-      
-      <div class="decoration">🎈 🎂 🎁</div>
       
       <div class="message">${escapeHtml(message)}</div>
       
@@ -269,17 +263,17 @@ export function birthdayTemplate(params: TemplateParams & { age?: number }): str
       
       <div class="signature">
         <p class="signature-name">Wishing you the best,<br>${senderName}</p>
-        <p class="signature-note">Sent with celebration via Ferni</p>
+        <p class="signature-note">Sent with warmth via Ferni</p>
       </div>
     </div>
     
     <div class="footer">
-      <p>May your special day be filled with love, laughter, and cake! 🎂</p>
+      <p>May your special day be filled with love, laughter, and all your favorites.</p>
     </div>`;
 
   return baseTemplate(content, {
     accentColor: COLORS.birthday,
-    previewText: `Happy Birthday from ${senderName}! 🎂`,
+    previewText: `Happy Birthday from ${senderName}`,
   });
 }
 
@@ -289,12 +283,10 @@ export function thanksgivingTemplate(params: TemplateParams): string {
   const content = `
     <div class="card">
       <div class="header">
-        <div class="logo"><span class="logo-text">🦃</span></div>
+        <div class="logo"><span class="logo-text">F</span></div>
         <p class="occasion">Thanksgiving Greetings</p>
-        <h1 class="greeting">Happy Thanksgiving, ${recipientName}!</h1>
+        <h1 class="greeting">Happy Thanksgiving, ${recipientName}</h1>
       </div>
-      
-      <div class="decoration">🍂 🦃 🍁</div>
       
       <div class="message">${escapeHtml(message)}</div>
       
@@ -307,12 +299,12 @@ export function thanksgivingTemplate(params: TemplateParams): string {
     </div>
     
     <div class="footer">
-      <p>Grateful for you and the warmth you bring to my life. 🧡</p>
+      <p>Grateful for you and the warmth you bring to my life.</p>
     </div>`;
 
   return baseTemplate(content, {
     accentColor: COLORS.thanksgiving,
-    previewText: `Happy Thanksgiving from ${senderName}! 🦃`,
+    previewText: `Happy Thanksgiving from ${senderName}`,
   });
 }
 
@@ -322,7 +314,7 @@ export function checkInTemplate(params: TemplateParams): string {
   const content = `
     <div class="card">
       <div class="header">
-        <div class="logo"><span class="logo-text">💭</span></div>
+        <div class="logo"><span class="logo-text">F</span></div>
         <p class="occasion">Thinking of You</p>
         <h1 class="greeting">Hey ${recipientName},</h1>
       </div>
@@ -338,12 +330,12 @@ export function checkInTemplate(params: TemplateParams): string {
     </div>
     
     <div class="footer">
-      <p>Just a note to say you're on my mind. 💙</p>
+      <p>Just a note to say you're on my mind.</p>
     </div>`;
 
   return baseTemplate(content, {
     accentColor: COLORS.ferni,
-    previewText: `A note from ${senderName} 💭`,
+    previewText: `A note from ${senderName}`,
   });
 }
 
@@ -353,7 +345,7 @@ export function sympathyTemplate(params: TemplateParams): string {
   const content = `
     <div class="card">
       <div class="header">
-        <div class="logo"><span class="logo-text">💙</span></div>
+        <div class="logo"><span class="logo-text">F</span></div>
         <p class="occasion">Thinking of You</p>
         <h1 class="greeting">${recipientName},</h1>
       </div>
@@ -369,7 +361,7 @@ export function sympathyTemplate(params: TemplateParams): string {
     </div>
     
     <div class="footer">
-      <p>I'm here for you, always. 💙</p>
+      <p>I'm here for you, always.</p>
     </div>`;
 
   return baseTemplate(content, {
@@ -384,31 +376,29 @@ export function congratulationsTemplate(params: TemplateParams & { achievement?:
   const content = `
     <div class="card">
       <div class="header">
-        <div class="logo"><span class="logo-text">🌟</span></div>
-        <p class="occasion">Congratulations!</p>
-        <h1 class="greeting">Amazing news, ${recipientName}!</h1>
+        <div class="logo"><span class="logo-text">F</span></div>
+        <p class="occasion">Congratulations</p>
+        <h1 class="greeting">Amazing news, ${recipientName}</h1>
         ${achievement ? `<p style="font-size: 16px; color: ${COLORS.warmGold}; font-weight: 500;">${escapeHtml(achievement)}</p>` : ''}
       </div>
-      
-      <div class="decoration">🎉 🌟 👏</div>
       
       <div class="message">${escapeHtml(message)}</div>
       
       ${personalNote ? `<p style="font-style: italic; color: ${COLORS.textMuted};">${escapeHtml(personalNote)}</p>` : ''}
       
       <div class="signature">
-        <p class="signature-name">So proud of you!<br>${senderName}</p>
+        <p class="signature-name">So proud of you,<br>${senderName}</p>
         <p class="signature-note">Sent with excitement via Ferni</p>
       </div>
     </div>
     
     <div class="footer">
-      <p>You deserve every bit of this success! 🌟</p>
+      <p>You deserve every bit of this success.</p>
     </div>`;
 
   return baseTemplate(content, {
     accentColor: COLORS.warmGold,
-    previewText: `Congratulations from ${senderName}! 🎉`,
+    previewText: `Congratulations from ${senderName}`,
   });
 }
 
@@ -418,13 +408,11 @@ export function anniversaryTemplate(params: TemplateParams & { years?: number })
   const content = `
     <div class="card">
       <div class="header">
-        <div class="logo"><span class="logo-text">💕</span></div>
+        <div class="logo"><span class="logo-text">F</span></div>
         <p class="occasion">Anniversary Wishes</p>
-        <h1 class="greeting">Happy Anniversary, ${recipientName}!</h1>
-        ${years ? `<p style="font-size: 16px; color: ${COLORS.softCoral}; font-weight: 500;">Celebrating ${years} wonderful years! 💕</p>` : ''}
+        <h1 class="greeting">Happy Anniversary, ${recipientName}</h1>
+        ${years ? `<p style="font-size: 16px; color: ${COLORS.softCoral}; font-weight: 500;">Celebrating ${years} wonderful years</p>` : ''}
       </div>
-      
-      <div class="decoration">💕 ✨ 💕</div>
       
       <div class="message">${escapeHtml(message)}</div>
       
@@ -437,12 +425,12 @@ export function anniversaryTemplate(params: TemplateParams & { years?: number })
     </div>
     
     <div class="footer">
-      <p>Here's to love, partnership, and many more years together! 💕</p>
+      <p>Here's to love, partnership, and many more years together.</p>
     </div>`;
 
   return baseTemplate(content, {
     accentColor: COLORS.softCoral,
-    previewText: `Happy Anniversary from ${senderName}! 💕`,
+    previewText: `Happy Anniversary from ${senderName}`,
   });
 }
 

@@ -71,8 +71,11 @@ import {
 import { processTranscriptForPatterns } from '../../intelligence/coaching-patterns.js';
 import { recordVoiceTurn, initializeVoiceTracking } from '../../intelligence/voice-signals.js';
 
-// Viral Growth - Natural referral prompts (very conservative)
-import { buildReferralPromptInjection } from '../../intelligence/context-builders/referral-prompt.js';
+// Viral Growth - Natural referral prompts and conversation context
+import {
+  buildReferralPromptInjection,
+  buildReferralConversationContext,
+} from '../../intelligence/context-builders/referral-prompt.js';
 
 // Conversation engines (singletons)
 import {
@@ -1666,13 +1669,10 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
             ? 'struggling'
             : 'neutral';
 
-    // Extract topic strings
-    const topics =
-      typeof analysisResult.analysis?.topics === 'object' && analysisResult.analysis?.topics
-        ? Array.isArray(analysisResult.analysis.topics)
-          ? analysisResult.analysis.topics
-          : analysisResult.analysis.topics.mentioned || []
-        : [];
+    // Extract topic strings from analysis
+    // TopicExtractionResult has 'detected' array of topic strings
+    const topicsObj = analysisResult.analysis?.topics;
+    const topics: string[] = topicsObj?.detected || [];
 
     const referralResult = await buildReferralPromptInjection({
       userId: services.userId || 'unknown',
@@ -1688,8 +1688,16 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
       injections.push(referralResult.injection);
       diag.info('🌱 Referral prompt injected (natural trigger detected)');
     }
+
+    // Also inject context about past referral calls (if any)
+    // This lets Ferni naturally mention how calls went when relevant
+    const referralConversationContext = buildReferralConversationContext();
+    if (referralConversationContext) {
+      injections.push(referralConversationContext);
+      diag.debug('📞 Referral conversation context injected');
+    }
   } catch (error) {
-    diag.warn('Referral prompt injection failed (non-blocking)', String(error));
+    diag.warn('Referral prompt injection failed (non-blocking)', { error: String(error) });
   }
 
   // 16. Conversation dynamics (extracted to injection-builders.ts)

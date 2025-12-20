@@ -92,6 +92,16 @@ export {
   optimalTiming,
 } from './optimal-timing.js';
 
+// Proactive Outreach Nudges
+export {
+  generateNudges,
+  buildNudgeContext,
+  formatNudgeAsSuggestion,
+  getTopNudgeForMention,
+  getOverdueFrequentContacts,
+  outreachNudges,
+} from './outreach-nudges.js';
+
 // Default export for convenient importing
 import contactRelationshipService from './contact-relationship-service.js';
 import contactGroups from './contact-groups.js';
@@ -99,6 +109,7 @@ import personalizedOutreach from './personalized-outreach.js';
 import { emailTemplates } from './rich-email-templates.js';
 import { giftSuggestions } from './gift-suggestions.js';
 import { optimalTiming } from './optimal-timing.js';
+import { outreachNudges } from './outreach-nudges.js';
 
 export default {
   ...contactRelationshipService,
@@ -107,4 +118,5 @@ export default {
   emailTemplates,
   giftSuggestions,
   optimalTiming,
+  outreachNudges,
 };

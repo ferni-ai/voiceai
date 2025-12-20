@@ -92,6 +92,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   music: () => import('./music.js'),
   'music-emotion-offers': () => import('./music-emotion-offers.js'),
   'daily-rituals': () => import('./daily-rituals.js'), // Morning Sky Check, Habit Heartbeat, etc.
+  'outreach-awareness': () => import('./outreach-awareness.js'), // Proactive contact outreach nudges
 
   // TEAM
   'team-availability': () => import('./team-availability.js'),

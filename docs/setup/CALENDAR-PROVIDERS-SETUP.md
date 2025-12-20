@@ -316,11 +316,94 @@ users/{userId}/
 5. **Rate limit API calls** - Prevent abuse of provider APIs
 6. **User consent** - Always show what data will be accessed
 
+## Environment Variables Summary
+
+All required environment variables for calendar integrations:
+
+```bash
+# Google Calendar (OAuth)
+GOOGLE_CALENDAR_CLIENT_ID=your_client_id
+GOOGLE_CALENDAR_CLIENT_SECRET=your_client_secret
+GOOGLE_CALENDAR_REDIRECT_URI=https://app.ferni.ai/auth/google/callback
+
+# Microsoft/Outlook Calendar (OAuth via MS Graph)
+MICROSOFT_CLIENT_ID=your_azure_app_client_id
+MICROSOFT_CLIENT_SECRET=your_azure_client_secret
+MICROSOFT_REDIRECT_URI=https://app.ferni.ai/auth/microsoft/callback
+
+# Encryption (for storing credentials securely)
+CALENDAR_ENCRYPTION_KEY=64_char_hex_string_for_aes256
+
+# Webhooks (for real-time sync)
+PUBLIC_URL=https://app.ferni.ai
+
+# Optional: Google Cloud Project (for Firestore)
+GOOGLE_CLOUD_PROJECT=your-project-id
+```
+
+### Generating an Encryption Key
+
+```bash
+# Generate a secure 32-byte (64 hex char) key:
+openssl rand -hex 32
+```
+
+## Real-Time Sync Architecture
+
+The calendar system supports real-time synchronization:
+
+### Google Calendar Webhooks
+- Push notifications via Google Calendar API watch channels
+- Channels expire after 7 days and auto-renew
+- Webhook endpoint: `POST /webhooks/calendar/google`
+
+### Microsoft Graph Subscriptions  
+- Push notifications via Graph API subscriptions
+- Subscriptions expire and auto-renew hourly
+- Webhook endpoint: `POST /webhooks/calendar/outlook`
+
+### Apple Calendar Polling
+- CalDAV doesn't support push notifications
+- Periodic polling: 5 min (active) / 30 min (inactive)
+- Polling service starts automatically with UI server
+
+## Conflict Resolution
+
+When events differ between Ferni and provider:
+
+1. **Auto-resolve strategies:**
+   - `ferni-wins`: Ferni's version takes precedence
+   - `provider-wins`: External calendar wins
+   - `newest-wins`: Most recently updated wins
+   - `manual`: User decides each conflict
+
+2. **Conflict UI:**
+   - Settings → Calendar → "View Sync Conflicts"
+   - Side-by-side comparison
+   - Per-provider preference setting
+
+## Selective Calendar Sync
+
+Users can choose which calendars to sync:
+
+1. Click the ⚙️ (settings) icon next to a connected provider
+2. Select which calendars to include in sync
+3. Changes apply on next sync
+
+## Implemented Features ✅
+
+- [x] CalDAV support for Apple Calendar
+- [x] Microsoft Graph for Outlook
+- [x] Conflict resolution UI
+- [x] Selective calendar sync
+- [x] Real-time sync via webhooks/push
+- [x] Rate limiting
+- [x] Credential encryption
+
 ## Future Improvements
 
-- [ ] CalDAV support for generic servers
+- [ ] CalDAV support for generic servers (FastMail, etc.)
 - [ ] Microsoft Exchange on-premises support
-- [ ] Conflict resolution UI
-- [ ] Selective calendar sync (choose which calendars)
-- [ ] Real-time sync via webhooks/push notifications
+- [ ] Sync frequency customization
+- [ ] Calendar color sync
 

@@ -5,15 +5,25 @@
  * Have Ferni call someone to introduce herself!
  * Now with SSML for natural-sounding speech! 🎤
  *
+ * Modes:
+ *   - Simple (default): One-way voice message with Ferni's voice
+ *   - Conversational (--chat): Two-way call via LiveKit SIP
+ *
  * Usage:
  *   npx tsx scripts/ferni-invite-call.ts --name "Sarah" --phone "+15551234567" --from "Seth"
  *   npx tsx scripts/ferni-invite-call.ts --name "Mom" --phone "+15551234567" --from "Seth" --occasion "Christmas"
  *   npx tsx scripts/ferni-invite-call.ts --name "Jake" --phone "+15551234567" --from "Seth" --support "a tough week"
+ *   npx tsx scripts/ferni-invite-call.ts --name "Sarah" --phone "+15551234567" --from "Seth" --chat  # Two-way!
  */
 
 import 'dotenv/config';
-import { makeVoiceReferralCall, INTRO_TEMPLATES } from '../src/tools/domains/referral/voice-referral.js';
+import {
+  makeVoiceReferralCall,
+  makeConversationalReferralCall,
+  INTRO_TEMPLATES,
+} from '../src/tools/domains/referral/voice-referral.js';
 import { enhanceOutboundMessage } from '../src/services/voice-call.js';
+import { isConversationalCallsConfigured } from '../src/services/outreach/conversational-calls.js';
 
 async function main() {
   const args = process.argv.slice(2);
@@ -31,6 +41,7 @@ async function main() {
   const support = getArg('--support');
   const note = getArg('--note');
   const preview = args.includes('--preview');
+  const conversational = args.includes('--chat') || args.includes('--conversational');
 
   if (!recipientName || !recipientPhone) {
     console.log(`
@@ -50,6 +61,7 @@ Options:
   --support   If they're going through something (e.g., "a tough week")
   --note      Personal note to include
   --preview   Show the message (with SSML) without calling
+  --chat      Use two-way conversational call (requires LiveKit SIP)
 
 Examples:
   # Simple introduction
@@ -74,6 +86,10 @@ Examples:
   if (occasion) console.log(`   Occasion: ${occasion}`);
   if (support) console.log(`   Support: ${support}`);
   if (note) console.log(`   Note: ${note}`);
+  if (conversational) {
+    const sipConfigured = isConversationalCallsConfigured();
+    console.log(`   Mode: Two-way conversation ${sipConfigured ? '✅' : '⚠️ (SIP not configured)'}`);
+  }
   console.log('');
 
   // Generate the message for preview
@@ -108,27 +124,53 @@ Examples:
     return;
   }
 
-  console.log('📞 Calling now (with SSML enhancement)...\n');
+  if (conversational) {
+    // Two-way call via LiveKit SIP
+    console.log('📞 Initiating two-way conversation...\n');
 
-  const result = await makeVoiceReferralCall({
-    referrerId: 'cli-user',
-    referrerName,
-    recipientName,
-    recipientPhone,
-    personalNote: note,
-    occasion,
-    supportSituation: support,
-  });
+    const result = await makeConversationalReferralCall({
+      referrerId: 'cli-user',
+      referrerName,
+      recipientName,
+      recipientPhone,
+      personalNote: note || (support ? `going through ${support}` : undefined),
+      occasion,
+    });
 
-  if (result.success) {
-    console.log('✅ Call initiated!\n');
-    console.log(`   Call SID: ${result.callSid}`);
-    console.log('');
-    console.log(`🎉 ${recipientName} will receive a warm introduction from Ferni!`);
-    console.log(`   They'll hear that ${referrerName} was thinking of them.`);
-    console.log('');
+    if (result.success) {
+      console.log('✅ Conversational call initiated!\n');
+      console.log(`   Call ID: ${result.callId}`);
+      console.log('');
+      console.log(`🎉 ${recipientName} will have a REAL conversation with Ferni!`);
+      console.log(`   Ferni knows ${referrerName} sent her and will be warm and helpful.`);
+      console.log('');
+    } else {
+      console.log('❌ Call failed:', result.error);
+    }
   } else {
-    console.log('❌ Call failed:', result.error);
+    // One-way voice message
+    console.log('📞 Calling now (with SSML enhancement)...\n');
+
+    const result = await makeVoiceReferralCall({
+      referrerId: 'cli-user',
+      referrerName,
+      recipientName,
+      recipientPhone,
+      personalNote: note,
+      occasion,
+      supportSituation: support,
+    });
+
+    if (result.success) {
+      console.log('✅ Call initiated!\n');
+      console.log(`   Call SID: ${result.callSid}`);
+      console.log('');
+      console.log(`🎉 ${recipientName} will receive a warm introduction from Ferni!`);
+      console.log(`   They'll hear that ${referrerName} was thinking of them.`);
+      console.log('');
+    } else {
+      console.log('❌ Call failed:', result.error);
+    }
   }
 }
 

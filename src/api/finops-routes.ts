@@ -293,6 +293,26 @@ export async function handleFinOpsRoutes(
       return true;
     }
 
+    // POST /api/finops/sync-mrr - Trigger MRR sync from Stripe
+    if (pathname === '/api/finops/sync-mrr' && req.method === 'POST') {
+      try {
+        const { syncMRRToFinOps } = await import('../services/stripe-subscription.js');
+        const result = await syncMRRToFinOps();
+        sendJSON(res, {
+          success: true,
+          ...result,
+          message: `Synced MRR from ${result.subscriptionCount} subscriptions`,
+        });
+      } catch (err) {
+        sendJSON(res, {
+          success: false,
+          error: String(err),
+          message: 'Failed to sync MRR - check Stripe configuration',
+        }, 500);
+      }
+      return true;
+    }
+
     // Not found
     return false;
   } catch (error) {

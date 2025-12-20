@@ -218,6 +218,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   behavior: 'core', // Behavior control - core to how Ferni speaks
   'life-thesis': 'lifestyle', // Life thesis - cross-persona motivation capture
   marketing: 'communication', // Social media management and content publishing
+  referral: 'communication', // Voice referral calls for viral growth
 };
 
 // ============================================================================

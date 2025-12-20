@@ -200,8 +200,12 @@ export async function makeVoiceReferralCall(params: {
   }
 }
 
+// In-memory referral tracking
+// TODO: Persist to Firestore for production analytics
+const referralHistory = new Map<string, VoiceReferral[]>();
+
 /**
- * Track a voice referral in Firestore
+ * Track a voice referral
  */
 async function trackVoiceReferral(params: {
   referrerId: string;
@@ -212,7 +216,6 @@ async function trackVoiceReferral(params: {
   callSid?: string;
 }): Promise<void> {
   try {
-    const store = getDefaultStore();
     const referralId = `vref_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
     const referral: VoiceReferral = {
@@ -228,14 +231,20 @@ async function trackVoiceReferral(params: {
       calledAt: new Date(),
     };
 
-    // Store in user's referral history
-    await store.saveMemory(params.referrerId, {
-      type: 'voice_referral',
-      content: `Called ${params.recipientName} to introduce Ferni`,
-      metadata: referral,
-    });
+    // Track in memory for this session
+    const history = referralHistory.get(params.referrerId) || [];
+    history.push(referral);
+    referralHistory.set(params.referrerId, history);
 
-    log.debug({ referralId, referrerId: params.referrerId }, 'Voice referral tracked');
+    log.info(
+      {
+        referralId,
+        referrerId: params.referrerId,
+        recipientName: params.recipientName,
+        callSid: params.callSid,
+      },
+      '📞 Voice referral tracked'
+    );
   } catch (error) {
     // Don't fail the call if tracking fails
     log.warn({ error }, 'Failed to track voice referral');
@@ -254,7 +263,7 @@ export function createVoiceReferralTools(userId: string, userName: string) {
      * Ferni can use this when user mentions someone who might benefit from Ferni
      */
     inviteFriendByCall: llm.tool({
-      description: `Invite someone to Ferni by having Ferni call them personally. Use this when the user mentions a friend, family member, or colleague who might benefit from having a life coach. Ask for their name and phone number first. This creates a warm, personal introduction that feels like a friend recommending a friend.`,
+      description: `Invite someone to Ferni by having Ferni call them personally. Use this when the user mentions a friend, family member, or colleague who might enjoy having someone to talk to. Ask for their name and phone number first. This creates a warm, personal introduction that feels like a friend recommending a friend.`,
       parameters: z.object({
         friendName: z.string().describe("The friend's first name"),
         friendPhone: z
