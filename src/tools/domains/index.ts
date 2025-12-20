@@ -324,6 +324,8 @@ export async function getAllDomainToolDefinitions(): Promise<ToolDefinition[]> {
     import('./timeless-perspective/index.js').then(async (m) => m.getToolDefinitions()),
     // Developer tools domain - CLI commands, file editing, bash
     import('./developer/index.js').then(async (m) => m.getToolDefinitions()),
+    // Marketing domain - social media management (Alex's dogfooding tools)
+    import('./marketing/index.js').then(async (m) => m.getToolDefinitions()),
   ]);
 
   // Collect successful results
@@ -664,6 +666,13 @@ export const DOMAIN_METADATA = {
     description:
       'Voice-driven development: Ferni CLI commands, file editing, bash, and code search',
     icon: '💻',
+    status: 'active',
+  },
+  marketing: {
+    name: 'Marketing & Social Media',
+    description:
+      "Alex's marketing tools: social content generation, Twitter/X posting, LinkedIn publishing, analytics",
+    icon: '📣',
     status: 'active',
   },
 } as const;

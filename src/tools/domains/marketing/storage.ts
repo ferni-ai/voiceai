@@ -25,7 +25,7 @@ interface ScheduledPost {
   platform: 'twitter' | 'linkedin' | 'instagram';
   content: string | string[];
   scheduledAt: Date;
-  status: 'scheduled' | 'posted' | 'failed';
+  status: 'draft' | 'scheduled' | 'posted' | 'failed';
   error?: string;
   postId?: string;
   postUrl?: string;

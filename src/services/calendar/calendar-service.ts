@@ -154,99 +154,171 @@ function calendarEventToGoogleEvent(event: CreateEventInput): GoogleCalendarEven
 }
 
 // ============================================================================
+// CALENDAR MODE DETECTION
+// ============================================================================
+
+export type CalendarMode = 'google' | 'local' | 'none';
+
+/**
+ * Determine which calendar mode to use for a user
+ *
+ * Priority:
+ * 1. Google Calendar if connected
+ * 2. Local calendar if has events
+ * 3. Local calendar (default - always available)
+ */
+export async function getCalendarMode(userId: string): Promise<CalendarMode> {
+  // Check Google Calendar first
+  const googleConnected = await isCalendarConfigured(userId);
+  if (googleConnected) {
+    return 'google';
+  }
+
+  // Always fall back to local - it's always available
+  return 'local';
+}
+
+// ============================================================================
 // CORE OPERATIONS
 // ============================================================================
 
 /**
- * Check if calendar is connected for a user
+ * Check if calendar is available for a user
+ *
+ * NOTE: With local fallback, calendar is ALWAYS available.
+ * This function now returns true if either Google or local is usable.
  */
 export async function isConnected(userId: string): Promise<boolean> {
+  // Google connected = definitely connected
+  const googleConnected = await isCalendarConfigured(userId);
+  if (googleConnected) return true;
+
+  // Local calendar is always available
+  return true;
+}
+
+/**
+ * Check if Google Calendar specifically is connected
+ */
+export async function isGoogleCalendarConnected(userId: string): Promise<boolean> {
   return isCalendarConfigured(userId);
 }
 
 /**
  * Get events for a specific day
+ *
+ * Uses Google Calendar if connected, otherwise local storage.
  */
 export async function getEventsForDay(
   userId: string,
   date: Date = new Date(),
   calendarId: string = DEFAULT_CALENDAR_ID
 ): Promise<CalendarEvent[]> {
-  const accessToken = await getValidAccessToken(userId);
-  if (!accessToken) {
-    log.debug({ userId }, 'No calendar access token available');
-    return [];
+  const mode = await getCalendarMode(userId);
+
+  if (mode === 'google') {
+    // Use Google Calendar
+    const accessToken = await getValidAccessToken(userId);
+    if (!accessToken) {
+      log.debug({ userId }, 'Google token expired, falling back to local');
+      return getLocalEventsForDay(userId, date);
+    }
+
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    try {
+      const events = await getGoogleEvents(accessToken, calendarId, startOfDay, endOfDay);
+      return events.map((e) => googleEventToCalendarEvent(e, calendarId));
+    } catch (error) {
+      log.error({ error: String(error), userId }, 'Google Calendar failed, falling back to local');
+      return getLocalEventsForDay(userId, date);
+    }
   }
 
-  const startOfDay = new Date(date);
-  startOfDay.setHours(0, 0, 0, 0);
-
-  const endOfDay = new Date(date);
-  endOfDay.setHours(23, 59, 59, 999);
-
-  try {
-    const events = await getGoogleEvents(accessToken, calendarId, startOfDay, endOfDay);
-    return events.map((e) => googleEventToCalendarEvent(e, calendarId));
-  } catch (error) {
-    log.error({ error: String(error), userId }, 'Failed to get calendar events');
-    return [];
-  }
+  // Use local calendar
+  return getLocalEventsForDay(userId, date);
 }
 
 /**
  * Get events for the current week
+ *
+ * Uses Google Calendar if connected, otherwise local storage.
  */
 export async function getEventsForWeek(
   userId: string,
   startDate?: Date,
   calendarId: string = DEFAULT_CALENDAR_ID
 ): Promise<CalendarEvent[]> {
-  const accessToken = await getValidAccessToken(userId);
-  if (!accessToken) {
-    return [];
-  }
-
+  const mode = await getCalendarMode(userId);
   const weekStart = startDate || getStartOfWeek(new Date());
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 7);
   weekEnd.setHours(23, 59, 59, 999);
 
-  try {
-    const events = await getGoogleEvents(accessToken, calendarId, weekStart, weekEnd, 100);
-    return events.map((e) => googleEventToCalendarEvent(e, calendarId));
-  } catch (error) {
-    log.error({ error: String(error), userId }, 'Failed to get week events');
-    return [];
+  if (mode === 'google') {
+    const accessToken = await getValidAccessToken(userId);
+    if (!accessToken) {
+      log.debug({ userId }, 'Google token expired, falling back to local');
+      return getLocalEvents(userId, weekStart, weekEnd);
+    }
+
+    try {
+      const events = await getGoogleEvents(accessToken, calendarId, weekStart, weekEnd, 100);
+      return events.map((e) => googleEventToCalendarEvent(e, calendarId));
+    } catch (error) {
+      log.error({ error: String(error), userId }, 'Google Calendar failed, falling back to local');
+      return getLocalEvents(userId, weekStart, weekEnd);
+    }
   }
+
+  // Use local calendar
+  return getLocalEvents(userId, weekStart, weekEnd);
 }
 
 /**
  * Create a new calendar event
+ *
+ * Uses Google Calendar if connected, otherwise local storage.
  */
 export async function createEvent(
   userId: string,
   event: CreateEventInput,
   calendarId: string = DEFAULT_CALENDAR_ID
 ): Promise<CalendarEvent | null> {
-  const accessToken = await getValidAccessToken(userId);
-  if (!accessToken) {
-    log.warn({ userId }, 'Cannot create event - no calendar access');
-    return null;
+  const mode = await getCalendarMode(userId);
+
+  if (mode === 'google') {
+    const accessToken = await getValidAccessToken(userId);
+    if (!accessToken) {
+      log.warn({ userId }, 'Google token expired, creating in local calendar');
+      return createLocalEvent(userId, event);
+    }
+
+    try {
+      const googleEvent = calendarEventToGoogleEvent(event);
+      const created = await createGoogleEvent(accessToken, calendarId, googleEvent);
+      log.info({ userId, eventTitle: event.title }, 'Google Calendar event created');
+      return googleEventToCalendarEvent(created, calendarId);
+    } catch (error) {
+      log.error({ error: String(error), userId }, 'Google Calendar failed, creating locally');
+      return createLocalEvent(userId, event);
+    }
   }
 
-  try {
-    const googleEvent = calendarEventToGoogleEvent(event);
-    const created = await createGoogleEvent(accessToken, calendarId, googleEvent);
-    log.info({ userId, eventTitle: event.title }, 'Calendar event created');
-    return googleEventToCalendarEvent(created, calendarId);
-  } catch (error) {
-    log.error({ error: String(error), userId }, 'Failed to create calendar event');
-    return null;
-  }
+  // Use local calendar
+  const created = await createLocalEvent(userId, event);
+  log.info({ userId, eventTitle: event.title }, 'Local calendar event created');
+  return created;
 }
 
 /**
  * Update an existing calendar event
+ *
+ * Uses Google Calendar if connected, otherwise local storage.
  */
 export async function updateEvent(
   userId: string,
@@ -254,60 +326,94 @@ export async function updateEvent(
   updates: Partial<CreateEventInput>,
   calendarId: string = DEFAULT_CALENDAR_ID
 ): Promise<CalendarEvent | null> {
-  const accessToken = await getValidAccessToken(userId);
-  if (!accessToken) {
-    return null;
+  // Check if this is a local event
+  if (eventId.startsWith('local_')) {
+    const updated = await updateLocalEvent(userId, eventId, updates);
+    if (updated) {
+      log.info({ userId, eventId }, 'Local calendar event updated');
+    }
+    return updated;
   }
 
-  try {
-    const googleUpdates: Partial<GoogleCalendarEvent> = {};
-
-    if (updates.title) googleUpdates.summary = updates.title;
-    if (updates.description) googleUpdates.description = updates.description;
-    if (updates.location) googleUpdates.location = updates.location;
-    if (updates.startTime) {
-      googleUpdates.start = {
-        dateTime: updates.startTime.toISOString(),
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      };
-    }
-    if (updates.endTime) {
-      googleUpdates.end = {
-        dateTime: updates.endTime.toISOString(),
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      };
+  // Try Google Calendar
+  const mode = await getCalendarMode(userId);
+  if (mode === 'google') {
+    const accessToken = await getValidAccessToken(userId);
+    if (!accessToken) {
+      log.warn({ userId }, 'Cannot update Google event - no token');
+      return null;
     }
 
-    const updated = await updateGoogleEvent(accessToken, calendarId, eventId, googleUpdates);
-    log.info({ userId, eventId }, 'Calendar event updated');
-    return googleEventToCalendarEvent(updated, calendarId);
-  } catch (error) {
-    log.error({ error: String(error), userId, eventId }, 'Failed to update calendar event');
-    return null;
+    try {
+      const googleUpdates: Partial<GoogleCalendarEvent> = {};
+
+      if (updates.title) googleUpdates.summary = updates.title;
+      if (updates.description) googleUpdates.description = updates.description;
+      if (updates.location) googleUpdates.location = updates.location;
+      if (updates.startTime) {
+        googleUpdates.start = {
+          dateTime: updates.startTime.toISOString(),
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        };
+      }
+      if (updates.endTime) {
+        googleUpdates.end = {
+          dateTime: updates.endTime.toISOString(),
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        };
+      }
+
+      const updated = await updateGoogleEvent(accessToken, calendarId, eventId, googleUpdates);
+      log.info({ userId, eventId }, 'Google Calendar event updated');
+      return googleEventToCalendarEvent(updated, calendarId);
+    } catch (error) {
+      log.error({ error: String(error), userId, eventId }, 'Failed to update Google event');
+      return null;
+    }
   }
+
+  return null;
 }
 
 /**
  * Delete a calendar event
+ *
+ * Uses Google Calendar if connected, otherwise local storage.
  */
 export async function deleteEvent(
   userId: string,
   eventId: string,
   calendarId: string = DEFAULT_CALENDAR_ID
 ): Promise<boolean> {
-  const accessToken = await getValidAccessToken(userId);
-  if (!accessToken) {
-    return false;
+  // Check if this is a local event
+  if (eventId.startsWith('local_')) {
+    const deleted = await deleteLocalEvent(userId, eventId);
+    if (deleted) {
+      log.info({ userId, eventId }, 'Local calendar event deleted');
+    }
+    return deleted;
   }
 
-  try {
-    await deleteGoogleEvent(accessToken, calendarId, eventId);
-    log.info({ userId, eventId }, 'Calendar event deleted');
-    return true;
-  } catch (error) {
-    log.error({ error: String(error), userId, eventId }, 'Failed to delete calendar event');
-    return false;
+  // Try Google Calendar
+  const mode = await getCalendarMode(userId);
+  if (mode === 'google') {
+    const accessToken = await getValidAccessToken(userId);
+    if (!accessToken) {
+      log.warn({ userId }, 'Cannot delete Google event - no token');
+      return false;
+    }
+
+    try {
+      await deleteGoogleEvent(accessToken, calendarId, eventId);
+      log.info({ userId, eventId }, 'Google Calendar event deleted');
+      return true;
+    } catch (error) {
+      log.error({ error: String(error), userId, eventId }, 'Failed to delete Google event');
+      return false;
+    }
   }
+
+  return false;
 }
 
 // ============================================================================
@@ -650,17 +756,24 @@ export function formatDayOverviewForSpeech(overview: DayOverview): string {
 }
 
 export default {
+  // Connection status
   isConnected,
+  isGoogleCalendarConnected,
+  getCalendarMode,
+  // CRUD operations
   getEventsForDay,
   getEventsForWeek,
   createEvent,
   updateEvent,
   deleteEvent,
+  // Availability
   findFreeTimeSlots,
   isTimeSlotAvailable,
   findNextAvailableSlot,
+  // Overviews
   getDayOverview,
   getWeekOverview,
+  // Formatting
   formatEventForSpeech,
   formatDayOverviewForSpeech,
 };

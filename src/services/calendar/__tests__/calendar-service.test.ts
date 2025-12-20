@@ -27,6 +27,8 @@ vi.mock('../../google-calendar-oauth.js', () => ({
 // Import after mocks
 import {
   isConnected,
+  isGoogleCalendarConnected,
+  getCalendarMode,
   getEventsForDay,
   createEvent,
   findFreeTimeSlots,
@@ -61,12 +63,49 @@ describe('Calendar Service', () => {
       expect(googleCalendarOAuth.isCalendarConfigured).toHaveBeenCalledWith(mockUserId);
     });
 
-    it('should return false when calendar is not configured', async () => {
+    it('should return true even when Google not configured (local fallback)', async () => {
       vi.mocked(googleCalendarOAuth.isCalendarConfigured).mockResolvedValue(false);
       
       const result = await isConnected(mockUserId);
       
+      // Now returns true because local calendar is always available
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('isGoogleCalendarConnected', () => {
+    it('should return true when Google Calendar is configured', async () => {
+      vi.mocked(googleCalendarOAuth.isCalendarConfigured).mockResolvedValue(true);
+      
+      const result = await isGoogleCalendarConnected(mockUserId);
+      
+      expect(result).toBe(true);
+    });
+
+    it('should return false when Google Calendar is not configured', async () => {
+      vi.mocked(googleCalendarOAuth.isCalendarConfigured).mockResolvedValue(false);
+      
+      const result = await isGoogleCalendarConnected(mockUserId);
+      
       expect(result).toBe(false);
+    });
+  });
+
+  describe('getCalendarMode', () => {
+    it('should return google when Google Calendar is configured', async () => {
+      vi.mocked(googleCalendarOAuth.isCalendarConfigured).mockResolvedValue(true);
+      
+      const result = await getCalendarMode(mockUserId);
+      
+      expect(result).toBe('google');
+    });
+
+    it('should return local when Google Calendar is not configured', async () => {
+      vi.mocked(googleCalendarOAuth.isCalendarConfigured).mockResolvedValue(false);
+      
+      const result = await getCalendarMode(mockUserId);
+      
+      expect(result).toBe('local');
     });
   });
 
@@ -125,8 +164,9 @@ describe('Calendar Service', () => {
   });
 
   describe('createEvent', () => {
-    it('should return null when no access token', async () => {
+    it('should fall back to local calendar when no access token', async () => {
       vi.mocked(googleCalendarOAuth.getValidAccessToken).mockResolvedValue(null);
+      vi.mocked(googleCalendarOAuth.isCalendarConfigured).mockResolvedValue(false);
       
       const input: CreateEventInput = {
         title: 'Test Meeting',
@@ -135,7 +175,10 @@ describe('Calendar Service', () => {
       
       const result = await createEvent(mockUserId, input);
       
-      expect(result).toBeNull();
+      // Now falls back to local calendar instead of returning null
+      expect(result).not.toBeNull();
+      expect(result?.title).toBe('Test Meeting');
+      expect(result?.calendarId).toBe('local');
     });
 
     it('should create event with correct parameters', async () => {

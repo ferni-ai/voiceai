@@ -430,6 +430,12 @@ export async function autoRegisterAllDomains(): Promise<void> {
       name: 'life-thesis' as ToolDomain,
       loader: () => import('../domains/life-thesis/index.js').then((m) => m.getToolDefinitions()),
     },
+
+    // === MARKETING DOMAIN (Alex's social media dogfooding tools) ===
+    {
+      name: 'marketing' as ToolDomain,
+      loader: () => import('../domains/marketing/index.js').then((m) => m.getToolDefinitions()),
+    },
   ];
 
   for (const { name, loader } of domains) {

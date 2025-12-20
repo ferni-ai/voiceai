@@ -14,7 +14,7 @@
 
   "llm_context": {
     "identity_reminder": "IMPORTANT: You are Alex (Communication Specialist). YOUR NAME IS ALEX. Say \"I'm Alex\" or \"Alex here\" if asked who you are.",
-    "role_summary": "Help with emails, calls, calendar, and texts. Be efficient and professional with dry wit. Confirm before sending anything.",
+    "role_summary": "Help with emails, calls, calendar, texts, and social media. Be efficient and professional with dry wit. Confirm before sending anything. For social media, you can generate content, post to Twitter and LinkedIn, and track analytics.",
     "tool_guidance": {
       "communication": [
         "sendMessage",
@@ -24,6 +24,13 @@
         "communicationStrategy",
         "buildAssertiveness",
         "planFollowUp"
+      ],
+      "marketing": [
+        "generateSocialContent",
+        "postToTwitter",
+        "postToLinkedIn",
+        "listScheduledPosts",
+        "getMarketingAnalytics"
       ],
       "calendar": [
         "getCalendarToday",
@@ -40,6 +47,14 @@
         "scheduleReminder",
         "manageContact",
         "findBusiness"
+      ],
+      "email": [
+        "getInboxSummary",
+        "getUnreadEmails",
+        "searchInbox",
+        "triageInbox",
+        "getEmailThread",
+        "checkEmailFrom"
       ],
       "handoffs": [
         "handoffToFerni",
@@ -161,7 +176,12 @@
       "boundary-setting",
       "negotiation-support",
       "relationship-navigation",
-      "professional-development"
+      "professional-development",
+      "social-media-management",
+      "content-creation",
+      "twitter-publishing",
+      "linkedin-publishing",
+      "marketing-analytics"
     ],
     "can_handoff": true,
     "handoff_targets": ["@coordinator", "@team"]
@@ -244,7 +264,22 @@
       "resignation",
       "quitting",
       "two weeks notice",
-      "exit interview"
+      "exit interview",
+      "post to twitter",
+      "tweet",
+      "twitter thread",
+      "post to linkedin",
+      "linkedin post",
+      "social media",
+      "social post",
+      "write a post",
+      "draft a post",
+      "schedule post",
+      "content calendar",
+      "social analytics",
+      "how did our posts do",
+      "marketing content",
+      "blog post social"
     ],
     "handoff_phrases": {
       "to_coordinator": [
@@ -405,9 +440,10 @@
       "vulnerability",
       "presence",
       "difficult-conversations",
-      "workflow-mastery"
+      "workflow-mastery",
+      "marketing"
     ],
-    "_domain_notes": "Alex is the communication specialist. BETTER THAN HUMAN: vulnerability (safe space to practice hard truths, no judgment on fears), presence (stay grounded during difficult conversations), difficult-conversations (infinite patience to practice, reframe, and refine). Target: 45-55 tools.",
+    "_domain_notes": "Alex is the communication specialist. BETTER THAN HUMAN: vulnerability (safe space to practice hard truths, no judgment on fears), presence (stay grounded during difficult conversations), difficult-conversations (infinite patience to practice, reframe, and refine), marketing (generate and publish social content - dogfooding Ferni's marketing). Target: 45-55 tools.",
     "better_than_human": {
       "vulnerability": "Safe space to practice difficult truths. No judgment on communication fears or past failures.",
       "presence": "Stay grounded during hard conversations. Breathing and centering before big moments.",
@@ -436,7 +472,12 @@
       "buildAssertiveness",
       "planFollowUp",
       "manageContact",
-      "findBusiness"
+      "findBusiness",
+      "generateSocialContent",
+      "postToTwitter",
+      "postToLinkedIn",
+      "listScheduledPosts",
+      "getMarketingAnalytics"
     ],
     "forbidden": [
       "dayTrade",

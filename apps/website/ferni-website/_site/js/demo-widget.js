@@ -1,14 +1,16 @@
 /**
- * ✨ Interactive Demo Widget
+ * Interactive Demo Widget
  * A mini chat that demonstrates Ferni's "Better than Human" magic
  * 
  * Features:
- * - Appears as a friendly floating orb
- * - Expands into a chat interface on click
+ * - Appears as a friendly floating orb with breathing animation
+ * - Expands into a polished chat interface on click
  * - Pre-scripted conversations that show key capabilities
- * - Typing indicators with personality
+ * - Human-like typing with personality (speed variation, pauses)
+ * - Emotional state indicators (badges)
  * - Memory demonstration (references earlier in conversation)
- * - Voice-first hints
+ * - Voice-first hints with call-to-action
+ * - Response variations for repeated topics
  * 
  * Philosophy: Show, don't tell. Let people feel the difference.
  */
@@ -23,11 +25,15 @@
   const CONFIG = {
     enableWidget: true,
     position: 'bottom-right',
-    showDelay: 5000,           // Show after 5s on page
-    peekDelay: 15000,          // Peek message after 15s
-    typingSpeed: 40,           // ms per character
-    thinkingDelay: 800,        // Pause before responding
-    enableSound: false,        // Sound effects (disabled by default)
+    showDelay: 3000,           // Show after 3s on page
+    peekDelay: 12000,          // Peek message after 12s
+    baseTypingSpeed: 35,       // Base ms per character
+    typingVariation: 0.4,      // How much typing speed varies (0-1)
+    pausePunctuation: 150,     // Extra pause after . ! ?
+    pauseComma: 80,            // Extra pause after ,
+    thinkingDelayBase: 600,    // Base pause before responding
+    thinkingDelayPerChar: 8,   // Extra thinking time based on message length
+    enableSound: false,
     debugMode: false
   };
 
@@ -41,48 +47,111 @@
       greeting: "Hey. What's on your mind?",
       exchanges: [
         {
-          triggers: ['stressed', 'overwhelmed', 'too much', 'anxious'],
-          response: "I hear that. Want to talk through what's weighing on you, or would it help more to just... breathe for a moment first?",
+          triggers: ['stressed', 'overwhelmed', 'too much', 'anxious', 'anxiety'],
+          responses: [
+            "I hear that. Want to talk through what's weighing on you, or would it help more to just... breathe for a moment first?",
+            "That sounds heavy. What's one thing that feels the most pressing right now?",
+            "Stress has a way of piling up. No rush—just tell me what's there."
+          ],
+          emotion: 'concerned',
+          showsCapability: 'emotional-intelligence',
           followUp: {
-            triggers: ['talk', 'tell you', 'vent'],
+            triggers: ['talk', 'tell you', 'vent', 'yes'],
             response: "I'm here. Take your time—there's no rush."
           }
         },
         {
-          triggers: ['work', 'job', 'boss', 'career'],
-          response: "Work stuff. That can be a lot to carry. What's the main thing sitting with you right now?",
+          triggers: ['work', 'job', 'boss', 'career', 'office'],
+          responses: [
+            "Work stuff. That can be a lot to carry. What's the main thing sitting with you right now?",
+            "Work takes up so much headspace, doesn't it? What's been the hardest part lately?",
+            "I hear you. Is it the work itself, or the people, or something else?"
+          ],
+          emotion: 'curious',
           showsCapability: 'understanding'
         },
         {
-          triggers: ['relationship', 'partner', 'dating', 'lonely'],
-          response: "Relationships are complicated. I'm not going to give you a quick fix—but I can help you figure out what you're really feeling.",
+          triggers: ['relationship', 'partner', 'dating', 'lonely', 'love', 'girlfriend', 'boyfriend'],
+          responses: [
+            "Relationships are complicated. I'm not going to give you a quick fix—but I can help you figure out what you're really feeling.",
+            "That's tender territory. What part of it do you want to explore?",
+            "Love stuff. There's a lot there. What feels most important to talk about?"
+          ],
+          emotion: 'warm',
           showsCapability: 'depth'
         },
         {
-          triggers: ['sad', 'down', 'depressed', 'unhappy'],
-          response: "I'm sorry you're feeling that way. Sometimes sadness needs space, not solutions. What does yours need right now?",
+          triggers: ['sad', 'down', 'depressed', 'unhappy', 'miserable'],
+          responses: [
+            "I'm sorry you're feeling that way. Sometimes sadness needs space, not solutions. What does yours need right now?",
+            "That's hard. I'm not going to try to cheer you up—but I'm here to sit with you in it.",
+            "Sadness has something to tell us. Want to listen to it together?"
+          ],
+          emotion: 'empathetic',
           showsCapability: 'emotional-intelligence'
         },
         {
-          triggers: ['hi', 'hello', 'hey'],
-          response: "Hey. I'm here whenever you're ready to talk. No pressure."
+          triggers: ['happy', 'good', 'great', 'excited', 'amazing'],
+          responses: [
+            "That's wonderful to hear! What's bringing that energy?",
+            "I love that. Tell me what's going right.",
+            "That's great! I'm curious what's lighting you up."
+          ],
+          emotion: 'delighted'
+        },
+        {
+          triggers: ['tired', 'exhausted', 'burnt out', 'burnout', 'drained'],
+          responses: [
+            "Exhaustion is real. Is this a 'I need rest' tired or a 'something deeper' tired?",
+            "Being drained like that... it's hard. What's been taking the most from you?",
+            "That kind of tired runs deep. What would help right now—rest or talking?"
+          ],
+          emotion: 'concerned',
+          showsCapability: 'understanding'
+        },
+        {
+          triggers: ['confused', 'lost', 'uncertain', 'don\'t know', 'stuck'],
+          responses: [
+            "Being stuck is uncomfortable. But sometimes it's just the pause before clarity. What feels most unclear?",
+            "That's okay. Confusion often means you're on the edge of figuring something out.",
+            "Not knowing is hard. Let's untangle it together—what feels like the knot?"
+          ],
+          emotion: 'thoughtful',
+          showsCapability: 'depth'
+        },
+        {
+          triggers: ['hi', 'hello', 'hey', 'sup'],
+          responses: [
+            "Hey. I'm here whenever you're ready to talk. No pressure.",
+            "Hey there. What's on your mind today?",
+            "Hi. How are you really doing?"
+          ],
+          emotion: 'neutral'
         }
       ],
-      default: "Tell me more about that. I want to understand."
+      defaults: [
+        "Tell me more about that. I want to understand.",
+        "I'm listening. What else is there?",
+        "Say more—I'm here.",
+        "What's underneath that?",
+        "Keep going. I'm following."
+      ]
     },
     
     // Memory demonstration
     memory: {
       greeting: "Last time you mentioned you were working on setting boundaries at work. How's that going?",
       showsCapability: 'memory',
-      explanation: "I remember what matters to you."
+      explanation: "I remember what matters to you.",
+      emotion: 'thoughtful'
     },
     
     // 2am demonstration
     lateNight: {
       greeting: "It's late. Can't sleep, or choosing not to?",
       showsCapability: '24-7-presence',
-      explanation: "Same presence at 2am as noon."
+      explanation: "Same presence at 2am as noon.",
+      emotion: 'warm'
     }
   };
 
@@ -92,30 +161,39 @@
   
   const CAPABILITIES = {
     memory: {
-      icon: '🧠',
       label: 'Perfect Memory',
       description: 'I remember your whole story'
     },
     understanding: {
-      icon: '👂',
       label: 'Deep Understanding',
       description: 'I hear what you\'re not saying'
     },
     depth: {
-      icon: '🌊',
       label: 'Real Depth',
       description: 'Not just surface-level advice'
     },
     'emotional-intelligence': {
-      icon: '💚',
       label: 'Emotional Intelligence',
       description: 'I meet you where you are'
     },
     '24-7-presence': {
-      icon: '🌙',
       label: 'Always Present',
       description: 'Same warmth, any hour'
     }
+  };
+  
+  // ============================================================================
+  // EMOTIONAL STATES - For emotion badge display
+  // ============================================================================
+  
+  const EMOTIONS = {
+    neutral: { color: '#4a6741', label: 'Present' },
+    curious: { color: '#3a6b73', label: 'Curious' },
+    warm: { color: '#a67a6a', label: 'Warm' },
+    concerned: { color: '#7a6a5a', label: 'Concerned' },
+    empathetic: { color: '#8a6a7a', label: 'With You' },
+    thoughtful: { color: '#5a6b8a', label: 'Thinking' },
+    delighted: { color: '#6a8a5a', label: 'Happy' }
   };
 
   // ============================================================================
@@ -129,6 +207,9 @@
     conversationScript: null,
     lastUserMessage: '',
     showedCapabilities: new Set(),
+    usedResponses: new Map(),     // Track which responses were used per trigger
+    currentEmotion: 'neutral',
+    isTyping: false,
     initialized: false
   };
 
@@ -201,9 +282,15 @@
       <div class="demo-widget__chat" aria-hidden="true">
         <div class="demo-widget__header">
           <div class="demo-widget__header-avatar">
-            <div class="demo-widget__mini-orb">FE</div>
-            <span>Ferni</span>
-            <span class="demo-widget__status">Demo Mode</span>
+            <div class="demo-widget__mini-orb">
+              <span>FE</span>
+              <div class="demo-widget__mini-orb-glow"></div>
+            </div>
+            <div class="demo-widget__header-info">
+              <span class="demo-widget__header-name">Ferni</span>
+              <span class="demo-widget__status">Demo Mode</span>
+            </div>
+            <span class="demo-widget__emotion-badge"></span>
           </div>
           <button class="demo-widget__close" aria-label="Close chat">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
@@ -366,65 +453,113 @@
   }
 
   // ============================================================================
-  // MESSAGING
+  // MESSAGING - With personality
   // ============================================================================
   
   function sendMessage() {
     const text = inputEl.value.trim();
-    if (!text) return;
+    if (!text || state.isTyping) return;
     
     // Add user message
     addUserMessage(text);
     inputEl.value = '';
     state.lastUserMessage = text;
     
+    // Calculate thinking time (longer messages = more thought)
+    const thinkingTime = CONFIG.thinkingDelayBase + 
+                         Math.min(text.length * CONFIG.thinkingDelayPerChar, 800);
+    
     // Generate response
     setTimeout(() => {
       showTypingIndicator();
+      state.isTyping = true;
+      
+      // Generate response content
+      const response = generateResponse(text);
+      
+      // Calculate typing duration (approximate)
+      const typingDuration = response.text.length * CONFIG.baseTypingSpeed * 1.5;
       
       setTimeout(() => {
         hideTypingIndicator();
-        const response = generateResponse(text);
-        addFerniMessage(response.text);
+        addFerniMessage(response.text, response.emotion);
+        state.isTyping = false;
         
         if (response.capability) {
-          showCapabilityHint(response.capability);
+          setTimeout(() => showCapabilityHint(response.capability), 500);
         }
-      }, CONFIG.thinkingDelay + text.length * 20);
-    }, 300);
+      }, typingDuration);
+    }, thinkingTime);
   }
   
   function addUserMessage(text) {
     const msg = document.createElement('div');
     msg.className = 'demo-message demo-message--user';
-    msg.textContent = text;
+    
+    // Add entrance animation
+    msg.innerHTML = `<span class="demo-message__content">${escapeHtml(text)}</span>`;
+    
     messagesContainer.appendChild(msg);
+    requestAnimationFrame(() => msg.classList.add('is-visible'));
     scrollToBottom();
     state.messages.push({ role: 'user', text });
   }
   
-  function addFerniMessage(text) {
+  function addFerniMessage(text, emotion = 'neutral') {
     const msg = document.createElement('div');
     msg.className = 'demo-message demo-message--ferni';
-    messagesContainer.appendChild(msg);
+    msg.dataset.emotion = emotion;
     
-    // Typewriter effect
-    typeText(msg, text);
+    // Update current emotion
+    state.currentEmotion = emotion;
+    updateEmotionBadge(emotion);
+    
+    // Create message structure
+    msg.innerHTML = `<span class="demo-message__content"></span>`;
+    const contentEl = msg.querySelector('.demo-message__content');
+    
+    messagesContainer.appendChild(msg);
+    requestAnimationFrame(() => msg.classList.add('is-visible'));
+    
+    // Typewriter effect with personality
+    typeTextWithPersonality(contentEl, text);
     
     scrollToBottom();
-    state.messages.push({ role: 'ferni', text });
+    state.messages.push({ role: 'ferni', text, emotion });
   }
   
-  function typeText(element, text) {
+  function typeTextWithPersonality(element, text) {
     let i = 0;
     element.textContent = '';
     
     function type() {
       if (i < text.length) {
-        element.textContent += text.charAt(i);
+        const char = text.charAt(i);
+        element.textContent += char;
         i++;
         scrollToBottom();
-        setTimeout(type, CONFIG.typingSpeed);
+        
+        // Calculate delay with personality
+        let delay = CONFIG.baseTypingSpeed;
+        
+        // Add variation for natural feel
+        delay += (Math.random() - 0.5) * CONFIG.baseTypingSpeed * CONFIG.typingVariation * 2;
+        
+        // Pause on punctuation
+        if (['.', '!', '?'].includes(char)) {
+          delay += CONFIG.pausePunctuation;
+        } else if (char === ',') {
+          delay += CONFIG.pauseComma;
+        } else if (char === '—') {
+          delay += CONFIG.pausePunctuation * 0.5; // em-dash is a thoughtful pause
+        }
+        
+        // Occasional longer pause (thinking)
+        if (Math.random() < 0.02) {
+          delay += 150;
+        }
+        
+        setTimeout(type, Math.max(10, delay));
       }
     }
     
@@ -435,27 +570,54 @@
     const indicator = document.createElement('div');
     indicator.className = 'demo-typing';
     indicator.innerHTML = `
-      <span></span>
-      <span></span>
-      <span></span>
+      <div class="demo-typing__dots">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <span class="demo-typing__label">Ferni is thinking...</span>
     `;
     messagesContainer.appendChild(indicator);
+    requestAnimationFrame(() => indicator.classList.add('is-visible'));
     scrollToBottom();
   }
   
   function hideTypingIndicator() {
     const indicator = messagesContainer.querySelector('.demo-typing');
     if (indicator) {
-      indicator.remove();
+      indicator.classList.remove('is-visible');
+      setTimeout(() => indicator.remove(), 200);
     }
   }
   
   function scrollToBottom() {
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    messagesContainer.scrollTo({
+      top: messagesContainer.scrollHeight,
+      behavior: 'smooth'
+    });
+  }
+  
+  function updateEmotionBadge(emotionId) {
+    const badge = widgetContainer.querySelector('.demo-widget__emotion-badge');
+    if (!badge) return;
+    
+    const emotion = EMOTIONS[emotionId] || EMOTIONS.neutral;
+    badge.textContent = emotion.label;
+    badge.style.setProperty('--emotion-color', emotion.color);
+    badge.classList.add('is-visible');
+    
+    // Hide after 3 seconds
+    setTimeout(() => badge.classList.remove('is-visible'), 3000);
+  }
+  
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
   // ============================================================================
-  // RESPONSE GENERATION
+  // RESPONSE GENERATION - With variations and memory
   // ============================================================================
   
   function generateResponse(userText) {
@@ -465,32 +627,85 @@
     // Check for trigger matches
     if (script.exchanges) {
       for (const exchange of script.exchanges) {
-        const matched = exchange.triggers.some(trigger => text.includes(trigger));
-        if (matched) {
+        const matchedTrigger = exchange.triggers.find(trigger => text.includes(trigger));
+        if (matchedTrigger) {
+          // Get response with variation
+          const responses = exchange.responses || [exchange.response];
+          const responseText = getVariedResponse(matchedTrigger, responses);
+          
           return {
-            text: exchange.response,
-            capability: exchange.showsCapability
+            text: responseText,
+            capability: exchange.showsCapability,
+            emotion: exchange.emotion || 'neutral'
           };
         }
       }
     }
     
-    // Memory callback - reference something earlier
-    if (state.messages.length > 4 && Math.random() > 0.7) {
-      const earlierMessage = state.messages.find(m => m.role === 'user');
-      if (earlierMessage) {
+    // Memory callback - reference something earlier (more likely as conversation progresses)
+    const memoryChance = Math.min(0.4, state.messages.length * 0.1);
+    if (state.messages.length > 3 && Math.random() < memoryChance) {
+      const userMessages = state.messages.filter(m => m.role === 'user');
+      if (userMessages.length > 1) {
+        const earlierMessage = userMessages[0];
+        const memoryResponses = [
+          `You mentioned "${truncate(earlierMessage.text, 25)}" earlier. Does that connect to what you're feeling now?`,
+          `I keep thinking about when you said "${truncate(earlierMessage.text, 25)}." Is that related?`,
+          `Going back to what you said about "${truncate(earlierMessage.text, 25)}"—is that still on your mind?`
+        ];
+        
         return {
-          text: `You mentioned "${earlierMessage.text.slice(0, 30)}..." earlier. Does that connect to what you're feeling now?`,
-          capability: 'memory'
+          text: pickRandom(memoryResponses),
+          capability: 'memory',
+          emotion: 'thoughtful'
         };
       }
     }
     
-    // Default response
+    // Default response with variation
+    const defaults = script.defaults || [script.default || "Tell me more about that. I'm listening."];
     return {
-      text: script.default || "Tell me more about that. I'm listening.",
-      capability: null
+      text: pickRandom(defaults),
+      capability: null,
+      emotion: 'curious'
     };
+  }
+  
+  function getVariedResponse(trigger, responses) {
+    // Track which responses we've used for this trigger
+    if (!state.usedResponses.has(trigger)) {
+      state.usedResponses.set(trigger, new Set());
+    }
+    
+    const used = state.usedResponses.get(trigger);
+    
+    // Find unused responses
+    const available = responses.filter((_, i) => !used.has(i));
+    
+    // If all used, reset
+    if (available.length === 0) {
+      used.clear();
+      return pickRandom(responses);
+    }
+    
+    // Pick random from available
+    const unusedIndices = responses
+      .map((_, i) => i)
+      .filter(i => !used.has(i));
+    
+    const chosenIndex = pickRandom(unusedIndices);
+    used.add(chosenIndex);
+    
+    return responses[chosenIndex];
+  }
+  
+  function pickRandom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+  
+  function truncate(text, maxLength) {
+    if (text.length <= maxLength) return text;
+    return text.slice(0, maxLength).trim() + '...';
   }
 
   // ============================================================================

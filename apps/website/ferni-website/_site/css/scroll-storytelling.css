@@ -1,137 +1,346 @@
 /**
- * 🎬 Scroll Storytelling CSS
- * Apple-style cinematic scroll experiences
+ * Scroll Storytelling CSS
+ * Cinematic scroll experiences with chapter navigation
+ * 
+ * Design principles:
+ * - Pixar-level reveal timing (anticipation, action, follow-through)
+ * - Apple-style depth and layering
+ * - Natural momentum and physics feel
+ * - Respect for user attention
  */
 
 /* ============================================================================
-   PROGRESS INDICATOR
+   CUSTOM PROPERTIES - Animation timing tokens
+   ============================================================================ */
+
+:root {
+  --scroll-duration-fast: 0.4s;
+  --scroll-duration-normal: 0.6s;
+  --scroll-duration-slow: 0.8s;
+  --scroll-duration-dramatic: 1.2s;
+  
+  /* Pixar-style easing functions */
+  --ease-cinematic: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-anticipate: cubic-bezier(0.68, -0.6, 0.32, 1.6);
+  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ============================================================================
+   PROGRESS INDICATOR WITH CHAPTERS
    ============================================================================ */
 
 .scroll-progress {
   position: fixed;
-  right: 20px;
+  right: 24px;
   top: 50%;
   transform: translateY(-50%);
   z-index: 100;
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
   opacity: 0;
-  transition: opacity 0.5s ease;
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
 }
 
 /* Show after scrolling a bit */
 .scroll-progress.is-visible,
 body:not(.at-top) .scroll-progress {
   opacity: 1;
+  pointer-events: auto;
 }
 
+/* Track and fill */
 .scroll-progress__track {
-  width: 3px;
-  height: 120px;
-  background: rgba(74, 103, 65, 0.15);
-  border-radius: 2px;
-  overflow: hidden;
+  position: relative;
+  width: 2px;
+  height: 100px;
+  background: rgba(74, 103, 65, 0.12);
+  border-radius: 1px;
+  overflow: visible;
 }
 
 .scroll-progress__fill {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   background: var(--color-ferni, #4a6741);
-  border-radius: 2px;
+  border-radius: 1px;
   transform-origin: top;
   transform: scaleY(0);
-  transition: transform 0.1s ease-out;
+  transition: transform 0.15s ease-out;
 }
 
-.scroll-progress__sections {
+/* Velocity glow effect */
+.scroll-progress__glow {
+  position: absolute;
+  top: 0;
+  left: -3px;
+  width: 8px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(74, 103, 65, 0.4) 50%,
+    transparent 100%
+  );
+  border-radius: 4px;
+  transform-origin: top;
+  transform: scaleY(0);
+  opacity: 0;
+  filter: blur(4px);
+  transition: opacity 0.2s ease;
+}
+
+/* Chapter markers */
+.scroll-progress__chapters {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 8px 0;
+  gap: 16px;
+  padding: 4px 0;
 }
 
 .scroll-progress__marker {
-  width: 8px;
-  height: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scroll-progress__marker:focus-visible {
+  outline: 2px solid var(--color-ferni, #4a6741);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.scroll-progress__marker-num {
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(74, 103, 65, 0.3);
+  letter-spacing: 0.05em;
+  min-width: 16px;
+  text-align: right;
+  transition: all 0.3s ease;
+}
+
+.scroll-progress__marker-dot {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: rgba(74, 103, 65, 0.2);
-  transition: all 0.3s ease;
-  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
 }
 
-.scroll-progress__marker.is-active {
-  background: var(--color-ferni, #4a6741);
-  transform: scale(1.3);
-  box-shadow: 0 0 8px rgba(74, 103, 65, 0.4);
+.scroll-progress__marker-label {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 11px;
+  color: transparent;
+  white-space: nowrap;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.scroll-progress__marker:hover {
+/* Hover state */
+.scroll-progress__marker:hover .scroll-progress__marker-num {
+  color: var(--color-ferni, #4a6741);
+}
+
+.scroll-progress__marker:hover .scroll-progress__marker-dot {
   transform: scale(1.5);
+  background: rgba(74, 103, 65, 0.5);
 }
 
-/* Hide on mobile - takes up too much space */
+.scroll-progress__marker:hover .scroll-progress__marker-label {
+  color: var(--color-text-secondary, #5C544A);
+  max-width: 150px;
+  opacity: 1;
+  padding-left: 4px;
+}
+
+/* Passed sections */
+.scroll-progress__marker.is-passed .scroll-progress__marker-num {
+  color: rgba(74, 103, 65, 0.5);
+}
+
+.scroll-progress__marker.is-passed .scroll-progress__marker-dot {
+  background: var(--color-ferni, #4a6741);
+  opacity: 0.6;
+}
+
+/* Active state */
+.scroll-progress__marker.is-active .scroll-progress__marker-num {
+  color: var(--color-ferni, #4a6741);
+  font-size: 11px;
+}
+
+.scroll-progress__marker.is-active .scroll-progress__marker-dot {
+  background: var(--color-ferni, #4a6741);
+  transform: scale(1.8);
+  box-shadow: 0 0 12px rgba(74, 103, 65, 0.4);
+}
+
+/* Current chapter display */
+.scroll-progress__current {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body:not(.at-top) .scroll-progress__current {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.scroll-progress__chapter-num {
+  font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-ferni, #4a6741);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.scroll-progress__chapter-title {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary, #5C544A);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Hide on mobile */
 @media (max-width: 768px) {
   .scroll-progress {
+    display: none;
+  }
+  
+  .scroll-progress__current {
+    right: 16px;
+    bottom: 16px;
+  }
+  
+  .scroll-progress__chapter-num {
+    font-size: 20px;
+  }
+  
+  .scroll-progress__chapter-title {
     display: none;
   }
 }
 
 /* ============================================================================
-   CINEMATIC REVEALS
+   CINEMATIC REVEALS - Pixar-style animation choreography
    ============================================================================ */
 
 .cinematic-reveal {
   opacity: 0;
-  transform: translateY(40px);
+  transform: translateY(50px);
   transition: 
-    opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    opacity var(--scroll-duration-slow) var(--ease-cinematic),
+    transform var(--scroll-duration-slow) var(--ease-cinematic),
+    filter var(--scroll-duration-slow) var(--ease-cinematic);
   will-change: opacity, transform;
+  filter: blur(4px);
 }
 
 .cinematic-reveal.is-revealed {
   opacity: 1;
   transform: translateY(0);
+  filter: blur(0);
 }
 
 /* Different reveal styles */
 .cinematic-reveal--fade {
   transform: none;
+  filter: blur(2px);
+}
+
+.cinematic-reveal--fade.is-revealed {
+  filter: blur(0);
 }
 
 .cinematic-reveal--scale {
-  transform: scale(0.95);
+  transform: scale(0.92);
+  filter: blur(2px);
 }
 
 .cinematic-reveal--scale.is-revealed {
   transform: scale(1);
+  filter: blur(0);
 }
 
 .cinematic-reveal--left {
-  transform: translateX(-40px);
+  transform: translateX(-60px) rotate(-1deg);
 }
 
 .cinematic-reveal--left.is-revealed {
-  transform: translateX(0);
+  transform: translateX(0) rotate(0);
 }
 
 .cinematic-reveal--right {
-  transform: translateX(40px);
+  transform: translateX(60px) rotate(1deg);
 }
 
 .cinematic-reveal--right.is-revealed {
-  transform: translateX(0);
+  transform: translateX(0) rotate(0);
 }
 
-/* Staggered children */
+/* Dramatic entry - for hero elements */
+.cinematic-reveal--dramatic {
+  transform: translateY(80px) scale(0.9);
+  filter: blur(8px);
+  transition-duration: var(--scroll-duration-dramatic);
+}
+
+.cinematic-reveal--dramatic.is-revealed {
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+}
+
+/* Float up reveal - lighter, ethereal feel */
+.cinematic-reveal--float {
+  transform: translateY(30px);
+  transition: 
+    opacity 1s var(--ease-settle),
+    transform 1.2s var(--ease-settle);
+}
+
+.cinematic-reveal--float.is-revealed {
+  transform: translateY(0);
+}
+
+/* Staggered children - with Pixar-style wave */
 .reveal-child,
 [data-reveal-child] {
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateY(24px);
   transition: 
-    opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    opacity var(--scroll-duration-normal) var(--ease-cinematic),
+    transform var(--scroll-duration-normal) var(--ease-spring);
 }
 
 .reveal-child.is-revealed,
@@ -140,15 +349,50 @@ body:not(.at-top) .scroll-progress {
   transform: translateY(0);
 }
 
-/* Stagger timing via CSS (fallback if JS timing fails) */
+/* Stagger timing - carefully choreographed */
 .reveal-child:nth-child(1) { transition-delay: 0ms; }
-.reveal-child:nth-child(2) { transition-delay: 80ms; }
-.reveal-child:nth-child(3) { transition-delay: 160ms; }
-.reveal-child:nth-child(4) { transition-delay: 240ms; }
-.reveal-child:nth-child(5) { transition-delay: 320ms; }
-.reveal-child:nth-child(6) { transition-delay: 400ms; }
-.reveal-child:nth-child(7) { transition-delay: 480ms; }
-.reveal-child:nth-child(8) { transition-delay: 560ms; }
+.reveal-child:nth-child(2) { transition-delay: 100ms; }
+.reveal-child:nth-child(3) { transition-delay: 180ms; }
+.reveal-child:nth-child(4) { transition-delay: 250ms; }
+.reveal-child:nth-child(5) { transition-delay: 310ms; }
+.reveal-child:nth-child(6) { transition-delay: 360ms; }
+.reveal-child:nth-child(7) { transition-delay: 400ms; }
+.reveal-child:nth-child(8) { transition-delay: 435ms; }
+.reveal-child:nth-child(9) { transition-delay: 465ms; }
+.reveal-child:nth-child(10) { transition-delay: 490ms; }
+
+/* Text-specific reveals with subtle scaling */
+.reveal-text {
+  opacity: 0;
+  transform: translateY(16px) scale(0.98);
+  filter: blur(1px);
+  transition: 
+    opacity var(--scroll-duration-normal) var(--ease-cinematic),
+    transform var(--scroll-duration-normal) var(--ease-spring),
+    filter var(--scroll-duration-fast) ease;
+}
+
+.reveal-text.is-revealed {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+}
+
+/* Word-by-word reveal for headlines */
+.reveal-word {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(20px) rotateX(-10deg);
+  transition: 
+    opacity 0.5s var(--ease-cinematic),
+    transform 0.5s var(--ease-spring);
+  transform-origin: bottom center;
+}
+
+.reveal-word.is-revealed {
+  opacity: 1;
+  transform: translateY(0) rotateX(0);
+}
 
 /* ============================================================================
    PARALLAX ELEMENTS
@@ -344,75 +588,160 @@ section.is-current-section::after {
 }
 
 /* ============================================================================
-   SCROLL INDICATOR
+   SCROLL INDICATOR - Refined, minimal, cinematic
    ============================================================================ */
 
 .scroll-indicator {
   position: absolute;
-  bottom: 40px;
+  bottom: 48px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   opacity: 1;
-  transition: opacity 0.5s ease;
-  animation: scroll-indicator-bounce 2s ease-in-out infinite;
+  transition: 
+    opacity 0.6s var(--ease-cinematic),
+    transform 0.6s var(--ease-cinematic);
 }
 
-/* Hide after scrolling */
+/* Hide after scrolling with elegant fade */
 body:not(.at-top) .scroll-indicator {
   opacity: 0;
+  transform: translateX(-50%) translateY(20px);
   pointer-events: none;
 }
 
 .scroll-indicator__mouse {
-  width: 24px;
-  height: 38px;
-  border: 2px solid var(--color-text-secondary, #5C544A);
-  border-radius: 12px;
+  width: 26px;
+  height: 42px;
+  border: 2px solid rgba(92, 84, 74, 0.4);
+  border-radius: 14px;
   position: relative;
+  background: rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(4px);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    inset 0 0 10px rgba(255, 255, 255, 0.3);
+  animation: mouse-breathe 3s ease-in-out infinite;
+}
+
+@keyframes mouse-breathe {
+  0%, 100% {
+    border-color: rgba(92, 84, 74, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    border-color: rgba(92, 84, 74, 0.6);
+    transform: scale(1.02);
+  }
 }
 
 .scroll-indicator__mouse::before {
   content: '';
   position: absolute;
-  top: 8px;
+  top: 10px;
   left: 50%;
   transform: translateX(-50%);
   width: 4px;
-  height: 8px;
-  background: var(--color-text-secondary, #5C544A);
+  height: 10px;
+  background: linear-gradient(
+    180deg,
+    var(--color-ferni, #4a6741) 0%,
+    rgba(74, 103, 65, 0.3) 100%
+  );
   border-radius: 2px;
-  animation: scroll-wheel 2s ease-in-out infinite;
+  animation: scroll-wheel 2.5s ease-in-out infinite;
 }
 
 @keyframes scroll-wheel {
-  0%, 100% {
+  0% {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
-  50% {
-    opacity: 0.3;
-    transform: translateX(-50%) translateY(8px);
+  40% {
+    opacity: 0.6;
+    transform: translateX(-50%) translateY(10px);
   }
-}
-
-@keyframes scroll-indicator-bounce {
-  0%, 100% {
+  80% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(14px);
+  }
+  81% {
+    opacity: 0;
     transform: translateX(-50%) translateY(0);
   }
-  50% {
-    transform: translateX(-50%) translateY(8px);
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
   }
 }
 
-.scroll-indicator span {
-  font-size: 12px;
+.scroll-indicator__text {
+  font-size: 11px;
+  font-weight: 500;
   color: var(--color-text-secondary, #5C544A);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.15em;
+  opacity: 0.7;
+  animation: text-pulse 3s ease-in-out infinite;
+}
+
+@keyframes text-pulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* Arrow indicator (alternative style) */
+.scroll-indicator__arrows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: arrows-float 2s ease-in-out infinite;
+}
+
+.scroll-indicator__arrows span {
+  width: 12px;
+  height: 12px;
+  border-right: 2px solid var(--color-ferni, #4a6741);
+  border-bottom: 2px solid var(--color-ferni, #4a6741);
+  transform: rotate(45deg);
+  opacity: 0.3;
+}
+
+.scroll-indicator__arrows span:nth-child(1) {
+  animation: arrow-fade 2s ease-in-out infinite;
+}
+.scroll-indicator__arrows span:nth-child(2) {
+  animation: arrow-fade 2s ease-in-out infinite 0.15s;
+}
+.scroll-indicator__arrows span:nth-child(3) {
+  animation: arrow-fade 2s ease-in-out infinite 0.3s;
+}
+
+@keyframes arrow-fade {
+  0%, 50%, 100% {
+    opacity: 0.2;
+    transform: rotate(45deg) translateY(0);
+  }
+  25% {
+    opacity: 0.8;
+    transform: rotate(45deg) translateY(4px);
+  }
+}
+
+@keyframes arrows-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(6px);
+  }
 }
 
 /* ============================================================================

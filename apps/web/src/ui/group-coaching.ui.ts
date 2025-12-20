@@ -63,28 +63,28 @@ function getSessionTypes(): SessionTypeInfo[] {
       {
         id: 'couple',
         name: t('groupCoaching.sessionTypes.couple.name'),
-        icon: '💑',
+        icon: ICONS.couple,
         description: t('groupCoaching.sessionTypes.couple.description'),
         maxParticipants: 2,
       },
       {
         id: 'family',
         name: t('groupCoaching.sessionTypes.family.name'),
-        icon: '👨‍👩‍👧‍👦',
+        icon: ICONS.family,
         description: t('groupCoaching.sessionTypes.family.description'),
         maxParticipants: 6,
       },
       {
         id: 'team',
         name: t('groupCoaching.sessionTypes.team.name'),
-        icon: '👥',
+        icon: ICONS.team,
         description: t('groupCoaching.sessionTypes.team.description'),
         maxParticipants: 10,
       },
       {
         id: 'peer_support',
         name: t('groupCoaching.sessionTypes.peer.name'),
-        icon: '🤝',
+        icon: ICONS.handshake,
         description: t('groupCoaching.sessionTypes.peer.description'),
         maxParticipants: 8,
       },
@@ -103,6 +103,30 @@ const ICONS = {
     <circle cx="9" cy="7" r="4"/>
     <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
     <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </svg>`,
+  // Session type icons (Lucide-style, replacing emojis)
+  couple: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+  </svg>`,
+  family: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    <circle cx="9" cy="19" r="1" fill="currentColor"/>
+    <circle cx="15" cy="19" r="1" fill="currentColor"/>
+  </svg>`,
+  team: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 21a8 8 0 0 0-16 0"/>
+    <circle cx="10" cy="8" r="5"/>
+    <path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/>
+  </svg>`,
+  handshake: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m11 17 2 2a1 1 0 1 0 3-3"/>
+    <path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/>
+    <path d="m21 3 1 11h-2"/>
+    <path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/>
+    <path d="M3 4h8"/>
   </svg>`,
   close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <line x1="18" y1="6" x2="6" y2="18"/>
@@ -243,7 +267,7 @@ class GroupCoachingUI {
             .map(
               (session) => `
           <div class="group-coaching__session" data-session-id="${session.id}">
-            <div class="group-coaching__session-icon">${getSessionTypes().find((t) => t.id === session.type)?.icon || '👥'}</div>
+            <div class="group-coaching__session-icon">${getSessionTypes().find((t) => t.id === session.type)?.icon || ICONS.users}</div>
             <div class="group-coaching__session-info">
               <span class="group-coaching__session-type">${getSessionTypes().find((t) => t.id === session.type)?.name || session.type}</span>
               <span class="group-coaching__session-status">${session.status} • ${session.participants.length} ${t('groupCoaching.participantsLabel')}</span>
@@ -352,7 +376,7 @@ class GroupCoachingUI {
 
       <div class="group-coaching__content">
         <div class="group-coaching__session-header">
-          <div class="group-coaching__session-icon-lg">${typeInfo?.icon || '👥'}</div>
+          <div class="group-coaching__session-icon-lg">${typeInfo?.icon || ICONS.users}</div>
           <div class="group-coaching__session-meta">
             <span class="group-coaching__session-status-badge group-coaching__session-status-badge--${session.status}">
               ${session.status}
@@ -725,7 +749,17 @@ class GroupCoachingUI {
       }
 
       .group-coaching__session-icon {
-        font-size: 1.5rem;
+        width: 1.5rem;
+        height: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--persona-primary, var(--color-accent-primary, #3D5A45));
+      }
+
+      .group-coaching__session-icon svg {
+        width: 100%;
+        height: 100%;
       }
 
       .group-coaching__session-info {
@@ -804,7 +838,17 @@ class GroupCoachingUI {
       }
 
       .group-coaching__type-icon {
-        font-size: 1.5rem;
+        width: 1.5rem;
+        height: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--persona-primary, var(--color-accent-primary, #3D5A45));
+      }
+
+      .group-coaching__type-icon svg {
+        width: 100%;
+        height: 100%;
       }
 
       .group-coaching__type-info {
@@ -841,7 +885,17 @@ class GroupCoachingUI {
       }
 
       .group-coaching__session-icon-lg {
-        font-size: 3rem;
+        width: 3rem;
+        height: 3rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--persona-primary, var(--color-accent-primary, #3D5A45));
+      }
+
+      .group-coaching__session-icon-lg svg {
+        width: 100%;
+        height: 100%;
       }
 
       .group-coaching__session-meta {

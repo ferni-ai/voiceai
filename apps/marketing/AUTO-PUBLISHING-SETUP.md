@@ -1,5 +1,57 @@
 # Ferni Auto-Publishing Setup Guide
 
+## 🎉 NEW: Alex-Powered Marketing (Voice-First!)
+
+**We dogfood our own platform!** Alex (Ferni's Communication Specialist) now has full marketing capabilities.
+
+### Talk to Alex
+
+Just say:
+- "Alex, write a Twitter thread about our latest blog"
+- "Alex, post that LinkedIn draft we worked on"
+- "Alex, how did our posts perform last week?"
+- "Alex, schedule the social content for tomorrow at 9am"
+
+### What Alex Can Do
+
+| Capability | Voice Command Example |
+|------------|----------------------|
+| Generate content | "Alex, create social posts from our loneliness gap blog" |
+| Post to Twitter | "Alex, post that thread to Twitter" |
+| Post to LinkedIn | "Alex, publish to LinkedIn" |
+| Schedule posts | "Alex, schedule this for tomorrow morning" |
+| View analytics | "Alex, how are our posts doing?" |
+| List scheduled | "Alex, what's coming up this week?" |
+
+### Marketing Dashboard
+
+Access the marketing dashboard at **app.ferni.ai** → Settings → Marketing Dashboard
+
+Or trigger it via the API:
+```typescript
+import { showMarketingDashboard } from './ui/marketing-dashboard.ui.js';
+showMarketingDashboard();
+```
+
+### API Endpoints
+
+```
+GET  /api/marketing/accounts          # Connected social accounts
+GET  /api/marketing/posts             # List scheduled/posted content
+POST /api/marketing/posts             # Create new post
+GET  /api/marketing/analytics         # Performance metrics
+GET  /api/marketing/twitter/connect   # OAuth flow for Twitter
+GET  /api/marketing/linkedin/connect  # OAuth flow for LinkedIn
+```
+
+---
+
+## Fallback Options
+
+If you prefer manual control or Alex isn't available:
+
+---
+
 ## Quick Start (Get Publishing in 15 Minutes)
 
 ### Step 1: Add NPM Scripts

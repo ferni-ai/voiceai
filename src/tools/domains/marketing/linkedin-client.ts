@@ -214,7 +214,7 @@ export class LinkedInClient {
         return null;
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as { access_token: string; expires_in: number };
       return {
         accessToken: data.access_token,
         expiresIn: data.expires_in,
@@ -238,7 +238,7 @@ export class LinkedInClient {
 
       if (!response.ok) return null;
 
-      const data = await response.json();
+      const data = (await response.json()) as { id: string; localizedFirstName: string; localizedLastName: string };
       return {
         personUrn: data.id,
         name: `${data.localizedFirstName} ${data.localizedLastName}`,

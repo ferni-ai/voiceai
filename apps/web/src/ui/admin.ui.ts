@@ -65,6 +65,26 @@ const ICONS = {
   sparkles: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
   </svg>`,
+  // Quick actions icons (replacing emojis)
+  package: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m7.5 4.27 9 5.15"/>
+    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+    <path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>
+  </svg>`,
+  database: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+    <path d="M3 5V19A9 3 0 0 0 21 19V5"/>
+    <path d="M3 12A9 3 0 0 0 21 12"/>
+  </svg>`,
+  refresh: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+    <path d="M3 3v5h5"/>
+    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+    <path d="M16 16h5v5"/>
+  </svg>`,
+  check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>`,
 };
 
 // ============================================================================
@@ -217,15 +237,15 @@ function renderDashboard(): string {
         <h2>Quick Actions</h2>
         <div class="admin-quick-actions">
           <div class="admin-action-card" data-action="upload">
-            <span class="admin-action-icon">📦</span>
+            <span class="admin-action-icon">${ICONS.package}</span>
             <span>Upload Bundle</span>
           </div>
           <div class="admin-action-card" data-action="export">
-            <span class="admin-action-icon">💾</span>
+            <span class="admin-action-icon">${ICONS.database}</span>
             <span>Export Config</span>
           </div>
           <div class="admin-action-card" data-action="migrate">
-            <span class="admin-action-icon">🔄</span>
+            <span class="admin-action-icon">${ICONS.refresh}</span>
             <span>Run Migration</span>
           </div>
         </div>
@@ -1250,7 +1270,7 @@ async function validateAllAgents(): Promise<void> {
     const data = await response.json();
 
     if (data.success) {
-      toast.info('✓ All agents valid!');
+      toast.success('All agents valid!');
     } else {
       toast.warning('Issues found (see console)');
       log.debug('Validation output:', data.output);

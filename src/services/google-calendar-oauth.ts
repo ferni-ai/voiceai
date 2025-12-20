@@ -26,11 +26,18 @@ const GOOGLE_OAUTH_CLIENT_SECRET = process.env.GOOGLE_CALENDAR_CLIENT_SECRET || 
 const GOOGLE_OAUTH_REDIRECT_URI =
   process.env.GOOGLE_CALENDAR_REDIRECT_URI || 'http://localhost:3003/auth/google/callback';
 
-// Scopes needed for calendar operations
-const CALENDAR_SCOPES = [
+// Scopes needed for calendar and email operations
+// NOTE: Gmail scope is read-only for security
+const GOOGLE_API_SCOPES = [
+  // Calendar (full access for scheduling)
   'https://www.googleapis.com/auth/calendar',
   'https://www.googleapis.com/auth/calendar.events',
+  // Gmail (read-only for inbox triage)
+  'https://www.googleapis.com/auth/gmail.readonly',
 ];
+
+// Legacy alias for compatibility
+const CALENDAR_SCOPES = GOOGLE_API_SCOPES;
 
 // Circuit breaker for Google APIs - prevents hammering a failing service
 const googleCalendarCircuitBreaker = getCircuitBreaker('google-calendar', {

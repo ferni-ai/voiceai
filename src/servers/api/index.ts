@@ -98,6 +98,7 @@ import { handleLandingOptimizationRoutes } from '../../api/landing-optimization-
 import { handleCameoAnalyticsRoutes } from '../../api/cameo-analytics-routes.js';
 import { handleGardenRoutes } from '../../api/garden-routes.js';
 import { handleRoadmapRoutes } from '../../api/roadmap-routes.js';
+import { handleMarketingRoutes } from '../../api/marketing-routes.js';
 import { handleSeedsRoutes } from '../../api/seeds-routes.js';
 
 // WebSocket for real-time insights
@@ -503,6 +504,12 @@ const server = http.createServer(async (req, res) => {
     // Roadmap routes (What's Growing - feature voting, suggestions, seed economy)
     if (pathname.startsWith('/api/roadmap')) {
       const handled = await handleRoadmapRoutes(req, res, pathname, parsedUrl);
+      if (handled) return;
+    }
+
+    // Marketing routes (Alex's social media management - dogfooding)
+    if (pathname.startsWith('/api/marketing')) {
+      const handled = await handleMarketingRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
 

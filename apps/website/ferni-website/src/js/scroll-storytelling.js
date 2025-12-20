@@ -1,14 +1,15 @@
 /**
- * 🎬 Scroll-Driven Storytelling
- * Apple-style cinematic scroll experiences
+ * Scroll-Driven Storytelling
+ * Cinematic scroll experiences with physics-based motion
  * 
  * Features:
- * - Parallax depth layers in hero
- * - Scroll-linked progress animations
- * - Section transitions with momentum physics
- * - Content reveals with stagger timing
- * - "Sticky storytelling" sections
- * - Progress indicator that shows journey
+ * - Parallax depth layers with damped spring physics
+ * - Scroll momentum with natural deceleration
+ * - Chapter indicators with progress
+ * - Section pinning for narrative moments
+ * - Content reveals with orchestrated stagger
+ * - Smooth scroll velocity tracking
+ * - Scroll-linked CSS variable animations
  * 
  * Philosophy: The page is a story. Scrolling is reading. Every section is a chapter.
  */
@@ -24,12 +25,18 @@
     enableParallax: true,
     enableMomentum: true,
     enableProgressIndicator: true,
+    enableChapterNumbers: true,
     enableStickyStory: true,
     enableCinematicTransitions: true,
-    parallaxIntensity: 0.3,      // How strong the parallax effect is
-    momentumDecay: 0.95,          // How quickly momentum fades
+    enableVelocityEffects: true,
+    enableScrollLinkedCSS: true,
+    parallaxIntensity: 0.3,       // How strong the parallax effect is
+    momentumDecay: 0.92,          // How quickly momentum fades (lower = slower decay)
+    smoothingFactor: 0.12,        // For smooth interpolation (higher = snappier)
     revealThreshold: 0.15,        // How much of element must be visible to trigger
-    staggerDelay: 80,             // ms between staggered reveals
+    staggerDelay: 60,             // ms between staggered reveals
+    velocitySmoothing: 0.2,       // Velocity interpolation factor
+    maxVelocity: 50,              // Cap velocity for effects
     debugMode: false
   };
 
@@ -60,24 +67,51 @@
   };
 
   // ============================================================================
-  // STATE
+  // STATE - Enhanced with physics tracking
   // ============================================================================
   
   const state = {
+    // Position tracking
     scrollY: 0,
     lastScrollY: 0,
+    smoothScrollY: 0,        // Interpolated scroll position for smooth effects
+    targetScrollY: 0,
+    
+    // Velocity with smoothing
     velocity: 0,
-    direction: 0, // 1 = down, -1 = up
+    smoothVelocity: 0,       // Smoothed velocity for effects
+    direction: 0,            // 1 = down, -1 = up
+    
+    // Momentum physics
+    momentum: 0,
+    isDecelerating: false,
+    lastScrollTime: 0,
+    
+    // Page metrics
     viewportHeight: window.innerHeight,
+    viewportWidth: window.innerWidth,
     docHeight: document.documentElement.scrollHeight,
     progress: 0,
+    
+    // Section tracking
     currentSection: null,
+    currentSectionIndex: 0,
+    sectionProgress: 0,      // Progress within current section
+    
+    // Elements
     revealed: new Set(),
     parallaxElements: [],
     stickyElements: [],
+    
+    // Animation frame
+    lastFrameTime: 0,
+    deltaTime: 0,
+    
+    // Flags
     initialized: false,
     prefersReducedMotion: false,
-    ticking: false
+    ticking: false,
+    isVisible: true
   };
 
   // ============================================================================
@@ -144,50 +178,121 @@
   }
 
   // ============================================================================
-  // SCROLL HANDLER (The core loop)
+  // SCROLL HANDLER (Physics-based core loop)
   // ============================================================================
   
   function handleScroll() {
-    if (state.ticking) return;
+    const now = performance.now();
+    const timeDelta = now - state.lastScrollTime;
+    state.lastScrollTime = now;
     
-    state.ticking = true;
-    requestAnimationFrame(() => {
-      state.lastScrollY = state.scrollY;
-      state.scrollY = window.scrollY;
-      state.velocity = state.scrollY - state.lastScrollY;
-      state.direction = state.velocity > 0 ? 1 : state.velocity < 0 ? -1 : 0;
-      state.progress = state.scrollY / (state.docHeight - state.viewportHeight);
-      
-      // Update all systems
-      if (CONFIG.enableParallax && !state.prefersReducedMotion) {
-        updateParallax();
-      }
-      
-      if (CONFIG.enableProgressIndicator) {
-        updateProgressIndicator();
-      }
-      
-      // Cinematic reveals handled by Intersection Observer (setupCinematicReveals)
-      
-      if (CONFIG.enableStickyStory) {
-        updateStickyStory();
-      }
-      
-      // Track current section
-      updateCurrentSection();
-      
+    // Calculate raw velocity
+    const newScrollY = window.scrollY;
+    const rawVelocity = (newScrollY - state.scrollY) / Math.max(timeDelta, 16) * 16;
+    
+    // Smooth velocity with exponential moving average
+    state.smoothVelocity = state.smoothVelocity + (rawVelocity - state.smoothVelocity) * CONFIG.velocitySmoothing;
+    
+    // Clamp velocity for effects
+    state.velocity = Math.max(-CONFIG.maxVelocity, Math.min(CONFIG.maxVelocity, state.smoothVelocity));
+    
+    // Update positions
+    state.lastScrollY = state.scrollY;
+    state.scrollY = newScrollY;
+    
+    // Direction with hysteresis to prevent jitter
+    if (Math.abs(state.velocity) > 0.5) {
+      state.direction = state.velocity > 0 ? 1 : -1;
+    }
+    
+    // Calculate progress
+    const maxScroll = state.docHeight - state.viewportHeight;
+    state.progress = maxScroll > 0 ? state.scrollY / maxScroll : 0;
+    
+    // Update momentum
+    if (Math.abs(state.velocity) > 1) {
+      state.momentum = state.velocity * 0.5;
+      state.isDecelerating = false;
+    } else if (Math.abs(state.momentum) > 0.1) {
+      state.momentum *= CONFIG.momentumDecay;
+      state.isDecelerating = true;
+    } else {
+      state.momentum = 0;
+      state.isDecelerating = false;
+    }
+    
+    // Request animation frame for smooth updates
+    if (!state.ticking) {
+      state.ticking = true;
+      requestAnimationFrame(updateFrame);
+    }
+  }
+  
+  function updateFrame(timestamp) {
+    // Calculate delta time
+    state.deltaTime = state.lastFrameTime ? (timestamp - state.lastFrameTime) / 16.67 : 1;
+    state.lastFrameTime = timestamp;
+    
+    // Smooth scroll position for effects
+    state.smoothScrollY += (state.scrollY - state.smoothScrollY) * CONFIG.smoothingFactor * state.deltaTime;
+    
+    // Update all systems
+    if (CONFIG.enableParallax && !state.prefersReducedMotion) {
+      updateParallax();
+    }
+    
+    if (CONFIG.enableProgressIndicator) {
+      updateProgressIndicator();
+    }
+    
+    if (CONFIG.enableStickyStory) {
+      updateStickyStory();
+    }
+    
+    if (CONFIG.enableScrollLinkedCSS) {
+      updateScrollLinkedCSS();
+    }
+    
+    // Track current section
+    updateCurrentSection();
+    
+    // Continue animation if momentum
+    if (state.isDecelerating && Math.abs(state.momentum) > 0.1) {
+      requestAnimationFrame(updateFrame);
+    } else {
       state.ticking = false;
-    });
+    }
+  }
+  
+  function updateScrollLinkedCSS() {
+    const root = document.documentElement;
+    
+    // Set scroll-linked CSS variables
+    root.style.setProperty('--scroll-progress', state.progress.toFixed(4));
+    root.style.setProperty('--scroll-velocity', (state.velocity / CONFIG.maxVelocity).toFixed(4));
+    root.style.setProperty('--scroll-direction', state.direction.toString());
+    root.style.setProperty('--scroll-y', state.scrollY + 'px');
+    
+    // Section-specific variables
+    root.style.setProperty('--section-progress', state.sectionProgress.toFixed(4));
+    root.style.setProperty('--section-index', state.currentSectionIndex.toString());
   }
   
   function handleResize() {
     updateMetrics();
     cacheElements();
+    
+    // Recalculate positions
+    if (CONFIG.enableChapterNumbers) {
+      updateChapterPositions();
+    }
   }
 
   // ============================================================================
-  // PARALLAX SYSTEM
+  // PARALLAX SYSTEM - With momentum physics
   // ============================================================================
+  
+  const parallaxState = new Map(); // Per-element smooth positions
   
   function setupParallax() {
     // Add data attributes to hero elements for depth layering
@@ -195,83 +300,212 @@
     heroOrbs.forEach((orb, i) => {
       orb.dataset.parallaxSpeed = (0.1 + i * 0.15).toString();
       orb.dataset.parallaxDirection = i % 2 === 0 ? '1' : '-1';
+      orb.dataset.parallaxRotate = 'true'; // Enable rotation effect
+      
+      // Initialize smooth state
+      parallaxState.set(orb, { y: 0, rotate: 0 });
     });
     
-    // Ferni avatar has its own parallax
+    // Ferni avatar has its own parallax (more subtle)
     const ferni = document.querySelector('.hero-ferni');
     if (ferni) {
-      ferni.dataset.parallaxSpeed = '0.08';
+      ferni.dataset.parallaxSpeed = '0.05';
+      ferni.dataset.parallaxFloat = 'true'; // Floating effect
+      parallaxState.set(ferni, { y: 0, rotate: 0 });
     }
+    
+    // Background elements
+    document.querySelectorAll('[data-parallax]').forEach(el => {
+      parallaxState.set(el, { y: 0, rotate: 0 });
+    });
   }
   
   function updateParallax() {
-    const scrollProgress = state.scrollY / state.viewportHeight;
+    const scrollProgress = state.smoothScrollY / state.viewportHeight;
+    const velocityFactor = state.velocity / CONFIG.maxVelocity;
     
     state.parallaxElements.forEach(el => {
       const speed = parseFloat(el.dataset.parallaxSpeed) || 0.2;
       const direction = parseFloat(el.dataset.parallaxDirection) || 1;
-      const offset = state.scrollY * speed * direction * CONFIG.parallaxIntensity;
+      const enableRotate = el.dataset.parallaxRotate === 'true';
+      const enableFloat = el.dataset.parallaxFloat === 'true';
       
-      // Add velocity-based skew for momentum feel
-      const skew = CONFIG.enableMomentum ? state.velocity * 0.02 : 0;
+      // Target position
+      const targetY = state.smoothScrollY * speed * direction * CONFIG.parallaxIntensity;
       
-      el.style.transform = `translateY(${offset}px) skewY(${skew}deg)`;
+      // Get or create smooth state for this element
+      let smoothState = parallaxState.get(el) || { y: 0, rotate: 0 };
+      
+      // Smooth interpolation with momentum
+      const smoothing = CONFIG.smoothingFactor * state.deltaTime;
+      smoothState.y += (targetY - smoothState.y) * smoothing;
+      
+      // Velocity-based effects
+      let transform = `translateY(${smoothState.y.toFixed(2)}px)`;
+      
+      // Subtle skew based on velocity (momentum feel)
+      if (CONFIG.enableVelocityEffects && Math.abs(velocityFactor) > 0.1) {
+        const skew = velocityFactor * 1.5;
+        transform += ` skewY(${skew.toFixed(2)}deg)`;
+      }
+      
+      // Rotation effect for decorative elements
+      if (enableRotate) {
+        const targetRotate = state.smoothScrollY * 0.02 * direction;
+        smoothState.rotate += (targetRotate - smoothState.rotate) * smoothing * 0.5;
+        transform += ` rotate(${smoothState.rotate.toFixed(2)}deg)`;
+      }
+      
+      // Floating effect (subtle sine wave)
+      if (enableFloat) {
+        const floatOffset = Math.sin(state.smoothScrollY * 0.002) * 5;
+        transform += ` translateY(${floatOffset.toFixed(2)}px)`;
+      }
+      
+      el.style.transform = transform;
+      
+      parallaxState.set(el, smoothState);
     });
     
-    // Hero fade out on scroll
+    // Hero content fade and scale
     const hero = document.querySelector('.hero__content');
     if (hero) {
       const fadeStart = 0;
-      const fadeEnd = 0.5;
-      const opacity = 1 - Math.min(1, Math.max(0, (scrollProgress - fadeStart) / (fadeEnd - fadeStart)));
-      const scale = 1 - (1 - opacity) * 0.1;
+      const fadeEnd = 0.6;
+      const progress = Math.min(1, Math.max(0, (scrollProgress - fadeStart) / (fadeEnd - fadeStart)));
       
-      hero.style.opacity = opacity;
-      hero.style.transform = `scale(${scale})`;
+      // Use easing for cinematic feel
+      const easedProgress = EASING.smooth(progress);
+      const opacity = 1 - easedProgress;
+      const scale = 1 - easedProgress * 0.15;
+      const translateY = easedProgress * 50;
+      
+      hero.style.opacity = opacity.toFixed(3);
+      hero.style.transform = `scale(${scale.toFixed(3)}) translateY(${translateY.toFixed(1)}px)`;
     }
   }
 
   // ============================================================================
-  // PROGRESS INDICATOR
+  // PROGRESS INDICATOR WITH CHAPTER NUMBERS
   // ============================================================================
   
   function createProgressIndicator() {
     const indicator = document.createElement('div');
     indicator.className = 'scroll-progress';
+    indicator.setAttribute('role', 'navigation');
+    indicator.setAttribute('aria-label', 'Page sections');
+    
     indicator.innerHTML = `
       <div class="scroll-progress__track">
         <div class="scroll-progress__fill"></div>
+        <div class="scroll-progress__glow"></div>
       </div>
-      <div class="scroll-progress__sections"></div>
+      <div class="scroll-progress__chapters"></div>
+      <div class="scroll-progress__current">
+        <span class="scroll-progress__chapter-num">01</span>
+        <span class="scroll-progress__chapter-title"></span>
+      </div>
     `;
     document.body.appendChild(indicator);
     
-    // Add section markers
-    const sectionsContainer = indicator.querySelector('.scroll-progress__sections');
+    // Add chapter markers with numbers
+    const chaptersContainer = indicator.querySelector('.scroll-progress__chapters');
     state.sections.forEach((section, i) => {
-      const marker = document.createElement('div');
+      const sectionTitle = section.querySelector('h2, .section-title')?.textContent || 
+                          section.dataset.title || 
+                          formatSectionId(section.id);
+      
+      const marker = document.createElement('button');
       marker.className = 'scroll-progress__marker';
       marker.dataset.section = section.id;
-      marker.title = section.querySelector('h2')?.textContent || section.id;
-      sectionsContainer.appendChild(marker);
+      marker.dataset.index = i.toString();
+      marker.setAttribute('aria-label', `Go to ${sectionTitle}`);
+      
+      marker.innerHTML = `
+        <span class="scroll-progress__marker-num">${String(i + 1).padStart(2, '0')}</span>
+        <span class="scroll-progress__marker-dot"></span>
+        <span class="scroll-progress__marker-label">${sectionTitle}</span>
+      `;
+      
+      // Click to scroll
+      marker.addEventListener('click', () => {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      
+      chaptersContainer.appendChild(marker);
     });
     
     state.progressIndicator = indicator;
+  }
+  
+  function formatSectionId(id) {
+    // Convert "about-us" to "About Us"
+    return id.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   }
   
   function updateProgressIndicator() {
     if (!state.progressIndicator) return;
     
     const fill = state.progressIndicator.querySelector('.scroll-progress__fill');
+    const glow = state.progressIndicator.querySelector('.scroll-progress__glow');
+    
     if (fill) {
+      // Smooth fill with velocity-based glow
       fill.style.transform = `scaleY(${state.progress})`;
+      
+      // Glow intensity based on scroll velocity
+      if (glow && CONFIG.enableVelocityEffects) {
+        const glowIntensity = Math.min(1, Math.abs(state.velocity) / 20);
+        glow.style.opacity = glowIntensity.toFixed(3);
+        glow.style.transform = `scaleY(${state.progress})`;
+      }
     }
     
-    // Update active section marker
+    // Update active chapter marker
     const markers = state.progressIndicator.querySelectorAll('.scroll-progress__marker');
-    markers.forEach(marker => {
+    markers.forEach((marker, i) => {
       const sectionId = marker.dataset.section;
-      marker.classList.toggle('is-active', sectionId === state.currentSection?.id);
+      const isActive = sectionId === state.currentSection?.id;
+      const isPassed = i < state.currentSectionIndex;
+      
+      marker.classList.toggle('is-active', isActive);
+      marker.classList.toggle('is-passed', isPassed);
+    });
+    
+    // Update current chapter display
+    updateCurrentChapterDisplay();
+  }
+  
+  function updateCurrentChapterDisplay() {
+    if (!state.progressIndicator || !state.currentSection) return;
+    
+    const numEl = state.progressIndicator.querySelector('.scroll-progress__chapter-num');
+    const titleEl = state.progressIndicator.querySelector('.scroll-progress__chapter-title');
+    
+    if (numEl) {
+      numEl.textContent = String(state.currentSectionIndex + 1).padStart(2, '0');
+    }
+    
+    if (titleEl) {
+      const title = state.currentSection.querySelector('h2, .section-title')?.textContent ||
+                   state.currentSection.dataset.title ||
+                   formatSectionId(state.currentSection.id);
+      titleEl.textContent = title;
+    }
+  }
+  
+  function updateChapterPositions() {
+    // Recalculate marker positions after resize
+    const markers = state.progressIndicator?.querySelectorAll('.scroll-progress__marker');
+    if (!markers) return;
+    
+    markers.forEach((marker, i) => {
+      const section = state.sections[i];
+      if (section) {
+        const sectionTop = section.offsetTop;
+        const progress = sectionTop / (state.docHeight - state.viewportHeight);
+        marker.style.setProperty('--marker-position', `${progress * 100}%`);
+      }
     });
   }
 
@@ -382,41 +616,69 @@
   }
 
   // ============================================================================
-  // SECTION TRACKING
+  // SECTION TRACKING - With progress calculation
   // ============================================================================
   
   function updateCurrentSection() {
     const viewportMiddle = state.scrollY + state.viewportHeight / 2;
     
     let currentSection = null;
+    let currentIndex = 0;
     let minDistance = Infinity;
     
-    state.sections.forEach(section => {
+    state.sections.forEach((section, i) => {
       const rect = section.getBoundingClientRect();
-      const sectionMiddle = state.scrollY + rect.top + rect.height / 2;
+      const sectionTop = state.scrollY + rect.top;
+      const sectionMiddle = sectionTop + rect.height / 2;
       const distance = Math.abs(viewportMiddle - sectionMiddle);
       
       if (distance < minDistance) {
         minDistance = distance;
         currentSection = section;
+        currentIndex = i;
       }
     });
     
+    // Calculate progress within current section
+    if (currentSection) {
+      const rect = currentSection.getBoundingClientRect();
+      const sectionTop = state.scrollY + rect.top;
+      const sectionHeight = rect.height;
+      
+      // Progress: 0 when section enters, 1 when section leaves
+      const relativeScroll = state.scrollY - sectionTop + state.viewportHeight * 0.3;
+      state.sectionProgress = Math.max(0, Math.min(1, relativeScroll / sectionHeight));
+    }
+    
     if (currentSection !== state.currentSection) {
-      // Section changed
-      if (state.currentSection) {
-        state.currentSection.classList.remove('is-current-section');
+      const previousSection = state.currentSection;
+      const previousIndex = state.currentSectionIndex;
+      
+      // Update state
+      state.currentSection = currentSection;
+      state.currentSectionIndex = currentIndex;
+      
+      // Update classes
+      if (previousSection) {
+        previousSection.classList.remove('is-current-section');
+        previousSection.classList.add('is-passed-section');
       }
       
       currentSection?.classList.add('is-current-section');
-      state.currentSection = currentSection;
+      currentSection?.classList.remove('is-passed-section');
       
       // Dispatch event for other systems
       document.dispatchEvent(new CustomEvent('section-change', {
-        detail: { section: currentSection }
+        detail: { 
+          section: currentSection,
+          index: currentIndex,
+          previousSection,
+          previousIndex,
+          direction: currentIndex > previousIndex ? 'down' : 'up'
+        }
       }));
       
-      logDebug('Section changed to:', currentSection?.id);
+      logDebug('Section changed to:', currentSection?.id, `(${currentIndex + 1}/${state.sections.length})`);
     }
   }
 

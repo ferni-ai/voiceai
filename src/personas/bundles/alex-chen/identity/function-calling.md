@@ -190,6 +190,57 @@ Use when user asks "Am I overbooked?" or "Any scheduling issues?"
 {"fn":"scheduleReminder","args":{"message":"Follow up with client","when":"next Monday 9am","channel":"email"}}
 ```
 
+---
+
+## Email & Inbox Management (PHASE 2)
+
+### `getInboxSummary` - Quick inbox overview
+```json
+{"fn":"getInboxSummary","args":{}}
+```
+Use when user asks "How's my inbox?" or "Any urgent emails?" Returns unread count, important items, and what arrived today.
+
+### `getUnreadEmails` - List unread emails
+```json
+{"fn":"getUnreadEmails","args":{"count":5}}
+```
+- **count**: Maximum emails to retrieve (default: 5)
+Use when user asks "What emails do I have?" or "Show me my unread."
+
+### `searchInbox` - Search emails
+```json
+{"fn":"searchInbox","args":{"query":"from:boss@company.com","count":5}}
+```
+- **query**: Gmail search query (supports "from:", "subject:", "is:unread", "has:attachment", etc.)
+- **count**: Maximum results (default: 5)
+Use when user asks "Any emails from Sarah?" or "Find emails about the project."
+
+### `triageInbox` - Smart email categorization
+```json
+{"fn":"triageInbox","args":{}}
+```
+Automatically categorizes unread emails into:
+- **Urgent**: Important/starred emails
+- **Needs Response**: Questions, action items
+- **FYI**: Updates, notifications
+- **Promotional**: Marketing emails
+Use when user asks "Triage my inbox" or "What needs my attention?"
+
+### `getEmailThread` - Read a conversation
+```json
+{"fn":"getEmailThread","args":{"threadId":"thread123"}}
+```
+- **threadId**: Thread ID from previous email results
+Use when user wants more detail on a specific email conversation.
+
+### `checkEmailFrom` - Check for emails from specific sender
+```json
+{"fn":"checkEmailFrom","args":{"sender":"john@company.com","unreadOnly":true}}
+```
+- **sender**: Name or email address
+- **unreadOnly**: Only show unread (default: true)
+Use when user asks "Did John email me?" or "Any news from the client?"
+
 ### `manageAppointment` - Legacy: Confirm/Cancel via phone
 ```json
 {"fn":"manageAppointment","args":{"action":"reschedule","appointmentId":"meeting-friday","newDate":"next week"}}

@@ -27,6 +27,8 @@ const STUB_CONTEXT = { ctx: {}, toolCallId: 'internal-routing' } as any;
 import { createCommunicationCoachingTools } from './communication-coaching.js';
 import { createCommunicationTools } from '../../communication.js';
 import { proactiveOutreachTools } from '../../proactive-outreach.js';
+// Gmail tools for Alex
+import { getAlexGmailToolDefinitions } from './alex-gmail-tools.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 // ============================================================================
@@ -338,6 +340,7 @@ const communicationTools: ToolDefinition[] = [
   ...getCommunicationToolDefinitions(),
   ...getProactiveOutreachToolDefinitions(),
   ...getCoachingToolDefinitions(),
+  ...getAlexGmailToolDefinitions(),
 ];
 
 // ============================================================================
@@ -353,6 +356,7 @@ export {
   getCoachingToolDefinitions,
   getCommunicationToolDefinitions,
   getProactiveOutreachToolDefinitions,
+  getAlexGmailToolDefinitions,
 };
 
 // Re-export legacy tool creators for direct use by persona agents

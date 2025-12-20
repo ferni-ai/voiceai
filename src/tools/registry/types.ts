@@ -75,7 +75,8 @@ export type ToolDomain =
   | 'milestone-mastery' // Milestone tracking and achievement recognition
   | 'developer' // Developer tools: CLI commands, file editing, bash
   | 'behavior' // Behavior control: modes, pacing, processing, presence
-  | 'life-thesis'; // Life thesis: capturing and recalling "why" across all life domains
+  | 'life-thesis' // Life thesis: capturing and recalling "why" across all life domains
+  | 'marketing'; // Social media management: content generation, publishing, analytics
 
 /**
  * All available tool domains
@@ -136,6 +137,7 @@ export const ALL_TOOL_DOMAINS: readonly ToolDomain[] = [
   'milestone-mastery',
   'developer',
   'behavior',
+  'marketing',
 ] as const;
 
 // ============================================================================
@@ -214,6 +216,7 @@ export const DOMAIN_TO_CATEGORY: Record<ToolDomain, ToolCategory> = {
   developer: 'productivity', // Developer tools for coding and CLI
   behavior: 'core', // Behavior control - core to how Ferni speaks
   'life-thesis': 'lifestyle', // Life thesis - cross-persona motivation capture
+  marketing: 'communication', // Social media management and content publishing
 };
 
 // ============================================================================

@@ -131,7 +131,7 @@ export class TwitterClient {
         return { success: false, error: `Twitter API error: ${errorText}` };
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as { data: { id: string } };
       return {
         success: true,
         tweetIds: [data.data.id],
@@ -212,7 +212,7 @@ export class TwitterClient {
         return null;
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as { access_token: string; refresh_token: string; expires_in: number };
       return {
         accessToken: data.access_token,
         refreshToken: data.refresh_token,

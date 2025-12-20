@@ -3,26 +3,41 @@
  *
  * > "Progress isn't linear. Setbacks are data, not failure."
  *
- * This builder loads Maya with cross-team insights when:
+ * This builder loads Maya with DEEP coaching intelligence when:
  * 1. A user transfers TO Maya from another persona
  * 2. A user starts talking directly with Maya
  *
- * INSIGHT SOURCES (Cross-Team Integration):
+ * DATA SOURCES (Cross-Team Integration):
  *
  * FROM PETER (Pattern Analysis):
  * - Spending-habit correlations
  * - Decision quality predictions
  * - Behavioral pattern discoveries
+ * - Time-of-day effectiveness patterns
  *
  * FROM JORDAN (Goals/Milestones):
  * - Active goals requiring habit support
  * - Upcoming milestones to prepare for
  * - Life transitions affecting habits
+ * - Deadline-driven motivation opportunities
+ *
+ * FROM NAYAN (Wisdom):
+ * - Values alignment with habits
+ * - Meaning behind habit choices
+ * - Long-term perspective on growth
  *
  * FROM FERNI (Core Profile):
  * - User's Four Tendencies type
  * - Life stage and context
  * - Emotional patterns
+ * - Relationship depth
+ *
+ * COMPUTED METRICS (Maya's Research Dashboard):
+ * - Consistency Index (0-100): Regularity of habit execution
+ * - Cascade Potential (0-100): Likelihood habits ripple into other areas
+ * - Recovery Speed (0-100): How quickly they bounce back from setbacks
+ * - Momentum Score (0-100): Overall trend direction
+ * - Keystone Power (0-100): Impact of keystone habits on others
  *
  * @module intelligence/context-builders/maya-coaching-insights
  */
@@ -40,6 +55,7 @@ import {
 import { getHandoffContext } from '../../tools/handoff/executor.js';
 import { getProductivityStore } from '../../services/productivity-store.js';
 import { getFinancialStore } from '../../services/financial-store.js';
+import { getGamificationStore } from '../../services/gamification-store.js';
 
 const log = createLogger({ module: 'context:maya-coaching-insights' });
 
@@ -50,18 +66,24 @@ const log = createLogger({ module: 'context:maya-coaching-insights' });
 interface MayaInsightBriefing {
   /** Habit health overview */
   habitHealth: HabitHealthSummary;
+  /** Computed coaching metrics */
+  coachingMetrics: CoachingMetrics;
   /** Cross-domain correlations from Peter */
   peterInsights: string[];
   /** Goal-related coaching needs from Jordan */
   jordanInsights: string[];
-  /** Proactive coaching opportunities */
-  coachingOpportunities: string[];
+  /** Mood/energy intelligence */
+  moodIntelligence: MoodIntelligence;
+  /** Proactive coaching triggers */
+  proactiveTriggers: ProactiveTrigger[];
   /** User's tendency type if known */
-  tendencyType: string | null;
+  tendencyType: FourTendency | null;
   /** Recent wins to celebrate */
   winsToCelebrate: string[];
   /** Struggles needing gentle support */
   strugglesToAddress: string[];
+  /** Memory insights from past conversations */
+  memoryInsights: MemoryInsights;
 }
 
 interface HabitHealthSummary {
@@ -69,15 +91,64 @@ interface HabitHealthSummary {
   totalStreaks: number;
   averageSuccessRate: number;
   keystoneActive: boolean;
+  keystoneHabits: string[];
   atRiskCount: number;
   recentSetbacks: string[];
   longestStreak: { name: string; days: number } | null;
+  habitStacks: string[];
+  weeklyReflectionSummary: string | null;
+  totalCompletions: number;
+  habitCategories: Record<string, number>;
+}
+
+interface CoachingMetrics {
+  /** Regularity of habit execution (0-100) */
+  consistencyIndex: number;
+  /** Likelihood habits ripple into other areas (0-100) */
+  cascadePotential: number;
+  /** How quickly they bounce back from setbacks (0-100) */
+  recoverySpeed: number;
+  /** Overall trend direction (0-100) */
+  momentumScore: number;
+  /** Impact of keystone habits (0-100) */
+  keystonePower: number;
+  /** Key patterns detected */
+  patterns: string[];
+}
+
+interface MoodIntelligence {
+  recentMoodTrend: 'improving' | 'declining' | 'stable' | 'unknown';
+  averageEnergy: number;
+  optimalCoachingTime: string | null;
+  moodHabitCorrelations: string[];
+  currentState: { mood: string; energy: string } | null;
+  energyPatterns: string[];
+}
+
+interface ProactiveTrigger {
+  type: 'celebration' | 'support' | 'challenge' | 'insight' | 'connection';
+  message: string;
+  priority: 'high' | 'medium' | 'low';
+  timing: 'immediate' | 'when_relevant' | 'next_session';
+}
+
+type FourTendency = 'upholder' | 'questioner' | 'obliger' | 'rebel';
+
+interface MemoryInsights {
+  totalHabitConversations: number;
+  previousWins: string[];
+  previousStruggles: string[];
+  coachingApproachesTried: string[];
+  whatWorked: string[];
+  whatDidntWork: string[];
 }
 
 interface HandoffBriefing {
   topic: string;
   emotionalContext: string | null;
   actionItems: string[];
+  fromPersona: string | null;
+  urgency: 'low' | 'medium' | 'high';
 }
 
 // ============================================================================
@@ -87,6 +158,7 @@ interface HandoffBriefing {
 interface MayaSession {
   briefingTurn: number;
   celebratedWins: Set<string>;
+  coachingApproaches: string[];
 }
 
 const sessions = new Map<string, MayaSession>();
@@ -94,7 +166,7 @@ const sessions = new Map<string, MayaSession>();
 function getSession(sessionId: string): MayaSession {
   let session = sessions.get(sessionId);
   if (!session) {
-    session = { briefingTurn: -1, celebratedWins: new Set() };
+    session = { briefingTurn: -1, celebratedWins: new Set(), coachingApproaches: [] };
     sessions.set(sessionId, session);
   }
   return session;
@@ -105,7 +177,7 @@ export function clearMayaCoachingSession(sessionId: string): void {
 }
 
 // ============================================================================
-// HABIT HEALTH ANALYSIS
+// HABIT HEALTH ANALYSIS (Enhanced)
 // ============================================================================
 
 function analyzeHabitHealth(userId: string): HabitHealthSummary {
@@ -114,9 +186,14 @@ function analyzeHabitHealth(userId: string): HabitHealthSummary {
     totalStreaks: 0,
     averageSuccessRate: 0,
     keystoneActive: false,
+    keystoneHabits: [],
     atRiskCount: 0,
     recentSetbacks: [],
     longestStreak: null,
+    habitStacks: [],
+    weeklyReflectionSummary: null,
+    totalCompletions: 0,
+    habitCategories: {},
   };
 
   try {
@@ -133,9 +210,14 @@ function analyzeHabitHealth(userId: string): HabitHealthSummary {
     summary.totalStreaks = activeHabits.filter((h) => h.currentStreak > 0).length;
     summary.averageSuccessRate =
       activeHabits.reduce((sum, h) => sum + h.successRate, 0) / activeHabits.length;
+    summary.totalCompletions = activeHabits.reduce((sum, h) => sum + h.totalCompletions, 0);
 
     // Find keystone habits
-    summary.keystoneActive = activeHabits.some((h) => h.isKeystone && h.currentStreak > 0);
+    summary.keystoneHabits = activeHabits
+      .filter((h) => h.isKeystone && h.keystoneScore && h.keystoneScore > 0.6)
+      .map((h) => h.name);
+    summary.keystoneActive = summary.keystoneHabits.length > 0 &&
+      activeHabits.some((h) => h.isKeystone && h.currentStreak > 0);
 
     // Find at-risk habits (had streak, now broken)
     const atRisk = activeHabits.filter((h) => h.longestStreak >= 7 && h.currentStreak <= 1);
@@ -148,11 +230,308 @@ function analyzeHabitHealth(userId: string): HabitHealthSummary {
       const longest = withStreaks.sort((a, b) => b.currentStreak - a.currentStreak)[0];
       summary.longestStreak = { name: longest.name, days: longest.currentStreak };
     }
+
+    // Habit stacks
+    const stacks = userData.habitStacks || [];
+    summary.habitStacks = stacks.map((s) => `${s.name} (${s.newHabits.length} habits)`);
+
+    // Weekly reflections
+    const reflections = userData.weeklyReflections || [];
+    if (reflections.length > 0) {
+      const latest = reflections[reflections.length - 1];
+      summary.weeklyReflectionSummary = `Win: ${latest.wins[0] || 'none'}, Challenge: ${latest.challenges[0] || 'none'}`;
+    }
+
+    // Categorize habits by domain
+    for (const habit of activeHabits) {
+      const category = habit.domain || 'general';
+      summary.habitCategories[category] = (summary.habitCategories[category] || 0) + 1;
+    }
   } catch (error) {
     log.debug({ error: String(error) }, 'Could not analyze habit health');
   }
 
   return summary;
+}
+
+// ============================================================================
+// COMPUTED COACHING METRICS
+// ============================================================================
+
+function computeCoachingMetrics(
+  habitHealth: HabitHealthSummary,
+  moodIntelligence: MoodIntelligence
+): CoachingMetrics {
+  const metrics: CoachingMetrics = {
+    consistencyIndex: 0,
+    cascadePotential: 0,
+    recoverySpeed: 0,
+    momentumScore: 0,
+    keystonePower: 0,
+    patterns: [],
+  };
+
+  if (habitHealth.activeHabits === 0) {
+    metrics.patterns.push('No active habits - fresh start opportunity');
+    return metrics;
+  }
+
+  // Consistency Index: Based on success rate and streak maintenance
+  const successWeight = habitHealth.averageSuccessRate * 60;
+  const streakRatio = habitHealth.activeHabits > 0
+    ? (habitHealth.totalStreaks / habitHealth.activeHabits) * 40
+    : 0;
+  metrics.consistencyIndex = Math.round(successWeight + streakRatio);
+
+  // Cascade Potential: Based on keystone habits and habit stacks
+  const keystoneBonus = habitHealth.keystoneActive ? 40 : 0;
+  const stackBonus = Math.min(habitHealth.habitStacks.length * 15, 30);
+  const categoryDiversity = Math.min(Object.keys(habitHealth.habitCategories).length * 10, 30);
+  metrics.cascadePotential = Math.round(keystoneBonus + stackBonus + categoryDiversity);
+
+  // Recovery Speed: Based on at-risk ratio and past recovery patterns
+  const atRiskRatio = habitHealth.activeHabits > 0
+    ? 1 - (habitHealth.atRiskCount / habitHealth.activeHabits)
+    : 1;
+  const reflectionBonus = habitHealth.weeklyReflectionSummary ? 20 : 0;
+  metrics.recoverySpeed = Math.round(atRiskRatio * 80 + reflectionBonus);
+
+  // Momentum Score: Based on trends and energy
+  const trendBonus = moodIntelligence.recentMoodTrend === 'improving' ? 30 :
+    moodIntelligence.recentMoodTrend === 'stable' ? 15 : 0;
+  const energyBonus = Math.round(moodIntelligence.averageEnergy * 10);
+  const completionBonus = Math.min(habitHealth.totalCompletions / 10, 30);
+  metrics.momentumScore = Math.round(trendBonus + energyBonus + completionBonus);
+
+  // Keystone Power: Based on keystone habit performance
+  if (habitHealth.keystoneHabits.length > 0) {
+    const keystoneCount = habitHealth.keystoneHabits.length;
+    const keystoneActiveBonus = habitHealth.keystoneActive ? 50 : 0;
+    metrics.keystonePower = Math.round(keystoneCount * 20 + keystoneActiveBonus);
+  }
+
+  // Detect patterns
+  if (metrics.consistencyIndex > 70) {
+    metrics.patterns.push('Strong consistency - ready for habit stacking');
+  } else if (metrics.consistencyIndex < 40) {
+    metrics.patterns.push('Consistency needs work - focus on one tiny habit');
+  }
+
+  if (metrics.cascadePotential > 60) {
+    metrics.patterns.push('High cascade potential - habits are interconnecting');
+  }
+
+  if (metrics.recoverySpeed < 50 && habitHealth.atRiskCount > 0) {
+    metrics.patterns.push('Recovery support needed - self-compassion first');
+  }
+
+  if (metrics.momentumScore > 70) {
+    metrics.patterns.push('Strong momentum - capitalize on this energy');
+  } else if (metrics.momentumScore < 30) {
+    metrics.patterns.push('Low momentum - need a quick win to build energy');
+  }
+
+  if (metrics.keystonePower > 70) {
+    metrics.patterns.push('Keystone habits are driving growth');
+  } else if (habitHealth.activeHabits > 3 && metrics.keystonePower < 30) {
+    metrics.patterns.push('Missing keystone - too many habits without anchor');
+  }
+
+  return metrics;
+}
+
+// ============================================================================
+// MOOD/ENERGY INTELLIGENCE
+// ============================================================================
+
+async function analyzeMoodIntelligence(userId: string): Promise<MoodIntelligence> {
+  const intelligence: MoodIntelligence = {
+    recentMoodTrend: 'unknown',
+    averageEnergy: 0,
+    optimalCoachingTime: null,
+    moodHabitCorrelations: [],
+    currentState: null,
+    energyPatterns: [],
+  };
+
+  try {
+    const gamificationStore = getGamificationStore();
+    const now = new Date();
+    const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+    const moodLogs = await gamificationStore.getMoodLogs(userId, twoWeeksAgo, now);
+
+    if (moodLogs.length === 0) return intelligence;
+
+    // Current state
+    const lastLog = moodLogs[moodLogs.length - 1];
+    const moodLabel = lastLog.mood <= 3 ? 'low' : lastLog.mood <= 6 ? 'moderate' : 'high';
+    const energyLabel = lastLog.energy <= 3 ? 'low' : lastLog.energy <= 6 ? 'moderate' : 'high';
+    intelligence.currentState = { mood: moodLabel, energy: energyLabel };
+
+    // Average energy (normalize 1-10 to 1-5)
+    const energyValues = moodLogs.map((m) => m.energy / 2);
+    intelligence.averageEnergy =
+      energyValues.reduce((a, b) => a + b, 0) / energyValues.length;
+
+    // Mood trend
+    const midpoint = Math.floor(moodLogs.length / 2);
+    if (midpoint > 1) {
+      const firstHalf = moodLogs.slice(0, midpoint);
+      const secondHalf = moodLogs.slice(midpoint);
+
+      const avgFirst = firstHalf.reduce((sum, m) => sum + m.mood, 0) / firstHalf.length;
+      const avgSecond = secondHalf.reduce((sum, m) => sum + m.mood, 0) / secondHalf.length;
+
+      if (avgSecond > avgFirst + 0.5) {
+        intelligence.recentMoodTrend = 'improving';
+      } else if (avgSecond < avgFirst - 0.5) {
+        intelligence.recentMoodTrend = 'declining';
+      } else {
+        intelligence.recentMoodTrend = 'stable';
+      }
+    }
+
+    // Optimal coaching time (based on when energy is highest)
+    const hourlyEnergy: Record<number, number[]> = {};
+    for (const log of moodLogs) {
+      const hour = new Date(log.date).getHours();
+      if (!hourlyEnergy[hour]) hourlyEnergy[hour] = [];
+      hourlyEnergy[hour].push(log.energy);
+    }
+
+    let bestHour = -1;
+    let bestEnergy = 0;
+    for (const [hour, energies] of Object.entries(hourlyEnergy)) {
+      const avg = energies.reduce((a, b) => a + b, 0) / energies.length;
+      if (avg > bestEnergy) {
+        bestEnergy = avg;
+        bestHour = parseInt(hour);
+      }
+    }
+
+    if (bestHour >= 0) {
+      const period = bestHour < 12 ? 'morning' : bestHour < 17 ? 'afternoon' : 'evening';
+      intelligence.optimalCoachingTime = period;
+    }
+
+    // Energy patterns
+    if (intelligence.averageEnergy < 2.5) {
+      intelligence.energyPatterns.push('Consistently low energy - explore root causes');
+    } else if (intelligence.averageEnergy > 4) {
+      intelligence.energyPatterns.push('High energy available - great for challenging habits');
+    }
+
+    if (intelligence.recentMoodTrend === 'declining') {
+      intelligence.moodHabitCorrelations.push('Declining mood may impact habit consistency');
+    } else if (intelligence.recentMoodTrend === 'improving') {
+      intelligence.moodHabitCorrelations.push('Improving mood - habits may be contributing!');
+    }
+  } catch (error) {
+    log.debug({ error: String(error) }, 'Could not analyze mood intelligence');
+  }
+
+  return intelligence;
+}
+
+// ============================================================================
+// PROACTIVE COACHING TRIGGERS
+// ============================================================================
+
+function detectProactiveTriggers(
+  habitHealth: HabitHealthSummary,
+  metrics: CoachingMetrics,
+  moodIntelligence: MoodIntelligence
+): ProactiveTrigger[] {
+  const triggers: ProactiveTrigger[] = [];
+
+  // Celebration triggers
+  if (habitHealth.longestStreak && habitHealth.longestStreak.days >= 7) {
+    triggers.push({
+      type: 'celebration',
+      message: `🎉 "${habitHealth.longestStreak.name}" hit ${habitHealth.longestStreak.days} days! This is huge.`,
+      priority: 'high',
+      timing: 'immediate',
+    });
+  }
+
+  if (habitHealth.totalCompletions > 0 && habitHealth.totalCompletions % 50 === 0) {
+    triggers.push({
+      type: 'celebration',
+      message: `🏆 ${habitHealth.totalCompletions} total completions! Momentum is building.`,
+      priority: 'medium',
+      timing: 'immediate',
+    });
+  }
+
+  // Support triggers
+  if (habitHealth.atRiskCount > 0) {
+    triggers.push({
+      type: 'support',
+      message: `💚 ${habitHealth.atRiskCount} habit(s) need gentle attention: ${habitHealth.recentSetbacks.join(', ')}`,
+      priority: 'high',
+      timing: 'immediate',
+    });
+  }
+
+  if (moodIntelligence.recentMoodTrend === 'declining') {
+    triggers.push({
+      type: 'support',
+      message: 'Mood has been dipping - focus on self-care habits before new challenges',
+      priority: 'high',
+      timing: 'immediate',
+    });
+  }
+
+  // Challenge triggers
+  if (metrics.consistencyIndex > 70 && !habitHealth.keystoneActive) {
+    triggers.push({
+      type: 'challenge',
+      message: 'Consistency is strong - ready to identify a keystone habit',
+      priority: 'medium',
+      timing: 'when_relevant',
+    });
+  }
+
+  if (metrics.momentumScore > 70 && habitHealth.activeHabits < 5) {
+    triggers.push({
+      type: 'challenge',
+      message: 'High momentum - consider adding a new tiny habit',
+      priority: 'low',
+      timing: 'when_relevant',
+    });
+  }
+
+  // Insight triggers
+  if (metrics.cascadePotential > 60) {
+    triggers.push({
+      type: 'insight',
+      message: 'Habits are starting to cascade - help them see the connections',
+      priority: 'medium',
+      timing: 'when_relevant',
+    });
+  }
+
+  if (moodIntelligence.optimalCoachingTime) {
+    triggers.push({
+      type: 'insight',
+      message: `Best energy is in the ${moodIntelligence.optimalCoachingTime} - schedule important habits then`,
+      priority: 'low',
+      timing: 'when_relevant',
+    });
+  }
+
+  // Connection triggers
+  if (habitHealth.habitStacks.length > 0) {
+    triggers.push({
+      type: 'connection',
+      message: 'Habit stacks are active - reinforce the chain',
+      priority: 'low',
+      timing: 'when_relevant',
+    });
+  }
+
+  return triggers;
 }
 
 // ============================================================================
@@ -182,8 +561,16 @@ async function getPeterPatternInsights(userId: string): Promise<string[]> {
 
       if (negativeTotal >= 3) {
         insights.push(
-          `Peter noticed emotional spending patterns - ${negativeTotal} stress-driven purchases in 2 weeks. Habit support could address the root cause.`
+          `Peter noticed emotional spending patterns - ${negativeTotal} stress-driven purchases in 2 weeks. Root cause opportunity.`
         );
+
+        // Specific emotion insights
+        if (emotionCounts['bored'] >= 2) {
+          insights.push('Boredom spending detected - a dopamine-healthy habit could help');
+        }
+        if (emotionCounts['stressed'] >= 2) {
+          insights.push('Stress spending pattern - stress-relief habit needed');
+        }
       }
     }
 
@@ -193,9 +580,22 @@ async function getPeterPatternInsights(userId: string): Promise<string[]> {
       const percentUsed = (budget.spent / budget.monthlyLimit) * 100;
       if (percentUsed > 100) {
         insights.push(
-          'Peter flagged over-budget spending. Often correlates with habit struggles - when one system breaks, others follow.'
+          'Peter flagged over-budget spending. Often correlates with habit struggles.'
+        );
+      } else if (percentUsed < 50) {
+        insights.push(
+          'Peter notes strong budget discipline - financial habits are working!'
         );
       }
+    }
+
+    // Savings velocity
+    const goals = store.getActiveSavingsGoals(userId);
+    const progressingGoals = goals.filter(g => g.currentAmount / g.targetAmount > 0.3);
+    if (progressingGoals.length > 0) {
+      insights.push(
+        `${progressingGoals.length} savings goal(s) progressing - financial habits building`
+      );
     }
   } catch (error) {
     log.debug({ error: String(error) }, 'Could not get Peter insights for Maya');
@@ -211,7 +611,6 @@ function getJordanGoalInsights(userId: string): string[] {
     const store = getFinancialStore();
     const goals = store.getActiveSavingsGoals(userId);
 
-    // Find goals that need habit support
     for (const goal of goals) {
       const progress = goal.currentAmount / goal.targetAmount;
 
@@ -222,16 +621,42 @@ function getJordanGoalInsights(userId: string): string[] {
 
         if (daysLeft <= 30 && progress < 0.8) {
           insights.push(
-            `Jordan's tracking "${goal.name}" - ${daysLeft} days left but ${Math.round(progress * 100)}% done. Could a savings habit help?`
+            `Jordan's "${goal.name}" - ${daysLeft} days left, ${Math.round(progress * 100)}% done. Habit support needed!`
+          );
+        }
+
+        if (daysLeft <= 7 && progress < 0.9) {
+          insights.push(
+            `⚠️ URGENT: "${goal.name}" deadline in ${daysLeft} days - daily habit push needed`
           );
         }
       }
 
       if (progress >= 0.9 && progress < 1) {
         insights.push(
-          `"${goal.name}" is ${Math.round(progress * 100)}% complete! Jordan wants to celebrate - but maybe we help finish strong first?`
+          `"${goal.name}" at ${Math.round(progress * 100)}% - one final push! Jordan's celebrating soon.`
         );
       }
+
+      if (progress >= 1) {
+        insights.push(
+          `🎉 "${goal.name}" COMPLETE! Jordan wants to celebrate - the habits paid off!`
+        );
+      }
+    }
+
+    // Life stage transitions
+    const transitionGoals = goals.filter(g => 
+      g.name.toLowerCase().includes('wedding') ||
+      g.name.toLowerCase().includes('baby') ||
+      g.name.toLowerCase().includes('house') ||
+      g.name.toLowerCase().includes('move')
+    );
+
+    if (transitionGoals.length > 0) {
+      insights.push(
+        `Life transition detected (${transitionGoals[0].name}) - habits may need adjustment`
+      );
     }
   } catch (error) {
     log.debug({ error: String(error) }, 'Could not get Jordan insights for Maya');
@@ -241,53 +666,82 @@ function getJordanGoalInsights(userId: string): string[] {
 }
 
 // ============================================================================
-// COACHING OPPORTUNITY DETECTION
+// MEMORY INSIGHTS (Historical Patterns)
 // ============================================================================
 
-function detectCoachingOpportunities(
-  habitHealth: HabitHealthSummary,
-  peterInsights: string[],
-  jordanInsights: string[]
-): string[] {
-  const opportunities: string[] = [];
+function getMemoryInsights(userId: string): MemoryInsights {
+  const insights: MemoryInsights = {
+    totalHabitConversations: 0,
+    previousWins: [],
+    previousStruggles: [],
+    coachingApproachesTried: [],
+    whatWorked: [],
+    whatDidntWork: [],
+  };
 
-  // Keystone opportunity
-  if (!habitHealth.keystoneActive && habitHealth.activeHabits > 0) {
-    opportunities.push(
-      '🌟 No keystone habit active - huge opportunity to install one that cascades into everything else'
-    );
+  try {
+    const store = getProductivityStore();
+    const userData = store.getFullUserData(userId);
+
+    // Weekly reflections contain coaching history
+    const reflections = userData.weeklyReflections || [];
+    insights.totalHabitConversations = reflections.length;
+
+    // Extract patterns from reflections
+    for (const reflection of reflections.slice(-5)) {
+      if (reflection.wins) {
+        insights.previousWins.push(...reflection.wins.slice(0, 2));
+      }
+      if (reflection.challenges) {
+        insights.previousStruggles.push(...reflection.challenges.slice(0, 2));
+      }
+      if (reflection.insights) {
+        insights.whatWorked.push(...reflection.insights.slice(0, 1));
+      }
+    }
+
+    // Deduplicate
+    insights.previousWins = [...new Set(insights.previousWins)].slice(0, 5);
+    insights.previousStruggles = [...new Set(insights.previousStruggles)].slice(0, 5);
+    insights.whatWorked = [...new Set(insights.whatWorked)].slice(0, 3);
+  } catch (error) {
+    log.debug({ error: String(error) }, 'Could not get memory insights');
   }
 
-  // Streak celebration
-  if (habitHealth.longestStreak && habitHealth.longestStreak.days >= 7) {
-    opportunities.push(
-      `🎉 "${habitHealth.longestStreak.name}" streak at ${habitHealth.longestStreak.days} days - CELEBRATE this!`
-    );
+  return insights;
+}
+
+// ============================================================================
+// FOUR TENDENCIES DETECTION
+// ============================================================================
+
+function detectFourTendency(habitHealth: HabitHealthSummary): FourTendency | null {
+  // This is a simple heuristic - would ideally come from user profile
+  // Based on habit patterns, we can make educated guesses
+
+  if (habitHealth.activeHabits === 0) return null;
+
+  const hasExternalAccountability = habitHealth.habitStacks.length > 0;
+  const hasInternalConsistency = habitHealth.averageSuccessRate > 0.7;
+  const hasStructure = habitHealth.keystoneActive;
+
+  if (hasInternalConsistency && hasStructure) {
+    return 'upholder'; // Meets inner and outer expectations
   }
 
-  // Setback support
-  if (habitHealth.atRiskCount > 0) {
-    opportunities.push(
-      `💚 ${habitHealth.atRiskCount} habit(s) struggling: ${habitHealth.recentSetbacks.join(', ')}. Self-compassion moment needed.`
-    );
+  if (!hasInternalConsistency && hasExternalAccountability) {
+    return 'obliger'; // Needs external accountability
   }
 
-  // Cross-team opportunities
-  if (peterInsights.length > 0) {
-    opportunities.push('📊 Peter found patterns connecting habits to spending - explore this');
-  }
-  if (jordanInsights.length > 0) {
-    opportunities.push('🎯 Jordan has goals that could use habit support');
+  if (hasInternalConsistency && !hasExternalAccountability) {
+    return 'questioner'; // Internal reasoning-driven
   }
 
-  // Success rate check
-  if (habitHealth.averageSuccessRate < 0.5 && habitHealth.activeHabits >= 3) {
-    opportunities.push(
-      '⚡ Success rate below 50% with multiple habits - consider focusing on ONE keystone'
-    );
+  if (!hasInternalConsistency && !hasExternalAccountability) {
+    return 'rebel'; // Resists all expectations
   }
 
-  return opportunities;
+  return null;
 }
 
 // ============================================================================
@@ -302,6 +756,8 @@ function analyzeHandoffForMaya(): HandoffBriefing | null {
     topic: handoffContext.topics?.[0] || 'general',
     emotionalContext: null,
     actionItems: [],
+    fromPersona: null,
+    urgency: 'medium',
   };
 
   const topics = handoffContext.topics || [];
@@ -312,17 +768,33 @@ function analyzeHandoffForMaya(): HandoffBriefing | null {
     // From Peter - pattern-related
     if (lower.includes('pattern') || lower.includes('spending') || lower.includes('trigger')) {
       briefing.actionItems.push(`Peter found a ${topic} - help build habits to address root cause`);
+      briefing.fromPersona = 'peter';
     }
 
     // From Jordan - goal-related
     if (lower.includes('goal') || lower.includes('milestone') || lower.includes('deadline')) {
       briefing.actionItems.push(`Jordan's working on ${topic} - what habits would support this?`);
+      briefing.fromPersona = 'jordan';
     }
 
-    // Stress/emotional
+    // From Nayan - meaning-related
+    if (lower.includes('meaning') || lower.includes('values') || lower.includes('purpose')) {
+      briefing.actionItems.push(`Nayan explored ${topic} - connect habits to deeper meaning`);
+      briefing.fromPersona = 'nayan';
+    }
+
+    // Stress/emotional - high urgency
     if (lower.includes('stress') || lower.includes('overwhelm') || lower.includes('struggle')) {
       briefing.emotionalContext = 'stressed';
       briefing.actionItems.push('Start with self-compassion, not new habits');
+      briefing.urgency = 'high';
+    }
+
+    // Crisis signals
+    if (lower.includes('crisis') || lower.includes('burnout') || lower.includes('breaking')) {
+      briefing.urgency = 'high';
+      briefing.emotionalContext = 'crisis';
+      briefing.actionItems.push('Pause all habit expectations - just be present');
     }
   }
 
@@ -338,17 +810,18 @@ function analyzeHandoffForMaya(): HandoffBriefing | null {
 // ============================================================================
 
 async function buildMayaBriefing(userId: string): Promise<MayaInsightBriefing> {
-  const [habitHealth, peterInsights, jordanInsights] = await Promise.all([
-    Promise.resolve(analyzeHabitHealth(userId)),
-    getPeterPatternInsights(userId),
-    Promise.resolve(getJordanGoalInsights(userId)),
-  ]);
+  const [habitHealth, moodIntelligence, peterInsights, jordanInsights, memoryInsights] = 
+    await Promise.all([
+      Promise.resolve(analyzeHabitHealth(userId)),
+      analyzeMoodIntelligence(userId),
+      getPeterPatternInsights(userId),
+      Promise.resolve(getJordanGoalInsights(userId)),
+      Promise.resolve(getMemoryInsights(userId)),
+    ]);
 
-  const coachingOpportunities = detectCoachingOpportunities(
-    habitHealth,
-    peterInsights,
-    jordanInsights
-  );
+  const coachingMetrics = computeCoachingMetrics(habitHealth, moodIntelligence);
+  const proactiveTriggers = detectProactiveTriggers(habitHealth, coachingMetrics, moodIntelligence);
+  const tendencyType = detectFourTendency(habitHealth);
 
   // Identify wins to celebrate
   const winsToCelebrate: string[] = [];
@@ -362,23 +835,32 @@ async function buildMayaBriefing(userId: string): Promise<MayaInsightBriefing> {
   }
   if (habitHealth.averageSuccessRate > 0.7) {
     winsToCelebrate.push(
-      `${Math.round(habitHealth.averageSuccessRate * 100)}% overall success rate`
+      `${Math.round(habitHealth.averageSuccessRate * 100)}% overall success rate - excellent!`
     );
+  }
+  if (coachingMetrics.momentumScore > 70) {
+    winsToCelebrate.push('Momentum is strong - energy is building');
   }
 
   // Identify struggles
   const strugglesToAddress = habitHealth.recentSetbacks.map(
     (name) => `"${name}" streak broke - needs gentle restart`
   );
+  if (coachingMetrics.consistencyIndex < 40) {
+    strugglesToAddress.push('Overall consistency needs support');
+  }
 
   return {
     habitHealth,
+    coachingMetrics,
     peterInsights,
     jordanInsights,
-    coachingOpportunities,
-    tendencyType: null, // Would come from user profile
+    moodIntelligence,
+    proactiveTriggers,
+    tendencyType,
     winsToCelebrate,
     strugglesToAddress,
+    memoryInsights,
   };
 }
 
@@ -395,31 +877,95 @@ function formatMayaBriefing(
 
   sections.push(`[MAYA'S COACHING BRIEFING - Turn ${turnCount}]`);
 
-  // Handoff context
+  // Handoff context (high priority)
   if (handoffBriefing) {
     sections.push('\n=== HANDOFF CONTEXT ===');
     sections.push(`Topic: ${handoffBriefing.topic}`);
+    if (handoffBriefing.fromPersona) {
+      sections.push(`From: ${handoffBriefing.fromPersona.toUpperCase()}`);
+    }
+    if (handoffBriefing.urgency === 'high') {
+      sections.push(`⚠️ URGENCY: HIGH`);
+    }
     if (handoffBriefing.emotionalContext) {
-      sections.push(`⚠️ Emotional state: ${handoffBriefing.emotionalContext} - lead with warmth`);
+      sections.push(`Emotional state: ${handoffBriefing.emotionalContext} - lead with warmth`);
     }
     if (handoffBriefing.actionItems.length > 0) {
-      sections.push(`Action items: ${handoffBriefing.actionItems.join('; ')}`);
+      sections.push(`Action items:\n${handoffBriefing.actionItems.map(a => `  • ${a}`).join('\n')}`);
     }
+  }
+
+  // Computed Metrics Dashboard
+  const { coachingMetrics } = briefing;
+  sections.push('\n=== 📊 COACHING METRICS DASHBOARD ===');
+  sections.push(`• Consistency Index: ${coachingMetrics.consistencyIndex}/100`);
+  sections.push(`• Cascade Potential: ${coachingMetrics.cascadePotential}/100`);
+  sections.push(`• Recovery Speed: ${coachingMetrics.recoverySpeed}/100`);
+  sections.push(`• Momentum Score: ${coachingMetrics.momentumScore}/100`);
+  sections.push(`• Keystone Power: ${coachingMetrics.keystonePower}/100`);
+  if (coachingMetrics.patterns.length > 0) {
+    sections.push(`PATTERNS: ${coachingMetrics.patterns.join('; ')}`);
   }
 
   // Habit health dashboard
   const { habitHealth } = briefing;
-  sections.push('\n=== HABIT HEALTH DASHBOARD ===');
+  sections.push('\n=== 🌱 HABIT HEALTH ===');
   sections.push(`• Active habits: ${habitHealth.activeHabits}`);
   sections.push(`• Active streaks: ${habitHealth.totalStreaks}`);
   sections.push(`• Success rate: ${Math.round(habitHealth.averageSuccessRate * 100)}%`);
+  sections.push(`• Total completions: ${habitHealth.totalCompletions}`);
   sections.push(
-    `• Keystone active: ${habitHealth.keystoneActive ? '✅ Yes' : '❌ No - opportunity!'}`
+    `• Keystone: ${habitHealth.keystoneActive ? `✅ ${habitHealth.keystoneHabits.join(', ')}` : '❌ None active'}`
   );
   if (habitHealth.longestStreak) {
     sections.push(
       `• 🔥 Longest streak: ${habitHealth.longestStreak.name} (${habitHealth.longestStreak.days} days)`
     );
+  }
+  if (habitHealth.habitStacks.length > 0) {
+    sections.push(`• Habit stacks: ${habitHealth.habitStacks.join(', ')}`);
+  }
+
+  // Mood Intelligence
+  const { moodIntelligence } = briefing;
+  if (moodIntelligence.currentState || moodIntelligence.recentMoodTrend !== 'unknown') {
+    sections.push('\n=== 🧠 MOOD INTELLIGENCE ===');
+    if (moodIntelligence.currentState) {
+      sections.push(`• Current: ${moodIntelligence.currentState.mood} mood, ${moodIntelligence.currentState.energy} energy`);
+    }
+    sections.push(`• Trend: ${moodIntelligence.recentMoodTrend}`);
+    if (moodIntelligence.optimalCoachingTime) {
+      sections.push(`• Best time for challenges: ${moodIntelligence.optimalCoachingTime}`);
+    }
+    if (moodIntelligence.moodHabitCorrelations.length > 0) {
+      sections.push(`• ${moodIntelligence.moodHabitCorrelations.join('; ')}`);
+    }
+  }
+
+  // Four Tendencies coaching approach
+  if (briefing.tendencyType) {
+    sections.push('\n=== 🎯 COACHING APPROACH ===');
+    const approaches: Record<FourTendency, string> = {
+      upholder: 'UPHOLDER: Clear rules and schedules work. Set expectations and they\'ll meet them.',
+      questioner: 'QUESTIONER: Explain the WHY. They need logical reasons to commit.',
+      obliger: 'OBLIGER: External accountability is key. Check-ins, partners, public commitments.',
+      rebel: 'REBEL: Frame as choice and identity. "You\'re the kind of person who..." works better than rules.',
+    };
+    sections.push(approaches[briefing.tendencyType]);
+  }
+
+  // Proactive Triggers (high priority first)
+  const highPriority = briefing.proactiveTriggers.filter(t => t.priority === 'high');
+  const otherTriggers = briefing.proactiveTriggers.filter(t => t.priority !== 'high');
+  
+  if (highPriority.length > 0) {
+    sections.push('\n=== ⚡ IMMEDIATE ACTIONS ===');
+    highPriority.forEach(t => sections.push(`• [${t.type.toUpperCase()}] ${t.message}`));
+  }
+
+  if (otherTriggers.length > 0) {
+    sections.push('\n=== 💡 COACHING OPPORTUNITIES ===');
+    otherTriggers.slice(0, 4).forEach(t => sections.push(`• [${t.type}] ${t.message}`));
   }
 
   // Wins to celebrate
@@ -446,10 +992,16 @@ function formatMayaBriefing(
     briefing.jordanInsights.forEach((insight) => sections.push(`• ${insight}`));
   }
 
-  // Coaching opportunities
-  if (briefing.coachingOpportunities.length > 0) {
-    sections.push('\n=== 🎯 COACHING OPPORTUNITIES ===');
-    briefing.coachingOpportunities.forEach((opp) => sections.push(`• ${opp}`));
+  // Memory context
+  if (briefing.memoryInsights.totalHabitConversations > 0) {
+    sections.push('\n=== 🧠 RELATIONSHIP HISTORY ===');
+    sections.push(`• ${briefing.memoryInsights.totalHabitConversations} habit conversations`);
+    if (briefing.memoryInsights.previousWins.length > 0) {
+      sections.push(`• Past wins: ${briefing.memoryInsights.previousWins.slice(0, 3).join(', ')}`);
+    }
+    if (briefing.memoryInsights.whatWorked.length > 0) {
+      sections.push(`• What worked before: ${briefing.memoryInsights.whatWorked.join(', ')}`);
+    }
   }
 
   // Coaching reminders (first turns only)
@@ -517,7 +1069,7 @@ async function buildMayaCoachingInsightsContext(
           confidence: 0.9,
         })
       );
-      log.info({ userId }, '🌱 Maya loaded with handoff briefing');
+      log.info({ userId, urgency: handoffBriefing?.urgency }, '🌱 Maya loaded with handoff briefing');
     } else if (turnCount === 0) {
       injections.push(
         createStandardInjection('maya_initial_briefing', content, {
@@ -526,7 +1078,7 @@ async function buildMayaCoachingInsightsContext(
         })
       );
       log.info(
-        { userId, habits: briefing.habitHealth.activeHabits },
+        { userId, habits: briefing.habitHealth.activeHabits, momentum: briefing.coachingMetrics.momentumScore },
         '🌱 Maya loaded with coaching briefing'
       );
     } else {
@@ -565,7 +1117,7 @@ async function buildMayaCoachingInsightsContext(
 registerContextBuilder({
   name: 'maya-coaching-insights',
   description:
-    'Loads Maya with coaching insights - habit health, cross-team patterns, and celebration opportunities',
+    'Loads Maya with deep coaching insights - computed metrics, mood intelligence, proactive triggers, and cross-team patterns',
   priority: 45,
   category: BuilderCategory.PERSONA,
   build: buildMayaCoachingInsightsContext,

@@ -107,6 +107,13 @@ const DOMAIN_OWNERSHIP: Record<string, string[]> = {
     'getDailyBriefing',
     'suggestMeetingTime',
     'detectCalendarIssues',
+    // Gmail Tools (Phase 2: Email Triage)
+    'getInboxSummary',
+    'getUnreadEmails',
+    'searchInbox',
+    'triageInbox',
+    'getEmailThread',
+    'checkEmailFrom',
     // Legacy Calendar/Appointment Tools
     'manageAppointment',
     'scheduleReminder',

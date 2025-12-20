@@ -43,14 +43,14 @@ export async function handleOutreachAction(action: string, getUserId: () => stri
     switch (action) {
       // Check channel config first
       case 'check-config': {
-        setStatus('🔍 Checking config...');
+        setStatus('Checking config...');
         const configRes = await fetch(`/api/outreach/contact?userId=${userId}`);
         const config = (await configRes.json()) as { phone?: string; email?: string };
         if (!configRes.ok) {
-          setStatus('❌ No contact info configured', true);
+          setStatus('No contact info configured', true);
           log.info('No contact info for user. Set via /api/outreach/contact');
           // eslint-disable-next-line no-console
-          console.log('💡 To set contact info, POST to /api/outreach/contact with:', {
+          console.log('To set contact info, POST to /api/outreach/contact with:', {
             userId,
             phone: '+1234567890',
             email: 'user@example.com',
@@ -58,60 +58,60 @@ export async function handleOutreachAction(action: string, getUserId: () => stri
         } else {
           const { phone, email } = config;
           const parts: string[] = [];
-          if (phone) parts.push(`📱 ${phone}`);
-          if (email) parts.push(`📧 ${email}`);
-          setStatus(parts.length ? `✓ ${parts.join(' | ')}` : '❌ No channels', !parts.length);
+          if (phone) parts.push(`Phone: ${phone}`);
+          if (email) parts.push(`Email: ${email}`);
+          setStatus(parts.length ? parts.join(' | ') : 'No channels', !parts.length);
         }
         break;
       }
 
       // Test channels
       case 'test-sms': {
-        setStatus('📱 Sending test SMS...');
+        setStatus('Sending test SMS...');
         const smsRes = await fetch('/api/outreach/test/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId,
             channel: 'sms',
-            message: 'Hey! This is a test message from Ferni dev panel 🌱',
+            message: 'Hey! This is a test message from Ferni dev panel.',
           }),
         });
         const smsResult = await parseResponse(smsRes);
         if (smsResult.success) {
-          setStatus('✓ SMS sent!');
+          setStatus('SMS sent!');
         } else {
           const hint = smsResult.error?.includes('phone') ? ' (Set phone first)' : '';
-          setStatus(`✕ ${smsResult.error || 'SMS failed'}${hint}`, true);
+          setStatus(`${smsResult.error || 'SMS failed'}${hint}`, true);
         }
         break;
       }
 
       case 'test-email': {
-        setStatus('📧 Sending test email...');
+        setStatus('Sending test email...');
         const emailRes = await fetch('/api/outreach/test/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             userId,
             channel: 'email',
-            subject: 'Test from Ferni 🌱',
+            subject: 'Test from Ferni',
             message:
               'Hey! This is a test email from the Ferni dev panel. Just making sure everything is connected!',
           }),
         });
         const emailResult = await parseResponse(emailRes);
         if (emailResult.success) {
-          setStatus('✓ Email sent!');
+          setStatus('Email sent!');
         } else {
           const hint = emailResult.error?.includes('email') ? ' (Set email first)' : '';
-          setStatus(`✕ ${emailResult.error || 'Email failed'}${hint}`, true);
+          setStatus(`${emailResult.error || 'Email failed'}${hint}`, true);
         }
         break;
       }
 
       case 'test-call': {
-        setStatus('📞 Making test call...');
+        setStatus('Making test call...');
         const callRes = await fetch('/api/outreach/test/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -124,10 +124,10 @@ export async function handleOutreachAction(action: string, getUserId: () => stri
         });
         const callResult = await parseResponse(callRes);
         if (callResult.success) {
-          setStatus('✓ Call initiated!');
+          setStatus('Call initiated!');
         } else {
           const hint = callResult.error?.includes('phone') ? ' (Set phone first)' : '';
-          setStatus(`✕ ${callResult.error || 'Call failed'}${hint}`, true);
+          setStatus(`${callResult.error || 'Call failed'}${hint}`, true);
         }
         break;
       }
@@ -145,7 +145,7 @@ export async function handleOutreachAction(action: string, getUserId: () => stri
             commitment: 'your morning workout',
           }),
         });
-        setStatus(commitRes.ok ? '✓ Commitment trigger created!' : '✕ Failed', !commitRes.ok);
+        setStatus(commitRes.ok ? 'Commitment trigger created!' : 'Failed', !commitRes.ok);
         break;
       }
 
@@ -160,7 +160,7 @@ export async function handleOutreachAction(action: string, getUserId: () => stri
             reason: 'Dev panel test - emotional support',
           }),
         });
-        setStatus(emotionRes.ok ? '✓ Emotional trigger created!' : '✕ Failed', !emotionRes.ok);
+        setStatus(emotionRes.ok ? 'Emotional trigger created!' : 'Failed', !emotionRes.ok);
         break;
       }
 
@@ -176,7 +176,7 @@ export async function handleOutreachAction(action: string, getUserId: () => stri
             milestone: 'completing an amazing day',
           }),
         });
-        setStatus(celebRes.ok ? '✓ Celebration trigger created!' : '✕ Failed', !celebRes.ok);
+        setStatus(celebRes.ok ? 'Celebration trigger created!' : 'Failed', !celebRes.ok);
         break;
       }
 
@@ -190,7 +190,7 @@ export async function handleOutreachAction(action: string, getUserId: () => stri
             reason: 'Dev panel test',
           }),
         });
-        setStatus(toyRes.ok ? '✓ Thinking-of-you triggered!' : '✕ Failed', !toyRes.ok);
+        setStatus(toyRes.ok ? 'Thinking-of-you triggered!' : 'Failed', !toyRes.ok);
         break;
       }
 
@@ -198,9 +198,9 @@ export async function handleOutreachAction(action: string, getUserId: () => stri
       case 'view-pending': {
         const pendingRes = await fetch(`/api/outreach/pending?userId=${userId}`);
         const pendingData = (await pendingRes.json()) as { count?: number };
-        log.info({ pending: pendingData }, '📋 Pending outreach');
+        log.info({ pending: pendingData }, 'Pending outreach');
         // eslint-disable-next-line no-console
-        console.log('📋 Pending Outreach:', pendingData);
+        console.log('[Pending Outreach]', pendingData);
         setStatus(`${pendingData.count || 0} pending (see console)`);
         break;
       }
@@ -208,9 +208,9 @@ export async function handleOutreachAction(action: string, getUserId: () => stri
       case 'view-history': {
         const historyRes = await fetch(`/api/outreach/history?userId=${userId}&limit=10`);
         const historyData = (await historyRes.json()) as { count?: number };
-        log.info({ history: historyData }, '📜 Outreach history');
+        log.info({ history: historyData }, 'Outreach history');
         // eslint-disable-next-line no-console
-        console.log('📜 Outreach History:', historyData);
+        console.log('[Outreach History]', historyData);
         setStatus(`${historyData.count || 0} in history (see console)`);
         break;
       }
@@ -218,9 +218,9 @@ export async function handleOutreachAction(action: string, getUserId: () => stri
       case 'view-context': {
         const contextRes = await fetch(`/api/outreach/context?userId=${userId}`);
         const contextData = await contextRes.json();
-        log.info({ context: contextData }, '🧠 User context');
+        log.info({ context: contextData }, 'User context');
         // eslint-disable-next-line no-console
-        console.log('🧠 User Context:', contextData);
+        console.log('[User Context]', contextData);
         setStatus('Context loaded (see console)');
         break;
       }
@@ -228,9 +228,9 @@ export async function handleOutreachAction(action: string, getUserId: () => stri
       case 'view-timing': {
         const timingRes = await fetch(`/api/outreach/timing?userId=${userId}`);
         const timingData = await timingRes.json();
-        log.info({ timing: timingData }, '⏰ Timing patterns');
+        log.info({ timing: timingData }, 'Timing patterns');
         // eslint-disable-next-line no-console
-        console.log('⏰ Timing Patterns:', timingData);
+        console.log('[Timing Patterns]', timingData);
         setStatus('Timing loaded (see console)');
         break;
       }

@@ -3265,7 +3265,7 @@ function renderFTUEStatus(): string {
     <div class="dev-ftue-info">
       <div class="dev-ftue-count">
         <span class="dev-ftue-count__number">${convCount}</span>
-        <span class="dev-ftue-count__label">conversations</span>
+        <span class="dev-ftue-count__label">${convCount === 1 ? 'conversation' : 'conversations'}</span>
       </div>
       <div class="dev-ftue-badges">
         ${status.unlockedFeatures
@@ -6577,6 +6577,7 @@ function injectStyles(): void {
       align-items: baseline;
       gap: var(--space-2, 8px);
       margin-bottom: var(--space-2, 8px);
+      white-space: nowrap;
     }
     
     .dev-ftue-count__number {
@@ -6598,10 +6599,19 @@ function injectStyles(): void {
     }
     
     .dev-ftue-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
       font-size: 0.65rem;
       padding: 2px 6px;
       border-radius: 4px;
       font-weight: 500;
+    }
+    
+    .dev-ftue-badge svg {
+      width: 10px;
+      height: 10px;
+      flex-shrink: 0;
     }
     
     .dev-ftue-badge--unlocked {

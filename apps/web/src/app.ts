@@ -124,6 +124,11 @@ import { disposeFerniEQ, initFerniEQ } from './ui/better-than-human.ui.js';
 import { disposeProactiveOutreachUI as disposeProactiveOutreach, initProactiveOutreachUI } from './ui/proactive-outreach.ui.js';
 // Team Insights UI - Cross-persona intelligence panel
 import { disposeTeamInsightsUI, initTeamInsightsUI, teamInsightsUI } from './ui/team-insights.ui.js';
+// Cross-Team Notifications - Real-time alerts from team insights
+import {
+  disposeCrossTeamNotifications,
+  initCrossTeamNotifications,
+} from './services/cross-team-notifications.service.js';
 // Avatar Soul - Pixar-quality "Better Than Human" visual animation system
 import { avatarSoul, disposeAvatarSoul, initAvatarSoul } from './ui/avatar-soul.ui.js';
 // Avatar Lamp - Luxo Jr. level body language animation
@@ -1102,6 +1107,13 @@ class VoiceAIApp {
       // 💡 Team Insights UI - Cross-persona intelligence panel
       initTeamInsightsUI();
       // Shows insights from the whole team (Peter, Maya, Jordan, etc.)
+
+      // 🔔 Cross-Team Notifications - Real-time alerts from team insights
+      // Initialize with userId if available (will connect to WebSocket)
+      const userId = appState.userId || (await this.getCurrentUserId());
+      if (userId) {
+        initCrossTeamNotifications(userId);
+      }
 
       // Set up gentle check-in handler for significant concern detection
       document.addEventListener('ferni:gentle-checkin', ((e: CustomEvent) => {
@@ -2448,7 +2460,7 @@ class VoiceAIApp {
           if (result.awarded && result.seedsAwarded) {
             // Show seed reward notification
             const msg = result.message || `You earned ${result.seedsAwarded} seeds!`;
-            messageUI.show(`🌱 ${msg}`, 'success', 4000);
+            messageUI.show(msg, 'success', 4000);
           }
         });
       },
@@ -2550,6 +2562,7 @@ class VoiceAIApp {
     disposeFerniEQ();
     disposeProactiveOutreach();
     disposeTeamInsightsUI();
+    disposeCrossTeamNotifications();
     disposeAvatarSoul();
     disposeAvatarLamp();
     disposeAmbientLife();

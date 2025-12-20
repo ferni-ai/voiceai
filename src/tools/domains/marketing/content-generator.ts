@@ -5,7 +5,7 @@
  * from blog posts, topics, or announcements.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { getLogger } from '../../../utils/safe-logger.js';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -94,8 +94,8 @@ export async function generateSocialContentFromBlog(
     throw new Error('Invalid source parameters');
   }
 
-  // Generate content using Claude
-  const anthropic = new Anthropic();
+  // Generate content using OpenAI
+  const openai = new OpenAI();
 
   const platformInstructions = params.platforms
     .map((p) => {
@@ -127,17 +127,17 @@ export async function generateSocialContentFromBlog(
     })
     .join('\n\n');
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
     max_tokens: 4000,
     messages: [
       {
+        role: 'system',
+        content: FERNI_VOICE_PROMPT,
+      },
+      {
         role: 'user',
-        content: `${FERNI_VOICE_PROMPT}
-
----
-
-## YOUR TASK
+        content: `## YOUR TASK
 
 Generate social media content based on this source material.
 
@@ -179,12 +179,12 @@ IMPORTANT: Return ONLY the JSON object, no markdown code fences or explanation.`
   });
 
   // Parse response
-  const textContent = response.content[0];
-  if (textContent.type !== 'text') {
-    throw new Error('Unexpected response type from Claude');
+  const textContent = response.choices[0]?.message?.content;
+  if (!textContent) {
+    throw new Error('No content in response from OpenAI');
   }
 
-  let jsonText = textContent.text.trim();
+  let jsonText = textContent.trim();
   
   // Extract JSON if wrapped in code fences
   const jsonMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
