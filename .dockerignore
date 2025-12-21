@@ -76,6 +76,7 @@ __tests__/
 .DS_Store
 *.log
 data/
+!apps/web/src/data/
 # Allow needed scripts
 # scripts/ - not ignoring anymore, need build-fast.ts and patch-livekit-timeout.js
 marketplace-agents/
