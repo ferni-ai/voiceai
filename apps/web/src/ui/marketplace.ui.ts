@@ -2612,6 +2612,124 @@ function getMarketplaceStyles(): string {
       animation: cardEntrance ${DURATION.DELIBERATE}ms ${EASING.EXPO_OUT} backwards;
     }
 
+    /* ========================================
+       DISCOVER CARD - Circle Avatar Layout
+       ======================================== */
+    .marketplace-agent.discover-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: var(--space-xl, 32px) var(--space-lg, 24px);
+      background: linear-gradient(145deg, 
+        var(--color-bg-subtle, rgba(255, 255, 255, 0.04)) 0%,
+        var(--color-bg-elevated, rgba(255, 255, 255, 0.02)) 100%
+      );
+      border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
+      border-radius: var(--radius-2xl, 24px);
+    }
+
+    /* Discover avatar container - holds ring and orb */
+    .discover-avatar-container {
+      position: relative;
+      width: 88px;
+      height: 88px;
+      margin-bottom: var(--space-md, 16px);
+      animation: avatar-float 8s var(--ease-smooth, cubic-bezier(0.45, 0, 0.55, 1)) infinite;
+      animation-delay: var(--stagger-delay, 0s);
+    }
+
+    /* Glowing ring behind avatar */
+    .discover-avatar-ring {
+      position: absolute;
+      inset: -6px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--avatar-glow, rgba(74, 103, 65, 0.25)) 0%, transparent 70%);
+      opacity: 0.15;
+      animation: ring-pulse 4s var(--ease-smooth, cubic-bezier(0.45, 0, 0.55, 1)) infinite;
+      animation-delay: var(--stagger-delay, 0s);
+      pointer-events: none;
+    }
+
+    /* The circular avatar orb */
+    .discover-avatar-orb {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Plus Jakarta Sans', var(--font-display, sans-serif);
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: white;
+      letter-spacing: 0.02em;
+      box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.15),
+        0 2px 8px rgba(0, 0, 0, 0.1),
+        0 0 0 3px rgba(255, 255, 255, 0.08) inset;
+      animation: avatar-breathe 5s var(--ease-smooth, cubic-bezier(0.45, 0, 0.55, 1)) infinite;
+      animation-delay: var(--stagger-delay, 0s);
+      transition: transform ${DURATION.SLOW}ms ${EASING.SPRING}, 
+                  box-shadow ${DURATION.SLOW}ms ease;
+    }
+
+    /* Hover state - excited breathing and glow */
+    .marketplace-agent.discover-card:hover .discover-avatar-orb {
+      animation: avatar-breathe 2s var(--ease-spring-gentle, cubic-bezier(0.25, 1.2, 0.5, 1)) infinite,
+                 glow-pulse 2s ease-in-out infinite;
+      transform: scale(1.08);
+    }
+
+    .marketplace-agent.discover-card:hover .discover-avatar-ring {
+      opacity: 0.5;
+      animation: ring-pulse 2s var(--ease-spring-gentle, cubic-bezier(0.25, 1.2, 0.5, 1)) infinite;
+    }
+
+    /* Discover info section */
+    .discover-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: var(--space-sm, 12px);
+    }
+
+    .discover-card .agent-name {
+      font-size: 1.15rem;
+      margin: 0;
+    }
+
+    .discover-card .agent-category {
+      font-size: 0.7rem;
+    }
+
+    .discover-card .agent-badge {
+      margin-top: var(--space-xs, 8px);
+    }
+
+    .discover-card .agent-description {
+      text-align: center;
+      -webkit-line-clamp: 3;
+    }
+
+    .discover-card .agent-tags {
+      justify-content: center;
+    }
+
+    .discover-card .agent-footer {
+      width: 100%;
+      flex-direction: column;
+      gap: var(--space-sm, 12px);
+      align-items: center;
+    }
+
+    .discover-card .agent-action {
+      width: 100%;
+      max-width: 180px;
+    }
+
     .marketplace-agent:nth-child(1) { animation-delay: 0ms; }
     .marketplace-agent:nth-child(2) { animation-delay: 50ms; }
     .marketplace-agent:nth-child(3) { animation-delay: 100ms; }
@@ -2637,9 +2755,22 @@ function getMarketplaceStyles(): string {
       box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
     }
 
+    .marketplace-agent.discover-card:hover {
+      transform: translateY(-6px);
+      border-color: var(--persona-primary, rgba(74, 103, 65, 0.4));
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+    }
+
     .marketplace-agent.installed {
       border-color: var(--persona-primary, var(--color-accent-primary));
       background: var(--persona-tint, var(--color-accent-subtle));
+    }
+
+    .marketplace-agent.discover-card.installed {
+      background: linear-gradient(145deg, 
+        var(--persona-tint, rgba(74, 103, 65, 0.08)) 0%,
+        var(--color-bg-elevated, rgba(255, 255, 255, 0.02)) 100%
+      );
     }
 
     /* Coming Soon state - disabled look */
@@ -2652,6 +2783,20 @@ function getMarketplaceStyles(): string {
       transform: none;
       box-shadow: none;
       border-color: var(--color-border, rgba(255, 255, 255, 0.08));
+    }
+
+    /* Reduced motion - respect user preferences */
+    @media (prefers-reduced-motion: reduce) {
+      .discover-avatar-container,
+      .discover-avatar-orb,
+      .discover-avatar-ring {
+        animation: none;
+      }
+      
+      .marketplace-agent.discover-card:hover .discover-avatar-orb,
+      .marketplace-agent.discover-card:hover .discover-avatar-ring {
+        animation: none;
+      }
     }
 
     .agent-badge.coming-soon-badge {
@@ -3435,6 +3580,47 @@ function getMarketplaceStyles(): string {
     [data-theme="zen"] .marketplace-agent.installed {
       border-color: var(--color-text-secondary);
       background: rgba(74, 103, 65, 0.06);
+    }
+
+    /* Zen theme - Discover cards with circular avatars */
+    [data-theme="zen"] .marketplace-agent.discover-card {
+      background: linear-gradient(145deg, 
+        rgba(255, 255, 255, 0.9) 0%,
+        rgba(245, 241, 232, 0.95) 100%
+      );
+      border-color: rgba(44, 37, 32, 0.1);
+    }
+
+    [data-theme="zen"] .marketplace-agent.discover-card:hover {
+      border-color: var(--persona-primary, rgba(74, 103, 65, 0.4));
+      box-shadow: 0 16px 40px rgba(44, 37, 32, 0.12);
+    }
+
+    [data-theme="zen"] .discover-avatar-orb {
+      box-shadow: 
+        0 4px 20px rgba(44, 37, 32, 0.1),
+        0 2px 8px rgba(44, 37, 32, 0.08),
+        0 0 0 3px rgba(255, 255, 255, 0.5) inset;
+    }
+
+    [data-theme="zen"] .marketplace-agent.discover-card:hover .discover-avatar-orb {
+      box-shadow: 
+        0 8px 32px rgba(44, 37, 32, 0.15),
+        0 4px 16px rgba(44, 37, 32, 0.1),
+        0 0 0 3px rgba(255, 255, 255, 0.6) inset,
+        0 0 20px 6px var(--avatar-glow, rgba(74, 103, 65, 0.25));
+    }
+
+    [data-theme="zen"] .discover-avatar-ring {
+      background: radial-gradient(circle, var(--avatar-glow, rgba(74, 103, 65, 0.2)) 0%, transparent 70%);
+    }
+
+    [data-theme="zen"] .marketplace-agent.discover-card.installed {
+      background: linear-gradient(145deg, 
+        rgba(74, 103, 65, 0.08) 0%,
+        rgba(245, 241, 232, 0.95) 100%
+      );
+      border-color: var(--persona-primary, rgba(74, 103, 65, 0.3));
     }
 
     [data-theme="zen"] .agent-name {
