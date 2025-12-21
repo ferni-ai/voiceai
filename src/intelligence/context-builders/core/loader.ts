@@ -127,6 +127,7 @@ export const BUILDER_MANIFEST: Record<BuilderCategory, string[]> = {
     'cognitive-insights',
     'pattern-surfacing',
     'superhuman-insights',
+    'life-context-synthesis', // Phase 6: Cross-domain life context awareness
   ],
 
   // ENGAGEMENT - User engagement

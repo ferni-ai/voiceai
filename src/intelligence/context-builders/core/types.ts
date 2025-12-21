@@ -245,6 +245,13 @@ export interface ContextUserData {
     interpretation: string;
     surfacePhrase?: string;
   };
+
+  // ============================================================
+  // PHASE 6: LIFE CONTEXT SYNTHESIS
+  // ============================================================
+
+  /** Cross-domain life context snapshot */
+  lifeContextSnapshot?: import('../../triggers/index.js').LifeContextSnapshot;
 }
 
 // ============================================================================

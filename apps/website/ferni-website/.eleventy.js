@@ -131,6 +131,9 @@ module.exports = function (eleventyConfig) {
   // Developers directory
   eleventyConfig.addPassthroughCopy('developers');
 
+  // Downloads - DMG, installers, etc.
+  eleventyConfig.addPassthroughCopy({'src/downloads': 'downloads'});
+
   // SEO files
   eleventyConfig.addPassthroughCopy('robots.txt');
   eleventyConfig.addPassthroughCopy('sitemap.xml');

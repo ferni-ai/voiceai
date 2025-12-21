@@ -283,6 +283,31 @@ export interface UserData {
 
   /** macOS desktop context from menubar app (sent via data channel) */
   macOS?: import('../../intelligence/context-builders/macos-context.js').MacOSContextPayload;
+
+  // ============================================================
+  // ANTICIPATORY TRIGGERS (Phase 5)
+  // "Better than Human" early signal detection before full expression
+  // ============================================================
+
+  /** User's anticipatory intelligence profile (learned signals, patterns) */
+  anticipatoryIntelligence?: import('../../intelligence/triggers/index.js').AnticipatoryIntelligence;
+
+  /** User's full trigger profile (for saving at session end) */
+  triggerProfile?: import('../../intelligence/triggers/index.js').UserTriggerProfile;
+
+  /** Pending anticipatory detection from partial input (for outcome recording) */
+  pendingAnticipatoryResult?: {
+    detection: import('../../intelligence/triggers/index.js').SignalDetectionResult;
+    firedAt: number;
+    verbalResponse: string;
+    anticipatedOutcome: string;
+  } | null;
+
+  /** Count of anticipatory firings this session (for safeguards) */
+  anticipatoryFiringsThisSession?: number;
+
+  /** Timestamp of last anticipatory firing (for cooldown) */
+  lastAnticipatoryFiringAt?: number;
 }
 
 // ============================================================================

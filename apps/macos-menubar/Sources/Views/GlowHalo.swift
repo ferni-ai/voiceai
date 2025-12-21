@@ -26,10 +26,13 @@ struct GlowHalo: View {
             // Layer 1: Outer ambient glow (slowest breathing)
             outerGlow
 
-            // Layer 2: Inner presence ring (synced with avatar)
+            // Layer 2: Heartbeat ring (lub-dub pattern)
+            heartbeatRing
+
+            // Layer 3: Inner presence ring (synced with avatar)
             innerRing
 
-            // Layer 3: Active pulse ring (expands when energy is high)
+            // Layer 4: Active pulse ring (expands when energy is high)
             pulseRing
         }
         .frame(width: size * 2.2, height: size * 2.2)
@@ -65,6 +68,57 @@ struct GlowHalo: View {
                 )
             )
             .frame(width: size * 1.5, height: size * 1.5)
+            .scaleEffect(scale)
+    }
+
+    // MARK: - Heartbeat Ring
+
+    /// The signature "lub-dub" heartbeat pattern - makes the avatar feel alive!
+    /// Pattern: rest → lub (beat 1) → settle → dub (beat 2) → rest
+    private var heartbeatRing: some View {
+        // 1.8 second heartbeat cycle (like a real resting heart rate ~66 BPM)
+        let cycleTime = 1.8
+        let phase = (time.truncatingRemainder(dividingBy: cycleTime)) / cycleTime
+
+        // Create lub-dub pattern with precise timing
+        let scale: CGFloat
+        let opacity: Double
+
+        if phase < 0.1 {
+            // Rest → Lub (first beat)
+            let t = phase / 0.1
+            scale = 1.0 + t * 0.12  // 1.0 → 1.12
+            opacity = 0.75 + t * 0.25  // 0.75 → 1.0
+        } else if phase < 0.2 {
+            // Lub → Quick settle
+            let t = (phase - 0.1) / 0.1
+            scale = 1.12 - t * 0.10  // 1.12 → 1.02
+            opacity = 1.0 - t * 0.1  // 1.0 → 0.9
+        } else if phase < 0.3 {
+            // Settle → Dub (second beat)
+            let t = (phase - 0.2) / 0.1
+            scale = 1.02 + t * 0.06  // 1.02 → 1.08
+            opacity = 0.9 + t * 0.1  // 0.9 → 1.0
+        } else if phase < 0.5 {
+            // Dub → Return to rest
+            let t = (phase - 0.3) / 0.2
+            scale = 1.08 - t * 0.08  // 1.08 → 1.0
+            opacity = 1.0 - t * 0.25  // 1.0 → 0.75
+        } else {
+            // Rest (longer pause between heartbeats)
+            scale = 1.0
+            opacity = 0.75
+        }
+
+        // More intense when connected
+        let intensityMod = isActive ? 1.0 : 0.5
+
+        return Circle()
+            .stroke(
+                persona.glowColor.opacity(opacity * intensityMod * 0.6),
+                lineWidth: 2.5
+            )
+            .frame(width: size * 1.35, height: size * 1.35)
             .scaleEffect(scale)
     }
 

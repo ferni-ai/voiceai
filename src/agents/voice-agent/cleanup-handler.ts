@@ -91,12 +91,14 @@ interface VoiceHumanizationCleanup {
 }
 
 /**
- * User data with trial info
+ * User data with trial info and trigger profiles
  */
 interface UserDataWithTrial {
   turnCount?: number;
   isTrialUser?: boolean;
   isFirstConversation?: boolean;
+  // Phase 5: Anticipatory trigger profile for session-end save
+  triggerProfile?: import('../../intelligence/triggers/index.js').UserTriggerProfile;
 }
 
 /**
@@ -333,6 +335,29 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
               await import('../../personas/bundles/ferni/llm-expression-generator.js');
             await flushExpressions(userId);
             diag.session('🎭 High-engagement expressions persisted');
+          })()
+        : Promise.resolve(),
+
+      // Phase 5: Anticipatory trigger profile - save learned signals
+      userId && userData?.triggerProfile
+        ? (async () => {
+            const { saveUserTriggerContext } = await import(
+              '../../intelligence/triggers/voice-agent-integration.js'
+            );
+            const { clearAnticipatorySession } = await import(
+              '../../intelligence/triggers/anticipatory-trigger-engine.js'
+            );
+            // Save the trigger profile (includes learned signals and outcome events)
+            const saved = await saveUserTriggerContext(sessionId);
+            // Clean up session memory
+            clearAnticipatorySession(sessionId);
+            if (saved) {
+              diag.session('🔮 Anticipatory trigger profile persisted', {
+                userId,
+                learnedSignals:
+                  userData.triggerProfile?.anticipatoryIntelligence?.signals?.length ?? 0,
+              });
+            }
           })()
         : Promise.resolve(),
     ]);

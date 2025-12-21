@@ -88,6 +88,15 @@ User Text
 | `anticipatory-signal-learner.ts` | Learn opening phrase patterns, detect anticipatory signals |
 | `anticipatory-trigger-engine.ts` | Early trigger firing, response templates, session management |
 
+### Phase 6: Cross-Domain Synthesis
+
+| File | Purpose |
+|------|---------|
+| `life-context-snapshot.ts` | Types for domain data and life context aggregation |
+| `domain-data-collectors.ts` | Collectors for each persona domain (sleep, calendar, finance, goals, relationships, habits) |
+| `life-context-aggregator.ts` | Aggregate domain data, compute stress/wellbeing scores, detect patterns |
+| `synthesis-trigger-generator.ts` | Generate triggers based on cross-domain life context |
+
 ### Other
 
 | File | Purpose |
@@ -400,6 +409,65 @@ profile = learnFromUtterance(profile, {
 - `avoidance` - "It's not a big deal..." + minimization
 - `request` - "Could you help me with..."
 
+### Cross-Domain Synthesis (Phase 6)
+
+Phase 6 synthesizes signals across all personas' domains to understand the user's full life context:
+
+```typescript
+import {
+  aggregateLifeContext,
+  populateSynthesisTriggers,
+  getMostImportantTrigger,
+  summarizeLifeContext,
+} from './intelligence/triggers/index.js';
+
+// 1. Aggregate life context (collects from all domains)
+const snapshot = await aggregateLifeContext(userId, {
+  analysisWindowDays: 7,
+  minConfidence: 0.3,
+});
+
+// 2. Populate synthesis triggers
+const snapshotWithTriggers = populateSynthesisTriggers(snapshot);
+
+// 3. Get the most important trigger
+const trigger = getMostImportantTrigger(snapshotWithTriggers);
+if (trigger) {
+  // Deliver context-aware response
+  speak(trigger.suggestedResponse);  // e.g., "You're carrying a lot right now"
+  handoffTo(trigger.recommendedPersona);  // e.g., 'ferni' for support
+}
+
+// 4. Log summary
+console.log(summarizeLifeContext(snapshot));
+// "Load: 72% | Wellbeing: 45% | High stress: sleep, calendar | Patterns: Sleep + calendar collision"
+```
+
+**Domain Data Collectors:**
+| Domain | Persona | What It Collects |
+|--------|---------|-----------------|
+| `sleep` | Maya | Sleep hours, fatigue mentions, trend |
+| `calendar` | Alex | Schedule density, deadlines, overload |
+| `finance` | Peter | Anxiety signals, decision pending, concerns |
+| `goals` | Jordan | Motivation level, setbacks, progress |
+| `relationships` | Nayan | Isolation signals, existential themes |
+| `habits` | Maya | Adherence, streaks at risk, slumps |
+
+**Synthesis Trigger Categories:**
+- `support` - User needs emotional/practical support
+- `celebration` - Positive momentum worth acknowledging
+- `warning` - Early intervention for emerging issues
+- `connection` - User may need social connection
+- `rest` - User needs to slow down
+
+**Cross-Domain Patterns Detected:**
+- Overwhelm cascade (3+ high stress domains)
+- Sleep + calendar collision
+- Financial anxiety + sleep disruption
+- Isolation + low motivation spiral
+- Goal/habit reinforcement loop
+- Calendar overload + relationship strain
+
 ---
 
 ## Implementation Status
@@ -411,7 +479,7 @@ profile = learnFromUtterance(profile, {
 | 3 | Temporal Intelligence | ✅ Implemented |
 | 4 | Effectiveness Learning | ✅ Implemented |
 | 5 | Anticipatory Triggers | ✅ Implemented |
-| 6 | Cross-Domain Synthesis | Planned |
+| 6 | Cross-Domain Synthesis | ✅ Implemented |
 
 See `docs/plans/SUPERHUMAN-TRIGGER-INTELLIGENCE-PLAN.md` for full roadmap.
 
@@ -437,4 +505,4 @@ See `docs/plans/SUPERHUMAN-TRIGGER-INTELLIGENCE-PLAN.md` for full roadmap.
 
 ---
 
-*Last updated: December 2024 (Phase 5 complete)*
+*Last updated: December 2024 (Phase 6 complete)*

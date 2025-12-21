@@ -273,6 +273,66 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
           });
         }
       })(),
+
+      // Phase 5: Anticipatory Intelligence - load user's trigger profile
+      (async () => {
+        try {
+          const { loadUserTriggerContext } = await import(
+            '../../intelligence/triggers/voice-agent-integration.js'
+          );
+          const triggerContext = await loadUserTriggerContext(userId, sessionId);
+
+          // Store in session state for access during transcript processing
+          // This will be set on userData after session state manager is created
+          (globalThis as Record<string, unknown>)[`_triggerContext_${sessionId}`] = {
+            anticipatoryIntelligence: triggerContext.profile.anticipatoryIntelligence,
+            triggerProfile: triggerContext.profile,
+          };
+
+          diag.session('🔮 Anticipatory intelligence loaded', {
+            userId,
+            learnedSignals: triggerContext.profile.anticipatoryIntelligence?.signals?.length ?? 0,
+            recentEvents: triggerContext.profile.anticipatoryIntelligence?.recentEvents?.length ?? 0,
+          });
+        } catch (triggerErr) {
+          diag.warn('Anticipatory intelligence load failed (non-fatal)', {
+            error: String(triggerErr),
+          });
+        }
+      })(),
+
+      // Phase 6: Life Context Synthesis - aggregate cross-domain life context
+      (async () => {
+        try {
+          const { aggregateLifeContext, populateSynthesisTriggers, summarizeLifeContext } =
+            await import('../../intelligence/triggers/index.js');
+
+          const lifeContext = await aggregateLifeContext(userId, {
+            analysisWindowDays: 7,
+            minConfidence: 0.3,
+          });
+
+          // Populate synthesis triggers
+          const contextWithTriggers = populateSynthesisTriggers(lifeContext);
+
+          // Store for access during context building
+          (globalThis as Record<string, unknown>)[`_lifeContext_${sessionId}`] = contextWithTriggers;
+
+          diag.session('🌍 Life context synthesized', {
+            userId,
+            loadScore: contextWithTriggers.overallLoadScore.toFixed(2),
+            wellbeingScore: contextWithTriggers.wellbeingScore.toFixed(2),
+            domainsWithData: contextWithTriggers.metadata.domainsWithData.length,
+            patterns: contextWithTriggers.patterns.length,
+            triggers: contextWithTriggers.synthesizedTriggers.length,
+            summary: summarizeLifeContext(contextWithTriggers),
+          });
+        } catch (lifeContextErr) {
+          diag.warn('Life context synthesis failed (non-fatal)', {
+            error: String(lifeContextErr),
+          });
+        }
+      })(),
     ];
 
     // Wait for all profile loads to complete
@@ -393,6 +453,53 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
     agentId: sessionPersona.id,
     proxyEnabled: true,
   });
+
+  // ================================================================
+  // APPLY LOADED TRIGGER CONTEXT (Phase 5: Anticipatory Intelligence)
+  // ================================================================
+  const triggerContextKey = `_triggerContext_${sessionId}`;
+  const loadedTriggerContext = (globalThis as Record<string, unknown>)[triggerContextKey] as
+    | {
+        anticipatoryIntelligence: typeof userData.anticipatoryIntelligence;
+        triggerProfile: typeof userData.triggerProfile;
+      }
+    | undefined;
+
+  if (loadedTriggerContext) {
+    userData.anticipatoryIntelligence = loadedTriggerContext.anticipatoryIntelligence;
+    userData.triggerProfile = loadedTriggerContext.triggerProfile;
+    userData.anticipatoryFiringsThisSession = 0;
+    userData.lastAnticipatoryFiringAt = 0;
+    // Clean up global storage
+    delete (globalThis as Record<string, unknown>)[triggerContextKey];
+
+    diag.session('Applied anticipatory intelligence to userData', {
+      sessionId,
+      hasIntelligence: !!loadedTriggerContext.anticipatoryIntelligence,
+      hasProfile: !!loadedTriggerContext.triggerProfile,
+    });
+  }
+
+  // ================================================================
+  // APPLY LOADED LIFE CONTEXT (Phase 6: Cross-Domain Synthesis)
+  // ================================================================
+  const lifeContextKey = `_lifeContext_${sessionId}`;
+  const loadedLifeContext = (globalThis as Record<string, unknown>)[lifeContextKey] as
+    | import('../../intelligence/triggers/index.js').LifeContextSnapshot
+    | undefined;
+
+  if (loadedLifeContext) {
+    userData.lifeContextSnapshot = loadedLifeContext;
+    // Clean up global storage
+    delete (globalThis as Record<string, unknown>)[lifeContextKey];
+
+    diag.session('Applied life context to userData', {
+      sessionId,
+      loadScore: loadedLifeContext.overallLoadScore.toFixed(2),
+      wellbeingScore: loadedLifeContext.wellbeingScore.toFixed(2),
+      dataQuality: loadedLifeContext.metadata.dataQuality,
+    });
+  }
 
   // ================================================================
   // A/B TESTING + AUTO-OPTIMIZATION

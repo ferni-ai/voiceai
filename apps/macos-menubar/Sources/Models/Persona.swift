@@ -46,7 +46,7 @@ enum PersonaRegistry {
         id: "ferni",
         name: "Ferni",
         emoji: "🌿",
-        initials: "FN",
+        initials: "FE",
         role: "Life Coach",
         specialty: "Leadership, life direction, bringing in the right expert",
         primaryColor: Color(hex: 0x4a6741),

@@ -116,7 +116,7 @@ struct FerniWidgetEntryView: View {
                     .frame(width: 50, height: 50)
                 
                 Text(entry.persona.initials)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.white)
                 
                 // Connection indicator
@@ -155,7 +155,7 @@ struct FerniWidgetEntryView: View {
                     .frame(width: 60, height: 60)
                 
                 Text(entry.persona.initials)
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .font(.system(size: 24, weight: .semibold))
                     .foregroundColor(.white)
             }
             
@@ -213,7 +213,7 @@ struct WidgetPersona {
         switch id {
         case "ferni":
             return WidgetPersona(
-                id: "ferni", name: "Ferni", initials: "FN",
+                id: "ferni", name: "Ferni", initials: "FE",
                 role: "Life Coach",
                 primaryColor: Color(hex: 0x4a6741),
                 secondaryColor: Color(hex: 0x3d5a35)

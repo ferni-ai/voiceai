@@ -6,6 +6,7 @@
  * Phase 3: Temporal Intelligence - time-based pattern detection
  * Phase 4: Effectiveness Learning - adaptive trigger personalization
  * Phase 5: Anticipatory Triggers - early signal detection before full expression
+ * Phase 6: Cross-Domain Synthesis - aggregate life context across all personas
  *
  * This module provides "Better than Human" trigger detection by combining:
  * 1. Semantic matching using embeddings (captures emotional undertones)
@@ -15,6 +16,7 @@
  * 5. Temporal patterns (day-of-week, time-of-day, anniversary proximity)
  * 6. Effectiveness learning (engagement/deflection tracking, adaptive scoring)
  * 7. Anticipatory detection (partial input + voice prosody = early response)
+ * 8. Cross-domain synthesis (sleep + calendar + finance + goals + relationships = life context)
  *
  * @module TriggerIntelligence
  */
@@ -286,3 +288,66 @@ export {
   getAnticipatoryEngineAnalytics,
   resetAnticipatoryEngineAnalytics,
 } from './anticipatory-trigger-engine.js';
+
+// Phase 6: Life Context Snapshot Types
+export type {
+  SleepDomainData,
+  CalendarDomainData,
+  FinanceDomainData,
+  GoalsDomainData,
+  RelationshipDomainData,
+  HabitsDomainData,
+  DomainStressIndicator,
+  SynthesisTrigger,
+  LifeContextSnapshot,
+  DomainDataCollector,
+  AggregatorConfig,
+} from './life-context-snapshot.js';
+
+export { DEFAULT_LIFE_CONTEXT_SNAPSHOT } from './life-context-snapshot.js';
+
+// Phase 6: Domain Data Collectors
+export {
+  sleepDataCollector,
+  calendarDataCollector,
+  financeDataCollector,
+  goalsDataCollector,
+  relationshipDataCollector,
+  habitsDataCollector,
+  domainCollectors,
+  collectAllDomainData,
+} from './domain-data-collectors.js';
+
+// Phase 6: Life Context Aggregator
+export {
+  aggregateLifeContext,
+  summarizeLifeContext,
+  computeSleepStress,
+  computeCalendarStress,
+  computeFinanceStress,
+  computeGoalsStress,
+  computeRelationshipStress,
+  computeHabitsStress,
+  detectCrossDomainPatterns,
+  calculateOverallLoadScore,
+  calculateWellbeingScore,
+  DEFAULT_AGGREGATOR_CONFIG,
+} from './life-context-aggregator.js';
+
+// Phase 6: Synthesis Trigger Generator
+export {
+  generateSynthesisTriggers,
+  populateSynthesisTriggers,
+  getMostImportantTrigger,
+  getTriggersByCategory,
+  getTriggersForPersona,
+  recordSynthesisTriggers,
+  getSynthesisAnalytics,
+  resetSynthesisAnalytics,
+  allTriggerTemplates,
+  supportTriggerTemplates,
+  celebrationTriggerTemplates,
+  warningTriggerTemplates,
+  type TriggerTemplate,
+  type SynthesisAnalytics,
+} from './synthesis-trigger-generator.js';

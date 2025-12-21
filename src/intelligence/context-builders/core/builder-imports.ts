@@ -84,6 +84,7 @@ export const BUILDER_IMPORTS: Record<string, BuilderImporter> = {
   'pattern-surfacing': () => import('../pattern-surfacing.js'),
   'superhuman-insights': () => import('../superhuman/superhuman-insights.js'),
   'deep-understanding': () => import('../deep-understanding.js'), // Unified deep intelligence
+  'life-context-synthesis': () => import('../life-context-synthesis.js'), // Phase 6: Cross-domain life context
 
   // ENGAGEMENT
   engagement: () => import('../engagement.js'),

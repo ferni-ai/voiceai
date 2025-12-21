@@ -281,24 +281,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func showContextMenu() {
         let menu = NSMenu()
         
-        // Current persona indicator
+        // Current persona indicator - colored circle with persona color
         let currentPersona = voiceManager.currentPersona
-        let headerItem = NSMenuItem(title: "\(currentPersona.emoji) \(currentPersona.name)", action: nil, keyEquivalent: "")
+        let headerItem = NSMenuItem(title: currentPersona.name, action: nil, keyEquivalent: "")
+        let headerIcon = NSImage(systemSymbolName: "circle.fill", accessibilityDescription: nil)
+        let headerConfig = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [NSColor(currentPersona.primaryColor)]))
+        headerItem.image = headerIcon?.withSymbolConfiguration(headerConfig)
         headerItem.isEnabled = false
         menu.addItem(headerItem)
-        
+
         menu.addItem(NSMenuItem.separator())
-        
-        // Persona picker
+
+        // Persona picker - each persona gets their brand color
         for persona in PersonaRegistry.all {
             let item = NSMenuItem(
-                title: "\(persona.emoji) \(persona.name) - \(persona.role)",
+                title: "\(persona.name) — \(persona.role)",
                 action: #selector(selectPersona(_:)),
                 keyEquivalent: ""
             )
+            let isSelected = persona.id == voiceManager.currentPersonaId
+            let symbolName = isSelected ? "circle.fill" : "circle"
+            let personaIcon = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)
+            let personaConfig = NSImage.SymbolConfiguration(pointSize: 10, weight: .medium)
+                .applying(NSImage.SymbolConfiguration(paletteColors: [NSColor(persona.primaryColor)]))
+            item.image = personaIcon?.withSymbolConfiguration(personaConfig)
             item.target = self
             item.representedObject = persona.id
-            if persona.id == voiceManager.currentPersonaId {
+            if isSelected {
                 item.state = .on
             }
             menu.addItem(item)
@@ -320,12 +330,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         helpMeItem.target = self
         menu.addItem(helpMeItem)
 
-        // Show current context
+        // Show current context - subtle gray circle
         let contextItem = NSMenuItem(
-            title: "📍 \(contextService.activeApp.isEmpty ? "No app focused" : contextService.activeApp)",
+            title: contextService.activeApp.isEmpty ? "No app focused" : contextService.activeApp,
             action: nil,
             keyEquivalent: ""
         )
+        let contextIcon = NSImage(systemSymbolName: "circle.fill", accessibilityDescription: nil)
+        let contextConfig = NSImage.SymbolConfiguration(pointSize: 8, weight: .medium)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [NSColor.tertiaryLabelColor]))
+        contextItem.image = contextIcon?.withSymbolConfiguration(contextConfig)
         contextItem.isEnabled = false
         menu.addItem(contextItem)
 
@@ -338,37 +352,57 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(NSMenuItem.separator())
 
-        // Claude Code Integration
+        // Claude Code Integration - use subtle accent color
         let claudeHeaderItem = NSMenuItem(title: "Claude Code", action: nil, keyEquivalent: "")
         claudeHeaderItem.isEnabled = false
         menu.addItem(claudeHeaderItem)
-        
+
+        // Anthropic orange/terracotta for Claude items
+        let claudeColor = NSColor(red: 0.85, green: 0.55, blue: 0.35, alpha: 1.0)
+
         let openClaudeTerminalItem = NSMenuItem(
-            title: "🖥️ Open Claude in Terminal",
+            title: "Open in Terminal",
             action: #selector(openClaudeInTerminal),
             keyEquivalent: ""
         )
+        let terminalIcon = NSImage(systemSymbolName: "circle", accessibilityDescription: nil)
+        let terminalConfig = NSImage.SymbolConfiguration(pointSize: 10, weight: .medium)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [claudeColor]))
+        openClaudeTerminalItem.image = terminalIcon?.withSymbolConfiguration(terminalConfig)
         openClaudeTerminalItem.target = self
         menu.addItem(openClaudeTerminalItem)
-        
+
         let openClaudeITermItem = NSMenuItem(
-            title: "🖥️ Open Claude in iTerm",
+            title: "Open in iTerm",
             action: #selector(openClaudeInITerm),
             keyEquivalent: ""
         )
+        let iTermIcon = NSImage(systemSymbolName: "circle.fill", accessibilityDescription: nil)
+        let iTermConfig = NSImage.SymbolConfiguration(pointSize: 10, weight: .medium)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [claudeColor]))
+        openClaudeITermItem.image = iTermIcon?.withSymbolConfiguration(iTermConfig)
         openClaudeITermItem.target = self
         menu.addItem(openClaudeITermItem)
         
         menu.addItem(NSMenuItem.separator())
 
-        // Cloud/Local toggle
-        let modeLabel = voiceManager.useCloudMode ? "☁️ Cloud (app.ferni.ai)" : "🏠 Local (localhost)"
+        // Cloud/Local toggle - brand-aligned colors
+        let isCloud = voiceManager.useCloudMode
+        let modeLabel = isCloud ? "Cloud (app.ferni.ai)" : "Local (localhost)"
         let modeItem = NSMenuItem(title: modeLabel, action: nil, keyEquivalent: "")
+        // Blue for cloud, Ferni green for local
+        let modeColor = isCloud
+            ? NSColor(red: 0.25, green: 0.45, blue: 0.65, alpha: 1.0)  // Calm blue
+            : NSColor(red: 0.29, green: 0.40, blue: 0.25, alpha: 1.0)  // Ferni green
+        let modeIcon = NSImage(systemSymbolName: "circle.fill", accessibilityDescription: nil)
+        let modeConfig = NSImage.SymbolConfiguration(pointSize: 10, weight: .medium)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [modeColor]))
+        modeItem.image = modeIcon?.withSymbolConfiguration(modeConfig)
         modeItem.isEnabled = false
         menu.addItem(modeItem)
-        
+
         let toggleModeItem = NSMenuItem(
-            title: voiceManager.useCloudMode ? "Switch to Local" : "Switch to Cloud",
+            title: isCloud ? "Switch to Local" : "Switch to Cloud",
             action: #selector(toggleCloudMode),
             keyEquivalent: ""
         )

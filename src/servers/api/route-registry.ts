@@ -128,6 +128,7 @@ import { handleCreativeYouRoutes } from '../../api/routes/creative-you-routes.js
 import { handleMusicalYouRoutes } from '../../api/routes/musical-you-routes.js';
 import { handleSocialRoutes } from '../../api/routes/social-routes.js';
 import { handlePremiumRoutes } from '../../api/routes/premium-routes.js';
+import { handleCustomAgentFeaturesRoutes } from '../../api/custom-agent-features.routes.js';
 
 // =============================================================================
 // Route Registry
@@ -377,6 +378,12 @@ export const routes: RouteDefinition[] = [
     handler: handleCustomAgentRoutes,
     category: 'api',
     description: 'Custom agent management',
+  },
+  {
+    prefix: '/api/custom-agent-features',
+    handler: handleCustomAgentFeaturesRoutes,
+    category: 'api',
+    description: 'Custom agent features (share, coaching, tasks, roleplay)',
   },
   {
     prefix: '/api/dora',

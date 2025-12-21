@@ -199,12 +199,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://ferni.ai/tailwind-landing/</loc>
-    <lastmod>12/10/2025</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://ferni.ai/compare/</loc>
     <lastmod>12/10/2025</lastmod>
     <changefreq>monthly</changefreq>
@@ -387,6 +381,12 @@
   <url>
     <loc>https://ferni.ai/privacy/</loc>
     <lastmod>12/20/2025</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://ferni.ai/tailwind-landing/</loc>
+    <lastmod>12/21/2025</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

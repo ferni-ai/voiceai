@@ -61,7 +61,7 @@ final class PersonaTests: XCTestCase {
     }
     
     func testPersonaInitials() {
-        XCTAssertEqual(PersonaRegistry.ferni.initials, "FN")
+        XCTAssertEqual(PersonaRegistry.ferni.initials, "FE")
         XCTAssertEqual(PersonaRegistry.maya.initials, "MS")
         XCTAssertEqual(PersonaRegistry.alex.initials, "AC")
         XCTAssertEqual(PersonaRegistry.jordan.initials, "JT")

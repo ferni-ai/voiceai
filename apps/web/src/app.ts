@@ -225,6 +225,8 @@ import { initHouseholdManager, showHouseholdManager } from './ui/household-manag
 import { initConversationMemory, showConversationMemory } from './ui/conversation-memory.ui.js';
 // Wellbeing Dashboard - "State of Me" visualization
 import { initWellbeingDashboard, showWellbeingDashboard } from './ui/wellbeing-dashboard.ui.js';
+// Life Context Dashboard - Cross-domain life synthesis (Phase 6)
+import { initLifeContextDashboard, showLifeContextDashboard } from './ui/life-context-dashboard.ui.js';
 // Service Health - Show degradation status to users
 import { initServiceHealthUI } from './ui/service-health.ui.js';
 // Monetization UIs - Support Ferni
@@ -1499,6 +1501,9 @@ class VoiceAIApp {
     // 🌈 Wellbeing Dashboard - "State of Me" visualization
     this.safeInit('WellbeingDashboard', () => initWellbeingDashboard());
 
+    // 📊 Life Context Dashboard - Cross-domain synthesis (Phase 6)
+    this.safeInit('LifeContextDashboard', () => initLifeContextDashboard());
+
     // 🏥 Service Health - Show degradation status to users
     this.safeInit('ServiceHealthUI', () => initServiceHealthUI());
 
@@ -1540,6 +1545,7 @@ class VoiceAIApp {
         onHouseholdClick: () => void showHouseholdManager(),
         onConversationMemoryClick: () => void showConversationMemory(),
         onWellbeingClick: () => void showWellbeingDashboard(),
+        onLifeContextClick: () => void showLifeContextDashboard(),
         onTeamInsightsClick: () => teamInsightsUI.toggle(),
         onSupportFerniClick: () => void supportFerniUI.open(),
         onPersonalizeClick: () => personalizeUI.open(),

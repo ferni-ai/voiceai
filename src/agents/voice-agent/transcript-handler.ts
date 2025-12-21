@@ -76,6 +76,15 @@ import {
   detectTeamHuddleRequest,
   createTeamHuddleTrigger,
 } from '../../services/engagement/engagement-conversation-triggers.js';
+// Phase 5: Anticipatory Triggers - "Better than Human" early signal detection
+import {
+  processPartialInput as processAnticipatoryInput,
+  recordAnticipatoryOutcome,
+  clearAnticipatorySession,
+  learnFromUtterance,
+  type AnticipatoryEngineResult,
+  type VoiceProsodyCue,
+} from '../../intelligence/triggers/index.js';
 // PersonaIdString is just a string alias, defined locally to avoid import issues
 
 // ============================================================================
@@ -298,6 +307,111 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       }
 
       // ===============================================
+      // 🧠 ANTICIPATORY TRIGGERS (Phase 5)
+      // "Better than Human" - Fire early responses before full expression
+      // Detects vulnerability, distress, celebration, etc. from partial input
+      // ===============================================
+      if (userData.anticipatoryIntelligence && !conversationManager.isAgentSpeaking()) {
+        try {
+          // Convert voice emotion to VoiceProsodyCue format if available
+          let voiceProsody: { cues: VoiceProsodyCue[]; overallScore: number } | undefined;
+          if (userData.voiceEmotion) {
+            const cues: VoiceProsodyCue[] = [];
+            const confidence = userData.voiceEmotion.confidence || 0.5;
+            // Map emotion to prosody cues
+            if (userData.voiceEmotion.primary === 'sad') {
+              cues.push({
+                type: 'tremor',
+                intensity: confidence,
+                typicalMeaning: 'vulnerability',
+                reliability: 0.7,
+                observations: 1,
+              });
+            }
+            if (userData.voiceEmotion.primary === 'angry' || userData.voiceEmotion.primary === 'sad') {
+              cues.push({
+                type: 'pitch_change',
+                direction: 'irregular',
+                intensity: confidence,
+                typicalMeaning: 'distress',
+                reliability: 0.6,
+                observations: 1,
+              });
+            }
+            // Add pause detection if we have breath pause data
+            if (userData.isInBreathPause) {
+              cues.push({
+                type: 'pause',
+                intensity: 0.6,
+                typicalMeaning: 'processing',
+                reliability: 0.5,
+                observations: 1,
+              });
+            }
+            voiceProsody = {
+              cues,
+              overallScore: confidence,
+            };
+          }
+
+          // Check session-level safeguards
+          const now = Date.now();
+          const firingsThisSession = userData.anticipatoryFiringsThisSession ?? 0;
+          const lastFiringAt = userData.lastAnticipatoryFiringAt ?? 0;
+          const cooldownMs = (userData.anticipatoryIntelligence.safeguards?.minSecondsBetween ?? 120) * 1000;
+          const maxPerSession = userData.anticipatoryIntelligence.safeguards?.maxPerSession ?? 3;
+
+          // Skip if we've exceeded session limits
+          if (firingsThisSession < maxPerSession && (now - lastFiringAt) > cooldownMs) {
+            const result = processAnticipatoryInput(
+              sessionId,
+              event.transcript,
+              userData.anticipatoryIntelligence,
+              voiceProsody,
+              userData.lastTopic
+            );
+
+            if (result.shouldFire && result.verbalResponse) {
+              // Speak the anticipatory response
+              session.say(result.verbalResponse, { allowInterruptions: true });
+
+              // Send avatar cue to frontend
+              if (ctx.sendDataMessage && result.responseTemplate?.nonVerbal) {
+                ctx.sendDataMessage('avatar_cue', {
+                  type: 'anticipatory_response',
+                  ...result.responseTemplate.nonVerbal,
+                  anticipatedOutcome: result.anticipatedOutcome,
+                });
+              }
+
+              // Update session-level tracking
+              userData.anticipatoryFiringsThisSession = firingsThisSession + 1;
+              userData.lastAnticipatoryFiringAt = now;
+
+              // Store pending result for outcome recording when final transcript arrives
+              // Only store if we have a detection result
+              if (result.detection) {
+                userData.pendingAnticipatoryResult = {
+                  detection: result.detection,
+                  firedAt: now,
+                  verbalResponse: result.verbalResponse,
+                  anticipatedOutcome: result.anticipatedOutcome || 'unknown',
+                };
+              }
+
+              diag.session('🔮 Anticipatory trigger fired', {
+                anticipatedOutcome: result.anticipatedOutcome,
+                confidence: result.confidence.toFixed(2),
+                partialTranscript: event.transcript.slice(0, 50),
+              });
+            }
+          }
+        } catch {
+          // Anticipatory trigger processing is non-critical
+        }
+      }
+
+      // ===============================================
       // 🚀 SPECULATIVE CONTEXT PREFETCH
       // Start building context while user is still speaking
       // Saves ~150ms on final response
@@ -409,6 +523,86 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         recommendedDelay: finalTurnSignals.recommendedDelay,
         isUrgent: finalTurnSignals.isUrgent,
       });
+
+      // ===============================================
+      // 🧠 ANTICIPATORY TRIGGER OUTCOME RECORDING
+      // Learn from the completed utterance to improve predictions
+      // ===============================================
+      if (userData.pendingAnticipatoryResult && userData.triggerProfile) {
+        try {
+          // Determine user reaction based on how they continued
+          // If they continued speaking on a related topic, we likely guessed right
+          // If they changed topic or seemed annoyed, we likely guessed wrong
+          let userReaction: 'appreciated' | 'continued' | 'ignored' | 'corrected' | 'annoyed' = 'continued';
+
+          // Simple heuristics for reaction detection
+          const response = cleanedTranscript.toLowerCase();
+          if (response.includes('thank') || response.includes('exactly') || response.includes('yes')) {
+            userReaction = 'appreciated';
+          } else if (
+            response.includes('no') ||
+            response.includes("that's not") ||
+            response.includes("i wasn't")
+          ) {
+            userReaction = 'corrected';
+          } else if (response.includes('anyway') || response.includes('moving on')) {
+            userReaction = 'ignored';
+          }
+
+          // Record outcome for learning
+          const updatedProfile = recordAnticipatoryOutcome(
+            userData.triggerProfile,
+            sessionId,
+            userData.pendingAnticipatoryResult.detection,
+            userReaction,
+            'space_creating', // Default response type
+            userData.voiceEmotion?.confidence ?? 0,
+            userReaction === 'appreciated' || userReaction === 'continued'
+          );
+
+          // Also learn from the completed utterance
+          const anticipatedOutcome = userData.pendingAnticipatoryResult.anticipatedOutcome;
+          const profileWithLearning = learnFromUtterance(updatedProfile, {
+            fullUtterance: cleanedTranscript,
+            actualOutcome: (anticipatedOutcome || 'processing') as
+              | 'vulnerability'
+              | 'distress'
+              | 'celebration'
+              | 'processing'
+              | 'avoidance'
+              | 'request',
+            voiceCues: userData.voiceEmotion
+              ? [
+                  {
+                    type: 'pitch_change' as const,
+                    direction: 'irregular' as const,
+                    intensity: userData.voiceEmotion.confidence ?? 0.5,
+                    typicalMeaning: 'distress' as const,
+                    reliability: 0.6,
+                    observations: 1,
+                  },
+                ]
+              : [],
+            sessionId,
+            activatedTriggers: [],
+          });
+
+          // Update profile for session-end save
+          userData.triggerProfile = profileWithLearning;
+          userData.anticipatoryIntelligence = profileWithLearning.anticipatoryIntelligence;
+
+          diag.session('🔮 Anticipatory outcome recorded', {
+            anticipatedOutcome: userData.pendingAnticipatoryResult.anticipatedOutcome,
+            userReaction,
+            timeSinceFiring: Date.now() - userData.pendingAnticipatoryResult.firedAt,
+          });
+        } catch {
+          // Outcome recording is non-critical
+        } finally {
+          // Clear pending result
+          userData.pendingAnticipatoryResult = null;
+        }
+      }
 
       // 📊 MUSIC TRANSITION FEEDBACK
       // If music recently ended, record user's response for per-user learning

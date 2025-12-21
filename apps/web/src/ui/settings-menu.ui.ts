@@ -72,6 +72,7 @@ export interface SettingsMenuUICallbacks {
   onHouseholdClick?: () => void;
   onConversationMemoryClick?: () => void;
   onWellbeingClick?: () => void;
+  onLifeContextClick?: () => void;
   onTeamInsightsClick?: () => void;
   onSupportFerniClick?: () => void;
   onPersonalizeClick?: () => void;
@@ -134,6 +135,8 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 4.5a2.5 2.5 0 0 0-4.96-.44 2.5 2.5 0 0 0-2.96 3.08 3 3 0 0 0 .34 5.58 2.5 2.5 0 0 0 2.96 3.08A2.5 2.5 0 0 0 12 19.5Z"/><path d="M12 4.5a2.5 2.5 0 0 1 4.96-.44 2.5 2.5 0 0 1 2.96 3.08 3 3 0 0 1-.34 5.58 2.5 2.5 0 0 1-2.96 3.08A2.5 2.5 0 0 1 12 19.5Z"/><path d="M12 4.5v15"/></svg>',
   wellbeing:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
+  layers:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 12-8.58 3.91a2 2 0 0 1-1.66 0L2.18 12"/><path d="m22 17-8.58 3.91a2 2 0 0 1-1.66 0L2.18 17"/></svg>',
   lightbulb:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>',
 
@@ -627,6 +630,7 @@ class SettingsMenuUI {
             ${this.renderMenuItem('team-insights', ICONS.lightbulb, t('menu.items.teamInsights'))}
             ${this.renderMenuItem('cognitive', ICONS.brain, t('menu.items.whatILearned'))}
             ${this.renderMenuItem('wellbeing', ICONS.wellbeing, t('menu.items.wellbeingDashboard'))}
+            ${this.renderMenuItem('life-context', ICONS.layers, t('menu.items.lifeContext'))}
           `
                 )
               : ''
@@ -1115,6 +1119,9 @@ class SettingsMenuUI {
         break;
       case 'wellbeing':
         this.callbacks.onWellbeingClick?.();
+        break;
+      case 'life-context':
+        this.callbacks.onLifeContextClick?.();
         break;
       case 'team-insights':
         this.callbacks.onTeamInsightsClick?.();

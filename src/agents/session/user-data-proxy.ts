@@ -99,6 +99,21 @@ interface DirectFields {
     peopleMentioned?: string[];
     sessionCount?: number;
   };
+
+  // Phase 5: Anticipatory Triggers
+  anticipatoryIntelligence?: import('../../intelligence/triggers/index.js').AnticipatoryIntelligence;
+  triggerProfile?: import('../../intelligence/triggers/index.js').UserTriggerProfile;
+  pendingAnticipatoryResult?: {
+    detection: import('../../intelligence/triggers/index.js').SignalDetectionResult;
+    firedAt: number;
+    verbalResponse: string;
+    anticipatedOutcome: string;
+  } | null;
+  anticipatoryFiringsThisSession?: number;
+  lastAnticipatoryFiringAt?: number;
+
+  // Phase 6: Life Context Synthesis
+  lifeContextSnapshot?: import('../../intelligence/triggers/index.js').LifeContextSnapshot;
 }
 
 /**
@@ -224,6 +239,21 @@ export interface UserData {
 
   // Silence intelligence
   lastSilenceAnalysis?: SilenceAnalysis;
+
+  // Phase 5: Anticipatory Triggers
+  anticipatoryIntelligence?: import('../../intelligence/triggers/index.js').AnticipatoryIntelligence;
+  triggerProfile?: import('../../intelligence/triggers/index.js').UserTriggerProfile;
+  pendingAnticipatoryResult?: {
+    detection: import('../../intelligence/triggers/index.js').SignalDetectionResult;
+    firedAt: number;
+    verbalResponse: string;
+    anticipatedOutcome: string;
+  } | null;
+  anticipatoryFiringsThisSession?: number;
+  lastAnticipatoryFiringAt?: number;
+
+  // Phase 6: Life Context Synthesis
+  lifeContextSnapshot?: import('../../intelligence/triggers/index.js').LifeContextSnapshot;
 
   // Access to underlying state manager (for new code)
   readonly __stateManager?: SessionStateManager;

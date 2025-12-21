@@ -3,19 +3,20 @@ import AppKit
 
 // MARK: - Custom Menubar Icon
 
-/// Custom Ferni logo for the menubar - the "thinking stone" eye
-/// Matches the web app's ferni-logo.ui.ts design
+/// Custom Ferni logo for the menubar - brand waveform icon
+/// Matches the app icon design with voice waveform bars
 struct MenubarIconView: View {
     let persona: Persona
     let state: VoiceState
     let size: CGFloat
-    
+
     @State private var breatheScale: CGFloat = 1.0
     @State private var glowOpacity: Double = 0.0
-    
+    @State private var wavePhase: Double = 0.0
+
     var body: some View {
         ZStack {
-            // Background stone (circle)
+            // Background orb
             Circle()
                 .fill(
                     RadialGradient(
@@ -29,28 +30,21 @@ struct MenubarIconView: View {
                     )
                 )
                 .frame(width: size, height: size)
-            
-            // Eye white (sclera)
-            Circle()
-                .fill(Color.white)
-                .frame(width: size * 0.4, height: size * 0.4)
-            
-            // Iris
-            Circle()
-                .fill(persona.primaryColor)
-                .frame(width: size * 0.28, height: size * 0.28)
-            
-            // Pupil
-            Circle()
-                .fill(Color(hex: 0x1a1612))
-                .frame(width: size * 0.14, height: size * 0.14)
-            
-            // Catchlight (eye reflection)
-            Circle()
-                .fill(Color.white.opacity(0.9))
-                .frame(width: size * 0.06, height: size * 0.06)
-                .offset(x: -size * 0.04, y: -size * 0.04)
-            
+
+            // Waveform bars - brand voice visualization
+            HStack(spacing: size * 0.04) {
+                ForEach(0..<5, id: \.self) { index in
+                    let baseHeight: CGFloat = [0.35, 0.55, 0.7, 0.55, 0.35][index]
+                    let animatedHeight = state.isActive
+                        ? baseHeight * (0.8 + 0.4 * sin(wavePhase + Double(index) * 0.5))
+                        : baseHeight
+
+                    RoundedRectangle(cornerRadius: size * 0.03)
+                        .fill(Color.white.opacity(0.95))
+                        .frame(width: size * 0.08, height: size * animatedHeight)
+                }
+            }
+
             // Active state glow ring
             if state.isActive {
                 Circle()
@@ -72,7 +66,7 @@ struct MenubarIconView: View {
             }
         }
     }
-    
+
     private func startAnimations() {
         // Subtle breathing
         withAnimation(
@@ -81,7 +75,7 @@ struct MenubarIconView: View {
         ) {
             breatheScale = 1.02
         }
-        
+
         // Glow pulse
         withAnimation(
             .easeInOut(duration: 1.5)
@@ -89,12 +83,21 @@ struct MenubarIconView: View {
         ) {
             glowOpacity = 0.6
         }
+
+        // Wave animation
+        withAnimation(
+            .linear(duration: 1.0)
+            .repeatForever(autoreverses: false)
+        ) {
+            wavePhase = .pi * 2
+        }
     }
-    
+
     private func stopAnimations() {
         withAnimation(.easeOut(duration: 0.3)) {
             breatheScale = 1.0
             glowOpacity = 0.0
+            wavePhase = 0.0
         }
     }
 }
@@ -156,29 +159,29 @@ class MenubarIconGenerator {
     }
 }
 
-// MARK: - Simple Eye Icon (for minimal size)
+// MARK: - Simple Waveform Icon (for minimal size)
 
-/// Ultra-simple Ferni eye for very small sizes
-struct SimpleEyeIcon: View {
+/// Ultra-simple Ferni waveform for very small sizes
+struct SimpleWaveformIcon: View {
     let color: Color
     let size: CGFloat
-    
+
     var body: some View {
         ZStack {
-            // Stone
+            // Orb background
             Circle()
                 .fill(color)
                 .frame(width: size, height: size)
-            
-            // Eye
-            Circle()
-                .fill(Color.white)
-                .frame(width: size * 0.45, height: size * 0.45)
-            
-            // Pupil
-            Circle()
-                .fill(Color.black)
-                .frame(width: size * 0.2, height: size * 0.2)
+
+            // Simple 3-bar waveform
+            HStack(spacing: size * 0.06) {
+                ForEach(0..<3, id: \.self) { index in
+                    let heights: [CGFloat] = [0.35, 0.55, 0.35]
+                    RoundedRectangle(cornerRadius: size * 0.04)
+                        .fill(Color.white.opacity(0.95))
+                        .frame(width: size * 0.12, height: size * heights[index])
+                }
+            }
         }
     }
 }

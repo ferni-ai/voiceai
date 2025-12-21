@@ -70,8 +70,8 @@ struct PixarVoiceOrb: View {
             // Layer 6: Memory spark (on top)
             memorySpark
 
-            // Layer 7: Initials
-            initials
+            // Layer 7: Persona initials
+            personaInitials
         }
         .frame(width: size * 2.2, height: size * 2.2)
         .onAppear {
@@ -206,16 +206,17 @@ struct PixarVoiceOrb: View {
         .offset(y: lampOffsetY)
     }
 
-    // MARK: - Initials
+    // MARK: - Persona Initials
 
-    private var initials: some View {
+    private var personaInitials: some View {
         Text(persona.initials)
-            .font(.system(size: size * 0.38, weight: .heavy, design: .rounded))
-            .foregroundColor(.white)
-            .shadow(color: .black.opacity(0.3), radius: 2, y: 2)
-            // Apply Lamp transforms to initials
+            .font(.system(size: size * 0.38, weight: .semibold, design: .rounded))
+            .foregroundColor(.white.opacity(0.95))
+            .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
+            // Apply Lamp transforms for that Pixar bounce!
             .scaleEffect(x: lampScaleX * reactionScale, y: lampScaleY * reactionScale)
             .offset(x: reactionOffset.x, y: lampOffsetY + reactionOffset.y)
+            .rotationEffect(.degrees(Double(lampRotation + reactionRotation)))
     }
 
     // MARK: - Simulated Audio Level
