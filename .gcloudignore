@@ -186,7 +186,8 @@ temp/
 # BUT include persona bundle markdown files (system prompts, bios, etc.)
 !src/personas/bundles/**/*.md
 docs/
-/brand/
+# Note: /brand/ exclusion removed for design-system/brand access via symlink
+# /brand/
 reference/
 
 # ===================
