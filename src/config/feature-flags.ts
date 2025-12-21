@@ -828,7 +828,11 @@ export function isOutreachSystemInitEnabled(): boolean {
 // EASTER EGG HELPERS
 // ============================================================================
 
-export type EasterEggFeature = 'holidayGreetings' | 'seasonalMessages' | 'achievements' | 'randomMoments';
+export type EasterEggFeature =
+  | 'holidayGreetings'
+  | 'seasonalMessages'
+  | 'achievements'
+  | 'randomMoments';
 
 /**
  * Check if easter eggs are enabled

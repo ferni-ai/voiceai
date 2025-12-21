@@ -58,7 +58,7 @@ const WORKER_STARTUP_TIMEOUT_MS = 30_000;
 /**
  * Create a timeout promise that rejects after the specified duration.
  */
-function createTimeout(ms: number, operation: string): Promise<never> {
+async function createTimeout(ms: number, operation: string): Promise<never> {
   return new Promise((_, reject) => {
     setTimeout(() => {
       reject(new Error(`${operation} timeout after ${ms}ms`));
@@ -98,10 +98,7 @@ export async function startAllWorkers(timeoutMs = WORKER_STARTUP_TIMEOUT_MS): Pr
     // Initialize audio analysis worker pool (uses worker_threads)
     // This has its own shorter timeout since it's non-critical
     try {
-      await Promise.race([
-        initializeAudioAnalysisPool(),
-        createTimeout(5000, 'Audio pool init'),
-      ]);
+      await Promise.race([initializeAudioAnalysisPool(), createTimeout(5000, 'Audio pool init')]);
       log.info('Audio analysis worker pool initialized');
     } catch (audioPoolError) {
       // Non-critical - fallback to main thread analysis

@@ -13,7 +13,7 @@ vi.mock('../services/superhuman/predictive-coaching.js', () => ({
     {
       prediction: 'Sunday evening anxiety may occur',
       basedOn: 'anxiety before Monday',
-      suggestedIntervention: 'Would you like to talk about what\'s on your mind for tomorrow?',
+      suggestedIntervention: "Would you like to talk about what's on your mind for tomorrow?",
     },
     {
       prediction: 'Work stress tends to peak mid-week',
@@ -42,9 +42,8 @@ describe('Prediction Surfacing Builder', () => {
   });
 
   it('should be importable and have correct structure', async () => {
-    const { predictionSurfacingBuilder } = await import(
-      '../intelligence/context-builders/prediction-surfacing.js'
-    );
+    const { predictionSurfacingBuilder } =
+      await import('../intelligence/context-builders/prediction-surfacing.js');
 
     expect(predictionSurfacingBuilder).toBeDefined();
     expect(predictionSurfacingBuilder.name).toBe('prediction-surfacing');
@@ -53,9 +52,8 @@ describe('Prediction Surfacing Builder', () => {
   });
 
   it('should return empty array when no userId', async () => {
-    const { predictionSurfacingBuilder } = await import(
-      '../intelligence/context-builders/prediction-surfacing.js'
-    );
+    const { predictionSurfacingBuilder } =
+      await import('../intelligence/context-builders/prediction-surfacing.js');
 
     const result = await predictionSurfacingBuilder.build({
       userData: undefined,
@@ -67,9 +65,8 @@ describe('Prediction Surfacing Builder', () => {
   });
 
   it('should return injections when predictions exist', async () => {
-    const { predictionSurfacingBuilder } = await import(
-      '../intelligence/context-builders/prediction-surfacing.js'
-    );
+    const { predictionSurfacingBuilder } =
+      await import('../intelligence/context-builders/prediction-surfacing.js');
 
     const result = await predictionSurfacingBuilder.build({
       userData: { userId: 'test-user' },
@@ -82,14 +79,13 @@ describe('Prediction Surfacing Builder', () => {
     if (result.length > 0) {
       expect(result[0]).toHaveProperty('content');
       expect(result[0]).toHaveProperty('id');
-      console.log('📝 Injection content:', result[0].content.slice(0, 200) + '...');
+      console.log('📝 Injection content:', `${result[0].content.slice(0, 200)}...`);
     }
   });
 
   it('should prioritize stress triggers', async () => {
-    const { predictionSurfacingBuilder } = await import(
-      '../intelligence/context-builders/prediction-surfacing.js'
-    );
+    const { predictionSurfacingBuilder } =
+      await import('../intelligence/context-builders/prediction-surfacing.js');
 
     const result = await predictionSurfacingBuilder.build({
       userData: { userId: 'test-user' },
@@ -102,9 +98,8 @@ describe('Prediction Surfacing Builder', () => {
   });
 
   it('should handle session start surfacing', async () => {
-    const { predictionSurfacingBuilder } = await import(
-      '../intelligence/context-builders/prediction-surfacing.js'
-    );
+    const { predictionSurfacingBuilder } =
+      await import('../intelligence/context-builders/prediction-surfacing.js');
 
     // First turn of session
     const result = await predictionSurfacingBuilder.build({
@@ -122,9 +117,7 @@ describe('Prediction Surfacing Builder', () => {
 
 describe('Prediction Surfacing Integration', () => {
   it('should generate predictions from predictive coaching', async () => {
-    const { generatePredictions } = await import(
-      '../services/superhuman/predictive-coaching.js'
-    );
+    const { generatePredictions } = await import('../services/superhuman/predictive-coaching.js');
 
     const predictions = await generatePredictions('test-user');
     expect(predictions.length).toBe(2);
@@ -141,4 +134,3 @@ describe('Prediction Surfacing Integration', () => {
     expect(patterns[0]).toHaveProperty('patterns');
   });
 });
-

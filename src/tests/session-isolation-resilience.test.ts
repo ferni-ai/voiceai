@@ -57,8 +57,16 @@ describe('Session Isolation - Resilience Components', () => {
         });
 
       // Start 2 operations in session 1 (maxPerSession)
-      const s1Op1 = bulkhead.execute({ sessionId: session1, priority: 'normal', operation: longOp });
-      const s1Op2 = bulkhead.execute({ sessionId: session1, priority: 'normal', operation: longOp });
+      const s1Op1 = bulkhead.execute({
+        sessionId: session1,
+        priority: 'normal',
+        operation: longOp,
+      });
+      const s1Op2 = bulkhead.execute({
+        sessionId: session1,
+        priority: 'normal',
+        operation: longOp,
+      });
 
       // Wait a bit for operations to start
       await new Promise((r) => setTimeout(r, 10));
@@ -162,7 +170,7 @@ describe('Session Isolation - Resilience Components', () => {
       await new Promise((r) => setTimeout(r, 10));
 
       // freeSession should work fine
-      const results: TTSBulkheadResult<string>[] = [];
+      const results: Array<TTSBulkheadResult<string>> = [];
       for (let i = 0; i < 3; i++) {
         const result = await bulkhead.execute({
           sessionId: freeSession,
@@ -319,7 +327,7 @@ describe('Session Isolation - Resilience Components', () => {
       const sessionCount = 10;
       const opsPerSession = 5;
 
-      const sessionResults: Map<string, TTSBulkheadResult<string>[]> = new Map();
+      const sessionResults = new Map<string, Array<TTSBulkheadResult<string>>>();
 
       const operations = [];
       for (let s = 0; s < sessionCount; s++) {
@@ -494,9 +502,21 @@ describe('Session Isolation - Resilience Components', () => {
         });
 
       // Start 3 operations across 3 sessions (saturates global limit)
-      const op1 = bulkhead.execute({ sessionId: 'global-1', priority: 'normal', operation: slowOp });
-      const op2 = bulkhead.execute({ sessionId: 'global-2', priority: 'normal', operation: slowOp });
-      const op3 = bulkhead.execute({ sessionId: 'global-3', priority: 'normal', operation: slowOp });
+      const op1 = bulkhead.execute({
+        sessionId: 'global-1',
+        priority: 'normal',
+        operation: slowOp,
+      });
+      const op2 = bulkhead.execute({
+        sessionId: 'global-2',
+        priority: 'normal',
+        operation: slowOp,
+      });
+      const op3 = bulkhead.execute({
+        sessionId: 'global-3',
+        priority: 'normal',
+        operation: slowOp,
+      });
 
       // Wait for ops to start
       await new Promise((r) => setTimeout(r, 10));

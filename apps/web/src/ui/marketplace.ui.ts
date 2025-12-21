@@ -2786,15 +2786,24 @@ function getMarketplaceStyles(): string {
     }
 
     /* Reduced motion - respect user preferences */
+    /* Reduced motion - respect user preferences */
     @media (prefers-reduced-motion: reduce) {
       .discover-avatar-container,
       .discover-avatar-orb,
-      .discover-avatar-ring {
+      .discover-avatar-ring,
+      .agent-avatar,
+      .custom-agent-avatar,
+      .ceo-card .leader-avatar,
+      .employee-avatar,
+      .cofounder-avatar {
         animation: none;
       }
       
       .marketplace-agent.discover-card:hover .discover-avatar-orb,
-      .marketplace-agent.discover-card:hover .discover-avatar-ring {
+      .marketplace-agent.discover-card:hover .discover-avatar-ring,
+      .marketplace-agent:hover .agent-avatar,
+      .custom-agent-card:hover .custom-agent-avatar,
+      .ceo-card:hover .leader-avatar {
         animation: none;
       }
     }
@@ -2827,14 +2836,14 @@ function getMarketplaceStyles(): string {
     }
 
     .agent-avatar {
-      width: 52px;
-      height: 52px;
-      border-radius: var(--radius-lg, 14px);
+      width: 56px;
+      height: 56px;
+      border-radius: 50%; /* Circular - no more rounded squares! */
       display: flex;
       align-items: center;
       justify-content: center;
       font-family: 'Plus Jakarta Sans', var(--font-heading, sans-serif);
-      font-size: 1rem;
+      font-size: 1.1rem;
       font-weight: 700;
       color: white;
       letter-spacing: 0.02em;
@@ -2842,19 +2851,22 @@ function getMarketplaceStyles(): string {
       box-shadow: 
         0 1px 2px rgba(0, 0, 0, 0.08),
         0 4px 8px rgba(0, 0, 0, 0.06),
-        0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+        0 0 0 2px rgba(255, 255, 255, 0.1) inset,
         0 6px 18px -4px var(--agent-secondary, rgba(0, 0, 0, 0.25));
       flex-shrink: 0;
       transition: transform ${DURATION.STANDARD}ms ${EASING.SPRING}, 
                   box-shadow ${DURATION.STANDARD}ms ease;
+      /* Breathing animation - Pixar principle: everything alive breathes */
+      animation: avatar-breathe 5s var(--ease-smooth, cubic-bezier(0.45, 0, 0.55, 1)) infinite;
     }
 
     .marketplace-agent:hover .agent-avatar {
-      transform: scale(1.06);
+      transform: scale(1.08);
+      animation: avatar-breathe 2s var(--ease-spring-gentle, cubic-bezier(0.25, 1.2, 0.5, 1)) infinite;
       box-shadow: 
         0 2px 4px rgba(0, 0, 0, 0.1),
         0 8px 16px rgba(0, 0, 0, 0.08),
-        0 0 0 1px rgba(255, 255, 255, 0.12) inset,
+        0 0 0 2px rgba(255, 255, 255, 0.15) inset,
         0 10px 28px -4px var(--agent-secondary, rgba(0, 0, 0, 0.35)),
         0 0 18px -2px var(--agent-secondary, rgba(0, 0, 0, 0.2));
     }
@@ -3166,9 +3178,9 @@ function getMarketplaceStyles(): string {
     }
 
     .ceo-card .leader-avatar {
-      width: 64px;
-      height: 64px;
-      border-radius: var(--radius-lg, 14px);
+      width: 72px;
+      height: 72px;
+      border-radius: 50%; /* Circular - no more rounded squares! */
       display: flex;
       align-items: center;
       justify-content: center;
@@ -3181,18 +3193,21 @@ function getMarketplaceStyles(): string {
       box-shadow: 
         0 1px 2px rgba(0, 0, 0, 0.1),
         0 4px 8px rgba(0, 0, 0, 0.08),
-        0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+        0 0 0 2px rgba(255, 255, 255, 0.1) inset,
         0 6px 20px -4px var(--avatar-glow, rgba(74, 103, 65, 0.4));
       transition: transform ${DURATION.STANDARD}ms ${EASING.SPRING}, 
                   box-shadow ${DURATION.STANDARD}ms ease;
+      /* Breathing animation - Pixar principle: everything alive breathes */
+      animation: avatar-breathe 5s var(--ease-smooth, cubic-bezier(0.45, 0, 0.55, 1)) infinite;
     }
     
     .ceo-card:hover .leader-avatar {
-      transform: scale(1.04);
+      transform: scale(1.06);
+      animation: avatar-breathe 2s var(--ease-spring-gentle, cubic-bezier(0.25, 1.2, 0.5, 1)) infinite;
       box-shadow: 
         0 2px 4px rgba(0, 0, 0, 0.1),
         0 8px 16px rgba(0, 0, 0, 0.1),
-        0 0 0 1px rgba(255, 255, 255, 0.12) inset,
+        0 0 0 2px rgba(255, 255, 255, 0.15) inset,
         0 10px 30px -4px var(--avatar-glow, rgba(74, 103, 65, 0.5)),
         0 0 20px -2px var(--avatar-glow, rgba(74, 103, 65, 0.3));
     }
@@ -3238,9 +3253,9 @@ function getMarketplaceStyles(): string {
     }
 
     .cofounder-avatar {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%; /* Already circular - good! */
       display: flex;
       align-items: center;
       justify-content: center;
@@ -3249,18 +3264,26 @@ function getMarketplaceStyles(): string {
       box-shadow: 
         0 1px 2px rgba(0, 0, 0, 0.08),
         0 3px 6px rgba(0, 0, 0, 0.06),
-        0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+        0 0 0 2px rgba(255, 255, 255, 0.1) inset,
         0 4px 16px -3px var(--avatar-glow, rgba(0, 0, 0, 0.25));
       transition: transform ${DURATION.STANDARD}ms ${EASING.SPRING}, 
                   box-shadow ${DURATION.STANDARD}ms ease;
+      /* Breathing animation - Pixar principle: everything alive breathes */
+      animation: avatar-breathe 5s var(--ease-smooth, cubic-bezier(0.45, 0, 0.55, 1)) infinite;
     }
     
+    /* Stagger animations for co-founders */
+    .leader-card.cofounder:nth-child(1) .cofounder-avatar { animation-delay: 0s; }
+    .leader-card.cofounder:nth-child(2) .cofounder-avatar { animation-delay: 0.4s; }
+    .leader-card.cofounder:nth-child(3) .cofounder-avatar { animation-delay: 0.8s; }
+    
     .leader-card.cofounder:hover .cofounder-avatar {
-      transform: scale(1.08);
+      transform: scale(1.1);
+      animation: avatar-breathe 2s var(--ease-spring-gentle, cubic-bezier(0.25, 1.2, 0.5, 1)) infinite;
       box-shadow: 
         0 2px 4px rgba(0, 0, 0, 0.1),
         0 6px 12px rgba(0, 0, 0, 0.08),
-        0 0 0 1px rgba(255, 255, 255, 0.12) inset,
+        0 0 0 2px rgba(255, 255, 255, 0.15) inset,
         0 8px 24px -3px var(--avatar-glow, rgba(0, 0, 0, 0.35)),
         0 0 16px -2px var(--avatar-glow, rgba(0, 0, 0, 0.2));
     }
@@ -3295,32 +3318,37 @@ function getMarketplaceStyles(): string {
     }
 
     .employee-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%; /* Already circular - good! */
       display: flex;
       align-items: center;
       justify-content: center;
       font-family: 'Plus Jakarta Sans', var(--font-heading, sans-serif);
-      font-size: 0.75rem;
+      font-size: 0.8rem;
       font-weight: 700;
       color: white;
       /* Layered shadow for depth + persona-specific glow */
       box-shadow: 
         0 1px 2px rgba(0, 0, 0, 0.06),
         0 2px 4px rgba(0, 0, 0, 0.05),
-        0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+        0 0 0 2px rgba(255, 255, 255, 0.08) inset,
         0 3px 12px -2px var(--avatar-glow, rgba(0, 0, 0, 0.2));
       transition: transform ${DURATION.STANDARD}ms ${EASING.SPRING}, 
                   box-shadow ${DURATION.STANDARD}ms ease;
+      /* Breathing animation - Pixar principle: everything alive breathes */
+      animation: avatar-breathe 5s var(--ease-smooth, cubic-bezier(0.45, 0, 0.55, 1)) infinite;
+      /* Stagger animation for each team member */
+      animation-delay: calc(var(--employee-index, 0) * 0.3s);
     }
     
     .employee-card:hover .employee-avatar {
-      transform: scale(1.1);
+      transform: scale(1.12);
+      animation: avatar-breathe 2s var(--ease-spring-gentle, cubic-bezier(0.25, 1.2, 0.5, 1)) infinite;
       box-shadow: 
         0 2px 4px rgba(0, 0, 0, 0.08),
         0 4px 8px rgba(0, 0, 0, 0.06),
-        0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+        0 0 0 2px rgba(255, 255, 255, 0.12) inset,
         0 6px 18px -2px var(--avatar-glow, rgba(0, 0, 0, 0.3)),
         0 0 14px -2px var(--avatar-glow, rgba(0, 0, 0, 0.15));
     }
@@ -3627,6 +3655,24 @@ function getMarketplaceStyles(): string {
       color: #2c2520;
     }
 
+    /* Zen theme - Circular locked preview avatars */
+    [data-theme="zen"] .agent-avatar {
+      box-shadow: 
+        0 1px 2px rgba(44, 37, 32, 0.08),
+        0 4px 8px rgba(44, 37, 32, 0.06),
+        0 0 0 2px rgba(255, 255, 255, 0.4) inset,
+        0 6px 18px -4px var(--agent-secondary, rgba(44, 37, 32, 0.2));
+    }
+
+    [data-theme="zen"] .marketplace-agent:hover .agent-avatar {
+      box-shadow: 
+        0 2px 4px rgba(44, 37, 32, 0.1),
+        0 8px 16px rgba(44, 37, 32, 0.08),
+        0 0 0 2px rgba(255, 255, 255, 0.5) inset,
+        0 10px 28px -4px var(--agent-secondary, rgba(44, 37, 32, 0.3)),
+        0 0 18px -2px var(--agent-secondary, rgba(44, 37, 32, 0.15));
+    }
+
     [data-theme="zen"] .agent-category {
       color: rgba(44, 37, 32, 0.5);
     }
@@ -3706,6 +3752,24 @@ function getMarketplaceStyles(): string {
     [data-theme="zen"] .ceo-card {
       background: rgba(44, 37, 32, 0.04);
       border-color: rgba(44, 37, 32, 0.1);
+    }
+
+    /* Zen theme - Circular CEO avatar */
+    [data-theme="zen"] .ceo-card .leader-avatar {
+      box-shadow: 
+        0 1px 2px rgba(44, 37, 32, 0.08),
+        0 4px 8px rgba(44, 37, 32, 0.06),
+        0 0 0 2px rgba(255, 255, 255, 0.4) inset,
+        0 6px 20px -4px var(--avatar-glow, rgba(74, 103, 65, 0.3));
+    }
+
+    [data-theme="zen"] .ceo-card:hover .leader-avatar {
+      box-shadow: 
+        0 2px 4px rgba(44, 37, 32, 0.1),
+        0 8px 16px rgba(44, 37, 32, 0.08),
+        0 0 0 2px rgba(255, 255, 255, 0.5) inset,
+        0 10px 30px -4px var(--avatar-glow, rgba(74, 103, 65, 0.4)),
+        0 0 20px -2px var(--avatar-glow, rgba(74, 103, 65, 0.25));
     }
 
     [data-theme="zen"] .leader-name {
@@ -4490,17 +4554,36 @@ function getMarketplaceStyles(): string {
     }
 
     .custom-agent-avatar {
-      width: 48px;
-      height: 48px;
-      border-radius: var(--radius-lg, 12px);
+      width: 56px;
+      height: 56px;
+      border-radius: 50%; /* Circular - no more rounded squares! */
       display: flex;
       align-items: center;
       justify-content: center;
       font-family: 'Plus Jakarta Sans', var(--font-display, sans-serif);
-      font-size: 1rem;
+      font-size: 1.1rem;
       font-weight: 600;
       color: white;
       flex-shrink: 0;
+      /* Layered shadow for depth */
+      box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.08),
+        0 4px 8px rgba(0, 0, 0, 0.06),
+        0 0 0 2px rgba(255, 255, 255, 0.08) inset;
+      transition: transform ${DURATION.STANDARD}ms ${EASING.SPRING}, 
+                  box-shadow ${DURATION.STANDARD}ms ease;
+      /* Breathing animation - Pixar principle: everything alive breathes */
+      animation: avatar-breathe 5s var(--ease-smooth, cubic-bezier(0.45, 0, 0.55, 1)) infinite;
+    }
+    
+    .custom-agent-card:hover .custom-agent-avatar {
+      transform: scale(1.08);
+      animation: avatar-breathe 2s var(--ease-spring-gentle, cubic-bezier(0.25, 1.2, 0.5, 1)) infinite;
+      box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.1),
+        0 8px 16px rgba(0, 0, 0, 0.08),
+        0 0 0 2px rgba(255, 255, 255, 0.12) inset,
+        0 0 16px -2px var(--persona-glow, rgba(74, 103, 65, 0.25));
     }
 
     .custom-agent-meta {
@@ -4696,6 +4779,22 @@ function getMarketplaceStyles(): string {
     [data-theme="zen"] .custom-agent-card:hover {
       background: rgba(44, 37, 32, 0.05);
       border-color: rgba(44, 37, 32, 0.12);
+    }
+
+    /* Zen theme - Circular custom agent avatars */
+    [data-theme="zen"] .custom-agent-avatar {
+      box-shadow: 
+        0 1px 2px rgba(44, 37, 32, 0.08),
+        0 4px 8px rgba(44, 37, 32, 0.06),
+        0 0 0 2px rgba(255, 255, 255, 0.4) inset;
+    }
+
+    [data-theme="zen"] .custom-agent-card:hover .custom-agent-avatar {
+      box-shadow: 
+        0 2px 4px rgba(44, 37, 32, 0.1),
+        0 8px 16px rgba(44, 37, 32, 0.08),
+        0 0 0 2px rgba(255, 255, 255, 0.5) inset,
+        0 0 16px -2px var(--persona-glow, rgba(74, 103, 65, 0.2));
     }
 
     [data-theme="zen"] .custom-agent-name {

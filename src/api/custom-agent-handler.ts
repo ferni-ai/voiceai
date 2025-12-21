@@ -64,27 +64,136 @@ function sendJson(res: ServerResponse, status: number, data: unknown): void {
 function extractKeywords(content: string): string[] {
   // Common stop words to filter out
   const stopWords = new Set([
-    'a', 'an', 'the', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'be', 'been',
-    'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
-    'should', 'may', 'might', 'must', 'shall', 'can', 'need', 'dare', 'ought',
-    'used', 'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by', 'from', 'as',
-    'into', 'through', 'during', 'before', 'after', 'above', 'below', 'up',
-    'down', 'out', 'off', 'over', 'under', 'again', 'further', 'then', 'once',
-    'here', 'there', 'when', 'where', 'why', 'how', 'all', 'each', 'few', 'more',
-    'most', 'other', 'some', 'such', 'no', 'not', 'only', 'own', 'same', 'so',
-    'than', 'too', 'very', 'just', 'i', 'me', 'my', 'myself', 'we', 'our',
-    'ours', 'ourselves', 'you', 'your', 'yours', 'yourself', 'yourselves',
-    'he', 'him', 'his', 'himself', 'she', 'her', 'hers', 'herself', 'it', 'its',
-    'itself', 'they', 'them', 'their', 'theirs', 'themselves', 'what', 'which',
-    'who', 'whom', 'this', 'that', 'these', 'those', 'am'
+    'a',
+    'an',
+    'the',
+    'and',
+    'or',
+    'but',
+    'is',
+    'are',
+    'was',
+    'were',
+    'be',
+    'been',
+    'being',
+    'have',
+    'has',
+    'had',
+    'do',
+    'does',
+    'did',
+    'will',
+    'would',
+    'could',
+    'should',
+    'may',
+    'might',
+    'must',
+    'shall',
+    'can',
+    'need',
+    'dare',
+    'ought',
+    'used',
+    'to',
+    'of',
+    'in',
+    'for',
+    'on',
+    'with',
+    'at',
+    'by',
+    'from',
+    'as',
+    'into',
+    'through',
+    'during',
+    'before',
+    'after',
+    'above',
+    'below',
+    'up',
+    'down',
+    'out',
+    'off',
+    'over',
+    'under',
+    'again',
+    'further',
+    'then',
+    'once',
+    'here',
+    'there',
+    'when',
+    'where',
+    'why',
+    'how',
+    'all',
+    'each',
+    'few',
+    'more',
+    'most',
+    'other',
+    'some',
+    'such',
+    'no',
+    'not',
+    'only',
+    'own',
+    'same',
+    'so',
+    'than',
+    'too',
+    'very',
+    'just',
+    'i',
+    'me',
+    'my',
+    'myself',
+    'we',
+    'our',
+    'ours',
+    'ourselves',
+    'you',
+    'your',
+    'yours',
+    'yourself',
+    'yourselves',
+    'he',
+    'him',
+    'his',
+    'himself',
+    'she',
+    'her',
+    'hers',
+    'herself',
+    'it',
+    'its',
+    'itself',
+    'they',
+    'them',
+    'their',
+    'theirs',
+    'themselves',
+    'what',
+    'which',
+    'who',
+    'whom',
+    'this',
+    'that',
+    'these',
+    'those',
+    'am',
   ]);
 
   // Extract words, filter stop words, and get unique meaningful keywords
-  const words = content.toLowerCase()
+  const words = content
+    .toLowerCase()
     .replace(/[^a-z0-9\s]/g, '')
     .split(/\s+/)
-    .filter(word => word.length > 2 && !stopWords.has(word));
-  
+    .filter((word) => word.length > 2 && !stopWords.has(word));
+
   // Return unique keywords, up to 10
   return [...new Set(words)].slice(0, 10);
 }
@@ -415,12 +524,7 @@ export async function handleCustomAgentRoutes(
         keywords: body.keywords || extractKeywords(body.content),
       };
 
-      const updated = await addMemoryToAgent(
-        userId,
-        agentId,
-        typeMap[body.type] as never,
-        memory
-      );
+      const updated = await addMemoryToAgent(userId, agentId, typeMap[body.type] as never, memory);
 
       if (!updated) {
         sendJson(res, 500, { error: 'Failed to add memory' });
@@ -493,12 +597,7 @@ export async function handleCustomAgentRoutes(
         return true;
       }
 
-      const updated = await removeMemoryFromAgent(
-        userId,
-        agentId,
-        internalType as never,
-        memoryId
-      );
+      const updated = await removeMemoryFromAgent(userId, agentId, internalType as never, memoryId);
 
       if (!updated) {
         sendJson(res, 404, { error: 'Agent or memory not found' });
@@ -516,11 +615,7 @@ export async function handleCustomAgentRoutes(
     // ========================================================================
 
     // POST /api/custom-agents/:agentId/generate-prompt
-    if (
-      method === 'POST' &&
-      segments.length === 2 &&
-      segments[1] === 'generate-prompt'
-    ) {
+    if (method === 'POST' && segments.length === 2 && segments[1] === 'generate-prompt') {
       const agentId = segments[0];
 
       const agent = await getCustomAgent(userId, agentId);
@@ -553,8 +648,7 @@ export async function handleCustomAgentRoutes(
 // ============================================================================
 
 function generateSystemPrompt(agent: CustomAgent): string {
-  const { name, displayName, description, type, personality, memories, behaviors } =
-    agent;
+  const { name, displayName, description, type, personality, memories, behaviors } = agent;
 
   let prompt = `# You Are ${displayName || name}\n\n`;
   prompt += `You are an AI assistant embodying the persona of ${displayName || name}. Your core identity is: "${description}".\n\n`;
@@ -650,4 +744,3 @@ function generatePersonaManifest(agent: CustomAgent): Record<string, unknown> {
     },
   };
 }
-

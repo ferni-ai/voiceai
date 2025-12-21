@@ -77,3 +77,18 @@ export {
   DEFAULT_COMMUNICATION,
   DEFAULT_KNOWLEDGE,
 } from './custom-agent-runtime.service.js';
+
+// GCS Storage
+export {
+  uploadAudioToGcs,
+  downloadAudioFromGcs,
+  deleteAudioFromGcs,
+  uploadVoicePreview,
+  uploadVoiceJournalEntry,
+  generateSignedUrl,
+  deleteAgentAudioFiles,
+  isGcsConfigured,
+  getGcsBucketName,
+} from './gcs-storage.service.js';
+
+export type { UploadResult, SignedUrlResult } from './gcs-storage.service.js';

@@ -656,35 +656,41 @@ async function handleAmbient(
     const response = {
       isCalendarConnected: ambient.isCalendarConnected,
       currentlyInMeeting: ambient.currentlyInMeeting,
-      currentMeeting: ambient.currentMeeting ? {
-        id: ambient.currentMeeting.id,
-        title: ambient.currentMeeting.title,
-        startTime: ambient.currentMeeting.startTime.toISOString(),
-        endTime: ambient.currentMeeting.endTime.toISOString(),
-        location: ambient.currentMeeting.location,
-        attendees: ambient.currentMeeting.attendees,
-      } : null,
-      nextMeeting: ambient.nextMeeting.event ? {
-        event: {
-          id: ambient.nextMeeting.event.id,
-          title: ambient.nextMeeting.event.title,
-          startTime: ambient.nextMeeting.event.startTime.toISOString(),
-          endTime: ambient.nextMeeting.event.endTime.toISOString(),
-          location: ambient.nextMeeting.event.location,
-          attendees: ambient.nextMeeting.event.attendees,
-        },
-        minutesUntil: ambient.nextMeeting.minutesUntil,
-        shouldWarnUser: ambient.nextMeeting.shouldWarnUser,
-        wrapUpSuggestion: ambient.nextMeeting.wrapUpSuggestion,
-      } : null,
-      justEndedMeeting: ambient.justEndedMeeting.event ? {
-        event: {
-          id: ambient.justEndedMeeting.event.id,
-          title: ambient.justEndedMeeting.event.title,
-        },
-        minutesSince: ambient.justEndedMeeting.minutesSince,
-        followUpPrompt: ambient.justEndedMeeting.followUpPrompt,
-      } : null,
+      currentMeeting: ambient.currentMeeting
+        ? {
+            id: ambient.currentMeeting.id,
+            title: ambient.currentMeeting.title,
+            startTime: ambient.currentMeeting.startTime.toISOString(),
+            endTime: ambient.currentMeeting.endTime.toISOString(),
+            location: ambient.currentMeeting.location,
+            attendees: ambient.currentMeeting.attendees,
+          }
+        : null,
+      nextMeeting: ambient.nextMeeting.event
+        ? {
+            event: {
+              id: ambient.nextMeeting.event.id,
+              title: ambient.nextMeeting.event.title,
+              startTime: ambient.nextMeeting.event.startTime.toISOString(),
+              endTime: ambient.nextMeeting.event.endTime.toISOString(),
+              location: ambient.nextMeeting.event.location,
+              attendees: ambient.nextMeeting.event.attendees,
+            },
+            minutesUntil: ambient.nextMeeting.minutesUntil,
+            shouldWarnUser: ambient.nextMeeting.shouldWarnUser,
+            wrapUpSuggestion: ambient.nextMeeting.wrapUpSuggestion,
+          }
+        : null,
+      justEndedMeeting: ambient.justEndedMeeting.event
+        ? {
+            event: {
+              id: ambient.justEndedMeeting.event.id,
+              title: ambient.justEndedMeeting.event.title,
+            },
+            minutesSince: ambient.justEndedMeeting.minutesSince,
+            followUpPrompt: ambient.justEndedMeeting.followUpPrompt,
+          }
+        : null,
       remainingMeetingsToday: ambient.remainingMeetingsToday,
       nextBreakDuration: ambient.nextBreakDuration,
       totalRemainingMeetingMinutes: ambient.totalRemainingMeetingMinutes,
@@ -717,10 +723,14 @@ async function handleBlockFocus(
     });
 
     if (!freeSlots || freeSlots.length === 0) {
-      sendJson(res, {
-        success: false,
-        message: 'No available time slots for focus time today',
-      }, 400);
+      sendJson(
+        res,
+        {
+          success: false,
+          message: 'No available time slots for focus time today',
+        },
+        400
+      );
       return;
     }
 
@@ -781,30 +791,31 @@ async function handleMeetingsWithPerson(
 
     // For now, let's get the week overview and filter
     const weekOverview = await getWeekOverview(userId, today);
-    
-    const allWeekEvents = weekOverview.days.flatMap(day => day.events);
-    
+
+    const allWeekEvents = weekOverview.days.flatMap((day) => day.events);
+
     // Filter to events that include this person as an attendee
-    const eventsWithPerson = allWeekEvents.filter(event => 
-      event.attendees.some(attendee => 
-        attendee.toLowerCase() === personEmail.toLowerCase() ||
-        attendee.toLowerCase().includes(personEmail.toLowerCase())
+    const eventsWithPerson = allWeekEvents.filter((event) =>
+      event.attendees.some(
+        (attendee) =>
+          attendee.toLowerCase() === personEmail.toLowerCase() ||
+          attendee.toLowerCase().includes(personEmail.toLowerCase())
       )
     );
 
     // Separate into upcoming and past
     const upcoming = eventsWithPerson
-      .filter(e => e.startTime > today)
+      .filter((e) => e.startTime > today)
       .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
-    
+
     const past = eventsWithPerson
-      .filter(e => e.startTime <= today)
+      .filter((e) => e.startTime <= today)
       .sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
 
     sendJson(res, {
       success: true,
       personEmail,
-      upcoming: upcoming.map(e => ({
+      upcoming: upcoming.map((e) => ({
         id: e.id,
         title: e.title,
         startTime: e.startTime.toISOString(),
@@ -812,7 +823,7 @@ async function handleMeetingsWithPerson(
         location: e.location,
         attendees: e.attendees,
       })),
-      past: past.map(e => ({
+      past: past.map((e) => ({
         id: e.id,
         title: e.title,
         startTime: e.startTime.toISOString(),
@@ -1329,23 +1340,23 @@ async function handleAnalytics(
 
     // Calculate health score (0-100)
     let healthScore = 80; // Start with good baseline
-    
+
     // Deduct for high meeting load
     if (loadFactors.weeklyMeetingHours > 30) healthScore -= 20;
     else if (loadFactors.weeklyMeetingHours > 25) healthScore -= 10;
-    
+
     // Deduct for low focus time
     if (loadFactors.weeklyFocusTimeRatio < 0.2) healthScore -= 20;
     else if (loadFactors.weeklyFocusTimeRatio < 0.3) healthScore -= 10;
-    
+
     // Deduct for back-to-back meetings
     if (loadFactors.weeklyBackToBackPercentage > 50) healthScore -= 15;
     else if (loadFactors.weeklyBackToBackPercentage > 30) healthScore -= 5;
-    
+
     // Deduct for consecutive overloaded days
     if (loadFactors.consecutiveOverloadedDays >= 3) healthScore -= 15;
     else if (loadFactors.consecutiveOverloadedDays >= 2) healthScore -= 5;
-    
+
     // Ensure within bounds
     healthScore = Math.max(0, Math.min(100, healthScore));
 
@@ -1361,7 +1372,9 @@ async function handleAnalytics(
       recommendations.push('Multiple overloaded days in a row. Recovery time is important.');
     }
     if (recoveryNeeds.length > 0 && recoveryNeeds[0].urgency === 'immediate') {
-      recommendations.push(recoveryNeeds[0].suggestedAction?.description || 'Consider blocking recovery time.');
+      recommendations.push(
+        recoveryNeeds[0].suggestedAction?.description || 'Consider blocking recovery time.'
+      );
     }
     if (recommendations.length === 0) {
       recommendations.push('Your calendar looks well-balanced. Keep it up!');
@@ -1647,7 +1660,7 @@ export async function handleCalendarRoutes(
   // ========================================================================
   // CALENDAR ANALYTICS (Better Than Human)
   // ========================================================================
-  
+
   if (normalizedPath === '/calendar/analytics' && req.method === 'GET') {
     await handleAnalytics(req, res, userId);
     return true;

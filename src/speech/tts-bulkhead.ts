@@ -77,7 +77,7 @@ interface SessionState {
   /** Current concurrent operations */
   concurrent: number;
   /** Queued requests */
-  queue: QueuedRequest<unknown>[];
+  queue: Array<QueuedRequest<unknown>>;
   /** Total requests processed */
   totalRequests: number;
   /** Successful requests */
@@ -339,7 +339,7 @@ export class TTSBulkhead {
     };
   }
 
-  private enqueue<T>(
+  private async enqueue<T>(
     request: TTSRequest<T>,
     session: SessionState,
     enqueuedAt: number
@@ -437,10 +437,7 @@ export class TTSBulkhead {
     }
   }
 
-  private async executeWithTimeout<T>(
-    operation: () => Promise<T>,
-    timeoutMs: number
-  ): Promise<T> {
+  private async executeWithTimeout<T>(operation: () => Promise<T>, timeoutMs: number): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       const timer = setTimeout(() => {
         reject(new TimeoutError(`TTS operation timed out after ${timeoutMs}ms`));

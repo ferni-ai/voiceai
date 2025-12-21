@@ -60,9 +60,8 @@ describe('Predictions E2E Integration', () => {
     });
 
     it('should build patterns in memory', async () => {
-      const { recordObservation, getCacheStats } = await import(
-        '../services/superhuman/predictive-coaching.js'
-      );
+      const { recordObservation, getCacheStats } =
+        await import('../services/superhuman/predictive-coaching.js');
 
       // Record multiple patterns
       await recordObservation(TEST_USER_ID, {
@@ -91,9 +90,7 @@ describe('Predictions E2E Integration', () => {
 
   describe('2. Prediction Generation Flow', () => {
     it('should generate predictions from patterns', async () => {
-      const { generatePredictions } = await import(
-        '../services/superhuman/predictive-coaching.js'
-      );
+      const { generatePredictions } = await import('../services/superhuman/predictive-coaching.js');
 
       // Generate predictions (will be empty without Firestore, but tests flow)
       const predictions = await generatePredictions(TEST_USER_ID);
@@ -103,9 +100,8 @@ describe('Predictions E2E Integration', () => {
     });
 
     it('should build predictive context string', async () => {
-      const { buildPredictiveContextString } = await import(
-        '../services/superhuman/predictive-coaching.js'
-      );
+      const { buildPredictiveContextString } =
+        await import('../services/superhuman/predictive-coaching.js');
 
       const context = await buildPredictiveContextString(TEST_USER_ID);
       console.log('📝 Predictive context length:', context.length);
@@ -116,9 +112,8 @@ describe('Predictions E2E Integration', () => {
 
   describe('3. Predictive Intelligence Integration', () => {
     it('should initialize predictive intelligence', async () => {
-      const { initializePredictiveIntelligence, cleanupPredictiveIntelligence } = await import(
-        '../agents/integrations/predictive-intelligence-integration.js'
-      );
+      const { initializePredictiveIntelligence, cleanupPredictiveIntelligence } =
+        await import('../agents/integrations/predictive-intelligence-integration.js');
 
       // Should not throw
       expect(() => {
@@ -174,9 +169,9 @@ describe('Predictions E2E Integration', () => {
 
       // Simulate turns with hedging language
       const messages = [
-        "I guess I should probably try to exercise more",
+        'I guess I should probably try to exercise more',
         "Maybe I should think about changing jobs, I don't know",
-        "I suppose I could try talking to my boss about it",
+        'I suppose I could try talking to my boss about it',
       ];
 
       let totalPatterns = 0;
@@ -229,11 +224,7 @@ describe('Predictions E2E Integration', () => {
         { userId: TEST_USER_ID, sessionId: TEST_SESSION_ID }
       );
 
-      AsyncEvents.emit(
-        'prediction:generate',
-        {},
-        { userId: TEST_USER_ID }
-      );
+      AsyncEvents.emit('prediction:generate', {}, { userId: TEST_USER_ID });
 
       // Wait for async processing
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -297,9 +288,8 @@ describe('Predictions E2E Integration', () => {
 
   describe('5. Configuration', () => {
     it('should configure async event mode', async () => {
-      const { configurePredictiveIntelligence } = await import(
-        '../agents/integrations/predictive-intelligence-integration.js'
-      );
+      const { configurePredictiveIntelligence } =
+        await import('../agents/integrations/predictive-intelligence-integration.js');
 
       // Should not throw when configuring
       expect(() => {
@@ -350,9 +340,8 @@ describe('Predictions E2E Integration', () => {
 
   describe('7. Cache Management', () => {
     it('should clear user pattern cache', async () => {
-      const { clearPatternCache, getCacheStats } = await import(
-        '../services/superhuman/predictive-coaching.js'
-      );
+      const { clearPatternCache, getCacheStats } =
+        await import('../services/superhuman/predictive-coaching.js');
 
       await clearPatternCache(TEST_USER_ID);
 
@@ -380,9 +369,8 @@ describe('Predictions E2E Integration', () => {
         cleanupPredictiveIntelligence,
       } = await import('../agents/integrations/predictive-intelligence-integration.js');
 
-      const { generatePredictions, buildPredictiveContextString } = await import(
-        '../services/superhuman/predictive-coaching.js'
-      );
+      const { generatePredictions, buildPredictiveContextString } =
+        await import('../services/superhuman/predictive-coaching.js');
 
       const sessionId = `full-flow-${Date.now()}`;
 
@@ -392,10 +380,10 @@ describe('Predictions E2E Integration', () => {
 
       // 2. Simulate conversation turns
       const turns = [
-        { message: "Good morning! I barely slept last night", emotion: 'tired' },
-        { message: "I have a big presentation at work today", emotion: 'anxious' },
-        { message: "My boss has been putting a lot of pressure on me lately", emotion: 'stressed' },
-        { message: "I should probably exercise more to manage stress", emotion: 'thoughtful' },
+        { message: 'Good morning! I barely slept last night', emotion: 'tired' },
+        { message: 'I have a big presentation at work today', emotion: 'anxious' },
+        { message: 'My boss has been putting a lot of pressure on me lately', emotion: 'stressed' },
+        { message: 'I should probably exercise more to manage stress', emotion: 'thoughtful' },
       ];
 
       let totalPatterns = 0;

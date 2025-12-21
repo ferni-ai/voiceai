@@ -105,7 +105,7 @@ class ObservationBatcher {
 
     // Process all observations in parallel
     await Promise.all(
-      batch.map(({ data }) =>
+      batch.map(async ({ data }) =>
         recordObservation(userId, {
           type: data.type,
           trigger: data.trigger,
@@ -125,7 +125,7 @@ class ObservationBatcher {
    */
   async flushAll(): Promise<void> {
     const userIds = Array.from(this.batches.keys());
-    await Promise.all(userIds.map((userId) => this.flushUser(userId)));
+    await Promise.all(userIds.map(async (userId) => this.flushUser(userId)));
   }
 
   /**
@@ -245,10 +245,7 @@ export class PredictionsWorker extends LocalWorker {
   /**
    * Handle pattern update (confirm/invalidate prediction accuracy).
    */
-  private async handlePatternUpdate(
-    userId: string,
-    data: Record<string, unknown>
-  ): Promise<void> {
+  private async handlePatternUpdate(userId: string, data: Record<string, unknown>): Promise<void> {
     const updateData = data as unknown as PatternUpdateData;
 
     this.log.debug(
@@ -447,4 +444,3 @@ export async function stopPredictionsWorker(): Promise<void> {
 }
 
 export default PredictionsWorker;
-

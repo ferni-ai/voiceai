@@ -26,10 +26,18 @@ interface MulterRequest extends Request {
 }
 
 // Dynamic import for multer to avoid type issues
-// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const multer = require('multer') as {
   memoryStorage: () => unknown;
-  (options: { storage: unknown; limits: { fileSize: number }; fileFilter: (req: Request, file: MulterFile, cb: (err: Error | null, accept?: boolean) => void) => void }): {
+  (options: {
+    storage: unknown;
+    limits: { fileSize: number };
+    fileFilter: (
+      req: Request,
+      file: MulterFile,
+      cb: (err: Error | null, accept?: boolean) => void
+    ) => void;
+  }): {
     single: (fieldName: string) => (req: Request, res: Response, next: () => void) => void;
   };
 };
@@ -63,7 +71,11 @@ const upload = multer({
   limits: {
     fileSize: 50 * 1024 * 1024, // 50MB max
   },
-  fileFilter: (_req: Request, file: MulterFile, cb: (err: Error | null, accept?: boolean) => void) => {
+  fileFilter: (
+    _req: Request,
+    file: MulterFile,
+    cb: (err: Error | null, accept?: boolean) => void
+  ) => {
     // Accept audio files only
     if (file.mimetype.startsWith('audio/')) {
       cb(null, true);
@@ -82,7 +94,7 @@ const upload = multer({
  */
 function getUserId(req: Request): string | null {
   // Check various auth patterns used in the app
-  const user = (req as unknown as { user?: { id?: string; uid?: string } }).user;
+  const { user } = req as unknown as { user?: { id?: string; uid?: string } };
   if (user?.id) return user.id;
   if (user?.uid) return user.uid;
 
@@ -125,7 +137,7 @@ router.use(requireAuth);
  * Create a new custom agent
  */
 router.post('/', async (req: Request, res: Response) => {
-  const userId = (req as Request & { userId: string }).userId;
+  const { userId } = req as Request & { userId: string };
 
   try {
     const data: CreateCustomAgentRequest = req.body;
@@ -158,7 +170,7 @@ router.post('/', async (req: Request, res: Response) => {
  * List all custom agents for the authenticated user
  */
 router.get('/', async (req: Request, res: Response) => {
-  const userId = (req as Request & { userId: string }).userId;
+  const { userId } = req as Request & { userId: string };
 
   try {
     const agents = await listCustomAgents(userId);
@@ -177,7 +189,7 @@ router.get('/', async (req: Request, res: Response) => {
  * Get a specific custom agent
  */
 router.get('/:agentId', async (req: Request, res: Response) => {
-  const userId = (req as Request & { userId: string }).userId;
+  const { userId } = req as Request & { userId: string };
   const { agentId } = req.params;
 
   try {
@@ -200,7 +212,7 @@ router.get('/:agentId', async (req: Request, res: Response) => {
  * Update a custom agent
  */
 router.put('/:agentId', async (req: Request, res: Response) => {
-  const userId = (req as Request & { userId: string }).userId;
+  const { userId } = req as Request & { userId: string };
   const { agentId } = req.params;
 
   try {
@@ -227,7 +239,7 @@ router.put('/:agentId', async (req: Request, res: Response) => {
  * Delete a custom agent
  */
 router.delete('/:agentId', async (req: Request, res: Response) => {
-  const userId = (req as Request & { userId: string }).userId;
+  const { userId } = req as Request & { userId: string };
   const { agentId } = req.params;
 
   try {
@@ -260,7 +272,7 @@ router.post(
   upload.single('audio'),
   async (req: Request, res: Response) => {
     const multerReq = req as MulterRequest & { userId: string };
-    const userId = multerReq.userId;
+    const { userId } = multerReq;
     const { agentId } = req.params;
 
     try {
@@ -279,7 +291,7 @@ router.post(
       const audioUrl = `gs://voiceai-custom-agents/${userId}/${agentId}/voice-sample-${Date.now()}.webm`;
 
       // Analyze audio quality (basic check)
-      const durationMs = multerReq.file.size / (16000 * 2) * 1000; // Rough estimate
+      const durationMs = (multerReq.file.size / (16000 * 2)) * 1000; // Rough estimate
       const qualityScore = durationMs >= 10000 ? 0.8 : 0.5;
       const feedback =
         durationMs >= 10000
@@ -310,7 +322,7 @@ router.post(
  * Initiate voice cloning with Cartesia
  */
 router.post('/:agentId/voice/clone', async (req: Request, res: Response) => {
-  const userId = (req as Request & { userId: string }).userId;
+  const { userId } = req as Request & { userId: string };
   const { agentId } = req.params;
   const { audioSampleUrl, userName } = req.body;
 
@@ -368,7 +380,7 @@ router.post('/:agentId/voice/clone', async (req: Request, res: Response) => {
  * Generate a voice preview
  */
 router.post('/:agentId/voice/preview', async (req: Request, res: Response) => {
-  const userId = (req as Request & { userId: string }).userId;
+  const { userId } = req as Request & { userId: string };
   const { agentId } = req.params;
   const { text } = req.body;
 
@@ -401,7 +413,7 @@ router.post('/:agentId/voice/preview', async (req: Request, res: Response) => {
  * Select a pre-made voice from the library
  */
 router.put('/:agentId/voice/select-premade', async (req: Request, res: Response) => {
-  const userId = (req as Request & { userId: string }).userId;
+  const { userId } = req as Request & { userId: string };
   const { agentId } = req.params;
   const { voiceId } = req.body;
 
@@ -449,7 +461,7 @@ router.put('/:agentId/voice/select-premade', async (req: Request, res: Response)
  * Add a memory to a custom agent
  */
 router.post('/:agentId/memories', async (req: Request, res: Response) => {
-  const userId = (req as Request & { userId: string }).userId;
+  const { userId } = req as Request & { userId: string };
   const { agentId } = req.params;
   const { type, content, audioUrl, title, phrase, context, mood } = req.body;
 
@@ -488,12 +500,7 @@ router.post('/:agentId/memories', async (req: Request, res: Response) => {
       keywords: content.split(' ').slice(0, 5),
     };
 
-    const updated = await addMemoryToAgent(
-      userId,
-      agentId,
-      memoryTypeMap[type] as never,
-      memory
-    );
+    const updated = await addMemoryToAgent(userId, agentId, memoryTypeMap[type] as never, memory);
 
     if (!updated) {
       return res.status(500).json({ error: 'Failed to add memory' });
@@ -515,7 +522,7 @@ router.post('/:agentId/memories', async (req: Request, res: Response) => {
  * List all memories for a custom agent
  */
 router.get('/:agentId/memories', async (req: Request, res: Response) => {
-  const userId = (req as Request & { userId: string }).userId;
+  const { userId } = req as Request & { userId: string };
   const { agentId } = req.params;
   const { type } = req.query;
 
@@ -564,7 +571,7 @@ router.get('/:agentId/memories', async (req: Request, res: Response) => {
  * Delete a memory from a custom agent
  */
 router.delete('/:agentId/memories/:memoryId', async (req: Request, res: Response) => {
-  const userId = (req as Request & { userId: string }).userId;
+  const { userId } = req as Request & { userId: string };
   const { agentId, memoryId } = req.params;
   const { type } = req.query;
 
@@ -585,12 +592,7 @@ router.delete('/:agentId/memories/:memoryId', async (req: Request, res: Response
       return res.status(400).json({ error: 'Invalid memory type' });
     }
 
-    const updated = await removeMemoryFromAgent(
-      userId,
-      agentId,
-      memoryType as never,
-      memoryId
-    );
+    const updated = await removeMemoryFromAgent(userId, agentId, memoryType as never, memoryId);
 
     if (!updated) {
       return res.status(404).json({ error: 'Agent or memory not found' });
@@ -616,7 +618,7 @@ router.delete('/:agentId/memories/:memoryId', async (req: Request, res: Response
  * Generate system prompt and persona manifest for the agent
  */
 router.post('/:agentId/generate-prompt', async (req: Request, res: Response) => {
-  const userId = (req as Request & { userId: string }).userId;
+  const { userId } = req as Request & { userId: string };
   const { agentId } = req.params;
 
   try {
@@ -644,8 +646,7 @@ router.post('/:agentId/generate-prompt', async (req: Request, res: Response) => 
 // ============================================================================
 
 function generateSystemPrompt(agent: CustomAgent): string {
-  const { name, displayName, description, type, personality, memories, behaviors } =
-    agent;
+  const { name, displayName, description, type, personality, memories, behaviors } = agent;
 
   let prompt = `# You Are ${displayName || name}\n\n`;
   prompt += `You are an AI assistant embodying the persona of ${displayName || name}. Your core identity is: "${description}".\n\n`;

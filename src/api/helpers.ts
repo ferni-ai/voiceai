@@ -63,9 +63,9 @@ export function getUserId(req: IncomingMessage, parsedUrl: URL): string | null {
   // Dev mode bypass - allows testing without authentication
   // SECURITY: Only works in development environment
   const isDev = process.env.NODE_ENV !== 'production';
-  const adminKey = parsedUrl.searchParams.get('admin_key') || 
-                   (req.headers['x-admin-key'] as string);
-  
+  const adminKey =
+    parsedUrl.searchParams.get('admin_key') || (req.headers['x-admin-key'] as string);
+
   if (isDev && adminKey === 'dev-mode') {
     return 'dev-user-123';
   }

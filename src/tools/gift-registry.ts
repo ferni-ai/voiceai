@@ -195,7 +195,10 @@ export function createGiftRegistryTools() {
       parameters: z.object({
         from: z.string().describe('Who gave the gift'),
         description: z.string().describe('What the gift was'),
-        eventName: z.string().optional().describe('What event it was for (e.g., birthday, Christmas)'),
+        eventName: z
+          .string()
+          .optional()
+          .describe('What event it was for (e.g., birthday, Christmas)'),
         estimatedValue: z.number().optional().describe('Approximate value in dollars'),
         notes: z.string().optional().describe('Any notes about the gift'),
       }),
@@ -205,7 +208,10 @@ export function createGiftRegistryTools() {
 
         // Try to find contact to link the gift
         const matches = await searchContacts(userId, from);
-        const contactId = matches.length > 0 ? matches[0].contactId : `unknown_${from.toLowerCase().replace(/\s+/g, '_')}`;
+        const contactId =
+          matches.length > 0
+            ? matches[0].contactId
+            : `unknown_${from.toLowerCase().replace(/\s+/g, '_')}`;
 
         // Persist to Firestore
         await persistGift(userId, {
@@ -225,13 +231,20 @@ export function createGiftRegistryTools() {
 
     // ========== LOG A GIFT GIVEN ==========
     logGiftGiven: llm.tool({
-      description: 'Log a gift that you gave to someone. Helps track gift-giving patterns and avoid repeats.',
+      description:
+        'Log a gift that you gave to someone. Helps track gift-giving patterns and avoid repeats.',
       parameters: z.object({
         to: z.string().describe('Who you gave the gift to'),
         description: z.string().describe('What the gift was'),
-        occasion: z.string().optional().describe('What occasion it was for (birthday, Christmas, etc.)'),
+        occasion: z
+          .string()
+          .optional()
+          .describe('What occasion it was for (birthday, Christmas, etc.)'),
         price: z.number().optional().describe('How much you spent'),
-        reaction: z.enum(['loved', 'liked', 'neutral', 'disliked']).optional().describe('How they reacted'),
+        reaction: z
+          .enum(['loved', 'liked', 'neutral', 'disliked'])
+          .optional()
+          .describe('How they reacted'),
         notes: z.string().optional().describe('Any notes about the gift'),
       }),
       execute: async ({ to, description, occasion, price, reaction, notes }, { ctx }) => {
@@ -240,7 +253,10 @@ export function createGiftRegistryTools() {
 
         // Try to find contact to link the gift
         const matches = await searchContacts(userId, to);
-        const contactId = matches.length > 0 ? matches[0].contactId : `unknown_${to.toLowerCase().replace(/\s+/g, '_')}`;
+        const contactId =
+          matches.length > 0
+            ? matches[0].contactId
+            : `unknown_${to.toLowerCase().replace(/\s+/g, '_')}`;
 
         // Persist to Firestore
         await persistGift(userId, {
@@ -255,7 +271,16 @@ export function createGiftRegistryTools() {
           reaction,
         });
 
-        const reactionEmoji = reaction === 'loved' ? '😍' : reaction === 'liked' ? '😊' : reaction === 'neutral' ? '😐' : reaction === 'disliked' ? '😬' : '';
+        const reactionEmoji =
+          reaction === 'loved'
+            ? '😍'
+            : reaction === 'liked'
+              ? '😊'
+              : reaction === 'neutral'
+                ? '😐'
+                : reaction === 'disliked'
+                  ? '😬'
+                  : '';
 
         return `🎁 Gift recorded!\n\n**To:** ${to}\n**Gift:** ${description}${price ? `\n**Spent:** $${price}` : ''}${reaction ? `\n**Their reaction:** ${reactionEmoji} ${reaction}` : ''}\n\nI'll remember this so we don't accidentally repeat it!`;
       },
@@ -278,8 +303,9 @@ export function createGiftRegistryTools() {
         }
 
         const contact = matches[0];
-        const { recordInteraction } = await import('../services/contacts/contact-relationship-service.js');
-        
+        const { recordInteraction } =
+          await import('../services/contacts/contact-relationship-service.js');
+
         await recordInteraction(userId, {
           contactId: contact.contactId,
           userId,
@@ -295,7 +321,8 @@ export function createGiftRegistryTools() {
 
     // ========== GET GIFT HISTORY FOR A PERSON ==========
     getGiftHistoryForPerson: llm.tool({
-      description: 'See all gifts exchanged with a specific person - what you gave them and what they gave you.',
+      description:
+        'See all gifts exchanged with a specific person - what you gave them and what they gave you.',
       parameters: z.object({
         personName: z.string().describe('The person to see gift history for'),
       }),
@@ -342,12 +369,19 @@ export function createGiftRegistryTools() {
 
     // ========== AI GIFT SUGGESTIONS ==========
     suggestGiftIdeas: llm.tool({
-      description: 'Get AI-powered gift suggestions for someone based on their interests, past gifts, and your relationship.',
+      description:
+        'Get AI-powered gift suggestions for someone based on their interests, past gifts, and your relationship.',
       parameters: z.object({
         personName: z.string().describe('Who you need a gift for'),
-        occasion: z.string().optional().describe('The occasion (birthday, Christmas, anniversary, etc.)'),
+        occasion: z
+          .string()
+          .optional()
+          .describe('The occasion (birthday, Christmas, anniversary, etc.)'),
         budget: z.number().optional().describe('Your budget in dollars'),
-        mood: z.enum(['thoughtful', 'fun', 'practical', 'luxurious']).optional().describe('The vibe you want'),
+        mood: z
+          .enum(['thoughtful', 'fun', 'practical', 'luxurious'])
+          .optional()
+          .describe('The vibe you want'),
       }),
       execute: async ({ personName, occasion, budget, mood }, { ctx }) => {
         const userData = ctx?.userData as { userId?: string } | undefined;
@@ -378,16 +412,21 @@ export function createGiftRegistryTools() {
           response += '\n\n';
 
           suggestions.forEach((suggestion, i) => {
-            const confidence = suggestion.confidence === 'high' ? '⭐' : suggestion.confidence === 'medium' ? '✓' : '';
+            const confidence =
+              suggestion.confidence === 'high'
+                ? '⭐'
+                : suggestion.confidence === 'medium'
+                  ? '✓'
+                  : '';
             response += `${i + 1}. ${confidence} **${suggestion.idea}** (${suggestion.priceRange})\n`;
             response += `   ${suggestion.reasoning}\n\n`;
           });
 
           // Add what to avoid if any
-          const avoid = suggestions.filter(s => s.avoidReason);
+          const avoid = suggestions.filter((s) => s.avoidReason);
           if (avoid.length > 0) {
             response += `\n**Things to avoid:**\n`;
-            avoid.forEach(s => {
+            avoid.forEach((s) => {
               response += `• ${s.avoidReason}\n`;
             });
           }
@@ -401,7 +440,8 @@ export function createGiftRegistryTools() {
 
     // ========== UPCOMING GIFT OCCASIONS ==========
     getUpcomingGiftOccasions: llm.tool({
-      description: 'See upcoming occasions where you might want to give gifts - birthdays, anniversaries, holidays.',
+      description:
+        'See upcoming occasions where you might want to give gifts - birthdays, anniversaries, holidays.',
       parameters: z.object({
         daysAhead: z.number().optional().describe('How many days ahead to look (default: 30)'),
       }),
@@ -418,9 +458,11 @@ export function createGiftRegistryTools() {
         let response = `📅 **Upcoming Gift Occasions**\n\n`;
 
         occasions.forEach((occasion) => {
-          const daysUntil = Math.ceil((new Date(occasion.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+          const daysUntil = Math.ceil(
+            (new Date(occasion.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+          );
           const urgency = daysUntil <= 3 ? '🔴' : daysUntil <= 7 ? '🟡' : '🟢';
-          
+
           response += `${urgency} **${occasion.contactName}** - ${occasion.occasion}`;
           response += ` (${daysUntil === 0 ? 'TODAY!' : daysUntil === 1 ? 'tomorrow' : `in ${daysUntil} days`})\n`;
         });

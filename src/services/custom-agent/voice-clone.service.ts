@@ -17,6 +17,13 @@ import type {
   VoiceUploadResponse,
   CreateVoiceCloneResponse,
 } from '../../types/custom-agent.js';
+import {
+  uploadAudioToGcs,
+  downloadAudioFromGcs,
+  deleteAudioFromGcs,
+  isGcsConfigured,
+  type UploadResult,
+} from './gcs-storage.service.js';
 
 const log = getLogger().child({ module: 'VoiceCloneService' });
 
@@ -77,8 +84,10 @@ interface ProcessedUpload {
   filename: string;
   /** Audio analysis */
   analysis: AudioAnalysis;
-  /** Temporary storage URL */
+  /** Storage URL (GCS public URL or temp URL) */
   storageUrl: string;
+  /** GCS file path (for downloads) */
+  gcsFilePath?: string;
   /** When uploaded */
   uploadedAt: Date;
 }
@@ -192,23 +201,26 @@ function getQualityRating(totalDuration: number): 'poor' | 'fair' | 'good' | 'ex
 // ============================================================================
 
 /**
- * In-memory storage for pending uploads (would be Redis/GCS in production)
+ * In-memory storage for pending uploads metadata
+ * Audio buffers are stored in GCS when available, or in-memory as fallback
  */
 const pendingUploads = new Map<string, ProcessedUpload[]>();
 
 /**
- * In-memory storage for audio buffers (would be GCS in production)
+ * In-memory storage for audio buffers (fallback when GCS is not configured)
  */
 const audioBuffers = new Map<string, ArrayBuffer>();
 
 /**
  * Process uploaded audio files for voice cloning
+ * Uploads files to GCS when available, falls back to in-memory storage
  */
 export async function processVoiceUpload(
   agentId: string,
-  files: Array<{ filename: string; buffer: ArrayBuffer; mimeType: string }>
+  files: Array<{ filename: string; buffer: ArrayBuffer; mimeType: string }>,
+  userId: string = 'anonymous'
 ): Promise<VoiceUploadResponse> {
-  log.info({ agentId, fileCount: files.length }, 'Processing voice upload');
+  log.info({ agentId, fileCount: files.length, gcsConfigured: isGcsConfigured() }, 'Processing voice upload');
 
   const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substring(7)}`;
   const processed: ProcessedUpload[] = [];
@@ -232,18 +244,45 @@ export async function processVoiceUpload(
     // Analyze audio
     const analysis = await analyzeAudio(file.buffer);
 
-    // Store temporarily (in production, upload to GCS)
-    const storageUrl = `temp://${uploadId}/${file.filename}`;
-
-    // Store the audio buffer for later use
+    // Generate buffer key for retrieval
     const bufferKey = `${uploadId}_${file.filename}`;
-    audioBuffers.set(bufferKey, file.buffer);
+    let storageUrl: string;
+    let gcsFilePath: string | undefined;
+
+    // Try to upload to GCS, fall back to in-memory storage
+    if (isGcsConfigured()) {
+      const gcsResult = await uploadAudioToGcs(
+        file.buffer,
+        userId,
+        agentId,
+        file.filename,
+        'voiceClone',
+        true
+      );
+
+      if (gcsResult) {
+        storageUrl = gcsResult.publicUrl;
+        gcsFilePath = gcsResult.filePath;
+        log.debug({ filename: file.filename, publicUrl: storageUrl }, 'Audio uploaded to GCS');
+      } else {
+        // Fallback to in-memory if GCS upload fails
+        storageUrl = `temp://${uploadId}/${file.filename}`;
+        audioBuffers.set(bufferKey, file.buffer);
+        log.warn({ filename: file.filename }, 'GCS upload failed, using in-memory storage');
+      }
+    } else {
+      // No GCS configured, use in-memory storage
+      storageUrl = `temp://${uploadId}/${file.filename}`;
+      audioBuffers.set(bufferKey, file.buffer);
+      log.debug({ filename: file.filename }, 'Using in-memory storage (no GCS configured)');
+    }
 
     processed.push({
-      uploadId: bufferKey, // Use buffer key as uploadId for retrieval
+      uploadId: bufferKey,
       filename: file.filename,
       analysis,
       storageUrl,
+      gcsFilePath,
       uploadedAt: new Date(),
     });
 
@@ -257,20 +296,25 @@ export async function processVoiceUpload(
     totalDuration += analysis.speechDuration;
   }
 
-  // Store for later retrieval
+  // Store metadata for later retrieval
   pendingUploads.set(uploadId, processed);
 
   // Schedule cleanup after 1 hour
   setTimeout(
-    () => {
+    async () => {
       const uploadsToClean = pendingUploads.get(uploadId);
       if (uploadsToClean) {
         for (const upload of uploadsToClean) {
+          // Clean up in-memory buffer
           audioBuffers.delete(upload.uploadId);
+          // Clean up GCS file if it exists
+          if (upload.gcsFilePath) {
+            await deleteAudioFromGcs(upload.gcsFilePath);
+          }
         }
       }
       pendingUploads.delete(uploadId);
-      log.debug({ uploadId }, 'Cleaned up pending upload and audio buffers');
+      log.debug({ uploadId }, 'Cleaned up pending upload and audio files');
     },
     60 * 60 * 1000
   );
@@ -321,13 +365,18 @@ export async function createVoiceClone(
   const cloneName = voiceName || `ferni_custom_${userId}_${agentId}`;
 
   try {
-    // Call Cartesia API with audio buffers
-    const response = await callCartesiaCloneAPI(cloneName, uploads, audioBuffers);
+    // Call Cartesia API - audio buffers are retrieved internally from GCS or memory
+    const response = await callCartesiaCloneAPI(cloneName, uploads);
 
-    // Clean up pending uploads and audio buffers
+    // Clean up pending uploads and audio buffers/GCS files
     pendingUploads.delete(uploadId);
     for (const upload of uploads) {
+      // Clean up in-memory buffer
       audioBuffers.delete(upload.uploadId);
+      // Clean up GCS file if it exists
+      if (upload.gcsFilePath) {
+        await deleteAudioFromGcs(upload.gcsFilePath);
+      }
     }
 
     log.info(
@@ -347,6 +396,32 @@ export async function createVoiceClone(
 }
 
 /**
+ * Get audio buffer for an upload - either from in-memory storage or GCS
+ */
+async function getAudioBuffer(upload: ProcessedUpload): Promise<ArrayBuffer | null> {
+  // Try in-memory first
+  const memoryBuffer = audioBuffers.get(upload.uploadId);
+  if (memoryBuffer) {
+    return memoryBuffer;
+  }
+
+  // Try GCS if file path is available
+  if (upload.gcsFilePath) {
+    const gcsBuffer = await downloadAudioFromGcs(upload.gcsFilePath);
+    if (gcsBuffer) {
+      // Create a new ArrayBuffer from the GCS buffer to ensure correct type
+      const arrayBuffer = new ArrayBuffer(gcsBuffer.length);
+      const view = new Uint8Array(arrayBuffer);
+      view.set(gcsBuffer);
+      return arrayBuffer;
+    }
+  }
+
+  log.warn({ uploadId: upload.uploadId }, 'Could not retrieve audio buffer');
+  return null;
+}
+
+/**
  * Call Cartesia Voice Clone API
  * 
  * Uses Cartesia's instant voice cloning API which requires just 10 seconds of audio.
@@ -354,8 +429,7 @@ export async function createVoiceClone(
  */
 async function callCartesiaCloneAPI(
   name: string,
-  uploads: ProcessedUpload[],
-  audioBuffers: Map<string, ArrayBuffer>
+  uploads: ProcessedUpload[]
 ): Promise<CartesiaVoiceCloneResponse> {
   // If no API key, return simulated response for development
   if (!CARTESIA_API_KEY) {
@@ -376,17 +450,23 @@ async function callCartesiaCloneAPI(
     formData.append('description', `Custom voice for ${name}`);
     formData.append('language', 'en');
 
-    // Add audio clips
+    // Add audio clips - retrieve from GCS or in-memory
+    let clipsAdded = 0;
     for (const upload of uploads) {
-      const buffer = audioBuffers.get(upload.uploadId);
+      const buffer = await getAudioBuffer(upload);
       if (buffer) {
         // Convert ArrayBuffer to Blob
         const blob = new Blob([buffer], { type: 'audio/wav' });
         formData.append('clip', blob, upload.filename);
+        clipsAdded++;
       }
     }
 
-    log.info({ name, clipCount: uploads.length }, 'Calling Cartesia voice clone API');
+    if (clipsAdded === 0) {
+      throw new Error('No audio clips available for voice clone');
+    }
+
+    log.info({ name, clipCount: clipsAdded }, 'Calling Cartesia voice clone API');
 
     const response = await fetch(`${CARTESIA_BASE_URL}/voices/clone/clip`, {
       method: 'POST',

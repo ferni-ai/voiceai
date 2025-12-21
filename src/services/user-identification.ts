@@ -276,15 +276,15 @@ export async function identifyFromMetadata(
     if (!profile && deviceId && typeof deviceId === 'string') {
       const deviceUserId = `device:${deviceId}`;
       const deviceProfile = await store.getProfile(deviceUserId);
-      
+
       if (deviceProfile && deviceProfile.totalConversations > 0) {
         // Found a legacy device profile - migrate it!
         getLogger().info(
-          { 
-            firebaseUid: firebaseUid.slice(0, 8) + '...', 
-            deviceId: deviceId.slice(0, 12) + '...',
+          {
+            firebaseUid: `${firebaseUid.slice(0, 8)}...`,
+            deviceId: `${deviceId.slice(0, 12)}...`,
             conversations: deviceProfile.totalConversations,
-            name: deviceProfile.name || '(none)'
+            name: deviceProfile.name || '(none)',
           },
           '🔄 AUTO-MIGRATION: Migrating device profile to Firebase UID'
         );
@@ -302,23 +302,23 @@ export async function identifyFromMetadata(
             // Re-fetch the newly migrated profile
             profile = await store.getProfile(firebaseUid);
             getLogger().info(
-              { 
-                firebaseUid: firebaseUid.slice(0, 8) + '...',
+              {
+                firebaseUid: `${firebaseUid.slice(0, 8)}...`,
                 conversations: result.conversationsMigrated,
                 memories: result.memoriesMigrated,
-                action: result.profileAction
+                action: result.profileAction,
               },
               '✅ AUTO-MIGRATION: Successfully migrated device profile'
             );
           } else {
             getLogger().warn(
-              { firebaseUid: firebaseUid.slice(0, 8) + '...', error: result.error },
+              { firebaseUid: `${firebaseUid.slice(0, 8)}...`, error: result.error },
               '⚠️ AUTO-MIGRATION: Migration failed, continuing with new profile'
             );
           }
         } catch (migrationError) {
           getLogger().error(
-            { error: String(migrationError), firebaseUid: firebaseUid.slice(0, 8) + '...' },
+            { error: String(migrationError), firebaseUid: `${firebaseUid.slice(0, 8)}...` },
             '❌ AUTO-MIGRATION: Error during migration (continuing with new profile)'
           );
         }

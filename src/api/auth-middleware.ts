@@ -172,8 +172,9 @@ export function authenticate(req: IncomingMessage): AuthContext | null {
     const adminKeyHeader = getHeader(req, 'X-Admin-Key');
     const configuredAdminKey = process.env.ADMIN_KEY;
     // Allow either 'dev-mode' string OR configured ADMIN_KEY in development
-    const isValidDevKey = adminKeyHeader === 'dev-mode' || 
-                          (configuredAdminKey && adminKeyHeader === configuredAdminKey);
+    const isValidDevKey =
+      adminKeyHeader === 'dev-mode' ||
+      (configuredAdminKey && adminKeyHeader === configuredAdminKey);
     if (isValidDevKey) {
       const devUserId = getHeader(req, 'X-User-Id') || 'dev-user';
       return {

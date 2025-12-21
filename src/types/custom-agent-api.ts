@@ -288,9 +288,7 @@ export interface CreateCustomAgentRequest {
 /**
  * Update custom agent request
  */
-export type UpdateCustomAgentRequest = Partial<
-  Omit<CustomAgent, 'id' | 'userId' | 'createdAt'>
->;
+export type UpdateCustomAgentRequest = Partial<Omit<CustomAgent, 'id' | 'userId' | 'createdAt'>>;
 
 /**
  * Add memory request
@@ -321,4 +319,3 @@ export interface VoiceUploadResponse {
 // Alias exports for compatibility
 export type AgentType = CustomAgentType;
 export type AgentStatus = CustomAgentStatus;
-

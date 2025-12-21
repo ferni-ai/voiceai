@@ -187,6 +187,7 @@ const ICONS = {
   coffee: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>`,
   mapPin: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`,
   star: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+  camera: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>`,
   lightbulb: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>`,
   fileText: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>`,
 };
@@ -298,6 +299,7 @@ function injectStyles(): void {
     }
 
     .rc-avatar {
+      position: relative;
       width: 72px;
       height: 72px;
       border-radius: var(--radius-full, 50%);
@@ -314,6 +316,34 @@ function injectStyles(): void {
       font-size: var(--text-2xl, 1.5rem);
       flex-shrink: 0;
       box-shadow: var(--shadow-md);
+      cursor: pointer;
+      overflow: hidden;
+    }
+    
+    .rc-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .rc-avatar-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity ${DURATION.FAST}ms ${EASING.STANDARD};
+      color: white;
+    }
+    
+    .rc-avatar:hover .rc-avatar-overlay {
+      opacity: 1;
+    }
+    
+    .rc-avatar-input {
+      display: none;
     }
 
     .rc-info {
@@ -1066,7 +1096,14 @@ function renderHeader(): string {
       <button class="rc-close" aria-label="Close">${ICONS.close}</button>
       
       <div class="rc-person">
-        <div class="rc-avatar">${initials}</div>
+        <label class="rc-avatar" for="rc-avatar-input" title="Click to change photo">
+          ${person.photo 
+            ? `<img src="${escapeHtml(person.photo)}" alt="${escapeHtml(person.name)}">`
+            : initials
+          }
+          <div class="rc-avatar-overlay">${ICONS.camera}</div>
+        </label>
+        <input type="file" id="rc-avatar-input" class="rc-avatar-input" accept="image/*">
         <div class="rc-info">
           <h2 class="rc-name">${escapeHtml(person.name)}</h2>
           <div class="rc-relationship-type">${person.relationship || 'Contact'}</div>
@@ -1540,6 +1577,16 @@ function bindEvents(): void {
     });
   });
 
+  // Avatar photo upload
+  const avatarInput = cardContainer.querySelector('#rc-avatar-input') as HTMLInputElement;
+  if (avatarInput) {
+    avatarInput.addEventListener('change', async () => {
+      if (avatarInput.files && avatarInput.files[0] && state.person) {
+        await handlePhotoUpload(avatarInput.files[0]);
+      }
+    });
+  }
+
   // Escape key
   document.addEventListener('keydown', handleEscapeKey);
 }
@@ -1723,6 +1770,50 @@ function handleAddAction(action: string | null): void {
     case 'edit-notes':
       toast.info('Edit notes coming soon');
       break;
+  }
+}
+
+async function handlePhotoUpload(file: File): Promise<void> {
+  if (!state.person) return;
+
+  // Validate file
+  if (!file.type.startsWith('image/')) {
+    toast.error('Please select an image file');
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) { // 5MB limit
+    toast.error('Image must be less than 5MB');
+    return;
+  }
+
+  toast.info('Uploading photo...');
+
+  try {
+    // Convert to base64 for simple storage (in production, use Cloud Storage)
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    // Update contact with photo
+    const response = await apiFetch(`/api/contacts/${state.person.contactId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ photo: base64 }),
+    });
+
+    if (response.ok) {
+      state.person.photo = base64;
+      render();
+      toast.success('Photo updated!');
+    } else {
+      toast.error('Could not save photo');
+    }
+  } catch (error) {
+    log.error('Failed to upload photo:', error);
+    toast.error('Could not upload photo');
   }
 }
 
